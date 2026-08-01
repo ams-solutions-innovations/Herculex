@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/units.dart';
 import '../../../theme/colors.dart';
 import '../data/analytics_repository.dart';
 import 'analytics_providers.dart';
@@ -123,7 +124,7 @@ class _RecoveryCard extends ConsumerWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.secondary, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(fontSize: 11, color: AppColors.secondary, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -193,7 +194,7 @@ class _BalanceCard extends ConsumerWidget {
                       children: [
                         Icon(Icons.warning_amber_rounded, color: theme.colorScheme.secondary, size: 20),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             "Asymmetry detected (>25%). Consider adding more pulling exercises to support structural shoulder balance.",
                             style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
@@ -237,7 +238,7 @@ class _SleepVsRpeCard extends ConsumerWidget {
             children: [
               Text('Sleep vs. Gym RPE', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               IconButton(
-                icon: const Icon(Icons.info_outline, size: 18, color: AppColors.secondary),
+                icon: Icon(Icons.info_outline, size: 18, color: AppColors.secondary),
                 onPressed: () => _showMethodologyDialog(context, "Sleep vs. RPE Correlation",
                     "R² (Coefficient of Determination) indicates the percentage of variation in perceived session RPE that can be explained by sleep duration. A higher R² indicates that sleep heavily impacts recovery stress levels."),
               ),
@@ -286,7 +287,7 @@ class _SleepVsRpeCard extends ConsumerWidget {
                       child: Text(
                         res.interpretation,
                         textAlign: TextAlign.end,
-                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11),
+                        style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11),
                       ),
                     ),
                   ],
@@ -325,7 +326,7 @@ class _HrVsTonnageCard extends ConsumerWidget {
             children: [
               Text('Resting HR vs. Tonnage', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               IconButton(
-                icon: const Icon(Icons.info_outline, size: 18, color: AppColors.secondary),
+                icon: Icon(Icons.info_outline, size: 18, color: AppColors.secondary),
                 onPressed: () => _showMethodologyDialog(context, "Resting HR vs. Tonnage Correlation",
                     "Elevated resting heart rate indicates systemic stress. This scatter plot tracks whether higher heart rates correlate with decreased absolute session volume (tonnage)."),
               ),
@@ -401,7 +402,7 @@ void _showMethodologyDialog(BuildContext context, String title, String descripti
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("CLOSE", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            child: Text("CLOSE", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
         ],
       );
@@ -474,7 +475,7 @@ class _TonnageCard extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     DateFormat('M/d').format(data[i].weekStart),
-                    style: const TextStyle(color: AppColors.secondary, fontSize: 10),
+                    style: TextStyle(color: AppColors.secondary, fontSize: 10),
                   ),
                 );
               },
@@ -539,7 +540,7 @@ class _OneRmCard extends ConsumerWidget {
                                 child: Text(p.exerciseName, style: theme.textTheme.titleSmall),
                               ),
                               Text(
-                                '${p.estimatedOneRmKg.toStringAsFixed(1)} kg',
+                                ref.watch(weightFormatProvider).format(p.estimatedOneRmKg),
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.primary,

@@ -79,7 +79,7 @@ class _TemplateBuilderViewState extends ConsumerState<TemplateBuilderView> {
           if (templateId != null && !_saving)
             TextButton(
               onPressed: () => _save(widget.existing!),
-              child: const Text('Save', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              child: Text('Save', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
@@ -132,7 +132,13 @@ class _CreateFormState extends ConsumerState<_CreateForm> {
         const SizedBox(height: 14),
         _PillField(label: 'Notes', controller: widget.notesCtrl, hint: 'Optional description', maxLines: 3),
         const SizedBox(height: 24),
-        Text('FOLDER', style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.2)),
+        Center(
+          child: Text(
+            'FOLDER',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.2),
+          ),
+        ),
         const SizedBox(height: 10),
         foldersAsync.when(
           data: (folders) => Wrap(
@@ -196,7 +202,7 @@ class _EditBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final exercisesAsync = ref.watch(templateExercisesProvider(template.id));
-    final catalogAsync = ref.watch(exerciseCatalogProvider(null));
+    final catalogAsync = ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
     final repo = ref.read(templatesRepositoryProvider);
 
     return Column(
@@ -209,23 +215,37 @@ class _EditBody extends ConsumerWidget {
               const SizedBox(height: 14),
               _PillField(label: 'Notes', controller: notesCtrl, hint: 'Optional description', maxLines: 2),
               const SizedBox(height: 28),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Stack(
+                alignment: Alignment.center,
                 children: [
-                  Text('EXERCISES', style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.2)),
-                  TextButton.icon(
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add'),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                    onPressed: () async {
-                      final picked = await ExercisePickerSheet.show(context);
-                      if (picked != null) {
+                  Text(
+                    'EXERCISES',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.2),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Add'),
+                      style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                      onPressed: () async {
+                        final picked = await ExercisePickerSheet.show(context);
+                        if (picked == null || !context.mounted) return;
+                        final target = await _TargetConfigSheet.show(
+                          context,
+                          exerciseName: picked.exercise.name,
+                        );
+                        if (target == null || !context.mounted) return;
                         await repo.addExerciseToTemplate(
                           templateId: template.id,
                           exerciseId: picked.exercise.id,
+                          targetSets: target.sets,
+                          targetRepsMin: target.repsMin,
+                          targetRepsMax: target.repsMax,
                         );
-                      }
-                    },
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -242,7 +262,7 @@ class _EditBody extends ConsumerWidget {
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.fitness_center_outlined, size: 40, color: AppColors.primary),
+                          Icon(Icons.fitness_center_outlined, size: 40, color: AppColors.primary),
                           const SizedBox(height: 12),
                           Text('No exercises yet', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 4),
@@ -277,7 +297,13 @@ class _EditBody extends ConsumerWidget {
             child: PremiumButton(
               text: 'Done',
               icon: Icons.check,
-              onTap: () => Navigator.of(context).pop(template),
+              onTap: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isNotEmpty) {
+                  await repo.updateTemplate(template.id, name: name, notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim());
+                }
+                if (context.mounted) Navigator.of(context).pop(template);
+              },
             ),
           ),
         ),
@@ -322,7 +348,7 @@ class _TemplateExerciseTile extends StatelessWidget {
                 color: AppColors.primaryContainer.withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.fitness_center, size: 20, color: AppColors.primary),
+              child: Icon(Icons.fitness_center, size: 20, color: AppColors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -340,12 +366,179 @@ class _TemplateExerciseTile extends StatelessWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.secondary),
+              icon: Icon(Icons.delete_outline, size: 20, color: AppColors.secondary),
               onPressed: onRemove,
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Target sets/reps config sheet ────────────────────────────────────────────
+
+typedef _TargetConfig = ({int sets, int? repsMin, int? repsMax});
+
+class _TargetConfigSheet extends StatefulWidget {
+  final String exerciseName;
+  const _TargetConfigSheet({required this.exerciseName});
+
+  static Future<_TargetConfig?> show(
+    BuildContext context, {
+    required String exerciseName,
+  }) {
+    return showModalBottomSheet<_TargetConfig>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _TargetConfigSheet(exerciseName: exerciseName),
+    );
+  }
+
+  @override
+  State<_TargetConfigSheet> createState() => _TargetConfigSheetState();
+}
+
+class _TargetConfigSheetState extends State<_TargetConfigSheet> {
+  final _setsCtrl = TextEditingController();
+  final _repsMinCtrl = TextEditingController();
+  final _repsMaxCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _setsCtrl.dispose();
+    _repsMinCtrl.dispose();
+    _repsMaxCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final sets = int.tryParse(_setsCtrl.text.trim());
+    if (sets == null || sets < 1) return;
+    final repsMin = int.tryParse(_repsMinCtrl.text.trim());
+    final repsMax = int.tryParse(_repsMaxCtrl.text.trim());
+    Navigator.of(context).pop<_TargetConfig>((
+      sets: sets,
+      repsMin: repsMin,
+      repsMax: (repsMax != null && repsMax > (repsMin ?? 0)) ? repsMax : repsMin,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.bottomSheetTheme.backgroundColor ?? AppColors.surfaceContainerLowest,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(widget.exerciseName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('Set your targets', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _NumField(label: 'Sets *', controller: _setsCtrl, hint: 'e.g. 4'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _NumField(label: 'Reps (min)', controller: _repsMinCtrl, hint: 'e.g. 6'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _NumField(label: 'Reps (max)', controller: _repsMaxCtrl, hint: 'e.g. 10'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          side: BorderSide(color: AppColors.outlineVariant),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: _submit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text('Add to Template'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NumField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final String hint;
+  const _NumField({required this.label, required this.controller, required this.hint});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: AppColors.surfaceContainer,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.primary, width: 1.5)),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -377,7 +570,7 @@ class _PillField extends StatelessWidget {
             contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.primary, width: 1.5)),
           ),
         ),
       ],

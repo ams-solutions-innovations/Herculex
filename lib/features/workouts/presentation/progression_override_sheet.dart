@@ -178,7 +178,6 @@ class _ProgressionOverrideSheetState
             min: 0.5,
             max: 10.0,
             divisions: 19,
-            activeColor: AppColors.primary,
             onChanged: _loaded && _enabled
                 ? (v) => setState(() => _weeklyPct = v)
                 : null,

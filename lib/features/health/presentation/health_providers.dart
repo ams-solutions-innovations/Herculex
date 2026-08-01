@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:health/health.dart';
 
 import '../../../app/providers.dart';
 import '../data/health_service.dart';
@@ -22,6 +23,11 @@ final healthPermissionStatusProvider = StateProvider<Map<String, bool>>((ref) {
     'google': false,
     'samsung': false,
   };
+});
+
+final externalWorkoutsProvider = FutureProvider<List<HealthDataPoint>>((ref) async {
+  final service = ref.watch(healthServiceProvider);
+  return service.getWorkouts(14); // 14 days is enough for recovery window
 });
 
 final autoAdjustGymVolumeProvider = StateProvider<bool>((ref) {

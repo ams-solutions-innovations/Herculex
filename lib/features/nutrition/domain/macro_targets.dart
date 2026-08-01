@@ -24,8 +24,9 @@ class MacroTargets {
     final a = profile.ageYears;
     if (w == null || h == null || a == null) return null;
 
-    // Mifflin-St Jeor (assumed male offset; switch to user-configured later).
-    final bmr = 10 * w + 6.25 * h - 5 * a + 5;
+    // Mifflin-St Jeor formula based on sex. Defaults to male offset (+5) if sex is unset.
+    final offset = (profile.sex == BiologicalSex.female) ? -161 : 5;
+    final bmr = 10 * w + 6.25 * h - 5 * a + offset;
     final multiplier = switch (profile.activityLevel) {
       ActivityLevel.sedentary => 1.2,
       ActivityLevel.lightlyActive => 1.375,
@@ -33,7 +34,9 @@ class MacroTargets {
       ActivityLevel.veryActive => 1.725,
     };
     final tdee = bmr * multiplier;
-    final adjusted = tdee + switch (profile.goal) {
+    final adjusted =
+        tdee +
+        switch (profile.goal) {
           FitnessGoal.weightLoss => -500,
           FitnessGoal.muscleGain => 300,
           FitnessGoal.maintenance => 0,

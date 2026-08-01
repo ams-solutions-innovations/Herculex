@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:health/health.dart';
 import '../../../data/local/database.dart';
+import '../../health/domain/external_workout_cns_mapper.dart';
 import 'training_snapshot.dart';
 
 /// Recovery status for one of the 19 tracked muscle groups (V2 §2).
@@ -45,7 +47,7 @@ class MuscleRecoveryV3 {
   ];
 
   /// Maps source dataset muscle names onto the 19 display groups.
-  static const _alias = <String, String>{
+  static const alias = <String, String>{
     'Serratus': 'Chest',
     'Rhomboids': 'Back',
     'Erectors': 'Back',
@@ -57,7 +59,7 @@ class MuscleRecoveryV3 {
     'Arms': 'Biceps',
   };
 
-  static const _roleWeight = {
+  static const roleWeight = {
     'primary': 1.0,
     'secondary': 0.5,
     'stabilizer': 0.2,
@@ -78,6 +80,7 @@ class MuscleRecoveryV3 {
 
   static List<MuscleGroupRecovery> compute({
     required TrainingSnapshot snapshot,
+    List<HealthDataPoint> externalWorkouts = const [],
     required DateTime asOf,
   }) {
     final fatigue = {for (final g in groups) g: 0.0};
@@ -99,11 +102,11 @@ class MuscleRecoveryV3 {
           ? [
               for (final r in rows)
                 (
-                  _alias[r.muscle] ?? r.muscle,
-                  (_roleWeight[r.role] ?? 0) * r.contribution,
+                  alias[r.muscle] ?? r.muscle,
+                  (roleWeight[r.role] ?? 0) * r.contribution,
                 )
             ]
-          : [(_alias[rs.exercise.primaryMuscle] ?? rs.exercise.primaryMuscle, 1.0)];
+          : [(alias[rs.exercise.primaryMuscle] ?? rs.exercise.primaryMuscle, 1.0)];
 
       // Weekly set counts (per-muscle fractional credit by role weight).
       for (final (muscle, w) in involvement) {
@@ -135,6 +138,35 @@ class MuscleRecoveryV3 {
         final mult = muscle == 'Forearms' ? rs.forearmMultiplier : 1.0;
         fatigue[muscle] =
             (fatigue[muscle]! + perSet * w * mult).clamp(0.0, 1.0);
+      }
+    }
+
+    for (final workout in externalWorkouts) {
+      if (workout.value is! WorkoutHealthValue) continue;
+      final wv = workout.value as WorkoutHealthValue;
+      
+      final hours = asOf.difference(workout.dateTo).inHours;
+      if (hours < 0 || hours > _windowHours) continue;
+
+      final impact = ExternalWorkoutCnsMapper.getImpactFor(wv.workoutActivityType);
+      
+      final durationMinutes = workout.dateTo.difference(workout.dateFrom).inMinutes;
+      final equivalentSets = (durationMinutes / 60.0) * 15.0; // 15 sets per hour
+      
+      final halfLife = 18.0 + 6.0 * (impact.baseCnsScore * 10);
+      
+      for (final entry in impact.muscleInvolvement.entries) {
+        final muscle = entry.key;
+        final w = entry.value;
+        if (!fatigue.containsKey(muscle)) continue;
+        
+        final perSet = _perSetBase * (impact.baseCnsScore) * exp(-hours * ln2 / halfLife);
+        fatigue[muscle] = (fatigue[muscle]! + perSet * w * equivalentSets).clamp(0.0, 1.0);
+        
+        // Also add to weekly sets
+        if (weeklySets.containsKey(muscle)) {
+          weeklySets[muscle] = weeklySets[muscle]! + (w * equivalentSets);
+        }
       }
     }
 

@@ -38,7 +38,7 @@ class CalendarService {
       if (workouts.isEmpty) return true;
 
       // 2. Find or create custom calendar
-      final String calendarId = await _findOrCreateSwyCalendar();
+      final String calendarId = await _findOrCreateHerculexCalendar();
 
       // 3. Clear/sync strategy: for simplicity and robust update, we create new events
       // for the future scheduled workouts.
@@ -101,7 +101,7 @@ class CalendarService {
   }
 
   /// Locates "Herculex Training" calendar, creating it if missing. Fallbacks to default if unavailable.
-  Future<String> _findOrCreateSwyCalendar() async {
+  Future<String> _findOrCreateHerculexCalendar() async {
     final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
     if (calendarsResult.isSuccess && calendarsResult.data != null) {
       for (final cal in calendarsResult.data!) {

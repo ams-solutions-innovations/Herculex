@@ -10,18 +10,29 @@ import 'custom_food_form_sheet.dart';
 import 'nutrition_providers.dart';
 
 class RecipeBuilderView extends ConsumerStatefulWidget {
-  const RecipeBuilderView({super.key});
+  final RecipeData? existingRecipe;
+  const RecipeBuilderView({super.key, this.existingRecipe});
 
   @override
   ConsumerState<RecipeBuilderView> createState() => _RecipeBuilderViewState();
 }
 
 class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
-  final _name = TextEditingController();
-  final _servings = TextEditingController(text: '1');
-  final _notes = TextEditingController();
+  late final TextEditingController _name;
+  late final TextEditingController _servings;
+  late final TextEditingController _notes;
   int? _recipeId;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final r = widget.existingRecipe;
+    _recipeId = r?.id;
+    _name = TextEditingController(text: r?.name ?? '');
+    _servings = TextEditingController(text: (r?.servings ?? 1).toString());
+    _notes = TextEditingController(text: r?.notes ?? '');
+  }
 
   @override
   void dispose() {
@@ -33,9 +44,13 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
 
   Future<void> _ensureRecipe() async {
     if (_recipeId != null) return;
-    final name = _name.text.trim().isEmpty ? 'Untitled recipe' : _name.text.trim();
+    final name = _name.text.trim().isEmpty
+        ? 'Untitled recipe'
+        : _name.text.trim();
     final servings = int.tryParse(_servings.text.trim()) ?? 1;
-    _recipeId = await ref.read(nutritionRepositoryProvider).createRecipe(
+    _recipeId = await ref
+        .read(nutritionRepositoryProvider)
+        .createRecipe(
           name: name,
           servings: servings,
           notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
@@ -50,11 +65,9 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
     if (food == null) return;
     final grams = await _askGrams(initial: food.servingGrams ?? 100);
     if (grams == null) return;
-    await ref.read(nutritionRepositoryProvider).addIngredient(
-          recipeId: _recipeId!,
-          foodId: food.id,
-          grams: grams,
-        );
+    await ref
+        .read(nutritionRepositoryProvider)
+        .addIngredient(recipeId: _recipeId!, foodId: food.id, grams: grams);
   }
 
   Future<FoodData?> _showFoodPicker() async {
@@ -79,13 +92,19 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
           controller: ctrl,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+          ],
           decoration: const InputDecoration(suffixText: 'g'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context, double.tryParse(ctrl.text.trim())),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(context, double.tryParse(ctrl.text.trim())),
             child: const Text('Add'),
           ),
         ],
@@ -99,12 +118,30 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
     if (_recipeId == null) return;
     setState(() => _saving = true);
     final repo = ref.read(nutritionRepositoryProvider);
-    // The recipe row already exists from _ensureRecipe; we just need to fetch it.
-    final db = ref.read(nutritionRepositoryProvider);
-    // ignore: unused_local_variable
-    final unused = repo == db; // silence the analyzer
+    final name = _name.text.trim().isEmpty
+        ? 'Untitled recipe'
+        : _name.text.trim();
+    final servings = int.tryParse(_servings.text.trim()) ?? 1;
+    final notes = _notes.text.trim().isEmpty ? null : _notes.text.trim();
+
+    await repo.updateRecipe(
+      id: _recipeId!,
+      name: name,
+      servings: servings,
+      notes: notes,
+    );
+
     final list = await ref.read(recipesProvider.future);
-    final created = list.firstWhere((r) => r.id == _recipeId!);
+    final created = list.firstWhere(
+      (r) => r.id == _recipeId!,
+      orElse: () => RecipeData(
+        id: _recipeId!,
+        name: name,
+        servings: servings,
+        notes: notes,
+        createdAt: DateTime.now(),
+      ),
+    );
     if (!mounted) return;
     Navigator.of(context).pop<RecipeData>(created);
   }
@@ -112,6 +149,7 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isEditing = widget.existingRecipe != null;
     final ingredients = _recipeId == null
         ? const AsyncValue<List<RecipeIngredientData>>.data([])
         : ref.watch(recipeIngredientsProvider(_recipeId!));
@@ -121,7 +159,7 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New recipe'),
+        title: Text(isEditing ? 'Edit recipe' : 'New recipe'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -132,7 +170,13 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _Field(label: 'Servings', controller: _servings, numeric: true)),
+              Expanded(
+                child: _Field(
+                  label: 'Servings',
+                  controller: _servings,
+                  numeric: true,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -141,7 +185,12 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Ingredients', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Ingredients',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               TextButton.icon(
                 icon: const Icon(Icons.add),
                 label: const Text('Add ingredient'),
@@ -154,11 +203,16 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
               if (list.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text('No ingredients yet.', style: theme.textTheme.bodyMedium),
+                  child: Text(
+                    'No ingredients yet.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
                 );
               }
               return Column(
-                children: list.map((ing) => _IngredientTile(ingredient: ing)).toList(),
+                children: list
+                    .map((ing) => _IngredientTile(ingredient: ing))
+                    .toList(),
               );
             },
             loading: () => const SizedBox.shrink(),
@@ -182,8 +236,10 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
   }
 }
 
-final _recipeMacrosProvider =
-    FutureProvider.family<DailyTotals, int>((ref, recipeId) async {
+final _recipeMacrosProvider = FutureProvider.family<DailyTotals, int>((
+  ref,
+  recipeId,
+) async {
   // Re-evaluate whenever ingredients change.
   ref.watch(recipeIngredientsProvider(recipeId));
   return ref.read(nutritionRepositoryProvider).recipeMacrosPerServing(recipeId);
@@ -195,7 +251,11 @@ class _IngredientTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final food = ref.watch(foodSearchProvider(null)).asData?.value.firstWhere(
+    final food = ref
+        .watch(foodSearchProvider(null))
+        .asData
+        ?.value
+        .firstWhere(
           (f) => f.id == ingredient.foodId,
           orElse: () => _placeholder(ingredient.foodId),
         );
@@ -208,7 +268,8 @@ class _IngredientTile extends ConsumerWidget {
         color: Colors.redAccent.withValues(alpha: 0.85),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      onDismissed: (_) => ref.read(nutritionRepositoryProvider).removeIngredient(ingredient.id),
+      onDismissed: (_) =>
+          ref.read(nutritionRepositoryProvider).removeIngredient(ingredient.id),
       child: ListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(food?.name ?? 'Loading…'),
@@ -218,16 +279,17 @@ class _IngredientTile extends ConsumerWidget {
   }
 
   FoodData _placeholder(int id) => FoodData(
-        id: id,
-        name: 'Loading…',
-        kcalPer100g: 0,
-        proteinPer100g: 0,
-        carbsPer100g: 0,
-        fatPer100g: 0,
-        source: 'local',
-        isCustom: false,
-        createdAt: DateTime.now(),
-      );
+    id: id,
+    name: 'Loading…',
+    kcalPer100g: 0,
+    proteinPer100g: 0,
+    carbsPer100g: 0,
+    fatPer100g: 0,
+    referenceBasis: '100 g',
+    source: 'local',
+    isCustom: false,
+    createdAt: DateTime.now(),
+  );
 }
 
 class _MacrosPreview extends StatelessWidget {
@@ -242,12 +304,19 @@ class _MacrosPreview extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Per serving', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            'Per serving',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -264,19 +333,29 @@ class _MacrosPreview extends StatelessWidget {
   }
 
   Widget _stat(String value, String label, ThemeData theme) => Column(
-        children: [
-          Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          Text(label, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary)),
-        ],
-      );
+    children: [
+      Text(
+        value,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary),
+      ),
+    ],
+  );
 }
 
 class _IngredientPickerSheet extends ConsumerStatefulWidget {
   @override
-  ConsumerState<_IngredientPickerSheet> createState() => _IngredientPickerSheetState();
+  ConsumerState<_IngredientPickerSheet> createState() =>
+      _IngredientPickerSheetState();
 }
 
-class _IngredientPickerSheetState extends ConsumerState<_IngredientPickerSheet> {
+class _IngredientPickerSheetState
+    extends ConsumerState<_IngredientPickerSheet> {
   String? _query;
   final _ctrl = TextEditingController();
 
@@ -351,7 +430,9 @@ class _IngredientPickerSheetState extends ConsumerState<_IngredientPickerSheet> 
                 itemBuilder: (_, i) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(list[i].name, style: theme.textTheme.titleSmall),
-                  subtitle: Text('${list[i].kcalPer100g.toStringAsFixed(0)} kcal/100g'),
+                  subtitle: Text(
+                    '${list[i].kcalPer100g.toStringAsFixed(0)} kcal/100g',
+                  ),
                   onTap: () => Navigator.of(context).pop(list[i]),
                 ),
               ),
@@ -382,18 +463,28 @@ class _Field extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
         const SizedBox(height: 4),
         TextField(
           controller: controller,
           maxLines: maxLines,
-          keyboardType: numeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-          inputFormatters: numeric ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))] : null,
+          keyboardType: numeric
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.text,
+          inputFormatters: numeric
+              ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))]
+              : null,
           decoration: InputDecoration(
             filled: true,
             fillColor: AppColors.surfaceContainer,
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 12,
+              horizontal: 12,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,

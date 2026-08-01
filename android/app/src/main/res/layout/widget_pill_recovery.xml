@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Recovery Score pill widget layout. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:padding="10dp"
+    android:background="@drawable/widget_pill_bg_dark">
+
+    <TextView
+        android:id="@+id/recovery_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="💪"
+        android:textSize="16sp"
+        android:paddingEnd="6dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/recovery_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RECOVERY"
+            android:textSize="9sp"
+            android:textColor="#98989F"
+            android:letterSpacing="0.08"
+            android:textAllCaps="true" />
+
+        <TextView
+            android:id="@+id/recovery_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- Progress bar -->
+    <ProgressBar
+        android:id="@+id/recovery_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="48dp"
+        android:layout_height="6dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="#30D158"
+        android:progressBackgroundTint="#3A383A" />
+
+</LinearLayout>

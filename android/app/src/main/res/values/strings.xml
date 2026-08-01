@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Herculex</string>
+    <string name="widget_cns_description">CNS Load — shows your nervous system readiness score</string>
+    <string name="widget_recovery_description">Recovery Score — shows your overall muscle recovery</string>
+    <string name="widget_carbs_description">Net Carbs — shows your daily carb progress</string>
+    <string name="widget_fat_description">Fat — shows your daily fat progress</string>
+    <string name="widget_protein_description">Protein — shows your daily protein progress</string>
+    <string name="widget_scanner_description">Scan Food — opens the barcode scanner to log food</string>
+</resources>

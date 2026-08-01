@@ -1,0 +1,70 @@
+[
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-xxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-xxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.ams.herculex.app-main-92:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.ams.herculex.app-main-92:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-xhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-xhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-xxxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-xxxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-mdpi_ic_launcher_monochrome.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-mdpi/ic_launcher_monochrome.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-hdpi_ic_launcher_monochrome.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-hdpi/ic_launcher_monochrome.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.ams.herculex.app-main-92:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.ams.herculex.app-main-92:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-xxhdpi_ic_launcher_monochrome.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-xxhdpi/ic_launcher_monochrome.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.ams.herculex.app-main-92:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.ams.herculex.app-main-92:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-hdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-hdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-mdpi_ic_launcher_foreground.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-mdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-xxxhdpi_ic_launcher_monochrome.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-xxxhdpi/ic_launcher_monochrome.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/drawable-xhdpi_ic_launcher_monochrome.png.flat",
+        "source": "com.ams.herculex.app-main-92:/drawable-xhdpi/ic_launcher_monochrome.png"
+    },
+    {
+        "merged": "com.ams.herculex.app-debug-90:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.ams.herculex.app-main-92:/mipmap-anydpi-v26/ic_launcher.xml"
+    }
+]

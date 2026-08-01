@@ -7,10 +7,15 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../data/nutrition_repository.dart';
 import '../domain/daily_totals.dart';
-import '../domain/meal.dart';
+import '../domain/meal_slots.dart';
+import '../domain/nutrient_definitions.dart';
 import 'food_picker_sheet.dart';
+import 'goals_providers.dart';
+import 'log_entry_sheet.dart';
 import 'macro_rings.dart';
 import 'nutrition_providers.dart';
+import 'meal_slots_provider.dart';
+import 'nutrient_settings_provider.dart';
 
 class NutritionView extends ConsumerStatefulWidget {
   const NutritionView({super.key});
@@ -110,54 +115,121 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
     );
   }
 
-  Widget _buildDateHeader(BuildContext context, DateTime date, ThemeData theme) {
+  Widget _buildDateHeader(
+    BuildContext context,
+    DateTime date,
+    ThemeData theme,
+  ) {
     final today = DateTime.now();
-    final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
+    final isToday =
+        date.year == today.year &&
+        date.month == today.month &&
+        date.day == today.day;
     final label = isToday ? 'Today' : DateFormat('EEE, MMM d').format(date);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: () {
-            final prev = DateUtils.addDaysToDate(date, -1);
-            ref.read(selectedDateProvider.notifier).state = prev;
-          },
-        ),
-        TextButton(
-          onPressed: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: date,
-              firstDate: DateTime(2020),
-              lastDate: today.add(const Duration(days: 30)),
-            );
-            if (picked != null) {
-              ref.read(selectedDateProvider.notifier).state =
-                  DateUtils.dateOnly(picked);
-            }
-          },
-          child: Text(
-            label,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.donut_small_outlined),
+            tooltip: 'Nutrient overview',
+            onPressed: () => context.push('/nutrient-overview'),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: isToday
-              ? null
-              : () {
-                  final next = DateUtils.addDaysToDate(date, 1);
-                  ref.read(selectedDateProvider.notifier).state = next;
-                },
-        ),
-        IconButton(
-          icon: const Icon(Icons.tune),
-          tooltip: 'Targets & dieting',
-          onPressed: () => context.push('/nutrition-targets'),
-        ),
-      ],
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: () {
+                    final prev = DateUtils.addDaysToDate(date, -1);
+                    ref.read(selectedDateProvider.notifier).state = prev;
+                  },
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: date,
+                      firstDate: DateTime(2020),
+                      lastDate: today.add(const Duration(days: 30)),
+                    );
+                    if (picked != null) {
+                      ref.read(selectedDateProvider.notifier).state =
+                          DateUtils.dateOnly(picked);
+                    }
+                  },
+                  child: Text(
+                    label,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: isToday
+                      ? null
+                      : () {
+                          final next = DateUtils.addDaysToDate(date, 1);
+                          ref.read(selectedDateProvider.notifier).state = next;
+                        },
+                ),
+              ],
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'Nutrition options',
+            onSelected: (value) {
+              switch (value) {
+                case 'targets':
+                  context.push('/nutrition-targets');
+                  break;
+                case 'nutrients':
+                  context.push('/nutrition-nutrients');
+                  break;
+                case 'meal_slots':
+                  context.push('/nutrition-meal-slots');
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'targets',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Targets & dieting'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'nutrients',
+                child: Row(
+                  children: [
+                    Icon(Icons.science_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Edit nutrients shown'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'meal_slots',
+                child: Row(
+                  children: [
+                    Icon(Icons.tune_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Edit meal slots'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -174,7 +246,10 @@ class _DayPage extends ConsumerWidget {
     final totalsAsync = ref.watch(dailyTotalsProvider(date));
     final totals = totalsAsync.asData?.value ?? DailyTotals.empty;
     final entriesByMeal = ref.watch(entriesByMealProvider(date));
-    final targets = ref.watch(effectiveTargetsProvider(date)).asData?.value ??
+    final configuredSlots = ref.watch(mealSlotsProvider);
+    final visibleNutrients = ref.watch(visibleNutrientIdsProvider);
+    final targets =
+        ref.watch(effectiveTargetsProvider(date)).asData?.value ??
         ref.watch(baselineTargetsProvider);
 
     return ListView(
@@ -189,24 +264,42 @@ class _DayPage extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
             child: Text(
               'Add your weight, height, and age in profile to compute macro targets.',
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
             ),
           ),
-        if (totals.hasMicros) _MineralsRow(totals: totals, theme: theme),
+        if (totals.hasMicros)
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: _MineralsRow(
+              totals: totals,
+              theme: theme,
+              visibleIds: visibleNutrients,
+            ),
+          ),
         const SizedBox(height: 24),
         entriesByMeal.when(
-          data: (byMeal) => Column(
-            children: [
-              for (final meal in Meal.values) ...[
-                _MealAccordion(
-                  meal: meal,
-                  entries: byMeal[meal]!,
-                  date: date,
-                ),
-                const SizedBox(height: 10),
+          data: (byMeal) {
+            final slots = [
+              ...configuredSlots,
+              for (final key in byMeal.keys)
+                if (!configuredSlots.any((slot) => slot.key == key))
+                  MealSlot(key: key, label: key),
+            ];
+            return Column(
+              children: [
+                for (final meal in slots) ...[
+                  _MealAccordion(
+                    meal: meal,
+                    entries: byMeal[meal.key] ?? const [],
+                    date: date,
+                  ),
+                  const SizedBox(height: 10),
+                ],
               ],
-            ],
-          ),
+            );
+          },
           loading: () => const Padding(
             padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()),
@@ -222,7 +315,7 @@ class _DayPage extends ConsumerWidget {
 /// toggles to % of that meal's total kcal. The "+ Add" button lives at the
 /// bottom of the expanded body.
 class _MealAccordion extends StatefulWidget {
-  final Meal meal;
+  final MealSlot meal;
   final List<FoodEntryData> entries;
   final DateTime date;
 
@@ -236,10 +329,21 @@ class _MealAccordion extends StatefulWidget {
   State<_MealAccordion> createState() => _MealAccordionState();
 }
 
+/// What the meal header's macro chip shows. Tapping the chip advances through
+/// the cycle: share of the meal's energy → grams → kilocalories (§3).
+enum MacroDisplayMode {
+  percent,
+  grams,
+  kcal;
+
+  MacroDisplayMode get next =>
+      MacroDisplayMode.values[(index + 1) % MacroDisplayMode.values.length];
+}
+
 class _MealAccordionState extends State<_MealAccordion>
     with SingleTickerProviderStateMixin {
   bool _expanded = false;
-  bool _showPercent = false;
+  MacroDisplayMode _macroMode = MacroDisplayMode.percent;
 
   late final AnimationController _ctrl;
   late final Animation<double> _expandAnim;
@@ -282,8 +386,10 @@ class _MealAccordionState extends State<_MealAccordion>
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -291,38 +397,64 @@ class _MealAccordionState extends State<_MealAccordion>
           // ── Header row ──────────────────────────────────────────────────
           InkWell(
             onTap: _toggle,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
               child: Row(
                 children: [
-                  Text(
-                    widget.meal.label,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Icon(widget.meal.icon, size: 20, color: AppColors.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.meal.label,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${widget.entries.length} item${widget.entries.length == 1 ? '' : 's'}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        _MealCalorieGoal(
+                          entries: widget.entries,
+                          mealKey: widget.meal.key,
+                          date: widget.date,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    '${widget.entries.length} item${widget.entries.length == 1 ? '' : 's'}',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: AppColors.secondary),
-                  ),
-                  const Spacer(),
-                  // Macro summary — tapping toggles g ↔ %
+                  // Macro summary — tapping cycles % → g → kcal
                   if (widget.entries.isNotEmpty)
                     _MealMacroSummary(
                       entries: widget.entries,
-                      showPercent: _showPercent,
+                      mode: _macroMode,
                       onToggle: () =>
-                          setState(() => _showPercent = !_showPercent),
+                          setState(() => _macroMode = _macroMode.next),
                     ),
                   const SizedBox(width: 8),
                   AnimatedRotation(
                     turns: _expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 220),
-                    child: const Icon(Icons.expand_more,
-                        size: 20, color: AppColors.secondary),
+                    child: Icon(
+                      Icons.expand_more,
+                      size: 20,
+                      color: AppColors.secondary,
+                    ),
                   ),
                 ],
               ),
@@ -341,8 +473,9 @@ class _MealAccordionState extends State<_MealAccordion>
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                     child: Text(
                       'Nothing logged.',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
                   )
                 else
@@ -356,7 +489,7 @@ class _MealAccordionState extends State<_MealAccordion>
                       onPressed: () => FoodPickerSheet.show(
                         context,
                         date: widget.date,
-                        meal: widget.meal,
+                        mealKey: widget.meal.key,
                       ),
                       icon: const Icon(Icons.add, size: 16),
                       label: const Text('Add food'),
@@ -366,9 +499,9 @@ class _MealAccordionState extends State<_MealAccordion>
                           color: AppColors.primary.withValues(alpha: 0.4),
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
                     ),
                   ),
@@ -386,12 +519,12 @@ class _MealAccordionState extends State<_MealAccordion>
 /// "P · C · F" chip. Tapping cycles between grams and % of meal kcal.
 class _MealMacroSummary extends ConsumerWidget {
   final List<FoodEntryData> entries;
-  final bool showPercent;
+  final MacroDisplayMode mode;
   final VoidCallback onToggle;
 
   const _MealMacroSummary({
     required this.entries,
-    required this.showPercent,
+    required this.mode,
     required this.onToggle,
   });
 
@@ -421,13 +554,16 @@ class _MealMacroSummary extends ConsumerWidget {
         final t = snap.data!;
         final totalKcal = t.kcal;
 
-        String fmt(double grams, double kcalPer1g) {
-          if (showPercent && totalKcal > 0) {
-            final pct = (grams * kcalPer1g / totalKcal * 100).round();
-            return '$pct%';
-          }
-          return '${grams.toStringAsFixed(0)}g';
-        }
+        // Percentages are of the meal's own energy, so they always sum to
+        // ~100 % regardless of how the day's targets are set.
+        String fmt(double grams, double kcalPer1g) => switch (mode) {
+          MacroDisplayMode.percent =>
+            totalKcal > 0
+                ? '${(grams * kcalPer1g / totalKcal * 100).round()}%'
+                : '—',
+          MacroDisplayMode.grams => '${grams.toStringAsFixed(0)}g',
+          MacroDisplayMode.kcal => '${(grams * kcalPer1g).round()} kcal',
+        };
 
         return GestureDetector(
           onTap: onToggle,
@@ -440,16 +576,94 @@ class _MealMacroSummary extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _MacroChip('P', fmt(t.proteinG, 4),
-                    const Color(0xFF4FC3F7), theme),
+                _MacroChip(
+                  'P',
+                  fmt(t.proteinG, 4),
+                  AppColors.macroProtein,
+                  theme,
+                ),
                 const SizedBox(width: 6),
-                _MacroChip('C', fmt(t.carbsG, 4),
-                    const Color(0xFF81C784), theme),
+                _MacroChip('C', fmt(t.carbsG, 4), AppColors.macroCarbs, theme),
                 const SizedBox(width: 6),
-                _MacroChip('F', fmt(t.fatG, 9),
-                    const Color(0xFFFFB74D), theme),
+                _MacroChip('F', fmt(t.fatG, 9), AppColors.macroFat, theme),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// `320 of 600 kcal` under the meal name (§3). Renders just the consumed
+/// figure when the slot has no configured goal, and a slim bar once it does.
+class _MealCalorieGoal extends ConsumerWidget {
+  final List<FoodEntryData> entries;
+  final String mealKey;
+  final DateTime date;
+
+  const _MealCalorieGoal({
+    required this.entries,
+    required this.mealKey,
+    required this.date,
+  });
+
+  Future<double> _sumKcal(NutritionRepository repo) async {
+    var kcal = 0.0;
+    for (final e in entries) {
+      kcal += (await repo.macrosForEntry(e)).kcal;
+    }
+    return kcal;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final goal = ref.watch(
+      mealGoalKcalProvider((mealKey: mealKey, date: date)),
+    );
+
+    if (entries.isEmpty && goal == null) return const SizedBox.shrink();
+
+    return FutureBuilder<double>(
+      future: _sumKcal(ref.watch(nutritionRepositoryProvider)),
+      builder: (context, snap) {
+        if (!snap.hasData) return const SizedBox(height: 16);
+        final eaten = snap.data!.round();
+        final label = goal == null ? '$eaten kcal' : '$eaten of $goal kcal';
+        final over = goal != null && eaten > goal;
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: over ? Colors.redAccent : AppColors.secondary,
+                  fontWeight: over ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              if (goal != null && goal > 0) ...[
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: SizedBox(
+                    width: 110,
+                    child: LinearProgressIndicator(
+                      value: (eaten / goal).clamp(0.0, 1.0),
+                      minHeight: 3,
+                      backgroundColor: AppColors.surfaceVariant,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        over ? Colors.redAccent : AppColors.macroKcal,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         );
       },
@@ -515,24 +729,34 @@ class _EntryTile extends ConsumerWidget {
           ),
           onDismissed: (_) => repo.deleteEntry(entry.id),
           child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 2,
+            ),
             dense: true,
-            title: Text(display?.name ?? 'Loading…',
-                style: theme.textTheme.bodyMedium),
+            title: Text(
+              display?.name ?? 'Loading…',
+              style: theme.textTheme.bodyMedium,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
             subtitle: Text(
               display?.subtitle ?? '',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
             trailing: Text(
               display == null ? '' : '${display.kcal.toStringAsFixed(0)} kcal',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             onTap: display == null
                 ? null
-                : () => _showEntryDetail(context, theme, display),
+                : () => _showEntryDetail(context, theme, display, ref),
           ),
         );
       },
@@ -540,7 +764,9 @@ class _EntryTile extends ConsumerWidget {
   }
 
   Future<_EntryDisplay> _resolve(
-      WidgetRef ref, NutritionRepository repo) async {
+    WidgetRef ref,
+    NutritionRepository repo,
+  ) async {
     final macros = await repo.macrosForEntry(entry);
     final name = await _resolveName(ref);
     final subtitle = entry.foodId != null
@@ -557,20 +783,25 @@ class _EntryTile extends ConsumerWidget {
   }
 
   void _showEntryDetail(
-      BuildContext context, ThemeData theme, _EntryDisplay display) {
+    BuildContext context,
+    ThemeData theme,
+    _EntryDisplay display,
+    WidgetRef ref,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) {
-        final hasMicros = display.sodiumMg > 0 ||
+      builder: (modalContext) {
+        final repo = ref.read(nutritionRepositoryProvider);
+        final hasMicros =
+            display.sodiumMg > 0 ||
             display.potassiumMg > 0 ||
             display.cholesterolMg > 0;
         return Container(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
           decoration: BoxDecoration(
             color: theme.bottomSheetTheme.backgroundColor,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(32)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -587,12 +818,69 @@ class _EntryTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              Text(display.name,
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-              Text(display.subtitle,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: AppColors.secondary)),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          display.name,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          display.subtitle,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.edit, color: AppColors.primary),
+                    tooltip: 'Edit entry',
+                    onPressed: () async {
+                      Navigator.of(modalContext).pop();
+                      FoodData? food;
+                      RecipeData? recipe;
+                      if (entry.foodId != null) {
+                        final foods = await repo.searchFoods('');
+                        food = foods
+                            .where((f) => f.id == entry.foodId)
+                            .firstOrNull;
+                      } else if (entry.recipeId != null) {
+                        final recipes = await repo.watchRecipes().first;
+                        recipe = recipes
+                            .where((r) => r.id == entry.recipeId)
+                            .firstOrNull;
+                      }
+                      if (!context.mounted) return;
+                      LogEntrySheet.forEntry(
+                        context,
+                        entry: entry,
+                        food: food,
+                        recipe: recipe,
+                        date:
+                            DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.redAccent,
+                    ),
+                    tooltip: 'Delete entry',
+                    onPressed: () async {
+                      Navigator.of(modalContext).pop();
+                      await repo.deleteEntry(entry.id);
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
               Text(
                 '${display.kcal.toStringAsFixed(0)} kcal',
@@ -603,15 +891,50 @@ class _EntryTile extends ConsumerWidget {
               ),
               if (hasMicros) ...[
                 const SizedBox(height: 16),
-                Text('MINERALS',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondary, letterSpacing: 1.0)),
+                Text(
+                  'MINERALS',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.0,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 microRow('Sodium', display.sodiumMg, 'mg', theme),
                 microRow('Potassium', display.potassiumMg, 'mg', theme),
                 microRow('Cholesterol', display.cholesterolMg, 'mg', theme),
               ],
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.of(modalContext).pop();
+                    FoodData? food;
+                    RecipeData? recipe;
+                    if (entry.foodId != null) {
+                      final foods = await repo.searchFoods('');
+                      food = foods
+                          .where((f) => f.id == entry.foodId)
+                          .firstOrNull;
+                    } else if (entry.recipeId != null) {
+                      final recipes = await repo.watchRecipes().first;
+                      recipe = recipes
+                          .where((r) => r.id == entry.recipeId)
+                          .firstOrNull;
+                    }
+                    if (!context.mounted) return;
+                    LogEntrySheet.forEntry(
+                      context,
+                      entry: entry,
+                      food: food,
+                      recipe: recipe,
+                      date: DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
+                    );
+                  },
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit Quantity or Meal'),
+                ),
+              ),
             ],
           ),
         );
@@ -642,16 +965,17 @@ class _EntryTile extends ConsumerWidget {
   }
 
   FoodData _placeholderFood() => FoodData(
-        id: 0,
-        name: '—',
-        kcalPer100g: 0,
-        proteinPer100g: 0,
-        carbsPer100g: 0,
-        fatPer100g: 0,
-        source: 'local',
-        isCustom: false,
-        createdAt: DateTime.now(),
-      );
+    id: 0,
+    name: '—',
+    kcalPer100g: 0,
+    proteinPer100g: 0,
+    carbsPer100g: 0,
+    fatPer100g: 0,
+    referenceBasis: '100 g',
+    source: 'local',
+    isCustom: false,
+    createdAt: DateTime.now(),
+  );
 
   RecipeData _placeholderRecipe() =>
       RecipeData(id: 0, name: '—', servings: 1, createdAt: DateTime.now());
@@ -678,7 +1002,12 @@ class _EntryDisplay {
 class _MineralsRow extends StatefulWidget {
   final DailyTotals totals;
   final ThemeData theme;
-  const _MineralsRow({required this.totals, required this.theme});
+  final Set<String> visibleIds;
+  const _MineralsRow({
+    required this.totals,
+    required this.theme,
+    required this.visibleIds,
+  });
 
   @override
   State<_MineralsRow> createState() => _MineralsRowState();
@@ -692,39 +1021,143 @@ class _MineralsRowState extends State<_MineralsRow> {
     final t = widget.totals;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      child: GestureDetector(
-        onTap: () => setState(() => _expanded = !_expanded),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainer,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.science_outlined,
-                      size: 14, color: AppColors.secondary),
-                  const SizedBox(width: 6),
-                  Text('MINERALS',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            GestureDetector(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.science_outlined,
+                      size: 15,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 7),
+                    Text(
+                      'MICRONUTRIENTS',
                       style: widget.theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.secondary, letterSpacing: 1.0)),
-                  const Spacer(),
-                  Icon(_expanded ? Icons.expand_less : Icons.expand_more,
-                      size: 16, color: AppColors.secondary),
-                ],
+                        color: AppColors.secondary,
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 16,
+                      color: AppColors.secondary,
+                    ),
+                  ],
+                ),
               ),
-              if (_expanded) ...[
-                const SizedBox(height: 8),
-                microRow('Sodium', t.sodiumMg, 'mg', widget.theme),
-                microRow('Potassium', t.potassiumMg, 'mg', widget.theme),
-                microRow('Cholesterol', t.cholesterolMg, 'mg', widget.theme),
-              ],
+            ),
+            if (_expanded) ...[
+              const SizedBox(height: 12),
+              for (final definition in trackedNutrients)
+                if (widget.visibleIds.contains(definition.id)) ...[
+                  _NutrientProgressBar(
+                    definition: definition,
+                    value:
+                        t.nutrient(definition.id) ??
+                        _fallbackValue(t, definition.id),
+                    theme: widget.theme,
+                  ),
+                  const SizedBox(height: 10),
+                ],
             ],
-          ),
+          ],
         ),
       ),
+    );
+  }
+
+  double? _fallbackValue(DailyTotals t, String id) {
+    switch (id) {
+      case 'fiber':
+        return t.fiberG > 0 ? t.fiberG : null;
+      case 'sodium':
+        return t.sodiumMg > 0 ? t.sodiumMg : null;
+      case 'potassium':
+        return t.potassiumMg > 0 ? t.potassiumMg : null;
+      case 'cholesterol':
+        return t.cholesterolMg > 0 ? t.cholesterolMg : null;
+      default:
+        return null;
+    }
+  }
+}
+
+class _NutrientProgressBar extends StatelessWidget {
+  final NutrientDefinition definition;
+  final double? value;
+  final ThemeData theme;
+
+  const _NutrientProgressBar({
+    required this.definition,
+    required this.value,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final current = value ?? 0.0;
+    final target = definition.dailyTarget;
+    final hasTarget = target != null && target > 0;
+    final pct = hasTarget ? (current / target * 100).round() : null;
+    final progress = hasTarget ? (current / target).clamp(0.0, 1.0) : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              definition.label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              value == null
+                  ? '0 / ${target?.toStringAsFixed(0) ?? '—'} ${definition.unit} (0%)'
+                  : '${current.toStringAsFixed(definition.unit == 'g' || definition.unit == 'µg' ? 1 : 0)} / ${target != null ? target.toStringAsFixed(definition.unit == 'g' || definition.unit == 'µg' ? 1 : 0) : '—'} ${definition.unit} ${pct != null ? '($pct%)' : ''}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: value == null ? AppColors.secondary : AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor: AppColors.surfaceVariant,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              progress >= 1.0 ? Colors.green : AppColors.primary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -736,12 +1169,18 @@ Widget microRow(String label, double value, String unit, ThemeData theme) {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.secondary)),
-        Text('${value.toStringAsFixed(0)} $unit',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.secondary,
+          ),
+        ),
+        Text(
+          '${value.toStringAsFixed(0)} $unit',
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     ),
   );

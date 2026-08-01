@@ -33,14 +33,16 @@ void main() {
   tearDown(() async => db.close());
 
   group('v10 seed', () {
-    test('seeds 6 default accessories with fat grips forearm multiplier > 1',
-        () async {
-      final rows = await db.select(db.accessories).get();
-      expect(rows, hasLength(6));
-      final fatGrips = rows.singleWhere((a) => a.kind == 'fat_grips');
-      expect(fatGrips.forearmMultiplier, greaterThan(1.0));
-      expect(rows.every((a) => !a.isCustom), isTrue);
-    });
+    test(
+      'seeds 6 default accessories with fat grips forearm multiplier > 1',
+      () async {
+        final rows = await db.select(db.accessories).get();
+        expect(rows, hasLength(6));
+        final fatGrips = rows.singleWhere((a) => a.kind == 'fat_grips');
+        expect(fatGrips.forearmMultiplier, greaterThan(1.0));
+        expect(rows.every((a) => !a.isCustom), isTrue);
+      },
+    );
 
     test('seeds common bands ordered by tension', () async {
       final rows = await db.select(db.bands).get();
@@ -66,18 +68,99 @@ void main() {
       expect(gyms.any((g) => g.id == a && !g.isDefault), isTrue);
     });
 
-    test('deleting a gym null-tags its sessions instead of deleting them',
-        () async {
-      final gymsRepo = GymsRepository(db);
-      final clock = _FixedClock(DateTime(2026, 6, 12, 10));
-      final workouts = WorkoutsRepository(db, clock);
-      final gymId = await gymsRepo.createGym('Gym B');
-      final sessionId = await workouts.startSession(gymId: gymId);
-      await gymsRepo.deleteGym(gymId);
-      final session = await (db.select(db.workoutSessions)
-            ..where((t) => t.id.equals(sessionId)))
-          .getSingle();
-      expect(session.gymId, isNull);
+    test(
+      'deleting a gym null-tags its sessions instead of deleting them',
+      () async {
+        final gymsRepo = GymsRepository(db);
+        final clock = _FixedClock(DateTime(2026, 6, 12, 10));
+        final workouts = WorkoutsRepository(db, clock);
+        final gymId = await gymsRepo.createGym('Gym B');
+        final sessionId = await workouts.startSession(gymId: gymId);
+        await gymsRepo.deleteGym(gymId);
+        final session = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.id.equals(sessionId))).getSingle();
+        expect(session.gymId, isNull);
+      },
+    );
+  });
+
+  group('linked workout exercises', () {
+    Future<int> createExercise(String name) {
+      return db
+          .into(db.exerciseCatalog)
+          .insert(
+            ExerciseCatalogCompanion.insert(
+              name: name,
+              primaryMuscle: 'Chest',
+              equipment: 'Dumbbell',
+              mechanics: 'compound',
+              force: 'push',
+              plane: 'horizontal',
+            ),
+          );
+    }
+
+    test('links exercises into a superset group and reorders them', () async {
+      final workouts = WorkoutsRepository(
+        db,
+        _FixedClock(DateTime(2026, 7, 30)),
+      );
+      final sessionId = await workouts.startSession();
+      final bench = await createExercise('Test Bench');
+      final row = await createExercise('Test Row');
+      final curl = await createExercise('Test Curl');
+
+      final benchWe = await workouts.addExerciseToSession(
+        sessionId: sessionId,
+        exerciseId: bench,
+      );
+      final rowWe = await workouts.addExerciseToSession(
+        sessionId: sessionId,
+        exerciseId: row,
+      );
+      final curlWe = await workouts.addExerciseToSession(
+        sessionId: sessionId,
+        exerciseId: curl,
+      );
+
+      await workouts.linkWorkoutExercises(
+        sessionId: sessionId,
+        sourceWorkoutExerciseId: benchWe,
+        targetWorkoutExerciseId: rowWe,
+      );
+      await workouts.linkWorkoutExercises(
+        sessionId: sessionId,
+        sourceWorkoutExerciseId: rowWe,
+        targetWorkoutExerciseId: curlWe,
+      );
+
+      var rows =
+          await (db.select(db.workoutExercises)
+                ..where((t) => t.sessionId.equals(sessionId))
+                ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+              .get();
+      expect(rows.map((r) => r.supersetGroup).toSet(), hasLength(1));
+
+      await workouts.reorderWorkoutExercises(
+        sessionId: sessionId,
+        oldIndex: 2,
+        newIndex: 0,
+      );
+
+      rows =
+          await (db.select(db.workoutExercises)
+                ..where((t) => t.sessionId.equals(sessionId))
+                ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+              .get();
+      expect(rows.map((r) => r.id), [curlWe, benchWe, rowWe]);
+      expect(rows.map((r) => r.orderIndex), [0, 1, 2]);
+
+      await workouts.unlinkWorkoutExercise(benchWe);
+      final unlinked = await (db.select(
+        db.workoutExercises,
+      )..where((t) => t.id.equals(benchWe))).getSingle();
+      expect(unlinked.supersetGroup, isNull);
     });
   });
 
@@ -87,7 +170,9 @@ void main() {
 
     setUp(() async {
       workouts = WorkoutsRepository(db, _FixedClock(DateTime(2026, 6, 12)));
-      final exerciseId = await db.into(db.exerciseCatalog).insert(
+      final exerciseId = await db
+          .into(db.exerciseCatalog)
+          .insert(
             ExerciseCatalogCompanion.insert(
               name: 'Test Weighted Pull-Up (v10)',
               primaryMuscle: 'Back',
@@ -116,9 +201,9 @@ void main() {
         setTypeMetaJson: '{"pauseSeconds":3}',
         bodyweightKg: 80,
       );
-      final set = await (db.select(db.setEntries)
-            ..where((t) => t.id.equals(setId)))
-          .getSingle();
+      final set = await (db.select(
+        db.setEntries,
+      )..where((t) => t.id.equals(setId))).getSingle();
       expect(set.setType, 'pause');
       expect(set.setTypeMetaJson, contains('pauseSeconds'));
       expect(set.bodyweightKg, 80);
@@ -130,47 +215,74 @@ void main() {
         weightKg: 100,
         reps: 5,
       );
-      final set = await (db.select(db.setEntries)
-            ..where((t) => t.id.equals(setId)))
-          .getSingle();
+      final set = await (db.select(
+        db.setEntries,
+      )..where((t) => t.id.equals(setId))).getSingle();
       expect(set.setType, 'standard');
       expect(set.bodyweightKg, isNull);
       expect(set.chainsKg, isNull);
     });
 
-    test('accessory toggle attaches and detaches; copy carries forward',
-        () async {
-      final accessoriesRepo = AccessoriesRepository(db);
-      final belt = (await db.select(db.accessories).get())
-          .singleWhere((a) => a.kind == 'belt');
-      final set1 = await workouts.addSet(
-          workoutExerciseId: workoutExerciseId, weightKg: 100, reps: 5);
-      expect(
-        await accessoriesRepo.toggleSetAccessory(
-            setEntryId: set1, accessoryId: belt.id),
-        isTrue,
-      );
-      final set2 = await workouts.addSet(
-          workoutExerciseId: workoutExerciseId, weightKg: 100, reps: 5);
-      await accessoriesRepo.copySetAccessories(fromSetId: set1, toSetId: set2);
-      expect(await (db.select(db.setAccessories)
-            ..where((t) => t.setEntryId.equals(set2)))
-          .get(), hasLength(1));
-      expect(
-        await accessoriesRepo.toggleSetAccessory(
-            setEntryId: set1, accessoryId: belt.id),
-        isFalse,
-      );
-    });
+    test(
+      'accessory toggle attaches and detaches; copy carries forward',
+      () async {
+        final accessoriesRepo = AccessoriesRepository(db);
+        final belt = (await db.select(db.accessories).get()).singleWhere(
+          (a) => a.kind == 'belt',
+        );
+        final set1 = await workouts.addSet(
+          workoutExerciseId: workoutExerciseId,
+          weightKg: 100,
+          reps: 5,
+        );
+        expect(
+          await accessoriesRepo.toggleSetAccessory(
+            setEntryId: set1,
+            accessoryId: belt.id,
+          ),
+          isTrue,
+        );
+        final set2 = await workouts.addSet(
+          workoutExerciseId: workoutExerciseId,
+          weightKg: 100,
+          reps: 5,
+        );
+        await accessoriesRepo.copySetAccessories(
+          fromSetId: set1,
+          toSetId: set2,
+        );
+        expect(
+          await (db.select(
+            db.setAccessories,
+          )..where((t) => t.setEntryId.equals(set2))).get(),
+          hasLength(1),
+        );
+        expect(
+          await accessoriesRepo.toggleSetAccessory(
+            setEntryId: set1,
+            accessoryId: belt.id,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('bands attach with mode and cascade-delete with the set', () async {
       final accessoriesRepo = AccessoriesRepository(db);
-      final green = (await db.select(db.bands).get())
-          .singleWhere((b) => b.color == 'green');
+      final green = (await db.select(db.bands).get()).singleWhere(
+        (b) => b.color == 'green',
+      );
       final setId = await workouts.addSet(
-          workoutExerciseId: workoutExerciseId, weightKg: 60, reps: 5);
+        workoutExerciseId: workoutExerciseId,
+        weightKg: 60,
+        reps: 5,
+      );
       await accessoriesRepo.attachBand(
-          setEntryId: setId, bandId: green.id, count: 2, isResistance: true);
+        setEntryId: setId,
+        bandId: green.id,
+        count: 2,
+        isResistance: true,
+      );
       expect(await db.select(db.setBands).get(), hasLength(1));
       await workouts.deleteSet(setId);
       expect(await db.select(db.setBands).get(), isEmpty);
@@ -183,18 +295,22 @@ void main() {
         settingsJson: '{"seat":"6"}',
         gymId: gymId,
       );
-      final we = await (db.select(db.workoutExercises)
-            ..where((t) => t.id.equals(workoutExerciseId)))
-          .getSingle();
+      final we = await (db.select(
+        db.workoutExercises,
+      )..where((t) => t.id.equals(workoutExerciseId))).getSingle();
       expect(we.machineConfigJson, '{"seat":"6"}');
       final recalled = await workouts.recallMachineConfig(
-          exerciseId: we.exerciseId, gymId: gymId);
+        exerciseId: we.exerciseId,
+        gymId: gymId,
+      );
       expect(recalled?.settingsJson, '{"seat":"6"}');
       // Different gym, no gym-agnostic config → nothing recalled.
       final otherGym = await GymsRepository(db).createGym('Gym B');
       expect(
         await workouts.recallMachineConfig(
-            exerciseId: we.exerciseId, gymId: otherGym),
+          exerciseId: we.exerciseId,
+          gymId: otherGym,
+        ),
         isNull,
       );
     });
@@ -204,12 +320,21 @@ void main() {
     test('one sample per metric per day; latest bodyweight wins', () async {
       final repo = MeasurementsRepository(db);
       await repo.logMeasurement(
-          dateIso: '2026-06-10', metric: 'bodyweight', value: 81);
+        dateIso: '2026-06-10',
+        metric: 'bodyweight',
+        value: 81,
+      );
       await repo.logMeasurement(
-          dateIso: '2026-06-12', metric: 'bodyweight', value: 80);
+        dateIso: '2026-06-12',
+        metric: 'bodyweight',
+        value: 80,
+      );
       // Re-log same day overwrites.
       await repo.logMeasurement(
-          dateIso: '2026-06-12', metric: 'bodyweight', value: 80.4);
+        dateIso: '2026-06-12',
+        metric: 'bodyweight',
+        value: 80.4,
+      );
       final all = await db.select(db.bodyMeasurements).get();
       expect(all, hasLength(2));
       expect(await repo.latestBodyweightKg(), 80.4);

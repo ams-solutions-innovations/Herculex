@@ -1,0 +1,327 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.swy_app"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="30"
+9        android:targetSdkVersion="33" />
+10
+11    <uses-feature android:name="android.hardware.type.watch" />
+11-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:5:5-64
+11-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:5:19-61
+12    <!-- Required to act as a custom watch face / complications -->
+13    <uses-permission android:name="com.google.android.wearable.permission.RECEIVE_COMPLICATION_DATA" />
+13-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:7:5-104
+13-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:7:22-101
+14    <uses-permission android:name="android.permission.WAKE_LOCK" />
+14-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:8:5-68
+14-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:8:22-65
+15    <uses-permission android:name="android.permission.INTERNET" />
+15-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:9:5-67
+15-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:9:22-64
+16
+17    <queries>
+17-->[androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\25b6a19eb9a34671b278e93b0f87c72e\transformed\tiles-1.3.0\AndroidManifest.xml:7:5-11:15
+18        <intent>
+18-->[androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\25b6a19eb9a34671b278e93b0f87c72e\transformed\tiles-1.3.0\AndroidManifest.xml:8:9-10:18
+19            <action android:name="androidx.wear.tiles.action.BIND_UPDATE_REQUESTER" />
+19-->[androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\25b6a19eb9a34671b278e93b0f87c72e\transformed\tiles-1.3.0\AndroidManifest.xml:9:13-87
+19-->[androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\25b6a19eb9a34671b278e93b0f87c72e\transformed\tiles-1.3.0\AndroidManifest.xml:9:21-84
+20        </intent>
+21    </queries>
+22
+23    <permission
+23-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\transforms-3\440a64c1659b3784956be1ef27019da1\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+24        android:name="com.example.swy_app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+24-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\transforms-3\440a64c1659b3784956be1ef27019da1\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+25        android:protectionLevel="signature" />
+25-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\transforms-3\440a64c1659b3784956be1ef27019da1\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+26
+27    <uses-permission android:name="com.example.swy_app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+27-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\transforms-3\440a64c1659b3784956be1ef27019da1\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+27-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\transforms-3\440a64c1659b3784956be1ef27019da1\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+28
+29    <application
+29-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:11:5-104:19
+30        android:allowBackup="true"
+30-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:12:9-35
+31        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+31-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\transforms-3\440a64c1659b3784956be1ef27019da1\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+32        android:debuggable="true"
+33        android:extractNativeLibs="false"
+34        android:icon="@mipmap/ic_launcher"
+34-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:13:9-43
+35        android:label="@string/app_name"
+35-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:14:9-41
+36        android:supportsRtl="true"
+36-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:15:9-35
+37        android:theme="@android:style/Theme.DeviceDefault" >
+37-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:16:9-59
+38
+39        <!-- Wear OS requirement: standalone app status -->
+40        <meta-data
+40-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:19:9-21:37
+41            android:name="com.google.android.wearable.standalone"
+41-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:20:13-66
+42            android:value="false" />
+42-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:21:13-34
+43
+44        <activity
+44-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:23:9-31:20
+45            android:name="com.example.swy_app.MainActivity"
+45-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:24:13-41
+46            android:exported="true"
+46-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:25:13-36
+47            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" >
+47-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:26:13-75
+48            <intent-filter>
+48-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:27:13-30:29
+49                <action android:name="android.intent.action.MAIN" />
+49-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:28:17-69
+49-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:28:25-66
+50
+51                <category android:name="android.intent.category.LAUNCHER" />
+51-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:29:17-77
+51-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:29:27-74
+52            </intent-filter>
+53        </activity>
+54
+55        <service
+55-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:33:9-48:19
+56            android:name="com.example.swy_app.complication.CaloriesComplicationService"
+56-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:34:13-69
+57            android:exported="true"
+57-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:35:13-36
+58            android:icon="@mipmap/ic_launcher"
+58-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:36:13-47
+59            android:label="SWY Calories"
+59-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:37:13-41
+60            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER" >
+60-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:38:13-99
+61            <intent-filter>
+61-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:39:13-41:29
+62                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+62-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:40:17-116
+62-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:40:25-113
+63            </intent-filter>
+64
+65            <meta-data
+65-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:42:13-44:46
+66                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+66-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:43:17-86
+67                android:value="SHORT_TEXT" />
+67-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:44:17-43
+68            <meta-data
+68-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:45:13-47:40
+69                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+69-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:46:17-92
+70                android:value="3600" />
+70-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:47:17-37
+71        </service>
+72        <service
+72-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:50:9-65:19
+73            android:name="com.example.swy_app.complication.ProteinComplicationService"
+73-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:51:13-68
+74            android:exported="true"
+74-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:52:13-36
+75            android:icon="@mipmap/ic_launcher"
+75-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:53:13-47
+76            android:label="SWY Protein"
+76-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:54:13-40
+77            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER" >
+77-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:55:13-99
+78            <intent-filter>
+78-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:39:13-41:29
+79                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+79-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:40:17-116
+79-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:40:25-113
+80            </intent-filter>
+81
+82            <meta-data
+82-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:42:13-44:46
+83                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+83-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:43:17-86
+84                android:value="SHORT_TEXT" />
+84-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:44:17-43
+85            <meta-data
+85-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:45:13-47:40
+86                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+86-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:46:17-92
+87                android:value="3600" />
+87-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:47:17-37
+88        </service>
+89        <service
+89-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:67:9-79:19
+90            android:name="com.example.swy_app.tile.WorkoutTileService"
+90-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:68:13-52
+91            android:exported="true"
+91-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:69:13-36
+92            android:icon="@mipmap/ic_launcher"
+92-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:70:13-47
+93            android:label="SWY Workout Tile"
+93-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:71:13-45
+94            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER" >
+94-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:72:13-91
+95            <intent-filter>
+95-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:73:13-75:29
+96                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+96-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:74:17-88
+96-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:74:25-85
+97            </intent-filter>
+98
+99            <meta-data
+99-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:76:13-78:58
+100                android:name="androidx.wear.tiles.PREVIEW"
+100-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:77:17-59
+101                android:resource="@mipmap/ic_launcher" />
+101-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:78:17-55
+102        </service>
+103        <service
+103-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:81:9-93:19
+104            android:name="com.example.swy_app.tile.MacrosTileService"
+104-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:82:13-51
+105            android:exported="true"
+105-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:83:13-36
+106            android:icon="@mipmap/ic_launcher"
+106-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:84:13-47
+107            android:label="SWY Macros Tile"
+107-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:85:13-44
+108            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER" >
+108-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:86:13-91
+109            <intent-filter>
+109-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:73:13-75:29
+110                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+110-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:74:17-88
+110-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:74:25-85
+111            </intent-filter>
+112
+113            <meta-data
+113-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:76:13-78:58
+114                android:name="androidx.wear.tiles.PREVIEW"
+114-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:77:17-59
+115                android:resource="@mipmap/ic_launcher" />
+115-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:78:17-55
+116        </service>
+117        <service
+117-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:95:9-102:19
+118            android:name="com.example.swy_app.sync.SyncService"
+118-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:96:13-45
+119            android:exported="true" >
+119-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:97:13-36
+120            <intent-filter>
+120-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:98:13-101:29
+121                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+121-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:99:17-87
+121-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:99:25-84
+122
+123                <data
+123-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:100:17-100
+124                    android:host="*"
+124-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:100:45-61
+125                    android:pathPrefix="/swy_sync_data"
+125-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:100:62-97
+126                    android:scheme="wear" />
+126-->C:\Users\marti\AMS d.o.o\SWY Android Watch\app\src\main\AndroidManifest.xml:100:23-44
+127            </intent-filter>
+128        </service>
+129
+130        <uses-library
+130-->[androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\transforms-3\dfc4ebf34161d016b958c1664c9aff82\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:8:9-10:40
+131            android:name="com.google.android.wearable"
+131-->[androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\transforms-3\dfc4ebf34161d016b958c1664c9aff82\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:9:13-55
+132            android:required="false" />
+132-->[androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\transforms-3\dfc4ebf34161d016b958c1664c9aff82\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:10:13-37
+133
+134        <activity
+134-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\transforms-3\ed3edaf4eceae8ba113e68950b60a5e5\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:9-22:45
+135            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+135-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\transforms-3\ed3edaf4eceae8ba113e68950b60a5e5\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:19-85
+136            android:exported="false"
+136-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\transforms-3\ed3edaf4eceae8ba113e68950b60a5e5\transformed\play-services-base-18.0.1\AndroidManifest.xml:22:19-43
+137            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+137-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\transforms-3\ed3edaf4eceae8ba113e68950b60a5e5\transformed\play-services-base-18.0.1\AndroidManifest.xml:21:19-78
+138
+139        <meta-data
+139-->[com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\transforms-3\480bcdc186ba0996ec86ca01a3b34339\transformed\play-services-basement-18.0.0\AndroidManifest.xml:21:9-23:69
+140            android:name="com.google.android.gms.version"
+140-->[com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\transforms-3\480bcdc186ba0996ec86ca01a3b34339\transformed\play-services-basement-18.0.0\AndroidManifest.xml:22:13-58
+141            android:value="@integer/google_play_services_version" />
+141-->[com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\transforms-3\480bcdc186ba0996ec86ca01a3b34339\transformed\play-services-basement-18.0.0\AndroidManifest.xml:23:13-66
+142
+143        <provider
+143-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\161d2e0566de4dbd90cbc47319c186f1\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+144            android:name="androidx.startup.InitializationProvider"
+144-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\161d2e0566de4dbd90cbc47319c186f1\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+145            android:authorities="com.example.swy_app.androidx-startup"
+145-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\161d2e0566de4dbd90cbc47319c186f1\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+146            android:exported="false" >
+146-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\161d2e0566de4dbd90cbc47319c186f1\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+147            <meta-data
+147-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\161d2e0566de4dbd90cbc47319c186f1\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+148                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+148-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\161d2e0566de4dbd90cbc47319c186f1\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+149                android:value="androidx.startup" />
+149-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\transforms-3\161d2e0566de4dbd90cbc47319c186f1\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+150            <meta-data
+150-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\marti\.gradle\caches\transforms-3\2ac0278a92e47295ba9839f931e0da90\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+151                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+151-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\marti\.gradle\caches\transforms-3\2ac0278a92e47295ba9839f931e0da90\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+152                android:value="androidx.startup" />
+152-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\marti\.gradle\caches\transforms-3\2ac0278a92e47295ba9839f931e0da90\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+153            <meta-data
+153-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+154                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+154-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+155                android:value="androidx.startup" />
+155-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+156        </provider>
+157
+158        <activity
+158-->[androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\transforms-3\9b6a843e0cc5ede4305544f532123897\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+159            android:name="androidx.compose.ui.tooling.PreviewActivity"
+159-->[androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\transforms-3\9b6a843e0cc5ede4305544f532123897\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+160            android:exported="true" />
+160-->[androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\transforms-3\9b6a843e0cc5ede4305544f532123897\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+161
+162        <receiver
+162-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+163            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+163-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+164            android:directBootAware="false"
+164-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+165            android:enabled="true"
+165-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+166            android:exported="true"
+166-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+167            android:permission="android.permission.DUMP" >
+167-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+168            <intent-filter>
+168-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+169                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+169-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+169-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+170            </intent-filter>
+171            <intent-filter>
+171-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+172                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+172-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+172-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+173            </intent-filter>
+174            <intent-filter>
+174-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+175                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+175-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+175-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+176            </intent-filter>
+177            <intent-filter>
+177-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+178                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+178-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+178-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\transforms-3\5a2501bcdebea8d28cf49dafb7ffa949\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+179            </intent-filter>
+180        </receiver>
+181    </application>
+182
+183</manifest>

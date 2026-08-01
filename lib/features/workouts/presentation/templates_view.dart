@@ -20,7 +20,7 @@ class TemplatesView extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _IconPill(
               icon: Icons.create_new_folder_outlined,
@@ -150,7 +150,7 @@ class _FolderTile extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.secondary),
+              Icon(Icons.chevron_right, color: AppColors.secondary),
             ],
           ),
         ),
@@ -201,7 +201,7 @@ class _TemplateTile extends ConsumerWidget {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.fitness_center, size: 22, color: AppColors.primary),
+                child: Icon(Icons.fitness_center, size: 22, color: AppColors.primary),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -276,7 +276,7 @@ class _FolderDetailView extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle, color: AppColors.primary),
+            icon: Icon(Icons.add_circle, color: AppColors.primary),
             onPressed: () => TemplateBuilderView.show(context, initialFolderId: folder.id),
           ),
         ],
@@ -287,7 +287,7 @@ class _FolderDetailView extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.folder_open, size: 48, color: AppColors.primary),
+                    Icon(Icons.folder_open, size: 48, color: AppColors.primary),
                     const SizedBox(height: 12),
                     Text('No templates yet',
                         style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
@@ -529,7 +529,7 @@ class _CreateFolderSheetState extends State<_CreateFolderSheet> {
                 fillColor: AppColors.surfaceContainer,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.primary, width: 1.5)),
               ),
             ),
             const SizedBox(height: 16),
@@ -578,7 +578,7 @@ class _EmptyState extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const Icon(Icons.folder_copy_outlined, size: 48, color: AppColors.primary),
+            Icon(Icons.folder_copy_outlined, size: 48, color: AppColors.primary),
             const SizedBox(height: 16),
             Text('No templates yet',
                 style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
@@ -631,7 +631,7 @@ class _IconPill extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: AppColors.primary),
             const SizedBox(width: 4),
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
           ],
         ),
       ),
@@ -643,8 +643,8 @@ class _SheetAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color color;
-  const _SheetAction({required this.icon, required this.label, required this.onTap, this.color = AppColors.onSurface});
+  final Color? color;
+  const _SheetAction({required this.icon, required this.label, required this.onTap, this.color});
 
   @override
   Widget build(BuildContext context) {

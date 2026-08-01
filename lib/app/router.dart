@@ -8,13 +8,19 @@ import '../features/admin/presentation/admin_insert_workout_view.dart';
 import '../features/analytics/presentation/insights_view.dart';
 import '../features/gyms/presentation/gyms_view.dart';
 import '../features/measurements/presentation/measurements_view.dart';
+import '../features/measurements/presentation/metric_detail_view.dart';
 import '../features/nutrition/presentation/calorie_macro_goals_view.dart';
 import '../features/nutrition/presentation/calorie_meal_goals_view.dart';
 import '../features/nutrition/presentation/goals_view.dart';
 import '../features/nutrition/presentation/nutrition_targets_view.dart';
+import '../features/nutrition/presentation/meal_slots_view.dart';
+import '../features/nutrition/presentation/nutrient_overview_view.dart';
+import '../features/nutrition/presentation/nutrient_settings_view.dart';
 import '../features/onboarding/presentation/onboarding_view.dart';
 import '../features/programs/presentation/rotation_pools_view.dart';
 import '../features/profile/domain/profile.dart';
+import '../features/profile/presentation/custom_foods_view.dart';
+import '../features/profile/presentation/custom_recipes_view.dart';
 import '../features/profile/presentation/profile_view.dart';
 import '../features/shell/main_scaffold.dart';
 import '../features/shell/splash_view.dart';
@@ -27,7 +33,10 @@ import 'providers.dart';
 /// profile changes (e.g. onboarding completes, or data is cleared).
 class _RouterRefresh extends ChangeNotifier {
   _RouterRefresh(Ref ref) {
-    ref.listen<AsyncValue<Profile?>>(profileProvider, (_, _) => notifyListeners());
+    ref.listen<AsyncValue<Profile?>>(
+      profileProvider,
+      (_, _) => notifyListeners(),
+    );
   }
 }
 
@@ -70,21 +79,70 @@ final routerProvider = Provider<GoRouter>((ref) {
           sessionId: int.parse(state.pathParameters['id']!),
         ),
       ),
-      GoRoute(path: '/measurements', builder: (_, _) => const MeasurementsView()),
+      GoRoute(
+        path: '/measurements',
+        builder: (_, _) => const MeasurementsView(),
+      ),
+      GoRoute(
+        path: '/measurements/:metric',
+        builder: (_, state) =>
+            MetricDetailView(metric: state.pathParameters['metric']!),
+      ),
       GoRoute(path: '/gyms', builder: (_, _) => const GymsView()),
-      GoRoute(path: '/micro-workouts', builder: (_, _) => const MicroWorkoutsView()),
+      GoRoute(
+        path: '/micro-workouts',
+        builder: (_, _) => const MicroWorkoutsView(),
+      ),
       GoRoute(path: '/insights', builder: (_, _) => const InsightsView()),
       GoRoute(path: '/profile', builder: (_, _) => const ProfileView()),
-      GoRoute(path: '/nutrition-targets', builder: (_, _) => const NutritionTargetsView()),
+      GoRoute(
+        path: '/custom-foods',
+        builder: (_, _) => const CustomFoodsView(),
+      ),
+      GoRoute(
+        path: '/custom-recipes',
+        builder: (_, _) => const CustomRecipesView(),
+      ),
+      GoRoute(
+        path: '/nutrition-targets',
+        builder: (_, _) => const NutritionTargetsView(),
+      ),
+      GoRoute(
+        path: '/nutrition-meal-slots',
+        builder: (_, _) => const MealSlotsView(),
+      ),
+      GoRoute(
+        path: '/nutrition-nutrients',
+        builder: (_, _) => const NutrientSettingsView(),
+      ),
+      GoRoute(
+        path: '/nutrient-overview',
+        builder: (_, _) => const NutrientOverviewView(),
+      ),
       GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
-      GoRoute(path: '/calorie-macro-goals', builder: (_, _) => const CalorieMacroGoalsView()),
-      GoRoute(path: '/calorie-meal-goals', builder: (_, _) => const CalorieMealGoalsView()),
-      GoRoute(path: '/rotation-pools', builder: (_, _) => const RotationPoolsView()),
+      GoRoute(
+        path: '/calorie-macro-goals',
+        builder: (_, _) => const CalorieMacroGoalsView(),
+      ),
+      GoRoute(
+        path: '/calorie-meal-goals',
+        builder: (_, _) => const CalorieMealGoalsView(),
+      ),
+      GoRoute(
+        path: '/rotation-pools',
+        builder: (_, _) => const RotationPoolsView(),
+      ),
       // Developer-only content tools. Excluded from release builds entirely.
       if (kDebugMode) ...[
         GoRoute(path: '/admin', builder: (_, _) => const AdminDashboardView()),
-        GoRoute(path: '/admin/workout', builder: (_, _) => const AdminInsertWorkoutView()),
-        GoRoute(path: '/admin/recipe', builder: (_, _) => const AdminInsertRecipeView()),
+        GoRoute(
+          path: '/admin/workout',
+          builder: (_, _) => const AdminInsertWorkoutView(),
+        ),
+        GoRoute(
+          path: '/admin/recipe',
+          builder: (_, _) => const AdminInsertRecipeView(),
+        ),
       ],
     ],
   );

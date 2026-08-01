@@ -12,7 +12,7 @@
     <application
         android:label="Herculex"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -40,6 +40,100 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Wear OS Sync Listener -->
+        <service
+            android:name=".PhoneWearListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/herculex" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+            </intent-filter>
+        </service>
+
+        <!-- ══ Home-screen widgets ════════════════════════════════════════════ -->
+
+        <!-- CNS Load pill widget -->
+        <receiver
+            android:name=".CnsWidgetProvider"
+            android:exported="true"
+            android:label="CNS Load">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_cns" />
+        </receiver>
+
+        <!-- Recovery Score pill widget -->
+        <receiver
+            android:name=".RecoveryWidgetProvider"
+            android:exported="true"
+            android:label="Recovery Score">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_recovery" />
+        </receiver>
+
+        <!-- Net Carbs pill widget -->
+        <receiver
+            android:name=".CarbsWidgetProvider"
+            android:exported="true"
+            android:label="Net Carbs">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_carbs" />
+        </receiver>
+
+        <!-- Fat pill widget -->
+        <receiver
+            android:name=".FatWidgetProvider"
+            android:exported="true"
+            android:label="Fat">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_fat" />
+        </receiver>
+
+        <!-- Protein pill widget -->
+        <receiver
+            android:name=".ProteinWidgetProvider"
+            android:exported="true"
+            android:label="Protein">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_protein" />
+        </receiver>
+
+        <!-- Scan Food shortcut pill widget -->
+        <receiver
+            android:name=".ScannerWidgetProvider"
+            android:exported="true"
+            android:label="Scan Food">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_scanner" />
+        </receiver>
+
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

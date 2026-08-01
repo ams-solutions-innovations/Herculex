@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:health/health.dart';
 import '../../../data/local/database.dart';
+import '../../health/domain/external_workout_cns_mapper.dart';
 
 class CnsFatigueResult {
   /// Accumulated CNS load, 0.0 (fresh) to 1.0 (maximally taxed).
@@ -31,6 +33,7 @@ class CnsFatigue {
     required List<SetEntryData> sets,
     required List<WorkoutExerciseData> workoutExercises,
     required List<ExerciseCatalogData> catalog,
+    List<HealthDataPoint> externalWorkouts = const [],
     required DateTime asOf,
     double halfLifeHours = 36,
   }) {
@@ -54,6 +57,28 @@ class CnsFatigue {
       final decay = exp(-hours / halfLifeHours);
       load += _perSetBase * intensity * rpeFactor * decay;
     }
+
+    // Process external workouts
+    for (final workout in externalWorkouts) {
+      if (workout.value is! WorkoutHealthValue) continue;
+      final wv = workout.value as WorkoutHealthValue;
+      
+      final hours = asOf.difference(workout.dateTo).inHours;
+      if (hours > _windowHours) continue;
+
+      final impact = ExternalWorkoutCnsMapper.getImpactFor(wv.workoutActivityType);
+      
+      // Calculate equivalent sets based on duration. E.g. 1 hour = ~20 sets equivalent load for high intensity.
+      final durationMinutes = workout.dateTo.difference(workout.dateFrom).inMinutes;
+      final equivalentSets = (durationMinutes / 60.0) * 15.0; // 15 sets per hour
+      
+      final rpeFactor = 1.0; // Assume moderate intensity for external workouts
+      final decay = exp(-hours / halfLifeHours);
+      
+      // We apply the base CNS score of the workout type
+      load += _perSetBase * equivalentSets * impact.baseCnsScore * rpeFactor * decay;
+    }
+
     return CnsFatigueResult(load.clamp(0.0, 1.0));
   }
 }

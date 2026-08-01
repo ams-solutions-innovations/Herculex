@@ -49,7 +49,7 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
     if (session == null) return const SizedBox.shrink();
 
     final exercisesAsync = ref.watch(sessionExercisesProvider(session.id));
-    final catalog = ref.watch(exerciseCatalogProvider(null));
+    final catalog = ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
 
     final exercises = exercisesAsync.asData?.value ?? [];
     String exerciseName = 'Workout in progress';
@@ -64,30 +64,38 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
     final elapsedStr = _formatElapsed(session.startedAt);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(999),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: GestureDetector(
             onTap: () {
               Haptics.selection();
               widget.onResume();
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.25),
+                    AppColors.primary.withValues(alpha: 0.1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.35),
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  width: 1.5,
                 ),
               ),
               child: Row(
                 children: [
                   // Pulsing green dot
                   _PulsingDot(),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,29 +104,25 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
                         Row(
                           children: [
                             Text(
-                              'Workout',
+                              (session.name != null && session.name!.isNotEmpty)
+                                  ? session.name!
+                                  : 'Workout in Progress',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              elapsedStr,
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           exerciseName,
-                          style: const TextStyle(
-                            color: AppColors.secondary,
-                            fontSize: 12,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -127,18 +131,43 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Up arrow to resume
+                  // Middle pill info left of the circle button
                   Container(
-                    width: 36,
-                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                    ),
+                    child: Text(
+                      elapsedStr,
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Up arrow circle button
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: const Icon(
                       Icons.keyboard_arrow_up_rounded,
                       color: Colors.white,
-                      size: 22,
+                      size: 26,
                     ),
                   ),
                 ],

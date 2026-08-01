@@ -70,7 +70,7 @@ class _SmartSubstitutionSheetState extends ConsumerState<SmartSubstitutionSheet>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final catalogAsync = ref.watch(exerciseCatalogProvider(null));
+    final catalogAsync = ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
     final recentHistoryAsync = ref.watch(recentExerciseIdsProvider);
 
     return DraggableScrollableSheet(
@@ -100,7 +100,7 @@ class _SmartSubstitutionSheetState extends ConsumerState<SmartSubstitutionSheet>
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Row(
                   children: [
-                    const Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 24),
+                    Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 24),
                     const SizedBox(width: 8),
                     Text(
                       "Smart Substitution",

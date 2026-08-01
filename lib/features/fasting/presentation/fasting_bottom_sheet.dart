@@ -42,7 +42,7 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
+            color: theme.colorScheme.surfaceContainer,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
@@ -105,7 +105,9 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
     final remaining = target - elapsed;
     final isOverTarget = remaining.isNegative;
 
-    final progress = target.inSeconds > 0 ? (elapsed.inSeconds / target.inSeconds).clamp(0.0, 1.0) : 0.0;
+    final progress = target.inSeconds > 0
+        ? (elapsed.inSeconds / target.inSeconds).clamp(0.0, 1.0)
+        : 0.0;
 
     final format = DateFormat('HH:mm (MMM d)');
     final startedStr = format.format(active.startedAt);
@@ -113,8 +115,14 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
 
     String durationString(Duration duration) {
       final hours = duration.inHours.abs().toString().padLeft(2, '0');
-      final minutes = (duration.inMinutes.abs() % 60).toString().padLeft(2, '0');
-      final seconds = (duration.inSeconds.abs() % 60).toString().padLeft(2, '0');
+      final minutes = (duration.inMinutes.abs() % 60).toString().padLeft(
+        2,
+        '0',
+      );
+      final seconds = (duration.inSeconds.abs() % 60).toString().padLeft(
+        2,
+        '0',
+      );
       return "$hours:$minutes:$seconds";
     }
 
@@ -130,8 +138,12 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
         ),
         const SizedBox(height: 8),
         Text(
-          isOverTarget ? "Target reached! Break your fast when ready." : "Keep up the great work!",
-          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+          isOverTarget
+              ? "Target reached! Break your fast when ready."
+              : "Keep up the great work!",
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.secondary,
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
@@ -145,19 +157,27 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                 value: progress,
                 strokeWidth: 10,
                 backgroundColor: AppColors.surfaceVariant,
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  AppColors.primary,
+                ),
               ),
             ),
             Column(
               children: [
                 Text(
                   durationString(isOverTarget ? elapsed : remaining),
-                  style: theme.textTheme.displayLarge?.copyWith(fontSize: 32, fontWeight: FontWeight.bold),
+                  style: theme.textTheme.displayLarge?.copyWith(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   isOverTarget ? "ELAPSED" : "REMAINING",
-                  style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ],
             ),
@@ -167,8 +187,18 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildTimeDetailCard(theme, "STARTED", startedStr, Icons.play_arrow),
-            _buildTimeDetailCard(theme, "TARGET END", targetEndStr, Icons.outlined_flag),
+            _buildTimeDetailCard(
+              theme,
+              "STARTED",
+              startedStr,
+              Icons.play_arrow,
+            ),
+            _buildTimeDetailCard(
+              theme,
+              "TARGET END",
+              targetEndStr,
+              Icons.outlined_flag,
+            ),
           ],
         ),
         const SizedBox(height: 32),
@@ -203,23 +233,43 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
               const SizedBox(height: 8),
               Text(
                 "Select a plan aligned with your daily flow.",
-                style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.secondary,
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 32),
-        Text("INTERMITTENT", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+        Center(
+          child: Text(
+            "INTERMITTENT",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.secondary,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
         const SizedBox(height: 12),
-        for (final plan in FastingPlan.values.where((p) => !p.isProlonged && p != FastingPlan.custom))
+        for (final plan in FastingPlan.values.where(
+          (p) => !p.isProlonged && p != FastingPlan.custom,
+        ))
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: _planTile(theme, plan),
           ),
         const SizedBox(height: 20),
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("PROLONGED", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+            Text(
+              "PROLONGED",
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: 1.0,
+              ),
+            ),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -227,9 +277,14 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                 color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text("1–3 DAYS",
-                  style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.primary, fontSize: 9, letterSpacing: 0.5)),
+              child: Text(
+                "1–3 DAYS",
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.primary,
+                  fontSize: 9,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ],
         ),
@@ -247,7 +302,9 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
             isPrimary: true,
             icon: Icons.play_arrow_outlined,
             onTap: () {
-              ref.read(fastingRepositoryProvider).startSession(_selectedPlan.targetSeconds);
+              ref
+                  .read(fastingRepositoryProvider)
+                  .startSession(_selectedPlan.targetSeconds);
             },
           ),
         ),
@@ -285,8 +342,12 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                plan.isProlonged ? Icons.bedtime_outlined : Icons.hourglass_empty,
-                color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+                plan.isProlonged
+                    ? Icons.bedtime_outlined
+                    : Icons.hourglass_empty,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.onSurfaceVariant,
                 size: 20,
               ),
             ),
@@ -297,33 +358,46 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                 children: [
                   Text(
                     plan.nameString,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(
                     plan.description,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: AppColors.secondary),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: AppColors.primary, size: 24),
+              Icon(
+                Icons.check_circle,
+                color: AppColors.primary,
+                size: 24,
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTimeDetailCard(ThemeData theme, String title, String value, IconData icon) {
+  Widget _buildTimeDetailCard(
+    ThemeData theme,
+    String title,
+    String value,
+    IconData icon,
+  ) {
     return Expanded(
       child: Card(
         color: AppColors.surfaceContainerLowest,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+          side: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -335,11 +409,19 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: theme.textTheme.labelSmall?.copyWith(fontSize: 9, color: AppColors.secondary)),
+                    Text(
+                      title,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontSize: 9,
+                        color: AppColors.secondary,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       value,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -352,11 +434,24 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
     );
   }
 
-  Widget _buildInsightsSection(ThemeData theme, AsyncValue<int> streakAsync, AsyncValue<double> avgEatingAsync) {
+  Widget _buildInsightsSection(
+    ThemeData theme,
+    AsyncValue<int> streakAsync,
+    AsyncValue<double> avgEatingAsync,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("FASTING INSIGHTS", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+        Center(
+          child: Text(
+            "FASTING INSIGHTS",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.secondary,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
         Row(
           children: [
@@ -377,7 +472,7 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
             Expanded(
               child: _buildInsightMetricCard(
                 theme,
-                "Avg Eating Window",
+                "Avg. Window",
                 avgEatingAsync.when(
                   data: (hrs) => "${hrs.toStringAsFixed(1)} hrs",
                   loading: () => "...",
@@ -393,7 +488,13 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
     );
   }
 
-  Widget _buildInsightMetricCard(ThemeData theme, String title, String value, IconData icon, Color accentColor) {
+  Widget _buildInsightMetricCard(
+    ThemeData theme,
+    String title,
+    String value,
+    IconData icon,
+    Color accentColor,
+  ) {
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -402,7 +503,12 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
+              Text(
+                title,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
+              ),
               Icon(icon, size: 18, color: accentColor),
             ],
           ),
@@ -419,20 +525,52 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
     );
   }
 
-  Widget _buildHistorySection(ThemeData theme, AsyncValue<dynamic> historyAsync) {
+  Widget _buildHistorySection(
+    ThemeData theme,
+    AsyncValue<dynamic> historyAsync,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("RECENT SESSIONS", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+        Center(
+          child: Text(
+            "RECENT SESSIONS",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.secondary,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
         const SizedBox(height: 12),
         historyAsync.when(
           data: (history) {
             if (history.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Text(
-                  "No completed fasting sessions yet.",
-                  style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+              return GlassContainer(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.history_toggle_off_rounded,
+                      size: 36,
+                      color: AppColors.outline,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No Fasting History",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Your completed fasting sessions will appear here.",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               );
             }
@@ -447,7 +585,9 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                 final duration = session.endedAt!.difference(session.startedAt);
                 final hours = duration.inHours;
                 final minutes = duration.inMinutes % 60;
-                final dateStr = DateFormat('E, MMM d').format(session.startedAt);
+                final dateStr = DateFormat(
+                  'E, MMM d',
+                ).format(session.startedAt);
                 final targetHours = session.targetSeconds ~/ 3600;
 
                 return Row(
@@ -456,12 +596,18 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: session.completed ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surfaceVariant,
+                        color: session.completed
+                            ? AppColors.primary.withValues(alpha: 0.1)
+                            : AppColors.surfaceVariant,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        session.completed ? Icons.check_circle_outline : Icons.close,
-                        color: session.completed ? AppColors.primary : AppColors.secondary,
+                        session.completed
+                            ? Icons.check_circle_outline
+                            : Icons.close,
+                        color: session.completed
+                            ? AppColors.primary
+                            : AppColors.secondary,
                         size: 20,
                       ),
                     ),
@@ -472,11 +618,15 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                         children: [
                           Text(
                             "$hours hrs $minutes min fast",
-                            style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           Text(
                             "Target: ${targetHours}h • $dateStr",
-                            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                            ),
                           ),
                         ],
                       ),
@@ -515,7 +665,9 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
         return AlertDialog(
           backgroundColor: AppColors.surfaceContainerLowest,
           title: const Text("End Fast"),
-          content: const Text("Are you sure you want to end your current fasting session?"),
+          content: const Text(
+            "Are you sure you want to end your current fasting session?",
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -526,7 +678,13 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                 Navigator.pop(context);
                 ref.read(fastingRepositoryProvider).endSession(completed: true);
               },
-              child: const Text("END FAST", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              child: Text(
+                "END FAST",
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );

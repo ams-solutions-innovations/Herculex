@@ -21,9 +21,12 @@ class GoalsView extends ConsumerWidget {
     final fitnessGoals = ref.watch(fitnessGoalsProvider);
     final showNetCarbs = ref.watch(showNetCarbsByMealProvider);
 
-    final currentWeightStr =
-        profile?.weightKg != null ? '${_fmtNum(profile!.weightKg!)} kg' : '--';
-    final goalWeightStr = goalWeight != null ? '${_fmtNum(goalWeight)} kg' : '--';
+    final currentWeightStr = profile?.weightKg != null
+        ? '${_fmtNum(profile!.weightKg!)} kg'
+        : '--';
+    final goalWeightStr = goalWeight != null
+        ? '${_fmtNum(goalWeight)} kg'
+        : '--';
     final startWeightStr = startingWeight != null
         ? '${_fmtNum(startingWeight.kg)} kg on ${_fmtDateIso(startingWeight.dateIso)}'
         : '--';
@@ -112,9 +115,15 @@ class GoalsView extends ConsumerWidget {
           const _GoalDivider(),
           _GoalNavRow(
             label: 'Additional Nutrient Goals',
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              _snack('Additional nutrient goals coming soon'),
-            ),
+            subtitle: 'Choose which vitamins and minerals appear in the diary.',
+            onTap: () => context.push('/nutrition-nutrients'),
+          ),
+          const _GoalDivider(),
+          _GoalNavRow(
+            label: 'Edit meal slots',
+            subtitle:
+                'Add, rename and reorder breakfast, lunch and custom meals.',
+            onTap: () => context.push('/nutrition-meal-slots'),
           ),
 
           const SizedBox(height: 32),
@@ -274,9 +283,7 @@ class GoalsView extends ConsumerWidget {
     required int current,
     required Future<void> Function(int) onSave,
   }) async {
-    final ctrl = TextEditingController(
-      text: current > 0 ? '$current' : '',
-    );
+    final ctrl = TextEditingController(text: current > 0 ? '$current' : '');
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -315,13 +322,6 @@ class GoalsView extends ConsumerWidget {
         : abs.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
     return '$verb $n kg per week';
   }
-
-  static SnackBar _snack(String msg) => SnackBar(
-        content: Text(msg),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-      );
 }
 
 // ── Row widgets ───────────────────────────────────────────────────────────────
@@ -354,10 +354,7 @@ class _GoalValueRow extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               value,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: AppColors.primary, fontSize: 16),
             ),
           ],
         ),
@@ -371,11 +368,7 @@ class _GoalNavRow extends StatelessWidget {
   final String? subtitle;
   final VoidCallback onTap;
 
-  const _GoalNavRow({
-    required this.label,
-    this.subtitle,
-    required this.onTap,
-  });
+  const _GoalNavRow({required this.label, this.subtitle, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -394,10 +387,7 @@ class _GoalNavRow extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 subtitle!,
-                style: const TextStyle(
-                  color: AppColors.secondary,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: AppColors.secondary, fontSize: 13),
               ),
             ],
           ],
@@ -439,10 +429,7 @@ class _GoalToggleRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle!,
-                    style: const TextStyle(
-                      color: AppColors.secondary,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: AppColors.secondary, fontSize: 13),
                   ),
                 ],
               ],
@@ -469,12 +456,15 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -486,11 +476,7 @@ class _GoalDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(
-      height: 0,
-      thickness: 0.5,
-      color: AppColors.outlineVariant,
-    );
+    return Divider(height: 0, thickness: 0.5, color: AppColors.outlineVariant);
   }
 }
 
@@ -516,7 +502,7 @@ class _SimpleWeightSheet extends StatelessWidget {
       padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surfaceContainer,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
@@ -547,17 +533,18 @@ class _SimpleWeightSheet extends StatelessWidget {
             TextField(
               controller: controller,
               autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
               ],
               style: const TextStyle(color: Colors.white, fontSize: 16),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: const TextStyle(color: AppColors.secondary),
+                hintStyle: TextStyle(color: AppColors.secondary),
                 suffixText: 'kg',
-                suffixStyle: const TextStyle(color: AppColors.secondary),
+                suffixStyle: TextStyle(color: AppColors.secondary),
                 filled: true,
                 fillColor: AppColors.surfaceVariant,
                 border: OutlineInputBorder(
@@ -566,8 +553,7 @@ class _SimpleWeightSheet extends StatelessWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -592,10 +578,7 @@ class _SimpleWeightSheet extends StatelessWidget {
                 },
                 child: const Text(
                   'Save',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 ),
               ),
             ),
@@ -624,7 +607,7 @@ class _IntGoalSheet extends StatelessWidget {
       padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surfaceContainer,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
@@ -660,7 +643,7 @@ class _IntGoalSheet extends StatelessWidget {
               style: const TextStyle(color: Colors.white, fontSize: 16),
               decoration: InputDecoration(
                 hintText: '0',
-                hintStyle: const TextStyle(color: AppColors.secondary),
+                hintStyle: TextStyle(color: AppColors.secondary),
                 filled: true,
                 fillColor: AppColors.surfaceVariant,
                 border: OutlineInputBorder(
@@ -669,8 +652,7 @@ class _IntGoalSheet extends StatelessWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -727,7 +709,7 @@ class _WeeklyGoalSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -777,8 +759,7 @@ class _WeeklyGoalSheet extends StatelessWidget {
                       ),
                     ),
                     if (value == current)
-                      const Icon(Icons.check,
-                          color: AppColors.primary, size: 20),
+                      Icon(Icons.check, color: AppColors.primary, size: 20),
                   ],
                 ),
               ),
@@ -799,7 +780,7 @@ class _ActivityLevelSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -849,8 +830,7 @@ class _ActivityLevelSheet extends StatelessWidget {
                       ),
                     ),
                     if (level == current)
-                      const Icon(Icons.check,
-                          color: AppColors.primary, size: 20),
+                      Icon(Icons.check, color: AppColors.primary, size: 20),
                   ],
                 ),
               ),

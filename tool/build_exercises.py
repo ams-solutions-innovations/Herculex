@@ -62,6 +62,24 @@ def derive_equipment_modality(name):
         return ("Band", "band")
     if "kettlebell" in n:
         return ("Kettlebell", "kettlebell")
+    if "dumbbell" in n or "(db)" in n or " db" in n or "kroc" in n:
+        return ("Dumbbell", "dumbbell")
+    if any(k in n for k in ["ez bar", "ez-bar"]):
+        return ("EZ Bar", "barbell")
+    if "swiss bar" in n:
+        return ("Swiss Bar", "barbell")
+    if "axle bar" in n:
+        return ("Axle Bar", "barbell")
+    if "safety bar" in n:
+        return ("Safety Bar", "barbell")
+    if "cambered bar" in n:
+        return ("Cambered Bar", "barbell")
+    if "duffalo bar" in n:
+        return ("Duffalo Bar", "barbell")
+    if "trap bar" in n or "hex bar" in n:
+        return ("Trap Bar", "barbell")
+    if "landmine" in n or "meadows" in n:
+        return ("Landmine", "barbell")
     # Machines (plate-loaded vs selectorized)
     machine_kw = ["machine", "pec deck", "hack squat", "pendulum", "v-squat",
                   "leg press", "leg extension", "leg curl", "iso-lateral",
@@ -80,26 +98,8 @@ def derive_equipment_modality(name):
         return ("Machine", "machine_selectorized")
     if any(k in n for k in bw_kw):
         return ("Bodyweight", "bodyweight")
-    if "dumbbell" in n or "(db)" in n or " db" in n or "kroc" in n:
-        return ("Dumbbell", "dumbbell")
     if "plate" in n:  # Plate Front Raise, Around the World (Plate)
         return ("Plate", "other")
-    if any(k in n for k in ["ez bar", "ez-bar"]):
-        return ("EZ Bar", "barbell")
-    if "swiss bar" in n:
-        return ("Swiss Bar", "barbell")
-    if "axle bar" in n:
-        return ("Axle Bar", "barbell")
-    if "safety bar" in n:
-        return ("Safety Bar", "barbell")
-    if "cambered bar" in n:
-        return ("Cambered Bar", "barbell")
-    if "duffalo bar" in n:
-        return ("Duffalo Bar", "barbell")
-    if "trap bar" in n or "hex bar" in n:
-        return ("Trap Bar", "barbell")
-    if "landmine" in n or "meadows" in n:
-        return ("Landmine", "barbell")
     if "sled" in n or "yoke" in n or "death march" in n or "prowler" in n:
         return ("Sled/Yoke", "other")
     if "neck harness" in n:
@@ -206,7 +206,11 @@ def derive_muscles(name, body_part, pattern):
 
     # ---- Back ----
     elif body_part == "Back":
-        if "pullover" in n or "straight-arm" in n or "straight arm" in n:
+        if "bicep curl" in n or "biceps curl" in n:
+            prim, sec, stab = setm(["Biceps"], ["Brachialis"], ["Forearms"])
+        elif "triceps extension" in n or "tricep extension" in n or "french press" in n:
+            prim, sec, stab = setm(["Triceps"], [], ["Forearms", "Core"])
+        elif "pullover" in n or "straight-arm" in n or "straight arm" in n:
             prim, sec, stab = setm(["Lats"], ["Chest", "Triceps"], ["Core"])
         elif "shrug" in n:
             prim, sec, stab = setm(["Traps"], [], ["Forearms"])

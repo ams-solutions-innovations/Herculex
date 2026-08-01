@@ -103,7 +103,6 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(4, (index) {
           final stepNum = index + 1;
           final isActive = _currentStep == stepNum;
@@ -112,6 +111,13 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
           return Expanded(
             child: Row(
               children: [
+                if (index > 0)
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      color: index <= _currentStep - 1 ? AppColors.primary : AppColors.surfaceContainer,
+                    ),
+                  ),
                 Container(
                   width: 32,
                   height: 32,
@@ -192,8 +198,9 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
+                  Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     "BLOCK SPECIFICATIONS",
@@ -225,7 +232,8 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
           });
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+          height: 88,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
           decoration: BoxDecoration(
             color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(24),
@@ -235,10 +243,30 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
             ),
           ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(cycleName, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
-              const SizedBox(height: 8),
-              Text(duration, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  cycleName.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 0.5,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  duration,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -299,7 +327,13 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
           }),
         ),
         const SizedBox(height: 32),
-        Text("ASSIGNED DAYS", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+        Center(
+          child: Text(
+            "ASSIGNED DAYS",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
+          ),
+        ),
         const SizedBox(height: 12),
         ListView.separated(
           shrinkWrap: true,
@@ -348,7 +382,7 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
                                     _assignedWorkouts[dayIndex] = null;
                                   });
                                 },
-                                child: const Icon(Icons.close, size: 14, color: AppColors.primary),
+                                child: Icon(Icons.close, size: 14, color: AppColors.primary),
                               ),
                             ],
                           ),
@@ -485,7 +519,7 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              const Icon(Icons.beach_access, color: AppColors.primary, size: 40),
+              Icon(Icons.beach_access, color: AppColors.primary, size: 40),
               const SizedBox(height: 16),
               Text(
                 "DO YOU HAVE PLANNED BREAKS?",

@@ -16,7 +16,8 @@ class ExerciseCatalog extends Table {
   TextColumn get force => text()();
   // horizontal | vertical | axial | none
   TextColumn get plane => text()();
-  IntColumn get defaultRestSeconds => integer().withDefault(const Constant(120))();
+  IntColumn get defaultRestSeconds =>
+      integer().withDefault(const Constant(120))();
   BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
 
   // ── Exercise Intelligence (v8) ──
@@ -28,25 +29,32 @@ class ExerciseCatalog extends Table {
   // Coarse: squat | hinge | horizontal_push | vertical_push | horizontal_pull |
   // vertical_pull | lunge | carry | core | isolation | other
   TextColumn get movementPattern => text().nullable()();
+
   /// Original granular pattern text from the source dataset (fidelity).
   TextColumn get movementPatternRaw => text().nullable()();
   // barbell | dumbbell | machine_plate | machine_selectorized | cable | smith |
   // kettlebell | band | bodyweight | other
   TextColumn get modality => text().withDefault(const Constant('barbell'))();
+
   /// CNS fatigue cost, 1–10. Drives recovery + max-effort logic.
   IntColumn get cnsScore => integer().withDefault(const Constant(3))();
+
   /// Systemic recovery demand, 1–5.
   IntColumn get recoveryImpact => integer().withDefault(const Constant(3))();
   // weight_reps | reps | time | distance | time_distance | weight_time
   TextColumn get loggingMetric =>
       text().withDefault(const Constant('weight_reps'))();
+
   /// Enables the "+ added weight" field & bodyweight-base calculations.
   BoolColumn get supportsWeightedBodyweight =>
       boolean().withDefault(const Constant(false))();
+
   /// JSON list of attachment labels, e.g. ["rope","v-bar"]. Null = none.
   TextColumn get attachments => text().nullable()();
+
   /// False = attributes were machine-derived and not yet human-reviewed.
   BoolColumn get isReviewed => boolean().withDefault(const Constant(false))();
+
   /// Movement-family key grouping equipment variants of the same movement
   /// (e.g. "Incline Barbell Bench" + "Incline Dumbbell Press" share one
   /// family). Drives the collapsed picker. Computed at import time; null on
@@ -55,8 +63,8 @@ class ExerciseCatalog extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {name, equipment},
-      ];
+    {name, equipment},
+  ];
 }
 
 /// Normalized muscle involvement — the recovery engine's primary input.
@@ -72,8 +80,8 @@ class ExerciseMuscles extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {exerciseId, muscle, role},
-      ];
+    {exerciseId, muscle, role},
+  ];
 }
 
 /// Search aliases. Searching any alias returns the parent exercise; the parent's
@@ -89,20 +97,25 @@ class ExerciseAliases extends Table {
 @DataClassName('WorkoutSessionData')
 class WorkoutSessions extends Table {
   IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().nullable()();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
   TextColumn get notes => text().nullable()();
   // Overall session RPE 1-10 (optional)
   IntColumn get sessionRpe => integer().nullable()();
+
   /// Gym the session was performed at (v10). Null = no gym / single-gym user.
   IntColumn get gymId =>
       integer().nullable().references(Gyms, #id, onDelete: KeyAction.setNull)();
+
   /// Set when this session is an auto-created micro-workout completion (v11,
   /// §20) — lets the micro-workout checklist count today's completions while
   /// the sets still flow through every engine as normal training.
-  IntColumn get microWorkoutId => integer()
-      .nullable()
-      .references(MicroWorkouts, #id, onDelete: KeyAction.setNull)();
+  IntColumn get microWorkoutId => integer().nullable().references(
+    MicroWorkouts,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
 }
 
 @DataClassName('WorkoutExerciseData')
@@ -110,8 +123,11 @@ class WorkoutExercises extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get sessionId =>
       integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
-  IntColumn get exerciseId =>
-      integer().references(ExerciseCatalog, #id, onDelete: KeyAction.restrict)();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
   IntColumn get orderIndex => integer()();
   // Same group number across rows ⇒ superset. Null = standalone.
   IntColumn get supersetGroup => integer().nullable()();
@@ -122,6 +138,7 @@ class WorkoutExercises extends Table {
   /// smith | cable | machine_plate | machine_selectorized | bodyweight | …).
   /// Null ⇒ the catalog row's default [ExerciseCatalog.modality].
   TextColumn get equipmentVariant => text().nullable()();
+
   /// Machine settings snapshot for this log, JSON object
   /// (e.g. {"seat":"6","angle":"45°"}). Null for non-machine work.
   TextColumn get machineConfigJson => text().nullable()();
@@ -130,8 +147,11 @@ class WorkoutExercises extends Table {
 @DataClassName('SetEntryData')
 class SetEntries extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get workoutExerciseId => integer()
-      .references(WorkoutExercises, #id, onDelete: KeyAction.cascade)();
+  IntColumn get workoutExerciseId => integer().references(
+    WorkoutExercises,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
   IntColumn get setIndex => integer()();
   RealColumn get weightKg => real()();
   IntColumn get reps => integer()();
@@ -145,12 +165,15 @@ class SetEntries extends Table {
   /// Set type id from the [SetType] domain registry (standard | drop |
   /// rest_pause | partials | myo_reps | pause | down_sets | …).
   TextColumn get setType => text().withDefault(const Constant('standard'))();
+
   /// Type-specific metadata, JSON object (dropPercent, pauseSeconds,
   /// miniSets, startReps, decrement, …). Null for plain sets.
   TextColumn get setTypeMetaJson => text().nullable()();
+
   /// User bodyweight snapshot at logging time. Set for weighted-bodyweight
   /// exercises so total load = weightKg + bodyweightKg.
   RealColumn get bodyweightKg => real().nullable()();
+
   /// Average chain contribution over the ROM, already halved (kg at lockout/2).
   RealColumn get chainsKg => real().nullable()();
 }
@@ -172,7 +195,8 @@ class Foods extends Table {
   RealColumn get fiberPer100g => real().nullable()();
   RealColumn get servingGrams => real().nullable()();
   TextColumn get servingLabel => text().nullable()(); // e.g. "1 cup", "1 slice"
-  TextColumn get source => text().withDefault(const Constant('local'))(); // local | openfoodfacts
+  TextColumn get source =>
+      text().withDefault(const Constant('local'))(); // local | openfoodfacts
   TextColumn get imageUrl => text().nullable()();
   BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -180,6 +204,20 @@ class Foods extends Table {
   RealColumn get sodiumMgPer100g => real().nullable()();
   RealColumn get potassiumMgPer100g => real().nullable()();
   RealColumn get cholesterolMgPer100g => real().nullable()();
+
+  /// Stable ID from the bundled catalogue; null for user-created/legacy foods.
+  TextColumn get catalogueId => text().nullable()();
+
+  /// 100 g, 100 ml, or a source-labelled serving basis.
+  TextColumn get referenceBasis =>
+      text().withDefault(const Constant('100 g'))();
+  RealColumn get servingAmount => real().nullable()();
+  TextColumn get servingUnit => text().nullable()();
+  TextColumn get category => text().nullable()();
+  TextColumn get country => text().nullable()();
+
+  /// Full source nutrients/provenance/claims payload for later micro views.
+  TextColumn get sourceMetadataJson => text().nullable()();
 }
 
 /// Free-form micronutrients per food (vitamins, minerals), per-100g (§19).
@@ -194,8 +232,21 @@ class FoodMicros extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {foodId, nutrient},
-      ];
+    {foodId, nutrient},
+  ];
+}
+
+/// Import marker for the bundled food catalogue. A marker makes the large
+/// asset a one-time migration instead of a per-launch parse/import.
+@DataClassName('FoodCatalogueMetaData')
+class FoodCatalogueMeta extends Table {
+  IntColumn get id => integer().withDefault(const Constant(1))();
+  TextColumn get schemaVersion => text()();
+  IntColumn get foodCount => integer()();
+  DateTimeColumn get importedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 /// Calorie + macro target, scoped by [appliesTo] (§19). One global row plus
@@ -214,8 +265,8 @@ class NutritionTargets extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {appliesTo},
-      ];
+    {appliesTo},
+  ];
 }
 
 /// Automated dieting schedule (§19): reduce calories by [reducePct] every
@@ -236,14 +287,15 @@ class DietSchedules extends Table {
 class CarbCyclePlans extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get weekStartIso => text()();
+
   /// JSON array of 7 strings, Mon→Sun: ["high","low","med",…].
   TextColumn get dayLevelsJson => text()();
   BoolColumn get auto => boolean().withDefault(const Constant(true))();
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {weekStartIso},
-      ];
+    {weekStartIso},
+  ];
 }
 
 @DataClassName('RecipeData')
@@ -273,14 +325,26 @@ class FoodEntries extends Table {
   // Stored as yyyy-mm-dd to keep date math timezone-stable in queries.
   TextColumn get dateIso => text()();
   TextColumn get meal => text()(); // breakfast | lunch | dinner | snack
-  IntColumn get foodId =>
-      integer().nullable().references(Foods, #id, onDelete: KeyAction.restrict)();
-  IntColumn get recipeId =>
-      integer().nullable().references(Recipes, #id, onDelete: KeyAction.restrict)();
+  IntColumn get foodId => integer().nullable().references(
+    Foods,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+  IntColumn get recipeId => integer().nullable().references(
+    Recipes,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+
   /// Servings consumed when logging a recipe; ignored for raw foods.
   RealColumn get servings => real().withDefault(const Constant(1))();
+
   /// Grams override for raw foods; ignored for recipes.
   RealColumn get gramsOverride => real().nullable()();
+
+  /// Exact user-entered amount and its unit (g, ml, serving, etc.).
+  RealColumn get portionAmount => real().nullable()();
+  TextColumn get portionUnit => text().nullable()();
   DateTimeColumn get loggedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -311,7 +375,8 @@ class Programs extends Table {
   TextColumn get description => text().nullable()();
   IntColumn get weeks => integer().withDefault(const Constant(4))();
   TextColumn get type => text().withDefault(const Constant('block'))();
-  TextColumn get progressionStrategy => text().withDefault(const Constant('volume'))();
+  TextColumn get progressionStrategy =>
+      text().withDefault(const Constant('volume'))();
   BoolColumn get createdByUser => boolean().withDefault(const Constant(true))();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
   // linear | concurrent | block | max_effort | none (v11, §12)
@@ -322,11 +387,13 @@ class Programs extends Table {
 @DataClassName('ProgramWeekData')
 class ProgramWeeks extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get programId => integer().references(Programs, #id, onDelete: KeyAction.cascade)();
+  IntColumn get programId =>
+      integer().references(Programs, #id, onDelete: KeyAction.cascade)();
   IntColumn get weekIndex => integer()();
   RealColumn get adjustmentFactor => real().withDefault(const Constant(1.0))();
   // accumulation | transmutation | realization — block periodization (v11)
   TextColumn get blockPhase => text().nullable()();
+
   /// Intensity multiplier applied to the week's prescribed loads.
   RealColumn get intensityFactor => real().withDefault(const Constant(1.0))();
 }
@@ -334,7 +401,8 @@ class ProgramWeeks extends Table {
 @DataClassName('ProgramDayData')
 class ProgramDays extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get programWeekId => integer().references(ProgramWeeks, #id, onDelete: KeyAction.cascade)();
+  IntColumn get programWeekId =>
+      integer().references(ProgramWeeks, #id, onDelete: KeyAction.cascade)();
   IntColumn get dayOfWeek => integer()();
   TextColumn get name => text()();
 }
@@ -342,8 +410,13 @@ class ProgramDays extends Table {
 @DataClassName('ProgramDayExerciseData')
 class ProgramDayExercises extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get programDayId => integer().references(ProgramDays, #id, onDelete: KeyAction.cascade)();
-  IntColumn get exerciseId => integer().references(ExerciseCatalog, #id, onDelete: KeyAction.restrict)();
+  IntColumn get programDayId =>
+      integer().references(ProgramDays, #id, onDelete: KeyAction.cascade)();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
   IntColumn get targetSets => integer().withDefault(const Constant(3))();
   IntColumn get targetRepsMin => integer().nullable()();
   IntColumn get targetRepsMax => integer().nullable()();
@@ -353,13 +426,18 @@ class ProgramDayExercises extends Table {
   // ── Periodization & rotation (v11, §12) ──
   /// When set, the actual exercise is picked from the rotation pool for the
   /// current week (accommodation law); [exerciseId] is the pool's default.
-  IntColumn get rotationId => integer()
-      .nullable()
-      .references(ExerciseRotations, #id, onDelete: KeyAction.setNull)();
+  IntColumn get rotationId => integer().nullable().references(
+    ExerciseRotations,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+
   /// Prescribed set type (standard | drop | rest_pause | …).
   TextColumn get setType => text().withDefault(const Constant('standard'))();
+
   /// Load prescription as % of 1RM (max-effort / linear models).
   RealColumn get percentOf1Rm => real().nullable()();
+
   /// Prescribed equipment variant; null = exercise default.
   TextColumn get equipmentVariant => text().nullable()();
 }
@@ -377,10 +455,16 @@ class ExerciseRotations extends Table {
 @DataClassName('RotationMemberData')
 class RotationMembers extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get rotationId => integer()
-      .references(ExerciseRotations, #id, onDelete: KeyAction.cascade)();
-  IntColumn get exerciseId => integer()
-      .references(ExerciseCatalog, #id, onDelete: KeyAction.restrict)();
+  IntColumn get rotationId => integer().references(
+    ExerciseRotations,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
   IntColumn get orderIndex => integer()();
 }
 
@@ -391,9 +475,13 @@ class RotationMembers extends Table {
 class MicroWorkouts extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
-  IntColumn get exerciseId => integer()
-      .references(ExerciseCatalog, #id, onDelete: KeyAction.restrict)();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
   IntColumn get targetReps => integer()();
+
   /// Times per day the task should be performed.
   IntColumn get timesPerDay => integer().withDefault(const Constant(1))();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
@@ -404,8 +492,8 @@ class MicroWorkouts extends Table {
 @DataClassName('ExerciseProgressionData')
 class ExerciseProgressions extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get exerciseId => integer()
-      .references(ExerciseCatalog, #id, onDelete: KeyAction.cascade)();
+  IntColumn get exerciseId =>
+      integer().references(ExerciseCatalog, #id, onDelete: KeyAction.cascade)();
   // strength | muscle_gain | fat_loss | endurance | athletic
   TextColumn get goal => text().withDefault(const Constant('muscle_gain'))();
   RealColumn get weeklyIncreasePct => real().withDefault(const Constant(5.0))();
@@ -413,16 +501,21 @@ class ExerciseProgressions extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {exerciseId},
-      ];
+    {exerciseId},
+  ];
 }
 
 @DataClassName('ScheduledWorkoutData')
 class ScheduledWorkouts extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
-  IntColumn get programDayId => integer().references(ProgramDays, #id, onDelete: KeyAction.cascade)();
-  IntColumn get completedSessionId => integer().nullable().references(WorkoutSessions, #id, onDelete: KeyAction.setNull)();
+  IntColumn get programDayId =>
+      integer().references(ProgramDays, #id, onDelete: KeyAction.cascade)();
+  IntColumn get completedSessionId => integer().nullable().references(
+    WorkoutSessions,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
   TextColumn get status => text().withDefault(const Constant('planned'))();
 }
 
@@ -439,7 +532,8 @@ class ExternalEvents extends Table {
 class HealthSamples extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
-  TextColumn get kind => text()(); // steps | sleep_hours | active_kcal | resting_hr
+  TextColumn get kind =>
+      text()(); // steps | sleep_hours | active_kcal | resting_hr
   RealColumn get value => real()();
 }
 
@@ -447,9 +541,11 @@ class HealthSamples extends Table {
 class CycleLogs extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
-  TextColumn get phase => text()(); // menstrual | follicular | ovulatory | luteal
+  TextColumn get phase =>
+      text()(); // menstrual | follicular | ovulatory | luteal
   IntColumn get intensity => integer().withDefault(const Constant(3))();
-  BoolColumn get manualOverride => boolean().withDefault(const Constant(false))();
+  BoolColumn get manualOverride =>
+      boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('CycleSettingData')
@@ -466,9 +562,10 @@ class CycleSettings extends Table {
 @DataClassName('PendingSyncOpData')
 class PendingSyncOps extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get entityType => text()(); // profile | program | recipe | food | exercise
-  TextColumn get entityId => text()();   // local unique identifier (UUID)
-  TextColumn get operation => text()();  // upsert | delete
+  TextColumn get entityType =>
+      text()(); // profile | program | recipe | food | exercise
+  TextColumn get entityId => text()(); // local unique identifier (UUID)
+  TextColumn get operation => text()(); // upsert | delete
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -490,9 +587,11 @@ class WorkoutTemplates extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get notes => text().nullable()();
-  IntColumn get folderId => integer()
-      .nullable()
-      .references(WorkoutFolders, #id, onDelete: KeyAction.setNull)();
+  IntColumn get folderId => integer().nullable().references(
+    WorkoutFolders,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get lastUsedAt => dateTime().nullable()();
 }
@@ -501,10 +600,16 @@ class WorkoutTemplates extends Table {
 @DataClassName('TemplateExerciseData')
 class TemplateExercises extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get templateId => integer()
-      .references(WorkoutTemplates, #id, onDelete: KeyAction.cascade)();
-  IntColumn get exerciseId => integer()
-      .references(ExerciseCatalog, #id, onDelete: KeyAction.restrict)();
+  IntColumn get templateId => integer().references(
+    WorkoutTemplates,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
   IntColumn get orderIndex => integer()();
   IntColumn get targetSets => integer().withDefault(const Constant(3))();
   IntColumn get targetRepsMin => integer().nullable()();
@@ -533,6 +638,7 @@ class Accessories extends Table {
   TextColumn get name => text()();
   // belt | knee_sleeves | wrist_wraps | straps | fat_grips | chains | custom
   TextColumn get kind => text()();
+
   /// Multiplier applied to forearm involvement in the recovery engine
   /// (fat grips > 1.0; everything else 1.0).
   RealColumn get forearmMultiplier => real().withDefault(const Constant(1.0))();
@@ -562,8 +668,8 @@ class SetAccessories extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {setEntryId, accessoryId},
-      ];
+    {setEntryId, accessoryId},
+  ];
 }
 
 /// Bands attached to a single set. [mode] decides the sign of the band's
@@ -590,6 +696,7 @@ class MachineSettings extends Table {
   IntColumn get gymId =>
       integer().nullable().references(Gyms, #id, onDelete: KeyAction.setNull)();
   TextColumn get label => text().nullable()();
+
   /// JSON object of free-form settings, e.g. {"seat":"6","angle":"45°"}.
   TextColumn get settingsJson => text()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -616,7 +723,3 @@ class ProgressPhotos extends Table {
   TextColumn get filePath => text()();
   TextColumn get notes => text().nullable()();
 }
-
-
-
-

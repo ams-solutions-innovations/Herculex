@@ -2762,8 +2762,8 @@
     "category": "strength",
     "movementPattern": "squat",
     "movementPatternRaw": "Explosive Knee Dominant",
-    "modality": "bodyweight",
-    "equipment": "Bodyweight",
+    "modality": "barbell",
+    "equipment": "Trap Bar",
     "primaryMuscle": "Quads",
     "primaryMuscles": [
       "Quads"
@@ -2778,8 +2778,8 @@
     ],
     "cnsScore": 6,
     "recoveryImpact": 4,
-    "loggingMetric": "reps",
-    "supportsWeightedBodyweight": true,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 180,
     "similar": [
       "Jump Squat",
@@ -7688,24 +7688,20 @@
     "aka": [
       "Ring Curl"
     ],
-    "bodyPart": "Back",
+    "bodyPart": "Arms",
     "category": "calisthenics",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Flexion (Unstable)",
     "modality": "bodyweight",
     "equipment": "Rings",
-    "primaryMuscle": "Back",
+    "primaryMuscle": "Biceps",
     "primaryMuscles": [
-      "Lats",
-      "Rhomboids",
-      "Traps"
+      "Biceps"
     ],
     "secondaryMuscles": [
-      "Biceps",
-      "Rear Delts"
+      "Brachialis"
     ],
     "stabilizers": [
-      "Erectors",
       "Forearms"
     ],
     "cnsScore": 2,
@@ -7725,25 +7721,20 @@
     "aka": [
       "Ring French Press"
     ],
-    "bodyPart": "Back",
+    "bodyPart": "Arms",
     "category": "calisthenics",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Extension (Overhead, Unstable)",
     "modality": "bodyweight",
     "equipment": "Rings",
-    "primaryMuscle": "Back",
+    "primaryMuscle": "Triceps",
     "primaryMuscles": [
-      "Lats",
-      "Rhomboids",
-      "Traps"
+      "Triceps"
     ],
-    "secondaryMuscles": [
-      "Biceps",
-      "Rear Delts"
-    ],
+    "secondaryMuscles": [],
     "stabilizers": [
-      "Erectors",
-      "Forearms"
+      "Forearms",
+      "Core"
     ],
     "cnsScore": 2,
     "recoveryImpact": 1,
@@ -7762,24 +7753,20 @@
     "aka": [
       "TRX Curl"
     ],
-    "bodyPart": "Back",
+    "bodyPart": "Arms",
     "category": "calisthenics",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Flexion (Unstable)",
     "modality": "bodyweight",
     "equipment": "TRX",
-    "primaryMuscle": "Back",
+    "primaryMuscle": "Biceps",
     "primaryMuscles": [
-      "Lats",
-      "Rhomboids",
-      "Traps"
+      "Biceps"
     ],
     "secondaryMuscles": [
-      "Biceps",
-      "Rear Delts"
+      "Brachialis"
     ],
     "stabilizers": [
-      "Erectors",
       "Forearms"
     ],
     "cnsScore": 2,
@@ -7799,25 +7786,20 @@
     "aka": [
       "Suspended French Press"
     ],
-    "bodyPart": "Back",
+    "bodyPart": "Arms",
     "category": "calisthenics",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Extension (Overhead, Unstable)",
     "modality": "bodyweight",
     "equipment": "TRX",
-    "primaryMuscle": "Back",
+    "primaryMuscle": "Triceps",
     "primaryMuscles": [
-      "Lats",
-      "Rhomboids",
-      "Traps"
+      "Triceps"
     ],
-    "secondaryMuscles": [
-      "Biceps",
-      "Rear Delts"
-    ],
+    "secondaryMuscles": [],
     "stabilizers": [
-      "Erectors",
-      "Forearms"
+      "Forearms",
+      "Core"
     ],
     "cnsScore": 2,
     "recoveryImpact": 1,

@@ -81,7 +81,7 @@ class CalorieMacroGoalsView extends ConsumerWidget {
           // ── Set Daily Goals section ──────────────────────────────────────
           const _SectionHeader('Set Daily Goals'),
           const _Divider(),
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Text(
               'Create custom goals for different days of the week',
@@ -114,7 +114,7 @@ class CalorieMacroGoalsView extends ConsumerWidget {
           // Add Daily Goal
           InkWell(
             onTap: () => _showAddTargetSheet(context, ref),
-            child: const Padding(
+            child: Padding(
               padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
               child: Text(
                 'Add Daily Goal',
@@ -128,7 +128,7 @@ class CalorieMacroGoalsView extends ConsumerWidget {
           // How we make recommendations
           GestureDetector(
             onTap: () => _showRecommendationsInfo(context),
-            child: const Padding(
+            child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Row(
                 children: [
@@ -155,12 +155,10 @@ class CalorieMacroGoalsView extends ConsumerWidget {
     return (numeratorKcal / totalKcal * 100).round();
   }
 
+  /// The target editor is a full screen now (§5), not a bottom sheet.
   Future<void> _showAddTargetSheet(BuildContext context, WidgetRef ref) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AddTargetSheet(ref: ref),
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const TargetEditorView()),
     );
   }
 
@@ -174,7 +172,7 @@ class CalorieMacroGoalsView extends ConsumerWidget {
           'How we calculate goals',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: const Text(
+        content: Text(
           'Calorie targets are calculated using the Mifflin-St Jeor BMR formula '
           'adjusted for your activity level and fitness goal.\n\n'
           'Protein: 1.8 g/kg bodyweight\n'
@@ -185,7 +183,7 @@ class CalorieMacroGoalsView extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Got it',
+            child: Text('Got it',
                 style: TextStyle(color: AppColors.primary)),
           ),
         ],
@@ -214,7 +212,7 @@ class _CalorieRow extends StatelessWidget {
           ),
           Text(
             _fmtKcal(kcal),
-            style: const TextStyle(color: AppColors.primary, fontSize: 16),
+            style: TextStyle(color: AppColors.primary, fontSize: 16),
           ),
         ],
       ),
@@ -253,12 +251,12 @@ class _MacroRow extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             '${grams}g',
-            style: const TextStyle(color: AppColors.secondary, fontSize: 16),
+            style: TextStyle(color: AppColors.secondary, fontSize: 16),
           ),
           const Spacer(),
           Text(
             '$pct%',
-            style: const TextStyle(color: AppColors.primary, fontSize: 16),
+            style: TextStyle(color: AppColors.primary, fontSize: 16),
           ),
         ],
       ),
@@ -293,7 +291,7 @@ class _CustomTargetRow extends StatelessWidget {
                 ),
                 Text(
                   '$kcal kcal',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.secondary,
                     fontSize: 13,
                   ),
@@ -302,7 +300,7 @@ class _CustomTargetRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline,
+            icon: Icon(Icons.delete_outline,
                 color: AppColors.secondary, size: 20),
             onPressed: onDelete,
           ),
@@ -320,12 +318,15 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -337,7 +338,7 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(
+    return Divider(
       height: 0,
       thickness: 0.5,
       color: AppColors.outlineVariant,

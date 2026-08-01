@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum Meal {
   breakfast,
   lunch,
@@ -9,6 +11,13 @@ enum Meal {
         Meal.lunch => 'Lunch',
         Meal.dinner => 'Dinner',
         Meal.snack => 'Snacks',
+      };
+
+  IconData get icon => switch (this) {
+        Meal.breakfast => Icons.free_breakfast_outlined,
+        Meal.lunch => Icons.lunch_dining,
+        Meal.dinner => Icons.dinner_dining,
+        Meal.snack => Icons.cookie_outlined,
       };
 
   static Meal fromName(String name) =>

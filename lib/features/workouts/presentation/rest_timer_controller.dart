@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/clock.dart';
 
+import '../../../services/workout_notification_service.dart';
+
 class RestTimerState {
   final DateTime? endsAt;
   final int targetSeconds;
@@ -33,7 +35,10 @@ class RestTimerController extends Notifier<RestTimerState> {
 
   @override
   RestTimerState build() {
-    ref.onDispose(() => _ticker?.cancel());
+    ref.onDispose(() {
+      _ticker?.cancel();
+      WorkoutNotificationService.instance.cancelRestTimer();
+    });
     return RestTimerState.idle;
   }
 
@@ -45,6 +50,14 @@ class RestTimerController extends Notifier<RestTimerState> {
       targetSeconds: seconds,
       exerciseName: exerciseName,
     );
+    
+    if (seconds > 0) {
+      WorkoutNotificationService.instance.scheduleRestTimer(
+        seconds, 
+        exerciseName ?? 'Time for your next set!',
+      );
+    }
+
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       final remaining = state.remainingSecondsFrom(clock.now());
       if (remaining <= 0) {
@@ -67,12 +80,23 @@ class RestTimerController extends Notifier<RestTimerState> {
       targetSeconds: state.targetSeconds + delta,
       exerciseName: state.exerciseName,
     );
+    
+    // Reschedule the notification with the new remaining time.
+    final clock = ref.read(clockProvider);
+    final remaining = state.remainingSecondsFrom(clock.now());
+    if (remaining > 0) {
+      WorkoutNotificationService.instance.scheduleRestTimer(
+        remaining, 
+        state.exerciseName ?? 'Time for your next set!',
+      );
+    }
   }
 
   void cancel() {
     _ticker?.cancel();
     _ticker = null;
     state = RestTimerState.idle;
+    WorkoutNotificationService.instance.cancelRestTimer();
   }
 }
 

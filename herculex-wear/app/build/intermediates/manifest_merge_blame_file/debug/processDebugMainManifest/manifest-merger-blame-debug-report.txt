@@ -1,0 +1,445 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.ams.herculex"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+7-->INJECTED
+8        android:minSdkVersion="30"
+8-->INJECTED
+9        android:targetSdkVersion="33" />
+9-->INJECTED
+10
+11    <uses-feature android:name="android.hardware.type.watch" />
+11-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:4:5-64
+11-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:4:19-61
+12    <!-- Required to act as a custom watch face / complications -->
+13    <uses-permission android:name="com.google.android.wearable.permission.RECEIVE_COMPLICATION_DATA" />
+13-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:6:5-104
+13-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:6:22-101
+14    <uses-permission android:name="android.permission.WAKE_LOCK" />
+14-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:7:5-68
+14-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:7:22-65
+15    <uses-permission android:name="android.permission.INTERNET" />
+15-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:8:5-67
+15-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:8:22-64
+16    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+16-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:9:5-77
+16-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:9:22-74
+17    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+17-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:10:5-84
+17-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:10:22-81
+18    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+18-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:11:5-77
+18-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:11:22-74
+19
+20    <queries>
+20-->[androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:7:5-11:15
+21        <intent>
+21-->[androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:8:9-10:18
+22            <action android:name="androidx.wear.tiles.action.BIND_UPDATE_REQUESTER" />
+22-->[androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:9:13-87
+22-->[androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:9:21-84
+23        </intent>
+24    </queries>
+25
+26    <permission
+26-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+27        android:name="com.ams.herculex.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+27-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+28        android:protectionLevel="signature" />
+28-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+29
+30    <uses-permission android:name="com.ams.herculex.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+30-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+30-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+31
+32    <application
+32-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:13:5-162:19
+33        android:allowBackup="true"
+33-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:14:9-35
+34        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+34-->[androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+35        android:debuggable="true"
+36        android:extractNativeLibs="false"
+36-->INJECTED
+37        android:icon="@mipmap/ic_launcher"
+37-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:15:9-43
+38        android:label="@string/app_name"
+38-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:16:9-41
+39        android:supportsRtl="true"
+39-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:17:9-35
+40        android:testOnly="true"
+41        android:theme="@android:style/Theme.DeviceDefault" >
+41-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:18:9-59
+42
+43        <!-- Wear OS requirement: standalone app status -->
+44        <meta-data
+44-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:21:9-23:37
+45            android:name="com.google.android.wearable.standalone"
+45-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:22:13-66
+46            android:value="false" />
+46-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:23:13-34
+47
+48        <activity
+48-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:25:9-33:20
+49            android:name="com.ams.herculex.MainActivity"
+49-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:26:13-41
+50            android:exported="true"
+50-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:27:13-36
+51            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" >
+51-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:28:13-75
+52            <intent-filter>
+52-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:29:13-32:29
+53                <action android:name="android.intent.action.MAIN" />
+53-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:30:17-69
+53-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:30:25-66
+54
+55                <category android:name="android.intent.category.LAUNCHER" />
+55-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:31:17-77
+55-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:31:27-74
+56            </intent-filter>
+57        </activity>
+58
+59        <service
+59-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:35:9-38:54
+60            android:name="com.ams.herculex.workout.WorkoutOngoingService"
+60-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:36:13-58
+61            android:exported="false"
+61-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:37:13-37
+62            android:foregroundServiceType="health" />
+62-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:38:13-51
+63        <service
+63-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:40:9-55:19
+64            android:name="com.ams.herculex.complication.CaloriesComplicationService"
+64-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:41:13-69
+65            android:exported="true"
+65-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:42:13-36
+66            android:icon="@mipmap/ic_launcher"
+66-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:43:13-47
+67            android:label="Herculex Calories"
+67-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:44:13-46
+68            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER" >
+68-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:45:13-99
+69            <intent-filter>
+69-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:46:13-48:29
+70                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+70-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:17-116
+70-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:25-113
+71            </intent-filter>
+72
+73            <meta-data
+73-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:49:13-51:46
+74                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+74-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:50:17-86
+75                android:value="SHORT_TEXT" />
+75-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:51:17-43
+76            <meta-data
+76-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:52:13-54:40
+77                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+77-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:53:17-92
+78                android:value="3600" />
+78-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:54:17-37
+79        </service>
+80        <service
+80-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:57:9-72:19
+81            android:name="com.ams.herculex.complication.ProteinComplicationService"
+81-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:58:13-68
+82            android:exported="true"
+82-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:59:13-36
+83            android:icon="@mipmap/ic_launcher"
+83-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:60:13-47
+84            android:label="Herculex Protein"
+84-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:61:13-45
+85            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER" >
+85-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:62:13-99
+86            <intent-filter>
+86-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:46:13-48:29
+87                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+87-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:17-116
+87-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:25-113
+88            </intent-filter>
+89
+90            <meta-data
+90-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:49:13-51:46
+91                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+91-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:50:17-86
+92                android:value="SHORT_TEXT" />
+92-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:51:17-43
+93            <meta-data
+93-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:52:13-54:40
+94                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+94-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:53:17-92
+95                android:value="3600" />
+95-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:54:17-37
+96        </service>
+97        <service
+97-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:74:9-89:19
+98            android:name="com.ams.herculex.complication.CarbsComplicationService"
+98-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:75:13-66
+99            android:exported="true"
+99-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:76:13-36
+100            android:icon="@mipmap/ic_launcher"
+100-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:77:13-47
+101            android:label="Herculex Carbs"
+101-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:78:13-43
+102            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER" >
+102-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:79:13-99
+103            <intent-filter>
+103-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:46:13-48:29
+104                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+104-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:17-116
+104-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:25-113
+105            </intent-filter>
+106
+107            <meta-data
+107-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:49:13-51:46
+108                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+108-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:50:17-86
+109                android:value="SHORT_TEXT" />
+109-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:51:17-43
+110            <meta-data
+110-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:52:13-54:40
+111                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+111-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:53:17-92
+112                android:value="3600" />
+112-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:54:17-37
+113        </service>
+114        <service
+114-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:91:9-106:19
+115            android:name="com.ams.herculex.complication.FatsComplicationService"
+115-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:92:13-65
+116            android:exported="true"
+116-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:93:13-36
+117            android:icon="@mipmap/ic_launcher"
+117-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:94:13-47
+118            android:label="Herculex Fats"
+118-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:95:13-42
+119            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER" >
+119-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:96:13-99
+120            <intent-filter>
+120-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:46:13-48:29
+121                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+121-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:17-116
+121-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:25-113
+122            </intent-filter>
+123
+124            <meta-data
+124-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:49:13-51:46
+125                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+125-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:50:17-86
+126                android:value="SHORT_TEXT" />
+126-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:51:17-43
+127            <meta-data
+127-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:52:13-54:40
+128                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+128-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:53:17-92
+129                android:value="3600" />
+129-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:54:17-37
+130        </service>
+131        <service
+131-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:108:9-123:19
+132            android:name="com.ams.herculex.complication.FastingComplicationService"
+132-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:109:13-68
+133            android:exported="true"
+133-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:110:13-36
+134            android:icon="@mipmap/ic_launcher"
+134-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:111:13-47
+135            android:label="Herculex Fasting"
+135-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:112:13-45
+136            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER" >
+136-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:113:13-99
+137            <intent-filter>
+137-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:46:13-48:29
+138                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+138-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:17-116
+138-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:25-113
+139            </intent-filter>
+140
+141            <meta-data
+141-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:49:13-51:46
+142                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+142-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:50:17-86
+143                android:value="SHORT_TEXT" />
+143-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:51:17-43
+144            <meta-data
+144-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:52:13-54:40
+145                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+145-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:53:17-92
+146                android:value="3600" />
+146-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:54:17-37
+147        </service>
+148        <service
+148-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:125:9-137:19
+149            android:name="com.ams.herculex.tile.WorkoutTileService"
+149-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:126:13-52
+150            android:exported="true"
+150-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:127:13-36
+151            android:icon="@mipmap/ic_launcher"
+151-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:128:13-47
+152            android:label="Herculex Workout Tile"
+152-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:129:13-50
+153            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER" >
+153-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:130:13-91
+154            <intent-filter>
+154-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:131:13-133:29
+155                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+155-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:132:17-88
+155-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:132:25-85
+156            </intent-filter>
+157
+158            <meta-data
+158-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:134:13-136:58
+159                android:name="androidx.wear.tiles.PREVIEW"
+159-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:135:17-59
+160                android:resource="@mipmap/ic_launcher" />
+160-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:136:17-55
+161        </service>
+162        <service
+162-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:139:9-151:19
+163            android:name="com.ams.herculex.tile.MacrosTileService"
+163-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:140:13-51
+164            android:exported="true"
+164-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:141:13-36
+165            android:icon="@mipmap/ic_launcher"
+165-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:142:13-47
+166            android:label="Herculex Macros Tile"
+166-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:143:13-49
+167            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER" >
+167-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:144:13-91
+168            <intent-filter>
+168-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:131:13-133:29
+169                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+169-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:132:17-88
+169-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:132:25-85
+170            </intent-filter>
+171
+172            <meta-data
+172-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:134:13-136:58
+173                android:name="androidx.wear.tiles.PREVIEW"
+173-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:135:17-59
+174                android:resource="@mipmap/ic_launcher" />
+174-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:136:17-55
+175        </service>
+176        <service
+176-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:153:9-160:19
+177            android:name="com.ams.herculex.sync.SyncService"
+177-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:154:13-45
+178            android:exported="true" >
+178-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:155:13-36
+179            <intent-filter>
+179-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:156:13-159:29
+180                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+180-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:157:17-87
+180-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:157:25-84
+181
+182                <data
+182-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:158:17-95
+183                    android:host="*"
+183-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:158:45-61
+184                    android:pathPrefix="/herculex"
+184-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:158:62-92
+185                    android:scheme="wear" />
+185-->C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:158:23-44
+186            </intent-filter>
+187        </service>
+188
+189        <uses-library
+189-->[androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:8:9-10:40
+190            android:name="com.google.android.wearable"
+190-->[androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:9:13-55
+191            android:required="false" />
+191-->[androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:10:13-37
+192
+193        <activity
+193-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:9-22:45
+194            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+194-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:19-85
+195            android:exported="false"
+195-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:22:19-43
+196            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+196-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:21:19-78
+197
+198        <meta-data
+198-->[com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:21:9-23:69
+199            android:name="com.google.android.gms.version"
+199-->[com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:22:13-58
+200            android:value="@integer/google_play_services_version" />
+200-->[com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:23:13-66
+201
+202        <provider
+202-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+203            android:name="androidx.startup.InitializationProvider"
+203-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+204            android:authorities="com.ams.herculex.androidx-startup"
+204-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+205            android:exported="false" >
+205-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+206            <meta-data
+206-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+207                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+207-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+208                android:value="androidx.startup" />
+208-->[androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+209            <meta-data
+209-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+210                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+210-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+211                android:value="androidx.startup" />
+211-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
+212            <meta-data
+212-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+213                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+213-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+214                android:value="androidx.startup" />
+214-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+215        </provider>
+216
+217        <activity
+217-->[androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+218            android:name="androidx.compose.ui.tooling.PreviewActivity"
+218-->[androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+219            android:exported="true" />
+219-->[androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+220
+221        <receiver
+221-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+222            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+222-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+223            android:directBootAware="false"
+223-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+224            android:enabled="true"
+224-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+225            android:exported="true"
+225-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+226            android:permission="android.permission.DUMP" >
+226-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+227            <intent-filter>
+227-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+228                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+228-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+228-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+229            </intent-filter>
+230            <intent-filter>
+230-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+231                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+231-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+231-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+232            </intent-filter>
+233            <intent-filter>
+233-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+234                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+234-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+234-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+235            </intent-filter>
+236            <intent-filter>
+236-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+237                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+237-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+237-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+238            </intent-filter>
+239        </receiver>
+240    </application>
+241
+242</manifest>

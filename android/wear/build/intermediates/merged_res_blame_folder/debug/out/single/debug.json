@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.example.swy_app-merged_res-88:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.example.swy_app-main-90:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.example.swy_app-merged_res-88:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.example.swy_app-main-90:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    }
+]

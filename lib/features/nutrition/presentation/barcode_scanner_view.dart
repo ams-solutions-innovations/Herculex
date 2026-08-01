@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../theme/colors.dart';
 
@@ -17,82 +18,324 @@ class BarcodeScannerView extends StatefulWidget {
   State<BarcodeScannerView> createState() => _BarcodeScannerViewState();
 }
 
-class _BarcodeScannerViewState extends State<BarcodeScannerView> {
-  final _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    formats: const [
-      BarcodeFormat.ean13,
-      BarcodeFormat.ean8,
-      BarcodeFormat.upcA,
-      BarcodeFormat.upcE,
-      BarcodeFormat.code128,
-    ],
-  );
+class _BarcodeScannerViewState extends State<BarcodeScannerView>
+    with WidgetsBindingObserver {
+  MobileScannerController? _controller;
+  PermissionStatus? _permissionStatus;
   bool _handled = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _requestPermissionAndInit();
+  }
+
+  Future<void> _requestPermissionAndInit() async {
+    final status = await Permission.camera.request();
+    if (!mounted) return;
+
+    if (status.isGranted && _controller == null) {
+      _controller = MobileScannerController(
+        autoStart: true,
+        detectionSpeed: DetectionSpeed.normal,
+        formats: const [
+          BarcodeFormat.ean13,
+          BarcodeFormat.ean8,
+          BarcodeFormat.upcA,
+          BarcodeFormat.upcE,
+          BarcodeFormat.code128,
+        ],
+      );
+    }
+
+    if (mounted) {
+      setState(() {
+        _permissionStatus = status;
+      });
+    }
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    final controller = _controller;
+    _controller = null;
+    controller?.dispose();
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
-    if (_handled) return;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    switch (state) {
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        if (controller.value.isRunning) {
+          controller.stop();
+        }
+        break;
+      case AppLifecycleState.resumed:
+        if (!controller.value.isRunning &&
+            _permissionStatus?.isGranted == true) {
+          controller.start();
+        }
+        break;
+    }
+  }
+
+  Future<void> _onDetect(BarcodeCapture capture) async {
+    if (_handled || !mounted) return;
     for (final b in capture.barcodes) {
       final v = b.rawValue;
       if (v != null && v.isNotEmpty) {
         _handled = true;
-        Navigator.of(context).pop(v);
+        if (mounted) {
+          Navigator.of(context).pop(v);
+        }
         return;
       }
     }
   }
 
+  Future<void> _enterManually() async {
+    final controller = TextEditingController();
+    final raw = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Enter barcode'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(
+            hintText: 'EAN-13, UPC-A, EAN-8 or GTIN-14',
+          ),
+          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            child: const Text('Use code'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (raw != null && mounted) Navigator.of(context).pop(raw);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Scan barcode', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Scan barcode',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.flash_on),
-            onPressed: () => _controller.toggleTorch(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.cameraswitch),
-            onPressed: () => _controller.switchCamera(),
-          ),
+          if (_controller != null)
+            ValueListenableBuilder<MobileScannerState>(
+              valueListenable: _controller!,
+              builder: (context, state, child) {
+                if (!state.isInitialized || !state.isRunning) {
+                  return const SizedBox.shrink();
+                }
+                final isTorchOn = state.torchState == TorchState.on;
+                return IconButton(
+                  icon: Icon(
+                    isTorchOn ? Icons.flash_on : Icons.flash_off,
+                    color: isTorchOn ? Colors.amber : Colors.white,
+                  ),
+                  onPressed: () {
+                    if (_controller?.value.isInitialized == true) {
+                      _controller?.toggleTorch();
+                    }
+                  },
+                );
+              },
+            ),
+          if (_controller != null)
+            ValueListenableBuilder<MobileScannerState>(
+              valueListenable: _controller!,
+              builder: (context, state, child) {
+                if (!state.isInitialized || !state.isRunning) {
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  icon: const Icon(Icons.cameraswitch, color: Colors.white),
+                  onPressed: () {
+                    if (_controller?.value.isInitialized == true) {
+                      _controller?.switchCamera();
+                    }
+                  },
+                );
+              },
+            ),
         ],
       ),
-      body: Stack(
-        children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
-          Center(
-            child: Container(
-              width: 260,
-              height: 160,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 3),
-                borderRadius: BorderRadius.circular(12),
+      body: _buildBody(theme),
+    );
+  }
+
+  Widget _buildBody(ThemeData theme) {
+    if (_permissionStatus == null) {
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+
+    if (!_permissionStatus!.isGranted) {
+      final isPermanentlyDenied = _permissionStatus!.isPermanentlyDenied;
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.camera_alt_outlined,
+                size: 64,
+                color: AppColors.primary,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Camera Access Required',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Herculex uses your camera to quickly scan food barcodes for instant macro logging.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                icon: Icon(
+                  isPermanentlyDenied ? Icons.settings : Icons.lock_open,
+                ),
+                label: Text(
+                  isPermanentlyDenied ? 'Open Settings' : 'Grant Camera Access',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  shape: const StadiumBorder(),
+                ),
+                onPressed: () async {
+                  if (isPermanentlyDenied) {
+                    await openAppSettings();
+                  } else {
+                    _requestPermissionAndInit();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_controller == null) {
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+
+    return Stack(
+      children: [
+        MobileScanner(
+          controller: _controller!,
+          onDetect: _onDetect,
+          errorBuilder: (context, error, child) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.videocam_off_outlined,
+                      size: 48,
+                      color: Colors.amberAccent,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Camera unavailable (${error.errorCode.name})',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Please ensure no other application is using your camera.',
+                      style: TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        Center(
+          child: Container(
+            width: 260,
+            height: 160,
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.primary, width: 3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        const Positioned(
+          left: 0,
+          right: 0,
+          bottom: 32,
+          child: Text(
+            'Hold the barcode steady inside the frame',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 72,
+          child: Center(
+            child: TextButton.icon(
+              onPressed: _enterManually,
+              icon: const Icon(Icons.keyboard, color: Colors.white),
+              label: const Text(
+                'Enter barcode manually',
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 32,
-            child: Text(
-              'Hold the barcode steady inside the frame',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

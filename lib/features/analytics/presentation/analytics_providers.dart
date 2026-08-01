@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../services/widget_sync_service.dart';
 import '../data/analytics_repository.dart';
 import '../domain/cns_fatigue.dart';
 import '../domain/cns_trends.dart';
@@ -10,6 +11,11 @@ import '../domain/balance_analyzer.dart';
 import '../domain/biometric_correlations.dart';
 import '../domain/training_snapshot.dart';
 import '../domain/variant_performance.dart';
+import '../domain/weekly_muscle_volume.dart';
+import '../../health/presentation/health_providers.dart';
+import '../../workouts/presentation/workouts_providers.dart';
+
+
 
 final analyticsRepositoryProvider = Provider<AnalyticsRepository>((ref) {
   return AnalyticsRepository(ref.watch(appDatabaseProvider));
@@ -21,6 +27,17 @@ final weeklyTonnageProvider = FutureProvider<List<WeeklyTonnage>>((ref) {
 
 final topOneRmsProvider = FutureProvider<List<OneRmProjection>>((ref) {
   return ref.watch(analyticsRepositoryProvider).topOneRms();
+});
+
+/// This week's total tonnage plus the per-muscle-group breakdown behind the
+/// "Total Volume This Week" dashboard drop-down.
+final weeklyMuscleVolumeProvider =
+    FutureProvider<WeeklyMuscleVolume>((ref) async {
+  final snapshot = await ref.watch(trainingSnapshotProvider.future);
+  return WeeklyMuscleVolume.compute(
+    snapshot: snapshot,
+    asOf: ref.watch(clockProvider).now(),
+  );
 });
 
 final muscleRecoveryProvider = FutureProvider<List<MuscleRecoveryResult>>((ref) async {
@@ -45,11 +62,13 @@ final cnsFatigueProvider = FutureProvider<CnsFatigueResult>((ref) async {
   final sets = await db.select(db.setEntries).get();
   final exercises = await db.select(db.workoutExercises).get();
   final catalog = await db.select(db.exerciseCatalog).get();
+  final externalWorkouts = await ref.watch(externalWorkoutsProvider.future);
 
   return CnsFatigue.compute(
     sets: sets,
     workoutExercises: exercises,
     catalog: catalog,
+    externalWorkouts: externalWorkouts,
     asOf: DateTime.now(),
   );
 });
@@ -86,7 +105,10 @@ final sleepVsRpeProvider = FutureProvider<BiometricCorrelationResult>((ref) asyn
 
 /// Shared resolved-set snapshot feeding recovery v3, CNS trends, and PR
 /// breakdowns, so all engines read identical effective-load numbers (§23).
-final trainingSnapshotProvider = FutureProvider<TrainingSnapshot>((ref) {
+final trainingSnapshotProvider = FutureProvider<TrainingSnapshot>((ref) async {
+  // Watch recent sessions so the snapshot invalidates and reloads when 
+  // workouts are completed or modified (fixes cache invalidation issue).
+  ref.watch(recentSessionsProvider);
   return TrainingSnapshot.load(ref.watch(appDatabaseProvider));
 });
 
@@ -94,7 +116,13 @@ final trainingSnapshotProvider = FutureProvider<TrainingSnapshot>((ref) {
 final recoveryV3Provider =
     FutureProvider<List<MuscleGroupRecovery>>((ref) async {
   final snapshot = await ref.watch(trainingSnapshotProvider.future);
-  return MuscleRecoveryV3.compute(snapshot: snapshot, asOf: DateTime.now());
+  final externalWorkouts = await ref.watch(externalWorkoutsProvider.future);
+  
+  return MuscleRecoveryV3.compute(
+    snapshot: snapshot, 
+    externalWorkouts: externalWorkouts,
+    asOf: DateTime.now()
+  );
 });
 
 final recoveryWarningsProvider =
@@ -138,3 +166,44 @@ final hrVsTonnageProvider = FutureProvider<BiometricCorrelationResult>((ref) asy
   );
 });
 
+/// Reference to the shared [WidgetSyncService] singleton (declared in
+/// nutrition_providers.dart; accessed here to avoid a duplicate).
+/// If nutrition_providers hasn't initialised it yet, this lazily creates one.
+final _analyticsWidgetSyncProvider = Provider<WidgetSyncService>((ref) {
+  return WidgetSyncService();
+});
+
+/// Pushes CNS readiness data to the CNS Load home-screen widget whenever
+/// [cnsTrendsProvider] emits new data.
+final widgetCnsSyncControllerProvider = Provider<void>((ref) {
+  final widgetSync = ref.watch(_analyticsWidgetSyncProvider);
+  ref.listen<AsyncValue<CnsTrendsResult>>(
+    cnsTrendsProvider,
+    (_, next) async {
+      if (!next.hasValue) return;
+      final t = next.value!;
+      await widgetSync.syncCns(
+        readinessPct: (t.readiness * 100).round(),
+        status: t.status,
+      );
+    },
+    fireImmediately: true,
+  );
+});
+
+/// Pushes average recovery score to the Recovery Score home-screen widget
+/// whenever [recoveryV3Provider] emits new data.
+final widgetRecoverySyncControllerProvider = Provider<void>((ref) {
+  final widgetSync = ref.watch(_analyticsWidgetSyncProvider);
+  ref.listen<AsyncValue<List<MuscleGroupRecovery>>>(
+    recoveryV3Provider,
+    (_, next) async {
+      if (!next.hasValue || next.value!.isEmpty) return;
+      final groups = next.value!;
+      final avg = groups.fold(0.0, (sum, g) => sum + g.recoveryScore) /
+          groups.length;
+      await widgetSync.syncRecovery(scorePct: avg.round());
+    },
+    fireImmediately: true,
+  );
+});

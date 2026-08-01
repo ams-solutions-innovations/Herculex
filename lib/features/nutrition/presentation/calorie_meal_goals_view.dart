@@ -254,12 +254,15 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -379,7 +382,7 @@ class _MealRow extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               pctStr,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.secondary,
                 fontSize: 16,
               ),
@@ -387,7 +390,7 @@ class _MealRow extends StatelessWidget {
             const Spacer(),
             Text(
               rightValue,
-              style: const TextStyle(color: AppColors.primary, fontSize: 16),
+              style: TextStyle(color: AppColors.primary, fontSize: 16),
             ),
           ],
         ),
@@ -401,7 +404,7 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(
+    return Divider(
       height: 0,
       thickness: 0.5,
       color: AppColors.outlineVariant,
@@ -429,7 +432,7 @@ class _MealPctSheet extends StatelessWidget {
       padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surfaceContainer,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
@@ -468,9 +471,9 @@ class _MealPctSheet extends StatelessWidget {
               style: const TextStyle(color: Colors.white, fontSize: 16),
               decoration: InputDecoration(
                 hintText: '30',
-                hintStyle: const TextStyle(color: AppColors.secondary),
+                hintStyle: TextStyle(color: AppColors.secondary),
                 suffixText: '%',
-                suffixStyle: const TextStyle(color: AppColors.secondary),
+                suffixStyle: TextStyle(color: AppColors.secondary),
                 filled: true,
                 fillColor: AppColors.surfaceVariant,
                 border: OutlineInputBorder(
@@ -480,7 +483,7 @@ class _MealPctSheet extends StatelessWidget {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide:
-                      const BorderSide(color: AppColors.primary, width: 1.5),
+                      BorderSide(color: AppColors.primary, width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,

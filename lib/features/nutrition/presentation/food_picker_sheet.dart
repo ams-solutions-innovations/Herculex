@@ -1,34 +1,40 @@
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../domain/barcode_utils.dart';
 import '../domain/meal.dart';
 import 'barcode_scanner_view.dart';
 import 'custom_food_form_sheet.dart';
+import 'gemini_photo_analysis_dialog.dart';
+import 'label_capture_dialog.dart';
 import 'log_entry_sheet.dart';
 import 'nutrition_providers.dart';
+import 'meal_slots_provider.dart';
 import 'recipe_builder_view.dart';
 
 /// Tabbed bottom sheet: Search · Scan · Recent · Recipes · Custom.
 /// Returns true if anything was logged.
 class FoodPickerSheet extends ConsumerStatefulWidget {
   final DateTime date;
-  final Meal meal;
+  final String mealKey;
 
-  const FoodPickerSheet({super.key, required this.date, required this.meal});
+  const FoodPickerSheet({super.key, required this.date, required this.mealKey});
 
   static Future<bool?> show(
     BuildContext context, {
     required DateTime date,
-    required Meal meal,
+    required String mealKey,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => FoodPickerSheet(date: date, meal: meal),
+      builder: (_) => FoodPickerSheet(date: date, mealKey: mealKey),
     );
   }
 
@@ -36,7 +42,8 @@ class FoodPickerSheet extends ConsumerStatefulWidget {
   ConsumerState<FoodPickerSheet> createState() => _FoodPickerSheetState();
 }
 
-class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerProviderStateMixin {
+class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
+    with TickerProviderStateMixin {
   late final _tabs = TabController(length: 4, vsync: this);
   final _queryCtrl = TextEditingController();
   String? _query;
@@ -53,7 +60,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
       context,
       food: f,
       date: widget.date,
-      initialMeal: widget.meal,
+      initialMealKey: widget.mealKey,
     );
     if (logged == true && mounted) Navigator.of(context).pop(true);
   }
@@ -63,33 +70,178 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
       context,
       recipe: r,
       date: widget.date,
-      initialMeal: widget.meal,
+      initialMealKey: widget.mealKey,
     );
     if (logged == true && mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _scan() async {
-    final code = await BarcodeScannerView.show(context);
-    if (code == null || !mounted) return;
+    final scanned = await BarcodeScannerView.show(context);
+    if (scanned == null || !mounted) return;
+    var normalized = normalizeBarcode(scanned);
+    if (normalized == null) {
+      final corrected = await _manualBarcodeDialog(initial: scanned);
+      if (corrected == null || !mounted) return;
+      normalized = normalizeBarcode(corrected);
+      if (normalized == null) return;
+    }
+    final code = normalized.value;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
-    final food = await ref.read(nutritionRepositoryProvider).lookupBarcode(code);
+    final food = await ref
+        .read(nutritionRepositoryProvider)
+        .lookupBarcode(code);
     if (!mounted) return;
     Navigator.of(context).pop();
     if (food == null) {
-      final created = await CustomFoodFormSheet.show(context, initialBarcode: code);
+      final created = await CustomFoodFormSheet.show(
+        context,
+        initialBarcode: code,
+      );
       if (created != null) _logFood(created);
     } else {
       _logFood(food);
     }
   }
 
+  Future<String?> _manualBarcodeDialog({String initial = ''}) async {
+    final controller = TextEditingController(text: initial);
+    String? error;
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Correct barcode'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('This code is not a valid retail barcode.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: 'EAN-13, UPC-A, EAN-8 or GTIN-14',
+                  errorText: error,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final normalized = normalizeBarcode(controller.text);
+                if (normalized == null) {
+                  setState(() => error = 'Invalid length or check digit');
+                  return;
+                }
+                Navigator.of(dialogContext).pop(normalized.value);
+              },
+              child: const Text('Use code'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return value;
+  }
+
+  Future<void> _takePhotoAndAnalyze() async {
+    final picker = ImagePicker();
+    final choice = await showModalBottomSheet<_PhotoChoice>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Poslikaj hrano s kamero'),
+              subtitle: const Text(
+                'Gemini AI bo ocenil sestavo in hranilne vrednosti',
+              ),
+              onTap: () => Navigator.pop(
+                ctx,
+                const _PhotoChoice(_PhotoMode.food, ImageSource.camera),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Izberi sliko iz galerije'),
+              onTap: () => Navigator.pop(
+                ctx,
+                const _PhotoChoice(_PhotoMode.food, ImageSource.gallery),
+              ),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.document_scanner_outlined,
+                color: AppColors.primary,
+              ),
+              title: const Text('Poslikaj prehransko deklaracijo'),
+              subtitle: const Text(
+                'OCR prebere deklaracijo; Gemini popravi slab rezultat',
+              ),
+              onTap: () => Navigator.pop(
+                ctx,
+                const _PhotoChoice(_PhotoMode.label, ImageSource.camera),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (choice == null || !mounted) return;
+
+    final picked = await picker.pickImage(source: choice.source);
+    if (picked == null || !mounted) return;
+    final bool? logged;
+    if (choice.mode == _PhotoMode.label) {
+      if (!mounted) return;
+      logged = await LabelCaptureDialog.show(
+        context,
+        imageFile: File(picked.path),
+        meal: Meal.fromName(widget.mealKey),
+        mealKey: widget.mealKey,
+        date: widget.date,
+      );
+    } else {
+      if (!mounted) return;
+      logged = await GeminiPhotoAnalysisDialog.show(
+        context,
+        imageFile: File(picked.path),
+        meal: Meal.fromName(widget.mealKey),
+        mealKey: widget.mealKey,
+        date: widget.date,
+      );
+    }
+
+    if (logged == true && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final slots = ref.watch(mealSlotsProvider);
+    final matchingSlots = slots.where((s) => s.key == widget.mealKey).toList();
+    final slot = matchingSlots.isEmpty ? null : matchingSlots.first;
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
       minChildSize: 0.5,
@@ -112,12 +264,19 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
               ),
             ),
             const SizedBox(height: 16),
-            Text('Add to ${widget.meal.label}', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Center(
+              child: Text(
+                'Add to ${slot?.label ?? widget.mealKey}',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
             const SizedBox(height: 12),
             TabBar(
               controller: _tabs,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
+              isScrollable: false,
               labelColor: AppColors.primary,
               unselectedLabelColor: AppColors.onSurfaceVariant,
               indicatorColor: AppColors.primary,
@@ -142,14 +301,6 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Data via OpenFoodFacts when not in local catalog',
-                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
-                textAlign: TextAlign.center,
-              ),
-            ),
           ],
         ),
       ),
@@ -164,14 +315,28 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
           child: TextField(
             controller: _queryCtrl,
             onChanged: (v) => setState(() => _query = v),
-            onSubmitted: (_) => _runRemoteSearch(),
+            onSubmitted: (_) {},
             decoration: InputDecoration(
               hintText: 'Search foods…',
               prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.qr_code_scanner, size: 20),
-                onPressed: _scan,
-                tooltip: 'Scan barcode',
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.camera_alt,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
+                    onPressed: _takePhotoAndAnalyze,
+                    tooltip: 'Slikaj hrano z Gemini AI',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.qr_code_scanner, size: 20),
+                    onPressed: _scan,
+                    tooltip: 'Scan barcode',
+                  ),
+                ],
               ),
               filled: true,
               fillColor: AppColors.surfaceContainer,
@@ -179,7 +344,10 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
                 borderRadius: BorderRadius.circular(28),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
             ),
           ),
         ),
@@ -199,18 +367,27 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('No matches in your library yet.', style: Theme.of(context).textTheme.bodyMedium),
+                  Text(
+                    'No matches in your library yet.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   const SizedBox(height: 12),
                   if ((_query ?? '').trim().isNotEmpty)
                     FilledButton.icon(
-                      icon: const Icon(Icons.cloud_outlined, size: 18),
-                      label: const Text('Search OpenFoodFacts'),
+                      icon: const Icon(Icons.edit_note, size: 18),
+                      label: const Text('Create custom food'),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: const StadiumBorder(),
                       ),
-                      onPressed: _runRemoteSearch,
+                      onPressed: () async {
+                        final food = await CustomFoodFormSheet.show(
+                          context,
+                          initialName: _query!.trim(),
+                        );
+                        if (food != null && mounted) _logFood(food);
+                      },
                     ),
                 ],
               ),
@@ -221,25 +398,13 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
           itemCount: list.length,
-          itemBuilder: (_, i) => _FoodTile(food: list[i], onTap: () => _logFood(list[i])),
+          itemBuilder: (_, i) =>
+              _FoodTile(food: list[i], onTap: () => _logFood(list[i])),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error: $e')),
     );
-  }
-
-  Future<void> _runRemoteSearch() async {
-    final q = (_query ?? '').trim();
-    if (q.isEmpty) return;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-    await ref.read(nutritionRepositoryProvider).searchFoods(q, includeRemote: true);
-    if (!mounted) return;
-    Navigator.of(context).pop();
   }
 
   Widget _buildRecentTab(ScrollController controller) {
@@ -248,14 +413,18 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
       data: (list) {
         if (list.isEmpty) {
           return Center(
-            child: Text('Nothing logged in the last 30 days.', style: Theme.of(context).textTheme.bodyMedium),
+            child: Text(
+              'Nothing logged in the last 30 days.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           );
         }
         return ListView.builder(
           controller: controller,
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
           itemCount: list.length,
-          itemBuilder: (_, i) => _FoodTile(food: list[i], onTap: () => _logFood(list[i])),
+          itemBuilder: (_, i) =>
+              _FoodTile(food: list[i], onTap: () => _logFood(list[i])),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -276,7 +445,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
               label: const Text('New recipe'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
+                side: BorderSide(color: AppColors.primary),
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -294,7 +463,12 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
           child: async.when(
             data: (list) {
               if (list.isEmpty) {
-                return Center(child: Text('No recipes yet.', style: Theme.of(context).textTheme.bodyMedium));
+                return Center(
+                  child: Text(
+                    'No recipes yet.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                );
               }
               return ListView.builder(
                 controller: controller,
@@ -321,7 +495,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.edit_note, size: 56, color: AppColors.primary),
+            Icon(Icons.edit_note, size: 56, color: AppColors.primary),
             const SizedBox(height: 12),
             Text(
               'Create a one-off food with its own macros.',
@@ -336,7 +510,10 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
               ),
               onPressed: () async {
                 final food = await CustomFoodFormSheet.show(context);
@@ -348,6 +525,14 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet> with TickerPr
       ),
     );
   }
+}
+
+enum _PhotoMode { food, label }
+
+class _PhotoChoice {
+  final _PhotoMode mode;
+  final ImageSource source;
+  const _PhotoChoice(this.mode, this.source);
 }
 
 class _FoodTile extends StatelessWidget {
@@ -368,7 +553,9 @@ class _FoodTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            ),
           ),
           child: Row(
             children: [
@@ -390,14 +577,21 @@ class _FoodTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(food.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(
+                      food.name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       [
                         if (food.brand != null) food.brand!,
                         '${food.kcalPer100g.toStringAsFixed(0)} kcal/100g',
                       ].join(' · '),
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
                   ],
                 ),
@@ -406,7 +600,7 @@ class _FoodTile extends StatelessWidget {
               Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
@@ -420,14 +614,14 @@ class _FoodTile extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Icon(Icons.fastfood, size: 22, color: AppColors.secondary),
-      );
+    width: 44,
+    height: 44,
+    decoration: BoxDecoration(
+      color: AppColors.surfaceVariant,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Icon(Icons.fastfood, size: 22, color: AppColors.secondary),
+  );
 }
 
 class _RecipeTile extends StatelessWidget {
@@ -448,7 +642,9 @@ class _RecipeTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            ),
           ),
           child: Row(
             children: [
@@ -459,22 +655,39 @@ class _RecipeTile extends StatelessWidget {
                   color: AppColors.primaryContainer.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.restaurant_menu, size: 22, color: AppColors.primary),
+                child: Icon(
+                  Icons.restaurant_menu,
+                  size: 22,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(recipe.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                    Text('${recipe.servings} servings', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
+                    Text(
+                      recipe.name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${recipe.servings} servings',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
                 child: const Icon(Icons.add, color: Colors.white, size: 18),
               ),
             ],

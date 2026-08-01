@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CNS Load pill widget layout. Adapts to widget size via match_parent. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:padding="10dp"
+    android:background="@drawable/widget_pill_bg_dark">
+
+    <!-- Brain / CNS icon -->
+    <TextView
+        android:id="@+id/cns_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="⚡"
+        android:textSize="16sp"
+        android:paddingEnd="6dp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/cns_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CNS"
+            android:textSize="9sp"
+            android:textColor="#98989F"
+            android:letterSpacing="0.08"
+            android:textAllCaps="true" />
+
+        <TextView
+            android:id="@+id/cns_readiness"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- Status badge -->
+    <TextView
+        android:id="@+id/cns_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="FRESH"
+        android:textSize="9sp"
+        android:textStyle="bold"
+        android:textColor="#30D158"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:background="@drawable/widget_badge_green" />
+
+</LinearLayout>

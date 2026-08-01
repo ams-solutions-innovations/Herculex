@@ -22,9 +22,12 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = isDark ? Colors.white : Colors.black;
-    final fallbackColor = baseColor.withValues(alpha: isDark ? 0.05 : 0.05);
-    final borderColor = baseColor.withValues(alpha: isDark ? 0.1 : 0.05);
+    final fallbackColor = isDark
+        ? const Color(0xFF161E2E).withValues(alpha: 0.85)
+        : Colors.white.withValues(alpha: 0.92);
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : const Color(0xFF007AFF).withValues(alpha: 0.12);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),

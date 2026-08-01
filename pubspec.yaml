@@ -38,6 +38,9 @@ dependencies:
   # Progress photos (Phase D)
   image_picker: ^1.1.2
 
+  # Sharing the workout-finish card to social apps
+  share_plus: ^10.1.4
+
   # Live notifications (ongoing workout while app is backgrounded)
   flutter_local_notifications: ^18.0.1
 
@@ -47,6 +50,10 @@ dependencies:
   collection: ^1.18.0
   device_calendar: ^4.3.1
   timezone: ^0.9.4
+  health: ^13.3.1
+  google_generative_ai: ^0.4.7
+  google_mlkit_text_recognition: ^0.16.0
+  wakelock_plus: ^1.2.10
 
 dev_dependencies:
   flutter_test:
@@ -56,8 +63,20 @@ dev_dependencies:
   riverpod_lint: ^2.6.3
   build_runner: ^2.4.13
   drift_dev: ^2.21.0
+  flutter_launcher_icons: ^0.14.4
+  image: ^4.8.0
 
 flutter:
   uses-material-design: true
   assets:
     - assets/data/exercises.json
+    - assets/data/food_database_eu.v1.json
+    - assets/images/
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon_ios.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  adaptive_icon_monochrome: "assets/images/app_icon_foreground.png"

@@ -1,8 +1,74 @@
 import 'package:drift/drift.dart';
+import 'package:collection/collection.dart';
 
 import '../../../core/clock.dart';
 import '../../../data/local/database.dart';
 import '../../../data/local/exercise_biomechanics.dart';
+
+class _ExerciseSearchMatcher {
+  final List<Set<String>> _queryTokenGroups;
+
+  _ExerciseSearchMatcher(String? query)
+    : _queryTokenGroups = WorkoutsRepository._searchTokenGroups(query);
+
+  bool matches(ExerciseCatalogData exercise, List<ExerciseMuscleData> muscles) {
+    if (_queryTokenGroups.isEmpty) return true;
+    final document = WorkoutsRepository._searchDocument(exercise, muscles);
+    return _queryTokenGroups.every((group) => group.any(document.contains));
+  }
+}
+
+class _ExerciseFacetMatcher {
+  final String _facet;
+
+  _ExerciseFacetMatcher(String? category)
+    : _facet = WorkoutsRepository._normalizeExerciseSearchText(category);
+
+  bool matches(ExerciseCatalogData exercise, List<ExerciseMuscleData> muscles) {
+    if (_facet.isEmpty || _facet == 'all' || _facet == 'recent') return true;
+    final exactValues = <String?>[
+      exercise.category,
+      exercise.primaryMuscle,
+      exercise.mechanics,
+      exercise.force,
+      exercise.plane,
+      exercise.movementPattern,
+      exercise.movementPatternRaw,
+      exercise.modality,
+      exercise.equipment,
+      for (final muscle in muscles) muscle.muscle,
+      for (final muscle in muscles) muscle.role,
+    ].map(WorkoutsRepository._normalizeExerciseSearchText).toSet();
+    if (exactValues.contains(_facet)) return true;
+
+    final document = WorkoutsRepository._searchDocument(exercise, muscles);
+    final group = _facetGroups[_facet];
+    if (group != null) {
+      return group.any(
+        (value) => exactValues.contains(value) || document.contains(value),
+      );
+    }
+    return WorkoutsRepository._searchTokenGroups(
+      _facet,
+    ).every((group) => group.any(document.contains));
+  }
+
+  static const _facetGroups = <String, Set<String>>{
+    'leg': {
+      'quad',
+      'hamstring',
+      'glute',
+      'calve',
+      'tibiali',
+      'adductor',
+      'abductor',
+    },
+    'back': {'back', 'lat', 'rhomboid', 'trap', 'erector'},
+    'shoulder': {'shoulder', 'front delt', 'side delt', 'rear delt'},
+    'arm': {'bicep', 'brachiali', 'tricep', 'forearm'},
+    'core': {'core', 'ab', 'oblique', 'hip flexor'},
+  };
+}
 
 /// Single facade over the workout tables. UI never touches Drift directly —
 /// it goes through this. Keeps queries co-located and swappable later.
@@ -14,27 +80,151 @@ class WorkoutsRepository {
 
   // ── Exercise catalog ───────────────────────────────────────────────────
 
-  /// Alias-aware search. Matches the canonical [name], the coarse
-  /// [primaryMuscle], and the denormalized [aka] alias blob (which the importer
-  /// and builder keep in sync with [ExerciseAliases]) — so searching any alias
-  /// surfaces the parent, while only the canonical name is ever displayed.
-  Stream<List<ExerciseCatalogData>> watchExercises({String? query}) {
-    final q = _db.select(_db.exerciseCatalog)
+  /// Alias-aware and attribute-aware search. The picker keeps the canonical
+  /// [name] for display, but matching sees aliases, equipment, movement
+  /// attributes, mechanics, force/plane, and every granular muscle row.
+  ///
+  /// Normalizes common name variants so "push-up", "push up", "pushup", and
+  /// simple plural forms all resolve to the same exercise.
+  Stream<List<ExerciseCatalogData>> watchExercises({
+    String? query,
+    String? category,
+  }) {
+    final catalogQuery = _db.select(_db.exerciseCatalog)
       ..orderBy([(t) => OrderingTerm(expression: t.name)]);
-    if (query != null && query.trim().isNotEmpty) {
-      final like = '%${query.trim()}%';
-      q.where((t) =>
-          t.name.like(like) | t.primaryMuscle.like(like) | t.aka.like(like));
+
+    return catalogQuery.watch().asyncMap((catalog) async {
+      final muscles = await _db.select(_db.exerciseMuscles).get();
+      final musclesByExercise = <int, List<ExerciseMuscleData>>{};
+      for (final muscle in muscles) {
+        musclesByExercise.putIfAbsent(muscle.exerciseId, () => []).add(muscle);
+      }
+
+      final search = _ExerciseSearchMatcher(query);
+      final facet = _ExerciseFacetMatcher(category);
+      return catalog.where((exercise) {
+        final exerciseMuscles = musclesByExercise[exercise.id] ?? const [];
+        return facet.matches(exercise, exerciseMuscles) &&
+            search.matches(exercise, exerciseMuscles);
+      }).toList();
+    });
+  }
+
+  static String _normalizeExerciseSearchText(String? value) {
+    final lower = (value ?? '')
+        .toLowerCase()
+        .replaceAll('š', 's')
+        .replaceAll('č', 'c')
+        .replaceAll('ć', 'c')
+        .replaceAll('ž', 'z')
+        .replaceAll('đ', 'd');
+    final spaced = lower
+        .replaceAll('&', ' and ')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .trim();
+    if (spaced.isEmpty) return '';
+    return spaced
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .map(_singularSearchToken)
+        .join(' ');
+  }
+
+  static String _singularSearchToken(String token) {
+    if (token == 'abs') return token;
+    if (token.length <= 2) return token;
+    if (token.endsWith('ies')) {
+      return '${token.substring(0, token.length - 3)}y';
     }
-    return q.watch();
+    if (token.endsWith('es') &&
+        (token.endsWith('ches') ||
+            token.endsWith('shes') ||
+            token.endsWith('xes') ||
+            token.endsWith('ses'))) {
+      return token.substring(0, token.length - 2);
+    }
+    if (token.endsWith('s') && !token.endsWith('ss')) {
+      return token.substring(0, token.length - 1);
+    }
+    return token;
+  }
+
+  static List<Set<String>> _searchTokenGroups(String? value) {
+    final normalized = _normalizeExerciseSearchText(value);
+    if (normalized.isEmpty) return const [];
+    final words = normalized.split(' ').where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return const [];
+
+    final groups = words.map(_searchAlternates).toList();
+    final compact = normalized.replaceAll(' ', '');
+    if (words.length == 1 && compact != words.single) {
+      groups.single.add(compact);
+    }
+    return groups;
+  }
+
+  static Set<String> _searchAlternates(String token) {
+    return {token, ...?_synonyms[token]};
+  }
+
+  static const _synonyms = <String, Set<String>>{
+    'machine': {
+      'machine',
+      'selectorized',
+      'plate loaded',
+      'plateloaded',
+      'iso lateral',
+      'isolateral',
+      'smith',
+    },
+    'maschine': {'machine'},
+    'masina': {'machine'},
+    'masine': {'machine'},
+    'chest': {'chest', 'pec', 'pectoral'},
+    'pec': {'chest', 'pec'},
+    'curl': {'curl', 'bicep', 'biceps'},
+    'curls': {'curl', 'bicep', 'biceps'},
+    'pull': {'pull', 'row', 'pulldown'},
+    'push': {'push', 'press'},
+  };
+
+  static String _searchDocument(
+    ExerciseCatalogData exercise,
+    List<ExerciseMuscleData> muscles,
+  ) {
+    final parts = <String?>[
+      exercise.name,
+      exercise.aka,
+      exercise.primaryMuscle,
+      exercise.equipment,
+      exercise.mechanics,
+      exercise.force,
+      exercise.plane,
+      exercise.category,
+      exercise.movementPattern,
+      exercise.movementPatternRaw,
+      exercise.modality,
+      exercise.loggingMetric,
+      for (final muscle in muscles) muscle.muscle,
+      for (final muscle in muscles) muscle.role,
+    ];
+    final normalizedParts = parts
+        .map(_normalizeExerciseSearchText)
+        .where((part) => part.isNotEmpty)
+        .toList();
+    return [
+      ...normalizedParts,
+      for (final part in normalizedParts)
+        if (part.contains(' ')) part.replaceAll(' ', ''),
+    ].join(' ');
   }
 
   /// Granular muscle involvement for an exercise (drives the recovery engine
   /// and the exercise detail UI).
   Stream<List<ExerciseMuscleData>> watchExerciseMuscles(int exerciseId) {
-    return (_db.select(_db.exerciseMuscles)
-          ..where((t) => t.exerciseId.equals(exerciseId)))
-        .watch();
+    return (_db.select(
+      _db.exerciseMuscles,
+    )..where((t) => t.exerciseId.equals(exerciseId))).watch();
   }
 
   /// Creates a fully-attributed custom exercise. Legacy biomechanics columns
@@ -61,12 +251,17 @@ class WorkoutsRepository {
         ? 'Core'
         : ExerciseBiomechanics.coarseMuscle(primaryMuscles.first);
     return _db.transaction(() async {
-      final id = await _db.into(_db.exerciseCatalog).insert(
+      final id = await _db
+          .into(_db.exerciseCatalog)
+          .insert(
             ExerciseCatalogCompanion.insert(
               name: name,
               primaryMuscle: coarse,
               equipment: equipment,
-              mechanics: ExerciseBiomechanics.mechanics(movementPattern, category),
+              mechanics: ExerciseBiomechanics.mechanics(
+                movementPattern,
+                category,
+              ),
               force: ExerciseBiomechanics.force(movementPattern, coarse),
               plane: ExerciseBiomechanics.plane(movementPattern),
               defaultRestSeconds: Value(defaultRestSeconds),
@@ -79,16 +274,23 @@ class WorkoutsRepository {
               recoveryImpact: Value(recoveryImpact),
               loggingMetric: Value(loggingMetric),
               supportsWeightedBodyweight: Value(supportsWeightedBodyweight),
-              attachments: Value(attachments.isEmpty ? null : attachments.join(', ')),
+              attachments: Value(
+                attachments.isEmpty ? null : attachments.join(', '),
+              ),
               // Hand-authored ⇒ treated as reviewed.
               isReviewed: const Value(true),
             ),
           );
       Future<void> writeMuscles(List<String> ms, String role) async {
         for (final m in ms) {
-          await _db.into(_db.exerciseMuscles).insert(
+          await _db
+              .into(_db.exerciseMuscles)
+              .insert(
                 ExerciseMusclesCompanion.insert(
-                    exerciseId: id, muscle: m, role: role),
+                  exerciseId: id,
+                  muscle: m,
+                  role: role,
+                ),
               );
         }
       }
@@ -97,12 +299,13 @@ class WorkoutsRepository {
       await writeMuscles(secondaryMuscles, 'secondary');
       await writeMuscles(stabilizers, 'stabilizer');
       for (final a in aliases) {
-        await _db.into(_db.exerciseAliases).insert(
-              ExerciseAliasesCompanion.insert(exerciseId: id, alias: a),
-            );
+        await _db
+            .into(_db.exerciseAliases)
+            .insert(ExerciseAliasesCompanion.insert(exerciseId: id, alias: a));
       }
-      return (_db.select(_db.exerciseCatalog)..where((t) => t.id.equals(id)))
-          .getSingle();
+      return (_db.select(
+        _db.exerciseCatalog,
+      )..where((t) => t.id.equals(id))).getSingle();
     });
   }
 
@@ -112,13 +315,18 @@ class WorkoutsRepository {
   Stream<WorkoutSessionData?> watchActiveSession() {
     return (_db.select(_db.workoutSessions)
           ..where((t) => t.endedAt.isNull())
-          ..orderBy([(t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc)])
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
+          ])
           ..limit(1))
         .watchSingleOrNull();
   }
 
   Future<int> startSession({String? notes, int? gymId}) async {
-    return _db.into(_db.workoutSessions).insert(
+    return _db
+        .into(_db.workoutSessions)
+        .insert(
           WorkoutSessionsCompanion.insert(
             startedAt: _clock.now(),
             notes: Value(notes),
@@ -134,23 +342,43 @@ class WorkoutsRepository {
   }
 
   Future<void> endSession(int sessionId, {int? sessionRpe}) async {
-    await (_db.update(_db.workoutSessions)..where((t) => t.id.equals(sessionId)))
-        .write(WorkoutSessionsCompanion(
-      endedAt: Value(_clock.now()),
-      sessionRpe: Value(sessionRpe),
-    ));
+    await (_db.update(
+      _db.workoutSessions,
+    )..where((t) => t.id.equals(sessionId))).write(
+      WorkoutSessionsCompanion(
+        endedAt: Value(_clock.now()),
+        sessionRpe: Value(sessionRpe),
+      ),
+    );
   }
 
   Future<void> deleteSession(int sessionId) async {
-    await (_db.delete(_db.workoutSessions)..where((t) => t.id.equals(sessionId))).go();
+    await (_db.delete(
+      _db.workoutSessions,
+    )..where((t) => t.id.equals(sessionId))).go();
   }
 
   Stream<List<WorkoutSessionData>> watchRecentSessions({int limit = 25}) {
     return (_db.select(_db.workoutSessions)
           ..where((t) => t.endedAt.isNotNull())
-          ..orderBy([(t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc)])
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
+          ])
           ..limit(limit))
         .watch();
+  }
+
+  Stream<WorkoutSessionData> watchSession(int sessionId) {
+    return (_db.select(
+      _db.workoutSessions,
+    )..where((t) => t.id.equals(sessionId))).watchSingle();
+  }
+
+  Future<void> updateSessionName(int sessionId, String name) async {
+    await (_db.update(_db.workoutSessions)
+          ..where((t) => t.id.equals(sessionId)))
+        .write(WorkoutSessionsCompanion(name: Value(name)));
   }
 
   // ── Session exercises + sets ───────────────────────────────────────────
@@ -162,7 +390,9 @@ class WorkoutsRepository {
         .watch();
   }
 
-  Stream<List<SetEntryData>> watchSetsForWorkoutExercise(int workoutExerciseId) {
+  Stream<List<SetEntryData>> watchSetsForWorkoutExercise(
+    int workoutExerciseId,
+  ) {
     return (_db.select(_db.setEntries)
           ..where((t) => t.workoutExerciseId.equals(workoutExerciseId))
           ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
@@ -175,16 +405,18 @@ class WorkoutsRepository {
     String? equipmentVariant,
     String? machineConfigJson,
   }) async {
-    final existing = await (_db.select(_db.workoutExercises)
-          ..where((t) => t.sessionId.equals(sessionId)))
-        .get();
+    final existing = await (_db.select(
+      _db.workoutExercises,
+    )..where((t) => t.sessionId.equals(sessionId))).get();
     final nextIndex = existing.length;
 
-    final exercise = await (_db.select(_db.exerciseCatalog)
-          ..where((t) => t.id.equals(exerciseId)))
-        .getSingle();
+    final exercise = await (_db.select(
+      _db.exerciseCatalog,
+    )..where((t) => t.id.equals(exerciseId))).getSingle();
 
-    final workoutExerciseId = await _db.into(_db.workoutExercises).insert(
+    final workoutExerciseId = await _db
+        .into(_db.workoutExercises)
+        .insert(
           WorkoutExercisesCompanion.insert(
             sessionId: sessionId,
             exerciseId: exerciseId,
@@ -195,7 +427,9 @@ class WorkoutsRepository {
           ),
         );
 
-    await _db.into(_db.setEntries).insert(
+    await _db
+        .into(_db.setEntries)
+        .insert(
           SetEntriesCompanion.insert(
             workoutExerciseId: workoutExerciseId,
             setIndex: 0,
@@ -212,11 +446,11 @@ class WorkoutsRepository {
     required int workoutExerciseId,
     String? equipmentVariant,
   }) async {
-    await (_db.update(_db.workoutExercises)
-          ..where((t) => t.id.equals(workoutExerciseId)))
-        .write(WorkoutExercisesCompanion(
-      equipmentVariant: Value(equipmentVariant),
-    ));
+    await (_db.update(
+      _db.workoutExercises,
+    )..where((t) => t.id.equals(workoutExerciseId))).write(
+      WorkoutExercisesCompanion(equipmentVariant: Value(equipmentVariant)),
+    );
   }
 
   /// Stores the per-log machine settings and upserts the recallable saved
@@ -226,22 +460,26 @@ class WorkoutsRepository {
     required String settingsJson,
     int? gymId,
   }) async {
-    final we = await (_db.select(_db.workoutExercises)
-          ..where((t) => t.id.equals(workoutExerciseId)))
-        .getSingle();
+    final we = await (_db.select(
+      _db.workoutExercises,
+    )..where((t) => t.id.equals(workoutExerciseId))).getSingle();
     await _db.transaction(() async {
-      await (_db.update(_db.workoutExercises)
-            ..where((t) => t.id.equals(workoutExerciseId)))
-          .write(WorkoutExercisesCompanion(
-        machineConfigJson: Value(settingsJson),
-      ));
-      final saved = await (_db.select(_db.machineSettings)
-            ..where((t) =>
-                t.exerciseId.equals(we.exerciseId) &
-                (gymId == null ? t.gymId.isNull() : t.gymId.equals(gymId))))
-          .getSingleOrNull();
+      await (_db.update(
+        _db.workoutExercises,
+      )..where((t) => t.id.equals(workoutExerciseId))).write(
+        WorkoutExercisesCompanion(machineConfigJson: Value(settingsJson)),
+      );
+      final saved =
+          await (_db.select(_db.machineSettings)..where(
+                (t) =>
+                    t.exerciseId.equals(we.exerciseId) &
+                    (gymId == null ? t.gymId.isNull() : t.gymId.equals(gymId)),
+              ))
+              .getSingleOrNull();
       if (saved == null) {
-        await _db.into(_db.machineSettings).insert(
+        await _db
+            .into(_db.machineSettings)
+            .insert(
               MachineSettingsCompanion.insert(
                 exerciseId: we.exerciseId,
                 gymId: Value(gymId),
@@ -250,12 +488,14 @@ class WorkoutsRepository {
               ),
             );
       } else {
-        await (_db.update(_db.machineSettings)
-              ..where((t) => t.id.equals(saved.id)))
-            .write(MachineSettingsCompanion(
-          settingsJson: Value(settingsJson),
-          updatedAt: Value(_clock.now()),
-        ));
+        await (_db.update(
+          _db.machineSettings,
+        )..where((t) => t.id.equals(saved.id))).write(
+          MachineSettingsCompanion(
+            settingsJson: Value(settingsJson),
+            updatedAt: Value(_clock.now()),
+          ),
+        );
       }
     });
   }
@@ -267,10 +507,11 @@ class WorkoutsRepository {
     int? gymId,
   }) async {
     if (gymId != null) {
-      final atGym = await (_db.select(_db.machineSettings)
-            ..where((t) =>
-                t.exerciseId.equals(exerciseId) & t.gymId.equals(gymId)))
-          .getSingleOrNull();
+      final atGym =
+          await (_db.select(_db.machineSettings)..where(
+                (t) => t.exerciseId.equals(exerciseId) & t.gymId.equals(gymId),
+              ))
+              .getSingleOrNull();
       if (atGym != null) return atGym;
     }
     return (_db.select(_db.machineSettings)
@@ -279,9 +520,74 @@ class WorkoutsRepository {
   }
 
   Future<void> removeWorkoutExercise(int workoutExerciseId) async {
-    await (_db.delete(_db.workoutExercises)
+    await (_db.delete(
+      _db.workoutExercises,
+    )..where((t) => t.id.equals(workoutExerciseId))).go();
+  }
+
+  Future<void> reorderWorkoutExercises({
+    required int sessionId,
+    required int oldIndex,
+    required int newIndex,
+  }) async {
+    final rows =
+        await (_db.select(_db.workoutExercises)
+              ..where((t) => t.sessionId.equals(sessionId))
+              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+            .get();
+    if (oldIndex < 0 || oldIndex >= rows.length) return;
+    var targetIndex = newIndex;
+    if (targetIndex > oldIndex) targetIndex -= 1;
+    targetIndex = targetIndex.clamp(0, rows.length - 1);
+    if (targetIndex == oldIndex) return;
+
+    final reordered = List<WorkoutExerciseData>.from(rows);
+    final moved = reordered.removeAt(oldIndex);
+    reordered.insert(targetIndex, moved);
+
+    await _db.transaction(() async {
+      for (var i = 0; i < reordered.length; i++) {
+        await (_db.update(_db.workoutExercises)
+              ..where((t) => t.id.equals(reordered[i].id)))
+            .write(WorkoutExercisesCompanion(orderIndex: Value(i)));
+      }
+    });
+  }
+
+  Future<void> linkWorkoutExercises({
+    required int sessionId,
+    required int sourceWorkoutExerciseId,
+    required int targetWorkoutExerciseId,
+  }) async {
+    final rows =
+        await (_db.select(_db.workoutExercises)
+              ..where((t) => t.sessionId.equals(sessionId))
+              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+            .get();
+    final source = rows
+        .where((r) => r.id == sourceWorkoutExerciseId)
+        .firstOrNull;
+    final target = rows
+        .where((r) => r.id == targetWorkoutExerciseId)
+        .firstOrNull;
+    if (source == null || target == null || source.id == target.id) return;
+
+    final maxGroup = rows
+        .map((r) => r.supersetGroup ?? 0)
+        .fold<int>(0, (a, b) => a > b ? a : b);
+    final group = source.supersetGroup ?? target.supersetGroup ?? maxGroup + 1;
+
+    await _db.transaction(() async {
+      await (_db.update(_db.workoutExercises)
+            ..where((t) => t.id.equals(source.id) | t.id.equals(target.id)))
+          .write(WorkoutExercisesCompanion(supersetGroup: Value(group)));
+    });
+  }
+
+  Future<void> unlinkWorkoutExercise(int workoutExerciseId) async {
+    await (_db.update(_db.workoutExercises)
           ..where((t) => t.id.equals(workoutExerciseId)))
-        .go();
+        .write(const WorkoutExercisesCompanion(supersetGroup: Value(null)));
   }
 
   Future<void> substituteExercise({
@@ -290,9 +596,7 @@ class WorkoutsRepository {
   }) async {
     await (_db.update(_db.workoutExercises)
           ..where((t) => t.id.equals(workoutExerciseId)))
-        .write(WorkoutExercisesCompanion(
-          exerciseId: Value(newExerciseId),
-        ));
+        .write(WorkoutExercisesCompanion(exerciseId: Value(newExerciseId)));
   }
 
   // ── Sets ───────────────────────────────────────────────────────────────
@@ -303,16 +607,19 @@ class WorkoutsRepository {
     required int reps,
     int? rpeX10,
     bool isWarmup = false,
+    bool isCompleted = false,
     String setType = 'standard',
     String? setTypeMetaJson,
     double? bodyweightKg,
     double? chainsKg,
   }) async {
-    final existing = await (_db.select(_db.setEntries)
-          ..where((t) => t.workoutExerciseId.equals(workoutExerciseId)))
-        .get();
+    final existing = await (_db.select(
+      _db.setEntries,
+    )..where((t) => t.workoutExerciseId.equals(workoutExerciseId))).get();
     final nextIndex = existing.length;
-    return _db.into(_db.setEntries).insert(
+    return _db
+        .into(_db.setEntries)
+        .insert(
           SetEntriesCompanion.insert(
             workoutExerciseId: workoutExerciseId,
             setIndex: nextIndex,
@@ -320,6 +627,10 @@ class WorkoutsRepository {
             reps: reps,
             rpeX10: Value(rpeX10),
             isWarmup: Value(isWarmup),
+            isCompleted: Value(isCompleted),
+            completedAt: isCompleted
+                ? Value(_clock.now())
+                : const Value.absent(),
             setType: Value(setType),
             setTypeMetaJson: Value(setTypeMetaJson),
             bodyweightKg: Value(bodyweightKg),
@@ -346,14 +657,19 @@ class WorkoutsRepository {
         reps: reps == null ? const Value.absent() : Value(reps),
         rpeX10: rpeX10 == null ? const Value.absent() : Value(rpeX10),
         isWarmup: isWarmup == null ? const Value.absent() : Value(isWarmup),
-        isCompleted: isCompleted == null ? const Value.absent() : Value(isCompleted),
-        completedAt: isCompleted == true ? Value(_clock.now()) : const Value.absent(),
+        isCompleted: isCompleted == null
+            ? const Value.absent()
+            : Value(isCompleted),
+        completedAt: isCompleted == true
+            ? Value(_clock.now())
+            : const Value.absent(),
         setType: setType == null ? const Value.absent() : Value(setType),
         setTypeMetaJson: setTypeMetaJson == null
             ? const Value.absent()
             : Value(setTypeMetaJson),
-        bodyweightKg:
-            bodyweightKg == null ? const Value.absent() : Value(bodyweightKg),
+        bodyweightKg: bodyweightKg == null
+            ? const Value.absent()
+            : Value(bodyweightKg),
         chainsKg: chainsKg == null ? const Value.absent() : Value(chainsKg),
       ),
     );
@@ -368,55 +684,75 @@ class WorkoutsRepository {
   /// All sets from the most recent *completed* session that included this exercise.
   /// Used for the "last time" hint shown under the active exercise card.
   Future<List<SetEntryData>> lastPerformanceFor(int exerciseId) async {
-    final priorSessions = await (_db.selectOnly(_db.workoutExercises, distinct: true)
-          ..addColumns([_db.workoutExercises.sessionId])
-          ..join([
-            innerJoin(
-              _db.workoutSessions,
-              _db.workoutSessions.id.equalsExp(_db.workoutExercises.sessionId),
-            ),
-          ])
-          ..where(_db.workoutExercises.exerciseId.equals(exerciseId) &
-              _db.workoutSessions.endedAt.isNotNull())
-          ..orderBy([
-            OrderingTerm(expression: _db.workoutSessions.startedAt, mode: OrderingMode.desc),
-          ])
-          ..limit(1))
-        .get();
+    final priorSessions =
+        await (_db.selectOnly(_db.workoutExercises, distinct: true)
+              ..addColumns([_db.workoutExercises.sessionId])
+              ..join([
+                innerJoin(
+                  _db.workoutSessions,
+                  _db.workoutSessions.id.equalsExp(
+                    _db.workoutExercises.sessionId,
+                  ),
+                ),
+              ])
+              ..where(
+                _db.workoutExercises.exerciseId.equals(exerciseId) &
+                    _db.workoutSessions.endedAt.isNotNull(),
+              )
+              ..orderBy([
+                OrderingTerm(
+                  expression: _db.workoutSessions.startedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ])
+              ..limit(1))
+            .get();
 
     if (priorSessions.isEmpty) return const [];
     final sessionId = priorSessions.first.read(_db.workoutExercises.sessionId)!;
 
-    final priorWorkoutExercises = await (_db.select(_db.workoutExercises)
-          ..where((t) =>
-              t.sessionId.equals(sessionId) & t.exerciseId.equals(exerciseId)))
-        .get();
+    final priorWorkoutExercises =
+        await (_db.select(_db.workoutExercises)..where(
+              (t) =>
+                  t.sessionId.equals(sessionId) &
+                  t.exerciseId.equals(exerciseId),
+            ))
+            .get();
     if (priorWorkoutExercises.isEmpty) return const [];
 
     return (_db.select(_db.setEntries)
-          ..where((t) =>
-              t.workoutExerciseId.equals(priorWorkoutExercises.first.id) &
-              t.isCompleted.equals(true) &
-              t.isWarmup.equals(false))
+          ..where(
+            (t) =>
+                t.workoutExerciseId.equals(priorWorkoutExercises.first.id) &
+                t.isCompleted.equals(true),
+          )
           ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
         .get();
   }
 
   Future<Set<int>> getRecentExerciseIds() async {
-    final recent = await (_db.selectOnly(_db.workoutExercises, distinct: true)
-          ..addColumns([_db.workoutExercises.exerciseId])
-          ..join([
-            innerJoin(
-              _db.workoutSessions,
-              _db.workoutSessions.id.equalsExp(_db.workoutExercises.sessionId),
-            ),
-          ])
-          ..where(_db.workoutSessions.endedAt.isNotNull())
-          ..orderBy([
-            OrderingTerm(expression: _db.workoutSessions.startedAt, mode: OrderingMode.desc),
-          ])
-          ..limit(50))
-        .get();
-    return recent.map((row) => row.read(_db.workoutExercises.exerciseId)!).toSet();
+    final recent =
+        await (_db.selectOnly(_db.workoutExercises, distinct: true)
+              ..addColumns([_db.workoutExercises.exerciseId])
+              ..join([
+                innerJoin(
+                  _db.workoutSessions,
+                  _db.workoutSessions.id.equalsExp(
+                    _db.workoutExercises.sessionId,
+                  ),
+                ),
+              ])
+              ..where(_db.workoutSessions.endedAt.isNotNull())
+              ..orderBy([
+                OrderingTerm(
+                  expression: _db.workoutSessions.startedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ])
+              ..limit(50))
+            .get();
+    return recent
+        .map((row) => row.read(_db.workoutExercises.exerciseId)!)
+        .toSet();
   }
 }

@@ -5,13 +5,14 @@ import '../../widgets/floating_nav_bar.dart';
 import '../../widgets/live_workout_banner.dart';
 import '../dashboard/presentation/dashboard_view.dart';
 import '../nutrition/presentation/nutrition_view.dart';
+import '../profile/presentation/profile_view.dart';
 import '../programs/presentation/training_blocks_view.dart';
 import '../workouts/presentation/workouts_providers.dart';
 import '../workouts/presentation/workouts_view.dart';
 
-/// The four-tab home shell. Bottom-nav index drives which feature view shows.
-/// Profile lives off the nav bar — it's reachable via the avatar in the
-/// Dashboard header (route `/profile`). Insights is reachable from Profile.
+/// The five-tab home shell. Bottom-nav index drives which feature view shows.
+/// Profile is the right-most tab; it stays reachable from the Dashboard
+/// avatar too. Insights is reachable from Profile.
 class MainScaffold extends ConsumerStatefulWidget {
   const MainScaffold({super.key});
 
@@ -19,26 +20,64 @@ class MainScaffold extends ConsumerStatefulWidget {
   ConsumerState<MainScaffold> createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends ConsumerState<MainScaffold> {
-  int _index = 0;
+final mainTabIndexProvider = StateProvider<int>((ref) => 0);
 
+class _MainScaffoldState extends ConsumerState<MainScaffold> {
   static const _tabs = <Widget>[
     DashboardView(),
     NutritionView(),
     WorkoutsView(),
     TrainingBlocksView(),
+    ProfileView(),
   ];
+
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: ref.read(mainTabIndexProvider));
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final index = ref.watch(mainTabIndexProvider);
     final hasActiveSession =
         ref.watch(activeSessionProvider).asData?.value != null;
-    final showBanner = hasActiveSession && _index != 2;
+    final showBanner = hasActiveSession && index != 2;
+
+    ref.listen<int>(mainTabIndexProvider, (prev, next) {
+      if (!_pageController.hasClients) return;
+      final current = _pageController.page?.round() ?? 0;
+      if (current == next) return;
+      // Jumping more than 1 tab: use jumpToPage to avoid animating through
+      // intermediate pages (which causes visible jitter as intermediate screens
+      // render). The nav-bar indicator animates independently via AnimatedPositioned.
+      if ((next - current).abs() > 1) {
+        _pageController.jumpToPage(next);
+      } else {
+        _pageController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
 
     return Scaffold(
       body: Stack(
         children: [
-          IndexedStack(index: _index, children: _tabs),
+          PageView(
+            controller: _pageController,
+            onPageChanged: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
+            children: _tabs,
+          ),
           Positioned(
             left: 0,
             right: 0,
@@ -48,11 +87,11 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
               children: [
                 if (showBanner)
                   LiveWorkoutBanner(
-                    onResume: () => setState(() => _index = 2),
+                    onResume: () => ref.read(mainTabIndexProvider.notifier).state = 2,
                   ),
                 FloatingNavBar(
-                  currentIndex: _index,
-                  onTap: (i) => setState(() => _index = i),
+                  currentIndex: index,
+                  onTap: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
                 ),
               ],
             ),

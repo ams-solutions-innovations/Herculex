@@ -9,7 +9,20 @@ import '../domain/set_type.dart';
 class SetTypeSelection {
   final SetType type;
   final String? metaJson;
-  const SetTypeSelection(this.type, [this.metaJson]);
+  final bool delete;
+  final bool? isWarmup;
+  const SetTypeSelection(this.type, [this.metaJson])
+    : delete = false,
+      isWarmup = null;
+  const SetTypeSelection.delete()
+    : type = SetType.standard,
+      metaJson = null,
+      delete = true,
+      isWarmup = null;
+  const SetTypeSelection.warmup(this.isWarmup)
+    : type = SetType.standard,
+      metaJson = null,
+      delete = false;
 }
 
 /// One-tap set-type switcher (§15, §26). Tapping a set's index cell opens this
@@ -17,52 +30,57 @@ class SetTypeSelection {
 /// that carry metadata (pause duration, drop percent, down-set decrement).
 class SetTypeMenu extends StatelessWidget {
   final SetType current;
-  const SetTypeMenu({super.key, required this.current});
+  final bool isWarmup;
+  const SetTypeMenu({super.key, required this.current, this.isWarmup = false});
 
-  static Future<SetTypeSelection?> show(BuildContext context,
-      {required SetType current}) {
+  static Future<SetTypeSelection?> show(
+    BuildContext context, {
+    required SetType current,
+    bool isWarmup = false,
+  }) {
     return showModalBottomSheet<SetTypeSelection>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => SetTypeMenu(current: current),
+      builder: (_) => SetTypeMenu(current: current, isWarmup: isWarmup),
     );
   }
 
   /// Short badge shown in the set-index cell (e.g. "D" for drop set).
   static String badge(SetType type) => switch (type) {
-        SetType.standard => '',
-        SetType.drop => 'D',
-        SetType.restPause => 'RP',
-        SetType.partials => 'P½',
-        SetType.myoReps => 'MY',
-        SetType.pyramid => 'PY',
-        SetType.forced => 'F',
-        SetType.negatives => 'N',
-        SetType.pause => 'PA',
-        SetType.mechanicalDrop => 'MD',
-        SetType.giant => 'G',
-        SetType.preExhaustion => 'PE',
-        SetType.twentyOnes => '21',
-        SetType.volume20x60 => '20x',
-        SetType.downSets => 'DN',
-        SetType.amrap => 'AM',
-        SetType.emom => 'EM',
-        SetType.forTime => 'FT',
-      };
+    SetType.standard => '',
+    SetType.drop => 'D',
+    SetType.restPause => 'RP',
+    SetType.partials => 'P½',
+    SetType.myoReps => 'MY',
+    SetType.pyramid => 'PY',
+    SetType.forced => 'F',
+    SetType.negatives => 'N',
+    SetType.pause => 'PA',
+    SetType.mechanicalDrop => 'MD',
+    SetType.giant => 'G',
+    SetType.preExhaustion => 'PE',
+    SetType.twentyOnes => '21',
+    SetType.volume20x60 => '20x',
+    SetType.downSets => 'DN',
+    SetType.amrap => 'AM',
+    SetType.emom => 'EM',
+    SetType.forTime => 'FT',
+  };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.6,
+      initialChildSize: 0.65,
       minChildSize: 0.4,
       maxChildSize: 0.9,
       expand: false,
       builder: (_, controller) => Container(
         decoration: BoxDecoration(
-          color: theme.bottomSheetTheme.backgroundColor ??
+          color:
+              theme.bottomSheetTheme.backgroundColor ??
               AppColors.surfaceContainerLowest,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
@@ -78,20 +96,64 @@ class SetTypeMenu extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Set Type',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Set Type',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('Tap a type to apply it to this set',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: AppColors.secondary)),
+            Text(
+              'Tap a type to apply it to this set',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
             const SizedBox(height: 12),
             Expanded(
               child: ListView(
                 controller: controller,
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                 children: [
-                  for (final type in SetType.values)
+                  SwitchListTile(
+                    title: const Text(
+                      'Warmup Set',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text(
+                      'Does not count towards working volume',
+                    ),
+                    value: isWarmup,
+                    onChanged: (val) =>
+                        Navigator.of(context).pop(SetTypeSelection.warmup(val)),
+                    secondary: Icon(
+                      Icons.local_fire_department,
+                      color: isWarmup ? Colors.orange : AppColors.secondary,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete, color: Colors.redAccent),
+                    title: const Text(
+                      'Delete Set',
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    onTap: () => Navigator.of(
+                      context,
+                    ).pop(const SetTypeSelection.delete()),
+                  ),
+                  const Divider(height: 24),
+                  for (final type in SetType.values.where(
+                    (t) => t != SetType.giant,
+                  ))
                     _SetTypeTile(type: type, isSelected: type == current),
                 ],
               ),
@@ -115,23 +177,23 @@ class _SetTypeTile extends StatelessWidget {
     // Inline quick-picks for the metadata-carrying types (§15).
     final List<Widget>? quickPicks = switch (type) {
       SetType.pause => [
-          for (final s in pauseRepSecondsOptions)
-            _QuickPick(
-              label: '${s}s',
-              onTap: () => Navigator.of(context).pop(
-                SetTypeSelection(type, jsonEncode({'pauseSeconds': s})),
-              ),
-            ),
-        ],
+        for (final s in pauseRepSecondsOptions)
+          _QuickPick(
+            label: '${s}s',
+            onTap: () => Navigator.of(
+              context,
+            ).pop(SetTypeSelection(type, jsonEncode({'pauseSeconds': s}))),
+          ),
+      ],
       SetType.drop => [
-          for (final pct in const [10, 20, 30])
-            _QuickPick(
-              label: '-$pct%',
-              onTap: () => Navigator.of(context).pop(
-                SetTypeSelection(type, jsonEncode({'dropPercent': pct})),
-              ),
-            ),
-        ],
+        for (final pct in const [10, 20, 30])
+          _QuickPick(
+            label: '-$pct%',
+            onTap: () => Navigator.of(
+              context,
+            ).pop(SetTypeSelection(type, jsonEncode({'dropPercent': pct}))),
+          ),
+      ],
       _ => null,
     };
 
@@ -172,7 +234,7 @@ class _SetTypeTile extends StatelessWidget {
               if (quickPicks != null)
                 ...quickPicks
               else if (isSelected)
-                const Icon(Icons.check_circle, color: AppColors.primary, size: 22),
+                Icon(Icons.check_circle, color: AppColors.primary, size: 22),
             ],
           ),
         ),
@@ -202,15 +264,19 @@ class _Badge extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: code.isEmpty
-          ? Icon(Icons.remove,
+          ? Icon(
+              Icons.remove,
               size: 16,
-              color: selected ? AppColors.primary : AppColors.secondary)
+              color: selected ? AppColors.primary : AppColors.secondary,
+            )
           : Text(
               code,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
+                color: selected
+                    ? AppColors.primary
+                    : AppColors.onSurfaceVariant,
               ),
             ),
     );
@@ -237,8 +303,11 @@ class _QuickPick extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             child: Text(
               label,
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurface,
+              ),
             ),
           ),
         ),

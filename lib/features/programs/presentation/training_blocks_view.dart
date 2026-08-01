@@ -65,7 +65,7 @@ class _TrainingBlocksViewState extends ConsumerState<TrainingBlocksView> {
               onTap: () async {
                 final calendarService = ref.read(calendarServiceProvider);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text("Syncing scheduled workouts to system calendar... 🗓️"),
                     backgroundColor: AppColors.primary,
                     duration: Duration(seconds: 1),
@@ -115,22 +115,30 @@ class _TrainingBlocksViewState extends ConsumerState<TrainingBlocksView> {
 
   Widget _buildHeader(ThemeData theme) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Training Blocks", style: theme.textTheme.displayMedium),
-            IconButton(
-              icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 28),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BlockBuilderView()),
-                );
-              },
-            ),
-          ],
+        SizedBox(
+          height: 44,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Center(
+                child: Text("Training Blocks", style: theme.textTheme.displayMedium, textAlign: TextAlign.center),
+              ),
+              Positioned(
+                right: 0,
+                child: IconButton(
+                  icon: Icon(Icons.add_circle, color: AppColors.primary, size: 28),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const BlockBuilderView()),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         GlassContainer(
@@ -202,7 +210,7 @@ class _TrainingBlocksViewState extends ConsumerState<TrainingBlocksView> {
               onTap: () {
                 // Auto recovery resolves conflicts by pushing secondary overlapping workout downstream
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Auto-resolving muscle groups overlap..."), backgroundColor: AppColors.primary),
+                  SnackBar(content: Text("Auto-resolving muscle groups overlap..."), backgroundColor: AppColors.primary),
                 );
               },
             ),
@@ -217,7 +225,7 @@ class _TrainingBlocksViewState extends ConsumerState<TrainingBlocksView> {
       padding: const EdgeInsets.all(32),
       child: Column(
         children: [
-          const Icon(Icons.fitness_center_outlined, size: 48, color: AppColors.primary),
+          Icon(Icons.fitness_center_outlined, size: 48, color: AppColors.primary),
           const SizedBox(height: 16),
           Text("No Active Periodization Block", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -320,7 +328,7 @@ class _TrainingBlocksViewState extends ConsumerState<TrainingBlocksView> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          const Text("MANUAL OVERRIDE", style: TextStyle(fontSize: 10, color: AppColors.secondary, letterSpacing: 1.0)),
+          Text("MANUAL OVERRIDE", style: TextStyle(fontSize: 10, color: AppColors.secondary, letterSpacing: 1.0)),
           const Spacer(),
           SizedBox(
             width: 140,

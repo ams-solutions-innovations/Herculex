@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:drift/drift.dart' as drift;
+
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../../../app/providers.dart';
+import '../../../core/units.dart';
 import 'workouts_providers.dart';
 
 class WorkoutHistoryView extends ConsumerWidget {
@@ -14,13 +18,29 @@ class WorkoutHistoryView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final exercises = ref.watch(sessionExercisesProvider(sessionId));
-    final catalog = ref.watch(exerciseCatalogProvider(null));
+    final catalog = ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
+    final sessionAsync = ref.watch(workoutSessionProvider(sessionId));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Session'),
+        title: Text(_titleFor(sessionAsync.asData?.value)),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Edit Workout',
+            onPressed: () async {
+              // Resume workout by clearing endedAt
+              final stmt = ref.read(appDatabaseProvider).update(ref.read(appDatabaseProvider).workoutSessions)
+                ..where((t) => t.id.equals(sessionId));
+              await stmt.write(const WorkoutSessionsCompanion(endedAt: drift.Value(null)));
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ],
       ),
       body: exercises.when(
         data: (rows) {
@@ -46,6 +66,14 @@ class WorkoutHistoryView extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
+  }
+
+  /// The session's own name, falling back to its date when unnamed.
+  String _titleFor(WorkoutSessionData? session) {
+    if (session == null) return 'Workout';
+    final name = session.name?.trim() ?? '';
+    if (name.isNotEmpty) return name;
+    return DateFormat('EEE, MMM d').format(session.startedAt);
   }
 
   ExerciseCatalogData _placeholder(int id) => ExerciseCatalogData(
@@ -108,7 +136,7 @@ class _ExerciseBlock extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text('${_fmt(rows[i].weightKg)} kg × ${rows[i].reps}'),
+                        Text('${ref.watch(weightFormatProvider).format(rows[i].weightKg)} × ${rows[i].reps}'),
                         if (rows[i].rpeX10 != null) ...[
                           const SizedBox(width: 12),
                           Text(
@@ -135,7 +163,4 @@ class _ExerciseBlock extends ConsumerWidget {
       ),
     );
   }
-
-  String _fmt(double v) =>
-      v.truncateToDouble() == v ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 }

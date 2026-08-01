@@ -2600,6 +2600,15 @@ class $WorkoutSessionsTable extends WorkoutSessions
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _startedAtMeta = const VerificationMeta(
     'startedAt',
   );
@@ -2671,6 +2680,7 @@ class $WorkoutSessionsTable extends WorkoutSessions
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    name,
     startedAt,
     endedAt,
     notes,
@@ -2692,6 +2702,12 @@ class $WorkoutSessionsTable extends WorkoutSessions
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
     }
     if (data.containsKey('started_at')) {
       context.handle(
@@ -2747,6 +2763,10 @@ class $WorkoutSessionsTable extends WorkoutSessions
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      ),
       startedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}started_at'],
@@ -2783,6 +2803,7 @@ class $WorkoutSessionsTable extends WorkoutSessions
 class WorkoutSessionData extends DataClass
     implements Insertable<WorkoutSessionData> {
   final int id;
+  final String? name;
   final DateTime startedAt;
   final DateTime? endedAt;
   final String? notes;
@@ -2797,6 +2818,7 @@ class WorkoutSessionData extends DataClass
   final int? microWorkoutId;
   const WorkoutSessionData({
     required this.id,
+    this.name,
     required this.startedAt,
     this.endedAt,
     this.notes,
@@ -2808,6 +2830,9 @@ class WorkoutSessionData extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    if (!nullToAbsent || name != null) {
+      map['name'] = Variable<String>(name);
+    }
     map['started_at'] = Variable<DateTime>(startedAt);
     if (!nullToAbsent || endedAt != null) {
       map['ended_at'] = Variable<DateTime>(endedAt);
@@ -2830,6 +2855,7 @@ class WorkoutSessionData extends DataClass
   WorkoutSessionsCompanion toCompanion(bool nullToAbsent) {
     return WorkoutSessionsCompanion(
       id: Value(id),
+      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
       startedAt: Value(startedAt),
       endedAt: endedAt == null && nullToAbsent
           ? const Value.absent()
@@ -2856,6 +2882,7 @@ class WorkoutSessionData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return WorkoutSessionData(
       id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String?>(json['name']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
       endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
       notes: serializer.fromJson<String?>(json['notes']),
@@ -2869,6 +2896,7 @@ class WorkoutSessionData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String?>(name),
       'startedAt': serializer.toJson<DateTime>(startedAt),
       'endedAt': serializer.toJson<DateTime?>(endedAt),
       'notes': serializer.toJson<String?>(notes),
@@ -2880,6 +2908,7 @@ class WorkoutSessionData extends DataClass
 
   WorkoutSessionData copyWith({
     int? id,
+    Value<String?> name = const Value.absent(),
     DateTime? startedAt,
     Value<DateTime?> endedAt = const Value.absent(),
     Value<String?> notes = const Value.absent(),
@@ -2888,6 +2917,7 @@ class WorkoutSessionData extends DataClass
     Value<int?> microWorkoutId = const Value.absent(),
   }) => WorkoutSessionData(
     id: id ?? this.id,
+    name: name.present ? name.value : this.name,
     startedAt: startedAt ?? this.startedAt,
     endedAt: endedAt.present ? endedAt.value : this.endedAt,
     notes: notes.present ? notes.value : this.notes,
@@ -2900,6 +2930,7 @@ class WorkoutSessionData extends DataClass
   WorkoutSessionData copyWithCompanion(WorkoutSessionsCompanion data) {
     return WorkoutSessionData(
       id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
       startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
       endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
       notes: data.notes.present ? data.notes.value : this.notes,
@@ -2917,6 +2948,7 @@ class WorkoutSessionData extends DataClass
   String toString() {
     return (StringBuffer('WorkoutSessionData(')
           ..write('id: $id, ')
+          ..write('name: $name, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('notes: $notes, ')
@@ -2930,6 +2962,7 @@ class WorkoutSessionData extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
+    name,
     startedAt,
     endedAt,
     notes,
@@ -2942,6 +2975,7 @@ class WorkoutSessionData extends DataClass
       identical(this, other) ||
       (other is WorkoutSessionData &&
           other.id == this.id &&
+          other.name == this.name &&
           other.startedAt == this.startedAt &&
           other.endedAt == this.endedAt &&
           other.notes == this.notes &&
@@ -2952,6 +2986,7 @@ class WorkoutSessionData extends DataClass
 
 class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   final Value<int> id;
+  final Value<String?> name;
   final Value<DateTime> startedAt;
   final Value<DateTime?> endedAt;
   final Value<String?> notes;
@@ -2960,6 +2995,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   final Value<int?> microWorkoutId;
   const WorkoutSessionsCompanion({
     this.id = const Value.absent(),
+    this.name = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.endedAt = const Value.absent(),
     this.notes = const Value.absent(),
@@ -2969,6 +3005,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   });
   WorkoutSessionsCompanion.insert({
     this.id = const Value.absent(),
+    this.name = const Value.absent(),
     required DateTime startedAt,
     this.endedAt = const Value.absent(),
     this.notes = const Value.absent(),
@@ -2978,6 +3015,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   }) : startedAt = Value(startedAt);
   static Insertable<WorkoutSessionData> custom({
     Expression<int>? id,
+    Expression<String>? name,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? endedAt,
     Expression<String>? notes,
@@ -2987,6 +3025,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (name != null) 'name': name,
       if (startedAt != null) 'started_at': startedAt,
       if (endedAt != null) 'ended_at': endedAt,
       if (notes != null) 'notes': notes,
@@ -2998,6 +3037,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
 
   WorkoutSessionsCompanion copyWith({
     Value<int>? id,
+    Value<String?>? name,
     Value<DateTime>? startedAt,
     Value<DateTime?>? endedAt,
     Value<String?>? notes,
@@ -3007,6 +3047,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   }) {
     return WorkoutSessionsCompanion(
       id: id ?? this.id,
+      name: name ?? this.name,
       startedAt: startedAt ?? this.startedAt,
       endedAt: endedAt ?? this.endedAt,
       notes: notes ?? this.notes,
@@ -3021,6 +3062,9 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
     }
     if (startedAt.present) {
       map['started_at'] = Variable<DateTime>(startedAt.value);
@@ -3047,6 +3091,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   String toString() {
     return (StringBuffer('WorkoutSessionsCompanion(')
           ..write('id: $id, ')
+          ..write('name: $name, ')
           ..write('startedAt: $startedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('notes: $notes, ')
@@ -4605,6 +4650,84 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodData> {
         type: DriftSqlType.double,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _catalogueIdMeta = const VerificationMeta(
+    'catalogueId',
+  );
+  @override
+  late final GeneratedColumn<String> catalogueId = GeneratedColumn<String>(
+    'catalogue_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _referenceBasisMeta = const VerificationMeta(
+    'referenceBasis',
+  );
+  @override
+  late final GeneratedColumn<String> referenceBasis = GeneratedColumn<String>(
+    'reference_basis',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('100 g'),
+  );
+  static const VerificationMeta _servingAmountMeta = const VerificationMeta(
+    'servingAmount',
+  );
+  @override
+  late final GeneratedColumn<double> servingAmount = GeneratedColumn<double>(
+    'serving_amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _servingUnitMeta = const VerificationMeta(
+    'servingUnit',
+  );
+  @override
+  late final GeneratedColumn<String> servingUnit = GeneratedColumn<String>(
+    'serving_unit',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceMetadataJsonMeta =
+      const VerificationMeta('sourceMetadataJson');
+  @override
+  late final GeneratedColumn<String> sourceMetadataJson =
+      GeneratedColumn<String>(
+        'source_metadata_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4625,6 +4748,13 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodData> {
     sodiumMgPer100g,
     potassiumMgPer100g,
     cholesterolMgPer100g,
+    catalogueId,
+    referenceBasis,
+    servingAmount,
+    servingUnit,
+    category,
+    country,
+    sourceMetadataJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4774,6 +4904,63 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodData> {
         ),
       );
     }
+    if (data.containsKey('catalogue_id')) {
+      context.handle(
+        _catalogueIdMeta,
+        catalogueId.isAcceptableOrUnknown(
+          data['catalogue_id']!,
+          _catalogueIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reference_basis')) {
+      context.handle(
+        _referenceBasisMeta,
+        referenceBasis.isAcceptableOrUnknown(
+          data['reference_basis']!,
+          _referenceBasisMeta,
+        ),
+      );
+    }
+    if (data.containsKey('serving_amount')) {
+      context.handle(
+        _servingAmountMeta,
+        servingAmount.isAcceptableOrUnknown(
+          data['serving_amount']!,
+          _servingAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('serving_unit')) {
+      context.handle(
+        _servingUnitMeta,
+        servingUnit.isAcceptableOrUnknown(
+          data['serving_unit']!,
+          _servingUnitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('source_metadata_json')) {
+      context.handle(
+        _sourceMetadataJsonMeta,
+        sourceMetadataJson.isAcceptableOrUnknown(
+          data['source_metadata_json']!,
+          _sourceMetadataJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4855,6 +5042,34 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodData> {
         DriftSqlType.double,
         data['${effectivePrefix}cholesterol_mg_per100g'],
       ),
+      catalogueId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}catalogue_id'],
+      ),
+      referenceBasis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reference_basis'],
+      )!,
+      servingAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}serving_amount'],
+      ),
+      servingUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}serving_unit'],
+      ),
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      ),
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      ),
+      sourceMetadataJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_metadata_json'],
+      ),
     );
   }
 
@@ -4883,6 +5098,19 @@ class FoodData extends DataClass implements Insertable<FoodData> {
   final double? sodiumMgPer100g;
   final double? potassiumMgPer100g;
   final double? cholesterolMgPer100g;
+
+  /// Stable ID from the bundled catalogue; null for user-created/legacy foods.
+  final String? catalogueId;
+
+  /// 100 g, 100 ml, or a source-labelled serving basis.
+  final String referenceBasis;
+  final double? servingAmount;
+  final String? servingUnit;
+  final String? category;
+  final String? country;
+
+  /// Full source nutrients/provenance/claims payload for later micro views.
+  final String? sourceMetadataJson;
   const FoodData({
     required this.id,
     required this.name,
@@ -4902,6 +5130,13 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     this.sodiumMgPer100g,
     this.potassiumMgPer100g,
     this.cholesterolMgPer100g,
+    this.catalogueId,
+    required this.referenceBasis,
+    this.servingAmount,
+    this.servingUnit,
+    this.category,
+    this.country,
+    this.sourceMetadataJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4941,6 +5176,25 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     }
     if (!nullToAbsent || cholesterolMgPer100g != null) {
       map['cholesterol_mg_per100g'] = Variable<double>(cholesterolMgPer100g);
+    }
+    if (!nullToAbsent || catalogueId != null) {
+      map['catalogue_id'] = Variable<String>(catalogueId);
+    }
+    map['reference_basis'] = Variable<String>(referenceBasis);
+    if (!nullToAbsent || servingAmount != null) {
+      map['serving_amount'] = Variable<double>(servingAmount);
+    }
+    if (!nullToAbsent || servingUnit != null) {
+      map['serving_unit'] = Variable<String>(servingUnit);
+    }
+    if (!nullToAbsent || category != null) {
+      map['category'] = Variable<String>(category);
+    }
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
+    }
+    if (!nullToAbsent || sourceMetadataJson != null) {
+      map['source_metadata_json'] = Variable<String>(sourceMetadataJson);
     }
     return map;
   }
@@ -4983,6 +5237,25 @@ class FoodData extends DataClass implements Insertable<FoodData> {
       cholesterolMgPer100g: cholesterolMgPer100g == null && nullToAbsent
           ? const Value.absent()
           : Value(cholesterolMgPer100g),
+      catalogueId: catalogueId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(catalogueId),
+      referenceBasis: Value(referenceBasis),
+      servingAmount: servingAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(servingAmount),
+      servingUnit: servingUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(servingUnit),
+      category: category == null && nullToAbsent
+          ? const Value.absent()
+          : Value(category),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
+      sourceMetadataJson: sourceMetadataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceMetadataJson),
     );
   }
 
@@ -5014,6 +5287,15 @@ class FoodData extends DataClass implements Insertable<FoodData> {
       cholesterolMgPer100g: serializer.fromJson<double?>(
         json['cholesterolMgPer100g'],
       ),
+      catalogueId: serializer.fromJson<String?>(json['catalogueId']),
+      referenceBasis: serializer.fromJson<String>(json['referenceBasis']),
+      servingAmount: serializer.fromJson<double?>(json['servingAmount']),
+      servingUnit: serializer.fromJson<String?>(json['servingUnit']),
+      category: serializer.fromJson<String?>(json['category']),
+      country: serializer.fromJson<String?>(json['country']),
+      sourceMetadataJson: serializer.fromJson<String?>(
+        json['sourceMetadataJson'],
+      ),
     );
   }
   @override
@@ -5038,6 +5320,13 @@ class FoodData extends DataClass implements Insertable<FoodData> {
       'sodiumMgPer100g': serializer.toJson<double?>(sodiumMgPer100g),
       'potassiumMgPer100g': serializer.toJson<double?>(potassiumMgPer100g),
       'cholesterolMgPer100g': serializer.toJson<double?>(cholesterolMgPer100g),
+      'catalogueId': serializer.toJson<String?>(catalogueId),
+      'referenceBasis': serializer.toJson<String>(referenceBasis),
+      'servingAmount': serializer.toJson<double?>(servingAmount),
+      'servingUnit': serializer.toJson<String?>(servingUnit),
+      'category': serializer.toJson<String?>(category),
+      'country': serializer.toJson<String?>(country),
+      'sourceMetadataJson': serializer.toJson<String?>(sourceMetadataJson),
     };
   }
 
@@ -5060,6 +5349,13 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     Value<double?> sodiumMgPer100g = const Value.absent(),
     Value<double?> potassiumMgPer100g = const Value.absent(),
     Value<double?> cholesterolMgPer100g = const Value.absent(),
+    Value<String?> catalogueId = const Value.absent(),
+    String? referenceBasis,
+    Value<double?> servingAmount = const Value.absent(),
+    Value<String?> servingUnit = const Value.absent(),
+    Value<String?> category = const Value.absent(),
+    Value<String?> country = const Value.absent(),
+    Value<String?> sourceMetadataJson = const Value.absent(),
   }) => FoodData(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -5085,6 +5381,17 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     cholesterolMgPer100g: cholesterolMgPer100g.present
         ? cholesterolMgPer100g.value
         : this.cholesterolMgPer100g,
+    catalogueId: catalogueId.present ? catalogueId.value : this.catalogueId,
+    referenceBasis: referenceBasis ?? this.referenceBasis,
+    servingAmount: servingAmount.present
+        ? servingAmount.value
+        : this.servingAmount,
+    servingUnit: servingUnit.present ? servingUnit.value : this.servingUnit,
+    category: category.present ? category.value : this.category,
+    country: country.present ? country.value : this.country,
+    sourceMetadataJson: sourceMetadataJson.present
+        ? sourceMetadataJson.value
+        : this.sourceMetadataJson,
   );
   FoodData copyWithCompanion(FoodsCompanion data) {
     return FoodData(
@@ -5126,6 +5433,23 @@ class FoodData extends DataClass implements Insertable<FoodData> {
       cholesterolMgPer100g: data.cholesterolMgPer100g.present
           ? data.cholesterolMgPer100g.value
           : this.cholesterolMgPer100g,
+      catalogueId: data.catalogueId.present
+          ? data.catalogueId.value
+          : this.catalogueId,
+      referenceBasis: data.referenceBasis.present
+          ? data.referenceBasis.value
+          : this.referenceBasis,
+      servingAmount: data.servingAmount.present
+          ? data.servingAmount.value
+          : this.servingAmount,
+      servingUnit: data.servingUnit.present
+          ? data.servingUnit.value
+          : this.servingUnit,
+      category: data.category.present ? data.category.value : this.category,
+      country: data.country.present ? data.country.value : this.country,
+      sourceMetadataJson: data.sourceMetadataJson.present
+          ? data.sourceMetadataJson.value
+          : this.sourceMetadataJson,
     );
   }
 
@@ -5149,13 +5473,20 @@ class FoodData extends DataClass implements Insertable<FoodData> {
           ..write('createdAt: $createdAt, ')
           ..write('sodiumMgPer100g: $sodiumMgPer100g, ')
           ..write('potassiumMgPer100g: $potassiumMgPer100g, ')
-          ..write('cholesterolMgPer100g: $cholesterolMgPer100g')
+          ..write('cholesterolMgPer100g: $cholesterolMgPer100g, ')
+          ..write('catalogueId: $catalogueId, ')
+          ..write('referenceBasis: $referenceBasis, ')
+          ..write('servingAmount: $servingAmount, ')
+          ..write('servingUnit: $servingUnit, ')
+          ..write('category: $category, ')
+          ..write('country: $country, ')
+          ..write('sourceMetadataJson: $sourceMetadataJson')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     name,
     brand,
@@ -5174,7 +5505,14 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     sodiumMgPer100g,
     potassiumMgPer100g,
     cholesterolMgPer100g,
-  );
+    catalogueId,
+    referenceBasis,
+    servingAmount,
+    servingUnit,
+    category,
+    country,
+    sourceMetadataJson,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5196,7 +5534,14 @@ class FoodData extends DataClass implements Insertable<FoodData> {
           other.createdAt == this.createdAt &&
           other.sodiumMgPer100g == this.sodiumMgPer100g &&
           other.potassiumMgPer100g == this.potassiumMgPer100g &&
-          other.cholesterolMgPer100g == this.cholesterolMgPer100g);
+          other.cholesterolMgPer100g == this.cholesterolMgPer100g &&
+          other.catalogueId == this.catalogueId &&
+          other.referenceBasis == this.referenceBasis &&
+          other.servingAmount == this.servingAmount &&
+          other.servingUnit == this.servingUnit &&
+          other.category == this.category &&
+          other.country == this.country &&
+          other.sourceMetadataJson == this.sourceMetadataJson);
 }
 
 class FoodsCompanion extends UpdateCompanion<FoodData> {
@@ -5218,6 +5563,13 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
   final Value<double?> sodiumMgPer100g;
   final Value<double?> potassiumMgPer100g;
   final Value<double?> cholesterolMgPer100g;
+  final Value<String?> catalogueId;
+  final Value<String> referenceBasis;
+  final Value<double?> servingAmount;
+  final Value<String?> servingUnit;
+  final Value<String?> category;
+  final Value<String?> country;
+  final Value<String?> sourceMetadataJson;
   const FoodsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -5237,6 +5589,13 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     this.sodiumMgPer100g = const Value.absent(),
     this.potassiumMgPer100g = const Value.absent(),
     this.cholesterolMgPer100g = const Value.absent(),
+    this.catalogueId = const Value.absent(),
+    this.referenceBasis = const Value.absent(),
+    this.servingAmount = const Value.absent(),
+    this.servingUnit = const Value.absent(),
+    this.category = const Value.absent(),
+    this.country = const Value.absent(),
+    this.sourceMetadataJson = const Value.absent(),
   });
   FoodsCompanion.insert({
     this.id = const Value.absent(),
@@ -5257,6 +5616,13 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     this.sodiumMgPer100g = const Value.absent(),
     this.potassiumMgPer100g = const Value.absent(),
     this.cholesterolMgPer100g = const Value.absent(),
+    this.catalogueId = const Value.absent(),
+    this.referenceBasis = const Value.absent(),
+    this.servingAmount = const Value.absent(),
+    this.servingUnit = const Value.absent(),
+    this.category = const Value.absent(),
+    this.country = const Value.absent(),
+    this.sourceMetadataJson = const Value.absent(),
   }) : name = Value(name),
        kcalPer100g = Value(kcalPer100g);
   static Insertable<FoodData> custom({
@@ -5278,6 +5644,13 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     Expression<double>? sodiumMgPer100g,
     Expression<double>? potassiumMgPer100g,
     Expression<double>? cholesterolMgPer100g,
+    Expression<String>? catalogueId,
+    Expression<String>? referenceBasis,
+    Expression<double>? servingAmount,
+    Expression<String>? servingUnit,
+    Expression<String>? category,
+    Expression<String>? country,
+    Expression<String>? sourceMetadataJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5300,6 +5673,14 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
         'potassium_mg_per100g': potassiumMgPer100g,
       if (cholesterolMgPer100g != null)
         'cholesterol_mg_per100g': cholesterolMgPer100g,
+      if (catalogueId != null) 'catalogue_id': catalogueId,
+      if (referenceBasis != null) 'reference_basis': referenceBasis,
+      if (servingAmount != null) 'serving_amount': servingAmount,
+      if (servingUnit != null) 'serving_unit': servingUnit,
+      if (category != null) 'category': category,
+      if (country != null) 'country': country,
+      if (sourceMetadataJson != null)
+        'source_metadata_json': sourceMetadataJson,
     });
   }
 
@@ -5322,6 +5703,13 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     Value<double?>? sodiumMgPer100g,
     Value<double?>? potassiumMgPer100g,
     Value<double?>? cholesterolMgPer100g,
+    Value<String?>? catalogueId,
+    Value<String>? referenceBasis,
+    Value<double?>? servingAmount,
+    Value<String?>? servingUnit,
+    Value<String?>? category,
+    Value<String?>? country,
+    Value<String?>? sourceMetadataJson,
   }) {
     return FoodsCompanion(
       id: id ?? this.id,
@@ -5342,6 +5730,13 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
       sodiumMgPer100g: sodiumMgPer100g ?? this.sodiumMgPer100g,
       potassiumMgPer100g: potassiumMgPer100g ?? this.potassiumMgPer100g,
       cholesterolMgPer100g: cholesterolMgPer100g ?? this.cholesterolMgPer100g,
+      catalogueId: catalogueId ?? this.catalogueId,
+      referenceBasis: referenceBasis ?? this.referenceBasis,
+      servingAmount: servingAmount ?? this.servingAmount,
+      servingUnit: servingUnit ?? this.servingUnit,
+      category: category ?? this.category,
+      country: country ?? this.country,
+      sourceMetadataJson: sourceMetadataJson ?? this.sourceMetadataJson,
     );
   }
 
@@ -5404,6 +5799,27 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
         cholesterolMgPer100g.value,
       );
     }
+    if (catalogueId.present) {
+      map['catalogue_id'] = Variable<String>(catalogueId.value);
+    }
+    if (referenceBasis.present) {
+      map['reference_basis'] = Variable<String>(referenceBasis.value);
+    }
+    if (servingAmount.present) {
+      map['serving_amount'] = Variable<double>(servingAmount.value);
+    }
+    if (servingUnit.present) {
+      map['serving_unit'] = Variable<String>(servingUnit.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (sourceMetadataJson.present) {
+      map['source_metadata_json'] = Variable<String>(sourceMetadataJson.value);
+    }
     return map;
   }
 
@@ -5427,7 +5843,14 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
           ..write('createdAt: $createdAt, ')
           ..write('sodiumMgPer100g: $sodiumMgPer100g, ')
           ..write('potassiumMgPer100g: $potassiumMgPer100g, ')
-          ..write('cholesterolMgPer100g: $cholesterolMgPer100g')
+          ..write('cholesterolMgPer100g: $cholesterolMgPer100g, ')
+          ..write('catalogueId: $catalogueId, ')
+          ..write('referenceBasis: $referenceBasis, ')
+          ..write('servingAmount: $servingAmount, ')
+          ..write('servingUnit: $servingUnit, ')
+          ..write('category: $category, ')
+          ..write('country: $country, ')
+          ..write('sourceMetadataJson: $sourceMetadataJson')
           ..write(')'))
         .toString();
   }
@@ -6162,6 +6585,28 @@ class $FoodEntriesTable extends FoodEntries
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _portionAmountMeta = const VerificationMeta(
+    'portionAmount',
+  );
+  @override
+  late final GeneratedColumn<double> portionAmount = GeneratedColumn<double>(
+    'portion_amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _portionUnitMeta = const VerificationMeta(
+    'portionUnit',
+  );
+  @override
+  late final GeneratedColumn<String> portionUnit = GeneratedColumn<String>(
+    'portion_unit',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _loggedAtMeta = const VerificationMeta(
     'loggedAt',
   );
@@ -6183,6 +6628,8 @@ class $FoodEntriesTable extends FoodEntries
     recipeId,
     servings,
     gramsOverride,
+    portionAmount,
+    portionUnit,
     loggedAt,
   ];
   @override
@@ -6243,6 +6690,24 @@ class $FoodEntriesTable extends FoodEntries
         ),
       );
     }
+    if (data.containsKey('portion_amount')) {
+      context.handle(
+        _portionAmountMeta,
+        portionAmount.isAcceptableOrUnknown(
+          data['portion_amount']!,
+          _portionAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('portion_unit')) {
+      context.handle(
+        _portionUnitMeta,
+        portionUnit.isAcceptableOrUnknown(
+          data['portion_unit']!,
+          _portionUnitMeta,
+        ),
+      );
+    }
     if (data.containsKey('logged_at')) {
       context.handle(
         _loggedAtMeta,
@@ -6286,6 +6751,14 @@ class $FoodEntriesTable extends FoodEntries
         DriftSqlType.double,
         data['${effectivePrefix}grams_override'],
       ),
+      portionAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}portion_amount'],
+      ),
+      portionUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}portion_unit'],
+      ),
       loggedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}logged_at'],
@@ -6311,6 +6784,10 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
 
   /// Grams override for raw foods; ignored for recipes.
   final double? gramsOverride;
+
+  /// Exact user-entered amount and its unit (g, ml, serving, etc.).
+  final double? portionAmount;
+  final String? portionUnit;
   final DateTime loggedAt;
   const FoodEntryData({
     required this.id,
@@ -6320,6 +6797,8 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
     this.recipeId,
     required this.servings,
     this.gramsOverride,
+    this.portionAmount,
+    this.portionUnit,
     required this.loggedAt,
   });
   @override
@@ -6337,6 +6816,12 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
     map['servings'] = Variable<double>(servings);
     if (!nullToAbsent || gramsOverride != null) {
       map['grams_override'] = Variable<double>(gramsOverride);
+    }
+    if (!nullToAbsent || portionAmount != null) {
+      map['portion_amount'] = Variable<double>(portionAmount);
+    }
+    if (!nullToAbsent || portionUnit != null) {
+      map['portion_unit'] = Variable<String>(portionUnit);
     }
     map['logged_at'] = Variable<DateTime>(loggedAt);
     return map;
@@ -6357,6 +6842,12 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
       gramsOverride: gramsOverride == null && nullToAbsent
           ? const Value.absent()
           : Value(gramsOverride),
+      portionAmount: portionAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(portionAmount),
+      portionUnit: portionUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(portionUnit),
       loggedAt: Value(loggedAt),
     );
   }
@@ -6374,6 +6865,8 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
       recipeId: serializer.fromJson<int?>(json['recipeId']),
       servings: serializer.fromJson<double>(json['servings']),
       gramsOverride: serializer.fromJson<double?>(json['gramsOverride']),
+      portionAmount: serializer.fromJson<double?>(json['portionAmount']),
+      portionUnit: serializer.fromJson<String?>(json['portionUnit']),
       loggedAt: serializer.fromJson<DateTime>(json['loggedAt']),
     );
   }
@@ -6388,6 +6881,8 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
       'recipeId': serializer.toJson<int?>(recipeId),
       'servings': serializer.toJson<double>(servings),
       'gramsOverride': serializer.toJson<double?>(gramsOverride),
+      'portionAmount': serializer.toJson<double?>(portionAmount),
+      'portionUnit': serializer.toJson<String?>(portionUnit),
       'loggedAt': serializer.toJson<DateTime>(loggedAt),
     };
   }
@@ -6400,6 +6895,8 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
     Value<int?> recipeId = const Value.absent(),
     double? servings,
     Value<double?> gramsOverride = const Value.absent(),
+    Value<double?> portionAmount = const Value.absent(),
+    Value<String?> portionUnit = const Value.absent(),
     DateTime? loggedAt,
   }) => FoodEntryData(
     id: id ?? this.id,
@@ -6411,6 +6908,10 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
     gramsOverride: gramsOverride.present
         ? gramsOverride.value
         : this.gramsOverride,
+    portionAmount: portionAmount.present
+        ? portionAmount.value
+        : this.portionAmount,
+    portionUnit: portionUnit.present ? portionUnit.value : this.portionUnit,
     loggedAt: loggedAt ?? this.loggedAt,
   );
   FoodEntryData copyWithCompanion(FoodEntriesCompanion data) {
@@ -6424,6 +6925,12 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
       gramsOverride: data.gramsOverride.present
           ? data.gramsOverride.value
           : this.gramsOverride,
+      portionAmount: data.portionAmount.present
+          ? data.portionAmount.value
+          : this.portionAmount,
+      portionUnit: data.portionUnit.present
+          ? data.portionUnit.value
+          : this.portionUnit,
       loggedAt: data.loggedAt.present ? data.loggedAt.value : this.loggedAt,
     );
   }
@@ -6438,6 +6945,8 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
           ..write('recipeId: $recipeId, ')
           ..write('servings: $servings, ')
           ..write('gramsOverride: $gramsOverride, ')
+          ..write('portionAmount: $portionAmount, ')
+          ..write('portionUnit: $portionUnit, ')
           ..write('loggedAt: $loggedAt')
           ..write(')'))
         .toString();
@@ -6452,6 +6961,8 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
     recipeId,
     servings,
     gramsOverride,
+    portionAmount,
+    portionUnit,
     loggedAt,
   );
   @override
@@ -6465,6 +6976,8 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
           other.recipeId == this.recipeId &&
           other.servings == this.servings &&
           other.gramsOverride == this.gramsOverride &&
+          other.portionAmount == this.portionAmount &&
+          other.portionUnit == this.portionUnit &&
           other.loggedAt == this.loggedAt);
 }
 
@@ -6476,6 +6989,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
   final Value<int?> recipeId;
   final Value<double> servings;
   final Value<double?> gramsOverride;
+  final Value<double?> portionAmount;
+  final Value<String?> portionUnit;
   final Value<DateTime> loggedAt;
   const FoodEntriesCompanion({
     this.id = const Value.absent(),
@@ -6485,6 +7000,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     this.recipeId = const Value.absent(),
     this.servings = const Value.absent(),
     this.gramsOverride = const Value.absent(),
+    this.portionAmount = const Value.absent(),
+    this.portionUnit = const Value.absent(),
     this.loggedAt = const Value.absent(),
   });
   FoodEntriesCompanion.insert({
@@ -6495,6 +7012,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     this.recipeId = const Value.absent(),
     this.servings = const Value.absent(),
     this.gramsOverride = const Value.absent(),
+    this.portionAmount = const Value.absent(),
+    this.portionUnit = const Value.absent(),
     this.loggedAt = const Value.absent(),
   }) : dateIso = Value(dateIso),
        meal = Value(meal);
@@ -6506,6 +7025,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     Expression<int>? recipeId,
     Expression<double>? servings,
     Expression<double>? gramsOverride,
+    Expression<double>? portionAmount,
+    Expression<String>? portionUnit,
     Expression<DateTime>? loggedAt,
   }) {
     return RawValuesInsertable({
@@ -6516,6 +7037,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
       if (recipeId != null) 'recipe_id': recipeId,
       if (servings != null) 'servings': servings,
       if (gramsOverride != null) 'grams_override': gramsOverride,
+      if (portionAmount != null) 'portion_amount': portionAmount,
+      if (portionUnit != null) 'portion_unit': portionUnit,
       if (loggedAt != null) 'logged_at': loggedAt,
     });
   }
@@ -6528,6 +7051,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     Value<int?>? recipeId,
     Value<double>? servings,
     Value<double?>? gramsOverride,
+    Value<double?>? portionAmount,
+    Value<String?>? portionUnit,
     Value<DateTime>? loggedAt,
   }) {
     return FoodEntriesCompanion(
@@ -6538,6 +7063,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
       recipeId: recipeId ?? this.recipeId,
       servings: servings ?? this.servings,
       gramsOverride: gramsOverride ?? this.gramsOverride,
+      portionAmount: portionAmount ?? this.portionAmount,
+      portionUnit: portionUnit ?? this.portionUnit,
       loggedAt: loggedAt ?? this.loggedAt,
     );
   }
@@ -6566,6 +7093,12 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     if (gramsOverride.present) {
       map['grams_override'] = Variable<double>(gramsOverride.value);
     }
+    if (portionAmount.present) {
+      map['portion_amount'] = Variable<double>(portionAmount.value);
+    }
+    if (portionUnit.present) {
+      map['portion_unit'] = Variable<String>(portionUnit.value);
+    }
     if (loggedAt.present) {
       map['logged_at'] = Variable<DateTime>(loggedAt.value);
     }
@@ -6582,6 +7115,8 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
           ..write('recipeId: $recipeId, ')
           ..write('servings: $servings, ')
           ..write('gramsOverride: $gramsOverride, ')
+          ..write('portionAmount: $portionAmount, ')
+          ..write('portionUnit: $portionUnit, ')
           ..write('loggedAt: $loggedAt')
           ..write(')'))
         .toString();
@@ -16381,6 +16916,317 @@ class FoodMicrosCompanion extends UpdateCompanion<FoodMicroData> {
   }
 }
 
+class $FoodCatalogueMetaTable extends FoodCatalogueMeta
+    with TableInfo<$FoodCatalogueMetaTable, FoodCatalogueMetaData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FoodCatalogueMetaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _schemaVersionMeta = const VerificationMeta(
+    'schemaVersion',
+  );
+  @override
+  late final GeneratedColumn<String> schemaVersion = GeneratedColumn<String>(
+    'schema_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _foodCountMeta = const VerificationMeta(
+    'foodCount',
+  );
+  @override
+  late final GeneratedColumn<int> foodCount = GeneratedColumn<int>(
+    'food_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _importedAtMeta = const VerificationMeta(
+    'importedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> importedAt = GeneratedColumn<DateTime>(
+    'imported_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    schemaVersion,
+    foodCount,
+    importedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'food_catalogue_meta';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FoodCatalogueMetaData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('schema_version')) {
+      context.handle(
+        _schemaVersionMeta,
+        schemaVersion.isAcceptableOrUnknown(
+          data['schema_version']!,
+          _schemaVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_schemaVersionMeta);
+    }
+    if (data.containsKey('food_count')) {
+      context.handle(
+        _foodCountMeta,
+        foodCount.isAcceptableOrUnknown(data['food_count']!, _foodCountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_foodCountMeta);
+    }
+    if (data.containsKey('imported_at')) {
+      context.handle(
+        _importedAtMeta,
+        importedAt.isAcceptableOrUnknown(data['imported_at']!, _importedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_importedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FoodCatalogueMetaData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FoodCatalogueMetaData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      schemaVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}schema_version'],
+      )!,
+      foodCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}food_count'],
+      )!,
+      importedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}imported_at'],
+      )!,
+    );
+  }
+
+  @override
+  $FoodCatalogueMetaTable createAlias(String alias) {
+    return $FoodCatalogueMetaTable(attachedDatabase, alias);
+  }
+}
+
+class FoodCatalogueMetaData extends DataClass
+    implements Insertable<FoodCatalogueMetaData> {
+  final int id;
+  final String schemaVersion;
+  final int foodCount;
+  final DateTime importedAt;
+  const FoodCatalogueMetaData({
+    required this.id,
+    required this.schemaVersion,
+    required this.foodCount,
+    required this.importedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['schema_version'] = Variable<String>(schemaVersion);
+    map['food_count'] = Variable<int>(foodCount);
+    map['imported_at'] = Variable<DateTime>(importedAt);
+    return map;
+  }
+
+  FoodCatalogueMetaCompanion toCompanion(bool nullToAbsent) {
+    return FoodCatalogueMetaCompanion(
+      id: Value(id),
+      schemaVersion: Value(schemaVersion),
+      foodCount: Value(foodCount),
+      importedAt: Value(importedAt),
+    );
+  }
+
+  factory FoodCatalogueMetaData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FoodCatalogueMetaData(
+      id: serializer.fromJson<int>(json['id']),
+      schemaVersion: serializer.fromJson<String>(json['schemaVersion']),
+      foodCount: serializer.fromJson<int>(json['foodCount']),
+      importedAt: serializer.fromJson<DateTime>(json['importedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'schemaVersion': serializer.toJson<String>(schemaVersion),
+      'foodCount': serializer.toJson<int>(foodCount),
+      'importedAt': serializer.toJson<DateTime>(importedAt),
+    };
+  }
+
+  FoodCatalogueMetaData copyWith({
+    int? id,
+    String? schemaVersion,
+    int? foodCount,
+    DateTime? importedAt,
+  }) => FoodCatalogueMetaData(
+    id: id ?? this.id,
+    schemaVersion: schemaVersion ?? this.schemaVersion,
+    foodCount: foodCount ?? this.foodCount,
+    importedAt: importedAt ?? this.importedAt,
+  );
+  FoodCatalogueMetaData copyWithCompanion(FoodCatalogueMetaCompanion data) {
+    return FoodCatalogueMetaData(
+      id: data.id.present ? data.id.value : this.id,
+      schemaVersion: data.schemaVersion.present
+          ? data.schemaVersion.value
+          : this.schemaVersion,
+      foodCount: data.foodCount.present ? data.foodCount.value : this.foodCount,
+      importedAt: data.importedAt.present
+          ? data.importedAt.value
+          : this.importedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FoodCatalogueMetaData(')
+          ..write('id: $id, ')
+          ..write('schemaVersion: $schemaVersion, ')
+          ..write('foodCount: $foodCount, ')
+          ..write('importedAt: $importedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, schemaVersion, foodCount, importedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FoodCatalogueMetaData &&
+          other.id == this.id &&
+          other.schemaVersion == this.schemaVersion &&
+          other.foodCount == this.foodCount &&
+          other.importedAt == this.importedAt);
+}
+
+class FoodCatalogueMetaCompanion
+    extends UpdateCompanion<FoodCatalogueMetaData> {
+  final Value<int> id;
+  final Value<String> schemaVersion;
+  final Value<int> foodCount;
+  final Value<DateTime> importedAt;
+  const FoodCatalogueMetaCompanion({
+    this.id = const Value.absent(),
+    this.schemaVersion = const Value.absent(),
+    this.foodCount = const Value.absent(),
+    this.importedAt = const Value.absent(),
+  });
+  FoodCatalogueMetaCompanion.insert({
+    this.id = const Value.absent(),
+    required String schemaVersion,
+    required int foodCount,
+    required DateTime importedAt,
+  }) : schemaVersion = Value(schemaVersion),
+       foodCount = Value(foodCount),
+       importedAt = Value(importedAt);
+  static Insertable<FoodCatalogueMetaData> custom({
+    Expression<int>? id,
+    Expression<String>? schemaVersion,
+    Expression<int>? foodCount,
+    Expression<DateTime>? importedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (schemaVersion != null) 'schema_version': schemaVersion,
+      if (foodCount != null) 'food_count': foodCount,
+      if (importedAt != null) 'imported_at': importedAt,
+    });
+  }
+
+  FoodCatalogueMetaCompanion copyWith({
+    Value<int>? id,
+    Value<String>? schemaVersion,
+    Value<int>? foodCount,
+    Value<DateTime>? importedAt,
+  }) {
+    return FoodCatalogueMetaCompanion(
+      id: id ?? this.id,
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+      foodCount: foodCount ?? this.foodCount,
+      importedAt: importedAt ?? this.importedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (schemaVersion.present) {
+      map['schema_version'] = Variable<String>(schemaVersion.value);
+    }
+    if (foodCount.present) {
+      map['food_count'] = Variable<int>(foodCount.value);
+    }
+    if (importedAt.present) {
+      map['imported_at'] = Variable<DateTime>(importedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FoodCatalogueMetaCompanion(')
+          ..write('id: $id, ')
+          ..write('schemaVersion: $schemaVersion, ')
+          ..write('foodCount: $foodCount, ')
+          ..write('importedAt: $importedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $NutritionTargetsTable extends NutritionTargets
     with TableInfo<$NutritionTargetsTable, NutritionTargetData> {
   @override
@@ -17615,6 +18461,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ExerciseProgressionsTable exerciseProgressions =
       $ExerciseProgressionsTable(this);
   late final $FoodMicrosTable foodMicros = $FoodMicrosTable(this);
+  late final $FoodCatalogueMetaTable foodCatalogueMeta =
+      $FoodCatalogueMetaTable(this);
   late final $NutritionTargetsTable nutritionTargets = $NutritionTargetsTable(
     this,
   );
@@ -17663,6 +18511,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     rotationMembers,
     exerciseProgressions,
     foodMicros,
+    foodCatalogueMeta,
     nutritionTargets,
     dietSchedules,
     carbCyclePlans,
@@ -20733,6 +21582,7 @@ typedef $$MicroWorkoutsTableProcessedTableManager =
 typedef $$WorkoutSessionsTableCreateCompanionBuilder =
     WorkoutSessionsCompanion Function({
       Value<int> id,
+      Value<String?> name,
       required DateTime startedAt,
       Value<DateTime?> endedAt,
       Value<String?> notes,
@@ -20743,6 +21593,7 @@ typedef $$WorkoutSessionsTableCreateCompanionBuilder =
 typedef $$WorkoutSessionsTableUpdateCompanionBuilder =
     WorkoutSessionsCompanion Function({
       Value<int> id,
+      Value<String?> name,
       Value<DateTime> startedAt,
       Value<DateTime?> endedAt,
       Value<String?> notes,
@@ -20869,6 +21720,11 @@ class $$WorkoutSessionsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21003,6 +21859,11 @@ class $$WorkoutSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get startedAt => $composableBuilder(
     column: $table.startedAt,
     builder: (column) => ColumnOrderings(column),
@@ -21081,6 +21942,9 @@ class $$WorkoutSessionsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
 
   GeneratedColumn<DateTime> get startedAt =>
       $composableBuilder(column: $table.startedAt, builder: (column) => column);
@@ -21230,6 +22094,7 @@ class $$WorkoutSessionsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String?> name = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime?> endedAt = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
@@ -21238,6 +22103,7 @@ class $$WorkoutSessionsTableTableManager
                 Value<int?> microWorkoutId = const Value.absent(),
               }) => WorkoutSessionsCompanion(
                 id: id,
+                name: name,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 notes: notes,
@@ -21248,6 +22114,7 @@ class $$WorkoutSessionsTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String?> name = const Value.absent(),
                 required DateTime startedAt,
                 Value<DateTime?> endedAt = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
@@ -21256,6 +22123,7 @@ class $$WorkoutSessionsTableTableManager
                 Value<int?> microWorkoutId = const Value.absent(),
               }) => WorkoutSessionsCompanion.insert(
                 id: id,
+                name: name,
                 startedAt: startedAt,
                 endedAt: endedAt,
                 notes: notes,
@@ -22694,6 +23562,13 @@ typedef $$FoodsTableCreateCompanionBuilder =
       Value<double?> sodiumMgPer100g,
       Value<double?> potassiumMgPer100g,
       Value<double?> cholesterolMgPer100g,
+      Value<String?> catalogueId,
+      Value<String> referenceBasis,
+      Value<double?> servingAmount,
+      Value<String?> servingUnit,
+      Value<String?> category,
+      Value<String?> country,
+      Value<String?> sourceMetadataJson,
     });
 typedef $$FoodsTableUpdateCompanionBuilder =
     FoodsCompanion Function({
@@ -22715,6 +23590,13 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<double?> sodiumMgPer100g,
       Value<double?> potassiumMgPer100g,
       Value<double?> cholesterolMgPer100g,
+      Value<String?> catalogueId,
+      Value<String> referenceBasis,
+      Value<double?> servingAmount,
+      Value<String?> servingUnit,
+      Value<String?> category,
+      Value<String?> country,
+      Value<String?> sourceMetadataJson,
     });
 
 final class $$FoodsTableReferences
@@ -22880,6 +23762,41 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<double> get cholesterolMgPer100g => $composableBuilder(
     column: $table.cholesterolMgPer100g,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get catalogueId => $composableBuilder(
+    column: $table.catalogueId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get referenceBasis => $composableBuilder(
+    column: $table.referenceBasis,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get servingAmount => $composableBuilder(
+    column: $table.servingAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get servingUnit => $composableBuilder(
+    column: $table.servingUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceMetadataJson => $composableBuilder(
+    column: $table.sourceMetadataJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23057,6 +23974,41 @@ class $$FoodsTableOrderingComposer
     column: $table.cholesterolMgPer100g,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get catalogueId => $composableBuilder(
+    column: $table.catalogueId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get referenceBasis => $composableBuilder(
+    column: $table.referenceBasis,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get servingAmount => $composableBuilder(
+    column: $table.servingAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get servingUnit => $composableBuilder(
+    column: $table.servingUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceMetadataJson => $composableBuilder(
+    column: $table.sourceMetadataJson,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FoodsTableAnnotationComposer
@@ -23139,6 +24091,37 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<double> get cholesterolMgPer100g => $composableBuilder(
     column: $table.cholesterolMgPer100g,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get catalogueId => $composableBuilder(
+    column: $table.catalogueId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get referenceBasis => $composableBuilder(
+    column: $table.referenceBasis,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get servingAmount => $composableBuilder(
+    column: $table.servingAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get servingUnit => $composableBuilder(
+    column: $table.servingUnit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceMetadataJson => $composableBuilder(
+    column: $table.sourceMetadataJson,
     builder: (column) => column,
   );
 
@@ -23269,6 +24252,13 @@ class $$FoodsTableTableManager
                 Value<double?> sodiumMgPer100g = const Value.absent(),
                 Value<double?> potassiumMgPer100g = const Value.absent(),
                 Value<double?> cholesterolMgPer100g = const Value.absent(),
+                Value<String?> catalogueId = const Value.absent(),
+                Value<String> referenceBasis = const Value.absent(),
+                Value<double?> servingAmount = const Value.absent(),
+                Value<String?> servingUnit = const Value.absent(),
+                Value<String?> category = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> sourceMetadataJson = const Value.absent(),
               }) => FoodsCompanion(
                 id: id,
                 name: name,
@@ -23288,6 +24278,13 @@ class $$FoodsTableTableManager
                 sodiumMgPer100g: sodiumMgPer100g,
                 potassiumMgPer100g: potassiumMgPer100g,
                 cholesterolMgPer100g: cholesterolMgPer100g,
+                catalogueId: catalogueId,
+                referenceBasis: referenceBasis,
+                servingAmount: servingAmount,
+                servingUnit: servingUnit,
+                category: category,
+                country: country,
+                sourceMetadataJson: sourceMetadataJson,
               ),
           createCompanionCallback:
               ({
@@ -23309,6 +24306,13 @@ class $$FoodsTableTableManager
                 Value<double?> sodiumMgPer100g = const Value.absent(),
                 Value<double?> potassiumMgPer100g = const Value.absent(),
                 Value<double?> cholesterolMgPer100g = const Value.absent(),
+                Value<String?> catalogueId = const Value.absent(),
+                Value<String> referenceBasis = const Value.absent(),
+                Value<double?> servingAmount = const Value.absent(),
+                Value<String?> servingUnit = const Value.absent(),
+                Value<String?> category = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> sourceMetadataJson = const Value.absent(),
               }) => FoodsCompanion.insert(
                 id: id,
                 name: name,
@@ -23328,6 +24332,13 @@ class $$FoodsTableTableManager
                 sodiumMgPer100g: sodiumMgPer100g,
                 potassiumMgPer100g: potassiumMgPer100g,
                 cholesterolMgPer100g: cholesterolMgPer100g,
+                catalogueId: catalogueId,
+                referenceBasis: referenceBasis,
+                servingAmount: servingAmount,
+                servingUnit: servingUnit,
+                category: category,
+                country: country,
+                sourceMetadataJson: sourceMetadataJson,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -24251,6 +25262,8 @@ typedef $$FoodEntriesTableCreateCompanionBuilder =
       Value<int?> recipeId,
       Value<double> servings,
       Value<double?> gramsOverride,
+      Value<double?> portionAmount,
+      Value<String?> portionUnit,
       Value<DateTime> loggedAt,
     });
 typedef $$FoodEntriesTableUpdateCompanionBuilder =
@@ -24262,6 +25275,8 @@ typedef $$FoodEntriesTableUpdateCompanionBuilder =
       Value<int?> recipeId,
       Value<double> servings,
       Value<double?> gramsOverride,
+      Value<double?> portionAmount,
+      Value<String?> portionUnit,
       Value<DateTime> loggedAt,
     });
 
@@ -24338,6 +25353,16 @@ class $$FoodEntriesTableFilterComposer
 
   ColumnFilters<double> get gramsOverride => $composableBuilder(
     column: $table.gramsOverride,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get portionAmount => $composableBuilder(
+    column: $table.portionAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get portionUnit => $composableBuilder(
+    column: $table.portionUnit,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -24427,6 +25452,16 @@ class $$FoodEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get portionAmount => $composableBuilder(
+    column: $table.portionAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get portionUnit => $composableBuilder(
+    column: $table.portionUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get loggedAt => $composableBuilder(
     column: $table.loggedAt,
     builder: (column) => ColumnOrderings(column),
@@ -24502,6 +25537,16 @@ class $$FoodEntriesTableAnnotationComposer
 
   GeneratedColumn<double> get gramsOverride => $composableBuilder(
     column: $table.gramsOverride,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get portionAmount => $composableBuilder(
+    column: $table.portionAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get portionUnit => $composableBuilder(
+    column: $table.portionUnit,
     builder: (column) => column,
   );
 
@@ -24590,6 +25635,8 @@ class $$FoodEntriesTableTableManager
                 Value<int?> recipeId = const Value.absent(),
                 Value<double> servings = const Value.absent(),
                 Value<double?> gramsOverride = const Value.absent(),
+                Value<double?> portionAmount = const Value.absent(),
+                Value<String?> portionUnit = const Value.absent(),
                 Value<DateTime> loggedAt = const Value.absent(),
               }) => FoodEntriesCompanion(
                 id: id,
@@ -24599,6 +25646,8 @@ class $$FoodEntriesTableTableManager
                 recipeId: recipeId,
                 servings: servings,
                 gramsOverride: gramsOverride,
+                portionAmount: portionAmount,
+                portionUnit: portionUnit,
                 loggedAt: loggedAt,
               ),
           createCompanionCallback:
@@ -24610,6 +25659,8 @@ class $$FoodEntriesTableTableManager
                 Value<int?> recipeId = const Value.absent(),
                 Value<double> servings = const Value.absent(),
                 Value<double?> gramsOverride = const Value.absent(),
+                Value<double?> portionAmount = const Value.absent(),
+                Value<String?> portionUnit = const Value.absent(),
                 Value<DateTime> loggedAt = const Value.absent(),
               }) => FoodEntriesCompanion.insert(
                 id: id,
@@ -24619,6 +25670,8 @@ class $$FoodEntriesTableTableManager
                 recipeId: recipeId,
                 servings: servings,
                 gramsOverride: gramsOverride,
+                portionAmount: portionAmount,
+                portionUnit: portionUnit,
                 loggedAt: loggedAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -33396,6 +34449,198 @@ typedef $$FoodMicrosTableProcessedTableManager =
       FoodMicroData,
       PrefetchHooks Function({bool foodId})
     >;
+typedef $$FoodCatalogueMetaTableCreateCompanionBuilder =
+    FoodCatalogueMetaCompanion Function({
+      Value<int> id,
+      required String schemaVersion,
+      required int foodCount,
+      required DateTime importedAt,
+    });
+typedef $$FoodCatalogueMetaTableUpdateCompanionBuilder =
+    FoodCatalogueMetaCompanion Function({
+      Value<int> id,
+      Value<String> schemaVersion,
+      Value<int> foodCount,
+      Value<DateTime> importedAt,
+    });
+
+class $$FoodCatalogueMetaTableFilterComposer
+    extends Composer<_$AppDatabase, $FoodCatalogueMetaTable> {
+  $$FoodCatalogueMetaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get schemaVersion => $composableBuilder(
+    column: $table.schemaVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get foodCount => $composableBuilder(
+    column: $table.foodCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FoodCatalogueMetaTableOrderingComposer
+    extends Composer<_$AppDatabase, $FoodCatalogueMetaTable> {
+  $$FoodCatalogueMetaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get schemaVersion => $composableBuilder(
+    column: $table.schemaVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get foodCount => $composableBuilder(
+    column: $table.foodCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FoodCatalogueMetaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FoodCatalogueMetaTable> {
+  $$FoodCatalogueMetaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get schemaVersion => $composableBuilder(
+    column: $table.schemaVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get foodCount =>
+      $composableBuilder(column: $table.foodCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$FoodCatalogueMetaTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FoodCatalogueMetaTable,
+          FoodCatalogueMetaData,
+          $$FoodCatalogueMetaTableFilterComposer,
+          $$FoodCatalogueMetaTableOrderingComposer,
+          $$FoodCatalogueMetaTableAnnotationComposer,
+          $$FoodCatalogueMetaTableCreateCompanionBuilder,
+          $$FoodCatalogueMetaTableUpdateCompanionBuilder,
+          (
+            FoodCatalogueMetaData,
+            BaseReferences<
+              _$AppDatabase,
+              $FoodCatalogueMetaTable,
+              FoodCatalogueMetaData
+            >,
+          ),
+          FoodCatalogueMetaData,
+          PrefetchHooks Function()
+        > {
+  $$FoodCatalogueMetaTableTableManager(
+    _$AppDatabase db,
+    $FoodCatalogueMetaTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FoodCatalogueMetaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FoodCatalogueMetaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FoodCatalogueMetaTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> schemaVersion = const Value.absent(),
+                Value<int> foodCount = const Value.absent(),
+                Value<DateTime> importedAt = const Value.absent(),
+              }) => FoodCatalogueMetaCompanion(
+                id: id,
+                schemaVersion: schemaVersion,
+                foodCount: foodCount,
+                importedAt: importedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String schemaVersion,
+                required int foodCount,
+                required DateTime importedAt,
+              }) => FoodCatalogueMetaCompanion.insert(
+                id: id,
+                schemaVersion: schemaVersion,
+                foodCount: foodCount,
+                importedAt: importedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FoodCatalogueMetaTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FoodCatalogueMetaTable,
+      FoodCatalogueMetaData,
+      $$FoodCatalogueMetaTableFilterComposer,
+      $$FoodCatalogueMetaTableOrderingComposer,
+      $$FoodCatalogueMetaTableAnnotationComposer,
+      $$FoodCatalogueMetaTableCreateCompanionBuilder,
+      $$FoodCatalogueMetaTableUpdateCompanionBuilder,
+      (
+        FoodCatalogueMetaData,
+        BaseReferences<
+          _$AppDatabase,
+          $FoodCatalogueMetaTable,
+          FoodCatalogueMetaData
+        >,
+      ),
+      FoodCatalogueMetaData,
+      PrefetchHooks Function()
+    >;
 typedef $$NutritionTargetsTableCreateCompanionBuilder =
     NutritionTargetsCompanion Function({
       Value<int> id,
@@ -34123,6 +35368,8 @@ class $AppDatabaseManager {
       $$ExerciseProgressionsTableTableManager(_db, _db.exerciseProgressions);
   $$FoodMicrosTableTableManager get foodMicros =>
       $$FoodMicrosTableTableManager(_db, _db.foodMicros);
+  $$FoodCatalogueMetaTableTableManager get foodCatalogueMeta =>
+      $$FoodCatalogueMetaTableTableManager(_db, _db.foodCatalogueMeta);
   $$NutritionTargetsTableTableManager get nutritionTargets =>
       $$NutritionTargetsTableTableManager(_db, _db.nutritionTargets);
   $$DietSchedulesTableTableManager get dietSchedules =>

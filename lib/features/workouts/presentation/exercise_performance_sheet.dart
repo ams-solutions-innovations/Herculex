@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/units.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../analytics/domain/variant_performance.dart';
@@ -82,7 +83,7 @@ class ExercisePerformanceSheet extends ConsumerWidget {
   }
 }
 
-class _Section extends StatelessWidget {
+class _Section extends ConsumerWidget {
   final String title;
   final AsyncValue<List<PerformanceRecord>> async;
   final String Function(PerformanceRecord) labelOf;
@@ -91,14 +92,19 @@ class _Section extends StatelessWidget {
       {required this.title, required this.async, required this.labelOf});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
+        Center(
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
             style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.bold)),
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
         const SizedBox(height: 8),
         async.when(
           data: (records) => records.isEmpty
@@ -127,7 +133,7 @@ class _Section extends StatelessWidget {
                                           ?.copyWith(
                                               fontWeight: FontWeight.w600)),
                                   Text(
-                                    'Best: ${_kg(r.bestWeightKg)} × ${r.bestWeightReps} • ${r.setCount} sets',
+                                    _subtitle(r, ref.watch(weightFormatProvider)),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                         color: AppColors.secondary),
                                   ),
@@ -138,7 +144,7 @@ class _Section extends StatelessWidget {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text(_kg(r.bestE1RmKg!),
+                                  Text(ref.watch(weightFormatProvider).format(r.bestE1RmKg!),
                                       style: theme.textTheme.titleMedium
                                           ?.copyWith(
                                               fontWeight: FontWeight.bold,
@@ -164,6 +170,14 @@ class _Section extends StatelessWidget {
     );
   }
 
-  String _kg(double v) =>
-      '${v.truncateToDouble() == v ? v.toStringAsFixed(0) : v.toStringAsFixed(1)} kg';
+  String _subtitle(PerformanceRecord r, WeightFormat fmt) {
+    var text = 'Best: ${fmt.format(r.bestWeightKg)}';
+    if (r.rawWeightKg != null &&
+        (r.rawWeightKg! - r.bestWeightKg).abs() > 0.1 &&
+        r.rawWeightKg! > 0) {
+      text += ' (${fmt.format(r.rawWeightKg!)} bar)';
+    }
+    text += ' × ${r.bestWeightReps} • ${r.setCount} set${r.setCount == 1 ? '' : 's'}';
+    return text;
+  }
 }

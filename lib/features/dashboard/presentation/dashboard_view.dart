@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../../app/providers.dart';
 import '../../../theme/colors.dart';
 import '../../../widgets/glass_container.dart';
-import '../../../data/sync/sync_engine.dart';
 import '../../nutrition/domain/daily_totals.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 import '../../fasting/presentation/fasting_providers.dart';
@@ -15,6 +14,7 @@ import '../../profile/domain/profile.dart';
 import '../domain/dashboard_config.dart';
 import 'dashboard_providers.dart';
 import 'dashboard_widgets.dart';
+import '../../supplements/presentation/supplement_tracker_widget.dart';
 
 
 
@@ -24,12 +24,9 @@ class DashboardView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final greeting = _greeting();
-    final today = DateFormat('MMM d, yyyy').format(DateTime.now()).toUpperCase();
     final profile = ref.watch(profileProvider).valueOrNull;
     final name = _firstName(profile?.name);
     final isFemale = profile?.sex == BiologicalSex.female;
-    final syncStatus = ref.watch(syncStatusProvider).valueOrNull ?? SyncStatus.idle;
     final config = ref.watch(dashboardConfigProvider);
 
     return Scaffold(
@@ -40,19 +37,34 @@ class DashboardView extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildHeader(theme, greeting, name, today, syncStatus),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.tune, size: 20),
-                    tooltip: 'Customize dashboard',
-                    onPressed: () => _showCustomizeSheet(context, ref),
-                  ),
-                  const SizedBox(width: 4),
-                  _ProfileAvatarButton(name: name),
-                ],
+              SizedBox(
+                height: 44,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned(
+                      left: 0,
+                      child: _ProfileAvatarButton(name: name),
+                    ),
+                    Center(
+                      child: Text(
+                        "Herculex",
+                        style: theme.textTheme.displayMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.tune, size: 20),
+                        tooltip: 'Customize dashboard',
+                        onPressed: () => _showCustomizeSheet(context, ref),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               // Config-driven widget list (§18). Each visible slot maps to a
@@ -87,6 +99,10 @@ class DashboardView extends ConsumerWidget {
         );
       case DashboardWidgetType.todaysPlan:
         return const SmartWorkoutLauncherCard();
+      case DashboardWidgetType.miniWorkouts:
+        return const MiniWorkoutsCard();
+      case DashboardWidgetType.workoutCalendar:
+        return const WorkoutCalendarCard();
       case DashboardWidgetType.recoverySummary:
         return const RecoverySummaryCard();
       case DashboardWidgetType.cnsLoad:
@@ -99,6 +115,16 @@ class DashboardView extends ConsumerWidget {
         return const BodyweightMiniCard();
       case DashboardWidgetType.cycle:
         return const CycleFocusCard();
+      case DashboardWidgetType.quickScan:
+        return const QuickScanWidget();
+      case DashboardWidgetType.supplements:
+        return const SupplementTrackerWidget();
+      case DashboardWidgetType.remainingCalories:
+        return const RemainingCaloriesCard();
+      case DashboardWidgetType.nutritionStreak:
+        return const NutritionStreakCard();
+      case DashboardWidgetType.workoutStreak:
+        return const WorkoutStreakCard();
     }
   }
 
@@ -111,84 +137,13 @@ class DashboardView extends ConsumerWidget {
     );
   }
 
-  String _greeting() => 'Hello';
-
-  /// First name only, for a personal greeting. Falls back to an empty string
-  /// (the header then just says "Hello") when no name was provided.
+  /// First name only, for profile avatar initials.
   String _firstName(String? name) {
     final raw = name?.trim() ?? '';
     if (raw.isEmpty) return '';
     return raw.split(RegExp(r'\s+')).first;
   }
 
-  Widget _buildHeader(ThemeData theme, String greeting, String name, String today, SyncStatus syncStatus) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name.isEmpty ? greeting : "$greeting, $name",
-                  style: theme.textTheme.displayMedium),
-              const SizedBox(height: 4),
-              Text("Ready to align your day with your goals?", style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 8),
-              _buildSyncStatusBadge(theme, syncStatus),
-            ],
-          ),
-        ),
-        Text(
-          today,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: AppColors.primary,
-            letterSpacing: 1.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSyncStatusBadge(ThemeData theme, SyncStatus status) {
-    final IconData icon = switch (status) {
-      SyncStatus.syncing => Icons.sync,
-      SyncStatus.synced => Icons.check_circle_outline,
-      SyncStatus.error => Icons.cloud_off,
-      SyncStatus.idle => Icons.cloud_done_outlined,
-    };
-
-    final Color color = switch (status) {
-      SyncStatus.syncing => Colors.orangeAccent,
-      SyncStatus.synced => Colors.green,
-      SyncStatus.error => Colors.redAccent,
-      SyncStatus.idle => AppColors.primary.withValues(alpha: 0.6),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            status.label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildFastingWidget(ThemeData theme, WidgetRef ref, BuildContext context) {
     final activeAsync = ref.watch(activeFastingSessionProvider);
@@ -249,7 +204,7 @@ class DashboardView extends ConsumerWidget {
                           value: progress,
                           strokeWidth: 8,
                           backgroundColor: AppColors.surfaceVariant,
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                         ),
                       ),
                       Column(
@@ -381,7 +336,7 @@ class _ProfileAvatarButton extends StatelessWidget {
       child: Container(
         width: 40,
         height: 40,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: LinearGradient(
             begin: Alignment.topLeft,

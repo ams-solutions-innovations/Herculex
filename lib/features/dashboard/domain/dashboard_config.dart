@@ -3,12 +3,19 @@ enum DashboardWidgetType {
   fastingTimer('fasting_timer', 'Fasting Timer'),
   macros('macros', 'Nutrition Overview'),
   todaysPlan('todays_plan', "Today's Plan"),
+  miniWorkouts('mini_workouts', 'Mini Workouts Checklist'),
+  workoutCalendar('workout_calendar', 'Workout Calendar'),
   recoverySummary('recovery_summary', 'Recovery'),
   cnsLoad('cns_load', 'CNS Load'),
   weeklyVolume('weekly_volume', 'Weekly Volume'),
   latestPrs('latest_prs', 'Latest PRs'),
   bodyweight('bodyweight', 'Bodyweight'),
-  cycle('cycle', 'Cycle');
+  cycle('cycle', 'Cycle'),
+  quickScan('quick_scan', 'Quick Food Scan'),
+  supplements('supplements', 'Supplements Tracker'),
+  remainingCalories('remaining_calories', 'Calories Remaining'),
+  nutritionStreak('nutrition_streak', 'Nutrition Streak'),
+  workoutStreak('workout_streak', 'Workout Streak');
 
   const DashboardWidgetType(this.id, this.label);
   final String id;
@@ -45,13 +52,20 @@ class DashboardConfig {
   /// Default layout for a fresh install — the order the dashboard ships with.
   static const DashboardConfig defaults = DashboardConfig([
     DashboardWidgetConfig(DashboardWidgetType.fastingTimer),
+    DashboardWidgetConfig(DashboardWidgetType.supplements),
+    DashboardWidgetConfig(DashboardWidgetType.quickScan),
+    DashboardWidgetConfig(DashboardWidgetType.remainingCalories),
     DashboardWidgetConfig(DashboardWidgetType.macros),
     DashboardWidgetConfig(DashboardWidgetType.todaysPlan),
+    DashboardWidgetConfig(DashboardWidgetType.miniWorkouts),
+    DashboardWidgetConfig(DashboardWidgetType.workoutCalendar),
     DashboardWidgetConfig(DashboardWidgetType.recoverySummary),
     DashboardWidgetConfig(DashboardWidgetType.cnsLoad, visible: false),
     DashboardWidgetConfig(DashboardWidgetType.weeklyVolume, visible: false),
     DashboardWidgetConfig(DashboardWidgetType.latestPrs, visible: false),
     DashboardWidgetConfig(DashboardWidgetType.bodyweight, visible: false),
+    DashboardWidgetConfig(DashboardWidgetType.nutritionStreak, visible: false),
+    DashboardWidgetConfig(DashboardWidgetType.workoutStreak, visible: false),
     DashboardWidgetConfig(DashboardWidgetType.cycle),
   ]);
 

@@ -50,21 +50,33 @@ class _HealthIntegrationsViewState extends ConsumerState<HealthIntegrationsView>
             error: (err, stack) => Container(),
           ),
           const SizedBox(height: 32),
-          Text("BIOLOGICAL SEX", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+          Center(
+            child: Text(
+              "BIOLOGICAL SEX",
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
+            ),
+          ),
           const SizedBox(height: 12),
           _buildSexSelectorCard(theme, profile),
           const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Stack(
+            alignment: Alignment.center,
             children: [
-              Text("INTEGRATIONS", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
-              if (_isSyncing)
-                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              else
-                IconButton(
-                  icon: const Icon(Icons.sync, size: 20, color: AppColors.primary),
-                  onPressed: _syncAllData,
-                ),
+              Text(
+                "INTEGRATIONS",
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: _isSyncing
+                    ? const SizedBox(width: 48, height: 48, child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))))
+                    : IconButton(
+                        icon: Icon(Icons.sync, size: 20, color: AppColors.primary),
+                        onPressed: _syncAllData,
+                      ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -75,20 +87,33 @@ class _HealthIntegrationsViewState extends ConsumerState<HealthIntegrationsView>
           _buildIntegrationCard("Samsung Health", Icons.watch, permissions['samsung']!, 'samsung', theme),
           const SizedBox(height: 32),
           if (isFemale) ...[
-            Text("CYCLE SYNC", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+            Center(
+              child: Text(
+                "CYCLE SYNC",
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
+              ),
+            ),
             const SizedBox(height: 16),
             _buildCycleSyncSection(theme),
             const SizedBox(height: 32),
           ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Stack(
+            alignment: Alignment.center,
             children: [
-              Text("AUTO-ADJUSTMENTS", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
-              Switch(
-                value: autoAdjust,
-                onChanged: (val) {
-                  ref.read(autoAdjustGymVolumeProvider.notifier).state = val;
-                },
+              Text(
+                "AUTO-ADJUSTMENTS",
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Switch(
+                  value: autoAdjust,
+                  onChanged: (val) {
+                    ref.read(autoAdjustGymVolumeProvider.notifier).state = val;
+                  },
+                ),
               ),
             ],
           ),
@@ -98,7 +123,13 @@ class _HealthIntegrationsViewState extends ConsumerState<HealthIntegrationsView>
             style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
           ),
           const SizedBox(height: 32),
-          Text("TODAY'S BIOMETRICS", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+          Center(
+            child: Text(
+              "TODAY'S BIOMETRICS",
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
+            ),
+          ),
           const SizedBox(height: 16),
           samplesAsync.when(
             data: (samples) {
@@ -262,7 +293,7 @@ class _HealthIntegrationsViewState extends ConsumerState<HealthIntegrationsView>
                 ),
                 child: Text(
                   phaseStr.toUpperCase(),
-                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0),
+                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0),
                 ),
               ),
             ],
@@ -274,7 +305,6 @@ class _HealthIntegrationsViewState extends ConsumerState<HealthIntegrationsView>
             min: 21,
             max: 35,
             divisions: 14,
-            activeColor: AppColors.primary,
             onChanged: (val) {
               setState(() {
                 _cycleDays = val;
@@ -289,7 +319,6 @@ class _HealthIntegrationsViewState extends ConsumerState<HealthIntegrationsView>
             min: 3,
             max: 10,
             divisions: 7,
-            activeColor: AppColors.primary,
             onChanged: (val) {
               setState(() {
                 _periodDays = val;
@@ -317,7 +346,7 @@ class _HealthIntegrationsViewState extends ConsumerState<HealthIntegrationsView>
       padding: const EdgeInsets.all(32),
       child: Column(
         children: [
-          const Icon(Icons.monitor_heart_outlined, size: 36, color: AppColors.outline),
+          Icon(Icons.monitor_heart_outlined, size: 36, color: AppColors.outline),
           const SizedBox(height: 12),
           Text(
             "No Synced Data Yet",
@@ -415,7 +444,7 @@ class _HealthIntegrationsViewState extends ConsumerState<HealthIntegrationsView>
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text("Health metrics synchronised successfully! 🍃"),
         backgroundColor: AppColors.primary,
       ),

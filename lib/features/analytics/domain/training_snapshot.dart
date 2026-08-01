@@ -121,7 +121,27 @@ class TrainingSnapshot {
       if (session == null || ex == null) continue;
 
       final setAccs = accessoriesBySet[set.id] ?? const <AccessoryData>[];
-      final names = setAccs.map((a) => a.name).toList()..sort();
+      final setBandsList = bandsBySet[set.id] ?? const <BandContribution>[];
+
+      final names = setAccs.map((a) => a.name).toList();
+      for (final b in setBandsList) {
+        final modeStr = b.isResistance ? 'Res.' : 'Ast.';
+        final sign = b.isResistance ? '+' : '-';
+        final avgKg = b.averageKg.abs();
+        final fmtKg = avgKg.truncateToDouble() == avgKg
+            ? avgKg.toStringAsFixed(0)
+            : avgKg.toStringAsFixed(1);
+        names.add('Band ($modeStr $sign${fmtKg}kg)');
+      }
+      if (set.chainsKg != null && set.chainsKg! > 0) {
+        final cVal = set.chainsKg!;
+        final cFmt = cVal.truncateToDouble() == cVal
+            ? cVal.toStringAsFixed(0)
+            : cVal.toStringAsFixed(1);
+        names.add('Chains (${cFmt}kg)');
+      }
+      names.sort();
+
       var forearm = 1.0;
       for (final a in setAccs) {
         if (a.forearmMultiplier > forearm) forearm = a.forearmMultiplier;
@@ -133,7 +153,7 @@ class TrainingSnapshot {
         session: session,
         exercise: ex,
         setType: SetType.fromId(set.setType),
-        bands: bandsBySet[set.id] ?? const [],
+        bands: setBandsList,
         accessoryNames: names,
         forearmMultiplier: forearm,
       ));

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import 'nutrition_providers.dart';
 
 // ── Starting weight ──────────────────────────────────────────────────────────
 
@@ -174,6 +175,16 @@ class MealGoalsState {
       );
 
   int mealCalories(int totalKcal, double pct) => (totalKcal * pct / 100).round();
+
+  /// Share of the daily budget allotted to a diary slot, or null for custom
+  /// slots — those have no configured split, so the diary shows no "of Y".
+  double? pctForSlot(String mealKey) => switch (mealKey) {
+        'breakfast' => breakfastPct,
+        'lunch' => lunchPct,
+        'dinner' => dinnerPct,
+        'snack' => snacksPct,
+        _ => null,
+      };
 }
 
 class MealGoalsNotifier extends Notifier<MealGoalsState> {
@@ -223,3 +234,24 @@ class MealGoalsNotifier extends Notifier<MealGoalsState> {
 
 final mealGoalsProvider =
     NotifierProvider<MealGoalsNotifier, MealGoalsState>(MealGoalsNotifier.new);
+
+/// Calorie goal for one diary slot on one day (§3), or null when meal goals
+/// are off, the day has no resolved target, or the slot is user-created.
+/// Resolves against the *effective* daily target so carb-cycling and diet
+/// schedules flow through to per-meal goals automatically.
+typedef MealGoalKey = ({String mealKey, DateTime date});
+
+final mealGoalKcalProvider =
+    Provider.autoDispose.family<int?, MealGoalKey>((ref, key) {
+  final goals = ref.watch(mealGoalsProvider);
+  if (!goals.enabled) return null;
+
+  final pct = goals.pctForSlot(key.mealKey);
+  if (pct == null) return null;
+
+  final targets = ref.watch(effectiveTargetsProvider(key.date)).asData?.value ??
+      ref.watch(baselineTargetsProvider);
+  if (targets == null) return null;
+
+  return goals.mealCalories(targets.kcal, pct);
+});

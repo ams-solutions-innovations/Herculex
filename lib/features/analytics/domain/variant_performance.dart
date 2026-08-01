@@ -9,6 +9,7 @@ class PerformanceRecord {
   final int bestWeightReps;
   final double? bestE1RmKg;
   final int setCount;
+  final double? rawWeightKg;
 
   const PerformanceRecord({
     required this.label,
@@ -16,6 +17,7 @@ class PerformanceRecord {
     required this.bestWeightReps,
     required this.bestE1RmKg,
     required this.setCount,
+    this.rawWeightKg,
   });
 }
 
@@ -86,6 +88,7 @@ class VariantPerformance {
         bestWeightReps: bestWeight.set.reps,
         bestE1RmKg: bestE1Rm,
         setCount: e.value.length,
+        rawWeightKg: bestWeight.set.weightKg,
       ));
     }
 

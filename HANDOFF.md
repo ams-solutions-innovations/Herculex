@@ -1,4 +1,4 @@
-# SWY — Handoff
+# Herculex — Handoff
 
 This document describes the project state at the end of **Phase 3** and what's left to build in **Phases 4–9** to reach the original vision (MyFitnessPal + Hevy + cycle/recovery intelligence).
 

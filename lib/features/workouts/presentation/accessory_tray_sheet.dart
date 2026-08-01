@@ -161,7 +161,7 @@ class AccessoryTraySheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.trending_up, color: AppColors.primary),
+              leading: Icon(Icons.trending_up, color: AppColors.primary),
               title: const Text('Resistance'),
               subtitle: const Text('Harder at the top — adds load'),
               onTap: () {
@@ -171,7 +171,7 @@ class AccessoryTraySheet extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.trending_down, color: AppColors.outline),
+              leading: Icon(Icons.trending_down, color: AppColors.outline),
               title: const Text('Assistance'),
               subtitle: const Text('Easier at the bottom — removes load'),
               onTap: () {
@@ -269,7 +269,7 @@ class _ChainsFieldState extends ConsumerState<_ChainsField> {
       onEditingComplete: _commit,
       onTapOutside: (_) => _commit(),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         hintText: '0',
         suffixText: 'kg',
         isDense: true,

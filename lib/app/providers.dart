@@ -2,6 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/local/database.dart';
+import '../features/auth/data/auth_repository.dart';
+import '../features/auth/data/local_auth_repository.dart';
+import '../features/auth/data/native_auth_service.dart';
+import '../features/auth/domain/auth_session.dart';
 import '../features/profile/data/local_profile_repository.dart';
 import '../features/profile/domain/profile.dart';
 
@@ -34,6 +38,29 @@ final localProfileRepositoryProvider = Provider<LocalProfileRepository>((ref) {
   final repo = LocalProfileRepository(prefs);
   ref.onDispose(repo.dispose);
   return repo;
+});
+
+final localAuthRepositoryProvider = Provider<LocalAuthRepository>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final repo = LocalAuthRepository(prefs);
+  ref.onDispose(repo.dispose);
+  return repo;
+});
+
+final nativeAuthServiceProvider = Provider<NativeAuthService>((ref) {
+  return NativeAuthService();
+});
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepository(
+    localRepository: ref.watch(localAuthRepositoryProvider),
+    nativeService: ref.watch(nativeAuthServiceProvider),
+  );
+});
+
+final authSessionProvider = StreamProvider<AuthSession?>((ref) {
+  final repo = ref.watch(authRepositoryProvider);
+  return repo.watch();
 });
 
 final profileProvider = StreamProvider<Profile?>((ref) {

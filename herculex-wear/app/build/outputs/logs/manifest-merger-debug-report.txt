@@ -1,0 +1,742 @@
+-- Merging decision tree log ---
+manifest
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:2:1-164:12
+INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:2:1-164:12
+INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:2:1-164:12
+INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:2:1-164:12
+MERGED from [androidx.wear:wear-ongoing:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9096325a6bd1f0e891bc077cfca5d455\transformed\wear-ongoing-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.gms:play-services-wearable:18.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ec7df9840b8f7dd023edef3039f08cd1\transformed\play-services-wearable-18.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.horologist:horologist-compose-material:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\65d2cf8fc618c712aa3ebe28f552542f\transformed\horologist-compose-material-0.5.18\AndroidManifest.xml:17:1-27:12
+MERGED from [com.google.android.horologist:horologist-compose-layout:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\d75bf95aedc5de8b61dc4fb1a0134fb0\transformed\horologist-compose-layout-0.5.18\AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.wear.compose:compose-material-core:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8843c7cf159365bc9e3db154dadaecce\transformed\compose-material-core-1.3.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.wear.compose:compose-navigation:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\583ea0f66ec3f21bb3084f5070533f1c\transformed\compose-navigation-1.3.0\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.horologist:horologist-tiles:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\0d4158cd34f452b2ef4b1ca4d9340cd3\transformed\horologist-tiles-0.5.18\AndroidManifest.xml:17:1-32:12
+MERGED from [androidx.wear.compose:compose-material:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2ac6a40307bd83d5dd9815d7d0955416\transformed\compose-material-1.3.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.wear.compose:compose-foundation:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\39923a90cbe3a2e3d6b15cc7c953c2d0\transformed\compose-foundation-1.3.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:2:1-13:12
+MERGED from [androidx.wear.watchface:watchface-complications:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\da432d47b57c99eaf87033178dd8d998\transformed\watchface-complications-1.2.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.wear.watchface:watchface-complications-data-source:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2a289dad25b1480a5e8309abe7e1e7be\transformed\watchface-complications-data-source-1.2.0\AndroidManifest.xml:2:1-13:12
+MERGED from [androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\19b8f4c882546d855628342150f42cc8\transformed\watchface-complications-data-source-ktx-1.2.0\AndroidManifest.xml:2:1-13:12
+MERGED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:16:1-24:12
+MERGED from [com.google.android.gms:play-services-tasks:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\bd91e2addb9165dc9491f574e9bd2a76\transformed\play-services-tasks-18.0.1\AndroidManifest.xml:2:1-6:12
+MERGED from [com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:16:1-26:12
+MERGED from [androidx.wear:wear:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bf8440ff8113d62d3fc95fef6ccd4c7b\transformed\wear-1.3.0\AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.navigation:navigation-common-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\8bd15af2552e557a463b8f9aa08aad1a\transformed\navigation-common-ktx-2.7.6\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-ui:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\cfa3abe3699b05a21bbbb3db35d8e21a\transformed\navigation-ui-2.7.6\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\711a4f9a30563fac8203deeea41d8369\transformed\navigation-runtime-ktx-2.7.6\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-runtime:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\994d87d95613e159b4100038331b0010\transformed\navigation-runtime-2.7.6\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-common:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\69d10aa32071cc8015a0d042111cd494\transformed\navigation-common-2.7.6\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-ui-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\88d833fc315f2080191105a170aecb51\transformed\navigation-ui-ktx-2.7.6\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-compose:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\7b442130ecdbce6d6a93b3348b5134ef\transformed\navigation-compose-2.7.6\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.paging:paging-compose:3.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\652930f6682ffc18fd7a62ddc9e08ed3\transformed\paging-compose-3.2.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbcf29e6a851c9eba13371f5aeb35eae\transformed\material-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\34c3369b4666d5c41ffd6fa687962c57\transformed\material-icons-core-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbfea83fda25cf320d0eecb92b233dcb\transformed\material-ripple-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-core-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\62efb0076c7a67f4485a1b20704721bf\transformed\animation-core-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\c428a69b38af606c70eb59a8ac7998db\transformed\animation-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\79c92d109fb64b493d6fd841db8e208f\transformed\foundation-layout-release\AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt:coil-compose:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\310ce133177dd8eb252b4d77579eafee\transformed\coil-compose-2.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt:coil-compose-base:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b2869ace3158078ec0e06fedc39baf8c\transformed\coil-compose-base-2.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d48876d47f5de90cdddc4dc22978d764\transformed\foundation-release\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.horologist:horologist-images-base:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\607b3bee0562c48e3c727ea7d2d03b18\transformed\horologist-images-base-0.5.18\AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e8d7f0dce97bdb1a2315382ddc4174e7\transformed\ui-tooling-data-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\a1490157feb6992172736f80cc799290\transformed\ui-geometry-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b721a9e8b0a41fe6c2272ff204c76db5\transformed\ui-tooling-preview-release\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\527b099e210875149aac983537b1c2b2\transformed\ui-unit-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9190d719ad16a10f053ee55e66d901e6\transformed\ui-graphics-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ac00aa960a76d2c90f5d08779d51bdaa\transformed\ui-util-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\f57f71b7fb3f85a61ad5664bc0d9ec46\transformed\ui-text-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.preference:preference:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4f3356e58d99bf7717ec25b36a0a0d4a\transformed\preference-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.material:material:1.4.0-beta01] C:\Users\marti\.gradle\caches\9.4.1\transforms\301e52ccfd0c3cc333e5181b7534d5a9\transformed\material-1.4.0-beta01\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\cc79fa9609cb0104ce176155f9668cc1\transformed\constraintlayout-2.0.1\AndroidManifest.xml:2:1-11:12
+MERGED from [io.coil-kt:coil:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\0f77d39547900c56beedf78f46ccd620\transformed\coil-2.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt:coil-base:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\752d6887c8d3dc2664af069afc2fc23d\transformed\coil-base-2.5.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\ac901fa78ce18d7dade5329fef6c0513\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\7acc7884354cc13529724212a24a550f\transformed\appcompat-1.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.emoji2:emoji2-views-helper:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\95588b9512926f5aa8cdea43cbb11310\transformed\emoji2-views-helper-1.3.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\57f3e711e19243227da5e4cb2acece1c\transformed\dynamicanimation-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dc764943dfeb27bea223dd82ca0eaf89\transformed\legacy-support-core-utils-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\29dbcfcafbdfb785b4205166f5383fb2\transformed\viewpager2-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\9abaf1a181344905bdcd76453439ad9e\transformed\fragment-1.3.6\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\46d9a4eb2073fc9bc42a1101e2cda537\transformed\loader-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4117f555c7ac8618fb3acacda4a9aed7\transformed\lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9d2e0a77805583dc740fb266a8358235\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fe56361cb3e7eab754f3811b60cecf89\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\f72f53ecd46e38b029cd378aebafae6b\transformed\lifecycle-service-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.transition:transition:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ba3ba040454a1d090f8f78ae11a1d755\transformed\transition-1.3.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\64dfcffc13f0dfb6d177cf100d105516\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\c665566476d9aac7edbb96f8d68bf9c2\transformed\lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bc4f9b9bc2bb97ec3fca365c0e506186\transformed\lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e6ef0aeafb64a25454c1e02f8458f3bd\transformed\lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\80e130f5e8c5f65ddbd0d8164d6cce27\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\408c0dfc6168fd31168af9d8076985ec\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\37025a8bf8a214e3820b646933d86009\transformed\savedstate-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ef527f6ff7d7c84960c353bc944e2948\transformed\lifecycle-runtime-compose-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\723edce336a1e1c78344bc9bf059aa8d\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbafe3441f5a8dda74ea792b31b062c1\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.compose.ui:ui-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4662847fab73e53fd2022fd6b3767e35\transformed\ui-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.activity:activity-compose:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\df0f5ab58c70a151136ec241a3b4799c\transformed\activity-compose-1.8.2\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\d2f28549f678c151774ad0fb77c88abc\transformed\activity-ktx-1.8.2\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\2e93294f7eb2a5a4133b8d2ca1b987c4\transformed\activity-1.8.2\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\db5a02e04e919ab75bc8982390dd889f\transformed\recyclerview-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5c0c9350df5790a757ba07ce6c4db50a\transformed\swiperefreshlayout-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\99e04272afbd50274bac2a00e0e71397\transformed\autofill-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\8df03642480b1c08b68698dea4e54d0c\transformed\drawerlayout-1.1.1\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e40d0773f907ed3e498db400be544fa3\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d0747cfe593697121b13ef6ebfed8cf1\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8cca021387f93baac4ac29936dfedf82\transformed\customview-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.wear.tiles:tiles-material:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\485a6ed76a9bf0ff127970197eb7bdc4\transformed\tiles-material-1.3.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:2:1-13:12
+MERGED from [androidx.wear.protolayout:protolayout-material-core:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fcf16ad8c940773e805bc7059fa2bb1c\transformed\protolayout-material-core-1.1.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.wear.protolayout:protolayout-material:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9e4b141289567e90221cc13bce569fe3\transformed\protolayout-material-1.1.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.wear.protolayout:protolayout-expression:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\afb192dad7edc6e2a7f88309a3862998\transformed\protolayout-expression-1.1.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.wear.protolayout:protolayout:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\569f67d4b4d973d922b836430f37da31\transformed\protolayout-1.1.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.wear.protolayout:protolayout-expression-pipeline:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\64a3cecb090725eb5043c1f5b15f11a2\transformed\protolayout-expression-pipeline-1.1.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b53df26b93df375296c1b153c7ea4753\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\47d7d0c1075933bc1d48fc8459aa3b71\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fa32a4ac651c925d77fc508b87f00889\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5e2f1b7f7081b74f44fee908f80ba031\transformed\core-ktx-1.12.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\57b37b43f879be24b1eed7dbeb159e5a\transformed\annotation-experimental-1.4.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5c44528fec4c58371fc4e5e081724cf7\transformed\runtime-saveable-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\beb74de2409abf2b445a9e1c41739693\transformed\runtime-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbe80192d5911f1685f5d55d68dc19b7\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\7c7be9889ad3fa8a6e324d1528d1e7bb\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\fee58fba2c0886591f880081e147e582\transformed\startup-runtime-1.1.1\AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\3257947876b6066faec11689e67d7a74\transformed\tracing-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\084a384c947621c5fe4ac118935d4489\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.documentfile:documentfile:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b1af72e6e8d28aabcfa0c0dbbfd15f3e\transformed\documentfile-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\6d2b01ee80cbe74284fc2da96bca90e9\transformed\localbroadcastmanager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.print:print:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e4db7b7faa9e7bbaa449ea1eb6e5b3ae\transformed\print-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\14b6d7eeefe72852ee98abe635dd26ee\transformed\cardview-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.exifinterface:exifinterface:1.3.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\80583f9ea6c2fccf0ec99de3904ffbd3\transformed\exifinterface-1.3.6\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\05be755a5436f2c30e54e77144039b19\transformed\cursoradapter-1.0.0\AndroidManifest.xml:17:1-22:12
+	package
+		INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml
+	android:versionName
+		INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml
+	android:versionCode
+		INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml
+	xmlns:android
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:2:11-69
+uses-feature#android.hardware.type.watch
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:4:5-64
+MERGED from [com.google.android.horologist:horologist-compose-material:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\65d2cf8fc618c712aa3ebe28f552542f\transformed\horologist-compose-material-0.5.18\AndroidManifest.xml:25:5-64
+MERGED from [com.google.android.horologist:horologist-compose-material:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\65d2cf8fc618c712aa3ebe28f552542f\transformed\horologist-compose-material-0.5.18\AndroidManifest.xml:25:5-64
+MERGED from [com.google.android.horologist:horologist-compose-layout:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\d75bf95aedc5de8b61dc4fb1a0134fb0\transformed\horologist-compose-layout-0.5.18\AndroidManifest.xml:25:5-64
+MERGED from [com.google.android.horologist:horologist-compose-layout:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\d75bf95aedc5de8b61dc4fb1a0134fb0\transformed\horologist-compose-layout-0.5.18\AndroidManifest.xml:25:5-64
+MERGED from [com.google.android.horologist:horologist-tiles:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\0d4158cd34f452b2ef4b1ca4d9340cd3\transformed\horologist-tiles-0.5.18\AndroidManifest.xml:30:5-64
+MERGED from [com.google.android.horologist:horologist-tiles:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\0d4158cd34f452b2ef4b1ca4d9340cd3\transformed\horologist-tiles-0.5.18\AndroidManifest.xml:30:5-64
+MERGED from [com.google.android.horologist:horologist-images-base:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\607b3bee0562c48e3c727ea7d2d03b18\transformed\horologist-images-base-0.5.18\AndroidManifest.xml:25:5-64
+MERGED from [com.google.android.horologist:horologist-images-base:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\607b3bee0562c48e3c727ea7d2d03b18\transformed\horologist-images-base-0.5.18\AndroidManifest.xml:25:5-64
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:4:19-61
+uses-permission#com.google.android.wearable.permission.RECEIVE_COMPLICATION_DATA
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:6:5-104
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:6:22-101
+uses-permission#android.permission.WAKE_LOCK
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:7:5-68
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:7:22-65
+uses-permission#android.permission.INTERNET
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:8:5-67
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:8:22-64
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:9:5-77
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:9:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_HEALTH
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:10:5-84
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:10:22-81
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:11:5-77
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:11:22-74
+application
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:13:5-162:19
+INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:13:5-162:19
+MERGED from [com.google.android.gms:play-services-wearable:18.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ec7df9840b8f7dd023edef3039f08cd1\transformed\play-services-wearable-18.1.0\AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-wearable:18.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ec7df9840b8f7dd023edef3039f08cd1\transformed\play-services-wearable-18.1.0\AndroidManifest.xml:22:5-20
+MERGED from [androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:7:5-11:19
+MERGED from [androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:7:5-11:19
+MERGED from [androidx.wear.watchface:watchface-complications-data-source:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2a289dad25b1480a5e8309abe7e1e7be\transformed\watchface-complications-data-source-1.2.0\AndroidManifest.xml:7:5-11:19
+MERGED from [androidx.wear.watchface:watchface-complications-data-source:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2a289dad25b1480a5e8309abe7e1e7be\transformed\watchface-complications-data-source-1.2.0\AndroidManifest.xml:7:5-11:19
+MERGED from [androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\19b8f4c882546d855628342150f42cc8\transformed\watchface-complications-data-source-ktx-1.2.0\AndroidManifest.xml:7:5-11:19
+MERGED from [androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\19b8f4c882546d855628342150f42cc8\transformed\watchface-complications-data-source-ktx-1.2.0\AndroidManifest.xml:7:5-11:19
+MERGED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:19:5-23:19
+MERGED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:19:5-23:19
+MERGED from [com.google.android.gms:play-services-tasks:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\bd91e2addb9165dc9491f574e9bd2a76\transformed\play-services-tasks-18.0.1\AndroidManifest.xml:5:5-20
+MERGED from [com.google.android.gms:play-services-tasks:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\bd91e2addb9165dc9491f574e9bd2a76\transformed\play-services-tasks-18.0.1\AndroidManifest.xml:5:5-20
+MERGED from [com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:20:5-24:19
+MERGED from [com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:20:5-24:19
+MERGED from [androidx.wear:wear:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bf8440ff8113d62d3fc95fef6ccd4c7b\transformed\wear-1.3.0\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.wear:wear:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bf8440ff8113d62d3fc95fef6ccd4c7b\transformed\wear-1.3.0\AndroidManifest.xml:22:5-26:19
+MERGED from [com.google.android.material:material:1.4.0-beta01] C:\Users\marti\.gradle\caches\9.4.1\transforms\301e52ccfd0c3cc333e5181b7534d5a9\transformed\material-1.4.0-beta01\AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.material:material:1.4.0-beta01] C:\Users\marti\.gradle\caches\9.4.1\transforms\301e52ccfd0c3cc333e5181b7534d5a9\transformed\material-1.4.0-beta01\AndroidManifest.xml:22:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\cc79fa9609cb0104ce176155f9668cc1\transformed\constraintlayout-2.0.1\AndroidManifest.xml:9:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\cc79fa9609cb0104ce176155f9668cc1\transformed\constraintlayout-2.0.1\AndroidManifest.xml:9:5-20
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:28:5-89
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbe80192d5911f1685f5d55d68dc19b7\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbe80192d5911f1685f5d55d68dc19b7\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\fee58fba2c0886591f880081e147e582\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\fee58fba2c0886591f880081e147e582\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+	android:extractNativeLibs
+		INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:17:9-35
+	android:label
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:16:9-41
+	android:icon
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:15:9-43
+	android:allowBackup
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:14:9-35
+	android:theme
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:18:9-59
+meta-data#com.google.android.wearable.standalone
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:21:9-23:37
+	android:value
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:23:13-34
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:22:13-66
+activity#com.ams.herculex.MainActivity
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:25:9-33:20
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:27:13-36
+	android:theme
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:28:13-75
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:26:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:29:13-32:29
+action#android.intent.action.MAIN
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:30:17-69
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:30:25-66
+category#android.intent.category.LAUNCHER
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:31:17-77
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:31:27-74
+service#com.ams.herculex.workout.WorkoutOngoingService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:35:9-38:54
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:37:13-37
+	android:foregroundServiceType
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:38:13-51
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:36:13-58
+service#com.ams.herculex.complication.CaloriesComplicationService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:40:9-55:19
+	android:label
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:44:13-46
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:42:13-36
+	android:permission
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:45:13-99
+	android:icon
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:43:13-47
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:41:13-69
+intent-filter#action:name:android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:46:13-48:29
+action#android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:17-116
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:47:25-113
+meta-data#android.support.wearable.complications.SUPPORTED_TYPES
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:49:13-51:46
+	android:value
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:51:17-43
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:50:17-86
+meta-data#android.support.wearable.complications.UPDATE_PERIOD_SECONDS
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:52:13-54:40
+	android:value
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:54:17-37
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:53:17-92
+service#com.ams.herculex.complication.ProteinComplicationService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:57:9-72:19
+	android:label
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:61:13-45
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:59:13-36
+	android:permission
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:62:13-99
+	android:icon
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:60:13-47
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:58:13-68
+service#com.ams.herculex.complication.CarbsComplicationService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:74:9-89:19
+	android:label
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:78:13-43
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:76:13-36
+	android:permission
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:79:13-99
+	android:icon
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:77:13-47
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:75:13-66
+service#com.ams.herculex.complication.FatsComplicationService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:91:9-106:19
+	android:label
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:95:13-42
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:93:13-36
+	android:permission
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:96:13-99
+	android:icon
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:94:13-47
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:92:13-65
+service#com.ams.herculex.complication.FastingComplicationService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:108:9-123:19
+	android:label
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:112:13-45
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:110:13-36
+	android:permission
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:113:13-99
+	android:icon
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:111:13-47
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:109:13-68
+service#com.ams.herculex.tile.WorkoutTileService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:125:9-137:19
+	android:label
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:129:13-50
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:127:13-36
+	android:permission
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:130:13-91
+	android:icon
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:128:13-47
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:126:13-52
+intent-filter#action:name:androidx.wear.tiles.action.BIND_TILE_PROVIDER
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:131:13-133:29
+action#androidx.wear.tiles.action.BIND_TILE_PROVIDER
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:132:17-88
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:132:25-85
+meta-data#androidx.wear.tiles.PREVIEW
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:134:13-136:58
+	android:resource
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:136:17-55
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:135:17-59
+service#com.ams.herculex.tile.MacrosTileService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:139:9-151:19
+	android:label
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:143:13-49
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:141:13-36
+	android:permission
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:144:13-91
+	android:icon
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:142:13-47
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:140:13-51
+service#com.ams.herculex.sync.SyncService
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:153:9-160:19
+	android:exported
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:155:13-36
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:154:13-45
+intent-filter#action:name:com.google.android.gms.wearable.DATA_CHANGED+data:host:*+data:pathPrefix:/herculex+data:scheme:wear
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:156:13-159:29
+action#com.google.android.gms.wearable.DATA_CHANGED
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:157:17-87
+	android:name
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:157:25-84
+data
+ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:158:17-95
+	android:host
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:158:45-61
+	android:scheme
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:158:23-44
+	android:pathPrefix
+		ADDED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml:158:62-92
+uses-sdk
+INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml
+INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml
+MERGED from [androidx.wear:wear-ongoing:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9096325a6bd1f0e891bc077cfca5d455\transformed\wear-ongoing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.wear:wear-ongoing:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9096325a6bd1f0e891bc077cfca5d455\transformed\wear-ongoing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.gms:play-services-wearable:18.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ec7df9840b8f7dd023edef3039f08cd1\transformed\play-services-wearable-18.1.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-wearable:18.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ec7df9840b8f7dd023edef3039f08cd1\transformed\play-services-wearable-18.1.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.horologist:horologist-compose-material:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\65d2cf8fc618c712aa3ebe28f552542f\transformed\horologist-compose-material-0.5.18\AndroidManifest.xml:21:5-23:42
+MERGED from [com.google.android.horologist:horologist-compose-material:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\65d2cf8fc618c712aa3ebe28f552542f\transformed\horologist-compose-material-0.5.18\AndroidManifest.xml:21:5-23:42
+MERGED from [com.google.android.horologist:horologist-compose-layout:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\d75bf95aedc5de8b61dc4fb1a0134fb0\transformed\horologist-compose-layout-0.5.18\AndroidManifest.xml:21:5-23:42
+MERGED from [com.google.android.horologist:horologist-compose-layout:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\d75bf95aedc5de8b61dc4fb1a0134fb0\transformed\horologist-compose-layout-0.5.18\AndroidManifest.xml:21:5-23:42
+MERGED from [androidx.wear.compose:compose-material-core:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8843c7cf159365bc9e3db154dadaecce\transformed\compose-material-core-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.compose:compose-material-core:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8843c7cf159365bc9e3db154dadaecce\transformed\compose-material-core-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.compose:compose-navigation:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\583ea0f66ec3f21bb3084f5070533f1c\transformed\compose-navigation-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.compose:compose-navigation:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\583ea0f66ec3f21bb3084f5070533f1c\transformed\compose-navigation-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.horologist:horologist-tiles:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\0d4158cd34f452b2ef4b1ca4d9340cd3\transformed\horologist-tiles-0.5.18\AndroidManifest.xml:25:5-28:419
+MERGED from [com.google.android.horologist:horologist-tiles:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\0d4158cd34f452b2ef4b1ca4d9340cd3\transformed\horologist-tiles-0.5.18\AndroidManifest.xml:25:5-28:419
+MERGED from [androidx.wear.compose:compose-material:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2ac6a40307bd83d5dd9815d7d0955416\transformed\compose-material-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.compose:compose-material:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2ac6a40307bd83d5dd9815d7d0955416\transformed\compose-material-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.compose:compose-foundation:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\39923a90cbe3a2e3d6b15cc7c953c2d0\transformed\compose-foundation-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.compose:compose-foundation:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\39923a90cbe3a2e3d6b15cc7c953c2d0\transformed\compose-foundation-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.watchface:watchface-complications:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\da432d47b57c99eaf87033178dd8d998\transformed\watchface-complications-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.watchface:watchface-complications:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\da432d47b57c99eaf87033178dd8d998\transformed\watchface-complications-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.watchface:watchface-complications-data-source:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2a289dad25b1480a5e8309abe7e1e7be\transformed\watchface-complications-data-source-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.watchface:watchface-complications-data-source:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2a289dad25b1480a5e8309abe7e1e7be\transformed\watchface-complications-data-source-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\19b8f4c882546d855628342150f42cc8\transformed\watchface-complications-data-source-ktx-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\19b8f4c882546d855628342150f42cc8\transformed\watchface-complications-data-source-ktx-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-tasks:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\bd91e2addb9165dc9491f574e9bd2a76\transformed\play-services-tasks-18.0.1\AndroidManifest.xml:4:5-43
+MERGED from [com.google.android.gms:play-services-tasks:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\bd91e2addb9165dc9491f574e9bd2a76\transformed\play-services-tasks-18.0.1\AndroidManifest.xml:4:5-43
+MERGED from [com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:18:5-43
+MERGED from [androidx.wear:wear:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bf8440ff8113d62d3fc95fef6ccd4c7b\transformed\wear-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.wear:wear:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bf8440ff8113d62d3fc95fef6ccd4c7b\transformed\wear-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\8bd15af2552e557a463b8f9aa08aad1a\transformed\navigation-common-ktx-2.7.6\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-common-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\8bd15af2552e557a463b8f9aa08aad1a\transformed\navigation-common-ktx-2.7.6\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-ui:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\cfa3abe3699b05a21bbbb3db35d8e21a\transformed\navigation-ui-2.7.6\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-ui:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\cfa3abe3699b05a21bbbb3db35d8e21a\transformed\navigation-ui-2.7.6\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\711a4f9a30563fac8203deeea41d8369\transformed\navigation-runtime-ktx-2.7.6\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\711a4f9a30563fac8203deeea41d8369\transformed\navigation-runtime-ktx-2.7.6\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\994d87d95613e159b4100038331b0010\transformed\navigation-runtime-2.7.6\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\994d87d95613e159b4100038331b0010\transformed\navigation-runtime-2.7.6\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\69d10aa32071cc8015a0d042111cd494\transformed\navigation-common-2.7.6\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\69d10aa32071cc8015a0d042111cd494\transformed\navigation-common-2.7.6\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-ui-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\88d833fc315f2080191105a170aecb51\transformed\navigation-ui-ktx-2.7.6\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-ui-ktx:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\88d833fc315f2080191105a170aecb51\transformed\navigation-ui-ktx-2.7.6\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\7b442130ecdbce6d6a93b3348b5134ef\transformed\navigation-compose-2.7.6\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose:2.7.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\7b442130ecdbce6d6a93b3348b5134ef\transformed\navigation-compose-2.7.6\AndroidManifest.xml:5:5-44
+MERGED from [androidx.paging:paging-compose:3.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\652930f6682ffc18fd7a62ddc9e08ed3\transformed\paging-compose-3.2.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.paging:paging-compose:3.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\652930f6682ffc18fd7a62ddc9e08ed3\transformed\paging-compose-3.2.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbcf29e6a851c9eba13371f5aeb35eae\transformed\material-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbcf29e6a851c9eba13371f5aeb35eae\transformed\material-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\34c3369b4666d5c41ffd6fa687962c57\transformed\material-icons-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\34c3369b4666d5c41ffd6fa687962c57\transformed\material-icons-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbfea83fda25cf320d0eecb92b233dcb\transformed\material-ripple-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbfea83fda25cf320d0eecb92b233dcb\transformed\material-ripple-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\62efb0076c7a67f4485a1b20704721bf\transformed\animation-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\62efb0076c7a67f4485a1b20704721bf\transformed\animation-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\c428a69b38af606c70eb59a8ac7998db\transformed\animation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\c428a69b38af606c70eb59a8ac7998db\transformed\animation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\79c92d109fb64b493d6fd841db8e208f\transformed\foundation-layout-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\79c92d109fb64b493d6fd841db8e208f\transformed\foundation-layout-release\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\310ce133177dd8eb252b4d77579eafee\transformed\coil-compose-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\310ce133177dd8eb252b4d77579eafee\transformed\coil-compose-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose-base:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b2869ace3158078ec0e06fedc39baf8c\transformed\coil-compose-base-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose-base:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b2869ace3158078ec0e06fedc39baf8c\transformed\coil-compose-base-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d48876d47f5de90cdddc4dc22978d764\transformed\foundation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d48876d47f5de90cdddc4dc22978d764\transformed\foundation-release\AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.horologist:horologist-images-base:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\607b3bee0562c48e3c727ea7d2d03b18\transformed\horologist-images-base-0.5.18\AndroidManifest.xml:21:5-23:42
+MERGED from [com.google.android.horologist:horologist-images-base:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\607b3bee0562c48e3c727ea7d2d03b18\transformed\horologist-images-base-0.5.18\AndroidManifest.xml:21:5-23:42
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e8d7f0dce97bdb1a2315382ddc4174e7\transformed\ui-tooling-data-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e8d7f0dce97bdb1a2315382ddc4174e7\transformed\ui-tooling-data-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\a1490157feb6992172736f80cc799290\transformed\ui-geometry-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\a1490157feb6992172736f80cc799290\transformed\ui-geometry-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b721a9e8b0a41fe6c2272ff204c76db5\transformed\ui-tooling-preview-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b721a9e8b0a41fe6c2272ff204c76db5\transformed\ui-tooling-preview-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\527b099e210875149aac983537b1c2b2\transformed\ui-unit-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\527b099e210875149aac983537b1c2b2\transformed\ui-unit-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9190d719ad16a10f053ee55e66d901e6\transformed\ui-graphics-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9190d719ad16a10f053ee55e66d901e6\transformed\ui-graphics-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ac00aa960a76d2c90f5d08779d51bdaa\transformed\ui-util-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ac00aa960a76d2c90f5d08779d51bdaa\transformed\ui-util-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\f57f71b7fb3f85a61ad5664bc0d9ec46\transformed\ui-text-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\f57f71b7fb3f85a61ad5664bc0d9ec46\transformed\ui-text-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.preference:preference:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4f3356e58d99bf7717ec25b36a0a0d4a\transformed\preference-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.preference:preference:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4f3356e58d99bf7717ec25b36a0a0d4a\transformed\preference-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.android.material:material:1.4.0-beta01] C:\Users\marti\.gradle\caches\9.4.1\transforms\301e52ccfd0c3cc333e5181b7534d5a9\transformed\material-1.4.0-beta01\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.material:material:1.4.0-beta01] C:\Users\marti\.gradle\caches\9.4.1\transforms\301e52ccfd0c3cc333e5181b7534d5a9\transformed\material-1.4.0-beta01\AndroidManifest.xml:20:5-44
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\cc79fa9609cb0104ce176155f9668cc1\transformed\constraintlayout-2.0.1\AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\cc79fa9609cb0104ce176155f9668cc1\transformed\constraintlayout-2.0.1\AndroidManifest.xml:5:5-7:41
+MERGED from [io.coil-kt:coil:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\0f77d39547900c56beedf78f46ccd620\transformed\coil-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\0f77d39547900c56beedf78f46ccd620\transformed\coil-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-base:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\752d6887c8d3dc2664af069afc2fc23d\transformed\coil-base-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-base:2.5.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\752d6887c8d3dc2664af069afc2fc23d\transformed\coil-base-2.5.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\ac901fa78ce18d7dade5329fef6c0513\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\ac901fa78ce18d7dade5329fef6c0513\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\7acc7884354cc13529724212a24a550f\transformed\appcompat-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\7acc7884354cc13529724212a24a550f\transformed\appcompat-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\95588b9512926f5aa8cdea43cbb11310\transformed\emoji2-views-helper-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\95588b9512926f5aa8cdea43cbb11310\transformed\emoji2-views-helper-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\57f3e711e19243227da5e4cb2acece1c\transformed\dynamicanimation-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\57f3e711e19243227da5e4cb2acece1c\transformed\dynamicanimation-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dc764943dfeb27bea223dd82ca0eaf89\transformed\legacy-support-core-utils-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dc764943dfeb27bea223dd82ca0eaf89\transformed\legacy-support-core-utils-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\29dbcfcafbdfb785b4205166f5383fb2\transformed\viewpager2-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\29dbcfcafbdfb785b4205166f5383fb2\transformed\viewpager2-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\9abaf1a181344905bdcd76453439ad9e\transformed\fragment-1.3.6\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\9abaf1a181344905bdcd76453439ad9e\transformed\fragment-1.3.6\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\46d9a4eb2073fc9bc42a1101e2cda537\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\46d9a4eb2073fc9bc42a1101e2cda537\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4117f555c7ac8618fb3acacda4a9aed7\transformed\lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4117f555c7ac8618fb3acacda4a9aed7\transformed\lifecycle-livedata-core-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9d2e0a77805583dc740fb266a8358235\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9d2e0a77805583dc740fb266a8358235\transformed\lifecycle-livedata-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fe56361cb3e7eab754f3811b60cecf89\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fe56361cb3e7eab754f3811b60cecf89\transformed\lifecycle-livedata-core-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\f72f53ecd46e38b029cd378aebafae6b\transformed\lifecycle-service-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-service:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\f72f53ecd46e38b029cd378aebafae6b\transformed\lifecycle-service-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.transition:transition:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ba3ba040454a1d090f8f78ae11a1d755\transformed\transition-1.3.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ba3ba040454a1d090f8f78ae11a1d755\transformed\transition-1.3.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\64dfcffc13f0dfb6d177cf100d105516\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\64dfcffc13f0dfb6d177cf100d105516\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\c665566476d9aac7edbb96f8d68bf9c2\transformed\lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\c665566476d9aac7edbb96f8d68bf9c2\transformed\lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bc4f9b9bc2bb97ec3fca365c0e506186\transformed\lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bc4f9b9bc2bb97ec3fca365c0e506186\transformed\lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e6ef0aeafb64a25454c1e02f8458f3bd\transformed\lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e6ef0aeafb64a25454c1e02f8458f3bd\transformed\lifecycle-viewmodel-ktx-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\80e130f5e8c5f65ddbd0d8164d6cce27\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\80e130f5e8c5f65ddbd0d8164d6cce27\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\408c0dfc6168fd31168af9d8076985ec\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\408c0dfc6168fd31168af9d8076985ec\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\37025a8bf8a214e3820b646933d86009\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\37025a8bf8a214e3820b646933d86009\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ef527f6ff7d7c84960c353bc944e2948\transformed\lifecycle-runtime-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\ef527f6ff7d7c84960c353bc944e2948\transformed\lifecycle-runtime-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\723edce336a1e1c78344bc9bf059aa8d\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\723edce336a1e1c78344bc9bf059aa8d\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbafe3441f5a8dda74ea792b31b062c1\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:21:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbafe3441f5a8dda74ea792b31b062c1\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.compose.ui:ui-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4662847fab73e53fd2022fd6b3767e35\transformed\ui-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\4662847fab73e53fd2022fd6b3767e35\transformed\ui-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-compose:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\df0f5ab58c70a151136ec241a3b4799c\transformed\activity-compose-1.8.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\df0f5ab58c70a151136ec241a3b4799c\transformed\activity-compose-1.8.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\d2f28549f678c151774ad0fb77c88abc\transformed\activity-ktx-1.8.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\d2f28549f678c151774ad0fb77c88abc\transformed\activity-ktx-1.8.2\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\2e93294f7eb2a5a4133b8d2ca1b987c4\transformed\activity-1.8.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.8.2] C:\Users\marti\.gradle\caches\9.4.1\transforms\2e93294f7eb2a5a4133b8d2ca1b987c4\transformed\activity-1.8.2\AndroidManifest.xml:20:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\db5a02e04e919ab75bc8982390dd889f\transformed\recyclerview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\db5a02e04e919ab75bc8982390dd889f\transformed\recyclerview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5c0c9350df5790a757ba07ce6c4db50a\transformed\swiperefreshlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5c0c9350df5790a757ba07ce6c4db50a\transformed\swiperefreshlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\99e04272afbd50274bac2a00e0e71397\transformed\autofill-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\99e04272afbd50274bac2a00e0e71397\transformed\autofill-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\8df03642480b1c08b68698dea4e54d0c\transformed\drawerlayout-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\8df03642480b1c08b68698dea4e54d0c\transformed\drawerlayout-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e40d0773f907ed3e498db400be544fa3\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e40d0773f907ed3e498db400be544fa3\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d0747cfe593697121b13ef6ebfed8cf1\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d0747cfe593697121b13ef6ebfed8cf1\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8cca021387f93baac4ac29936dfedf82\transformed\customview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8cca021387f93baac4ac29936dfedf82\transformed\customview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.wear.tiles:tiles-material:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\485a6ed76a9bf0ff127970197eb7bdc4\transformed\tiles-material-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.wear.tiles:tiles-material:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\485a6ed76a9bf0ff127970197eb7bdc4\transformed\tiles-material-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout-material-core:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fcf16ad8c940773e805bc7059fa2bb1c\transformed\protolayout-material-core-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout-material-core:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fcf16ad8c940773e805bc7059fa2bb1c\transformed\protolayout-material-core-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout-material:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9e4b141289567e90221cc13bce569fe3\transformed\protolayout-material-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout-material:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9e4b141289567e90221cc13bce569fe3\transformed\protolayout-material-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout-expression:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\afb192dad7edc6e2a7f88309a3862998\transformed\protolayout-expression-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout-expression:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\afb192dad7edc6e2a7f88309a3862998\transformed\protolayout-expression-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\569f67d4b4d973d922b836430f37da31\transformed\protolayout-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\569f67d4b4d973d922b836430f37da31\transformed\protolayout-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout-expression-pipeline:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\64a3cecb090725eb5043c1f5b15f11a2\transformed\protolayout-expression-pipeline-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.wear.protolayout:protolayout-expression-pipeline:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\64a3cecb090725eb5043c1f5b15f11a2\transformed\protolayout-expression-pipeline-1.1.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b53df26b93df375296c1b153c7ea4753\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b53df26b93df375296c1b153c7ea4753\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\47d7d0c1075933bc1d48fc8459aa3b71\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\47d7d0c1075933bc1d48fc8459aa3b71\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fa32a4ac651c925d77fc508b87f00889\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\fa32a4ac651c925d77fc508b87f00889\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5e2f1b7f7081b74f44fee908f80ba031\transformed\core-ktx-1.12.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5e2f1b7f7081b74f44fee908f80ba031\transformed\core-ktx-1.12.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\57b37b43f879be24b1eed7dbeb159e5a\transformed\annotation-experimental-1.4.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\57b37b43f879be24b1eed7dbeb159e5a\transformed\annotation-experimental-1.4.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5c44528fec4c58371fc4e5e081724cf7\transformed\runtime-saveable-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\5c44528fec4c58371fc4e5e081724cf7\transformed\runtime-saveable-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\beb74de2409abf2b445a9e1c41739693\transformed\runtime-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\beb74de2409abf2b445a9e1c41739693\transformed\runtime-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbe80192d5911f1685f5d55d68dc19b7\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\dbe80192d5911f1685f5d55d68dc19b7\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\7c7be9889ad3fa8a6e324d1528d1e7bb\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\7c7be9889ad3fa8a6e324d1528d1e7bb\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\fee58fba2c0886591f880081e147e582\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\fee58fba2c0886591f880081e147e582\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\3257947876b6066faec11689e67d7a74\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\3257947876b6066faec11689e67d7a74\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\084a384c947621c5fe4ac118935d4489\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\084a384c947621c5fe4ac118935d4489\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b1af72e6e8d28aabcfa0c0dbbfd15f3e\transformed\documentfile-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\b1af72e6e8d28aabcfa0c0dbbfd15f3e\transformed\documentfile-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\6d2b01ee80cbe74284fc2da96bca90e9\transformed\localbroadcastmanager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\6d2b01ee80cbe74284fc2da96bca90e9\transformed\localbroadcastmanager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e4db7b7faa9e7bbaa449ea1eb6e5b3ae\transformed\print-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\e4db7b7faa9e7bbaa449ea1eb6e5b3ae\transformed\print-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\14b6d7eeefe72852ee98abe635dd26ee\transformed\cardview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\14b6d7eeefe72852ee98abe635dd26ee\transformed\cardview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.exifinterface:exifinterface:1.3.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\80583f9ea6c2fccf0ec99de3904ffbd3\transformed\exifinterface-1.3.6\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.exifinterface:exifinterface:1.3.6] C:\Users\marti\.gradle\caches\9.4.1\transforms\80583f9ea6c2fccf0ec99de3904ffbd3\transformed\exifinterface-1.3.6\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\05be755a5436f2c30e54e77144039b19\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\05be755a5436f2c30e54e77144039b19\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+	tools:overrideLibrary
+		ADDED from [com.google.android.horologist:horologist-tiles:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\0d4158cd34f452b2ef4b1ca4d9340cd3\transformed\horologist-tiles-0.5.18\AndroidManifest.xml:28:9-416
+	android:targetSdkVersion
+		INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml
+	tools:ignore
+		ADDED from [com.google.android.horologist:horologist-compose-material:0.5.18] C:\Users\marti\.gradle\caches\9.4.1\transforms\65d2cf8fc618c712aa3ebe28f552542f\transformed\horologist-compose-material-0.5.18\AndroidManifest.xml:23:9-39
+	android:minSdkVersion
+		INJECTED from C:\Users\marti\AMS d.o.o\Herculex\herculex-wear\app\src\main\AndroidManifest.xml
+uses-library#com.google.android.wearable
+ADDED from [androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:8:9-10:40
+MERGED from [androidx.wear.watchface:watchface-complications-data-source:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2a289dad25b1480a5e8309abe7e1e7be\transformed\watchface-complications-data-source-1.2.0\AndroidManifest.xml:8:9-10:40
+MERGED from [androidx.wear.watchface:watchface-complications-data-source:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2a289dad25b1480a5e8309abe7e1e7be\transformed\watchface-complications-data-source-1.2.0\AndroidManifest.xml:8:9-10:40
+MERGED from [androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\19b8f4c882546d855628342150f42cc8\transformed\watchface-complications-data-source-ktx-1.2.0\AndroidManifest.xml:8:9-10:40
+MERGED from [androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\19b8f4c882546d855628342150f42cc8\transformed\watchface-complications-data-source-ktx-1.2.0\AndroidManifest.xml:8:9-10:40
+MERGED from [androidx.wear:wear:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bf8440ff8113d62d3fc95fef6ccd4c7b\transformed\wear-1.3.0\AndroidManifest.xml:23:9-25:40
+MERGED from [androidx.wear:wear:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\bf8440ff8113d62d3fc95fef6ccd4c7b\transformed\wear-1.3.0\AndroidManifest.xml:23:9-25:40
+	android:required
+		ADDED from [androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:10:13-37
+	android:name
+		ADDED from [androidx.wear.watchface:watchface-complications-data:1.2.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\37b09589d571ba2561209dfab6ec7606\transformed\watchface-complications-data-1.2.0\AndroidManifest.xml:9:13-55
+activity#com.google.android.gms.common.api.GoogleApiActivity
+ADDED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:9-22:45
+	android:exported
+		ADDED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:22:19-43
+	android:theme
+		ADDED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:21:19-78
+	android:name
+		ADDED from [com.google.android.gms:play-services-base:18.0.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\45439727a3b613bf78de5b445167b32a\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:19-85
+meta-data#com.google.android.gms.version
+ADDED from [com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:21:9-23:69
+	android:value
+		ADDED from [com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:23:13-66
+	android:name
+		ADDED from [com.google.android.gms:play-services-basement:18.0.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d84a8f85009dca30379092aaedd9164d\transformed\play-services-basement-18.0.0\AndroidManifest.xml:22:13-58
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\fee58fba2c0886591f880081e147e582\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\fee58fba2c0886591f880081e147e582\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\9bfb86f5ab95c96c6e74389ffea33785\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\8e493fc541b0e451fe909d10c959f88a\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\848e9b791354e5e19f3dcf673cb87689\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+queries
+ADDED from [androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:7:5-11:15
+intent#action:name:androidx.wear.tiles.action.BIND_UPDATE_REQUESTER
+ADDED from [androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:8:9-10:18
+action#androidx.wear.tiles.action.BIND_UPDATE_REQUESTER
+ADDED from [androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:9:13-87
+	android:name
+		ADDED from [androidx.wear.tiles:tiles:1.3.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\d18f9d1644b95d59c1998cb8822c4e1d\transformed\tiles-1.3.0\AndroidManifest.xml:9:21-84
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+permission#com.ams.herculex.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+uses-permission#com.ams.herculex.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.12.0] C:\Users\marti\.gradle\caches\9.4.1\transforms\2f64185a76936b6ba11b53db8a7cf428\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\marti\.gradle\caches\9.4.1\transforms\c714afd70ec699423fc286edf8d26352\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92

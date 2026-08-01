@@ -6,8 +6,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app/app.dart';
 import 'app/providers.dart';
 
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'features/nutrition/data/wear_sync_service.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  tz.initializeTimeZones();
+  WearSyncService.initialize();
 
   // iOS-style: black bars with light icons, edge-to-edge.
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
