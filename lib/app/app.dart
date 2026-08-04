@@ -1,21 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../core/units.dart';
+import '../data/local/database.dart';
 import '../features/analytics/presentation/analytics_providers.dart';
 import '../features/nutrition/presentation/barcode_scanner_view.dart';
 import '../features/nutrition/presentation/nutrition_providers.dart';
 import '../features/shell/main_scaffold.dart';
 import '../features/supplements/data/supplement_repository.dart';
 import '../features/supplements/domain/supplement.dart';
+import '../features/workouts/data/workout_notification_action_queue.dart';
+import '../features/workouts/data/workout_quick_action_settings.dart';
+import '../features/workouts/domain/ongoing_workout_surface_snapshot.dart';
+import '../features/workouts/domain/workout_notification_command.dart';
+import '../services/active_workout_surface_sync_policy.dart';
 import '../features/workouts/presentation/workouts_providers.dart';
+import '../services/ongoing_workout_surface_bridge.dart';
 import '../services/workout_notification_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/colors.dart';
 import '../theme/theme_provider.dart';
 import 'router.dart';
-
 
 class HerculexApp extends ConsumerStatefulWidget {
   const HerculexApp({super.key});
@@ -26,6 +35,8 @@ class HerculexApp extends ConsumerStatefulWidget {
 
 class _HerculexAppState extends ConsumerState<HerculexApp> {
   late final AppLifecycleListener _lifecycleListener;
+  Timer? _workoutActionDrainTimer;
+  bool _isDrainingWorkoutActions = false;
 
   @override
   void initState() {
@@ -36,13 +47,25 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     WorkoutNotificationService.onNotificationTap = () {
       ref.read(mainTabIndexProvider.notifier).state = 2;
     };
+    WorkoutNotificationService.onNotificationAction =
+        (actionId, sessionId, setId) async => _applyWorkoutNotificationAction(
+          actionId,
+          sessionId: sessionId,
+          targetSetId: setId,
+        );
     WorkoutNotificationService.instance.init();
+    Future<void>.microtask(_drainPendingWorkoutNotificationActions);
 
     // Listen for the scanner deep-link from the Scanner home-screen widget.
     // When the user taps the widget, Android sends 'openScanner' via
     // the widget MethodChannel. We push the barcode scanner route.
     const widgetChannel = MethodChannel('com.ams.herculex/widget');
     widgetChannel.setMethodCallHandler((call) async {
+      if (call.method == 'openActiveWorkout' && mounted) {
+        ref.read(mainTabIndexProvider.notifier).state = 2;
+        ref.read(routerProvider).go('/app');
+        return;
+      }
       if (call.method == 'openScanner' && mounted) {
         // Navigate to the nutrition tab and open the scanner.
         // BarcodeScannerView is pushed as a full-screen route from
@@ -71,7 +94,11 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   @override
   void dispose() {
     _lifecycleListener.dispose();
+    _stopPendingWorkoutActionDrain();
     WorkoutNotificationService.instance.cancel();
+    // The native surface is posted by the platform side and would otherwise
+    // outlive this widget.
+    unawaited(OngoingWorkoutSurfaceBridge.instance.clear());
     super.dispose();
   }
 
@@ -80,6 +107,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   }
 
   void _onForeground() {
+    _drainPendingWorkoutNotificationActions();
     _syncNotification();
   }
 
@@ -104,48 +132,154 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
   void _syncNotification() {
     final sessionAsync = ref.read(activeSessionProvider);
+    if (!sessionAsync.hasValue) {
+      return;
+    }
     final session = sessionAsync.asData?.value;
-    if (session == null) {
+    if (shouldClearOngoingWorkoutSurface(sessionAsync)) {
+      _stopPendingWorkoutActionDrain();
+      unawaited(OngoingWorkoutSurfaceBridge.instance.clear());
       WorkoutNotificationService.instance.cancel();
       return;
     }
-    final exercises =
-        ref.read(sessionExercisesProvider(session.id)).asData?.value ?? [];
-    String exerciseName = 'Workout in progress';
-    int? currentSet;
-    int? totalSets;
-    double? weightKg;
-    int? reps;
-
-    if (exercises.isNotEmpty) {
-      final firstWe = exercises.first;
-      final catalog =
-          ref.read(exerciseCatalogProvider(const ExerciseCatalogFilter())).asData?.value ?? [];
-      final match = catalog
-          .where((e) => e.id == firstWe.exerciseId)
-          .firstOrNull;
-      if (match != null) exerciseName = match.name;
-
-      final sets = ref.read(setsForWorkoutExerciseProvider(firstWe.id)).asData?.value ?? [];
-      if (sets.isNotEmpty) {
-        totalSets = sets.length;
-        final nextUncompleted = sets.where((s) => !s.isCompleted).firstOrNull;
-        final targetSet = nextUncompleted ?? sets.last;
-        currentSet = targetSet.setIndex;
-        weightKg = targetSet.weightKg;
-        reps = targetSet.reps;
-      }
+    if (session == null) {
+      return;
     }
+    _startPendingWorkoutActionDrain();
+    unawaited(_syncWorkoutNotificationFor(session));
+  }
 
-    WorkoutNotificationService.instance.showOrUpdate(
-      startedAt: session.startedAt,
-      exerciseName: exerciseName,
-      workoutName: session.name,
-      currentSet: currentSet,
-      totalSets: totalSets,
-      weightKg: weightKg,
-      reps: reps,
+  Future<void> _syncWorkoutNotificationFor(WorkoutSessionData session) async {
+    final repo = ref.read(workoutsRepositoryProvider);
+    final target = await repo.activeNotificationTargetForSession(session.id);
+    if (!mounted) return;
+    final activeSession = ref.read(activeSessionProvider).asData?.value;
+    if (activeSession?.id != session.id) return;
+
+    final weightFormat = ref.read(weightFormatProvider);
+    final snapshot = buildOngoingWorkoutSurfaceSnapshot(
+      target: target,
+      formatWeight: weightFormat.format,
+      loadStepKg: ref.read(quickLoadStepProvider),
     );
+    unawaited(
+      WorkoutNotificationService.instance.showOrUpdate(
+        sessionId: session.id,
+        startedAt: session.startedAt,
+        exerciseName: snapshot.exerciseName,
+        workoutName: session.name,
+        currentSet: snapshot.currentSet,
+        totalSets: snapshot.totalSets,
+        weightLabel: snapshot.weightLabel,
+        loadStepLabel: snapshot.loadStepLabel,
+        actions: snapshot.actions,
+        targetSetId: snapshot.targetSetId,
+        reps: snapshot.reps,
+        afterPost: () => OngoingWorkoutSurfaceBridge.instance.update(
+          snapshot.toJson(
+            sessionId: session.id,
+            startedAtEpochMillis: session.startedAt.millisecondsSinceEpoch,
+            elapsedLabel: _formatElapsed(session.startedAt),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatElapsed(DateTime startedAt) {
+    final elapsed = DateTime.now().difference(startedAt);
+    final hours = elapsed.inHours;
+    final minutes = elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  }
+
+  Future<bool> _applyWorkoutNotificationAction(
+    String actionId, {
+    int? sessionId,
+    int? targetSetId,
+  }) async {
+    final session = ref.read(activeSessionProvider).asData?.value;
+    if (session == null) return false;
+    if (sessionId != null && sessionId != session.id) return true;
+
+    final repo = ref.read(workoutsRepositoryProvider);
+    final target = await repo.activeNotificationTargetForSession(session.id);
+    if (target == null) return false;
+    if (targetSetId != null && target.set.id != targetSetId) return true;
+
+    final targetSet = target.set;
+    final patch = workoutNotificationPatchForAction(
+      actionId: actionId,
+      set: targetSet,
+      weightStepKg: ref.read(quickLoadStepProvider),
+    );
+    if (patch == null) return true;
+
+    await repo.updateSet(
+      setId: targetSet.id,
+      reps: patch.reps,
+      weightKg: patch.weightKg,
+      isCompleted: patch.isCompleted,
+    );
+
+    await _syncWorkoutNotificationFor(session);
+    return true;
+  }
+
+  Future<void> _drainPendingWorkoutNotificationActions() async {
+    if (_isDrainingWorkoutActions) return;
+    _isDrainingWorkoutActions = true;
+    final prefs = ref.read(sharedPreferencesProvider);
+    try {
+      final activeSessionId = ref.read(activeSessionProvider).asData?.value?.id;
+      final fallbackDrain =
+          PendingWorkoutNotificationActionQueue.drainForSession(
+            prefs,
+            activeSessionId,
+          );
+      final pending = [...fallbackDrain.actions];
+      if (activeSessionId != null) {
+        pending.addAll(
+          await OngoingWorkoutSurfaceBridge.instance.drainPendingActions(),
+        );
+      }
+      if (pending.isEmpty && fallbackDrain.remaining.isEmpty) return;
+
+      final remaining = [...fallbackDrain.remaining];
+      for (final action in pending) {
+        final applied = await _applyWorkoutNotificationAction(
+          action.actionId,
+          sessionId: action.sessionId ?? activeSessionId,
+          targetSetId: action.setId,
+        );
+        if (!applied) {
+          remaining.add(
+            PendingWorkoutNotificationAction(
+              actionId: action.actionId,
+              sessionId: activeSessionId,
+              setId: action.setId,
+            ),
+          );
+        }
+      }
+      await PendingWorkoutNotificationActionQueue.replace(prefs, remaining);
+    } finally {
+      _isDrainingWorkoutActions = false;
+    }
+  }
+
+  void _startPendingWorkoutActionDrain() {
+    if (_workoutActionDrainTimer?.isActive ?? false) return;
+    _workoutActionDrainTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => unawaited(_drainPendingWorkoutNotificationActions()),
+    );
+  }
+
+  void _stopPendingWorkoutActionDrain() {
+    _workoutActionDrainTimer?.cancel();
+    _workoutActionDrainTimer = null;
   }
 
   @override
@@ -161,7 +295,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
     final router = ref.watch(routerProvider);
     WorkoutNotificationService.onNotificationTap = () {
-      router.go('/workout');
+      ref.read(mainTabIndexProvider.notifier).state = 2;
+      router.go('/app');
     };
 
     // Keep notification in sync when active session changes.
@@ -175,6 +310,29 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       }
     });
 
+    ref.listen(unitsProvider, (_, _) => _syncNotification());
+    ref.listen(quickLoadStepProvider, (_, _) => _syncNotification());
+
+    final activeSession = ref.watch(activeSessionProvider).asData?.value;
+    if (activeSession != null) {
+      ref.listen(sessionExercisesProvider(activeSession.id), (_, next) {
+        if (next.hasValue) {
+          _syncNotification();
+        }
+      });
+
+      final exercises =
+          ref.watch(sessionExercisesProvider(activeSession.id)).asData?.value ??
+          const [];
+      for (final exercise in exercises) {
+        ref.listen(setsForWorkoutExerciseProvider(exercise.id), (_, next) {
+          if (next.hasValue) {
+            _syncNotification();
+          }
+        });
+      }
+    }
+
     final themeMode = ref.watch(themeModeProvider);
 
     final platformBrightness = MediaQuery.platformBrightnessOf(context);
@@ -187,16 +345,22 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     AppColors.brightness = effectiveBrightness;
 
     final isDark = effectiveBrightness == Brightness.dark;
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
+      ),
+    );
 
     return MaterialApp.router(
-      key: ValueKey('${themeMode.name}_${effectiveBrightness.name}'), // Rebuild widget tree when theme changes
+      key: ValueKey(
+        '${themeMode.name}_${effectiveBrightness.name}',
+      ), // Rebuild widget tree when theme changes
       title: 'Herculex',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
@@ -205,9 +369,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       routerConfig: router,
       builder: (context, child) {
         return Container(
-          decoration: BoxDecoration(
-            gradient: AppColors.backgroundGradient,
-          ),
+          decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
           child: child ?? const SizedBox.shrink(),
         );
       },
