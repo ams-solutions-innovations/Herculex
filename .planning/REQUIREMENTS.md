@@ -33,8 +33,8 @@
 ### Ongoing workout surface
 
 - [x] **NOWBAR-01**: The ongoing workout is published as an Android 16 promotable Live Update — `requestPromotedOngoing(true)`, `ProgressStyle` and short critical text via the real platform API, so `hasPromotableCharacteristics()` reports true on a supporting device.
-- [ ] **NOWBAR-02**: Exactly one code path owns the ongoing workout notification id. The Flutter and native renderers never post to the same id, and the surface is not rebuilt once per second.
-- [ ] **NOWBAR-03**: The surface is cleared when the workout ends and when the app widget is disposed, and an action declaring `requiresUnlock` is not executed silently from the lock screen.
+- [x] **NOWBAR-02**: Exactly one code path owns the ongoing workout notification id. The Flutter and native renderers never post to the same id, and the surface is not rebuilt once per second.
+- [x] **NOWBAR-03**: The surface is cleared when the workout ends and when the app widget is disposed, and an action declaring `requiresUnlock` is not executed silently from the lock screen.
 
 ## v2 Requirements
 
