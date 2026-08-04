@@ -30,6 +30,12 @@
 - [x] **CAP-02**: A label-photo OCR flow maps nutrition-label values into an editable draft before saving/logging.
 - [x] **CAP-03**: Food-photo analysis is opt-in, shows confidence and proposed foods/portions, and requires review; internet lookup is an explicit secondary mode.
 
+### Ongoing workout surface
+
+- [x] **NOWBAR-01**: The ongoing workout is published as an Android 16 promotable Live Update — `requestPromotedOngoing(true)`, `ProgressStyle` and short critical text via the real platform API, so `hasPromotableCharacteristics()` reports true on a supporting device.
+- [ ] **NOWBAR-02**: Exactly one code path owns the ongoing workout notification id. The Flutter and native renderers never post to the same id, and the surface is not rebuilt once per second.
+- [ ] **NOWBAR-03**: The surface is cleared when the workout ends and when the app widget is disposed, and an action declaring `requiresUnlock` is not executed silently from the lock screen.
+
 ## v2 Requirements
 
 - **PLAN-01**: Recipe URL import with user review/matching.
@@ -55,3 +61,4 @@
 | NUT-01–03 | 4 | Complete |
 | CAP-01 | 5 | Complete |
 | CAP-02–03 | 6 | Complete |
+| NOWBAR-01–03 | 8 | Pending |

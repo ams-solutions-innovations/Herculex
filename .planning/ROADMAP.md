@@ -48,6 +48,16 @@
 
 **Success:** OCR parsing is editable and stores evidence/confidence; visual/internet analysis is opt-in, privacy-labelled and never bypasses the review screen.
 
+## Phase 8: Samsung Now Bar Live Update — Pending
+
+**Goal:** Turn the prepared ongoing-workout surface into a real Android 16 Live Update so One UI can promote the active workout into the Now Bar, and collapse the two competing notification publishers into one.
+
+**Requirements:** NOWBAR-01–03
+
+**Success:** The renderer calls the real `requestPromotedOngoing(true)` / `ProgressStyle` / `setShortCriticalText` platform API on API 36+ instead of writing a reflective extras flag after `build()`; logcat reports `promotable=true`; a single publisher owns notification id 1 and the surface is no longer rebuilt at 1 Hz; the rest timer regains its own high-importance channel; the surface clears on workout end and on dispose. The snapshot contract, MethodChannel bridge, native action receiver, queue and Dart command helpers are unchanged — only the renderer boundary and the publish path move.
+
+**Depends on:** the existing Now Bar adapter layer under `android/app/src/main/kotlin/com/ams/herculex/nowbar/` and `docs/now-bar-native-adapter-contract.md`.
+
 ## Later — Recipe import, meal planning, social, voice
 
 **Requirements:** PLAN-01–02, SOC-01, VOICE-01

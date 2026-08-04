@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-08-04T15:33:54.479Z"
+progress:
+  total_phases: 7
+  completed_phases: 6
+  total_plans: 8
+  completed_plans: 7
+  percent: 86
+---
+
 # Project State
 
 ## Project Reference
@@ -5,7 +19,7 @@
 See: `.planning/PROJECT.md` (updated 2026-07-30)
 
 **Core value:** Fast, trustworthy local food logging.
-**Current focus:** Later backlog — recipe import, meal planning, social and voice.
+**Current focus:** Phase 08 — samsung-now-bar-live-update
 
 ## Progress
 
@@ -21,3 +35,10 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - Phase 4 nutrient ledger is complete: basis-aware portions, source micronutrient aggregation, persisted nutrient visibility and regression coverage are green.
 - Phase 5 barcode hardening is complete: supported retail formats validate locally, manual correction is available, and custom foods retain canonical codes.
 - Phase 6 label capture is complete: on-device OCR routes low-confidence/incomplete labels to Gemini, keeps evidence, and requires editable review before logging.
+
+## Session update — 2026-08-04
+
+- Audited the Samsung Now Bar work. The full adapter layer exists and is tested — snapshot contract, MethodChannel bridge, native receiver with session/set staleness rejection, native queue, diagnostics sheet — but the renderer never produces a Live Update: it posts a `NotificationCompat` BigText notification and writes `android.requestPromotedOngoing` into `extras` reflectively after `build()`. No `ProgressStyle`, no `setShortCriticalText`, so `hasPromotableCharacteristics()` is false and no Now Bar chip can appear.
+- Also found: Flutter and the native renderer both publish notification id 1 on channel `workout_live` once per second, so the native post always overwrites the Flutter fallback; the rest timer is silently downgraded by sharing that low-importance channel; and the bridge's `clear()` is never called on dispose.
+- Phase 8 (Samsung Now Bar Live Update) added to ROADMAP.md with NOWBAR-01–03 in REQUIREMENTS.md, plus CONTEXT and two plans: 08-01 rewrites the renderer against the real API 36 setters, 08-02 collapses the publish path and fixes the collateral issues.
+- Next implementation focus: `/gsd:execute-phase 8`.
