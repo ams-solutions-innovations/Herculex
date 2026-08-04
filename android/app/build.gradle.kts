@@ -21,7 +21,11 @@ if (hasReleaseSigning) {
 
 android {
     namespace = "com.ams.herculex"
-    compileSdk = flutter.compileSdkVersion
+    // Android 16 QPR1 (API 36.1) is the first platform to expose
+    // Notification.Builder.setRequestPromotedOngoing — the Live Update / Now Bar
+    // promotion request used by the nowbar renderer. flutter.compileSdkVersion is
+    // still 36, which lacks it, so pin the platform hash for this module.
+    compileSdkVersion("android-36.1")
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
