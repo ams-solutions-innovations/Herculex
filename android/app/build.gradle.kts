@@ -28,6 +28,10 @@ android {
     compileSdkVersion("android-36.1")
     ndkVersion = flutter.ndkVersion
 
+    androidResources {
+        noCompress += listOf("tflite", "binarypb", "pb", "bincfg", "conv_model", "lstm_model", "fb", "json", "bin")
+    }
+
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
@@ -79,6 +83,18 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Flutter builds only ever assemble :app, so the watch module used to go stale silently
+// (see LESSONS.md). `wearApp(project(":wear"))` would be the normal Gradle way to embed
+// it, but that configuration is deprecated in AGP and slated for removal in 9.0, and it
+// only ever supported the legacy Wear 1.x auto-push-install model anyway — it does
+// nothing useful for this standalone Wear OS 3+ app. Instead, force the watch module to
+// build alongside the phone app so a stale APK can no longer hide; installing it onto the
+// watch is still a separate `adb install` step (see LESSONS.md).
+afterEvaluate {
+    tasks.named("assembleDebug") { dependsOn(":wear:assembleDebug") }
+    tasks.named("assembleRelease") { dependsOn(":wear:assembleRelease") }
 }
 
 dependencies {

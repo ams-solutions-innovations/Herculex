@@ -15,11 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material.Text
 import kotlinx.coroutines.delay
 
@@ -36,12 +36,18 @@ import kotlinx.coroutines.delay
 fun MediaControlsScreen() {
     val context = LocalContext.current
     val controller = remember(context) { MediaControlsController(context) }
-    var state by remember { mutableStateOf(controller.state()) }
+    val state by controller.stateFlow.collectAsStateWithLifecycle()
 
+    DisposableEffect(controller) {
+        controller.start()
+        onDispose { controller.stop() }
+    }
+    // Notification access can be granted from Settings while this screen is open, and there is
+    // no platform callback for that — poll it slowly as a safety net (see refresh() docs).
     LaunchedEffect(controller) {
         while (true) {
-            state = controller.state()
-            delay(1_000)
+            delay(2_000)
+            controller.refresh()
         }
     }
 
@@ -80,14 +86,11 @@ fun MediaControlsScreen() {
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MediaButton("<<", 40) { controller.previous(); state = controller.state() }
+            MediaButton("<<", 40) { controller.previous() }
             Spacer(Modifier.size(10.dp))
-            MediaButton(if (state.isPlaying) "II" else ">", 52) {
-                controller.playPause()
-                state = controller.state()
-            }
+            MediaButton(if (state.isPlaying) "II" else ">", 52) { controller.playPause() }
             Spacer(Modifier.size(10.dp))
-            MediaButton(">>", 40) { controller.next(); state = controller.state() }
+            MediaButton(">>", 40) { controller.next() }
         }
         Spacer(Modifier.height(10.dp))
         if (!state.hasNotificationAccess) {
@@ -111,13 +114,11 @@ fun MediaControlsScreen() {
 fun CompactMediaControls() {
     val context = LocalContext.current
     val controller = remember(context) { MediaControlsController(context) }
-    var state by remember { mutableStateOf(controller.state()) }
+    val state by controller.stateFlow.collectAsStateWithLifecycle()
 
-    LaunchedEffect(controller) {
-        while (true) {
-            state = controller.state()
-            delay(1_000)
-        }
+    DisposableEffect(controller) {
+        controller.start()
+        onDispose { controller.stop() }
     }
 
     Column(
@@ -127,18 +128,6 @@ fun CompactMediaControls() {
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (!state.hasNotificationAccess) {
-            Text(
-                "Enable media access",
-                color = Color(0xFF9E9E9E),
-                fontSize = 11.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { controller.openAccessSettings() },
-            )
-            return@Column
-        }
 
         Text(
             state.title,
@@ -156,14 +145,11 @@ fun CompactMediaControls() {
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MediaButton("<<", 28) { controller.previous(); state = controller.state() }
+            MediaButton("<<", 28) { controller.previous() }
             Spacer(Modifier.size(8.dp))
-            MediaButton(if (state.isPlaying) "II" else ">", 36) {
-                controller.playPause()
-                state = controller.state()
-            }
+            MediaButton(if (state.isPlaying) "II" else ">", 36) { controller.playPause() }
             Spacer(Modifier.size(8.dp))
-            MediaButton(">>", 28) { controller.next(); state = controller.state() }
+            MediaButton(">>", 28) { controller.next() }
         }
     }
 }

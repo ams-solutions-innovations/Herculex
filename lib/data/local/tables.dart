@@ -5,6 +5,15 @@ import 'package:drift/drift.dart';
 @DataClassName('ExerciseCatalogData')
 class ExerciseCatalog extends Table {
   IntColumn get id => integer().autoIncrement()();
+
+  /// Stable identity (v17), kebab-case, unique across seeded rows.
+  ///
+  /// [name] is display text and will change as the catalog is corrected; the
+  /// importer matches on this instead so a rename updates the row in place
+  /// rather than inserting a duplicate and orphaning every logged set that
+  /// referenced the old row. Null on custom and pre-v17 rows.
+  TextColumn get slug => text().nullable()();
+
   TextColumn get name => text()();
   // Legacy coarse muscle group (Chest|Back|Shoulders|Quads|…). Kept for
   // back-compat; granular involvement lives in [ExerciseMuscles].
@@ -60,6 +69,20 @@ class ExerciseCatalog extends Table {
   /// family). Drives the collapsed picker. Computed at import time; null on
   /// legacy/custom rows until backfilled.
   TextColumn get movementFamily => text().nullable()();
+
+  // ── Movement layer (v18) ──
+  /// Authored movement this exercise belongs to (`assets/data/movements.json`),
+  /// e.g. every equipment variant of a curl shares `curl-isolation`. Supersedes
+  /// the derived [movementFamily] for picker grouping; null means the exercise
+  /// stands alone.
+  TextColumn get movementSlug => text().nullable()();
+
+  /// JSON array of modalities this exercise can plausibly be performed with,
+  /// taken from its movement. Null means no swap is offered.
+  ///
+  /// Replaces the previous hardcoded free-weight family, which offered a Smith
+  /// Machine option on a selectorized hamstring curl.
+  TextColumn get allowedEquipment => text().nullable()();
 
   @override
   List<Set<Column>> get uniqueKeys => [
@@ -382,6 +405,30 @@ class Programs extends Table {
   // linear | concurrent | block | max_effort | none (v11, §12)
   TextColumn get periodizationModel =>
       text().withDefault(const Constant('none'))();
+
+  // ── Split & rotation (v21) ──
+  /// full_body | upper_lower | ppl | ab | abc | bro | custom
+  TextColumn get splitType => text().withDefault(const Constant('custom'))();
+
+  /// weekly = days map to [ProgramDays.dayOfWeek] 1–7 and repeat every calendar
+  /// week; cycle = days map to [ProgramDays.cycleDayIndex] 0..cycleLength-1 and
+  /// repeat every [cycleLength] days independently of the calendar week.
+  TextColumn get scheduleMode => text().withDefault(const Constant('weekly'))();
+
+  /// Length of one rotation in days. Null (or 7) for weekly programs.
+  IntColumn get cycleLength => integer().nullable()();
+
+  /// Generator input, kept so the skeleton can be regenerated on edit.
+  IntColumn get daysPerWeek => integer().nullable()();
+
+  /// Anchor date (yyyy-MM-dd) the schedule was materialized from, so
+  /// re-materializing after an edit does not need to re-ask for a start date.
+  TextColumn get startDateIso => text().nullable()();
+
+  /// Exactly one non-archived program is the block shown in the Blocks tab.
+  /// The invariant is enforced only by `ProgramsRepository.setActiveProgram`;
+  /// never write this column from anywhere else.
+  BoolColumn get isActive => boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('ProgramWeekData')
@@ -403,8 +450,39 @@ class ProgramDays extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get programWeekId =>
       integer().references(ProgramWeeks, #id, onDelete: KeyAction.cascade)();
+
+  /// 1–7 (Mon–Sun). Meaningful only when [cycleDayIndex] is null. For cycle
+  /// programs this column is NOT NULL and cannot be relaxed (additive-only
+  /// migrations), so it is written as the filler `(cycleDayIndex % 7) + 1` and
+  /// must never be read — branch on `cycleDayIndex != null` first.
   IntColumn get dayOfWeek => integer()();
   TextColumn get name => text()();
+
+  // ── Template link, ordering & rotation (v21) ──
+  /// Live reference to a workout template. Editing the template changes every
+  /// future scheduled session generated from this day; the content is
+  /// snapshotted only when the workout is actually started. Null → fall back to
+  /// the day's inline [ProgramDayExercises].
+  IntColumn get templateId => integer().nullable().references(
+    WorkoutTemplates,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+
+  /// Order among days sharing the same slot (two-a-days). 0-based, dense within
+  /// a `(programWeekId, dayOfWeek | cycleDayIndex)` pair.
+  IntColumn get orderIndex => integer().withDefault(const Constant(0))();
+
+  /// The split slot this day fills: 'Push', 'Upper', 'A', 'Full Body B'.
+  TextColumn get slotLabel => text().nullable()();
+
+  /// 0-based position in the rotation cycle. AUTHORITATIVE when non-null; see
+  /// the note on [dayOfWeek].
+  IntColumn get cycleDayIndex => integer().nullable()();
+
+  /// Explicit rest slot inside a cycle. Never materialized to a scheduled
+  /// workout; rendered as a rest marker in the builder preview and week board.
+  BoolColumn get isRest => boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('ProgramDayExerciseData')
@@ -516,7 +594,34 @@ class ScheduledWorkouts extends Table {
     #id,
     onDelete: KeyAction.setNull,
   )();
+  /// planned | in_progress | done | moved | skipped — see `ScheduleStatus`.
   TextColumn get status => text().withDefault(const Constant('planned'))();
+
+  // ── Ownership, ordering & per-occurrence overrides (v21) ──
+  /// Owning program. Lets re-materializing one block leave every other block's
+  /// schedule untouched.
+  IntColumn get programId => integer().nullable().references(
+    Programs,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+
+  /// Order within the same [dateIso], across all programs. 0-based, dense.
+  IntColumn get orderIndex => integer().withDefault(const Constant(0))();
+
+  /// Which repetition of the program day produced this row (week number for
+  /// block programs, cycle number for rotating ones). Together with
+  /// [programDayId] this is the identity key that lets re-materialize skip rows
+  /// the user has already touched.
+  IntColumn get occurrenceIndex => integer().withDefault(const Constant(0))();
+
+  /// One-off template swap for this occurrence only. Wins over
+  /// [ProgramDays.templateId] when resolving the session to start.
+  IntColumn get templateIdOverride => integer().nullable().references(
+    WorkoutTemplates,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
 }
 
 @DataClassName('ExternalEventData')
@@ -616,6 +721,25 @@ class TemplateExercises extends Table {
   IntColumn get targetRepsMax => integer().nullable()();
   IntColumn get targetRestSeconds => integer().nullable()();
   IntColumn get supersetGroup => integer().nullable()();
+}
+
+/// Prescribed sets inside a template exercise.
+@DataClassName('TemplateSetData')
+class TemplateSets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get templateExerciseId => integer().references(
+    TemplateExercises,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get setOrder => integer()();
+  TextColumn get setType => text().withDefault(const Constant('standard'))();
+  TextColumn get setTypeMetaJson => text().nullable()();
+  IntColumn get targetReps => integer().nullable()();
+  IntColumn get targetRepsMin => integer().nullable()();
+  IntColumn get targetRepsMax => integer().nullable()();
+  RealColumn get targetWeightKg => real().nullable()();
+  BoolColumn get isWarmup => boolean().withDefault(const Constant(false))();
 }
 
 // ── V2 Logging Foundation (v10) ────────────────────────────────────────────

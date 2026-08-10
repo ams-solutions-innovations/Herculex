@@ -179,11 +179,13 @@ class _RotationPoolSheetState extends ConsumerState<RotationPoolSheet> {
                   Expanded(child: _label(theme, 'EXERCISES IN POOL')),
                   TextButton.icon(
                     onPressed: () async {
-                      final ex = await ExercisePickerSheet.show(context);
-                      if (ex != null) {
-                        await ref
-                            .read(rotationsRepositoryProvider)
-                            .addMember(widget.existing!.id, ex.exercise.id);
+                      final results = await ExercisePickerSheet.show(context);
+                      if (results != null && results.isNotEmpty) {
+                        for (final ex in results) {
+                          await ref
+                              .read(rotationsRepositoryProvider)
+                              .addMember(widget.existing!.id, ex.exercise.id);
+                        }
                       }
                     },
                     icon: const Icon(Icons.add, size: 16),

@@ -18,8 +18,6 @@ class PremiumTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return TextField(
       controller: controller,
       obscureText: obscureText,
@@ -29,10 +27,18 @@ class PremiumTextField extends StatelessWidget {
         hintText: hintText,
         prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Theme.of(context).textTheme.bodyMedium?.color) : null,
         filled: true,
-        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
       ),

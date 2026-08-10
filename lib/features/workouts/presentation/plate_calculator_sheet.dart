@@ -126,18 +126,18 @@ class _PlateCalculatorSheetState extends ConsumerState<PlateCalculatorSheet> {
     final barDisplay = _isMetric ? barKg : barKg / 0.45359237;
     final platesColors = _isMetric ? _plateColorsKg : _plateColorsLb;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-      padding: EdgeInsets.only(bottom: bottomPad),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(color: AppColors.outlineVariant),
-          left: BorderSide(color: AppColors.outlineVariant),
-          right: BorderSide(color: AppColors.outlineVariant),
+    final maxHeight = MediaQuery.of(context).size.height * 0.75;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Container(
+        padding: EdgeInsets.only(bottom: bottomPad),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainer,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(
+            top: BorderSide(color: AppColors.outlineVariant),
+          ),
         ),
-      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -369,6 +369,7 @@ class _PlateCalculatorSheetState extends ConsumerState<PlateCalculatorSheet> {
           ],
         ),
       ),
+    ),
     );
   }
 

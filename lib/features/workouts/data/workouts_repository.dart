@@ -4,20 +4,22 @@ import 'package:collection/collection.dart';
 import '../../../core/clock.dart';
 import '../../../data/local/database.dart';
 import '../../../data/local/exercise_biomechanics.dart';
+import '../domain/active_workout_notification_target.dart';
+import '../domain/exercise_search.dart';
 
-class _ExerciseSearchMatcher {
-  final List<Set<String>> _queryTokenGroups;
+class LastPerformanceSnapshot {
+  final String? equipmentVariant;
+  final List<SetEntryData> sets;
 
-  _ExerciseSearchMatcher(String? query)
-    : _queryTokenGroups = WorkoutsRepository._searchTokenGroups(query);
-
-  bool matches(ExerciseCatalogData exercise, List<ExerciseMuscleData> muscles) {
-    if (_queryTokenGroups.isEmpty) return true;
-    final document = WorkoutsRepository._searchDocument(exercise, muscles);
-    return _queryTokenGroups.every((group) => group.any(document.contains));
-  }
+  const LastPerformanceSnapshot({
+    required this.equipmentVariant,
+    required this.sets,
+  });
 }
 
+/// Resolves a picker filter chip against an exercise. Chips match the wider
+/// attribute set (mechanics, force, plane, muscle role) that free-text search
+/// deliberately ignores — see [ExerciseSearchIndex] for the query path.
 class _ExerciseFacetMatcher {
   final String _facet;
 
@@ -70,6 +72,77 @@ class _ExerciseFacetMatcher {
   };
 }
 
+/// The whole exercise catalog with its muscle rows and a prebuilt search
+/// index, loaded once and shared.
+///
+/// Previously every keystroke opened a fresh Drift subscription and re-read
+/// the entire `exercise_muscles` table. Now the catalog streams once and
+/// queries are answered in memory — 398 rows ranks in well under a frame.
+class ExerciseCatalogSnapshot {
+  final List<ExerciseCatalogData> exercises;
+  final Map<int, List<ExerciseMuscleData>> musclesByExercise;
+
+  final Map<int, ExerciseCatalogData> _byId;
+  final ExerciseSearchIndex _index;
+
+  ExerciseCatalogSnapshot._(
+    this.exercises,
+    this.musclesByExercise,
+    this._byId,
+    this._index,
+  );
+
+  factory ExerciseCatalogSnapshot.from(
+    List<ExerciseCatalogData> exercises,
+    List<ExerciseMuscleData> muscles,
+  ) {
+    final musclesByExercise = <int, List<ExerciseMuscleData>>{};
+    for (final muscle in muscles) {
+      musclesByExercise.putIfAbsent(muscle.exerciseId, () => []).add(muscle);
+    }
+    final byId = {for (final e in exercises) e.id: e};
+    final index = ExerciseSearchIndex.build([
+      for (final e in exercises)
+        SearchableExercise(
+          id: e.id,
+          name: e.name,
+          aliases: WorkoutsRepository.splitAka(e.aka),
+          equipment: e.equipment,
+          modality: e.modality,
+          primaryMuscle: e.primaryMuscle,
+          secondaryMuscles: [
+            for (final m in musclesByExercise[e.id] ?? const [])
+              if (m.role != 'stabilizer') m.muscle,
+          ],
+        ),
+    ]);
+    return ExerciseCatalogSnapshot._(exercises, musclesByExercise, byId, index);
+  }
+
+  /// Facet chip filter, then relevance ranking. With no query the list stays
+  /// in the catalog's alphabetical order so the browse experience is stable.
+  List<ExerciseCatalogData> select({
+    String? query,
+    String? category,
+    Set<int> recentIds = const {},
+  }) {
+    final facet = _ExerciseFacetMatcher(category);
+    final pool = exercises
+        .where((e) => facet.matches(e, musclesByExercise[e.id] ?? const []))
+        .toList();
+
+    final trimmed = query?.trim() ?? '';
+    if (trimmed.isEmpty) return pool;
+
+    final allowed = {for (final e in pool) e.id};
+    final hits = _index.rank(trimmed, recentIds: recentIds);
+    return [
+      for (final hit in hits)
+        if (allowed.contains(hit.id)) _byId[hit.id]!,
+    ];
+  }
+}
+
 /// Single facade over the workout tables. UI never touches Drift directly —
 /// it goes through this. Keeps queries co-located and swappable later.
 class WorkoutsRepository {
@@ -82,32 +155,48 @@ class WorkoutsRepository {
 
   /// Alias-aware and attribute-aware search. The picker keeps the canonical
   /// [name] for display, but matching sees aliases, equipment, movement
-  /// attributes, mechanics, force/plane, and every granular muscle row.
+  /// pattern, and the primary/secondary muscle rows.
   ///
   /// Normalizes common name variants so "push-up", "push up", "pushup", and
   /// simple plural forms all resolve to the same exercise.
+  ///
+  /// [category] carries the picker's facet chips, which match on the wider
+  /// attribute set (mechanics, force, plane, muscle role) that plain search
+  /// deliberately ignores.
   Stream<List<ExerciseCatalogData>> watchExercises({
     String? query,
     String? category,
+    Set<int> recentIds = const {},
   }) {
+    return watchExerciseCatalog().map(
+      (snapshot) => snapshot.select(
+        query: query,
+        category: category,
+        recentIds: recentIds,
+      ),
+    );
+  }
+
+  /// The whole catalog, alphabetical, with muscle rows and a prebuilt search
+  /// index. Subscribe to this once per app rather than once per query.
+  Stream<ExerciseCatalogSnapshot> watchExerciseCatalog() {
     final catalogQuery = _db.select(_db.exerciseCatalog)
       ..orderBy([(t) => OrderingTerm(expression: t.name)]);
 
     return catalogQuery.watch().asyncMap((catalog) async {
       final muscles = await _db.select(_db.exerciseMuscles).get();
-      final musclesByExercise = <int, List<ExerciseMuscleData>>{};
-      for (final muscle in muscles) {
-        musclesByExercise.putIfAbsent(muscle.exerciseId, () => []).add(muscle);
-      }
-
-      final search = _ExerciseSearchMatcher(query);
-      final facet = _ExerciseFacetMatcher(category);
-      return catalog.where((exercise) {
-        final exerciseMuscles = musclesByExercise[exercise.id] ?? const [];
-        return facet.matches(exercise, exerciseMuscles) &&
-            search.matches(exercise, exerciseMuscles);
-      }).toList();
+      return ExerciseCatalogSnapshot.from(catalog, muscles);
     });
+  }
+
+  /// Splits the denormalized `aka` blob the importer writes as ", "-joined
+  /// text back into individual aliases.
+  static List<String> splitAka(String? aka) {
+    if (aka == null || aka.trim().isEmpty) return const [];
+    return [
+      for (final part in aka.split(','))
+        if (part.trim().isNotEmpty) part.trim(),
+    ];
   }
 
   static String _normalizeExerciseSearchText(String? value) {
@@ -182,8 +271,11 @@ class WorkoutsRepository {
     'masine': {'machine'},
     'chest': {'chest', 'pec', 'pectoral'},
     'pec': {'chest', 'pec'},
-    'curl': {'curl', 'bicep', 'biceps'},
-    'curls': {'curl', 'bicep', 'biceps'},
+    // Deliberately NOT expanded to bicep/biceps: combined with the muscle
+    // fields in the search document that matched every exercise using the
+    // biceps at all, which was 30% of the catalog.
+    'curl': {'curl'},
+    'curls': {'curl'},
     'pull': {'pull', 'row', 'pulldown'},
     'push': {'push', 'press'},
   };
@@ -192,21 +284,21 @@ class WorkoutsRepository {
     ExerciseCatalogData exercise,
     List<ExerciseMuscleData> muscles,
   ) {
+    // Only fields a user would plausibly type. Biomechanics (mechanics/force/
+    // plane), loggingMetric and the muscle *role* strings are searchable via
+    // the filter chips instead; including them here made "curl" match anything
+    // with the biceps as a stabilizer, and "reps" match half the catalog.
     final parts = <String?>[
       exercise.name,
       exercise.aka,
       exercise.primaryMuscle,
       exercise.equipment,
-      exercise.mechanics,
-      exercise.force,
-      exercise.plane,
       exercise.category,
       exercise.movementPattern,
       exercise.movementPatternRaw,
       exercise.modality,
-      exercise.loggingMetric,
-      for (final muscle in muscles) muscle.muscle,
-      for (final muscle in muscles) muscle.role,
+      for (final muscle in muscles)
+        if (muscle.role != 'stabilizer') muscle.muscle,
     ];
     final normalizedParts = parts
         .map(_normalizeExerciseSearchText)
@@ -341,15 +433,25 @@ class WorkoutsRepository {
         .write(WorkoutSessionsCompanion(gymId: Value(gymId)));
   }
 
-  Future<void> endSession(int sessionId, {int? sessionRpe}) async {
+  Future<void> endSession(
+    int sessionId, {
+    int? sessionRpe,
+    DateTime? endedAt,
+  }) async {
     await (_db.update(
       _db.workoutSessions,
     )..where((t) => t.id.equals(sessionId))).write(
       WorkoutSessionsCompanion(
-        endedAt: Value(_clock.now()),
+        endedAt: Value(endedAt ?? _clock.now()),
         sessionRpe: Value(sessionRpe),
       ),
     );
+
+    // A session started from a scheduled workout only becomes 'done' here.
+    // Starting one leaves the schedule 'in_progress'.
+    await (_db.update(_db.scheduledWorkouts)
+          ..where((t) => t.completedSessionId.equals(sessionId)))
+        .write(const ScheduledWorkoutsCompanion(status: Value('done')));
   }
 
   Future<void> deleteSession(int sessionId) async {
@@ -397,6 +499,39 @@ class WorkoutsRepository {
           ..where((t) => t.workoutExerciseId.equals(workoutExerciseId))
           ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
         .watch();
+  }
+
+  Future<ActiveWorkoutNotificationTarget?> activeNotificationTargetForSession(
+    int sessionId,
+  ) async {
+    // Reads run inside a transaction so a concurrent write landing between the
+    // exercises/catalog/sets queries below can't be observed as a transient
+    // "exercise with no sets yet" state, which previously fell back to a
+    // generic "Workout in progress" notification title mid-workout.
+    return _db.transaction(() async {
+      final exercises =
+          await (_db.select(_db.workoutExercises)
+                ..where((t) => t.sessionId.equals(sessionId))
+                ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+              .get();
+      if (exercises.isEmpty) return null;
+
+      final catalog = await _db.select(_db.exerciseCatalog).get();
+      final setsByWorkoutExerciseId = <int, List<SetEntryData>>{};
+      for (final exercise in exercises) {
+        setsByWorkoutExerciseId[exercise.id] =
+            await (_db.select(_db.setEntries)
+                  ..where((t) => t.workoutExerciseId.equals(exercise.id))
+                  ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
+                .get();
+      }
+
+      return selectActiveWorkoutNotificationTarget(
+        exercises: exercises,
+        setsByWorkoutExerciseId: setsByWorkoutExerciseId,
+        catalog: catalog,
+      );
+    });
   }
 
   Future<int> addExerciseToSession({
@@ -577,6 +712,14 @@ class WorkoutsRepository {
         .fold<int>(0, (a, b) => a > b ? a : b);
     final group = source.supersetGroup ?? target.supersetGroup ?? maxGroup + 1;
 
+    // Hard cap of 5 linked exercises per group (item 9).
+    final existingGroupMembers = rows
+        .where((r) => r.supersetGroup == group)
+        .map((r) => r.id)
+        .toSet();
+    final resultingMembers = {...existingGroupMembers, source.id, target.id};
+    if (resultingMembers.length > 5) return;
+
     await _db.transaction(() async {
       await (_db.update(_db.workoutExercises)
             ..where((t) => t.id.equals(source.id) | t.id.equals(target.id)))
@@ -612,6 +755,7 @@ class WorkoutsRepository {
     String? setTypeMetaJson,
     double? bodyweightKg,
     double? chainsKg,
+    DateTime? completedAt,
   }) async {
     final existing = await (_db.select(
       _db.setEntries,
@@ -629,7 +773,7 @@ class WorkoutsRepository {
             isWarmup: Value(isWarmup),
             isCompleted: Value(isCompleted),
             completedAt: isCompleted
-                ? Value(_clock.now())
+                ? Value(completedAt ?? _clock.now())
                 : const Value.absent(),
             setType: Value(setType),
             setTypeMetaJson: Value(setTypeMetaJson),
@@ -644,33 +788,50 @@ class WorkoutsRepository {
     double? weightKg,
     int? reps,
     int? rpeX10,
+    bool clearRpe = false,
     bool? isWarmup,
     bool? isCompleted,
     String? setType,
     String? setTypeMetaJson,
+    bool clearSetTypeMetaJson = false,
     double? bodyweightKg,
+    bool clearBodyweightKg = false,
     double? chainsKg,
+    bool clearChainsKg = false,
+    DateTime? completedAt,
   }) async {
     await (_db.update(_db.setEntries)..where((t) => t.id.equals(setId))).write(
       SetEntriesCompanion(
         weightKg: weightKg == null ? const Value.absent() : Value(weightKg),
         reps: reps == null ? const Value.absent() : Value(reps),
-        rpeX10: rpeX10 == null ? const Value.absent() : Value(rpeX10),
+        rpeX10: clearRpe
+            ? const Value(null)
+            : rpeX10 == null
+            ? const Value.absent()
+            : Value(rpeX10),
         isWarmup: isWarmup == null ? const Value.absent() : Value(isWarmup),
         isCompleted: isCompleted == null
             ? const Value.absent()
             : Value(isCompleted),
         completedAt: isCompleted == true
-            ? Value(_clock.now())
+            ? Value(completedAt ?? _clock.now())
             : const Value.absent(),
         setType: setType == null ? const Value.absent() : Value(setType),
-        setTypeMetaJson: setTypeMetaJson == null
+        setTypeMetaJson: clearSetTypeMetaJson
+            ? const Value(null)
+            : setTypeMetaJson == null
             ? const Value.absent()
             : Value(setTypeMetaJson),
-        bodyweightKg: bodyweightKg == null
+        bodyweightKg: clearBodyweightKg
+            ? const Value(null)
+            : bodyweightKg == null
             ? const Value.absent()
             : Value(bodyweightKg),
-        chainsKg: chainsKg == null ? const Value.absent() : Value(chainsKg),
+        chainsKg: clearChainsKg
+            ? const Value(null)
+            : chainsKg == null
+            ? const Value.absent()
+            : Value(chainsKg),
       ),
     );
   }
@@ -683,7 +844,9 @@ class WorkoutsRepository {
 
   /// All sets from the most recent *completed* session that included this exercise.
   /// Used for the "last time" hint shown under the active exercise card.
-  Future<List<SetEntryData>> lastPerformanceFor(int exerciseId) async {
+  Future<LastPerformanceSnapshot?> lastPerformanceSnapshotFor(
+    int exerciseId,
+  ) async {
     final priorSessions =
         await (_db.selectOnly(_db.workoutExercises, distinct: true)
               ..addColumns([_db.workoutExercises.sessionId])
@@ -708,7 +871,7 @@ class WorkoutsRepository {
               ..limit(1))
             .get();
 
-    if (priorSessions.isEmpty) return const [];
+    if (priorSessions.isEmpty) return null;
     final sessionId = priorSessions.first.read(_db.workoutExercises.sessionId)!;
 
     final priorWorkoutExercises =
@@ -718,16 +881,26 @@ class WorkoutsRepository {
                   t.exerciseId.equals(exerciseId),
             ))
             .get();
-    if (priorWorkoutExercises.isEmpty) return const [];
+    if (priorWorkoutExercises.isEmpty) return null;
 
-    return (_db.select(_db.setEntries)
-          ..where(
-            (t) =>
-                t.workoutExerciseId.equals(priorWorkoutExercises.first.id) &
-                t.isCompleted.equals(true),
-          )
-          ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
-        .get();
+    final priorWorkoutExercise = priorWorkoutExercises.first;
+    final sets =
+        await (_db.select(_db.setEntries)
+              ..where(
+                (t) =>
+                    t.workoutExerciseId.equals(priorWorkoutExercise.id) &
+                    t.isCompleted.equals(true),
+              )
+              ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
+            .get();
+    return LastPerformanceSnapshot(
+      equipmentVariant: priorWorkoutExercise.equipmentVariant,
+      sets: sets,
+    );
+  }
+
+  Future<List<SetEntryData>> lastPerformanceFor(int exerciseId) async {
+    return (await lastPerformanceSnapshotFor(exerciseId))?.sets ?? const [];
   }
 
   Future<Set<int>> getRecentExerciseIds() async {

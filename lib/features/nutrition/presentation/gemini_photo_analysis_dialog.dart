@@ -56,11 +56,22 @@ class _GeminiPhotoAnalysisDialogState
   final _carbsCtrl = TextEditingController();
   final _fatCtrl = TextEditingController();
   final _fiberCtrl = TextEditingController();
+  final _apiKeyCtrl = TextEditingController();
 
   bool _analyzing = false;
   bool _saving = false;
+  bool _showApiKeyInput = false;
   String? _error;
   GeminiFoodAnalysisResult? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    final analyzer = ref.read(geminiFoodAnalyzerServiceProvider);
+    if (analyzer.hasCustomApiKey) {
+      _apiKeyCtrl.text = analyzer.apiKey;
+    }
+  }
 
   @override
   void dispose() {
@@ -72,6 +83,7 @@ class _GeminiPhotoAnalysisDialogState
     _carbsCtrl.dispose();
     _fatCtrl.dispose();
     _fiberCtrl.dispose();
+    _apiKeyCtrl.dispose();
     super.dispose();
   }
 
@@ -102,9 +114,17 @@ class _GeminiPhotoAnalysisDialogState
       });
     } catch (e) {
       if (!mounted) return;
+      final errStr = e.toString().replaceAll('Exception: ', '');
+      final isKeyErr = errStr.contains('401') ||
+          errStr.contains('API ključ') ||
+          errStr.contains('UNAUTHENTICATED') ||
+          errStr.contains('ACCESS_TOKEN_TYPE_UNSUPPORTED');
       setState(() {
         _analyzing = false;
-        _error = e.toString().replaceAll('Exception: ', '');
+        _error = errStr;
+        if (isKeyErr) {
+          _showApiKeyInput = true;
+        }
       });
     }
   }
@@ -201,6 +221,18 @@ class _GeminiPhotoAnalysisDialogState
                   ),
                   const Spacer(),
                   IconButton(
+                    icon: Icon(
+                      _showApiKeyInput ? Icons.key : Icons.key_outlined,
+                      color: _showApiKeyInput ? AppColors.primary : null,
+                    ),
+                    tooltip: 'Vnesite Gemini API ključ',
+                    onPressed: () {
+                      setState(() {
+                        _showApiKeyInput = !_showApiKeyInput;
+                      });
+                    },
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -229,6 +261,82 @@ class _GeminiPhotoAnalysisDialogState
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  if (_showApiKeyInput) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.key, color: AppColors.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Gemini API Ključ',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Vnesite svoj Google Gemini API ključ (začne se z AIzaSy...). Brezplačen ključ lahko ustvarite na aistudio.google.com.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _apiKeyCtrl,
+                            decoration: InputDecoration(
+                              hintText: 'Vnesite API ključ (AIzaSy...)',
+                              filled: true,
+                              fillColor: AppColors.surfaceContainer,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () async {
+                                final key = _apiKeyCtrl.text.trim();
+                                if (key.isNotEmpty) {
+                                  final analyzer = ref.read(
+                                    geminiFoodAnalyzerServiceProvider,
+                                  );
+                                  await analyzer.setApiKey(key);
+                                  setState(() {
+                                    _error = null;
+                                    _showApiKeyInput = false;
+                                  });
+                                  _startAnalysis();
+                                }
+                              },
+                              icon: const Icon(Icons.check, size: 18),
+                              label: const Text('Shrani ključ in analiziraj'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   if (_error != null) ...[
                     Container(

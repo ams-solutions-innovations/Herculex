@@ -17,6 +17,6 @@ void main() {
     final container = tester.widget<Container>(find.byType(Container));
     final resolvedColor = container.color;
     print(resolvedColor);
-    expect(resolvedColor?.value, 0xFFFFFFFF);
+    expect(resolvedColor?.toARGB32(), 0xFFFFFFFF);
   });
 }

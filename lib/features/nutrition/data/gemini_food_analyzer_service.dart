@@ -65,16 +65,29 @@ class GeminiFoodAnalyzerService {
 
   GeminiFoodAnalyzerService(this._prefs);
 
+  bool get hasCustomApiKey {
+    final customKey = _prefs.getString(_keyPrefsName);
+    return customKey != null && customKey.trim().isNotEmpty;
+  }
+
   String get apiKey {
     final customKey = _prefs.getString(_keyPrefsName);
     if (customKey != null && customKey.trim().isNotEmpty) {
       return customKey.trim();
+    }
+    const envKey = String.fromEnvironment('GEMINI_API_KEY');
+    if (envKey.isNotEmpty) {
+      return envKey.trim();
     }
     return _defaultApiKey;
   }
 
   Future<void> setApiKey(String key) async {
     await _prefs.setString(_keyPrefsName, key.trim());
+  }
+
+  Future<void> clearApiKey() async {
+    await _prefs.remove(_keyPrefsName);
   }
 
   Future<GeminiFoodAnalysisResult> analyzeFoodPhoto({
@@ -146,6 +159,14 @@ Vrneš ISKALNI JSON objekt z naslednjo strukturo:
       headers: {'Content-Type': 'application/json'},
       body: requestBody,
     );
+
+    if (response.statusCode == 401 ||
+        response.body.contains('ACCESS_TOKEN_TYPE_UNSUPPORTED') ||
+        response.body.contains('UNAUTHENTICATED')) {
+      throw Exception(
+        'Gemini API napaka (401): Neveljaven ali potekel API ključ. Prosimo nastavite svoj Google Gemini API ključ (začne se z AIzaSy...).',
+      );
+    }
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -291,6 +312,13 @@ JSON schema:
         },
       }),
     );
+    if (response.statusCode == 401 ||
+        response.body.contains('ACCESS_TOKEN_TYPE_UNSUPPORTED') ||
+        response.body.contains('UNAUTHENTICATED')) {
+      throw Exception(
+        'Gemini API napaka (401): Neveljaven ali potekel API ključ. Prosimo nastavite svoj Google Gemini API ključ (začne se z AIzaSy...).',
+      );
+    }
     if (response.statusCode != 200) {
       throw Exception('Gemini API napaka (${response.statusCode})');
     }

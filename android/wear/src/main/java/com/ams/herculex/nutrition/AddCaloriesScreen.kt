@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.OneUiPill
+import com.ams.herculex.ui.OneUiPillStyle
 
 @Composable
 fun AddCaloriesScreen(navController: NavController, viewModel: NutritionViewModel) {
@@ -41,7 +43,7 @@ fun AddCaloriesScreen(navController: NavController, viewModel: NutritionViewMode
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -73,36 +75,36 @@ fun AddCaloriesScreen(navController: NavController, viewModel: NutritionViewMode
                     QuickAddButton("+$step") { amount += step }
                 }
             }
-            Spacer(Modifier.height(6.dp))
-            // Clear + confirm
+            Spacer(Modifier.height(8.dp))
+            // Clear + confirm One UI pills. Extra horizontal inset beyond the
+            // screen's ambient 14dp: this row sits below vertical center,
+            // where a round watch face is narrower than its full diameter —
+            // without it the right-hand pill's edge clips against the bezel.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(Color(0xFF2C2C2E), shape = CircleShape)
-                        .clickable { amount = 0 }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Clear", color = Color(0xFF9E9E9E), fontSize = 13.sp)
+                Box(modifier = Modifier.weight(1f)) {
+                    OneUiPill(
+                        title = "Clear",
+                        style = OneUiPillStyle.DarkSlateButton,
+                        onClick = { amount = 0 },
+                    )
                 }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(Color(0xFFE64A19), shape = CircleShape)
-                        .clickable {
+                Box(modifier = Modifier.weight(1f)) {
+                    OneUiPill(
+                        title = "Add",
+                        icon = "✓",
+                        style = OneUiPillStyle.Terracotta,
+                        onClick = {
                             if (amount > 0) {
                                 viewModel.addCalories(amount)
                                 navController.popBackStack()
                             }
-                        }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Add", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        },
+                    )
                 }
             }
         }
@@ -113,11 +115,11 @@ fun AddCaloriesScreen(navController: NavController, viewModel: NutritionViewMode
 private fun QuickAddButton(label: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .background(Color(0xFF2C2C2E), shape = CircleShape)
+            .background(Color(0xFF3D2017), shape = CircleShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = Color(0xFFFFCCBC), fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }

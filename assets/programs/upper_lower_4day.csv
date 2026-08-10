@@ -1,0 +1,75 @@
+# Herculex Program,name,weeks,periodization
+program,Upper/Lower 4-Day,4,linear
+week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equipment
+0,1,Upper A,Barbell Bench Press,4,6,6,8,standard,,barbell
+0,1,Upper A,Barbell Row,4,8,8,7,standard,,barbell
+0,1,Upper A,Overhead Press,3,8,8,7,standard,,barbell
+0,1,Upper A,Lat Pulldown (Wide Grip),3,10,10,7,standard,,
+0,1,Upper A,Barbell Bicep Curl,3,12,12,7,standard,,barbell
+0,2,Lower A,Barbell Back Squat,4,6,6,8,standard,,barbell
+0,2,Lower A,Romanian Deadlift,3,8,8,7,standard,,barbell
+0,2,Lower A,Leg Press,3,10,10,7,standard,,
+0,2,Lower A,Standing Calf Raise,3,15,15,7,standard,,
+0,4,Upper B,Close Grip Bench Press,4,6,6,8,standard,,barbell
+0,4,Upper B,Pull-Up (Wide Grip),4,8,8,7,standard,,
+0,4,Upper B,Dumbbell Lateral Raise,3,12,12,7,standard,,dumbbell
+0,4,Upper B,Face Pull,3,15,15,7,standard,,
+0,4,Upper B,Hammer Curl,3,12,12,7,standard,,dumbbell
+0,5,Lower B,Conventional Deadlift,3,5,5,8,standard,,barbell
+0,5,Lower B,Dumbbell Bulgarian Split Squat,3,10,10,7,standard,,dumbbell
+0,5,Lower B,Lying Leg Curl,3,10,10,7,standard,,
+0,5,Lower B,Standing Calf Raise,3,15,15,7,standard,,
+1,1,Upper A,Barbell Bench Press,4,6,6,8,standard,,barbell
+1,1,Upper A,Barbell Row,4,8,8,7,standard,,barbell
+1,1,Upper A,Overhead Press,3,8,8,7,standard,,barbell
+1,1,Upper A,Lat Pulldown (Wide Grip),3,10,10,7,standard,,
+1,1,Upper A,Barbell Bicep Curl,3,12,12,7,standard,,barbell
+1,2,Lower A,Barbell Back Squat,4,6,6,8,standard,,barbell
+1,2,Lower A,Romanian Deadlift,3,8,8,7,standard,,barbell
+1,2,Lower A,Leg Press,3,10,10,7,standard,,
+1,2,Lower A,Standing Calf Raise,3,15,15,7,standard,,
+1,4,Upper B,Close Grip Bench Press,4,6,6,8,standard,,barbell
+1,4,Upper B,Pull-Up (Wide Grip),4,8,8,7,standard,,
+1,4,Upper B,Dumbbell Lateral Raise,3,12,12,7,standard,,dumbbell
+1,4,Upper B,Face Pull,3,15,15,7,standard,,
+1,4,Upper B,Hammer Curl,3,12,12,7,standard,,dumbbell
+1,5,Lower B,Conventional Deadlift,3,5,5,8,standard,,barbell
+1,5,Lower B,Dumbbell Bulgarian Split Squat,3,10,10,7,standard,,dumbbell
+1,5,Lower B,Lying Leg Curl,3,10,10,7,standard,,
+1,5,Lower B,Standing Calf Raise,3,15,15,7,standard,,
+2,1,Upper A,Barbell Bench Press,4,6,6,8,standard,,barbell
+2,1,Upper A,Barbell Row,4,8,8,7,standard,,barbell
+2,1,Upper A,Overhead Press,3,8,8,7,standard,,barbell
+2,1,Upper A,Lat Pulldown (Wide Grip),3,10,10,7,standard,,
+2,1,Upper A,Barbell Bicep Curl,3,12,12,7,standard,,barbell
+2,2,Lower A,Barbell Back Squat,4,6,6,8,standard,,barbell
+2,2,Lower A,Romanian Deadlift,3,8,8,7,standard,,barbell
+2,2,Lower A,Leg Press,3,10,10,7,standard,,
+2,2,Lower A,Standing Calf Raise,3,15,15,7,standard,,
+2,4,Upper B,Close Grip Bench Press,4,6,6,8,standard,,barbell
+2,4,Upper B,Pull-Up (Wide Grip),4,8,8,7,standard,,
+2,4,Upper B,Dumbbell Lateral Raise,3,12,12,7,standard,,dumbbell
+2,4,Upper B,Face Pull,3,15,15,7,standard,,
+2,4,Upper B,Hammer Curl,3,12,12,7,standard,,dumbbell
+2,5,Lower B,Conventional Deadlift,3,5,5,8,standard,,barbell
+2,5,Lower B,Dumbbell Bulgarian Split Squat,3,10,10,7,standard,,dumbbell
+2,5,Lower B,Lying Leg Curl,3,10,10,7,standard,,
+2,5,Lower B,Standing Calf Raise,3,15,15,7,standard,,
+3,1,Upper A,Barbell Bench Press,4,6,6,8,standard,,barbell
+3,1,Upper A,Barbell Row,4,8,8,7,standard,,barbell
+3,1,Upper A,Overhead Press,3,8,8,7,standard,,barbell
+3,1,Upper A,Lat Pulldown (Wide Grip),3,10,10,7,standard,,
+3,1,Upper A,Barbell Bicep Curl,3,12,12,7,standard,,barbell
+3,2,Lower A,Barbell Back Squat,4,6,6,8,standard,,barbell
+3,2,Lower A,Romanian Deadlift,3,8,8,7,standard,,barbell
+3,2,Lower A,Leg Press,3,10,10,7,standard,,
+3,2,Lower A,Standing Calf Raise,3,15,15,7,standard,,
+3,4,Upper B,Close Grip Bench Press,4,6,6,8,standard,,barbell
+3,4,Upper B,Pull-Up (Wide Grip),4,8,8,7,standard,,
+3,4,Upper B,Dumbbell Lateral Raise,3,12,12,7,standard,,dumbbell
+3,4,Upper B,Face Pull,3,15,15,7,standard,,
+3,4,Upper B,Hammer Curl,3,12,12,7,standard,,dumbbell
+3,5,Lower B,Conventional Deadlift,3,5,5,8,standard,,barbell
+3,5,Lower B,Dumbbell Bulgarian Split Squat,3,10,10,7,standard,,dumbbell
+3,5,Lower B,Lying Leg Curl,3,10,10,7,standard,,
+3,5,Lower B,Standing Calf Raise,3,15,15,7,standard,,

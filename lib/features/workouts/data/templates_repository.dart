@@ -73,7 +73,7 @@ class TemplatesRepository {
       (_db.update(_db.workoutTemplates)..where((t) => t.id.equals(templateId)))
           .write(WorkoutTemplatesCompanion(lastUsedAt: Value(DateTime.now())));
 
-  // ── Template exercises ─────────────────────────────────────────────────
+  // ── Template exercises & sets ──────────────────────────────────────────
 
   Stream<List<TemplateExerciseData>> watchTemplateExercises(int templateId) =>
       (_db.select(_db.templateExercises)
@@ -81,18 +81,57 @@ class TemplatesRepository {
             ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
           .watch();
 
-  Future<void> addExerciseToTemplate({
+  Stream<List<TemplateSetData>> watchTemplateSets(int templateExerciseId) =>
+      (_db.select(_db.templateSets)
+            ..where((t) => t.templateExerciseId.equals(templateExerciseId))
+            ..orderBy([(t) => OrderingTerm(expression: t.setOrder)]))
+          .watch();
+
+  Future<List<TemplateSetData>> getTemplateSets(int templateExerciseId) async {
+    final sets = await (_db.select(_db.templateSets)
+          ..where((t) => t.templateExerciseId.equals(templateExerciseId))
+          ..orderBy([(t) => OrderingTerm(expression: t.setOrder)]))
+        .get();
+    if (sets.isNotEmpty) return sets;
+
+    // Auto-initialize default set rows if none exist
+    final te = await (_db.select(_db.templateExercises)
+          ..where((t) => t.id.equals(templateExerciseId)))
+        .getSingleOrNull();
+    if (te == null) return [];
+
+    final count = te.targetSets > 0 ? te.targetSets : 3;
+    final defaultReps = te.targetRepsMin ?? 8;
+    for (var i = 0; i < count; i++) {
+      await _db.into(_db.templateSets).insert(
+            TemplateSetsCompanion.insert(
+              templateExerciseId: templateExerciseId,
+              setOrder: i + 1,
+              setType: const Value('standard'),
+              targetReps: Value(defaultReps),
+              isWarmup: const Value(false),
+            ),
+          );
+    }
+
+    return (_db.select(_db.templateSets)
+          ..where((t) => t.templateExerciseId.equals(templateExerciseId))
+          ..orderBy([(t) => OrderingTerm(expression: t.setOrder)]))
+        .get();
+  }
+
+  Future<int> addExerciseToTemplate({
     required int templateId,
     required int exerciseId,
     int targetSets = 3,
-    int? targetRepsMin,
-    int? targetRepsMax,
+    int? targetRepsMin = 8,
+    int? targetRepsMax = 12,
     int? targetRestSeconds,
   }) async {
     final existing = await (_db.select(_db.templateExercises)
           ..where((t) => t.templateId.equals(templateId)))
         .get();
-    await _db.into(_db.templateExercises).insert(
+    final id = await _db.into(_db.templateExercises).insert(
           TemplateExercisesCompanion.insert(
             templateId: templateId,
             exerciseId: exerciseId,
@@ -103,6 +142,93 @@ class TemplatesRepository {
             targetRestSeconds: Value(targetRestSeconds),
           ),
         );
+
+    final reps = targetRepsMin ?? 8;
+    for (var i = 0; i < targetSets; i++) {
+      await _db.into(_db.templateSets).insert(
+            TemplateSetsCompanion.insert(
+              templateExerciseId: id,
+              setOrder: i + 1,
+              setType: const Value('standard'),
+              targetReps: Value(reps),
+              isWarmup: const Value(false),
+            ),
+          );
+    }
+    return id;
+  }
+
+  Future<void> addTemplateSet({
+    required int templateExerciseId,
+    String setType = 'standard',
+    String? setTypeMetaJson,
+    int? targetReps = 8,
+    double? targetWeightKg,
+    bool isWarmup = false,
+  }) async {
+    final existing = await getTemplateSets(templateExerciseId);
+    final nextOrder = existing.length + 1;
+    final lastReps = existing.isNotEmpty ? (existing.last.targetReps ?? targetReps) : targetReps;
+    final lastWeight = existing.isNotEmpty ? (existing.last.targetWeightKg ?? targetWeightKg) : targetWeightKg;
+
+    await _db.into(_db.templateSets).insert(
+          TemplateSetsCompanion.insert(
+            templateExerciseId: templateExerciseId,
+            setOrder: nextOrder,
+            setType: Value(setType),
+            setTypeMetaJson: Value(setTypeMetaJson),
+            targetReps: Value(lastReps),
+            targetWeightKg: Value(lastWeight),
+            isWarmup: Value(isWarmup),
+          ),
+        );
+
+    // Keep targetSets in sync
+    await (_db.update(_db.templateExercises)..where((t) => t.id.equals(templateExerciseId)))
+        .write(TemplateExercisesCompanion(targetSets: Value(nextOrder)));
+  }
+
+  Future<void> updateTemplateSet(
+    int setId, {
+    String? setType,
+    String? setTypeMetaJson,
+    int? targetReps,
+    double? targetWeightKg,
+    bool? isWarmup,
+    bool clearMetaJson = false,
+  }) =>
+      (_db.update(_db.templateSets)..where((t) => t.id.equals(setId))).write(
+        TemplateSetsCompanion(
+          setType: setType != null ? Value(setType) : const Value.absent(),
+          setTypeMetaJson: clearMetaJson ? const Value(null) : (setTypeMetaJson != null ? Value(setTypeMetaJson) : const Value.absent()),
+          targetReps: targetReps != null ? Value(targetReps) : const Value.absent(),
+          targetWeightKg: targetWeightKg != null ? Value(targetWeightKg) : const Value.absent(),
+          isWarmup: isWarmup != null ? Value(isWarmup) : const Value.absent(),
+        ),
+      );
+
+  Future<void> deleteTemplateSet(int setId) async {
+    final setRow = await (_db.select(_db.templateSets)..where((t) => t.id.equals(setId))).getSingleOrNull();
+    if (setRow == null) return;
+
+    final teId = setRow.templateExerciseId;
+    await (_db.delete(_db.templateSets)..where((t) => t.id.equals(setId))).go();
+
+    // Re-index remaining sets
+    final remaining = await (_db.select(_db.templateSets)
+          ..where((t) => t.templateExerciseId.equals(teId))
+          ..orderBy([(t) => OrderingTerm(expression: t.setOrder)]))
+        .get();
+
+    for (var i = 0; i < remaining.length; i++) {
+      if (remaining[i].setOrder != i + 1) {
+        await (_db.update(_db.templateSets)..where((t) => t.id.equals(remaining[i].id)))
+            .write(TemplateSetsCompanion(setOrder: Value(i + 1)));
+      }
+    }
+
+    await (_db.update(_db.templateExercises)..where((t) => t.id.equals(teId)))
+        .write(TemplateExercisesCompanion(targetSets: Value(remaining.length)));
   }
 
   Future<void> removeExerciseFromTemplate(int templateExerciseId) =>
@@ -110,25 +236,54 @@ class TemplatesRepository {
             ..where((t) => t.id.equals(templateExerciseId)))
           .go();
 
+  /// Updates a template exercise's targets. When [targetSets] changes, the
+  /// actual [TemplateSetData] rows are reconciled to match (via
+  /// [addTemplateSet]/[deleteTemplateSet], which keep ordering consistent)
+  /// instead of just rewriting the counter column (item 6).
   Future<void> updateTemplateExercise(
     int id, {
     int? targetSets,
     int? targetRepsMin,
     int? targetRepsMax,
     int? targetRestSeconds,
-  }) =>
-      (_db.update(_db.templateExercises)..where((t) => t.id.equals(id))).write(
-        TemplateExercisesCompanion(
-          targetSets: targetSets != null ? Value(targetSets) : const Value.absent(),
-          targetRepsMin: targetRepsMin != null ? Value(targetRepsMin) : const Value.absent(),
-          targetRepsMax: targetRepsMax != null ? Value(targetRepsMax) : const Value.absent(),
-          targetRestSeconds: targetRestSeconds != null ? Value(targetRestSeconds) : const Value.absent(),
-        ),
-      );
+  }) async {
+    if (targetSets != null) {
+      final current = await getTemplateSets(id);
+      final diff = targetSets - current.length;
+      if (diff > 0) {
+        for (var i = 0; i < diff; i++) {
+          await addTemplateSet(templateExerciseId: id);
+        }
+      } else if (diff < 0) {
+        final toRemove = current.sublist(current.length + diff);
+        for (final set in toRemove) {
+          await deleteTemplateSet(set.id);
+        }
+      }
+    }
+    await (_db.update(_db.templateExercises)..where((t) => t.id.equals(id))).write(
+      TemplateExercisesCompanion(
+        targetSets: targetSets != null ? Value(targetSets) : const Value.absent(),
+        targetRepsMin: targetRepsMin != null ? Value(targetRepsMin) : const Value.absent(),
+        targetRepsMax: targetRepsMax != null ? Value(targetRepsMax) : const Value.absent(),
+        targetRestSeconds: targetRestSeconds != null ? Value(targetRestSeconds) : const Value.absent(),
+      ),
+    );
+  }
 
   /// Starts a live workout session pre-populated from a template.
   /// Returns the new session id.
-  Future<int> startSessionFromTemplate(int templateId, AppDatabase db) async {
+  ///
+  /// Copying the template's exercises and sets into the session here is what
+  /// makes the program-day template link a *live reference*: editing the
+  /// template afterwards changes future sessions but can no longer reach one
+  /// that has already been started.
+  Future<int> startSessionFromTemplate(
+    int templateId, {
+    DateTime? startedAt,
+    int? gymId,
+    String? notes,
+  }) async {
     final exercises = await (_db.select(_db.templateExercises)
           ..where((t) => t.templateId.equals(templateId))
           ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
@@ -136,10 +291,14 @@ class TemplatesRepository {
 
     return _db.transaction(() async {
       final sessionId = await _db.into(_db.workoutSessions).insert(
-            WorkoutSessionsCompanion.insert(startedAt: DateTime.now()),
+            WorkoutSessionsCompanion.insert(
+              startedAt: startedAt ?? DateTime.now(),
+              gymId: Value(gymId),
+              notes: Value(notes),
+            ),
           );
       for (final te in exercises) {
-        await _db.into(_db.workoutExercises).insert(
+        final workoutExerciseId = await _db.into(_db.workoutExercises).insert(
               WorkoutExercisesCompanion.insert(
                 sessionId: sessionId,
                 exerciseId: te.exerciseId,
@@ -147,6 +306,38 @@ class TemplatesRepository {
                 targetRestSeconds: Value(te.targetRestSeconds),
               ),
             );
+
+        final templateSets = await getTemplateSets(te.id);
+        if (templateSets.isNotEmpty) {
+          for (final ts in templateSets) {
+            await _db.into(_db.setEntries).insert(
+                  SetEntriesCompanion.insert(
+                    workoutExerciseId: workoutExerciseId,
+                    setIndex: ts.setOrder,
+                    reps: ts.targetReps ?? te.targetRepsMin ?? 0,
+                    weightKg: ts.targetWeightKg ?? 0.0,
+                    setType: Value(ts.setType),
+                    setTypeMetaJson: Value(ts.setTypeMetaJson),
+                    isWarmup: Value(ts.isWarmup),
+                    isCompleted: const Value(false),
+                  ),
+                );
+          }
+        } else {
+          // Fallback if no sets
+          final defaultReps = te.targetRepsMin ?? 8;
+          for (var i = 0; i < te.targetSets; i++) {
+            await _db.into(_db.setEntries).insert(
+                  SetEntriesCompanion.insert(
+                    workoutExerciseId: workoutExerciseId,
+                    setIndex: i + 1,
+                    reps: defaultReps,
+                    weightKg: 0.0,
+                    isCompleted: const Value(false),
+                  ),
+                );
+          }
+        }
       }
       await markUsed(templateId);
       return sessionId;

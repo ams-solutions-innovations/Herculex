@@ -6,7 +6,9 @@ import '../../../data/local/database.dart';
 import '../../health/presentation/health_providers.dart';
 import '../../nutrition/domain/macro_targets.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
+import '../../programs/presentation/programs_providers.dart';
 import '../../workouts/data/scheduled_workout_service.dart';
+import '../../workouts/presentation/workouts_providers.dart';
 import '../data/dashboard_config_repository.dart';
 import '../domain/dashboard_config.dart';
 import '../domain/streaks.dart';
@@ -42,7 +44,11 @@ final dashboardConfigProvider =
 final scheduledWorkoutServiceProvider =
     Provider<ScheduledWorkoutService>((ref) {
   return ScheduledWorkoutService(
-      ref.watch(appDatabaseProvider), ref.watch(clockProvider));
+    ref.watch(appDatabaseProvider),
+    ref.watch(clockProvider),
+    ref.watch(programsRepositoryProvider),
+    ref.watch(templatesRepositoryProvider),
+  );
 });
 
 /// Today's scheduled workout for the smart launcher (§18). Refreshes when the

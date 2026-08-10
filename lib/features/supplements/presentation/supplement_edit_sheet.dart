@@ -155,11 +155,17 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
   }
 
   Future<void> _pickTime() async {
+    FocusScope.of(context).unfocus();
     final picked = await showTimePicker(
       context: context,
       initialTime: _time ?? const TimeOfDay(hour: 8, minute: 0),
     );
-    if (picked != null) setState(() => _time = picked);
+    if (picked != null) {
+      setState(() {
+        _time = picked;
+        _schedule = SupplementSchedule.time;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -279,15 +285,25 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                     // Name field
                     TextField(
                       controller: _nameCtrl,
-                      autofocus: !_isEditing,
+                      autofocus: false,
                       textCapitalization: TextCapitalization.words,
                       decoration: InputDecoration(
                         labelText: 'Name',
                         hintText: 'e.g. Creatine, Vitamin D…',
+                        filled: true,
+                        fillColor: AppColors.surfaceVariant,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: AppColors.outlineVariant),
                         ),
-                        filled: true,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: AppColors.outlineVariant),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -299,10 +315,20 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                       decoration: InputDecoration(
                         labelText: 'Brand (optional)',
                         hintText: 'e.g. Optimum Nutrition',
+                        filled: true,
+                        fillColor: AppColors.surfaceVariant,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: AppColors.outlineVariant),
                         ),
-                        filled: true,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: AppColors.outlineVariant),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -323,10 +349,20 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                             decoration: InputDecoration(
                               labelText: 'Dose',
                               hintText: 'e.g. 5',
+                              filled: true,
+                              fillColor: AppColors.surfaceVariant,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: AppColors.outlineVariant),
                               ),
-                              filled: true,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: AppColors.outlineVariant),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                              ),
                             ),
                           ),
                         ),
@@ -342,10 +378,20 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                                 horizontal: 12,
                                 vertical: 16,
                               ),
+                              filled: true,
+                              fillColor: AppColors.surfaceVariant,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: AppColors.outlineVariant),
                               ),
-                              filled: true,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: AppColors.outlineVariant),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                              ),
                             ),
                             items: [
                               for (final u in supplementDoseUnits)
@@ -429,10 +475,7 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                           label: 'Set time',
                           icon: Icons.access_time_outlined,
                           selected: _schedule == SupplementSchedule.time,
-                          onTap: () async {
-                            setState(() => _schedule = SupplementSchedule.time);
-                            await _pickTime();
-                          },
+                          onTap: () => _pickTime(),
                         ),
                         const SizedBox(width: 8),
                         _ScheduleChip(

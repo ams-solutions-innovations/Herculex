@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import 'equipment_variant_sheet.dart';
+
 import 'rest_timer_controller.dart';
 import 'workouts_providers.dart';
 
@@ -61,6 +62,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                     ref.read(dynamicWorkoutModeProvider.notifier).state = false,
               ),
               const Spacer(),
+
               if (exercises.length > 1) ...[
                 Text('${_exerciseIndex + 1}/${exercises.length}',
                     style: theme.textTheme.titleSmall),
@@ -169,6 +171,48 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                   ? null
                   : catalog.firstWhereOrNull((e) => e.id == currentWe.exerciseId);
               
+              if (restTimer.isRunning) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 0, 32, 110),
+                  child: SizedBox(
+                    height: 72,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: AppColors.primary),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24)),
+                            ),
+                            onPressed: () =>
+                                ref.read(restTimerProvider.notifier).cancel(),
+                            child: const Text('SKIP REST',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24)),
+                            ),
+                            onPressed: () => ref
+                                .read(restTimerProvider.notifier)
+                                .addSeconds(30),
+                            child: const Text('+30s',
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
               if (currentWe != null && currentNextSet != null) {
                 return Padding(
                   padding: const EdgeInsets.fromLTRB(32, 0, 32, 110),

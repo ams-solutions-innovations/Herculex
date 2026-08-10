@@ -39,6 +39,15 @@ class WearDataLayerSyncManager(
         return flushPendingRealtimeMessages()
     }
 
+    suspend fun sendFastingCommand(commandJson: String): Boolean {
+        FastingStore.savePendingCommand(appContext, commandJson)
+        return sendRealtimeEvent(WearSyncPaths.MESSAGE_FASTING_COMMAND, commandJson)
+    }
+
+    suspend fun sendQuickAddCommand(commandJson: String): Boolean {
+        return sendRealtimeEvent(WearSyncPaths.MESSAGE_QUICKADD_COMMAND, commandJson)
+    }
+
     /**
      * Fire-and-forget MessageClient broadcast to all connected nodes — near
      * instant, unlike DataClient puts which the system can batch/coalesce.

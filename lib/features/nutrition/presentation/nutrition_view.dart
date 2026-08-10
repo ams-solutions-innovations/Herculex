@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../../../theme/haptics.dart';
 import '../data/nutrition_repository.dart';
 import '../domain/daily_totals.dart';
 import '../domain/meal_slots.dart';
@@ -463,7 +464,7 @@ class _MealAccordionState extends State<_MealAccordion>
           // ── Body (animated) ─────────────────────────────────────────────
           SizeTransition(
             sizeFactor: _expandAnim,
-            axisAlignment: -1,
+            alignment: Alignment.topCenter,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -741,7 +742,7 @@ class _EntryTile extends ConsumerWidget {
               maxLines: 1,
             ),
             subtitle: Text(
-              display?.subtitle ?? '',
+              display?.subtitleWithMacros ?? '',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.secondary,
               ),
@@ -769,13 +770,16 @@ class _EntryTile extends ConsumerWidget {
   ) async {
     final macros = await repo.macrosForEntry(entry);
     final name = await _resolveName(ref);
-    final subtitle = entry.foodId != null
+    final portionText = entry.foodId != null
         ? '${(entry.gramsOverride ?? 0).toStringAsFixed(0)} g'
         : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
     return _EntryDisplay(
       name: name,
-      subtitle: subtitle,
+      portionText: portionText,
       kcal: macros.kcal,
+      proteinG: macros.proteinG,
+      carbsG: macros.carbsG,
+      fatG: macros.fatG,
       sodiumMg: macros.sodiumMg,
       potassiumMg: macros.potassiumMg,
       cholesterolMg: macros.cholesterolMg,
@@ -793,6 +797,7 @@ class _EntryTile extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (modalContext) {
         final repo = ref.read(nutritionRepositoryProvider);
+        final mealSlots = ref.read(mealSlotsProvider);
         final hasMicros =
             display.sodiumMg > 0 ||
             display.potassiumMg > 0 ||
@@ -803,45 +808,219 @@ class _EntryTile extends ConsumerWidget {
             color: theme.bottomSheetTheme.backgroundColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          display.name,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          display.subtitle,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.secondary,
-                          ),
-                        ),
-                      ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.edit, color: AppColors.primary),
-                    tooltip: 'Edit entry',
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            display.name,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            display.subtitleWithMacros,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.drive_file_move_outlined),
+                      tooltip: 'Move to meal',
+                      onSelected: (targetMealKey) async {
+                        Haptics.selection();
+                        Navigator.of(modalContext).pop();
+                        await repo.updateEntry(
+                          id: entry.id,
+                          mealKey: targetMealKey,
+                        );
+                        if (!context.mounted) return;
+                        final targetLabel = mealSlots
+                            .firstWhere(
+                              (s) => s.key == targetMealKey,
+                              orElse: () => MealSlot(key: targetMealKey, label: targetMealKey),
+                            )
+                            .label;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Moved ${display.name} to $targetLabel'),
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      itemBuilder: (context) => [
+                        for (final slot in mealSlots)
+                          PopupMenuItem(
+                            value: slot.key,
+                            enabled: slot.key != entry.meal,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  slot.icon,
+                                  size: 18,
+                                  color: slot.key == entry.meal
+                                      ? AppColors.secondary
+                                      : AppColors.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  slot.label,
+                                  style: TextStyle(
+                                    fontWeight: slot.key == entry.meal
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.edit, color: AppColors.primary),
+                      tooltip: 'Edit entry',
+                      onPressed: () async {
+                        Navigator.of(modalContext).pop();
+                        FoodData? food;
+                        RecipeData? recipe;
+                        if (entry.foodId != null) {
+                          final foods = await repo.searchFoods('');
+                          food = foods
+                              .where((f) => f.id == entry.foodId)
+                              .firstOrNull;
+                        } else if (entry.recipeId != null) {
+                          final recipes = await repo.watchRecipes().first;
+                          recipe = recipes
+                              .where((r) => r.id == entry.recipeId)
+                              .firstOrNull;
+                        }
+                        if (!context.mounted) return;
+                        LogEntrySheet.forEntry(
+                          context,
+                          entry: entry,
+                          food: food,
+                          recipe: recipe,
+                          date:
+                              DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.redAccent,
+                      ),
+                      tooltip: 'Delete entry',
+                      onPressed: () async {
+                        Navigator.of(modalContext).pop();
+                        await repo.deleteEntry(entry.id);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  '${display.kcal.toStringAsFixed(0)} kcal',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'MOVE TO MEAL',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final slot in mealSlots)
+                      ChoiceChip(
+                        avatar: Icon(
+                          slot.icon,
+                          size: 16,
+                          color: slot.key == entry.meal
+                              ? Colors.white
+                              : AppColors.primary,
+                        ),
+                        label: Text(slot.label),
+                        selected: slot.key == entry.meal,
+                        selectedColor: AppColors.primary,
+                        labelStyle: TextStyle(
+                          color: slot.key == entry.meal
+                              ? Colors.white
+                              : AppColors.onSurface,
+                          fontWeight: slot.key == entry.meal
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                        ),
+                        onSelected: (selected) async {
+                          if (slot.key == entry.meal) return;
+                          Haptics.selection();
+                          Navigator.of(modalContext).pop();
+                          await repo.updateEntry(
+                            id: entry.id,
+                            mealKey: slot.key,
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Moved ${display.name} to ${slot.label}'),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+                if (hasMicros) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'MINERALS',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.secondary,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  microRow('Sodium', display.sodiumMg, 'mg', theme),
+                  microRow('Potassium', display.potassiumMg, 'mg', theme),
+                  microRow('Cholesterol', display.cholesterolMg, 'mg', theme),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
                     onPressed: () async {
                       Navigator.of(modalContext).pop();
                       FoodData? food;
@@ -863,79 +1042,15 @@ class _EntryTile extends ConsumerWidget {
                         entry: entry,
                         food: food,
                         recipe: recipe,
-                        date:
-                            DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
+                        date: DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
                       );
                     },
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: Colors.redAccent,
-                    ),
-                    tooltip: 'Delete entry',
-                    onPressed: () async {
-                      Navigator.of(modalContext).pop();
-                      await repo.deleteEntry(entry.id);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                '${display.kcal.toStringAsFixed(0)} kcal',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              if (hasMicros) ...[
-                const SizedBox(height: 16),
-                Text(
-                  'MINERALS',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.secondary,
-                    letterSpacing: 1.0,
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Edit Quantity or Meal'),
                   ),
                 ),
-                const SizedBox(height: 8),
-                microRow('Sodium', display.sodiumMg, 'mg', theme),
-                microRow('Potassium', display.potassiumMg, 'mg', theme),
-                microRow('Cholesterol', display.cholesterolMg, 'mg', theme),
               ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    Navigator.of(modalContext).pop();
-                    FoodData? food;
-                    RecipeData? recipe;
-                    if (entry.foodId != null) {
-                      final foods = await repo.searchFoods('');
-                      food = foods
-                          .where((f) => f.id == entry.foodId)
-                          .firstOrNull;
-                    } else if (entry.recipeId != null) {
-                      final recipes = await repo.watchRecipes().first;
-                      recipe = recipes
-                          .where((r) => r.id == entry.recipeId)
-                          .firstOrNull;
-                    }
-                    if (!context.mounted) return;
-                    LogEntrySheet.forEntry(
-                      context,
-                      entry: entry,
-                      food: food,
-                      recipe: recipe,
-                      date: DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
-                    );
-                  },
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Edit Quantity or Meal'),
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -983,20 +1098,33 @@ class _EntryTile extends ConsumerWidget {
 
 class _EntryDisplay {
   final String name;
-  final String subtitle;
+  final String portionText;
   final double kcal;
+  final double proteinG;
+  final double carbsG;
+  final double fatG;
   final double sodiumMg;
   final double potassiumMg;
   final double cholesterolMg;
 
   _EntryDisplay({
     required this.name,
-    required this.subtitle,
+    required this.portionText,
     required this.kcal,
+    required this.proteinG,
+    required this.carbsG,
+    required this.fatG,
     this.sodiumMg = 0,
     this.potassiumMg = 0,
     this.cholesterolMg = 0,
   });
+
+  String get subtitleWithMacros {
+    final p = proteinG.toStringAsFixed(0);
+    final c = carbsG.toStringAsFixed(0);
+    final f = fatG.toStringAsFixed(0);
+    return '$portionText  •  P: ${p}g  C: ${c}g  F: ${f}g';
+  }
 }
 
 class _MineralsRow extends StatefulWidget {

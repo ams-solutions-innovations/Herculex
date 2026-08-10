@@ -416,7 +416,6 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
           decoration: InputDecoration(
             hintText: 'Enter value',
             suffixText: _unit,
-            border: const OutlineInputBorder(),
           ),
           onSubmitted: (v) => Navigator.pop(dialogCtx, double.tryParse(v)),
         ),

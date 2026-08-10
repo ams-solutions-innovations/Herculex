@@ -1,5 +1,6 @@
 package com.ams.herculex
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,16 +15,18 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import com.ams.herculex.home.HomeScreen
 import com.ams.herculex.nutrition.AddCaloriesScreen
 import com.ams.herculex.nutrition.AddWaterScreen
+import com.ams.herculex.nutrition.FastingScreen
+import com.ams.herculex.nutrition.LogFoodMealPickerScreen
 import com.ams.herculex.nutrition.LogFoodScreen
 import com.ams.herculex.nutrition.NutritionScreen
 import com.ams.herculex.nutrition.NutritionViewModel
 import com.ams.herculex.nutrition.NutrientsScreen
-import com.ams.herculex.nutrition.SummaryScreen
 import com.ams.herculex.workout.ActiveWorkoutScreen
 import com.ams.herculex.workout.ExerciseOptionsScreen
 import com.ams.herculex.workout.ManageExerciseScreen
 import com.ams.herculex.workout.SelectExerciseScreen
 import com.ams.herculex.workout.SetLoggerScreen
+import com.ams.herculex.workout.WeeklyVolumeScreen
 import com.ams.herculex.workout.WorkoutDetailScreen
 import com.ams.herculex.workout.WorkoutListScreen
 import com.ams.herculex.workout.WorkoutViewModel
@@ -31,6 +34,13 @@ import com.ams.herculex.workout.WorkoutViewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
         setContent {
             MaterialTheme {
                 val navController      = rememberSwipeDismissableNavController()
@@ -38,8 +48,34 @@ class MainActivity : ComponentActivity() {
                 val workoutViewModel:   WorkoutViewModel   = viewModel()
                 val activeSession by workoutViewModel.session.collectAsState()
 
+                LaunchedEffect(intent) {
+                    intent?.getStringExtra("route")?.let { route ->
+                        navController.navigate(route)
+                        intent.removeExtra("route")
+                    }
+                }
+
                 LaunchedEffect(activeSession != null) {
                     if (activeSession != null) {
+                        try {
+                            val intent = android.content.Intent(applicationContext, com.ams.herculex.workout.WorkoutOngoingService::class.java).apply {
+                                val s = activeSession!!
+                                putExtra(com.ams.herculex.workout.WorkoutOngoingService.EXTRA_START_EPOCH_MS, com.ams.herculex.workout.WorkoutStore.getActiveSessionStartEpoch(applicationContext) ?: System.currentTimeMillis())
+                                putExtra(com.ams.herculex.workout.WorkoutOngoingService.EXTRA_WORKOUT_TITLE, s.template.name)
+                                val curEx = s.exercises.getOrNull(s.currentExerciseIndex)
+                                if (curEx != null) {
+                                    putExtra(com.ams.herculex.workout.WorkoutOngoingService.EXTRA_EXERCISE_NAME, curEx.template.name)
+                                }
+                            }
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                applicationContext.startForegroundService(intent)
+                            } else {
+                                applicationContext.startService(intent)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainActivity", "Failed to start ongoing service", e)
+                        }
+
                         navController.navigate("active_workout") {
                             launchSingleTop = true
                         }
@@ -59,20 +95,23 @@ class MainActivity : ComponentActivity() {
                     composable("nutrition") {
                         NutritionScreen(navController)
                     }
-                    composable("summary") {
-                        SummaryScreen(nutritionViewModel)
-                    }
                     composable("nutrients") {
                         NutrientsScreen(nutritionViewModel)
                     }
                     composable("log_food") {
                         LogFoodScreen(navController, nutritionViewModel)
                     }
+                    composable("log_food_meal") {
+                        LogFoodMealPickerScreen(navController, nutritionViewModel)
+                    }
                     composable("add_calories") {
                         AddCaloriesScreen(navController, nutritionViewModel)
                     }
                     composable("add_water") {
                         AddWaterScreen(navController, nutritionViewModel)
+                    }
+                    composable("fasting") {
+                        FastingScreen(navController, nutritionViewModel)
                     }
 
                     // ── Workouts ──────────────────────────────────────────────
@@ -102,8 +141,16 @@ class MainActivity : ComponentActivity() {
                         val action = backStack.arguments?.getString("action").orEmpty()
                         ManageExerciseScreen(navController, workoutViewModel, action)
                     }
+                    composable("weekly_volume") {
+                        WeeklyVolumeScreen(navController, nutritionViewModel)
+                    }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 }

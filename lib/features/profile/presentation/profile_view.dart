@@ -359,9 +359,20 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             _SettingsDivider(),
             _SettingsTile(
-              icon: Icons.sync_rounded,
-              label: 'Data Sync',
-              trailing: const _SyncStatusBadge(),
+              icon: Icons.health_and_safety_rounded,
+              label: 'Samsung Health & Integrations',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _SyncStatusBadge(),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ],
+              ),
+              onTap: () => context.push('/health'),
             ),
             _SettingsDivider(),
             _SettingsTile(

@@ -590,63 +590,106 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                 ).format(session.startedAt);
                 final targetHours = session.targetSeconds ~/ 3600;
 
-                return Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: session.completed
-                            ? AppColors.primary.withValues(alpha: 0.1)
-                            : AppColors.surfaceVariant,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        session.completed
-                            ? Icons.check_circle_outline
-                            : Icons.close,
-                        color: session.completed
-                            ? AppColors.primary
-                            : AppColors.secondary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "$hours hrs $minutes min fast",
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                return Dismissible(
+                  key: ValueKey('session_${session.id}'),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    color: Colors.redAccent.withValues(alpha: 0.85),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  confirmDismiss: (direction) async {
+                    return await showDialog<bool>(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          backgroundColor: AppColors.surfaceContainerLowest,
+                          title: const Text("Delete Session"),
+                          content: const Text(
+                            "Are you sure you want to delete this fasting session?",
                           ),
-                          Text(
-                            "Target: ${targetHours}h • $dateStr",
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.secondary,
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text("CANCEL"),
                             ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text(
+                                "DELETE",
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ) ?? false;
+                  },
+                  onDismissed: (_) {
+                    ref.read(fastingRepositoryProvider).deleteSession(session.id);
+                  },
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: session.completed
+                              ? AppColors.primary.withValues(alpha: 0.1)
+                              : AppColors.surfaceVariant,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          session.completed
+                              ? Icons.check_circle_outline
+                              : Icons.close,
+                          color: session.completed
+                              ? AppColors.primary
+                              : AppColors.secondary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "$hours hrs $minutes min fast",
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "Target: ${targetHours}h • $dateStr",
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (session.completed)
+                        Text(
+                          "SUCCESS",
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
-                    ),
-                    if (session.completed)
-                      Text(
-                        "SUCCESS",
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
+                        )
+                      else
+                        Text(
+                          "INCOMPLETE",
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.secondary,
+                          ),
                         ),
-                      )
-                    else
-                      Text(
-                        "INCOMPLETE",
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.secondary,
-                        ),
-                      ),
-                  ],
+                    ],
+                  ),
                 );
               },
             );

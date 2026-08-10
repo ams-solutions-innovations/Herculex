@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../domain/equipment_variants.dart';
 
 /// Hevy-style equipment prompt (§26): immediately after picking an exercise,
 /// large tappable buttons ask which equipment it will be performed with. The
@@ -25,19 +26,6 @@ class EquipmentVariantSheet extends StatelessWidget {
     );
   }
 
-  static const _labels = <String, String>{
-    'barbell': 'Barbell',
-    'dumbbell': 'Dumbbell',
-    'smith': 'Smith Machine',
-    'cable': 'Cable',
-    'machine_plate': 'Machine (Plate-Loaded)',
-    'machine_selectorized': 'Machine (Selectorized)',
-    'kettlebell': 'Kettlebell',
-    'band': 'Band',
-    'bodyweight': 'Bodyweight',
-    'other': 'Other',
-  };
-
   static const _icons = <String, IconData>{
     'barbell': Icons.fitness_center,
     'dumbbell': Icons.fitness_center,
@@ -51,29 +39,17 @@ class EquipmentVariantSheet extends StatelessWidget {
     'other': Icons.more_horiz,
   };
 
-  static String labelFor(String variant) => _labels[variant] ?? variant;
+  static String labelFor(String variant) => equipmentVariantLabel(variant);
 
-  /// Plausible equipment options per exercise, catalog default first. Loaded
-  /// free-weight patterns can swap across the full equipment family; pure
-  /// bodyweight, band, and cardio/mobility work cannot.
-  static List<String> optionsFor(ExerciseCatalogData exercise) {
-    final base = exercise.modality;
-    if (exercise.loggingMetric != 'weight_reps' &&
-        exercise.loggingMetric != 'reps') {
-      return [base]; // time/distance work: no equipment swap.
-    }
-    if (base == 'bodyweight') {
-      // Bodyweight movements can be loaded via band assistance or stay pure;
-      // added weight is handled by the weighted-bodyweight field, not a
-      // variant switch.
-      return ['bodyweight', 'band'];
-    }
-    const family = [
-      'barbell', 'dumbbell', 'smith', 'cable',
-      'machine_plate', 'machine_selectorized', 'kettlebell', 'bodyweight',
-    ];
-    return [base, ...family.where((m) => m != base)];
-  }
+  /// Plausible equipment options per exercise, catalog default first.
+  ///
+  /// Only swaps the exercise can physically be performed with are offered. A
+  /// Seated Leg Curl exists on exactly one machine, so it gets no prompt at
+  /// all — [show] skips the sheet when there is a single option. The rule
+  /// itself lives in `domain/equipment_variants.dart`; the Wear OS catalog
+  /// push needs the same answer.
+  static List<String> optionsFor(ExerciseCatalogData exercise) =>
+      equipmentVariantsFor(exercise);
 
   @override
   Widget build(BuildContext context) {

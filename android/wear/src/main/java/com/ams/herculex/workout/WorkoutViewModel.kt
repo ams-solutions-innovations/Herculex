@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ams.herculex.sync.WearDataLayerSyncManager
+import com.ams.herculex.sync.WearSyncContract
 import com.ams.herculex.sync.WearSyncPaths
 import com.ams.herculex.sync.SyncService
 import kotlinx.coroutines.Job
@@ -77,10 +78,18 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         template: WorkoutTemplate,
         broadcastToPhone: Boolean = true,
         startEpochMs: Long = System.currentTimeMillis(),
+        origin: String = WearSyncContract.ORIGIN_WATCH,
     ) {
         val newSession = WorkoutSession(
             template  = template,
-            exercises = template.exercises.map { ActiveExercise(template = it) },
+            exercises = template.exercises.map { exerciseTemplate ->
+                ActiveExercise(
+                    template = exerciseTemplate,
+                    sets = plannedSetsForTemplate(exerciseTemplate),
+                )
+            },
+            startTimeMs = startEpochMs,
+            origin = origin,
         )
         _session.value = newSession
         _elapsedSeconds.value = 0L
@@ -109,17 +118,29 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         currentSetIndex: Int,
         templateName: String = "Active Workout",
         startedAtEpochMs: Long? = null,
+        origin: String = WearSyncContract.ORIGIN_PHONE,
     ) {
         val effectiveStartEpochMs = startedAtEpochMs ?: sessionStartEpochMs
         val current = _session.value
         if (current != null) {
+            // `origin` is deliberately NOT taken from the incoming envelope
+            // here: it records who *started* the session, and an update from
+            // the other device never changes that. Letting a phone-sent update
+            // rewrite a watch-started session to phone-origin would suppress
+            // the phone's legitimate "started on watch" alert on reconnect.
             sessionStartEpochMs = effectiveStartEpochMs
             _elapsedSeconds.value = ((System.currentTimeMillis() - effectiveStartEpochMs) / 1000).coerceAtLeast(0)
             _session.value = current.copy(
+                template = current.template.copy(
+                    name = templateName,
+                    exercises = exercises.map { it.template }
+                ),
                 exercises = exercises,
+                startTimeMs = effectiveStartEpochMs,
                 currentExerciseIndex = currentExIndex,
                 currentSetIndex = currentSetIndex,
             )
+            startServiceIfNeeded(sessionStartEpochMs, isUpdate = true)
         } else {
             val template = WorkoutTemplate(
                 id = "remote_session",
@@ -129,8 +150,10 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             val newSession = WorkoutSession(
                 template = template,
                 exercises = exercises,
+                startTimeMs = effectiveStartEpochMs,
                 currentExerciseIndex = currentExIndex,
                 currentSetIndex = currentSetIndex,
+                origin = origin,
             )
             _session.value = newSession
             sessionStartEpochMs = effectiveStartEpochMs
@@ -144,6 +167,20 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val current = _session.value ?: return
         val exercises = current.exercises + ActiveExercise(template = exerciseTemplate)
         val updated = current.copy(exercises = exercises)
+        _session.value = updated
+        broadcastSessionToPhone("/herculex_watch_session_update", updated)
+    }
+
+    fun selectExerciseInSession(exerciseIndex: Int) {
+        val current = _session.value ?: return
+        if (exerciseIndex !in current.exercises.indices) return
+        val updated = current.copy(
+            currentExerciseIndex = exerciseIndex,
+            currentSetIndex = current.exercises[exerciseIndex].sets
+                .indexOfFirst { !it.completed }
+                .takeIf { it >= 0 }
+                ?: current.exercises[exerciseIndex].sets.size
+        )
         _session.value = updated
         broadcastSessionToPhone("/herculex_watch_session_update", updated)
     }
@@ -178,7 +215,16 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val exercises = current.exercises.toMutableList()
         val ex = exercises[exerciseIndex]
         val updatedTemplate = ex.template.copy(targetSets = ex.template.targetSets + 1)
-        exercises[exerciseIndex] = ex.copy(template = updatedTemplate)
+        val nextIndex = ex.sets.size
+        val updatedSets = ex.sets + LoggedSet(
+            wireId = "watch_planned_${System.currentTimeMillis()}",
+            setIndex = nextIndex,
+            weight = ex.sets.lastOrNull()?.weight ?: ex.template.prevWeight,
+            reps = ex.sets.lastOrNull()?.reps ?: ex.template.prevReps.coerceAtLeast(1),
+            setType = "standard",
+            completed = false,
+        )
+        exercises[exerciseIndex] = ex.copy(template = updatedTemplate, sets = updatedSets)
         val updated = current.copy(exercises = exercises)
         _session.value = updated
         broadcastSessionToPhone("/herculex_watch_session_update", updated)
@@ -204,25 +250,50 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         exerciseIndex: Int,
         weight: Double,
         reps: Int,
-        rpe: Int? = null,
-        setType: String = "Normal",
+        rpe: Double? = null,
+        setType: String = "standard",
         accessory: String? = null,
     ) {
         val current = _session.value ?: return
         val exercises = current.exercises.toMutableList()
         val exercise  = exercises[exerciseIndex]
-        val newSets   = exercise.sets + LoggedSet(
-            weight = weight,
-            reps = reps,
-            rpe = rpe,
-            setType = setType,
-            accessory = accessory,
-        )
+        val openIndex = exercise.sets.indexOfFirst { !it.completed }
+        val completedSet = if (openIndex >= 0) {
+            exercise.sets[openIndex].copy(
+                weight = weight,
+                reps = reps,
+                rpe = rpe,
+                setType = com.ams.herculex.sync.WearSyncContract.normalizeSetType(setType),
+                isWarmup = com.ams.herculex.sync.WearSyncContract.normalizeIsWarmup(setType, false),
+                accessory = accessory,
+                completed = true,
+                completedAtEpochMs = System.currentTimeMillis(),
+            )
+        } else {
+            LoggedSet(
+                wireId = "watch_set_${System.currentTimeMillis()}",
+                setIndex = exercise.sets.size,
+                weight = weight,
+                reps = reps,
+                rpe = rpe,
+                setType = com.ams.herculex.sync.WearSyncContract.normalizeSetType(setType),
+                isWarmup = com.ams.herculex.sync.WearSyncContract.normalizeIsWarmup(setType, false),
+                accessory = accessory,
+                completed = true,
+                completedAtEpochMs = System.currentTimeMillis(),
+            )
+        }
+        val newSets = if (openIndex >= 0) {
+            exercise.sets.toMutableList().also { it[openIndex] = completedSet }
+        } else {
+            exercise.sets + completedSet
+        }
         exercises[exerciseIndex] = exercise.copy(sets = newSets)
 
-        val allDone       = newSets.size >= exercise.template.targetSets
+        val nextOpenIndex = newSets.indexOfFirst { !it.completed }
+        val allDone       = nextOpenIndex < 0 && newSets.count { it.completed } >= exercise.template.targetSets
         val newExIndex    = if (allDone) (exerciseIndex + 1).coerceAtMost(exercises.size - 1) else exerciseIndex
-        val newSetIndex   = if (allDone) 0 else newSets.size
+        val newSetIndex   = if (allDone) 0 else nextOpenIndex.takeIf { it >= 0 } ?: newSets.size
 
         val updated = current.copy(
             exercises            = exercises,
@@ -262,6 +333,32 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private fun plannedSetsForTemplate(template: ExerciseTemplate): List<LoggedSet> {
+        if (template.plannedSets.isNotEmpty()) {
+            return template.plannedSets.mapIndexed { index, planned ->
+                LoggedSet(
+                    wireId = planned.wireId ?: "planned_$index",
+                    setIndex = planned.setIndex,
+                    weight = planned.targetWeightKg ?: template.prevWeight,
+                    reps = planned.targetReps ?: planned.targetRepsMin ?: template.prevReps.coerceAtLeast(1),
+                    setType = planned.setType,
+                    isWarmup = planned.isWarmup,
+                    completed = false,
+                    setTypeMetaJson = planned.setTypeMetaJson,
+                )
+            }
+        }
+        return (0 until template.targetSets).map { index ->
+            LoggedSet(
+                wireId = "planned_$index",
+                setIndex = index,
+                weight = template.prevWeight,
+                reps = template.prevReps.coerceAtLeast(1),
+                completed = false,
+            )
+        }
+    }
+
     private fun broadcastSessionEndToPhone() {
         try {
             viewModelScope.launch {
@@ -273,11 +370,35 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun startServiceIfNeeded(startEpochMs: Long = System.currentTimeMillis()) {
-        val intent = Intent(getApplication(), WorkoutOngoingService::class.java).apply {
-            putExtra(WorkoutOngoingService.EXTRA_START_EPOCH_MS, startEpochMs)
+    private fun broadcastSessionDiscardToPhone() {
+        try {
+            viewModelScope.launch {
+                syncManager.pushActiveWorkoutSession(null)
+                syncManager.sendMessageToAllNodes(WearSyncPaths.MESSAGE_WATCH_SESSION_DISCARD, "discard")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    }
+
+    private fun startServiceIfNeeded(
+        startEpochMs: Long = System.currentTimeMillis(),
+        isUpdate: Boolean = false,
+    ) {
+        val currentSession = _session.value
+        val title = currentSession?.template?.name ?: "Active Workout"
+        val exName = currentSession?.exercises?.getOrNull(currentSession.currentExerciseIndex)?.template?.name
+        val intent = Intent(getApplication(), WorkoutOngoingService::class.java).apply {
+            action = if (isUpdate) WorkoutOngoingService.ACTION_UPDATE else WorkoutOngoingService.ACTION_START
+            putExtra(WorkoutOngoingService.EXTRA_START_EPOCH_MS, startEpochMs)
+            putExtra(WorkoutOngoingService.EXTRA_WORKOUT_TITLE, title)
+            if (!exName.isNullOrBlank()) {
+                putExtra(WorkoutOngoingService.EXTRA_EXERCISE_NAME, exName)
+            }
+        }
+        if (isUpdate) {
+            getApplication<Application>().startService(intent)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getApplication<Application>().startForegroundService(intent)
         } else {
             getApplication<Application>().startService(intent)
@@ -289,9 +410,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         _session.value        = null
         _elapsedSeconds.value = 0L
         if (notifyPhone) {
-            broadcastSessionEndToPhone()
+            if (isFinish) {
+                broadcastSessionEndToPhone()
+            } else {
+                broadcastSessionDiscardToPhone()
+            }
         }
-        val intent = Intent(getApplication(), WorkoutOngoingService::class.java).apply { action = "STOP" }
+        val intent = Intent(getApplication(), WorkoutOngoingService::class.java).apply {
+            action = WorkoutOngoingService.ACTION_STOP
+        }
         getApplication<Application>().startService(intent)
     }
 

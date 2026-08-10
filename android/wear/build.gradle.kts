@@ -1,7 +1,30 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+// wearApp(project(":wear")) in android/app/build.gradle.kts embeds this module's APK in
+// the phone app, which requires the versionCode to match. Both derive from pubspec.yaml
+// so they cannot drift apart the way they did before (see LESSONS.md).
+val pubspecVersion = rootProject.file("../pubspec.yaml").readLines()
+    .first { it.trim().startsWith("version:") }
+    .substringAfter("version:")
+    .trim()
+val wearVersionName = pubspecVersion.substringBefore("+")
+val wearVersionCode = pubspecVersion.substringAfter("+").toInt()
+
+// Release signing must match the phone app's key for wearApp embedding — see
+// android/app/build.gradle.kts and RELEASE.md. Absent on dev machines/CI, where we fall
+// back to the debug keystore.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -12,12 +35,29 @@ android {
         applicationId = "com.ams.herculex"
         minSdk = 30
         targetSdk = 33
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = wearVersionCode
+        versionName = wearVersionName
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                // Local fallback only — a debug-signed APK cannot be published.
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

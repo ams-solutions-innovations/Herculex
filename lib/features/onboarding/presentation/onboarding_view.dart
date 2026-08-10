@@ -540,17 +540,22 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
           const SizedBox(height: 8),
           Row(
             children: [
-              TextButton(
-                onPressed: _authBusy
-                    ? null
-                    : () => setState(() => _isRegisterMode = !_isRegisterMode),
-                child: Text(
-                  _isRegisterMode
-                      ? 'Already have an account? Sign in'
-                      : 'Need an account? Register',
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: _authBusy
+                        ? null
+                        : () => setState(() => _isRegisterMode = !_isRegisterMode),
+                    child: Text(
+                      _isRegisterMode
+                          ? 'Already have an account? Sign in'
+                          : 'Need an account? Register',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
               ),
-              const Spacer(),
               TextButton(
                 onPressed: _authBusy ? null : _sendPasswordReset,
                 child: const Text('Reset Password'),

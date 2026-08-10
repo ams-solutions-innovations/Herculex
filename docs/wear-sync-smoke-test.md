@@ -1,201 +1,155 @@
 # Herculex Wear Sync Smoke Test
 
-Last updated: July 31, 2026
+Last updated: August 8, 2026
 
-## Current sync shape
+## Sync Contract
 
-The current app uses two layers at once:
+Durable state uses DataClient. MessageClient is only a fast path for the same latest snapshot or a FIFO command path.
 
-1. Legacy Flutter -> native bridge on channel `com.example.herculex/wear`
-2. Newer native Android/Wear data-layer sync managers
+Versioned state payloads use:
 
-That means sync is functional in principle, but there is still overlap.
+- `schemaVersion`
+- `entity`
+- `entityId`
+- `revision`
+- `origin`
+- `updatedAtEpochMs`
+- `payload`
 
-## What is actively synced today
+Workout payloads must preserve:
 
-### Mobile -> Wear
+- exercise identity: `catalogExerciseId`, `slug`, `name`, `equipmentVariant`
+- planned sets: `wireId`, `setIndex`, `setType`, `isWarmup`, target reps/weight, `setTypeMetaJson`
+- actual sets: weight, reps, half-point `rpe`, `setType`, `isWarmup`, `setTypeMetaJson`, `bodyweightKg`, `chainsKg`, `completedAtEpochMs`
+- cursor: `currentExerciseIndex`, `currentSetIndex`
+- `startedAtEpochMs`
 
-- Macro totals through `syncMacros`
-- Workout templates through `syncWorkouts`
-- Exercise catalog through `syncCatalog`
-- Active workout session state through `syncActiveSession`
-- Workout end through `endWorkoutOnWatch`
+Fasting payloads must preserve:
 
-### Wear -> Mobile
+- `hasActiveFast`
+- `startedAtEpochMs`
+- `targetSeconds`
+- `phoneSessionId`
+- `endedAtEpochMs`
+- `completed`
 
-- Watch-started workout session payloads
-- Watch session updates
-- Watch session end
-- Explicit watch sync requests
+## Test Setup
 
-## Important caveat
+1. Build both APKs from the same source state.
+2. Install the phone APK on the phone and the wear APK on the watch.
+3. Pair devices and open Herculex once on both sides.
+4. Keep logcat open with the `WearSync` and `PhoneWearListener` tags.
+5. Confirm duplicate message/data deliveries log `apply=ignored` for the second copy.
 
-The Flutter app still primarily drives the older sync path:
+## Workout Tests
 
-- [wear_sync_service.dart](../lib/features/nutrition/data/wear_sync_service.dart)
-- [wear_workout_sync_service.dart](../lib/features/workouts/data/wear_workout_sync_service.dart)
-- [nutrition_providers.dart](../lib/features/nutrition/presentation/nutrition_providers.dart)
-- [workouts_providers.dart](../lib/features/workouts/presentation/workouts_providers.dart)
+### Phone -> Watch Active Workout
 
-The new native offline-first managers are present, but they are not yet the only source of truth.
-
-## Test setup
-
-Before testing:
-
-1. Install the mobile app on the phone.
-2. Install the wear app on the watch.
-3. Pair the watch with the phone.
-4. Open Herculex once on both devices.
-5. Keep both devices awake during the first pass.
-
-## Smoke test checklist
-
-### 1. Macro sync to watch
-
-On phone:
-
-1. Open Nutrition.
-2. Log a food item or otherwise change calories, protein, carbs, or fats.
-
-Expected on watch:
-
-- Nutrition/macros view updates.
-- Macros tile updates.
-- Macro complications reflect the new totals.
-
-If it fails:
-
-- Open the watch app manually.
-- Then reopen the phone app.
-- Then trigger a workout sync request path by entering the workouts area on both sides.
-
-### 2. Template sync to watch
-
-On phone:
-
-1. Open workouts.
-2. Ensure templates are visible.
-3. Wait a few seconds after the screen loads.
-
-Expected on watch:
-
-- Workout list shows synced templates from phone.
-
-If it fails:
-
-- Reopen workouts on phone.
-- Reopen workouts on watch.
-
-### 3. Exercise catalog sync to watch
-
-On phone:
-
-1. Open the exercise catalog path used by workouts.
-2. Let the app settle for a few seconds.
-
-Expected on watch:
-
-- Catalog-backed exercise names appear correctly when adding or viewing exercises.
-
-### 4. Phone-started workout to watch
-
-On phone:
-
-1. Start a workout.
-2. Add at least one exercise if needed.
-3. Log one set.
-
-Expected on watch:
-
-- Active workout appears on watch.
-- Exercise names and sets mirror over.
-- Later phone edits continue updating the active session.
-
-### 5. Watch-started workout to phone
-
-On watch:
-
-1. Start a workout from the watch.
-2. Log at least one set.
-
-Expected on phone:
-
-- A workout notification appears.
-- Opening the phone app brings you into the active workout state.
-- Session data is written into the phone-side workout session.
-
-### 6. Watch set update to phone
-
-On watch:
-
-1. Update reps or weight for a set.
-
-Expected on phone:
-
-- The active phone workout reflects the changed set values.
-
-### 7. Finish workout on watch
-
-On watch:
-
-1. Finish the workout.
-
-Expected on phone:
-
-- The active session closes.
-- The phone notification clears.
-
-### 8. Finish workout on phone
-
-On phone:
-
-1. Finish the active workout.
-
-Expected on watch:
-
-- Active session is closed on watch.
-
-## Reconnection test
-
-### 9. Temporary disconnect
-
-1. Start an active workout with both devices connected.
-2. Turn off Bluetooth on one side or move devices temporarily out of range.
-3. While disconnected, make one or two changes.
-4. Reconnect the devices.
+1. Start a workout on the phone from a template with four sets.
+2. Include mixed target reps/weights, a warmup set, a non-standard set type, and metadata where available.
+3. Log one set on the phone.
 
 Expected:
 
-- Persistent state should eventually resync.
-- Queued transient events should flush after reconnection.
+- Watch receives one accepted snapshot.
+- Template and active exercise identity match the phone.
+- Planned and actual sets appear at the same positions.
+- RPE half-points and metadata are preserved.
+- Ongoing notification appears once and does not alert again on updates.
 
-Reality check:
+### Watch Planned Set Logging
 
-- Because the old bridge is still the dominant app path, reconnection behavior may be mixed depending on which action you triggered.
+1. Start the synced template on the watch.
+2. Open the set logger.
+3. Confirm kg/reps/type initialize from the first unfinished planned set.
+4. Log that set.
 
-## What to log during testing
+Expected:
 
-Record these for each failed case:
+- The first planned unfinished set becomes completed.
+- A new set is not appended unless no unfinished planned set exists.
+- Phone Drift receives the update at the same set position.
 
-- Which direction failed: phone -> watch or watch -> phone
-- Whether the failure was macros, templates, catalog, active workout, or finish event
-- Whether reopening either app fixes it
-- Whether reconnecting Bluetooth/Wi-Fi fixes it
-- Whether only the UI failed or the underlying workout state was wrong too
+### Watch -> Phone Start/Update/End
 
-## Current confidence by area
+1. Start a workout on the watch.
+2. Log two sets with different types, warmup state, and RPE.
+3. Open the phone notification.
+4. Finish, then repeat with discard.
 
-- Macros sync: medium
-- Template/catalog sync: medium
-- Active workout phone -> watch: medium
-- Active workout watch -> phone: medium
-- Offline-first reconnect behavior: low to medium
+Expected:
 
-## Recommended next cleanup
+- Phone creates/adopts one active session.
+- "Workout Started on Watch" alerts only on the idle -> active transition.
+- Durable updates do not re-alert.
+- Finish/discard clears pending state and notifications.
 
-After smoke testing, the best technical cleanup is:
+## Reconnect Tests
 
-1. Choose one sync path as authoritative.
-2. Migrate Flutter callers from the legacy bridge methods onto the new native state/event model.
-3. Remove duplicated state propagation once the new path passes device testing.
+1. Start active workout while connected.
+2. Disconnect Bluetooth/Wi-Fi.
+3. Make edits on one side.
+4. Reconnect.
+
+Expected:
+
+- Latest durable snapshot wins.
+- Stale snapshots with lower revision are ignored.
+- MessageClient misses do not lose state.
+- Command queues flush once after reconnect.
+
+## Fasting Tests
+
+### Phone-Started Fast
+
+1. Start a fast on the phone.
+2. Open Fasting on watch.
+
+Expected:
+
+- Watch shows active fast.
+- Elapsed time increments locally from `startedAtEpochMs`.
+- No per-second DataClient sync is required.
+
+### Watch Start/Stop
+
+1. Tap Start on watch Fasting.
+2. Confirm phone creates an active Drift fasting session.
+3. Disconnect devices, tap Stop on watch, then reconnect.
+
+Expected:
+
+- Watch sends a command with `commandId`.
+- Phone applies it once, ACKs it, and sends authoritative snapshot back.
+- Active fast is not reset by manual macro sync.
+
+## Rotary Matrix
+
+Run on:
+
+- Galaxy Watch Classic physical rotating bezel
+- Galaxy Watch without physical bezel
+- Touch bezel or emulator rotary input
+
+Cases:
+
+- Logger page 0: tap kg, rotate clockwise/counter-clockwise.
+- Logger page 0: tap reps, rotate clockwise/counter-clockwise.
+- Page 1 set-type list scroll.
+- Page 2 accessory list scroll.
+- RPE dialog scroll.
+
+Expected:
+
+- Exactly one active target exists on logger page 0: `WEIGHT` or `REPS`.
+- Clockwise increases the selected value; counter-clockwise decreases it.
+- Horizontal/vertical pagers do not steal rotary input while editing kg/reps.
+- Bounds hold at 0 kg, max kg, 1 rep, and max reps.
+
+## Notification Expectations
+
+- START creates one ongoing workout surface.
+- UPDATE is silent and updates the existing surface.
+- RESTORE recreates state without a new alert.
+- END removes foreground service and notification.
+- Twenty sequential workout updates should produce no repeated alerts.

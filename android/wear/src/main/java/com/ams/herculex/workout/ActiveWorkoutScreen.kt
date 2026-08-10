@@ -1,9 +1,7 @@
 package com.ams.herculex.workout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -29,6 +26,8 @@ import androidx.wear.compose.foundation.lazy.itemsIndexed
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
 import com.ams.herculex.media.CompactMediaControls
+import com.ams.herculex.ui.OneUiPill
+import com.ams.herculex.ui.OneUiPillStyle
 
 @Composable
 fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewModel) {
@@ -55,7 +54,7 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
             .background(Color.Black)
             .attachRotaryScroll(listState),
         autoCentering = null,
-        contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp, start = 10.dp, end = 10.dp),
+        contentPadding = PaddingValues(top = 40.dp, bottom = 48.dp, start = 14.dp, end = 14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // Header: name + timer + HR/calories
@@ -102,74 +101,78 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                 ) {
                     Text("No exercises added", color = Color(0xFF9E9E9E), fontSize = 13.sp)
                     Spacer(Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.85f)
-                            .background(Color(0xFF1976D2), shape = CircleShape)
-                            .clickable { navController.navigate("select_exercise/add/-1") }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("+ Add Exercise", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
+                    OneUiPill(
+                        title = "Add Exercise",
+                        icon = "+",
+                        style = OneUiPillStyle.AccentBlue,
+                        onClick = { navController.navigate("select_exercise/add/-1") },
+                    )
                 }
             }
         } else {
             // Exercise list
             itemsIndexed(s.exercises) { index, exercise ->
-                ActiveExerciseRow(
-                    exercise = exercise,
-                    isCurrent = index == s.currentExerciseIndex,
-                ) {
-                    navController.navigate("set_logger/$index")
+                val isCurrent = index == s.currentExerciseIndex
+                val targetOrLastSet = exercise.sets.firstOrNull { !it.completed } ?: exercise.sets.lastOrNull()
+                val weight = targetOrLastSet?.weight?.takeIf { it > 0 } ?: exercise.template.prevWeight
+                val reps = targetOrLastSet?.reps?.takeIf { it > 0 } ?: exercise.template.prevReps
+
+                val weightStr = if (weight % 1.0 == 0.0) "${weight.toInt()}" else "$weight"
+                val infoStr = when {
+                    weight > 0 && reps > 0 -> "$weightStr kg × $reps"
+                    weight > 0 -> "$weightStr kg"
+                    reps > 0 -> "$reps reps"
+                    else -> null
                 }
+                val statLabelText = if (infoStr != null) "Sets • $infoStr" else "Sets"
+
+                OneUiPill(
+                    title = exercise.template.name,
+                    statValue = "${exercise.completedSets}/${exercise.template.targetSets}",
+                    statLabel = statLabelText,
+                    icon = null,
+                    style = if (isCurrent) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
+                    onClick = {
+                        viewModel.selectExerciseInSession(index)
+                        navController.navigate("set_logger/$index")
+                    },
+                )
             }
         }
 
-        // Options "..." button at the bottom
+        // Options button at the bottom
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF2C2C2E), shape = CircleShape)
-                    .clickable { navController.navigate("exercise_options") }
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("• • •", color = Color(0xFF9E9E9E), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            }
+            OneUiPill(
+                title = "Workout Options",
+                icon = "⚙️",
+                style = OneUiPillStyle.DarkSlateButton,
+                onClick = { navController.navigate("exercise_options") },
+            )
         }
-    }
-}
 
-@Composable
-private fun ActiveExerciseRow(
-    exercise: ActiveExercise,
-    isCurrent: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                if (isCurrent) Color(0xFF252530) else Color(0xFF1C1C1E),
-                shape = CircleShape,
+        // Finish Workout
+        item {
+            OneUiPill(
+                title = "Finish Workout",
+                icon = "✓",
+                style = OneUiPillStyle.AccentBlue,
+                onClick = {
+                    viewModel.finishWorkout()
+                    navController.popBackStack("home", inclusive = false)
+                },
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                exercise.template.name,
-                color = Color.White,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                fontSize = 13.sp,
-            )
-            Text(
-                "${exercise.completedSets}/${exercise.template.targetSets} Sets",
-                color = Color(0xFF9E9E9E),
-                fontSize = 11.sp,
+        }
+
+        // Discard Workout
+        item {
+            OneUiPill(
+                title = "Discard Workout",
+                icon = "🗑️",
+                style = OneUiPillStyle.DangerTransparent,
+                onClick = {
+                    viewModel.discardWorkout()
+                    navController.popBackStack("home", inclusive = false)
+                },
             )
         }
     }

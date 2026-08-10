@@ -40,6 +40,7 @@ class MobileWearSyncManager(
      * DataClient's system-level batching.
      */
     suspend fun syncActiveSession(sessionJson: String, isStart: Boolean) {
+        savePendingWorkout(sessionJson)
         syncActiveWorkoutSession(sessionJson)
         sendMessageToAllNodes(
             path = if (isStart) WearSyncPaths.MESSAGE_ACTIVE_SESSION_START else WearSyncPaths.MESSAGE_ACTIVE_SESSION_UPDATE,
@@ -48,8 +49,23 @@ class MobileWearSyncManager(
     }
 
     suspend fun endActiveSession() {
+        clearPendingWorkout()
         syncActiveWorkoutSession(null)
         sendMessageToAllNodes(path = WearSyncPaths.MESSAGE_ACTIVE_SESSION_END, payload = "")
+    }
+
+    private fun savePendingWorkout(sessionJson: String) {
+        appContext.getSharedPreferences("wear_workout_pending", Context.MODE_PRIVATE)
+            .edit()
+            .putString("session_json", sessionJson)
+            .apply()
+    }
+
+    private fun clearPendingWorkout() {
+        appContext.getSharedPreferences("wear_workout_pending", Context.MODE_PRIVATE)
+            .edit()
+            .remove("session_json")
+            .apply()
     }
 
     private suspend fun sendMessageToAllNodes(path: String, payload: String) {
@@ -84,6 +100,18 @@ class MobileWearSyncManager(
         )
     }
 
+    suspend fun syncFastingSnapshot(fastingJson: String) {
+        stateStore.saveString(MobileWearStateStore.KEY_FASTING_SNAPSHOT, fastingJson)
+        putState(
+            path = WearSyncPaths.STATE_FASTING,
+            values = mapOf("fasting_json" to fastingJson),
+        )
+        sendMessageToAllNodes(
+            path = WearSyncPaths.MESSAGE_FASTING_SNAPSHOT,
+            payload = fastingJson,
+        )
+    }
+
     suspend fun syncUserToken(userToken: String?) {
         stateStore.saveString(MobileWearStateStore.KEY_USER_TOKEN, userToken)
         putState(
@@ -102,6 +130,7 @@ class MobileWearSyncManager(
             syncActiveWorkoutSession(it.ifBlank { null })
         }
         stateStore.readString(MobileWearStateStore.KEY_MACRO_TARGETS)?.let { syncMacroTargets(it) }
+        stateStore.readString(MobileWearStateStore.KEY_FASTING_SNAPSHOT)?.let { syncFastingSnapshot(it) }
         stateStore.readString(MobileWearStateStore.KEY_USER_TOKEN)?.let {
             syncUserToken(it.ifBlank { null })
         }
@@ -240,6 +269,7 @@ private class MobileWearStateStore(
     companion object {
         const val KEY_ACTIVE_WORKOUT_SESSION = "active_workout_session"
         const val KEY_MACRO_TARGETS = "macro_targets"
+        const val KEY_FASTING_SNAPSHOT = "fasting_snapshot"
         const val KEY_USER_TOKEN = "user_token"
     }
 }

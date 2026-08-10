@@ -1,0 +1,556 @@
+[
+  {
+    "slug": "archer-push-up-horizontal-push",
+    "label": "Archer Push Up",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "archer-push-up"
+  },
+  {
+    "slug": "around-the-world-core",
+    "label": "Around The World",
+    "allowedEquipment": [
+      "other",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "dumbbell-around-the-world"
+  },
+  {
+    "slug": "back-lever-horizontal-pull",
+    "label": "Back Lever",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "back-lever"
+  },
+  {
+    "slug": "bent-over-row-horizontal-pull",
+    "label": "Bent Over Row",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "axle-bar-bent-over-row"
+  },
+  {
+    "slug": "box-squat-squat",
+    "label": "Box Squat",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "box-squat"
+  },
+  {
+    "slug": "bulgarian-split-squat-lunge",
+    "label": "Bulgarian Split Squat",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell",
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "bulgarian-split-squat"
+  },
+  {
+    "slug": "burpee-other",
+    "label": "Burpee",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "burpee"
+  },
+  {
+    "slug": "chin-up-supinated-vertical-pull",
+    "label": "Chin Up Supinated",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "chin-up-supinated"
+  },
+  {
+    "slug": "curl-isolation",
+    "label": "Curl",
+    "allowedEquipment": [
+      "bodyweight",
+      "barbell",
+      "dumbbell",
+      "cable"
+    ],
+    "canonicalExerciseSlug": "dumbbell-curl"
+  },
+  {
+    "slug": "decline-press-horizontal-push",
+    "label": "Decline Press",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "decline-barbell-bench"
+  },
+  {
+    "slug": "decline-push-up-horizontal-push",
+    "label": "Decline Push Up",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "decline-push-up"
+  },
+  {
+    "slug": "dip-vertical-push",
+    "label": "Dip",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "chest-dips"
+  },
+  {
+    "slug": "farmers-walk-carry",
+    "label": "Farmers Walk",
+    "allowedEquipment": [
+      "other",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "farmers-walk"
+  },
+  {
+    "slug": "floor-press-horizontal-push",
+    "label": "Floor Press",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "floor-press"
+  },
+  {
+    "slug": "fly-isolation",
+    "label": "Fly",
+    "allowedEquipment": [
+      "dumbbell",
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "dumbbell-fly"
+  },
+  {
+    "slug": "front-lever-horizontal-pull",
+    "label": "Front Lever",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "front-lever"
+  },
+  {
+    "slug": "front-raise-isolation",
+    "label": "Front Raise",
+    "allowedEquipment": [
+      "dumbbell",
+      "cable",
+      "other"
+    ],
+    "canonicalExerciseSlug": "front-raise-db"
+  },
+  {
+    "slug": "front-squat-squat",
+    "label": "Front Squat",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "front-squat"
+  },
+  {
+    "slug": "glute-bridge-hinge",
+    "label": "Glute Bridge",
+    "allowedEquipment": [
+      "bodyweight",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "glute-bridge"
+  },
+  {
+    "slug": "glute-kickback-hinge",
+    "label": "Glute Kickback",
+    "allowedEquipment": [
+      "machine_selectorized",
+      "cable"
+    ],
+    "canonicalExerciseSlug": "cable-glute-kickback"
+  },
+  {
+    "slug": "good-morning-hinge",
+    "label": "Good Morning",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "good-morning"
+  },
+  {
+    "slug": "hanging-leg-raise-core",
+    "label": "Hanging Leg Raise",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "hanging-leg-raise"
+  },
+  {
+    "slug": "hip-thrust-hinge",
+    "label": "Hip Thrust",
+    "allowedEquipment": [
+      "barbell",
+      "machine_selectorized",
+      "smith",
+      "dumbbell",
+      "band",
+      "bodyweight",
+      "cable"
+    ],
+    "canonicalExerciseSlug": "barbell-hip-thrust"
+  },
+  {
+    "slug": "incline-press-horizontal-push",
+    "label": "Incline Press",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell",
+      "machine_selectorized"
+    ],
+    "canonicalExerciseSlug": "incline-barbell-bench"
+  },
+  {
+    "slug": "inverted-row-horizontal-pull",
+    "label": "Inverted Row",
+    "allowedEquipment": [
+      "bodyweight",
+      "smith"
+    ],
+    "canonicalExerciseSlug": "barbell-inverted-row"
+  },
+  {
+    "slug": "inverted-row-feet-elevated-horizontal-pull",
+    "label": "Inverted Row Feet Elevated",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "barbell-inverted-row-feet-elevated"
+  },
+  {
+    "slug": "jm-press-isolation",
+    "label": "JM Press",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "jm-press"
+  },
+  {
+    "slug": "jump-squat-squat",
+    "label": "Jump Squat",
+    "allowedEquipment": [
+      "barbell",
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "jump-squat"
+  },
+  {
+    "slug": "lat-pulldown-vertical-pull",
+    "label": "Lat Pulldown",
+    "allowedEquipment": [
+      "cable"
+    ],
+    "canonicalExerciseSlug": "lat-pulldown"
+  },
+  {
+    "slug": "lateral-raise-isolation",
+    "label": "Lateral Raise",
+    "allowedEquipment": [
+      "dumbbell",
+      "cable",
+      "machine_selectorized"
+    ],
+    "canonicalExerciseSlug": "dumbbell-lateral-raise"
+  },
+  {
+    "slug": "neck-curl-core",
+    "label": "Neck Curl",
+    "allowedEquipment": [
+      "machine_selectorized",
+      "machine_plate"
+    ],
+    "canonicalExerciseSlug": "machine-neck-curl"
+  },
+  {
+    "slug": "neck-extension-core",
+    "label": "Neck Extension",
+    "allowedEquipment": [
+      "machine_selectorized",
+      "machine_plate",
+      "band"
+    ],
+    "canonicalExerciseSlug": "machine-neck-extension"
+  },
+  {
+    "slug": "neck-side-flexion-core",
+    "label": "Neck Side Flexion",
+    "allowedEquipment": [
+      "machine_selectorized",
+      "band"
+    ],
+    "canonicalExerciseSlug": "machine-neck-side-flexion"
+  },
+  {
+    "slug": "overhead-press-vertical-push",
+    "label": "Overhead Press",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell",
+      "smith"
+    ],
+    "canonicalExerciseSlug": "overhead-press"
+  },
+  {
+    "slug": "overhead-tricep-isolation",
+    "label": "Overhead Tricep",
+    "allowedEquipment": [
+      "cable",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "overhead-dumbbell-tricep"
+  },
+  {
+    "slug": "pistol-squat-lunge",
+    "label": "Pistol Squat",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "pistol-squat"
+  },
+  {
+    "slug": "plank-core",
+    "label": "Plank",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "plank"
+  },
+  {
+    "slug": "preacher-curl-isolation",
+    "label": "Preacher Curl",
+    "allowedEquipment": [
+      "dumbbell",
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "dumbbell-preacher-curl"
+  },
+  {
+    "slug": "press-horizontal-push",
+    "label": "Press",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell",
+      "smith"
+    ],
+    "canonicalExerciseSlug": "barbell-bench-press"
+  },
+  {
+    "slug": "pull-up-neutral-grip-vertical-pull",
+    "label": "Pull Up Neutral Grip",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "pull-up-neutral-grip"
+  },
+  {
+    "slug": "pull-up-super-wide-vertical-pull",
+    "label": "Pull Up Super Wide",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "pull-up-super-wide"
+  },
+  {
+    "slug": "pull-up-wide-grip-vertical-pull",
+    "label": "Pull Up Wide Grip",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "pull-up-wide-grip"
+  },
+  {
+    "slug": "pullover-vertical-pull",
+    "label": "Pullover",
+    "allowedEquipment": [
+      "machine_selectorized",
+      "dumbbell",
+      "cable"
+    ],
+    "canonicalExerciseSlug": "dumbbell-pullover"
+  },
+  {
+    "slug": "push-press-vertical-push",
+    "label": "Push Press",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "push-press"
+  },
+  {
+    "slug": "push-up-knee-horizontal-push",
+    "label": "Push Up Knee",
+    "allowedEquipment": [
+      "bodyweight"
+    ],
+    "canonicalExerciseSlug": "ring-push-up-knees"
+  },
+  {
+    "slug": "rear-delt-fly-horizontal-pull",
+    "label": "Rear Delt Fly",
+    "allowedEquipment": [
+      "dumbbell",
+      "cable"
+    ],
+    "canonicalExerciseSlug": "dumbbell-rear-delt-fly"
+  },
+  {
+    "slug": "reverse-curl-isolation",
+    "label": "Reverse Curl",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "reverse-barbell-curl"
+  },
+  {
+    "slug": "reverse-lunge-lunge",
+    "label": "Reverse Lunge",
+    "allowedEquipment": [
+      "dumbbell",
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "barbell-reverse-lunge"
+  },
+  {
+    "slug": "reverse-wrist-curl-isolation",
+    "label": "Reverse Wrist Curl",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "reverse-wrist-curl"
+  },
+  {
+    "slug": "romanian-deadlift-hinge",
+    "label": "Romanian Deadlift",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "romanian-deadlift"
+  },
+  {
+    "slug": "row-horizontal-pull",
+    "label": "Row",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "barbell-row"
+  },
+  {
+    "slug": "seal-row-horizontal-pull",
+    "label": "Seal Row",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "seal-row"
+  },
+  {
+    "slug": "shrug-isolation",
+    "label": "Shrug",
+    "allowedEquipment": [
+      "dumbbell",
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "barbell-shrug"
+  },
+  {
+    "slug": "skullcrusher-isolation",
+    "label": "Skullcrusher",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "skullcrusher"
+  },
+  {
+    "slug": "squat-squat",
+    "label": "Squat",
+    "allowedEquipment": [
+      "barbell",
+      "machine_plate",
+      "smith",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "barbell-back-squat"
+  },
+  {
+    "slug": "step-up-lunge",
+    "label": "Step Up",
+    "allowedEquipment": [
+      "dumbbell",
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "barbell-step-up"
+  },
+  {
+    "slug": "tricep-kickback-isolation",
+    "label": "Tricep Kickback",
+    "allowedEquipment": [
+      "cable",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "dumbbell-tricep-kickback"
+  },
+  {
+    "slug": "triceps-extension-isolation",
+    "label": "Triceps Extension",
+    "allowedEquipment": [
+      "bodyweight",
+      "machine_selectorized"
+    ],
+    "canonicalExerciseSlug": "ring-triceps-extension"
+  },
+  {
+    "slug": "triceps-pushdown-isolation",
+    "label": "Triceps Pushdown",
+    "allowedEquipment": [
+      "cable",
+      "band"
+    ],
+    "canonicalExerciseSlug": "tricep-pushdown-ez-bar"
+  },
+  {
+    "slug": "upright-row-vertical-pull",
+    "label": "Upright Row",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "upright-row-barbell"
+  },
+  {
+    "slug": "walking-lunge-lunge",
+    "label": "Walking Lunge",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "barbell-walking-lunge"
+  },
+  {
+    "slug": "wrist-curl-isolation",
+    "label": "Wrist Curl",
+    "allowedEquipment": [
+      "barbell",
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "wrist-curl-barbell"
+  }
+]

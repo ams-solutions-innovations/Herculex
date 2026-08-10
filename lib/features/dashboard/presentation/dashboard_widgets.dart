@@ -298,12 +298,28 @@ class WeeklyVolumeMiniCard extends ConsumerStatefulWidget {
 
 class _WeeklyVolumeMiniCardState extends ConsumerState<WeeklyVolumeMiniCard> {
   bool _expanded = false;
+  late bool _showSets;
+
+  @override
+  void initState() {
+    super.initState();
+    _showSets =
+        ref.read(sharedPreferencesProvider).getBool('show_volume_in_sets') ??
+            false;
+  }
+
+  void _toggleShowSets() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    setState(() => _showSets = !_showSets);
+    prefs.setBool('show_volume_in_sets', _showSets);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final volume = ref.watch(weeklyMuscleVolumeProvider);
     final data = volume.asData?.value;
+    final showSets = _showSets;
 
     return _Pill(
       radius: _expanded ? 24 : 999,
@@ -314,18 +330,69 @@ class _WeeklyVolumeMiniCardState extends ConsumerState<WeeklyVolumeMiniCard> {
         children: [
           Row(
             children: [
-              Expanded(child: _title(context, 'Total Volume This Week')),
-              volume.when(
-                data: (v) => Text(_formatTonnage(v.totalTonnageKg),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary)),
-                loading: () => const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (e, _) => const Icon(Icons.error_outline, size: 18),
+              Expanded(
+                child: Row(
+                  children: [
+                    _title(context, 'Total Volume'),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        Haptics.selection();
+                        _toggleShowSets();
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              showSets ? 'Sets' : 'Tonnage',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Icon(Icons.swap_horiz, size: 14, color: AppColors.primary),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              InkWell(
+                onTap: () {
+                  Haptics.selection();
+                  _toggleShowSets();
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: volume.when(
+                    data: (v) => Text(
+                        showSets ? '${v.totalSets} sets' : _formatTonnage(v.totalTonnageKg),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary)),
+                    loading: () => const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2)),
+                    error: (e, _) => const Icon(Icons.error_outline, size: 18),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
               AnimatedRotation(
                 turns: _expanded ? 0.5 : 0,
                 duration: const Duration(milliseconds: 220),
@@ -340,14 +407,14 @@ class _WeeklyVolumeMiniCardState extends ConsumerState<WeeklyVolumeMiniCard> {
             alignment: Alignment.topCenter,
             child: !_expanded || data == null
                 ? const SizedBox(width: double.infinity)
-                : _breakdown(theme, data),
+                : _breakdown(theme, data, showSets),
           ),
         ],
       ),
     );
   }
 
-  Widget _breakdown(ThemeData theme, WeeklyMuscleVolume v) {
+  Widget _breakdown(ThemeData theme, WeeklyMuscleVolume v, bool showSets) {
     if (v.byMuscle.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 12),
@@ -356,7 +423,16 @@ class _WeeklyVolumeMiniCardState extends ConsumerState<WeeklyVolumeMiniCard> {
                 theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
       );
     }
-    final max = v.byMuscle.first.tonnageKg;
+    final sortedList = List<MuscleVolume>.from(v.byMuscle);
+    if (showSets) {
+      sortedList.sort((a, b) => b.sets.compareTo(a.sets));
+    } else {
+      sortedList.sort((a, b) => b.tonnageKg.compareTo(a.tonnageKg));
+    }
+    final max = sortedList.isNotEmpty
+        ? (showSets ? sortedList.first.sets : sortedList.first.tonnageKg)
+        : 1.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -365,7 +441,7 @@ class _WeeklyVolumeMiniCardState extends ConsumerState<WeeklyVolumeMiniCard> {
             style:
                 theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
         const SizedBox(height: 12),
-        for (final m in v.byMuscle)
+        for (final m in sortedList)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 5),
             child: Column(
@@ -377,24 +453,40 @@ class _WeeklyVolumeMiniCardState extends ConsumerState<WeeklyVolumeMiniCard> {
                         child: Text(m.muscle,
                             style: theme.textTheme.bodyMedium,
                             overflow: TextOverflow.ellipsis)),
-                    Text('${m.sets.toStringAsFixed(m.sets < 10 ? 1 : 0)} sets',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: AppColors.secondary)),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      width: 62,
-                      child: Text(_formatTonnage(m.tonnageKg),
-                          textAlign: TextAlign.right,
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                    ),
+                    if (showSets) ...[
+                      Text(_formatTonnage(m.tonnageKg),
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: AppColors.secondary)),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 62,
+                        child: Text('${m.sets.toStringAsFixed(m.sets < 10 ? 1 : 0)} sets',
+                            textAlign: TextAlign.right,
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.bold)),
+                      ),
+                    ] else ...[
+                      Text('${m.sets.toStringAsFixed(m.sets < 10 ? 1 : 0)} sets',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(color: AppColors.secondary)),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 62,
+                        child: Text(_formatTonnage(m.tonnageKg),
+                            textAlign: TextAlign.right,
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 5),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    value: max <= 0 ? 0 : (m.tonnageKg / max).clamp(0.0, 1.0),
+                    value: max <= 0
+                        ? 0
+                        : ((showSets ? m.sets : m.tonnageKg) / max).clamp(0.0, 1.0),
                     minHeight: 5,
                     backgroundColor: AppColors.surfaceVariant,
                     valueColor:
@@ -479,7 +571,7 @@ class RemainingCaloriesCard extends ConsumerWidget {
               _op(theme, '−'),
               _term(theme, 'Food', r.food, AppColors.macroProtein),
               _op(theme, '+'),
-              _term(theme, 'Exercise', r.exercise, Colors.greenAccent),
+              _term(theme, 'Exercise', r.exercise, AppColors.brightness == Brightness.dark ? const Color(0xFF30D158) : const Color(0xFF34C759)),
             ],
           ),
         ],
@@ -490,7 +582,7 @@ class RemainingCaloriesCard extends ConsumerWidget {
   Widget _term(ThemeData theme, String label, int value, Color color) =>
       Expanded(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(label.toUpperCase(),
                 style: theme.textTheme.labelSmall?.copyWith(
@@ -504,11 +596,28 @@ class RemainingCaloriesCard extends ConsumerWidget {
         ),
       );
 
-  Widget _op(ThemeData theme, String symbol) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Text(symbol,
-            style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.secondary, fontWeight: FontWeight.bold)),
+  Widget _op(ThemeData theme, String symbol) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            ' ',
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 9,
+              letterSpacing: 0.8,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              symbol,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: AppColors.secondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       );
 }
 
@@ -1669,8 +1778,9 @@ class MiniWorkoutsCard extends ConsumerWidget {
   }
 
   Future<void> _createMiniWorkout(BuildContext context, WidgetRef ref) async {
-    final exercise = await ExercisePickerSheet.show(context);
-    if (exercise == null || !context.mounted) return;
+    final results = await ExercisePickerSheet.show(context);
+    if (results == null || results.isEmpty || !context.mounted) return;
+    final exercise = results.first;
 
     final repsCtrl = TextEditingController(text: '20');
     final timesCtrl = TextEditingController(text: '3');

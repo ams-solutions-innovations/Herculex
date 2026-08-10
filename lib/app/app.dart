@@ -19,7 +19,6 @@ import '../features/workouts/domain/ongoing_workout_surface_snapshot.dart';
 import '../features/workouts/domain/workout_notification_command.dart';
 import '../services/active_workout_surface_sync_policy.dart';
 import '../features/workouts/presentation/workouts_providers.dart';
-import '../services/ongoing_workout_surface_bridge.dart';
 import '../services/workout_notification_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/colors.dart';
@@ -37,6 +36,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   late final AppLifecycleListener _lifecycleListener;
   Timer? _workoutActionDrainTimer;
   bool _isDrainingWorkoutActions = false;
+  Timer? _notificationSyncDebounce;
 
   @override
   void initState() {
@@ -95,10 +95,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   void dispose() {
     _lifecycleListener.dispose();
     _stopPendingWorkoutActionDrain();
+    _notificationSyncDebounce?.cancel();
     WorkoutNotificationService.instance.cancel();
-    // The native surface is posted by the platform side and would otherwise
-    // outlive this widget.
-    unawaited(OngoingWorkoutSurfaceBridge.instance.clear());
     super.dispose();
   }
 
@@ -109,6 +107,20 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   void _onForeground() {
     _drainPendingWorkoutNotificationActions();
     _syncNotification();
+  }
+
+  /// Several independent providers (session exercises, and one per exercise's
+  /// sets) can each fire a listener for the same underlying database write —
+  /// e.g. completing a set touches both the sets table and, via cascading
+  /// recalculation, the exercise row. Debouncing collapses those near-
+  /// simultaneous triggers into a single native `update()` call instead of
+  /// reposting the notification once per listener.
+  void _syncNotification() {
+    _notificationSyncDebounce?.cancel();
+    _notificationSyncDebounce = Timer(
+      const Duration(milliseconds: 200),
+      _syncNotificationNow,
+    );
   }
 
   /// Reads the supplement list and fires a notification for any supplement
@@ -130,7 +142,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     }
   }
 
-  void _syncNotification() {
+  void _syncNotificationNow() {
     final sessionAsync = ref.read(activeSessionProvider);
     if (!sessionAsync.hasValue) {
       return;
@@ -138,7 +150,6 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     final session = sessionAsync.asData?.value;
     if (shouldClearOngoingWorkoutSurface(sessionAsync)) {
       _stopPendingWorkoutActionDrain();
-      unawaited(OngoingWorkoutSurfaceBridge.instance.clear());
       WorkoutNotificationService.instance.cancel();
       return;
     }
@@ -175,23 +186,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         actions: snapshot.actions,
         targetSetId: snapshot.targetSetId,
         reps: snapshot.reps,
-        afterPost: () => OngoingWorkoutSurfaceBridge.instance.update(
-          snapshot.toJson(
-            sessionId: session.id,
-            startedAtEpochMillis: session.startedAt.millisecondsSinceEpoch,
-            elapsedLabel: _formatElapsed(session.startedAt),
-          ),
-        ),
       ),
     );
-  }
-
-  String _formatElapsed(DateTime startedAt) {
-    final elapsed = DateTime.now().difference(startedAt);
-    final hours = elapsed.inHours;
-    final minutes = elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
   }
 
   Future<bool> _applyWorkoutNotificationAction(
@@ -239,11 +235,6 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
             activeSessionId,
           );
       final pending = [...fallbackDrain.actions];
-      if (activeSessionId != null) {
-        pending.addAll(
-          await OngoingWorkoutSurfaceBridge.instance.drainPendingActions(),
-        );
-      }
       if (pending.isEmpty && fallbackDrain.remaining.isEmpty) return;
 
       final remaining = [...fallbackDrain.remaining];

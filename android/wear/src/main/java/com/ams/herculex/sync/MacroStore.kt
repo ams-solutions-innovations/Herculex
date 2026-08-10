@@ -15,6 +15,9 @@ object MacroStore {
     private const val KEY_FATS     = "fats"
     private const val KEY_FASTING  = "fasting"
     private const val KEY_WATER    = "water"
+    private const val KEY_WEEKLY_TONNAGE = "weekly_tonnage"
+    private const val KEY_WEEKLY_SETS    = "weekly_sets"
+    private const val KEY_WEEKLY_VOLUME_JSON = "weekly_volume_json"
 
     // Daily goals (synced from phone or defaulted)
     private const val KEY_CALORIE_GOAL = "calorie_goal"
@@ -95,6 +98,18 @@ object MacroStore {
     fun carbsGoal(context: Context): Int   = prefs(context).getInt(KEY_CARBS_GOAL, 200)
     fun fatGoal(context: Context): Int     = prefs(context).getInt(KEY_FAT_GOAL, 65)
     fun waterGoal(context: Context): Int   = prefs(context).getInt(KEY_WATER_GOAL, 2000)
+
+    fun weeklyTonnage(context: Context): Float = prefs(context).getFloat(KEY_WEEKLY_TONNAGE, 0f)
+    fun weeklySets(context: Context): Int      = prefs(context).getInt(KEY_WEEKLY_SETS, 0)
+    fun weeklyVolumeJson(context: Context): String = prefs(context).getString(KEY_WEEKLY_VOLUME_JSON, "[]") ?: "[]"
+
+    fun saveWeeklyVolume(context: Context, tonnage: Double, sets: Int, json: String) {
+        prefs(context).edit()
+            .putFloat(KEY_WEEKLY_TONNAGE, tonnage.toFloat())
+            .putInt(KEY_WEEKLY_SETS, sets)
+            .putString(KEY_WEEKLY_VOLUME_JSON, json)
+            .apply()
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
 

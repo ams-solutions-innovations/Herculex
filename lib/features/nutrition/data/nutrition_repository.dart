@@ -756,4 +756,62 @@ class NutritionRepository {
     final byId = {for (final f in foods) f.id: f};
     return [for (final id in ids) byId[id]].whereType<FoodData>().toList();
   }
+
+  /// The same ranking as [recentFoods], pre-resolved to a default portion's
+  /// macro totals — for surfaces (like the watch) that can't run their own
+  /// per-100g × grams math against the local catalogue.
+  Future<List<QuickAddFoodItem>> quickAddFoods({int limit = 12}) async {
+    final foods = await recentFoods(limit: limit);
+    return [for (final food in foods) _quickAddItemForFood(food)];
+  }
+
+  QuickAddFoodItem _quickAddItemForFood(FoodData food) {
+    final totals = _totalsForFood(food);
+    final amount = food.servingAmount ?? food.servingGrams ?? 100;
+    final unit = food.servingUnit ?? 'g';
+    final label = food.servingLabel ?? '${_fmtPortionAmount(amount)} $unit';
+    return QuickAddFoodItem(
+      foodId: food.id,
+      name: food.name,
+      kcal: totals.kcal,
+      proteinG: totals.proteinG,
+      carbsG: totals.carbsG,
+      fatG: totals.fatG,
+      portionAmount: amount,
+      portionUnit: unit,
+      portionLabel: label,
+    );
+  }
+
+  String _fmtPortionAmount(double amount) {
+    return amount == amount.roundToDouble()
+        ? amount.toStringAsFixed(0)
+        : amount.toStringAsFixed(1);
+  }
+}
+
+/// A recent/frequently-logged food resolved to a single default-portion
+/// macro snapshot, for a tap-to-log quick-add surface.
+class QuickAddFoodItem {
+  final int foodId;
+  final String name;
+  final double kcal;
+  final double proteinG;
+  final double carbsG;
+  final double fatG;
+  final double portionAmount;
+  final String portionUnit;
+  final String portionLabel;
+
+  const QuickAddFoodItem({
+    required this.foodId,
+    required this.name,
+    required this.kcal,
+    required this.proteinG,
+    required this.carbsG,
+    required this.fatG,
+    required this.portionAmount,
+    required this.portionUnit,
+    required this.portionLabel,
+  });
 }

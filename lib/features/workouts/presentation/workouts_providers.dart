@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../nutrition/data/wear_sync_service.dart';
+import '../../fasting/domain/fasting_sync_snapshot.dart';
+import '../../fasting/presentation/fasting_providers.dart';
 import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
 import '../data/micro_workouts_repository.dart';
@@ -30,6 +32,12 @@ final wearWorkoutSyncServiceProvider = Provider<WearWorkoutSyncService>((ref) {
 final activeSessionProvider = StreamProvider<WorkoutSessionData?>((ref) {
   return ref.watch(workoutsRepositoryProvider).watchActiveSession();
 });
+
+/// Tracks original endedAt timestamps when editing a completed workout session.
+/// Map<sessionId, originalEndedAt>
+final editingSessionOriginalEndedAtProvider = StateProvider<Map<int, DateTime>>(
+  (_) => {},
+);
 
 final recentSessionsProvider = StreamProvider<List<WorkoutSessionData>>((ref) {
   return ref.watch(workoutsRepositoryProvider).watchRecentSessions();
@@ -77,14 +85,51 @@ class ExerciseCatalogFilter {
   int get hashCode => query.hashCode ^ category.hashCode;
 }
 
+/// The one Drift subscription over the exercise catalog. Everything that needs
+/// exercises derives from this, so the table is read once rather than once per
+/// filter combination.
+final exerciseCatalogSnapshotProvider = StreamProvider<ExerciseCatalogSnapshot>(
+  (ref) => ref.watch(workoutsRepositoryProvider).watchExerciseCatalog(),
+);
+
+/// Facet-filtered catalog view. Kept non-autoDispose because every caller uses
+/// the same `const ExerciseCatalogFilter()`, so this is a single cached
+/// instance — and the wear-sync provider holds a long-lived listener on it.
+/// Free-text queries belong on [exerciseSearchProvider] instead.
 final exerciseCatalogProvider =
-    StreamProvider.family<List<ExerciseCatalogData>, ExerciseCatalogFilter>((
+    Provider.family<
+      AsyncValue<List<ExerciseCatalogData>>,
+      ExerciseCatalogFilter
+    >((ref, filter) {
+      return ref
+          .watch(exerciseCatalogSnapshotProvider)
+          .whenData(
+            (snapshot) =>
+                snapshot.select(query: filter.query, category: filter.category),
+          );
+    });
+
+/// Relevance-ranked search for the exercise picker.
+///
+/// autoDispose because this is keyed on the live query string — one instance
+/// per keystroke, all of which must be released. It ranks the already-cached
+/// snapshot in memory, so a keystroke costs no database work.
+final exerciseSearchProvider = Provider.autoDispose
+    .family<AsyncValue<List<ExerciseCatalogData>>, ExerciseCatalogFilter>((
       ref,
       filter,
     ) {
+      final recentIds =
+          ref.watch(recentExerciseIdsProvider).asData?.value ?? const <int>{};
       return ref
-          .watch(workoutsRepositoryProvider)
-          .watchExercises(query: filter.query, category: filter.category);
+          .watch(exerciseCatalogSnapshotProvider)
+          .whenData(
+            (snapshot) => snapshot.select(
+              query: filter.query,
+              category: filter.category,
+              recentIds: recentIds,
+            ),
+          );
     });
 
 final sessionExercisesProvider =
@@ -102,12 +147,15 @@ final setsForWorkoutExerciseProvider =
     });
 
 /// (exerciseId) → [last completed working sets from prior session]
-final lastPerformanceProvider = FutureProvider.family<List<SetEntryData>, int>((
-  ref,
-  exerciseId,
-) async {
-  return ref.watch(workoutsRepositoryProvider).lastPerformanceFor(exerciseId);
-});
+final lastPerformanceProvider =
+    FutureProvider.family<LastPerformanceSnapshot?, int>((
+      ref,
+      exerciseId,
+    ) async {
+      return ref
+          .watch(workoutsRepositoryProvider)
+          .lastPerformanceSnapshotFor(exerciseId);
+    });
 
 final recentExerciseIdsProvider = FutureProvider<Set<int>>((ref) async {
   return ref.watch(workoutsRepositoryProvider).getRecentExerciseIds();
@@ -138,6 +186,16 @@ final templateExercisesProvider =
       return ref
           .watch(templatesRepositoryProvider)
           .watchTemplateExercises(templateId);
+    });
+
+final templateExerciseSetsProvider =
+    StreamProvider.family<List<TemplateSetData>, int>((
+      ref,
+      templateExerciseId,
+    ) {
+      return ref
+          .watch(templatesRepositoryProvider)
+          .watchTemplateSets(templateExerciseId);
     });
 
 // ── V2 logging foundation (Phase 2) ──────────────────────────────────────────
@@ -206,35 +264,45 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
 
   // Handle explicit sync requests from watch
   WearSyncService.onRequestSync = () async {
+    // Snapshot everything ref-derived up front — same reasoning as the
+    // workoutFoldersProvider listener below: this provider's watched
+    // streams can flag it as dirty mid-await, and any ref.read after that
+    // throws ("Cannot use ref functions after the dependency of a provider
+    // changed but before the provider rebuilt").
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final activeSession = ref.read(activeSessionProvider).asData?.value;
-    if (activeSession != null) {
-      await syncService.pushActiveSessionToWatch(activeSession);
-    }
     final catalog = ref
         .read(exerciseCatalogProvider(const ExerciseCatalogFilter()))
         .asData
         ?.value;
+    final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
+    final activeFast = ref.read(activeFastingSessionProvider).asData?.value;
+    final wearSyncService = ref.read(wearSyncServiceProvider);
+
+    if (activeSession != null) {
+      await syncService.pushActiveSessionToWatch(activeSession);
+    }
     if (catalog != null) {
       await syncService.syncCatalogToWatch(catalog);
     }
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
     if (totals != null) {
-      await ref
-          .read(wearSyncServiceProvider)
-          .syncMacros(
-            totals.kcal.round(),
-            totals.proteinG.round(),
-            carbs: totals.carbsG.round(),
-            fats: totals.fatG.round(),
-          );
+      await wearSyncService.syncMacros(
+        totals.kcal.round(),
+        totals.proteinG.round(),
+        carbs: totals.carbsG.round(),
+        fats: totals.fatG.round(),
+      );
     }
+    await wearSyncService.syncFastingSnapshot(
+      encodeFastingSnapshot(
+        session: activeFast,
+        revision: ref.read(wearSyncRevisionAllocatorProvider).next(),
+      ),
+    );
   };
 
-  // Session content changes below are the single source of outbound active
-  // workout snapshots. This listener only tears down the watch session when
-  // the phone session ends, avoiding duplicate start pushes during creation.
+  // Handle session lifecycle end notifications
   ref.listen<AsyncValue<WorkoutSessionData?>>(activeSessionProvider, (
     previous,
     next,
@@ -245,39 +313,23 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
         previous?.value != null) {
       syncService.notifySessionEnded();
     }
-  }, fireImmediately: true);
+  });
 
-  // Watch session exercise changes during an active workout session
+  // Watch active session and all exercises & sets reactively.
   final activeSession = ref.watch(activeSessionProvider).asData?.value;
   if (activeSession != null) {
-    void pushActiveSessionSnapshot() {
-      if (!syncService.shouldSkipOutboundSync) {
-        syncService.pushActiveSessionToWatch(activeSession);
-      }
-    }
-
-    ref.listen<AsyncValue<List<WorkoutExerciseData>>>(
-      sessionExercisesProvider(activeSession.id),
-      (previous, next) {
-        if (next.hasValue) {
-          pushActiveSessionSnapshot();
-        }
-      },
-      fireImmediately: true,
-    );
-
     final exercises =
         ref.watch(sessionExercisesProvider(activeSession.id)).asData?.value ??
         const <WorkoutExerciseData>[];
+
     for (final exercise in exercises) {
-      ref.listen<AsyncValue<List<SetEntryData>>>(
-        setsForWorkoutExerciseProvider(exercise.id),
-        (previous, next) {
-          if (next.hasValue) {
-            pushActiveSessionSnapshot();
-          }
-        },
-      );
+      ref.watch(setsForWorkoutExerciseProvider(exercise.id));
+    }
+
+    if (!syncService.shouldSkipOutboundSync) {
+      Future.microtask(() {
+        syncService.pushActiveSessionToWatch(activeSession);
+      });
     }
   }
 
@@ -301,36 +353,47 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
       final folders = next.value ?? [];
       final List<WorkoutTemplateData> allTemplates = [];
       final Map<int, List<TemplateExerciseData>> templateExercises = {};
+      final Map<int, List<TemplateSetData>> templateSets = {};
+
+      // Capture the repository/db instances before any `await` — this
+      // provider watches fast-changing streams (active session sets), which
+      // can flag its own dependency as changed mid-await and make any
+      // further ref.read/watch here throw ("Cannot use ref functions after
+      // the dependency of a provider changed but before the provider
+      // rebuilt"). Plain values captured up front sidestep that entirely.
+      final templatesRepository = ref.read(templatesRepositoryProvider);
+      final db = ref.read(appDatabaseProvider);
 
       // Include un-foldered templates
-      final rootTemplates = await ref
-          .read(templatesRepositoryProvider)
+      final rootTemplates = await templatesRepository
           .watchTemplates(folderId: null)
           .first;
       allTemplates.addAll(rootTemplates);
 
       for (final folder in folders) {
-        final templates = await ref
-            .read(templatesRepositoryProvider)
+        final templates = await templatesRepository
             .watchTemplates(folderId: folder.id)
             .first;
         allTemplates.addAll(templates);
       }
 
       for (final t in allTemplates) {
-        templateExercises[t.id] = await ref
-            .read(templatesRepositoryProvider)
+        final exercises = await templatesRepository
             .watchTemplateExercises(t.id)
             .first;
+        templateExercises[t.id] = exercises;
+        for (final exercise in exercises) {
+          templateSets[exercise.id] = await templatesRepository
+              .watchTemplateSets(exercise.id)
+              .first;
+        }
       }
 
-      final catalog = await ref
-          .read(appDatabaseProvider)
-          .select(ref.read(appDatabaseProvider).exerciseCatalog)
-          .get();
+      final catalog = await db.select(db.exerciseCatalog).get();
       syncService.syncTemplatesToWatch(
         allTemplates,
         templateExercises,
+        templateSets,
         catalog,
       );
     }

@@ -1,0 +1,39 @@
+# Herculex Program,name,weeks,periodization
+program,5/3/1 for Beginners,4,max_effort
+week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equipment
+0,1,Squat Day,Barbell Back Squat,5,5,5,8,standard,85,barbell
+0,1,Squat Day,Leg Press,3,10,12,7,standard,,
+0,1,Squat Day,Plank,3,30,45,,standard,,
+0,3,Bench Day,Barbell Bench Press,5,5,5,8,standard,85,barbell
+0,3,Bench Day,Barbell Row,3,8,10,7,standard,,barbell
+0,3,Bench Day,Face Pull,3,12,15,7,standard,,
+0,5,Deadlift Day,Conventional Deadlift,5,5,5,8,standard,85,barbell
+0,5,Deadlift Day,Overhead Press,3,8,10,7,standard,,barbell
+0,5,Deadlift Day,Barbell Bicep Curl,3,10,12,7,standard,,barbell
+1,1,Squat Day,Barbell Back Squat,5,5,5,8,standard,90,barbell
+1,1,Squat Day,Leg Press,3,10,12,7,standard,,
+1,1,Squat Day,Plank,3,30,45,,standard,,
+1,3,Bench Day,Barbell Bench Press,5,5,5,8,standard,90,barbell
+1,3,Bench Day,Barbell Row,3,8,10,7,standard,,barbell
+1,3,Bench Day,Face Pull,3,12,15,7,standard,,
+1,5,Deadlift Day,Conventional Deadlift,5,5,5,8,standard,90,barbell
+1,5,Deadlift Day,Overhead Press,3,8,10,7,standard,,barbell
+1,5,Deadlift Day,Barbell Bicep Curl,3,10,12,7,standard,,barbell
+2,1,Squat Day,Barbell Back Squat,5,5,5,9,standard,95,barbell
+2,1,Squat Day,Leg Press,3,10,12,7,standard,,
+2,1,Squat Day,Plank,3,30,45,,standard,,
+2,3,Bench Day,Barbell Bench Press,5,5,5,9,standard,95,barbell
+2,3,Bench Day,Barbell Row,3,8,10,7,standard,,barbell
+2,3,Bench Day,Face Pull,3,12,15,7,standard,,
+2,5,Deadlift Day,Conventional Deadlift,5,5,5,9,standard,95,barbell
+2,5,Deadlift Day,Overhead Press,3,8,10,7,standard,,barbell
+2,5,Deadlift Day,Barbell Bicep Curl,3,10,12,7,standard,,barbell
+3,1,Squat Day,Barbell Back Squat,3,5,5,5,standard,60,barbell
+3,1,Squat Day,Leg Press,2,10,12,5,standard,,
+3,1,Squat Day,Plank,2,30,45,,standard,,
+3,3,Bench Day,Barbell Bench Press,3,5,5,5,standard,60,barbell
+3,3,Bench Day,Barbell Row,2,8,10,5,standard,,barbell
+3,3,Bench Day,Face Pull,2,12,15,5,standard,,
+3,5,Deadlift Day,Conventional Deadlift,3,5,5,5,standard,60,barbell
+3,5,Deadlift Day,Overhead Press,2,8,10,5,standard,,barbell
+3,5,Deadlift Day,Barbell Bicep Curl,2,10,12,5,standard,,barbell

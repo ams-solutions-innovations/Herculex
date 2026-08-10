@@ -212,6 +212,31 @@ class _SessionTile extends ConsumerWidget {
             ? '${duration.inHours}h ${duration.inMinutes.remainder(60)}m'
             : '${duration.inMinutes}m';
 
+    final sessionExercisesAsync =
+        ref.watch(sessionExercisesProvider(session.id));
+    final catalogAsync =
+        ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
+
+    String? exerciseSummary;
+    if (sessionExercisesAsync.asData?.value != null &&
+        catalogAsync.asData?.value != null) {
+      final rows = sessionExercisesAsync.asData!.value;
+      final catalog = catalogAsync.asData!.value;
+      final catalogMap = {for (final e in catalog) e.id: e.name};
+      final names = rows
+          .map((r) => catalogMap[r.exerciseId] ?? '')
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty) {
+        if (names.length <= 3) {
+          exerciseSummary = names.join(' • ');
+        } else {
+          exerciseSummary =
+              '${names.take(3).join(' • ')} +${names.length - 3} more';
+        }
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -231,13 +256,32 @@ class _SessionTile extends ConsumerWidget {
         title: Text(_displayName(session),
             style:
                 theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-        subtitle: Text(
-          [
-            DateFormat('EEE, MMM d').format(session.startedAt),
-            DateFormat('HH:mm').format(session.startedAt),
-            if (durationStr.isNotEmpty) durationStr,
-            if (session.sessionRpe != null) 'RPE ${session.sessionRpe}',
-          ].join(' • '),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              [
+                DateFormat('EEE, MMM d').format(session.startedAt),
+                DateFormat('HH:mm').format(session.startedAt),
+                if (durationStr.isNotEmpty) durationStr,
+                if (session.sessionRpe != null) 'RPE ${session.sessionRpe}',
+              ].join(' • '),
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+            ),
+            if (exerciseSummary != null && exerciseSummary.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                exerciseSummary,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
         ),
         trailing: IconButton(
           icon: Icon(deleteMode ? Icons.close : Icons.chevron_right,

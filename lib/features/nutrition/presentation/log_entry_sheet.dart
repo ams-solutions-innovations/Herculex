@@ -1,18 +1,19 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../../widgets/premium_button.dart';
-import 'package:intl/intl.dart';
-
 import '../domain/daily_totals.dart';
 import '../domain/food_insights.dart';
-import 'nutrition_providers.dart';
+import '../domain/meal_slots.dart';
 import 'meal_slots_provider.dart';
 import 'nutrient_settings_provider.dart';
+import 'nutrition_providers.dart';
 
 /// Final step before logging/editing: choose grams (food) or servings (recipe), pick meal, or delete.
 class LogEntrySheet extends ConsumerStatefulWidget {
@@ -104,7 +105,6 @@ class LogEntrySheet extends ConsumerStatefulWidget {
 
 // ─── Units supported for food logging ───────────────────────────────────────
 const _kFoodUnits = ['g', 'ml', 'oz', 'tsp', 'tbsp', 'cup'];
-// Conversion factors to grams (approximate, used for calorie estimation preview).
 const Map<String, double> _kUnitToGrams = {
   'g': 1.0,
   'ml': 1.0,
@@ -119,8 +119,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   late final TextEditingController _quantity;
   late String _selectedUnit;
 
-  /// How many of [_quantity] portions were eaten. Kept separate from the
-  /// portion size so "3 × 30 g" reads the way the user thinks about it.
+  /// How many of [_quantity] portions were eaten.
   double _servings = 1;
 
   /// Time of day, when the timestamp field is enabled in settings.
@@ -140,7 +139,6 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       _quantity = TextEditingController(
         text: amount % 1 == 0 ? amount.toStringAsFixed(0) : amount.toStringAsFixed(1),
       );
-      // Restore the unit that was previously saved.
       final savedUnit = entry.portionUnit ?? _defaultUnit;
       _selectedUnit = _kFoodUnits.contains(savedUnit) ? savedUnit : _defaultUnit;
       _time = TimeOfDay.fromDateTime(entry.loggedAt);
@@ -161,7 +159,6 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final portion = double.tryParse(_quantity.text.trim()) ?? 0;
     return portion * _servings;
   }
-
 
   /// Default unit derived from the food's reference basis.
   String get _defaultUnit {
@@ -187,7 +184,6 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final repo = ref.read(nutritionRepositoryProvider);
     final isFood = widget.food != null || (widget.existingEntry != null && widget.existingEntry!.foodId != null);
 
-    // Convert to grams for storage when a non-gram unit is chosen.
     double? grams;
     if (isFood && _selectedUnit != 'servings') {
       final factor = _kUnitToGrams[_selectedUnit] ?? 1.0;
@@ -206,8 +202,6 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
         loggedAt: _loggedAtOn(widget.date),
       );
     } else {
-      // A new entry lands on the diary's date plus any extra days ticked in
-      // "Add to multiple days".
       for (final date in {widget.date, ..._extraDays}) {
         if (widget.food != null) {
           await repo.logFood(
@@ -234,7 +228,6 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     Navigator.of(context).pop(true);
   }
 
-  /// The chosen time of day applied to [date]; null when no time was picked.
   DateTime? _loggedAtOn(DateTime date) {
     final t = _time;
     if (t == null) return null;
@@ -251,6 +244,292 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     Navigator.of(context).pop(true);
   }
 
+  void _showMealPicker(BuildContext context, List<MealSlot> mealSlots) {
+    Haptics.selection();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Select Meal',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final m in mealSlots)
+                    GestureDetector(
+                      onTap: () {
+                        Haptics.selection();
+                        setState(() => _mealKey = m.key);
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _mealKey == m.key ? AppColors.primary : AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          m.label,
+                          style: TextStyle(
+                            color: _mealKey == m.key ? Colors.white : AppColors.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showServingsPicker(BuildContext context) {
+    Haptics.selection();
+    final ctrl = TextEditingController(text: _fmtAmount(_servings));
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Number of Servings',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton.filledTonal(
+                        icon: const Icon(Icons.remove),
+                        onPressed: _servings <= 0.5
+                            ? null
+                            : () {
+                                Haptics.selection();
+                                setState(() => _servings = (_servings - 0.5).clamp(0.5, 999.0));
+                                ctrl.text = _fmtAmount(_servings);
+                                setModalState(() {});
+                              },
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: 100,
+                        child: TextField(
+                          controller: ctrl,
+                          autofocus: true,
+                          textAlign: TextAlign.center,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: AppColors.surfaceVariant,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: AppColors.outlineVariant),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: AppColors.outlineVariant),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                            ),
+                          ),
+                          onChanged: (val) {
+                            final parsed = double.tryParse(val.trim());
+                            if (parsed != null && parsed > 0) {
+                              setState(() => _servings = parsed);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      IconButton.filledTonal(
+                        icon: const Icon(Icons.add),
+                        onPressed: () {
+                          Haptics.selection();
+                          setState(() => _servings = _servings + 0.5);
+                          ctrl.text = _fmtAmount(_servings);
+                          setModalState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: const StadiumBorder(),
+                      ),
+                      child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showServingSizePicker(BuildContext context, bool isFood, List<String> availableUnits) {
+    Haptics.selection();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Serving Size & Unit',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _quantity,
+                    autofocus: true,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                    decoration: InputDecoration(
+                      suffixText: isFood ? _selectedUnit : 'servings',
+                      suffixStyle: TextStyle(
+                        color: AppColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surfaceVariant,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: AppColors.outlineVariant),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: AppColors.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                  if (isFood) ...[
+                    const SizedBox(height: 16),
+                    Text('Unit', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.secondary)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final u in availableUnits)
+                          GestureDetector(
+                            onTap: () {
+                              Haptics.selection();
+                              setState(() => _selectedUnit = u);
+                              setModalState(() {});
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _selectedUnit == u ? AppColors.primary : AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                u,
+                                style: TextStyle(
+                                  color: _selectedUnit == u ? Colors.white : AppColors.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: const StadiumBorder(),
+                      ),
+                      child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -265,9 +544,12 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
         : (widget.recipe != null
             ? '${widget.recipe!.servings} servings per recipe'
             : 'Recipe entry');
-    // Units available depend on whether it's a food or a recipe.
     final availableUnits = isFood ? _kFoodUnits : const ['servings'];
     final timestampEnabled = ref.watch(logTimestampEnabledProvider);
+
+    final currentMealLabel = mealSlots
+        .firstWhere((m) => m.key == _mealKey, orElse: () => MealSlot(key: _mealKey, label: _mealKey))
+        .label;
 
     final food = widget.food;
     final insights = food == null
@@ -283,12 +565,13 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
 
     return ListView(
       controller: widget.scrollController,
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       shrinkWrap: true,
       children: [
+        // ── Top Sheet Drag Handle ────────────────────────────────────────────
         Center(
           child: Container(
-            width: 40,
+            width: 36,
             height: 4,
             decoration: BoxDecoration(
               color: AppColors.outlineVariant.withValues(alpha: 0.5),
@@ -296,163 +579,115 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
+
+        // ── Top Header Bar (Close, Title, Save Checkmark) ────────────────────
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ],
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(context).pop(),
+              tooltip: 'Cancel',
+            ),
+            Text(
+              isEditing ? 'Edit Food' : 'Add Food',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
-            if (isEditing)
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                tooltip: 'Delete entry',
-                onPressed: _saving ? null : _delete,
-              ),
+            IconButton(
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(Icons.check, color: AppColors.primary, size: 26),
+              onPressed: _saving ? null : _save,
+              tooltip: 'Save',
+            ),
           ],
         ),
-        // ── Composition badges ───────────────────────────────────────────────
+        const SizedBox(height: 12),
+
+        // ── Food Title & Subtitle ───────────────────────────────────────────
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
+          ],
+        ),
+
+        // ── Composition Badges ──────────────────────────────────────────────
         if (insights.isNotEmpty) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [for (final i in insights) _InsightBadge(insight: i)],
           ),
         ],
-        const SizedBox(height: 24),
-        // ── Meal selector ────────────────────────────────────────────────────
-        _label(theme, 'MEAL'),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final m in mealSlots)
-              _MealChip(
-                label: m.label,
-                selected: _mealKey == m.key,
-                onTap: () {
-                  Haptics.selection();
-                  setState(() => _mealKey = m.key);
-                },
-              ),
-          ],
-        ),
-        const SizedBox(height: 22),
-        // ── Servings ─────────────────────────────────────────────────────────
-        _label(theme, 'NUMBER OF SERVINGS'),
-        const SizedBox(height: 8),
-        _ServingsStepper(
-          value: _servings,
-          onChanged: (v) {
-            Haptics.selection();
-            setState(() => _servings = v);
-          },
-        ),
-        const SizedBox(height: 22),
-        // ── Portion size + unit ──────────────────────────────────────────────
-        _label(theme, 'SERVING SIZE'),
-        const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _quantity,
-                autofocus: true,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                ],
-                style: theme.textTheme.displayMedium?.copyWith(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: AppColors.surfaceContainer,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  suffixText: isFood ? _selectedUnit : 'servings',
-                  suffixStyle: theme.textTheme.titleMedium
-                      ?.copyWith(color: AppColors.secondary),
-                ),
-              ),
+        const SizedBox(height: 16),
+
+        // ── Grouped Settings Card (Meal, Servings, Serving Size, Time) ──────
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
             ),
-          ],
-        ),
-        // ── Unit chips ───────────────────────────────────────────────────────
-        if (isFood) ...[
-          const SizedBox(height: 12),
-          _label(theme, 'UNIT'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          ),
+          child: Column(
             children: [
-              for (final u in availableUnits)
-                _UnitChip(
-                  label: u,
-                  selected: _selectedUnit == u,
-                  onTap: () {
-                    Haptics.selection();
-                    setState(() => _selectedUnit = u);
+              _SettingsRow(
+                label: 'Meal',
+                value: currentMealLabel,
+                onTap: () => _showMealPicker(context, mealSlots),
+              ),
+              _SettingsRow(
+                label: 'Number of Servings',
+                value: _fmtAmount(_servings),
+                onTap: () => _showServingsPicker(context),
+              ),
+              _SettingsRow(
+                label: 'Serving Size',
+                value: '${_quantity.text.isEmpty ? '0' : _quantity.text} ${isFood ? _selectedUnit : 'servings'}',
+                onTap: () => _showServingSizePicker(context, isFood, availableUnits),
+              ),
+              if (timestampEnabled)
+                _SettingsRow(
+                  label: 'Time',
+                  value: _time == null ? 'Set time' : _time!.format(context),
+                  showDivider: false,
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: _time ?? TimeOfDay.now(),
+                    );
+                    if (picked != null) setState(() => _time = picked);
                   },
                 ),
             ],
           ),
-        ],
-        if (_servings != 1) ...[
-          const SizedBox(height: 10),
-          Text(
-            'Logging ${_fmtAmount(_totalAmount)} ${isFood ? _selectedUnit : 'servings'} in total.',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.secondary),
-          ),
-        ],
-        // ── Optional timestamp ───────────────────────────────────────────────
-        if (timestampEnabled) ...[
-          const SizedBox(height: 22),
-          _label(theme, 'TIME'),
-          const SizedBox(height: 8),
-          _TimeRow(
-            time: _time,
-            onPick: () async {
-              final picked = await showTimePicker(
-                context: context,
-                initialTime: _time ?? TimeOfDay.now(),
-              );
-              if (picked != null) setState(() => _time = picked);
-            },
-            onClear: _time == null ? null : () => setState(() => _time = null),
-          ),
-        ],
-        // ── Add to multiple days ─────────────────────────────────────────────
+        ),
+        const SizedBox(height: 20),
+
+        // ── Add to Multiple Days ─────────────────────────────────────────────
         if (!isEditing) ...[
-          const SizedBox(height: 22),
           _MultiDayPicker(
             baseDate: widget.date,
             selected: _extraDays,
@@ -463,9 +698,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
               });
             },
           ),
+          const SizedBox(height: 20),
         ],
-        const SizedBox(height: 22),
-        // ── Live nutrition preview ───────────────────────────────────────────
+
+        // ── Nutrition Breakdown & Goals Preview ──────────────────────────────
         _NutritionPreview(
           food: widget.food,
           recipe: widget.recipe,
@@ -473,17 +709,20 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
           unit: isFood ? _selectedUnit : 'servings',
           date: widget.date,
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
+
+        // ── Primary Action Button ────────────────────────────────────────────
         PremiumButton(
           text: _saving
               ? 'Saving…'
               : isEditing
                   ? 'Update Entry'
                   : _extraDays.isEmpty
-                      ? 'Log'
-                      : 'Log to ${_extraDays.length + 1} days',
+                      ? 'Log Food'
+                      : 'Log to ${_extraDays.length + 1} Days',
           onTap: _saving ? () {} : _save,
         ),
+
         if (isEditing) ...[
           const SizedBox(height: 12),
           SizedBox(
@@ -500,17 +739,77 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   }
 }
 
-Widget _label(ThemeData theme, String text) => Text(
-      text,
-      style: theme.textTheme.labelSmall?.copyWith(
-        color: AppColors.secondary,
-        letterSpacing: 1.2,
-      ),
-    );
-
-/// Drops a trailing `.0` so "2 servings" doesn't read "2.0 servings".
 String _fmtAmount(double v) =>
     v.truncateToDouble() == v ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+
+// ─── Settings Row ───────────────────────────────────────────────────────────
+class _SettingsRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+  final bool showDivider;
+
+  const _SettingsRow({
+    required this.label,
+    required this.value,
+    required this.onTap,
+    this.showDivider = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      value,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: AppColors.primary.withValues(alpha: 0.7),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            indent: 16,
+            endIndent: 16,
+            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          ),
+      ],
+    );
+  }
+}
 
 // ─── Composition badge ───────────────────────────────────────────────────────
 class _InsightBadge extends StatelessWidget {
@@ -525,7 +824,7 @@ class _InsightBadge extends StatelessWidget {
       InsightTone.neutral => (AppColors.secondary, Icons.circle_outlined),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
@@ -538,7 +837,10 @@ class _InsightBadge extends StatelessWidget {
           Text(
             insight.label,
             style: TextStyle(
-                fontSize: 11.5, fontWeight: FontWeight.w600, color: color),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -546,97 +848,7 @@ class _InsightBadge extends StatelessWidget {
   }
 }
 
-// ─── Servings stepper ────────────────────────────────────────────────────────
-class _ServingsStepper extends StatelessWidget {
-  final double value;
-  final ValueChanged<double> onChanged;
-
-  const _ServingsStepper({required this.value, required this.onChanged});
-
-  /// Half-serving granularity — finer than that belongs in the serving size.
-  static const _step = 0.5;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.remove),
-            onPressed:
-                value <= _step ? null : () => onChanged(value - _step),
-          ),
-          Expanded(
-            child: Text(
-              '${_fmtAmount(value)}×',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => onChanged(value + _step),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Optional time-of-day row ────────────────────────────────────────────────
-class _TimeRow extends StatelessWidget {
-  final TimeOfDay? time;
-  final VoidCallback onPick;
-  final VoidCallback? onClear;
-
-  const _TimeRow({required this.time, required this.onPick, this.onClear});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: onPick,
-            icon: const Icon(Icons.schedule, size: 18),
-            label: Text(time == null ? 'Set a time' : time!.format(context)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor:
-                  time == null ? AppColors.secondary : AppColors.primary,
-              side: BorderSide(
-                  color: AppColors.outlineVariant.withValues(alpha: 0.5)),
-              shape: const StadiumBorder(),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
-        ),
-        if (onClear != null)
-          IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            tooltip: 'Clear time',
-            onPressed: onClear,
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Text('Optional',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: AppColors.secondary)),
-          ),
-      ],
-    );
-  }
-}
-
-// ─── Add to multiple days ────────────────────────────────────────────────────
+// ─── Add to Multiple Days Picker ─────────────────────────────────────────────
 class _MultiDayPicker extends StatelessWidget {
   final DateTime baseDate;
   final Set<DateTime> selected;
@@ -648,55 +860,97 @@ class _MultiDayPicker extends StatelessWidget {
     required this.onToggle,
   });
 
-  /// The candidates are weekdays (Monday to Friday) of the current week (or next
-  /// week if baseDate is Friday/weekend), excluding baseDate itself.
   List<DateTime> get _candidates {
     final cleanBase = DateUtils.dateOnly(baseDate);
     final weekday = cleanBase.weekday;
     final DateTime startMonday;
     if (weekday >= 5) {
-      // If Friday, Saturday, or Sunday, show next week's Mon-Fri
       startMonday = DateUtils.addDaysToDate(cleanBase, 8 - weekday);
     } else {
-      // If Mon, Tue, Wed, or Thu, show current week's Mon-Fri
       startMonday = DateUtils.addDaysToDate(cleanBase, -(weekday - 1));
     }
     return [
-      for (var i = 0; i < 5; i++)
-        DateUtils.addDaysToDate(startMonday, i),
-    ]..remove(cleanBase);
+      for (var i = 0; i < 7; i++) DateUtils.addDaysToDate(startMonday, i),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cleanBase = DateUtils.dateOnly(baseDate);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label(theme, 'ADD TO MULTIPLE DAYS'),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        Text(
+          'Add to Multiple Days',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: AppColors.secondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            for (final day in _candidates)
-              _MealChip(
-                label: DateFormat('EEE d').format(day),
-                selected: selected.contains(day),
-                onTap: () => onToggle(day),
-              ),
+            for (final day in _candidates) ...[
+              _buildDayChip(day, isBase: DateUtils.isSameDay(day, cleanBase), isSelected: selected.contains(day)),
+            ],
           ],
         ),
       ],
     );
   }
+
+  Widget _buildDayChip(DateTime day, {required bool isBase, required bool isSelected}) {
+    final dayName = DateFormat('EEE').format(day);
+    final dayNum = DateFormat('d').format(day);
+    final active = isBase || isSelected;
+
+    return GestureDetector(
+      onTap: isBase ? null : () => onToggle(day),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            dayName,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: active ? AppColors.primary : AppColors.secondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: active ? AppColors.primary : AppColors.surfaceContainer,
+              border: Border.all(
+                color: active ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.5),
+                width: active ? 1.5 : 1,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                dayNum,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: active ? Colors.white : AppColors.onSurface,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-// ─── Live nutrition preview ──────────────────────────────────────────────────
-
-/// Resolves what the pending entry actually contributes and renders it as an
-/// energy-split bar plus grams, with micronutrients folded into a drop-down
-/// so the common case stays compact (§3).
+// ─── Live Nutrition Preview & Donut Breakdown ────────────────────────────────
 class _NutritionPreview extends ConsumerStatefulWidget {
   final FoodData? food;
   final RecipeData? recipe;
@@ -718,16 +972,11 @@ class _NutritionPreview extends ConsumerStatefulWidget {
 
 class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
   bool _showMicros = false;
-
-  /// Cached resolution, rebuilt only when the inputs actually change.
-  /// Without this the future restarts on every keystroke and the card blanks
-  /// out between frames.
   Future<DailyTotals>? _future;
   String? _futureKey;
 
   Future<DailyTotals> _cachedResolve() {
-    final key = '${widget.food?.id}|${widget.recipe?.id}|'
-        '${widget.amount}|${widget.unit}';
+    final key = '${widget.food?.id}|${widget.recipe?.id}|${widget.amount}|${widget.unit}';
     if (_futureKey != key || _future == null) {
       _futureKey = key;
       _future = _resolve();
@@ -735,8 +984,6 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
     return _future!;
   }
 
-  /// Builds a throwaway entry so the preview goes through exactly the same
-  /// resolver the diary uses — no parallel maths to drift out of sync.
   Future<DailyTotals> _resolve() async {
     final repo = ref.read(nutritionRepositoryProvider);
     if (widget.amount <= 0) return DailyTotals.empty;
@@ -776,91 +1023,169 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
         );
 
         return Container(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Macro Donut Ring + 3 Macro Columns ────────────────────────
               Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Expanded(child: _label(theme, 'THIS ENTRY ADDS')),
-                  Text('${t.kcal.round()}',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.macroKcal)),
-                  const SizedBox(width: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: Text('kcal',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: AppColors.secondary)),
+                  SizedBox(
+                    width: 86,
+                    height: 86,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CustomPaint(
+                          size: const Size(86, 86),
+                          painter: _MacroDonutPainter(
+                            proteinG: t.proteinG,
+                            carbsG: t.carbsG,
+                            fatG: t.fatG,
+                            proteinColor: AppColors.macroProtein,
+                            carbsColor: AppColors.macroCarbs,
+                            fatColor: AppColors.macroFat,
+                            trackColor: AppColors.outlineVariant.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${t.kcal.round()}',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                height: 1.1,
+                              ),
+                            ),
+                            Text(
+                              'Cal',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: AppColors.secondary,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _macroColumn(
+                          theme,
+                          share: split.carbsShare,
+                          grams: t.carbsG,
+                          label: 'Net Carbs',
+                          color: AppColors.macroCarbs,
+                        ),
+                        _macroColumn(
+                          theme,
+                          share: split.fatShare,
+                          grams: t.fatG,
+                          label: 'Fat',
+                          color: AppColors.macroFat,
+                        ),
+                        _macroColumn(
+                          theme,
+                          share: split.proteinShare,
+                          grams: t.proteinG,
+                          label: 'Protein',
+                          color: AppColors.macroProtein,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              if (targets != null && targets.kcal > 0)
-                Text(
-                  '${(t.kcal / targets.kcal * 100).round()}% of today\'s calorie goal',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: AppColors.secondary),
-                ),
-              const SizedBox(height: 14),
-              // Energy split bar — the three shares always fill the width.
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: SizedBox(
-                  height: 8,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: (split.proteinShare * 1000).round().clamp(0, 1000),
-                        child: ColoredBox(color: AppColors.macroProtein),
-                      ),
-                      Expanded(
-                        flex: (split.carbsShare * 1000).round().clamp(0, 1000),
-                        child: ColoredBox(color: AppColors.macroCarbs),
-                      ),
-                      Expanded(
-                        flex: (split.fatShare * 1000).round().clamp(0, 1000),
-                        child: ColoredBox(color: AppColors.macroFat),
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 20),
+
+              // ── Percent of Your Daily Goals Header & Bars ─────────────────
+              Text(
+                'Percent of Your Daily Goals',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  _macroCell(theme, 'Protein', t.proteinG, split.proteinShare,
-                      targets?.proteinG, AppColors.macroProtein),
-                  _macroCell(theme, 'Carbs', t.carbsG, split.carbsShare,
-                      targets?.carbsG, AppColors.macroCarbs),
-                  _macroCell(theme, 'Fat', t.fatG, split.fatShare,
-                      targets?.fatG, AppColors.macroFat),
+                  Expanded(
+                    child: _goalBarCell(
+                      theme,
+                      label: 'Calories',
+                      value: t.kcal,
+                      target: targets?.kcal.toDouble(),
+                      color: AppColors.macroKcal,
+                      isKcal: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _goalBarCell(
+                      theme,
+                      label: 'Net Carbs',
+                      value: t.carbsG,
+                      target: targets?.carbsG.toDouble(),
+                      color: AppColors.macroCarbs,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _goalBarCell(
+                      theme,
+                      label: 'Fat',
+                      value: t.fatG,
+                      target: targets?.fatG.toDouble(),
+                      color: AppColors.macroFat,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _goalBarCell(
+                      theme,
+                      label: 'Protein',
+                      value: t.proteinG,
+                      target: targets?.proteinG.toDouble(),
+                      color: AppColors.macroProtein,
+                    ),
+                  ),
                 ],
               ),
+
+              // ── Optional Micronutrients Accordion ─────────────────────────
               if (t.hasMicros) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 12),
                 InkWell(
                   onTap: () => setState(() => _showMicros = !_showMicros),
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('More nutrients',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600)),
+                        Text(
+                          'More nutrients',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         const SizedBox(width: 4),
                         AnimatedRotation(
                           turns: _showMicros ? 0.5 : 0,
                           duration: const Duration(milliseconds: 200),
-                          child: Icon(Icons.expand_more,
-                              size: 18, color: AppColors.primary),
+                          child: Icon(Icons.expand_more, size: 18, color: AppColors.primary),
                         ),
                       ],
                     ),
@@ -869,9 +1194,7 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
                 AnimatedSize(
                   duration: const Duration(milliseconds: 200),
                   alignment: Alignment.topLeft,
-                  child: !_showMicros
-                      ? const SizedBox(width: double.infinity)
-                      : _micros(theme, t),
+                  child: !_showMicros ? const SizedBox.shrink() : _microsList(theme, t),
                 ),
               ],
             ],
@@ -881,81 +1204,226 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
     );
   }
 
-  Widget _macroCell(ThemeData theme, String label, double grams, double share,
-          int? target, Color color) =>
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                    width: 8,
-                    height: 8,
-                    decoration:
-                        BoxDecoration(color: color, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                Text(label,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: AppColors.secondary)),
-              ],
+  Widget _macroColumn(
+    ThemeData theme, {
+    required double share,
+    required double grams,
+    required String label,
+    required Color color,
+  }) {
+    final pct = (share * 100).round();
+    return Column(
+      children: [
+        Text(
+          '$pct%',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${_fmtAmount(grams)}g',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.secondary,
+            fontSize: 10,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _goalBarCell(
+    ThemeData theme, {
+    required String label,
+    required double value,
+    required double? target,
+    required Color color,
+    bool isKcal = false,
+  }) {
+    final pct = (target != null && target > 0) ? (value / target).clamp(0.0, 1.0) : 0.0;
+    final pctInt = (pct * 100).round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.secondary,
+            fontSize: 10,
+          ),
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            height: 5,
+            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: pct > 0 ? pct : 0.01,
+                child: Container(color: color),
+              ),
             ),
-            const SizedBox(height: 2),
-            Text('${grams.round()} g',
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '$pctInt%',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+              ),
+            ),
             Text(
               target != null && target > 0
-                  ? '${(grams / target * 100).round()}% of goal'
-                  : '${(share * 100).round()}% of energy',
-              style: theme.textTheme.labelSmall
-                  ?.copyWith(color: AppColors.secondary, fontSize: 10),
+                  ? isKcal
+                      ? NumberFormat('#,###').format(target.round())
+                      : '${target.round()}g'
+                  : '--',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                fontSize: 9,
+              ),
             ),
           ],
         ),
-      );
+      ],
+    );
+  }
 
-  Widget _micros(ThemeData theme, DailyTotals t) {
+  Widget _microsList(ThemeData theme, DailyTotals t) {
     final rows = <(String, String)>[
       if (t.fiberG > 0) ('Fibre', '${t.fiberG.toStringAsFixed(1)} g'),
       if (t.sodiumMg > 0) ('Sodium', '${t.sodiumMg.round()} mg'),
       if (t.potassiumMg > 0) ('Potassium', '${t.potassiumMg.round()} mg'),
-      if (t.cholesterolMg > 0)
-        ('Cholesterol', '${t.cholesterolMg.round()} mg'),
+      if (t.cholesterolMg > 0) ('Cholesterol', '${t.cholesterolMg.round()} mg'),
       for (final e in t.micros.entries)
         if (e.value > 0) (e.key, e.value.toStringAsFixed(1)),
     ];
-    if (rows.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text('No micronutrient data for this food.',
-            style:
-                theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
-      );
-    }
-    return Column(
-      children: [
-        for (final (name, value) in rows)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
-            child: Row(
-              children: [
-                Expanded(
-                    child: Text(name,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: AppColors.secondary))),
-                Text(value,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
-              ],
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        children: [
+          for (final (name, val) in rows)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(name, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
+                  Text(val, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-// ─── Shell that provides the DraggableScrollableSheet wrapper ───────────────
+// ─── Custom Painter for Macro Donut Ring ──────────────────────────────────────
+class _MacroDonutPainter extends CustomPainter {
+  final double proteinG;
+  final double carbsG;
+  final double fatG;
+  final Color proteinColor;
+  final Color carbsColor;
+  final Color fatColor;
+  final Color trackColor;
+
+  _MacroDonutPainter({
+    required this.proteinG,
+    required this.carbsG,
+    required this.fatG,
+    required this.proteinColor,
+    required this.carbsColor,
+    required this.fatColor,
+    required this.trackColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final strokeWidth = 7.0;
+    final radius = (size.width - strokeWidth) / 2;
+
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    final totalGrams = proteinG + carbsG + fatG;
+    if (totalGrams <= 0) return;
+
+    final pShare = proteinG / totalGrams;
+    final cShare = carbsG / totalGrams;
+    final fShare = fatG / totalGrams;
+
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    double startAngle = -math.pi / 2;
+
+    if (cShare > 0) {
+      final sweepAngle = 2 * math.pi * cShare;
+      final paint = Paint()
+        ..color = carbsColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+      startAngle += sweepAngle;
+    }
+
+    if (fShare > 0) {
+      final sweepAngle = 2 * math.pi * fShare;
+      final paint = Paint()
+        ..color = fatColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+      startAngle += sweepAngle;
+    }
+
+    if (pShare > 0) {
+      final sweepAngle = 2 * math.pi * pShare;
+      final paint = Paint()
+        ..color = proteinColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MacroDonutPainter oldDelegate) =>
+      oldDelegate.proteinG != proteinG ||
+      oldDelegate.carbsG != carbsG ||
+      oldDelegate.fatG != fatG ||
+      oldDelegate.proteinColor != proteinColor ||
+      oldDelegate.carbsColor != carbsColor ||
+      oldDelegate.fatColor != fatColor;
+}
+
+// ─── Shell for DraggableScrollableSheet ──────────────────────────────────────
 class _LogEntrySheetShell extends StatelessWidget {
   final Widget Function(BuildContext, ScrollController) builder;
   const _LogEntrySheetShell({required this.builder});
@@ -964,97 +1432,16 @@ class _LogEntrySheetShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return DraggableScrollableSheet(
-      initialChildSize: 0.95,
+      initialChildSize: 0.92,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) => Container(
         decoration: BoxDecoration(
           color: theme.bottomSheetTheme.backgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: builder(context, scrollController),
-      ),
-    );
-  }
-}
-
-// ─── Meal chip ───────────────────────────────────────────────────────────────
-class _MealChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _MealChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surfaceContainer,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: selected
-                ? AppColors.primary
-                : AppColors.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : AppColors.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Unit chip ───────────────────────────────────────────────────────────────
-class _UnitChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _UnitChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surfaceContainer,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected
-                ? AppColors.primary
-                : AppColors.outlineVariant.withValues(alpha: 0.4),
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
-          ),
-        ),
       ),
     );
   }

@@ -54,6 +54,8 @@ dependencies:
   google_generative_ai: ^0.4.7
   google_mlkit_text_recognition: ^0.16.0
   wakelock_plus: ^1.2.10
+  quick_actions: ^1.1.0
+  flutter_media_controller: ^1.0.3
 
 dev_dependencies:
   flutter_test:
@@ -70,8 +72,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/data/exercises.json
+    - assets/data/movements.json
     - assets/data/food_database_eu.v1.json
     - assets/images/
+    - assets/programs/
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

@@ -1,9 +1,7 @@
 package com.ams.herculex.workout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -11,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,6 +23,8 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.OneUiPill
+import com.ams.herculex.ui.OneUiPillStyle
 
 @Composable
 fun WorkoutDetailScreen(
@@ -44,7 +43,7 @@ fun WorkoutDetailScreen(
             .background(Color.Black)
             .attachRotaryScroll(listState),
         autoCentering = null,
-        contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp, start = 10.dp, end = 10.dp),
+        contentPadding = PaddingValues(top = 40.dp, bottom = 48.dp, start = 14.dp, end = 14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
@@ -59,25 +58,16 @@ fun WorkoutDetailScreen(
                     fontSize = 15.sp,
                 )
                 Spacer(Modifier.height(6.dp))
-                // Start button (blue, shorter pill shape)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .background(Color(0xFF1976D2), shape = CircleShape)
-                        .clickable {
-                            viewModel.startWorkout(workout)
-                            navController.navigate("active_workout")
-                        }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "Start Workout",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    )
-                }
+                // Start button (One UI Royal Blue pill)
+                OneUiPill(
+                    title = "Start Workout",
+                    icon = "▶",
+                    style = OneUiPillStyle.RoyalBlue,
+                    onClick = {
+                        viewModel.startWorkout(workout)
+                        navController.navigate("active_workout")
+                    },
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "${workout.exercises.size} Exercises",
@@ -88,23 +78,12 @@ fun WorkoutDetailScreen(
         }
 
         items(workout.exercises) { ex ->
-            ExercisePreviewRow(ex)
-        }
-    }
-}
-
-@Composable
-private fun ExercisePreviewRow(ex: ExerciseTemplate) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF1C1C1E), shape = CircleShape)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(ex.name, color = Color.White, fontWeight = FontWeight.Medium, fontSize = 13.sp)
-            Text("${ex.targetSets} Sets", color = Color(0xFF9E9E9E), fontSize = 11.sp)
+            OneUiPill(
+                title = ex.name,
+                subtitle = "${ex.targetSets} Sets",
+                icon = null,
+                style = OneUiPillStyle.SlateNavy,
+            )
         }
     }
 }

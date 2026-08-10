@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,9 +49,19 @@ const exercisePickerFilterChips = <String>[
   'Side Delts',
   'Front Delts',
   'Calisthenics',
-  'Cardio',
-  'Mobility',
+  // No 'Cardio' / 'Mobility' chips: the catalog has no exercise in either
+  // category, and neither can be logged until SetEntries gains duration and
+  // distance columns.
 ];
+
+/// Display name for a collapsed movement group, e.g. the barbell/dumbbell/
+/// cable variants of a curl all render under "Bicep Curl".
+///
+/// Deliberately independent of the order [variants] arrives in: search ranking
+/// reorders groups, and a label that changed per query would read as a
+/// different exercise.
+String exerciseFamilyLabel(List<ExerciseCatalogData> variants) =>
+    _FamilyTile.familyLabel(variants);
 
 List<ExerciseCatalogData> sortRecentExercisesFirst(
   List<ExerciseCatalogData> exercises,
@@ -67,15 +79,15 @@ List<ExerciseCatalogData> sortRecentExercisesFirst(
 class ExercisePickerSheet extends ConsumerStatefulWidget {
   const ExercisePickerSheet({super.key});
 
-  static Future<ExercisePickResult?> show(BuildContext context) async {
-    final raw = await showModalBottomSheet<(ExerciseCatalogData, bool)>(
+  static Future<List<ExercisePickResult>?> show(BuildContext context) async {
+    final raw = await showModalBottomSheet<List<ExercisePickResult>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const ExercisePickerSheet(),
     );
-    if (raw == null) return null;
-    return (exercise: raw.$1, equipmentAlreadyChosen: raw.$2);
+    if (raw == null || raw.isEmpty) return null;
+    return raw;
   }
 
   @override
@@ -88,11 +100,47 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
   String? _category;
   bool _isScanningAi = false;
   final _ctrl = TextEditingController();
+  Timer? _debounce;
+  final _selectedMap = <int, ExercisePickResult>{};
+
+  /// Long enough to coalesce a burst of typing, short enough that the list
+  /// still feels live. Debouncing here rather than in the provider keeps the
+  /// provider synchronous and directly testable.
+  static const _debounceDelay = Duration(milliseconds: 180);
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _ctrl.dispose();
     super.dispose();
+  }
+
+  void _onQueryChanged(String value) {
+    _debounce?.cancel();
+    // Clearing the field should feel instant; only typing is debounced.
+    if (value.isEmpty) {
+      setState(() => _query = '');
+      return;
+    }
+    _debounce = Timer(_debounceDelay, () {
+      if (mounted) setState(() => _query = value);
+    });
+  }
+
+  void _toggleSelection(
+    ExerciseCatalogData exercise,
+    bool equipmentAlreadyChosen,
+  ) {
+    setState(() {
+      if (_selectedMap.containsKey(exercise.id)) {
+        _selectedMap.remove(exercise.id);
+      } else {
+        _selectedMap[exercise.id] = (
+          exercise: exercise,
+          equipmentAlreadyChosen: equipmentAlreadyChosen,
+        );
+      }
+    });
   }
 
   /// Collapses equipment variants of the same movement into one group while
@@ -105,7 +153,9 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
     final groups = <List<ExerciseCatalogData>>[];
     final byFamily = <String, List<ExerciseCatalogData>>{};
     for (final e in list) {
-      final fam = e.movementFamily;
+      // Authored movement first; the derived family remains the fallback for
+      // rows the movement layer does not cover yet (and for custom rows).
+      final fam = e.movementSlug ?? e.movementFamily;
       if (fam == null) {
         groups.add([e]);
         continue;
@@ -126,7 +176,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final exercises = ref.watch(
-      exerciseCatalogProvider(
+      exerciseSearchProvider(
         ExerciseCatalogFilter(query: _query, category: _category),
       ),
     );
@@ -141,200 +191,253 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
           color: theme.bottomSheetTheme.backgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
-        child: Column(
+        child: Stack(
           children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Add Exercise',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+            Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  TextButton.icon(
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Custom'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                    ),
-                    onPressed: () async {
-                      final created = await CustomExerciseBuilderView.show(
-                        context,
-                      );
-                      if (created != null && context.mounted) {
-                        Navigator.of(context).pop((created, false));
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _ctrl,
-                onChanged: (v) => setState(() => _query = v),
-                decoration: InputDecoration(
-                  hintText: 'Search exercises…',
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  filled: true,
-                  fillColor: AppColors.surfaceContainer,
-                  suffixIcon: _isScanningAi
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : IconButton(
-                          icon: Icon(
-                            Icons.document_scanner,
-                            color: AppColors.primary,
-                          ),
-                          tooltip: 'AI: Slikaj mašino/vajo',
-                          onPressed: () async {
-                            final picker = ImagePicker();
-                            final xfile = await picker.pickImage(
-                              source: ImageSource.camera,
-                            );
-                            if (xfile == null) return;
-
-                            setState(() => _isScanningAi = true);
-                            try {
-                              final ai = ref.read(aiServiceProvider);
-                              final match = await ai.identifyExerciseFromImage(
-                                xfile,
-                              );
-                              if (context.mounted && match != null) {
-                                Navigator.of(context).pop((match, false));
-                              } else if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'AI could not confidently identify this machine.',
-                                    ),
-                                  ),
-                                );
-                              }
-                            } finally {
-                              if (context.mounted) {
-                                setState(() => _isScanningAi = false);
-                              }
-                            }
-                          },
+                ),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Add Exercise',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28),
-                    borderSide: BorderSide.none,
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Custom'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
+                        onPressed: () async {
+                          final created = await CustomExerciseBuilderView.show(
+                            context,
+                          );
+                          if (created != null && context.mounted) {
+                            Navigator.of(context).pop([
+                              (exercise: created, equipmentAlreadyChosen: false),
+                            ]);
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: _ctrl,
+                    onChanged: _onQueryChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Search exercises…',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      filled: true,
+                      fillColor: AppColors.surfaceVariant,
+                      suffixIcon: _isScanningAi
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : IconButton(
+                              icon: Icon(
+                                Icons.document_scanner,
+                                color: AppColors.primary,
+                              ),
+                              tooltip: 'AI: Slikaj mašino/vajo',
+                              onPressed: () async {
+                                final picker = ImagePicker();
+                                final xfile = await picker.pickImage(
+                                  source: ImageSource.camera,
+                                );
+                                if (xfile == null) return;
+
+                                setState(() => _isScanningAi = true);
+                                try {
+                                  final ai = ref.read(aiServiceProvider);
+                                  final match = await ai.identifyExerciseFromImage(
+                                    xfile,
+                                  );
+                                  if (context.mounted && match != null) {
+                                    Navigator.of(context).pop([
+                                      (exercise: match, equipmentAlreadyChosen: false),
+                                    ]);
+                                  } else if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'AI could not confidently identify this machine.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } finally {
+                                  if (context.mounted) {
+                                    setState(() => _isScanningAi = false);
+                                  }
+                                }
+                              },
+                            ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(28),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      ...exercisePickerFilterChips.map((c) {
+                        final isSelected = c == 'All'
+                            ? _category == null
+                            : _category == c;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(
+                              c,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.secondary,
+                              ),
+                            ),
+                            selected: isSelected,
+                            selectedColor: AppColors.primary,
+                            backgroundColor: AppColors.surfaceContainer,
+                            side: BorderSide.none,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onSelected: (selected) {
+                              setState(() {
+                                _category = c == 'All' ? null : c;
+                              });
+                            },
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: exercises.when(
+                    data: (list) {
+                      final recentIds = recentIdsAsync.asData?.value ?? <int>{};
+                      var filteredList = list;
+                      if (_category == 'Recent') {
+                        filteredList = list
+                            .where((e) => recentIds.contains(e.id))
+                            .toList();
+                      } else if (recentIds.isNotEmpty && _query.isEmpty) {
+                        // Recency only orders the unfiltered browse list. While a
+                        // query is typed, relevance wins — otherwise any of the 50
+                        // recent exercises outranks an exact name match.
+                        filteredList = sortRecentExercisesFirst(list, recentIds);
+                      }
+
+                      if (filteredList.isEmpty) {
+                        return Center(
+                          child: Text(
+                            _category == 'Recent'
+                                ? 'No recent exercises logged yet'
+                                : 'No exercises found',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        );
+                      }
+                      final groups = _groupByFamily(filteredList);
+                      return ListView.builder(
+                        controller: controller,
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          8,
+                          16,
+                          _selectedMap.isNotEmpty ? 90 : 32,
+                        ),
+                        itemCount: groups.length,
+                        itemBuilder: (_, i) {
+                          final g = groups[i];
+                          if (g.length == 1) {
+                            final isSelected = _selectedMap.containsKey(g.first.id);
+                            return _ExerciseTile(
+                              exercise: g.first,
+                              isSelected: isSelected,
+                              onTap: () => _toggleSelection(g.first, false),
+                            );
+                          }
+                          final selectedCount = g
+                              .where((v) => _selectedMap.containsKey(v.id))
+                              .length;
+                          return _FamilyTile(
+                            variants: g,
+                            selectedCount: selectedCount,
+                            onPick: (picked) => _toggleSelection(picked, true),
+                          );
+                        },
+                      );
+                    },
+                    error: (e, _) => Center(child: Text('Failed to load: $e')),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              ],
+            ),
+            if (_selectedMap.isNotEmpty)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: SafeArea(
+                  top: false,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(_selectedMap.values.toList());
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                        elevation: 6,
+                      ),
+                      child: Text(
+                        'Add ${_selectedMap.length} ${_selectedMap.length == 1 ? "exercise" : "exercises"}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 36,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  ...exercisePickerFilterChips.map((c) {
-                    final isSelected = c == 'All'
-                        ? _category == null
-                        : _category == c;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(
-                          c,
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.secondary,
-                          ),
-                        ),
-                        selected: isSelected,
-                        selectedColor: AppColors.primary,
-                        backgroundColor: AppColors.surfaceContainer,
-                        side: BorderSide.none,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        onSelected: (selected) {
-                          setState(() {
-                            _category = c == 'All' ? null : c;
-                          });
-                        },
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: exercises.when(
-                data: (list) {
-                  final recentIds = recentIdsAsync.asData?.value ?? <int>{};
-                  var filteredList = list;
-                  if (_category == 'Recent') {
-                    filteredList = list
-                        .where((e) => recentIds.contains(e.id))
-                        .toList();
-                  } else if (recentIds.isNotEmpty) {
-                    filteredList = sortRecentExercisesFirst(list, recentIds);
-                  }
-
-                  if (filteredList.isEmpty) {
-                    return Center(
-                      child: Text(
-                        _category == 'Recent'
-                            ? 'No recent exercises logged yet'
-                            : 'No exercises found',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    );
-                  }
-                  final groups = _groupByFamily(filteredList);
-                  return ListView.builder(
-                    controller: controller,
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                    itemCount: groups.length,
-                    itemBuilder: (_, i) {
-                      final g = groups[i];
-                      if (g.length == 1) {
-                        return _ExerciseTile(
-                          exercise: g.first,
-                          onTap: () =>
-                              Navigator.of(context).pop((g.first, false)),
-                        );
-                      }
-                      return _FamilyTile(
-                        variants: g,
-                        onPick: (picked) =>
-                            Navigator.of(context).pop((picked, true)),
-                      );
-                    },
-                  );
-                },
-                error: (e, _) => Center(child: Text('Failed to load: $e')),
-                loading: () => const Center(child: CircularProgressIndicator()),
-              ),
-            ),
           ],
         ),
       ),
@@ -346,14 +449,27 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
 /// style chooser; the chosen real catalog row is returned to the picker caller.
 class _FamilyTile extends StatelessWidget {
   final List<ExerciseCatalogData> variants;
+  final int selectedCount;
   final ValueChanged<ExerciseCatalogData> onPick;
-  const _FamilyTile({required this.variants, required this.onPick});
+  const _FamilyTile({
+    required this.variants,
+    required this.selectedCount,
+    required this.onPick,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final label = familyLabel(variants);
     final styles = variants.map((v) => v.equipment).toSet().toList();
+    final isSelected = selectedCount > 0;
+    final bgColor = isSelected
+        ? AppColors.primaryContainer.withValues(alpha: 0.35)
+        : AppColors.surfaceContainerLowest;
+    final borderColor = isSelected
+        ? AppColors.primary
+        : AppColors.outlineVariant.withValues(alpha: 0.4);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -366,13 +482,15 @@ class _FamilyTile extends StatelessWidget {
           if (picked != null) onPick(picked);
         },
         borderRadius: BorderRadius.circular(16),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
+            color: bgColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              color: borderColor,
+              width: isSelected ? 1.5 : 1.0,
             ),
           ),
           child: Row(
@@ -381,13 +499,15 @@ class _FamilyTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.35),
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.primaryContainer.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   Icons.fitness_center,
                   size: 20,
-                  color: AppColors.primary,
+                  color: isSelected ? Colors.white : AppColors.primary,
                 ),
               ),
               const SizedBox(width: 12),
@@ -417,13 +537,18 @@ class _FamilyTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainer,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '${variants.length} styles',
+                  isSelected
+                      ? '$selectedCount selected'
+                      : '${variants.length} styles',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.secondary,
+                    color: isSelected ? Colors.white : AppColors.secondary,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ),
@@ -436,9 +561,9 @@ class _FamilyTile extends StatelessWidget {
     );
   }
 
-  /// Display name for the collapsed movement: the shared words across the
-  /// variant names with equipment terms removed (e.g. "Incline Press"). Falls
-  /// back to the shortest variant name if nothing meaningful remains.
+  /// See [exerciseFamilyLabel]. Picks the plainest cleaned variant name rather
+  /// than the first, so the label does not shift when ranking reorders the
+  /// group.
   static String familyLabel(List<ExerciseCatalogData> variants) {
     String clean(String name) {
       var n = ' ${name.toLowerCase()} ';
@@ -450,7 +575,19 @@ class _FamilyTile extends StatelessWidget {
       return n.replaceAll(RegExp(r'\s+'), ' ').trim();
     }
 
-    final base = clean(variants.first.name);
+    final cleaned = variants
+        .map((v) => clean(v.name))
+        .where((n) => n.isNotEmpty)
+        .toList();
+    final base = cleaned.isEmpty
+        ? ''
+        : cleaned.reduce((a, b) {
+            final byWords = a.split(' ').length.compareTo(b.split(' ').length);
+            if (byWords != 0) return byWords < 0 ? a : b;
+            final byLength = a.length.compareTo(b.length);
+            if (byLength != 0) return byLength < 0 ? a : b;
+            return a.compareTo(b) <= 0 ? a : b;
+          });
     if (base.isEmpty) {
       return variants
           .map((v) => v.name)
@@ -519,6 +656,7 @@ class _StyleChooserSheet extends StatelessWidget {
   ) {
     return showModalBottomSheet<ExerciseCatalogData>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) =>
           _StyleChooserSheet(movement: movement, variants: variants),
@@ -548,62 +686,76 @@ class _StyleChooserSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final weightedBase = _weightedBase();
-    return Container(
-      decoration: BoxDecoration(
-        color:
-            theme.bottomSheetTheme.backgroundColor ??
-            AppColors.surfaceContainerLowest,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2),
+    final maxHeight = MediaQuery.of(context).size.height * 0.70;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Container(
+        decoration: BoxDecoration(
+          color:
+              theme.bottomSheetTheme.backgroundColor ??
+              AppColors.surfaceContainerLowest,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                movement,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text('Choose a style', style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 16),
-              for (final v in variants)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _StyleOption(
-                    icon: Icons.fitness_center,
-                    label: v.equipment,
-                    subtitle: v.name,
-                    onTap: () => Navigator.of(context).pop(v),
+                const SizedBox(height: 16),
+                Text(
+                  movement,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              if (weightedBase != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _StyleOption(
-                    icon: Icons.monitor_weight_outlined,
-                    label: 'Weighted',
-                    subtitle: '${weightedBase.name} + added load',
-                    onTap: () => Navigator.of(context).pop(weightedBase),
+                const SizedBox(height: 4),
+                Text('Choose a style', style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final v in variants)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _StyleOption(
+                              icon: Icons.fitness_center,
+                              label: v.equipment,
+                              subtitle: v.name,
+                              onTap: () => Navigator.of(context).pop(v),
+                            ),
+                          ),
+                        if (weightedBase != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _StyleOption(
+                              icon: Icons.monitor_weight_outlined,
+                              label: 'Weighted',
+                              subtitle: '${weightedBase.name} + added load',
+                              onTap: () => Navigator.of(context).pop(weightedBase),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -674,40 +826,78 @@ class _StyleOption extends StatelessWidget {
 
 class _ExerciseTile extends StatelessWidget {
   final ExerciseCatalogData exercise;
+  final bool isSelected;
   final VoidCallback onTap;
-  const _ExerciseTile({required this.exercise, required this.onTap});
+  const _ExerciseTile({
+    required this.exercise,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bgColor = isSelected
+        ? AppColors.primaryContainer.withValues(alpha: 0.35)
+        : AppColors.surfaceContainerLowest;
+    final borderColor = isSelected
+        ? AppColors.primary
+        : AppColors.outlineVariant.withValues(alpha: 0.4);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
+            color: bgColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              color: borderColor,
+              width: isSelected ? 1.5 : 1.0,
             ),
           ),
           child: Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.fitness_center,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
+              Stack(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.primaryContainer.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.fitness_center,
+                      size: 20,
+                      color: isSelected ? Colors.white : AppColors.primary,
+                    ),
+                  ),
+                  if (isSelected)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: const BoxDecoration(
+                          color: Colors.blueAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check,
+                          size: 10,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -733,14 +923,21 @@ class _ExerciseTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: isSelected ? AppColors.primary : Colors.transparent,
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : AppColors.outline,
+                    width: 1.5,
+                  ),
                 ),
-                child: const Icon(Icons.add, color: Colors.white, size: 16),
+                child: isSelected
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : Icon(Icons.add, color: AppColors.outline, size: 16),
               ),
             ],
           ),

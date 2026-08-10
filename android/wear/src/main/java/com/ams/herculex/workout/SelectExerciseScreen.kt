@@ -1,7 +1,7 @@
 package com.ams.herculex.workout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,35 +36,17 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.OneUiPill
+import com.ams.herculex.ui.OneUiPillStyle
 
-private val equipmentVariants = listOf(
-    "Barbell",
-    "Dumbbell",
-    "Smith Machine",
-    "Cable",
-    "Machine (Plate-Loaded)",
-    "Machine (Selectorized)",
-    "Kettlebell",
-    "Band",
-    "Bodyweight",
-    "Other",
-)
-
-private fun requiresEquipmentPrompt(name: String): Boolean {
-    val lower = name.lowercase()
-    return !lower.contains("db") &&
-           !lower.contains("dumbbell") &&
-           !lower.contains("barbell") &&
-           !lower.contains("cable") &&
-           !lower.contains("smith") &&
-           !lower.contains("machine") &&
-           !lower.contains("pull-up") &&
-           !lower.contains("pull up") &&
-           !lower.contains("push-up") &&
-           !lower.contains("dips") &&
-           !lower.contains("kettlebell") &&
-           !lower.contains("good morning")
-}
+/// Equipment the phone says this exercise can actually be performed with.
+///
+/// Replaces a hardcoded ten-item list gated by a name-substring heuristic,
+/// which offered a Barbell option on a selectorized leg curl and prompted or
+/// skipped based on whether the word "machine" happened to appear in the
+/// name. A single option means there is nothing to ask about.
+private fun equipmentPromptOptions(template: ExerciseTemplate): List<String> =
+    template.equipmentOptions.takeIf { it.size > 1 } ?: emptyList()
 
 @Composable
 fun SelectExerciseScreen(
@@ -92,7 +76,7 @@ fun SelectExerciseScreen(
                 .background(Color.Black)
                 .attachRotaryScroll(listState),
             autoCentering = null,
-            contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp, start = 10.dp, end = 10.dp),
+            contentPadding = PaddingValues(top = 40.dp, bottom = 48.dp, start = 14.dp, end = 14.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             item {
@@ -110,70 +94,66 @@ fun SelectExerciseScreen(
                 }
             }
 
-            // Search Bar Input
+            // Search Bar One UI Stadium Input
             item {
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF1C1C1E), shape = CircleShape)
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center,
+                        .heightIn(min = 48.dp)
+                        .background(Color(0xFF202636), shape = CircleShape)
+                        .border(1.dp, Color(0xFF323B52), CircleShape)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth(),
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color(0xFF141926), shape = CircleShape),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text("🔍 ", fontSize = 12.sp)
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            singleLine = true,
-                            textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
-                            cursorBrush = SolidColor(Color(0xFF42A5F5)),
-                            decorationBox = { innerTextField ->
-                                if (searchQuery.isEmpty()) {
-                                    Text("Search...", color = Color(0xFF757575), fontSize = 13.sp)
-                                }
-                                innerTextField()
-                            }
-                        )
+                        Text("🔍", fontSize = 13.sp)
                     }
+                    Spacer(Modifier.width(8.dp))
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        singleLine = true,
+                        textStyle = TextStyle(color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                        cursorBrush = SolidColor(Color(0xFF42A5F5)),
+                        decorationBox = { innerTextField ->
+                            if (searchQuery.isEmpty()) {
+                                Text("Search...", color = Color(0xFFA0AABF), fontSize = 13.sp)
+                            }
+                            innerTextField()
+                        }
+                    )
                 }
             }
 
             items(filteredExercises) { exTemplate ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF1C1C1E), shape = CircleShape)
-                        .clickable {
-                            if (requiresEquipmentPrompt(exTemplate.name)) {
-                                selectedExerciseTemplate = exTemplate
+                OneUiPill(
+                    title = exTemplate.name,
+                    icon = "🏋️",
+                    style = OneUiPillStyle.SlateNavy,
+                    onClick = {
+                        if (equipmentPromptOptions(exTemplate).isNotEmpty()) {
+                            selectedExerciseTemplate = exTemplate
+                        } else {
+                            if (mode == "substitute" && targetIndex >= 0) {
+                                viewModel.substituteExerciseInSession(targetIndex, exTemplate)
                             } else {
-                                if (mode == "substitute" && targetIndex >= 0) {
-                                    viewModel.substituteExerciseInSession(targetIndex, exTemplate)
-                                } else {
-                                    viewModel.addExerciseToSession(exTemplate)
-                                }
-                                navController.popBackStack()
+                                viewModel.addExerciseToSession(exTemplate)
                             }
+                            navController.popBackStack()
                         }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        exTemplate.name,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                    )
-                }
+                    },
+                )
             }
         }
     } else {
         // Step 2: Equipment Variant Selection ("Which equipment?")
         val baseTemplate = selectedExerciseTemplate!!
+        val options = equipmentPromptOptions(baseTemplate)
 
         ScalingLazyColumn(
             state = listState,
@@ -182,7 +162,7 @@ fun SelectExerciseScreen(
                 .background(Color.Black)
                 .attachRotaryScroll(listState),
             autoCentering = null,
-            contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp, start = 10.dp, end = 10.dp),
+            contentPadding = PaddingValues(top = 40.dp, bottom = 48.dp, start = 14.dp, end = 14.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             item {
@@ -206,31 +186,25 @@ fun SelectExerciseScreen(
                 }
             }
 
-            items(equipmentVariants) { eqLabel ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF1C1C1E), shape = CircleShape)
-                        .clickable {
-                            val finalName = "${baseTemplate.name} ($eqLabel)"
-                            val finalTemplate = baseTemplate.copy(name = finalName)
-                            if (mode == "substitute" && targetIndex >= 0) {
-                                viewModel.substituteExerciseInSession(targetIndex, finalTemplate)
-                            } else {
-                                viewModel.addExerciseToSession(finalTemplate)
-                            }
-                            navController.popBackStack()
+            items(options) { variant ->
+                OneUiPill(
+                    title = ExerciseCatalog.equipmentLabel(variant),
+                    icon = "⚙️",
+                    style = OneUiPillStyle.SlateNavy,
+                    onClick = {
+                        // The choice rides along as a variant, not as a
+                        // rewritten name: "Squat (Barbell)" matched no
+                        // phone catalog row and minted a custom exercise
+                        // on every sync.
+                        val finalTemplate = baseTemplate.copy(equipmentVariant = variant)
+                        if (mode == "substitute" && targetIndex >= 0) {
+                            viewModel.substituteExerciseInSession(targetIndex, finalTemplate)
+                        } else {
+                            viewModel.addExerciseToSession(finalTemplate)
                         }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        eqLabel,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                    )
-                }
+                        navController.popBackStack()
+                    },
+                )
             }
         }
     }

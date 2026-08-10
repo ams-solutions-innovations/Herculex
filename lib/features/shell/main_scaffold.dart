@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../services/app_shortcuts_service.dart';
 import '../../widgets/floating_nav_bar.dart';
 import '../../widgets/live_workout_banner.dart';
 import '../dashboard/presentation/dashboard_view.dart';
@@ -37,6 +38,11 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: ref.read(mainTabIndexProvider));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(appShortcutsServiceProvider).initialize(context);
+      }
+    });
   }
 
   @override
@@ -47,10 +53,12 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(appShortcutsControllerProvider);
     final index = ref.watch(mainTabIndexProvider);
     final hasActiveSession =
         ref.watch(activeSessionProvider).asData?.value != null;
     final showBanner = hasActiveSession && index != 2;
+    final bannerAtTop = ref.watch(liveWorkoutBannerAtTopProvider);
 
     ref.listen<int>(mainTabIndexProvider, (prev, next) {
       if (!_pageController.hasClients) return;
@@ -78,22 +86,34 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             onPageChanged: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
             children: _tabs,
           ),
+          // LiveWorkoutBanner placed independently in the Stack to allow smooth alignment animation
+          if (showBanner)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeInOutCubic,
+                alignment: bannerAtTop ? Alignment.topCenter : Alignment.bottomCenter,
+                padding: EdgeInsets.only(
+                  top: bannerAtTop ? (MediaQuery.of(context).padding.top + 8.0) : 0.0,
+                  bottom: bannerAtTop ? 0.0 : (MediaQuery.of(context).padding.bottom + 92.0),
+                ),
+                child: LiveWorkoutBanner(
+                  onResume: () => ref.read(mainTabIndexProvider.notifier).state = 2,
+                ),
+              ),
+            ),
+          // FloatingNavBar positioned at the bottom of the screen
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (showBanner)
-                  LiveWorkoutBanner(
-                    onResume: () => ref.read(mainTabIndexProvider.notifier).state = 2,
-                  ),
-                FloatingNavBar(
-                  currentIndex: index,
-                  onTap: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
-                ),
-              ],
+            child: FloatingNavBar(
+              currentIndex: index,
+              onTap: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
             ),
           ),
         ],

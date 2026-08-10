@@ -7,35 +7,62 @@ import 'database.dart';
 import 'exercise_biomechanics.dart';
 import 'seed_data.dart';
 
-/// Imports the enriched exercise catalog (`assets/data/exercises.json`) into the
-/// database. Idempotent: upserts by [ExerciseCatalog.name], preserving row ids
-/// (so logged sets keep their FK) and replacing each exercise's muscle/alias
+/// Imports the enriched exercise catalog (`assets/data/exercises.json`) into
+/// the database. Idempotent: upserts by [ExerciseCatalog.slug] (falling back
+/// to [ExerciseCatalog.name] for pre-v17 and custom rows), preserving row ids
+/// so logged sets keep their FK, and replacing each exercise's muscle/alias
 /// rows. Safe to re-run on every app upgrade.
 class ExerciseImporter {
   static const assetPath = 'assets/data/exercises.json';
+  static const movementsAssetPath = 'assets/data/movements.json';
 
-  /// Loads the bundled asset and imports it. Falls back to the legacy seed list
-  /// when the asset bundle is unavailable (e.g. unit tests with an in-memory DB).
+  /// Loads the bundled assets and imports them. Falls back to the legacy seed
+  /// list when the asset bundle is unavailable (e.g. unit tests with an
+  /// in-memory DB).
   static Future<void> runFromAsset(AppDatabase db) async {
     try {
       final raw = await rootBundle.loadString(assetPath);
-      await runFromJson(db, raw);
+      String? movements;
+      try {
+        movements = await rootBundle.loadString(movementsAssetPath);
+      } catch (_) {
+        // Movement layer is optional: without it exercises simply stay
+        // ungrouped and offer no equipment swap.
+        movements = null;
+      }
+      await runFromJson(db, raw, movementsJson: movements);
     } catch (_) {
       await _seedFallback(db);
     }
   }
 
   /// Imports exercises from a JSON array string. Used directly by tests.
-  static Future<void> runFromJson(AppDatabase db, String jsonStr) async {
+  static Future<void> runFromJson(
+    AppDatabase db,
+    String jsonStr, {
+    String? movementsJson,
+  }) async {
     final list = (jsonDecode(jsonStr) as List).cast<Map<String, dynamic>>();
+    final movements = _parseMovements(movementsJson);
     await db.transaction(() async {
       for (final e in list) {
-        await _upsert(db, e);
+        await _upsert(db, e, movements);
       }
     });
   }
 
-  static Future<void> _upsert(AppDatabase db, Map<String, dynamic> e) async {
+  /// Movement slug → its definition.
+  static Map<String, Map<String, dynamic>> _parseMovements(String? json) {
+    if (json == null || json.trim().isEmpty) return const {};
+    final list = (jsonDecode(json) as List).cast<Map<String, dynamic>>();
+    return {for (final m in list) m['slug'] as String: m};
+  }
+
+  static Future<void> _upsert(
+    AppDatabase db,
+    Map<String, dynamic> e,
+    Map<String, Map<String, dynamic>> movements,
+  ) async {
     final name = (e['name'] as String).trim();
     final pattern = e['movementPattern'] as String?;
     final category = (e['category'] as String?) ?? 'strength';
@@ -43,7 +70,30 @@ class ExerciseImporter {
     final aka = (e['aka'] as List?)?.cast<String>() ?? const [];
     final attachments = (e['attachments'] as List?)?.cast<String>();
 
+    final slug = (e['slug'] as String?)?.trim();
+    final movementSlug = (e['movementSlug'] as String?)?.trim();
+    final movement = movementSlug == null ? null : movements[movementSlug];
+    // Equipment options come from the movement's members, so an exercise that
+    // exists on exactly one piece of equipment offers no swap at all.
+    final allowed = (movement?['allowedEquipment'] as List?)?.cast<String>();
+
+    // The canonical member of a movement also answers to the bare movement
+    // name, so searching "push up" reaches "Standard Push-Up" rather than
+    // tying with every other push-up variant.
+    final aliases = <String>[...aka];
+    if (movement != null &&
+        movement['canonicalExerciseSlug'] == slug &&
+        movement['label'] is String) {
+      final label = movement['label'] as String;
+      if (!aliases.any((a) => a.toLowerCase() == label.toLowerCase())) {
+        aliases.add(label);
+      }
+    }
+
     final companion = ExerciseCatalogCompanion(
+      slug: Value(slug),
+      movementSlug: Value(movementSlug),
+      allowedEquipment: Value(allowed == null ? null : jsonEncode(allowed)),
       name: Value(name),
       primaryMuscle: Value(primaryMuscle),
       equipment: Value((e['equipment'] as String?) ?? 'Other'),
@@ -51,7 +101,7 @@ class ExerciseImporter {
       force: Value(ExerciseBiomechanics.force(pattern, primaryMuscle)),
       plane: Value(ExerciseBiomechanics.plane(pattern)),
       defaultRestSeconds: Value((e['defaultRestSeconds'] as int?) ?? 120),
-      aka: Value(aka.isEmpty ? null : aka.join(', ')),
+      aka: Value(aliases.isEmpty ? null : aliases.join(', ')),
       category: Value(category),
       movementPattern: Value(pattern),
       movementPatternRaw: Value(e['movementPatternRaw'] as String?),
@@ -67,7 +117,15 @@ class ExerciseImporter {
       movementFamily: Value(_movementFamily(name, pattern, primaryMuscle)),
     );
 
-    final existing = await (db.select(db.exerciseCatalog)
+    // Slug first: that is what makes a rename update the row in place instead
+    // of inserting a duplicate. Name lookup remains as the fallback so rows
+    // written before v17 (and custom rows, which have no slug) still resolve.
+    var existing = slug == null
+        ? null
+        : await (db.select(db.exerciseCatalog)
+                ..where((t) => t.slug.equals(slug)))
+              .getSingleOrNull();
+    existing ??= await (db.select(db.exerciseCatalog)
           ..where((t) => t.name.equals(name)))
         .getSingleOrNull();
 
@@ -91,7 +149,7 @@ class ExerciseImporter {
     await _writeMuscles(db, id, e['secondaryMuscles'], 'secondary');
     await _writeMuscles(db, id, e['stabilizers'], 'stabilizer');
 
-    for (final alias in aka) {
+    for (final alias in aliases) {
       await db.into(db.exerciseAliases).insert(
             ExerciseAliasesCompanion.insert(exerciseId: id, alias: alias),
           );

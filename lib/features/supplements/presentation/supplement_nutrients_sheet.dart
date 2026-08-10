@@ -174,11 +174,19 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
                           decoration: InputDecoration(
                             isDense: true,
                             filled: true,
-                            fillColor: AppColors.surfaceContainer,
+                            fillColor: AppColors.surfaceVariant,
                             suffixText: d.unit,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide.none,
+                              borderSide: BorderSide(color: AppColors.outlineVariant),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: AppColors.outlineVariant),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                             ),
                           ),
                         ),

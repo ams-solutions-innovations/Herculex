@@ -1,19 +1,12 @@
 package com.ams.herculex.workout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +21,8 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.itemsIndexed
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
+import com.ams.herculex.ui.OneUiPill
+import com.ams.herculex.ui.OneUiPillStyle
 
 @Composable
 fun ManageExerciseScreen(
@@ -47,8 +42,8 @@ fun ManageExerciseScreen(
             .background(Color.Black)
             .attachRotaryScroll(listState),
         autoCentering = null,
-        contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp, start = 10.dp, end = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(top = 40.dp, bottom = 48.dp, start = 14.dp, end = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
             Column(
@@ -66,47 +61,19 @@ fun ManageExerciseScreen(
         }
 
         itemsIndexed(s.exercises) { index, exercise ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF1C1C1E), shape = CircleShape)
-                    .clickable {
-                        if (action == "remove") {
-                            viewModel.removeExerciseFromSession(index)
-                            navController.popBackStack()
-                        } else {
-                            navController.navigate("select_exercise/substitute/$index")
-                        }
+            OneUiPill(
+                title = exercise.template.name,
+                icon = if (action == "remove") "✕" else "⇄",
+                style = if (action == "remove") OneUiPillStyle.DangerTransparent else OneUiPillStyle.RoyalBlue,
+                onClick = {
+                    if (action == "remove") {
+                        viewModel.removeExerciseFromSession(index)
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate("select_exercise/substitute/$index")
                     }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(if (action == "remove") Color(0xFFE57373) else Color(0xFF42A5F5), shape = CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            if (action == "remove") "✕" else "⇄",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                        )
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        exercise.template.name,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                    )
-                }
-            }
+                },
+            )
         }
     }
 }

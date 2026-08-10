@@ -325,7 +325,7 @@ void main() {
       await expectAny(
         'side delt muscle filter',
         repo.watchExercises(category: 'Side Delts').first,
-        (e) => e.name == 'Lateral Raise (DB)',
+        (e) => e.name == 'Dumbbell Lateral Raise',
       );
       await expectAny(
         'compound mechanics filter',
@@ -335,7 +335,7 @@ void main() {
       await expectAny(
         'isolation mechanics filter',
         repo.watchExercises(category: 'Isolation').first,
-        (e) => e.name == 'Lateral Raise (DB)',
+        (e) => e.name == 'Dumbbell Lateral Raise',
       );
       await expectAny(
         'natural legs group filter',

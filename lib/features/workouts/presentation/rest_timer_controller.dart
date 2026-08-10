@@ -2,9 +2,28 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/clock.dart';
+import '../../../app/providers.dart';
 
 import '../../../services/workout_notification_service.dart';
+
+/// Whether the rest timer should auto-start after a completed set.
+/// Persisted in SharedPreferences; toggled from [WorkoutSettingsSheet].
+class RestTimerEnabledNotifier extends Notifier<bool> {
+  static const prefsKey = 'rest_timer_enabled';
+
+  @override
+  bool build() =>
+      ref.watch(sharedPreferencesProvider).getBool(prefsKey) ?? true;
+
+  Future<void> set(bool enabled) async {
+    await ref.read(sharedPreferencesProvider).setBool(prefsKey, enabled);
+    state = enabled;
+  }
+}
+
+final restTimerEnabledProvider = NotifierProvider<RestTimerEnabledNotifier, bool>(
+  RestTimerEnabledNotifier.new,
+);
 
 class RestTimerState {
   final DateTime? endsAt;
@@ -43,6 +62,7 @@ class RestTimerController extends Notifier<RestTimerState> {
   }
 
   void start({required int seconds, String? exerciseName}) {
+    if (!ref.read(restTimerEnabledProvider)) return;
     _ticker?.cancel();
     final clock = ref.read(clockProvider);
     state = RestTimerState(

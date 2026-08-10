@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 /// iOS-inspired theme with Light and Dark mode support.
 class AppTheme {
@@ -143,18 +144,18 @@ class AppTheme {
       // ── Inputs: pill text fields ──
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceContainer,
+        fillColor: surfaceVariant,
         isDense: true,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         hintStyle: TextStyle(color: secondary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
@@ -289,6 +290,12 @@ class AppTheme {
         fontSize: 34, fontWeight: FontWeight.w700, color: onSurface, letterSpacing: -0.6),
     displayMedium: TextStyle(
         fontSize: 28, fontWeight: FontWeight.w700, color: onSurface, letterSpacing: -0.5),
+    headlineLarge: TextStyle(
+        fontSize: 32, fontWeight: FontWeight.w700, color: onSurface),
+    headlineMedium: TextStyle(
+        fontSize: 28, fontWeight: FontWeight.w700, color: onSurface),
+    headlineSmall: TextStyle(
+        fontSize: 24, fontWeight: FontWeight.w700, color: onSurface),
     titleLarge: TextStyle(
         fontSize: 22, fontWeight: FontWeight.w700, color: onSurface, letterSpacing: -0.4),
     titleMedium: TextStyle(

@@ -1,0 +1,51 @@
+# Herculex Program,name,weeks,periodization
+program,GZCLP,4,linear
+week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equipment
+0,1,Day A,Barbell Back Squat,5,3,3,8,standard,,barbell
+0,1,Day A,Barbell Bench Press,3,10,10,7,standard,,barbell
+0,1,Day A,Barbell Row,3,15,15,6,standard,,barbell
+0,2,Day B,Overhead Press,5,3,3,8,standard,,barbell
+0,2,Day B,Conventional Deadlift,3,5,5,7,standard,,barbell
+0,2,Day B,Lat Pulldown (Wide Grip),3,15,15,6,standard,,
+0,4,Day C,Barbell Bench Press,5,3,3,8,standard,,barbell
+0,4,Day C,Barbell Back Squat,3,10,10,7,standard,,barbell
+0,4,Day C,Barbell Bicep Curl,3,15,15,6,standard,,barbell
+0,5,Day D,Conventional Deadlift,5,3,3,8,standard,,barbell
+0,5,Day D,Overhead Press,3,10,10,7,standard,,barbell
+0,5,Day D,Face Pull,3,15,15,6,standard,,
+1,1,Day A,Barbell Back Squat,5,3,3,8,standard,,barbell
+1,1,Day A,Barbell Bench Press,3,10,10,7,standard,,barbell
+1,1,Day A,Barbell Row,3,15,15,6,standard,,barbell
+1,2,Day B,Overhead Press,5,3,3,8,standard,,barbell
+1,2,Day B,Conventional Deadlift,3,5,5,7,standard,,barbell
+1,2,Day B,Lat Pulldown (Wide Grip),3,15,15,6,standard,,
+1,4,Day C,Barbell Bench Press,5,3,3,8,standard,,barbell
+1,4,Day C,Barbell Back Squat,3,10,10,7,standard,,barbell
+1,4,Day C,Barbell Bicep Curl,3,15,15,6,standard,,barbell
+1,5,Day D,Conventional Deadlift,5,3,3,8,standard,,barbell
+1,5,Day D,Overhead Press,3,10,10,7,standard,,barbell
+1,5,Day D,Face Pull,3,15,15,6,standard,,
+2,1,Day A,Barbell Back Squat,5,3,3,8,standard,,barbell
+2,1,Day A,Barbell Bench Press,3,10,10,7,standard,,barbell
+2,1,Day A,Barbell Row,3,15,15,6,standard,,barbell
+2,2,Day B,Overhead Press,5,3,3,8,standard,,barbell
+2,2,Day B,Conventional Deadlift,3,5,5,7,standard,,barbell
+2,2,Day B,Lat Pulldown (Wide Grip),3,15,15,6,standard,,
+2,4,Day C,Barbell Bench Press,5,3,3,8,standard,,barbell
+2,4,Day C,Barbell Back Squat,3,10,10,7,standard,,barbell
+2,4,Day C,Barbell Bicep Curl,3,15,15,6,standard,,barbell
+2,5,Day D,Conventional Deadlift,5,3,3,8,standard,,barbell
+2,5,Day D,Overhead Press,3,10,10,7,standard,,barbell
+2,5,Day D,Face Pull,3,15,15,6,standard,,
+3,1,Day A,Barbell Back Squat,5,3,3,8,standard,,barbell
+3,1,Day A,Barbell Bench Press,3,10,10,7,standard,,barbell
+3,1,Day A,Barbell Row,3,15,15,6,standard,,barbell
+3,2,Day B,Overhead Press,5,3,3,8,standard,,barbell
+3,2,Day B,Conventional Deadlift,3,5,5,7,standard,,barbell
+3,2,Day B,Lat Pulldown (Wide Grip),3,15,15,6,standard,,
+3,4,Day C,Barbell Bench Press,5,3,3,8,standard,,barbell
+3,4,Day C,Barbell Back Squat,3,10,10,7,standard,,barbell
+3,4,Day C,Barbell Bicep Curl,3,15,15,6,standard,,barbell
+3,5,Day D,Conventional Deadlift,5,3,3,8,standard,,barbell
+3,5,Day D,Overhead Press,3,10,10,7,standard,,barbell
+3,5,Day D,Face Pull,3,15,15,6,standard,,

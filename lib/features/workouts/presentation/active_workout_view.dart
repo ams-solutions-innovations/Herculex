@@ -1,16 +1,21 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
+import 'package:flutter_media_controller/flutter_media_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import 'active_exercise_card.dart';
+import 'duration_picker_dialog.dart';
 import 'dynamic_workout_view.dart';
 import 'equipment_variant_sheet.dart';
 import 'exercise_picker_sheet.dart';
+import 'media_controls_sheet.dart';
 import 'rest_timer_banner.dart';
 import 'workout_finish_view.dart';
 import 'workout_settings_sheet.dart';
@@ -26,7 +31,16 @@ class ActiveWorkoutView extends ConsumerStatefulWidget {
 
 class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   Timer? _ticker;
+  Timer? _mediaTicker;
   final Map<int, FocusNode> _firstSetFocusNodes = {};
+
+  // Mini media pill state.
+  String _miniTrack = '';
+  bool _miniPlaying = false;
+  bool _mediaPillVisible = false;
+
+  // Swipe-up tracking.
+  final double _swipeDy = 0;
 
   @override
   void initState() {
@@ -36,6 +50,12 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     });
     // Enable wakelock if the user preference is on (default: true).
     _applyWakelock();
+    // Poll media info for the mini pill every 3 s.
+    _pollMediaPill();
+    _mediaTicker = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _pollMediaPill(),
+    );
   }
 
   void _applyWakelock() {
@@ -43,9 +63,29 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     WakelockPlus.toggle(enable: keepAwake);
   }
 
+  Future<void> _pollMediaPill() async {
+    try {
+      final info = await FlutterMediaController.getCurrentMediaInfo();
+      if (!mounted) return;
+      // Hide pill when track is the sentinel for "no permission / nothing playing".
+      final hasTrack =
+          info.track.isNotEmpty && info.track != 'No track playing';
+      setState(() {
+        _miniTrack = info.track;
+        _miniPlaying = info.isPlaying;
+        _mediaPillVisible = hasTrack;
+      });
+    } catch (_) {
+      // Silently ignore — the pill just won't show.
+    }
+  }
+
+  void _openMediaSheet() => MediaControlsSheet.show(context);
+
   @override
   void dispose() {
     _ticker?.cancel();
+    _mediaTicker?.cancel();
     // Always release the wakelock when leaving the workout screen.
     WakelockPlus.disable();
     for (final node in _firstSetFocusNodes.values) {
@@ -58,6 +98,8 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   Widget build(BuildContext context) {
     final session = widget.session;
     final theme = Theme.of(context);
+    final editingOriginalEndedAt =
+        ref.watch(editingSessionOriginalEndedAtProvider)[session.id];
     final sessionExercises = ref.watch(sessionExercisesProvider(session.id));
     final catalog = ref.watch(
       exerciseCatalogProvider(const ExerciseCatalogFilter()),
@@ -79,69 +121,100 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    GestureDetector(
+                      onTap: () => _editWorkoutName(context, ref, session),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          GestureDetector(
-                            onTap: () => _editWorkoutName(context, ref, session),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    (session.name != null &&
-                                            session.name!.isNotEmpty)
-                                        ? session.name!
-                                        : 'Workout in progress',
-                                    style: theme.textTheme.displayMedium?.copyWith(
-                                      fontSize: 20,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.edit_outlined,
-                                  size: 16,
-                                  color: AppColors.primary,
-                                ),
-                              ],
+                          Flexible(
+                            child: Text(
+                              (session.name != null && session.name!.isNotEmpty)
+                                  ? session.name!
+                                  : 'Workout in progress',
+                              style: theme.textTheme.displayMedium?.copyWith(
+                                fontSize: 24,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Text(
-                            _elapsed(session.startedAt),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: AppColors.primary,
                           ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.settings_outlined),
-                      tooltip: 'Workout settings',
-                      onPressed: () => WorkoutSettingsSheet.show(context),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.fullscreen),
-                      tooltip: 'Dynamic mode',
-                      onPressed: () =>
-                          ref.read(dynamicWorkoutModeProvider.notifier).state =
-                              true,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Cancel workout',
-                      onPressed: () => _confirmCancel(context, ref),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () async {
+                            final currentDur =
+                                _resolvedEndedAt(session.startedAt, editingOriginalEndedAt)
+                                    .difference(session.startedAt);
+                            final newMins = await DurationPickerDialog.show(
+                              context,
+                              initialMinutes:
+                                  currentDur.inMinutes > 0 ? currentDur.inMinutes : 45,
+                            );
+                            if (newMins != null && newMins > 0) {
+                              final newEndedAt =
+                                  session.startedAt.add(Duration(minutes: newMins));
+                              ref
+                                  .read(editingSessionOriginalEndedAtProvider.notifier)
+                                  .update((state) => {...state, session.id: newEndedAt});
+                              setState(() {});
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _elapsed(session.startedAt,
+                                      originalEndedAt: editingOriginalEndedAt),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(Icons.edit_outlined,
+                                    size: 14, color: AppColors.primary),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.settings_outlined),
+                          tooltip: 'Workout settings',
+                          onPressed: () => WorkoutSettingsSheet.show(context),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.fullscreen),
+                          tooltip: 'Dynamic mode',
+                          onPressed: () =>
+                              ref.read(dynamicWorkoutModeProvider.notifier).state = true,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Cancel workout',
+                          onPressed: () => _confirmCancel(context, ref),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
             ),
+          ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 4),
               child: RestTimerBanner(),
@@ -253,26 +326,25 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                       icon: Icons.add,
                       isPrimary: false,
                       onTap: () async {
-                        final result = await ExercisePickerSheet.show(context);
-                        if (result == null || !context.mounted) return;
-                        final picked = result.exercise;
-                        // Skip the equipment sheet when the user already chose
-                        // a specific catalog variant in the style chooser.
-                        final String? variant;
-                        if (result.equipmentAlreadyChosen) {
-                          variant = picked.modality;
-                        } else {
-                          variant = await EquipmentVariantSheet.show(
-                            context,
-                            picked,
+                        final results = await ExercisePickerSheet.show(context);
+                        if (results == null || results.isEmpty || !context.mounted) return;
+                        for (final result in results) {
+                          if (!context.mounted) return;
+                          final picked = result.exercise;
+                          final String? variant =
+                              (results.length > 1 || result.equipmentAlreadyChosen)
+                                  ? picked.modality
+                                  : await EquipmentVariantSheet.show(
+                                      context,
+                                      picked,
+                                    );
+                          if (variant == null) continue;
+                          await repo.addExerciseToSession(
+                            sessionId: session.id,
+                            exerciseId: picked.id,
+                            equipmentVariant: variant,
                           );
                         }
-                        if (variant == null) return;
-                        await repo.addExerciseToSession(
-                          sessionId: session.id,
-                          exerciseId: picked.id,
-                          equipmentVariant: variant,
-                        );
                       },
                     ),
                   ),
@@ -296,10 +368,18 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     );
   }
 
+  DateTime _resolvedEndedAt(DateTime startedAt, DateTime? originalEndedAt) {
+    if (originalEndedAt != null) return originalEndedAt;
+    final now = DateTime.now();
+    if (now.difference(startedAt).inHours >= 12) {
+      return startedAt.add(const Duration(minutes: 45));
+    }
+    return now;
+  }
 
-
-  String _elapsed(DateTime startedAt) {
-    final d = DateTime.now().difference(startedAt);
+  String _elapsed(DateTime startedAt, {DateTime? originalEndedAt}) {
+    final ended = _resolvedEndedAt(startedAt, originalEndedAt);
+    final d = ended.difference(startedAt);
     final h = d.inHours;
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
@@ -352,28 +432,67 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   );
 
   void _confirmCancel(BuildContext context, WidgetRef ref) {
+    final editingOriginalEndedAt =
+        ref.read(editingSessionOriginalEndedAtProvider)[widget.session.id];
+    final isEditingPastWorkout = editingOriginalEndedAt != null;
+
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Discard workout?'),
-        content: const Text(
-          'This deletes the in-progress session and its sets.',
+      builder: (ctx) => AlertDialog(
+        title: Text(isEditingPastWorkout ? 'Close workout edit?' : 'Close active workout?'),
+        content: Text(
+          isEditingPastWorkout
+              ? 'Choose how to exit editing:'
+              : 'Choose what to do with this workout:',
         ),
         actions: [
+          // 1. Cancel: Close dialog and continue editing
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Keep'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
           ),
+          // 2. Keep: Keep workout saved and exit view
+          FilledButton.tonal(
+            onPressed: () async {
+              if (isEditingPastWorkout) {
+                final db = ref.read(appDatabaseProvider);
+                final stmt = db.update(db.workoutSessions)
+                  ..where((t) => t.id.equals(widget.session.id));
+                await stmt.write(WorkoutSessionsCompanion(
+                  endedAt: drift.Value(editingOriginalEndedAt),
+                ));
+              } else {
+                await ref.read(workoutsRepositoryProvider).endSession(widget.session.id);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Keep Workout'),
+          ),
+          // 3. Discard: Discard edits or delete new session
           TextButton(
             onPressed: () async {
-              await ref
-                  .read(workoutsRepositoryProvider)
-                  .deleteSession(widget.session.id);
-              if (context.mounted) Navigator.pop(context);
+              if (isEditingPastWorkout) {
+                final db = ref.read(appDatabaseProvider);
+                final stmt = db.update(db.workoutSessions)
+                  ..where((t) => t.id.equals(widget.session.id));
+                await stmt.write(WorkoutSessionsCompanion(
+                  endedAt: drift.Value(editingOriginalEndedAt),
+                ));
+                ref.read(editingSessionOriginalEndedAtProvider.notifier).update((state) {
+                  final copy = Map<int, DateTime>.from(state);
+                  copy.remove(widget.session.id);
+                  return copy;
+                });
+              } else {
+                await ref
+                    .read(workoutsRepositoryProvider)
+                    .deleteSession(widget.session.id);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
             },
-            child: const Text(
-              'Discard',
-              style: TextStyle(color: Colors.redAccent),
+            child: Text(
+              isEditingPastWorkout ? 'Discard Edits' : 'Discard Workout',
+              style: const TextStyle(color: Colors.redAccent),
             ),
           ),
         ],
@@ -386,6 +505,8 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     WidgetRef ref,
     WorkoutSessionData session,
   ) async {
+    final editingOriginalEndedAt =
+        ref.read(editingSessionOriginalEndedAtProvider)[session.id];
     final nameCtrl = TextEditingController(
       text: session.name ?? 'Awesome Workout',
     );
@@ -394,48 +515,104 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Finish Workout'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Name this workout:'),
-            const SizedBox(height: 8),
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDialog) {
+          final currentEndedAt =
+              ref.watch(editingSessionOriginalEndedAtProvider)[session.id] ??
+                  editingOriginalEndedAt;
+          return AlertDialog(
+            title: const Text('Finish Workout'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Name this workout:'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Text(
+                      'Duration: ${_elapsed(session.startedAt, originalEndedAt: currentEndedAt)}',
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () async {
+                        final currentDur =
+                            _resolvedEndedAt(session.startedAt, currentEndedAt)
+                                .difference(session.startedAt);
+                        final newMins = await DurationPickerDialog.show(
+                          context,
+                          initialMinutes:
+                              currentDur.inMinutes > 0 ? currentDur.inMinutes : 45,
+                        );
+                        if (newMins != null && newMins > 0) {
+                          final newEndedAt =
+                              session.startedAt.add(Duration(minutes: newMins));
+                          ref
+                              .read(editingSessionOriginalEndedAtProvider.notifier)
+                              .update(
+                                (state) => {...state, session.id: newEndedAt},
+                              );
+                          setStateDialog(() {});
+                        }
+                      },
+                      child: Text(
+                        'Change',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text('Duration: ${_elapsed(session.startedAt)}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Resume'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final name = nameCtrl.text.trim();
-              await repo.updateSessionName(
-                  session.id, name.isEmpty ? 'Workout' : name);
-              await repo.endSession(session.id);
-              if (!ctx.mounted) return;
-              Navigator.pop(ctx);
-              // The session is now finished, so this view is about to be
-              // swapped out for the landing page — push the celebration off
-              // the outer navigator, not the dialog's.
-              if (context.mounted) {
-                await WorkoutFinishView.show(context, session.id);
-              }
-            },
-            child: const Text('Finish'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Resume'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final finalEndedAt = ref.read(
+                        editingSessionOriginalEndedAtProvider,
+                      )[session.id] ??
+                      editingOriginalEndedAt;
+                  final name = nameCtrl.text.trim();
+                  await repo.updateSessionName(
+                    session.id,
+                    name.isEmpty ? 'Workout' : name,
+                  );
+                  await repo.endSession(session.id, endedAt: finalEndedAt);
+                  if (finalEndedAt != null) {
+                    ref
+                        .read(editingSessionOriginalEndedAtProvider.notifier)
+                        .update((state) {
+                      final copy = Map<int, DateTime>.from(state);
+                      copy.remove(session.id);
+                      return copy;
+                    });
+                  }
+                  if (!ctx.mounted) return;
+                  Navigator.pop(ctx);
+                  if (context.mounted) {
+                    await WorkoutFinishView.show(context, session.id);
+                  }
+                },
+                child: const Text('Finish'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -476,6 +653,98 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
             child: const Text('Save'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mini Media Pill
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Compact pill in the workout header showing the currently playing track.
+/// Animates a music note icon when isPlaying, and taps to open the full
+/// [MediaControlsSheet].
+class _MediaMiniPill extends StatefulWidget {
+  final String track;
+  final bool isPlaying;
+  final VoidCallback onTap;
+
+  const _MediaMiniPill({
+    required this.track,
+    required this.isPlaying,
+    required this.onTap,
+  });
+
+  @override
+  State<_MediaMiniPill> createState() => _MediaMiniPillState();
+}
+
+class _MediaMiniPillState extends State<_MediaMiniPill>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final trackLabel = widget.track.length > 16
+        ? '${widget.track.substring(0, 14)}…'
+        : widget.track;
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaleTransition(
+              scale: widget.isPlaying
+                  ? _anim
+                  : const AlwaysStoppedAnimation(1.0),
+              child: Icon(
+                Icons.music_note_rounded,
+                size: 14,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              trackLabel,
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

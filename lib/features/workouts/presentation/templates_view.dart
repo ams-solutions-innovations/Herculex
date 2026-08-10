@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import 'template_builder_view.dart';
@@ -346,7 +345,7 @@ class _TemplateActionSheet extends StatelessWidget {
             onTap: () async {
               Navigator.pop(context);
               final repo = ref.read(templatesRepositoryProvider);
-              await repo.startSessionFromTemplate(template.id, ref.read(appDatabaseProvider));
+              await repo.startSessionFromTemplate(template.id);
             },
           ),
           const SizedBox(height: 8),

@@ -7,6 +7,8 @@ import '../features/admin/presentation/admin_insert_recipe_view.dart';
 import '../features/admin/presentation/admin_insert_workout_view.dart';
 import '../features/analytics/presentation/insights_view.dart';
 import '../features/gyms/presentation/gyms_view.dart';
+import '../features/health/presentation/health_integrations_view.dart';
+import '../features/health/presentation/health_platform_detail_view.dart';
 import '../features/measurements/presentation/measurements_view.dart';
 import '../features/measurements/presentation/metric_detail_view.dart';
 import '../features/nutrition/presentation/calorie_macro_goals_view.dart';
@@ -94,6 +96,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const MicroWorkoutsView(),
       ),
       GoRoute(path: '/insights', builder: (_, _) => const InsightsView()),
+      GoRoute(path: '/health', builder: (_, _) => const HealthIntegrationsView()),
+      GoRoute(
+        path: '/health/samsung',
+        builder: (_, _) => const HealthPlatformDetailView(platform: HealthPlatform.samsung),
+      ),
+      GoRoute(
+        path: '/health/apple',
+        builder: (_, _) => const HealthPlatformDetailView(platform: HealthPlatform.apple),
+      ),
+      GoRoute(
+        path: '/health/google',
+        builder: (_, _) => const HealthPlatformDetailView(platform: HealthPlatform.google),
+      ),
       GoRoute(path: '/profile', builder: (_, _) => const ProfileView()),
       GoRoute(
         path: '/custom-foods',

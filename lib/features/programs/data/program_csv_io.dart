@@ -3,13 +3,16 @@ import 'package:drift/drift.dart';
 import '../../../data/local/database.dart';
 import '../domain/periodization.dart';
 import '../domain/program_csv.dart';
+import 'programs_repository.dart';
 
 /// Database glue for program CSV import/export (V2 §12). The pure codec is
 /// [ProgramCsv]; this resolves exercise names against the catalog (alias-
 /// aware) and materializes weeks/days/exercises.
 class ProgramCsvIo {
   final AppDatabase _db;
-  ProgramCsvIo(this._db);
+  final ProgramsRepository _programs;
+
+  ProgramCsvIo(this._db) : _programs = ProgramsRepository(_db);
 
   Future<String> exportProgram(int programId) async {
     final program = await (_db.select(_db.programs)
@@ -27,26 +30,35 @@ class ProgramCsvIo {
             ..orderBy([(t) => OrderingTerm(expression: t.dayOfWeek)]))
           .get();
       for (final day in days) {
-        final exercises = await (_db.select(_db.programDayExercises)
-              ..where((t) => t.programDayId.equals(day.id))
-              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
-            .get();
-        for (final pde in exercises) {
+        // Resolved rather than read from ProgramDayExercises directly, so a
+        // day whose content comes from a linked template still exports. The
+        // CSV format is inline-only, so the link itself is flattened away —
+        // re-importing produces an equivalent program with inline exercises.
+        final exercises = await _programs.resolveDayExercises(day.id);
+        for (final resolved in exercises) {
           final ex = await (_db.select(_db.exerciseCatalog)
-                ..where((t) => t.id.equals(pde.exerciseId)))
+                ..where((t) => t.id.equals(resolved.exerciseId)))
               .getSingle();
+          final pde = resolved.fromTemplate
+              ? null
+              : await (_db.select(_db.programDayExercises)
+                    ..where((t) =>
+                        t.programDayId.equals(day.id) &
+                        t.exerciseId.equals(resolved.exerciseId))
+                    ..limit(1))
+                  .getSingleOrNull();
           rows.add(ProgramCsvRow(
             weekIndex: week.weekIndex,
             dayOfWeek: day.dayOfWeek,
             dayName: day.name,
             exerciseName: ex.name,
-            sets: pde.targetSets,
-            repsMin: pde.targetRepsMin,
-            repsMax: pde.targetRepsMax,
-            rpe: pde.targetRpe,
-            setType: pde.setType,
-            percentOf1Rm: pde.percentOf1Rm,
-            equipmentVariant: pde.equipmentVariant,
+            sets: resolved.targetSets,
+            repsMin: resolved.targetRepsMin,
+            repsMax: resolved.targetRepsMax,
+            rpe: pde?.targetRpe,
+            setType: pde?.setType ?? 'standard',
+            percentOf1Rm: pde?.percentOf1Rm,
+            equipmentVariant: pde?.equipmentVariant,
           ));
         }
       }
@@ -64,7 +76,15 @@ class ProgramCsvIo {
   /// the catalog by exact name first, then alias. Unknown names throw with a
   /// readable message listing every miss. Week rows get intensity/volume
   /// factors from the declared periodization model.
-  Future<int> importProgram(String csv) async {
+  ///
+  /// [createdByUser] is false for marketplace presets so they can be told
+  /// apart from user-authored programs; [description] optionally overrides
+  /// the program description (presets pass their catalog blurb).
+  Future<int> importProgram(
+    String csv, {
+    bool createdByUser = true,
+    String? description,
+  }) async {
     final doc = ProgramCsv.decode(csv);
     final model = PeriodizationModel.fromId(doc.periodizationModel);
     final plan = Periodization.plan(model, doc.weeks);
@@ -99,8 +119,10 @@ class ProgramCsvIo {
       final programId = await _db.into(_db.programs).insert(
             ProgramsCompanion.insert(
               name: doc.name,
+              description: Value(description),
               weeks: Value(doc.weeks),
               periodizationModel: Value(model.id),
+              createdByUser: Value(createdByUser),
             ),
           );
 

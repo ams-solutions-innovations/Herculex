@@ -8,6 +8,7 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../app/providers.dart';
 import '../../../core/units.dart';
+import 'duration_picker_dialog.dart';
 import 'workouts_providers.dart';
 
 class WorkoutHistoryView extends ConsumerWidget {
@@ -31,12 +32,52 @@ class WorkoutHistoryView extends ConsumerWidget {
             icon: const Icon(Icons.edit),
             tooltip: 'Edit Workout',
             onPressed: () async {
+              final session = sessionAsync.asData?.value;
+              final originalEndedAt = session?.endedAt;
+              if (originalEndedAt != null) {
+                ref.read(editingSessionOriginalEndedAtProvider.notifier).update(
+                  (state) => {...state, sessionId: originalEndedAt},
+                );
+              }
               // Resume workout by clearing endedAt
               final stmt = ref.read(appDatabaseProvider).update(ref.read(appDatabaseProvider).workoutSessions)
                 ..where((t) => t.id.equals(sessionId));
               await stmt.write(const WorkoutSessionsCompanion(endedAt: drift.Value(null)));
               if (context.mounted) {
                 Navigator.of(context).pop();
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            tooltip: 'Delete Workout',
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete workout?'),
+                  content: const Text(
+                      'This permanently deletes this workout and all logged sets.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true && context.mounted) {
+                await ref.read(workoutsRepositoryProvider).deleteSession(sessionId);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
               }
             },
           ),
@@ -49,17 +90,86 @@ class WorkoutHistoryView extends ConsumerWidget {
               child: Text('No exercises logged', style: theme.textTheme.bodyMedium),
             );
           }
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            itemCount: rows.length,
-            itemBuilder: (_, i) {
-              final we = rows[i];
-              final exercise = catalog.asData?.value.firstWhere(
-                (e) => e.id == we.exerciseId,
-                orElse: () => _placeholder(we.exerciseId),
-              );
-              return _ExerciseBlock(workoutExercise: we, exerciseName: exercise?.name ?? '');
-            },
+          final session = sessionAsync.asData?.value;
+          final duration = session?.endedAt != null
+              ? session!.endedAt!.difference(session.startedAt)
+              : null;
+          final durationStr = duration == null
+              ? ''
+              : duration.inHours > 0
+                  ? '${duration.inHours}h ${duration.inMinutes.remainder(60)}m'
+                  : '${duration.inMinutes}m';
+
+          return Column(
+            children: [
+              if (session != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        DateFormat('EEE, MMM d • HH:mm').format(session.startedAt),
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                      ),
+                      InkWell(
+                        onTap: () async {
+                          final currentDur = session.endedAt?.difference(session.startedAt) ??
+                              const Duration(minutes: 45);
+                          final newMins = await DurationPickerDialog.show(
+                            context,
+                            initialMinutes: currentDur.inMinutes > 0 ? currentDur.inMinutes : 45,
+                          );
+                          if (newMins != null && newMins > 0) {
+                            final newEndedAt = session.startedAt.add(Duration(minutes: newMins));
+                            await ref
+                                .read(workoutsRepositoryProvider)
+                                .endSession(session.id, endedAt: newEndedAt);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.timer_outlined, size: 14, color: AppColors.primary),
+                              const SizedBox(width: 4),
+                              Text(
+                                durationStr.isNotEmpty ? durationStr : 'Set duration',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(Icons.edit_outlined, size: 12, color: AppColors.primary),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                  itemCount: rows.length,
+                  itemBuilder: (_, i) {
+                    final we = rows[i];
+                    final exercise = catalog.asData?.value.firstWhere(
+                      (e) => e.id == we.exerciseId,
+                      orElse: () => _placeholder(we.exerciseId),
+                    );
+                    return _ExerciseBlock(workoutExercise: we, exerciseName: exercise?.name ?? '');
+                  },
+                ),
+              ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),

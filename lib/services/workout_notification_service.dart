@@ -10,7 +10,6 @@ import 'package:timezone/timezone.dart' as tz;
 import '../features/workouts/data/workout_notification_action_queue.dart';
 import '../features/workouts/domain/ongoing_workout_surface_snapshot.dart';
 import '../features/workouts/domain/workout_notification_command.dart';
-import 'ongoing_workout_surface_bridge.dart' show OngoingWorkoutSurfaceBridge;
 
 @pragma('vm:entry-point')
 Future<void> workoutNotificationTapBackground(
@@ -61,13 +60,6 @@ class WorkoutNotificationService {
 
   final _plugin = FlutterLocalNotificationsPlugin();
   Timer? _ticker;
-
-  /// Cached answer to "does the native renderer own notification [_notifId]?".
-  /// True on Android 16+, where the native side posts a promotable Live Update on
-  /// the same id — a second publisher would immediately overwrite it with a
-  /// non-promotable notification. Cached because it cannot change at runtime and
-  /// the ticker would otherwise hit the platform channel on every tick.
-  bool? _nativeOwnsOngoingSurface;
 
   Future<void> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -136,11 +128,25 @@ class WorkoutNotificationService {
     List<OngoingWorkoutSurfaceAction>? actions,
     int? targetSetId,
     int? reps,
-    Future<void> Function()? afterPost,
   }) async {
     _ticker?.cancel();
-    final nativeOwnsSurface = await _nativeOwnsOngoingSurfaceNotification();
-    if (!nativeOwnsSurface) {
+    await _post(
+      startedAt: startedAt,
+      sessionId: sessionId,
+      exerciseName: exerciseName,
+      workoutName: workoutName,
+      currentSet: currentSet,
+      totalSets: totalSets,
+      weightLabel: weightLabel,
+      loadStepLabel: loadStepLabel,
+      actions: actions,
+      targetSetId: targetSetId,
+      reps: reps,
+    );
+    // Elapsed time is drawn by the notification chronometer (`when` +
+    // `usesChronometer`), so reposting at 1 Hz bought nothing and Android
+    // rate-limits it anyway.
+    _ticker = Timer.periodic(const Duration(seconds: 5), (_) async {
       await _post(
         startedAt: startedAt,
         sessionId: sessionId,
@@ -154,41 +160,7 @@ class WorkoutNotificationService {
         targetSetId: targetSetId,
         reps: reps,
       );
-    }
-    await afterPost?.call();
-    // Elapsed time is drawn by the notification chronometer (`when` +
-    // `usesChronometer`), so reposting at 1 Hz bought nothing and Android
-    // rate-limits it anyway.
-    _ticker = Timer.periodic(const Duration(seconds: 5), (_) async {
-      if (!nativeOwnsSurface) {
-        await _post(
-          startedAt: startedAt,
-          sessionId: sessionId,
-          exerciseName: exerciseName,
-          workoutName: workoutName,
-          currentSet: currentSet,
-          totalSets: totalSets,
-          weightLabel: weightLabel,
-          loadStepLabel: loadStepLabel,
-          actions: actions,
-          targetSetId: targetSetId,
-          reps: reps,
-        );
-      }
-      await afterPost?.call();
     });
-  }
-
-  /// Whether the native Live Update renderer is the sole publisher of
-  /// [_notifId]. Below Android 16 (and on iOS, or when the platform channel is
-  /// unavailable) this is false and the `flutter_local_notifications` path stays
-  /// the only publisher.
-  Future<bool> _nativeOwnsOngoingSurfaceNotification() async {
-    final cached = _nativeOwnsOngoingSurface;
-    if (cached != null) return cached;
-    final capabilities = await OngoingWorkoutSurfaceBridge.instance
-        .getCapabilities();
-    return _nativeOwnsOngoingSurface = capabilities.android16Plus;
   }
 
   Future<void> _post({
@@ -204,22 +176,21 @@ class WorkoutNotificationService {
     int? targetSetId,
     int? reps,
   }) async {
-    final elapsed = _fmt(DateTime.now().difference(startedAt));
-    final title = (workoutName != null && workoutName.isNotEmpty)
-        ? '$workoutName - $elapsed'
-        : 'Workout $elapsed';
+    final title = exerciseName.isNotEmpty ? exerciseName : 'Workout';
 
-    final StringBuffer bodyBuf = StringBuffer(exerciseName);
+    final StringBuffer bodyBuf = StringBuffer();
     if (currentSet != null) {
-      bodyBuf.write(' - Set $currentSet');
+      bodyBuf.write('Set $currentSet');
       if (totalSets != null && totalSets > 0) {
         bodyBuf.write('/$totalSets');
       }
     }
     if (weightLabel != null && reps != null) {
-      bodyBuf.write(' ($weightLabel x $reps)');
+      if (bodyBuf.isNotEmpty) bodyBuf.write(' - ');
+      bodyBuf.write('$weightLabel x $reps reps');
     } else if (reps != null) {
-      bodyBuf.write(' ($reps reps)');
+      if (bodyBuf.isNotEmpty) bodyBuf.write(' - ');
+      bodyBuf.write('$reps reps');
     }
 
     final androidActions = _androidActionsFor(
@@ -240,6 +211,7 @@ class WorkoutNotificationService {
       usesChronometer: true,
       chronometerCountDown: false,
       icon: '@mipmap/ic_launcher',
+      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       category: AndroidNotificationCategory.workout,
       visibility: NotificationVisibility.private,
       additionalFlags: Int32List.fromList(<int>[_flagOngoingEvent]),
@@ -364,13 +336,6 @@ class WorkoutNotificationService {
 
   Future<void> cancelSupplementReminder() async {
     await _guard(() => _plugin.cancel(_supplementNotifId));
-  }
-
-  String _fmt(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 }
 

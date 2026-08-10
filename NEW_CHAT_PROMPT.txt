@@ -1,0 +1,13 @@
+Implement the plan at C:\Users\marti\.claude\plans\popravki-za-workout-1-sorted-bunny.md
+
+Context: this is a batch of 10 fixes to the workout-logging feature of the Herculex Flutter app (this repo). The plan file is fully self-contained — it already has the Context section, all 7 implementation batches (overflow fixes, rest timer full view, set-type popup, drop-set rounding, active exercise card rework, giant sets, template builder set count), exact file/line references, and a verification checklist. It was written after three parallel codebase-exploration passes plus direct file verification, so the file/line references in it are confirmed accurate as of when it was written (re-verify if the code has moved since).
+
+One decision was already confirmed with the user and is baked into the plan: item 6 ("20 sets should auto-generate 20 sets") applies to the TEMPLATE BUILDER (wiring up the existing but currently-dead `targetSets` plumbing in `templates_repository.dart` / `template_builder_view.dart`), not the live/active workout screen.
+
+A few other design decisions in the plan are flagged as the planning agent's judgment calls (not explicitly confirmed by the user) — surface these during implementation if anything looks off, rather than silently guessing further:
+- Item 2 (Last vs Next display setting): designed as mutually-exclusive modes (not both shown at once as today), default "Last".
+- Item 4 (drop-set rounding): equipment mapping for smith/cable/machine_plate/machine_selectorized/kettlebell/bodyweight (user only specified barbell/dumbbell/machine explicitly).
+- Item 5 (set-type popup): pause-set default pill chosen as 3s (middle of the existing 2s/3s/5s options).
+- Item 9 (giant sets): full-view (`dynamic_workout_view.dart`) superset/giant-set support is explicitly left out of scope (pre-existing gap, not touched).
+
+Read the plan file first, then work through the batches in order (they're sequenced to minimize repeated edits to the same files — most land in `active_exercise_card.dart`, `set_type_menu.dart`, `workout_settings_sheet.dart`, `dynamic_workout_view.dart`, `templates_repository.dart`/`template_builder_view.dart`). Run `flutter analyze` after each batch, and use the Verification section at the end of the plan file as the manual test checklist once implementation is done.

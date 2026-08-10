@@ -79,7 +79,15 @@ class MainActivity : FlutterActivity() {
                     val carbs    = call.argument<Int>("carbs") ?: 0
                     val fats     = call.argument<Int>("fats") ?: 0
                     val fasting  = call.argument<String>("fasting") ?: "0h 0m"
-                    syncMacrosToWear(calories, protein, carbs, fats, fasting)
+                    val weeklyTonnage = call.argument<Double>("weekly_tonnage") ?: 0.0
+                    val weeklySets = call.argument<Int>("weekly_sets") ?: 0
+                    val weeklyVolumeJson = call.argument<String>("weekly_volume_json") ?: "[]"
+                    syncMacrosToWear(calories, protein, carbs, fats, fasting, weeklyTonnage, weeklySets, weeklyVolumeJson)
+                    result.success(null)
+                }
+                "syncFastingSnapshot" -> {
+                    val fastingJson = call.argument<String>("fasting_json") ?: ""
+                    syncFastingSnapshotToWear(fastingJson)
                     result.success(null)
                 }
                 "syncWorkouts" -> {
@@ -90,6 +98,11 @@ class MainActivity : FlutterActivity() {
                 "syncCatalog" -> {
                     val catalogJson = call.argument<String>("catalog_json") ?: ""
                     syncCatalogToWear(catalogJson)
+                    result.success(null)
+                }
+                "syncQuickAddFoods" -> {
+                    val quickAddJson = call.argument<String>("quickadd_json") ?: ""
+                    syncQuickAddFoodsToWear(quickAddJson)
                     result.success(null)
                 }
                 "syncActiveSession" -> {
@@ -104,6 +117,24 @@ class MainActivity : FlutterActivity() {
                 }
                 "checkPendingWatchWorkout" -> {
                     dispatchPendingWorkout()
+                    result.success(null)
+                }
+                "markWatchWorkoutApplied" -> {
+                    // Dart has the watch's session in the database now, so the
+                    // persisted copy has done its job.
+                    PhoneWearListenerService.clearPendingWatchWorkout(applicationContext)
+                    result.success(null)
+                }
+                "markWatchFastingCommandApplied" -> {
+                    val commandId = call.argument<String>("command_id") ?: ""
+                    PhoneWearListenerService.clearPendingFastingCommand(applicationContext, commandId)
+                    sendFastingAckToWear(commandId)
+                    result.success(null)
+                }
+                "markWatchQuickAddCommandApplied" -> {
+                    val commandId = call.argument<String>("command_id") ?: ""
+                    PhoneWearListenerService.clearPendingQuickAddCommand(applicationContext, commandId)
+                    sendQuickAddAckToWear(commandId)
                     result.success(null)
                 }
                 else -> result.notImplemented()
@@ -217,15 +248,27 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        PhoneWearListenerService.onWatchWorkoutEndListener = {
+        PhoneWearListenerService.onWatchWorkoutEndListener = { isDiscard ->
             runOnUiThread {
-                methodChannel?.invokeMethod("onWatchWorkoutEnded", null)
+                methodChannel?.invokeMethod("onWatchWorkoutEnded", mapOf("isDiscard" to isDiscard))
             }
         }
 
         PhoneWearListenerService.onSyncRequestedListener = {
             runOnUiThread {
                 methodChannel?.invokeMethod("onRequestSync", null)
+            }
+        }
+
+        PhoneWearListenerService.onWatchFastingCommandListener = { commandJson ->
+            runOnUiThread {
+                methodChannel?.invokeMethod("onWatchFastingCommand", mapOf("command_json" to commandJson))
+            }
+        }
+
+        PhoneWearListenerService.onWatchQuickAddCommandListener = { commandJson ->
+            runOnUiThread {
+                methodChannel?.invokeMethod("onWatchQuickAddCommand", mapOf("command_json" to commandJson))
             }
         }
 
@@ -340,23 +383,45 @@ class MainActivity : FlutterActivity() {
 
         if (intent?.getBooleanExtra("open_active_workout", false) == true) {
             val sessionJson = intent.getStringExtra("session_json")
-            pendingSessionJson = sessionJson
             pendingJumpToWorkout = true
             intent.removeExtra("open_active_workout")
-            dispatchPendingWorkout()
+            if (sessionJson != null) {
+                pendingSessionJson = sessionJson
+                dispatchPendingWorkout()
+            } else {
+                openActiveWorkoutInFlutter()
+            }
         }
     }
 
+    private fun openActiveWorkoutInFlutter() {
+        flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+            MethodChannel(messenger, widgetChannel).invokeMethod("openActiveWorkout", null)
+        }
+    }
+
+    /**
+     * Hands the watch's session to Dart.
+     *
+     * The persisted copy is deliberately NOT cleared here. `invokeMethod` is
+     * fire-and-forget, and both callers run before Dart has registered its
+     * watch handlers: `onResume` (notification tap) fires before the first
+     * widget build, and `checkPendingWatchWorkout` is invoked from `main()`.
+     * Clearing on dispatch therefore threw the workout away in exactly the
+     * case it mattered — opening the app from the "started on watch"
+     * notification. Dart acks via `markWatchWorkoutApplied` once the session
+     * is in the database; until then the copy survives to be replayed.
+     */
     private fun dispatchPendingWorkout() {
         val sessionJson = pendingSessionJson
         if (sessionJson != null) {
             val jump = pendingJumpToWorkout
+            pendingSessionJson = null
+            pendingJumpToWorkout = false
             methodChannel?.invokeMethod(
                 "onWatchWorkoutStarted",
                 mapOf("session_json" to sessionJson, "jump_to_workout" to jump)
             )
-            pendingSessionJson = null
-            pendingJumpToWorkout = false
             return
         }
 
@@ -367,22 +432,48 @@ class MainActivity : FlutterActivity() {
                 mapOf("session_json" to storedSessionJson)
             )
         }
+        for (commandJson in PhoneWearListenerService.pendingFastingCommands(applicationContext)) {
+            methodChannel?.invokeMethod(
+                "onWatchFastingCommand",
+                mapOf("command_json" to commandJson),
+            )
+        }
+        for (commandJson in PhoneWearListenerService.pendingQuickAddCommands(applicationContext)) {
+            methodChannel?.invokeMethod(
+                "onWatchQuickAddCommand",
+                mapOf("command_json" to commandJson),
+            )
+        }
     }
 
     // ── Wearable DataClient Sync Helpers ─────────────────────────────────────
 
-    private fun syncMacrosToWear(calories: Int, protein: Int, carbs: Int, fats: Int, fasting: String) {
+    private fun syncMacrosToWear(calories: Int, protein: Int, carbs: Int, fats: Int, fasting: String, weeklyTonnage: Double, weeklySets: Int, weeklyVolumeJson: String) {
         val putDataMapReq = PutDataMapRequest.create("/herculex_sync_data")
         putDataMapReq.dataMap.putInt("calories", calories)
         putDataMapReq.dataMap.putInt("protein", protein)
         putDataMapReq.dataMap.putInt("carbs", carbs)
         putDataMapReq.dataMap.putInt("fats", fats)
         putDataMapReq.dataMap.putString("fasting", fasting)
+        putDataMapReq.dataMap.putDouble("weekly_tonnage", weeklyTonnage)
+        putDataMapReq.dataMap.putInt("weekly_sets", weeklySets)
+        putDataMapReq.dataMap.putString("weekly_volume_json", weeklyVolumeJson)
         putDataMapReq.dataMap.putLong("timestamp", System.currentTimeMillis())
         val putDataReq = putDataMapReq.asPutDataRequest().setUrgent()
         Wearable.getDataClient(this).putDataItem(putDataReq)
-            .addOnSuccessListener { Log.d("WearSync", "Synced macros to wear") }
-            .addOnFailureListener { e -> Log.e("WearSync", "Failed to sync macros", e) }
+            .addOnSuccessListener { Log.d("WearSync", "Synced macros & volume to wear") }
+            .addOnFailureListener { e -> Log.e("WearSync", "Failed to sync macros & volume", e) }
+    }
+
+    private fun syncFastingSnapshotToWear(fastingJson: String) {
+        lifecycleScope.launch {
+            try {
+                wearSyncManager.syncFastingSnapshot(fastingJson)
+                Log.d("WearSync", "Synced fasting snapshot to wear")
+            } catch (e: Exception) {
+                Log.e("WearSync", "Failed to sync fasting snapshot", e)
+            }
+        }
     }
 
     private fun syncWorkoutsToWear(workoutsJson: String) {
@@ -405,6 +496,16 @@ class MainActivity : FlutterActivity() {
             .addOnFailureListener { e -> Log.e("WearSync", "Failed to sync catalog", e) }
     }
 
+    private fun syncQuickAddFoodsToWear(quickAddJson: String) {
+        val putDataMapReq = PutDataMapRequest.create("/herculex_quickadd_data")
+        putDataMapReq.dataMap.putString("quickadd_json", quickAddJson)
+        putDataMapReq.dataMap.putLong("timestamp", System.currentTimeMillis())
+        val putDataReq = putDataMapReq.asPutDataRequest().setUrgent()
+        Wearable.getDataClient(this).putDataItem(putDataReq)
+            .addOnSuccessListener { Log.d("WearSync", "Synced quick-add foods to wear") }
+            .addOnFailureListener { e -> Log.e("WearSync", "Failed to sync quick-add foods", e) }
+    }
+
     private fun syncActiveSessionToWear(sessionJson: String, isStart: Boolean) {
         // Fast path: MessageClient delivery to a connected watch is near-instant,
         // unlike DataClient puts which the system can batch/coalesce.
@@ -420,12 +521,42 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun endWorkoutOnWear() {
+        PhoneWearListenerService.clearPendingWatchWorkout(applicationContext)
+        PhoneWearListenerService.clearNotifiedWatchSession(applicationContext)
         lifecycleScope.launch {
             try {
                 wearSyncManager.endActiveSession()
                 Log.d("WearSync", "Synced session end to wear")
             } catch (e: Exception) {
                 Log.e("WearSync", "Failed to sync session end to wear", e)
+            }
+        }
+    }
+
+    private fun sendFastingAckToWear(commandId: String) {
+        if (commandId.isBlank()) return
+        lifecycleScope.launch {
+            try {
+                wearSyncManager.sendRealtimeEvent(
+                    com.ams.herculex.sync.WearSyncPaths.MESSAGE_FASTING_ACK,
+                    "{\"commandId\":\"$commandId\"}",
+                )
+            } catch (e: Exception) {
+                Log.e("WearSync", "Failed to ack fasting command", e)
+            }
+        }
+    }
+
+    private fun sendQuickAddAckToWear(commandId: String) {
+        if (commandId.isBlank()) return
+        lifecycleScope.launch {
+            try {
+                wearSyncManager.sendRealtimeEvent(
+                    com.ams.herculex.sync.WearSyncPaths.MESSAGE_QUICKADD_ACK,
+                    "{\"commandId\":\"$commandId\"}",
+                )
+            } catch (e: Exception) {
+                Log.e("WearSync", "Failed to ack quick-add command", e)
             }
         }
     }

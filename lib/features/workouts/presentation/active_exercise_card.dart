@@ -11,9 +11,12 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../profile/domain/profile.dart';
+import '../data/workouts_repository.dart';
+import '../domain/drop_set_rounding.dart';
 import '../domain/progression_engine.dart';
 import '../domain/set_type.dart';
 import 'accessory_tray_sheet.dart';
+import 'down_set_config_sheet.dart';
 import 'equipment_variant_sheet.dart';
 import 'exercise_performance_sheet.dart';
 import 'machine_config_sheet.dart';
@@ -22,9 +25,10 @@ import 'progression_override_sheet.dart';
 import 'rest_timer_controller.dart';
 import 'set_type_menu.dart';
 import 'smart_substitution_sheet.dart';
+import 'workout_settings_sheet.dart';
 import 'workouts_providers.dart';
 
-class ActiveExerciseCard extends ConsumerWidget {
+class ActiveExerciseCard extends ConsumerStatefulWidget {
   final WorkoutExerciseData workoutExercise;
   final ExerciseCatalogData exercise;
   final List<WorkoutExerciseData> sessionExercises;
@@ -47,13 +51,33 @@ class ActiveExerciseCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ActiveExerciseCard> createState() => _ActiveExerciseCardState();
+}
+
+class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
+  final GlobalKey _cardKey = GlobalKey();
+  static const _collapsedSetLimit = 5;
+  bool _setsExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final workoutExercise = widget.workoutExercise;
+    final exercise = widget.exercise;
     final theme = Theme.of(context);
     final sets = ref.watch(setsForWorkoutExerciseProvider(workoutExercise.id));
     final lastPerformance = ref.watch(lastPerformanceProvider(exercise.id));
     final repo = ref.watch(workoutsRepositoryProvider);
+    final weightFmt = ref.watch(weightFormatProvider);
+    final hintMode = ref.watch(performanceHintModeProvider);
+    final isBodyweight = exercise.modality == 'bodyweight';
+    final totalReps = isBodyweight
+        ? (sets.asData?.value ?? const <SetEntryData>[])
+              .where((r) => r.isCompleted)
+              .fold<int>(0, (sum, r) => sum + r.reps)
+        : 0;
 
     return Container(
+      key: _cardKey,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -102,137 +126,204 @@ class ActiveExerciseCard extends ConsumerWidget {
             ],
           ),
           lastPerformance.maybeWhen(
-            data: (allLastSets) {
+            data: (snapshot) {
+              final allLastSets = snapshot?.sets ?? const <SetEntryData>[];
               if (allLastSets.isEmpty) return const SizedBox.shrink();
 
-              final currentSetsList = sets.value ?? const [];
-              final currentSet = currentSetsList.firstWhereOrNull((s) => !s.isCompleted) ?? currentSetsList.lastOrNull;
-
-              List<SetEntryData> filteredSets = [];
-
-              if (currentSet != null) {
-                // Find index of currentSet within current sets of the same category (warmup vs working + setType)
-                final sameTypeCurrentSets = currentSetsList.where((s) =>
-                    s.isWarmup == currentSet.isWarmup &&
-                    s.setType == currentSet.setType).toList();
-                final typeIndex = sameTypeCurrentSets.indexOf(currentSet);
-
-                // Find matching prior sets of same category
-                final matchingPriorSets = allLastSets.where((s) =>
-                    s.isWarmup == currentSet.isWarmup &&
-                    s.setType == currentSet.setType).toList();
-
-                if (matchingPriorSets.isNotEmpty) {
-                  if (typeIndex >= 0 && typeIndex < matchingPriorSets.length) {
-                    filteredSets = [matchingPriorSets[typeIndex]];
-                  } else {
-                    filteredSets = [matchingPriorSets.last];
-                  }
-                }
-              } else {
-                // Default: show the first working standard set from prior session
-                final standardPriorSets = allLastSets.where((s) =>
-                    !s.isWarmup && s.setType == 'standard').toList();
-                if (standardPriorSets.isNotEmpty) {
-                  filteredSets = [standardPriorSets.first];
-                }
-              }
-
-              if (filteredSets.isEmpty) {
+              final currentRows = sets.asData?.value ?? const <SetEntryData>[];
+              final lastText = _formatLast(currentRows, allLastSets, weightFmt);
+              if (hintMode == PerformanceHintMode.last && lastText.isEmpty) {
                 return const SizedBox.shrink();
               }
 
               return Padding(
                 padding: const EdgeInsets.only(top: 4, bottom: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Last: ${_formatLast(filteredSets, ref.watch(weightFormatProvider))}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    _nextTargetHint(theme, ref, allLastSets),
-                  ],
-                ),
+                child: hintMode == PerformanceHintMode.last
+                    ? Text(
+                        '${_lastLabel(snapshot)}: $lastText',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )
+                    : _nextTargetHint(theme, ref, allLastSets),
               );
             },
             orElse: () => const SizedBox.shrink(),
           ),
+          if (isBodyweight && totalReps > 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.repeat, size: 14, color: AppColors.secondary),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$totalReps reps total',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 8),
           _HeaderRow(theme: theme),
           sets.when(
-            data: (rows) => Column(
-              children: [
-                for (var i = 0; i < rows.length; i++)
-                  _SetRow(
-                    index: i + 1,
-                    set: rows[i],
-                    weightFocusNode: i == 0 ? firstSetFocusNode : null,
-                    onUpdate: (weight, reps, rpeX10) => repo.updateSet(
-                      setId: rows[i].id,
-                      weightKg: weight,
-                      reps: reps,
-                      rpeX10: rpeX10,
+            data: (rows) {
+              final allLastSets =
+                  lastPerformance.asData?.value?.sets ?? const <SetEntryData>[];
+              // Down Sets are numbered D1, D2, … across a run of consecutive
+              // down-set rows; any other set type resets the count.
+              final downSetOrdinals = <int>[];
+              var downSetChain = 0;
+              for (final r in rows) {
+                downSetChain = r.setType == 'down_sets' ? downSetChain + 1 : 0;
+                downSetOrdinals.add(downSetChain);
+              }
+              // Collapse long set lists (item 7) but never hide the set the
+              // user is about to log.
+              final collapse =
+                  !_setsExpanded && rows.length > _collapsedSetLimit;
+              List<int> visibleIndices;
+              if (collapse) {
+                final nextIncompleteIndex = rows.indexWhere(
+                  (r) => !r.isCompleted,
+                );
+                final indices = <int>{
+                  for (var k = 0; k < _collapsedSetLimit; k++) k,
+                };
+                if (nextIncompleteIndex >= _collapsedSetLimit) {
+                  indices.add(nextIncompleteIndex);
+                }
+                visibleIndices = indices.toList()..sort();
+              } else {
+                visibleIndices = [for (var k = 0; k < rows.length; k++) k];
+              }
+              return Column(
+                children: [
+                  for (final i in visibleIndices)
+                    _SetRow(
+                      index: i + 1,
+                      set: rows[i],
+                      downSetOrdinal: downSetOrdinals[i],
+                      priorSet: _findPriorSet(rows[i], i, rows, allLastSets),
+                      microLabelText: _microLabelFor(
+                        ref,
+                        rows,
+                        allLastSets,
+                        downSetOrdinals,
+                        i,
+                        hintMode,
+                        weightFmt,
+                      ),
+                      weightFocusNode: i == 0 ? widget.firstSetFocusNode : null,
+                      cardKey: _cardKey,
+                      onUpdate: (weight, reps, rpeX10, clearRpe) =>
+                          repo.updateSet(
+                            setId: rows[i].id,
+                            weightKg: weight,
+                            reps: reps,
+                            rpeX10: rpeX10,
+                            clearRpe: clearRpe,
+                          ),
+                      onComplete: (completed) async {
+                        await repo.updateSet(
+                          setId: rows[i].id,
+                          isCompleted: completed,
+                        );
+                        if (completed) {
+                          final advanced =
+                              widget.onCompletedSet?.call(
+                                workoutExercise.id,
+                                rows[i].setIndex,
+                              ) ??
+                              false;
+                          if (!advanced) {
+                            final rest =
+                                workoutExercise.targetRestSeconds ??
+                                exercise.defaultRestSeconds;
+                            ref
+                                .read(restTimerProvider.notifier)
+                                .start(
+                                  seconds: rest,
+                                  exerciseName: exercise.name,
+                                );
+                          }
+                        }
+                      },
+                      onDelete: () => repo.deleteSet(rows[i].id),
+                      // One-tap set-type switch (§15, §26).
+                      onTypeTap: () async {
+                        final sel = await SetTypeMenu.show(
+                          context,
+                          current: SetType.fromId(rows[i].setType),
+                          isWarmup: rows[i].isWarmup,
+                        );
+                        if (sel != null) {
+                          if (sel.delete) {
+                            await repo.deleteSet(rows[i].id);
+                          } else if (sel.isWarmup != null) {
+                            await repo.updateSet(
+                              setId: rows[i].id,
+                              isWarmup: sel.isWarmup,
+                            );
+                          } else {
+                            await repo.updateSet(
+                              setId: rows[i].id,
+                              setType: sel.type.id,
+                              setTypeMetaJson: sel.metaJson,
+                            );
+                          }
+                        }
+                      },
+                      // Down Set auto-fill wizard: turns the long-pressed row
+                      // into the chain's first set and appends the rest.
+                      onDownSetChain: (result) async {
+                        final metaJson = jsonEncode({
+                          'startReps': result.firstReps,
+                          'decrement': 1,
+                        });
+                        await repo.updateSet(
+                          setId: rows[i].id,
+                          weightKg: result.weightKg,
+                          reps: result.firstReps,
+                          setType: 'down_sets',
+                          setTypeMetaJson: metaJson,
+                        );
+                        var reps = result.firstReps;
+                        while (reps > result.stopReps) {
+                          reps -= 1;
+                          await repo.addSet(
+                            workoutExerciseId: workoutExercise.id,
+                            weightKg: result.weightKg,
+                            reps: reps,
+                            isWarmup: false,
+                            setType: 'down_sets',
+                            setTypeMetaJson: metaJson,
+                          );
+                        }
+                      },
+                      // Accessory quick-tray (§5–§8, §26).
+                      onAccessories: () =>
+                          AccessoryTraySheet.show(context, rows[i]),
                     ),
-                    onComplete: (completed) async {
-                      await repo.updateSet(
-                        setId: rows[i].id,
-                        isCompleted: completed,
-                      );
-                      if (completed) {
-                        final advanced =
-                            onCompletedSet?.call(
-                              workoutExercise.id,
-                              rows[i].setIndex,
-                            ) ??
-                            false;
-                        if (!advanced) {
-                          final rest =
-                              workoutExercise.targetRestSeconds ??
-                              exercise.defaultRestSeconds;
-                          ref
-                              .read(restTimerProvider.notifier)
-                              .start(
-                                seconds: rest,
-                                exerciseName: exercise.name,
-                              );
-                        }
-                      }
-                    },
-                    onDelete: () => repo.deleteSet(rows[i].id),
-                    // One-tap set-type switch (§15, §26).
-                    onTypeTap: () async {
-                      final sel = await SetTypeMenu.show(
-                        context,
-                        current: SetType.fromId(rows[i].setType),
-                        isWarmup: rows[i].isWarmup,
-                      );
-                      if (sel != null) {
-                        if (sel.delete) {
-                          await repo.deleteSet(rows[i].id);
-                        } else if (sel.isWarmup != null) {
-                          await repo.updateSet(
-                            setId: rows[i].id,
-                            isWarmup: sel.isWarmup,
-                          );
-                        } else {
-                          await repo.updateSet(
-                            setId: rows[i].id,
-                            setType: sel.type.id,
-                            setTypeMetaJson: sel.metaJson,
-                          );
-                        }
-                      }
-                    },
-                    // Accessory quick-tray (§5–§8, §26).
-                    onAccessories: () =>
-                        AccessoryTraySheet.show(context, rows[i]),
-                  ),
-              ],
-            ),
+                  if (rows.length > _collapsedSetLimit)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: TextButton(
+                        onPressed: () =>
+                            setState(() => _setsExpanded = !_setsExpanded),
+                        child: Text(
+                          _setsExpanded ? 'Show less' : 'Show all (${rows.length})',
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
             error: (e, _) => Text('Error: $e'),
             loading: () => const Padding(
               padding: EdgeInsets.all(8),
@@ -252,7 +343,8 @@ class ActiveExerciseCard extends ConsumerWidget {
                   // Default new set to last set's values for fast logging.
                   final rows = sets.asData?.value ?? const [];
                   final prev = rows.isNotEmpty ? rows.last : null;
-                  final priorFirst = lastPerformance.asData?.value.firstOrNull;
+                  final priorFirst =
+                      lastPerformance.asData?.value?.sets.firstOrNull;
 
                   double nextWeight = 0.0;
                   int nextReps = 0;
@@ -261,13 +353,23 @@ class ActiveExerciseCard extends ConsumerWidget {
                     nextWeight = prev.weightKg;
                     nextReps = prev.reps;
                     // Dynamic drop set weight reduction.
-                    if (prev.setType == 'drop' && prev.setTypeMetaJson != null) {
+                    if (prev.setType == 'drop' &&
+                        prev.setTypeMetaJson != null) {
                       try {
                         final meta = jsonDecode(prev.setTypeMetaJson!);
                         final pct = meta['dropPercent'] as int? ?? 20;
                         nextWeight = nextWeight * (1 - (pct / 100));
-                        nextWeight = (nextWeight * 2).roundToDouble() / 2;
+                        final stepKg = dropSetRoundingStepKg(
+                          workoutExercise.equipmentVariant ??
+                              exercise.modality,
+                        );
+                        nextWeight =
+                            (nextWeight / stepKg).roundToDouble() * stepKg;
                       } catch (_) {}
+                    }
+                    // Down Sets: same weight, one fewer rep each extra set.
+                    if (prev.setType == 'down_sets') {
+                      nextReps = prev.reps > 1 ? prev.reps - 1 : 1;
                     }
                   } else if (priorFirst != null) {
                     nextWeight = priorFirst.weightKg;
@@ -277,7 +379,8 @@ class ActiveExerciseCard extends ConsumerWidget {
                   // Weighted bodyweight (§9): snapshot current BW so total load
                   // (added weight + body) feeds volume/1RM correctly.
                   double? bodyweight = prev?.bodyweightKg;
-                  if (exercise.supportsWeightedBodyweight && bodyweight == null) {
+                  if (exercise.supportsWeightedBodyweight &&
+                      bodyweight == null) {
                     bodyweight = await ref
                         .read(measurementsRepositoryProvider)
                         .latestBodyweightKg();
@@ -298,13 +401,16 @@ class ActiveExerciseCard extends ConsumerWidget {
                   if (prev != null) {
                     await ref
                         .read(accessoriesRepositoryProvider)
-                        .copySetAccessories(fromSetId: prev.id, toSetId: newSetId);
+                        .copySetAccessories(
+                          fromSetId: prev.id,
+                          toSetId: newSetId,
+                        );
                   }
                 },
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add Set'),
               ),
-              ?dragHandle,
+              ?widget.dragHandle,
             ],
           ),
         ],
@@ -312,9 +418,69 @@ class ActiveExerciseCard extends ConsumerWidget {
     );
   }
 
+  SetEntryData? _findPriorSet(
+    SetEntryData currentSet,
+    int index,
+    List<SetEntryData> allCurrentSets,
+    List<SetEntryData> allLastSets,
+  ) {
+    if (allLastSets.isEmpty) return null;
+    final sameTypeCurrent = allCurrentSets
+        .where(
+          (s) =>
+              s.isWarmup == currentSet.isWarmup &&
+              s.setType == currentSet.setType,
+        )
+        .toList();
+    final subIdx = sameTypeCurrent.indexOf(currentSet);
+    final sameTypePrior = allLastSets
+        .where(
+          (s) =>
+              s.isWarmup == currentSet.isWarmup &&
+              s.setType == currentSet.setType,
+        )
+        .toList();
+    if (sameTypePrior.isNotEmpty) {
+      if (subIdx >= 0 && subIdx < sameTypePrior.length) {
+        return sameTypePrior[subIdx];
+      }
+      return sameTypePrior.last;
+    }
+    if (index < allLastSets.length) return allLastSets[index];
+    return allLastSets.lastOrNull;
+  }
+
+  /// Progression goal + weekly-increase override to feed [ProgressionEngine],
+  /// shared by the card-level and per-row "Next" hints. Per-exercise override
+  /// takes priority over the profile goal.
+  ({ProgressionGoal goal, double? weeklyPctOverride}) _progressionGoal(
+    WidgetRef ref,
+  ) {
+    final override = ref
+        .watch(exerciseProgressionProvider(widget.exercise.id))
+        .asData
+        ?.value;
+    if (override != null && override.enabled) {
+      final goal = ProgressionGoal.values.firstWhere(
+        (g) => g.name == override.goal,
+        orElse: () => ProgressionGoal.muscleGain,
+      );
+      return (goal: goal, weeklyPctOverride: override.weeklyIncreasePct);
+    }
+    final fitnessGoal =
+        ref.watch(profileProvider).asData?.value?.goal ??
+        FitnessGoal.maintenance;
+    final goal = switch (fitnessGoal) {
+      FitnessGoal.weightLoss => ProgressionGoal.fatLoss,
+      FitnessGoal.muscleGain ||
+      FitnessGoal.maintenance => ProgressionGoal.muscleGain,
+      FitnessGoal.improveHealth => ProgressionGoal.endurance,
+    };
+    return (goal: goal, weeklyPctOverride: null);
+  }
+
   /// Suggested next-workout target (§16): best set from last session run
-  /// through the progression engine. Per-exercise override takes priority over
-  /// the profile goal.
+  /// through the progression engine.
   Widget _nextTargetHint(
     ThemeData theme,
     WidgetRef ref,
@@ -327,36 +493,13 @@ class ActiveExerciseCard extends ConsumerWidget {
     final best = workingSets.reduce(
       (a, b) => a.weightKg * a.reps >= b.weightKg * b.reps ? a : b,
     );
-    final override = ref
-        .watch(exerciseProgressionProvider(exercise.id))
-        .asData
-        ?.value;
-    final ProgressionGoal goal;
-    final double? weeklyPctOverride;
-    if (override != null && override.enabled) {
-      goal = ProgressionGoal.values.firstWhere(
-        (g) => g.name == override.goal,
-        orElse: () => ProgressionGoal.muscleGain,
-      );
-      weeklyPctOverride = override.weeklyIncreasePct;
-    } else {
-      final fitnessGoal =
-          ref.watch(profileProvider).asData?.value?.goal ??
-          FitnessGoal.maintenance;
-      goal = switch (fitnessGoal) {
-        FitnessGoal.weightLoss => ProgressionGoal.fatLoss,
-        FitnessGoal.muscleGain ||
-        FitnessGoal.maintenance => ProgressionGoal.muscleGain,
-        FitnessGoal.improveHealth => ProgressionGoal.endurance,
-      };
-      weeklyPctOverride = null;
-    }
+    final settings = _progressionGoal(ref);
     final target = ProgressionEngine.suggestNext(
       lastWeightKg: best.weightKg,
       lastReps: best.reps,
-      goal: goal,
-      equipmentVariant: workoutExercise.equipmentVariant ?? exercise.modality,
-      weeklyIncreasePctOverride: weeklyPctOverride,
+      goal: settings.goal,
+      equipmentVariant: widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
+      weeklyIncreasePctOverride: settings.weeklyPctOverride,
     );
     if (target.weightKg <= 0 && best.weightKg <= 0) {
       return const SizedBox.shrink();
@@ -373,19 +516,97 @@ class ActiveExerciseCard extends ConsumerWidget {
     );
   }
 
-  String _formatLast(List<SetEntryData> sets, WeightFormat fmt) {
-    return sets
-        .map((s) {
-          final rpe = s.rpeX10 != null
-              ? ' @${(s.rpeX10! / 10).toStringAsFixed(1)}'
-              : '';
-          return '${fmt.format(s.weightKg)} × ${s.reps}$rpe';
-        })
-        .join(' • ');
+  /// Per-row micro-label under a set (item 1): a compact "Down: X-Y" once per
+  /// down-set chain, otherwise a position-matched Last/Next hint driven by
+  /// the [PerformanceHintMode] setting.
+  String? _microLabelFor(
+    WidgetRef ref,
+    List<SetEntryData> rows,
+    List<SetEntryData> allLastSets,
+    List<int> downSetOrdinals,
+    int i,
+    PerformanceHintMode hintMode,
+    WeightFormat weightFmt,
+  ) {
+    if (downSetOrdinals[i] > 0) {
+      if (downSetOrdinals[i] != 1) return null;
+      var e = i;
+      while (e + 1 < rows.length &&
+          downSetOrdinals[e + 1] == downSetOrdinals[e] + 1) {
+        e++;
+      }
+      return 'Down: ${rows[i].reps}-${rows[e].reps}';
+    }
+    final prior = _findPriorSet(rows[i], i, rows, allLastSets);
+    if (prior == null) return null;
+    if (hintMode == PerformanceHintMode.last) {
+      return 'Last: ${weightFmt.format(prior.weightKg)} × ${prior.reps}';
+    }
+    if (prior.isWarmup) return null;
+    final settings = _progressionGoal(ref);
+    final target = ProgressionEngine.suggestNext(
+      lastWeightKg: prior.weightKg,
+      lastReps: prior.reps,
+      goal: settings.goal,
+      equipmentVariant:
+          widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
+      weeklyIncreasePctOverride: settings.weeklyPctOverride,
+    );
+    if (target.weightKg <= 0 && prior.weightKg <= 0) return null;
+    return 'Next: ${weightFmt.format(target.weightKg)} × ${target.reps}';
+  }
+
+  String _formatLast(
+    List<SetEntryData> currentRows,
+    List<SetEntryData> allLastSets,
+    WeightFormat fmt,
+  ) {
+    if (allLastSets.isEmpty) return '';
+
+    SetEntryData? prior;
+    if (currentRows.isEmpty) {
+      prior = allLastSets.firstOrNull;
+    } else {
+      var activeIndex = currentRows.indexWhere((r) => !r.isCompleted);
+      if (activeIndex == -1) {
+        activeIndex = currentRows.length - 1;
+      }
+      if (activeIndex >= 0 && activeIndex < currentRows.length) {
+        prior = _findPriorSet(
+          currentRows[activeIndex],
+          activeIndex,
+          currentRows,
+          allLastSets,
+        );
+      } else {
+        prior = activeIndex < allLastSets.length
+            ? allLastSets[activeIndex]
+            : allLastSets.lastOrNull;
+      }
+    }
+
+    if (prior == null) return '';
+
+    final rpe = prior.rpeX10 != null
+        ? ' @${(prior.rpeX10! / 10).toStringAsFixed(1)}'
+        : '';
+    return '${fmt.format(prior.weightKg)} × ${prior.reps}$rpe';
+  }
+
+  String _lastLabel(LastPerformanceSnapshot? snapshot) {
+    final currentVariant =
+        widget.workoutExercise.equipmentVariant ?? widget.exercise.modality;
+    final priorVariant = snapshot?.equipmentVariant;
+    if (priorVariant == null ||
+        priorVariant.isEmpty ||
+        priorVariant == currentVariant) {
+      return 'Last';
+    }
+    return 'Last on ${EquipmentVariantSheet.labelFor(priorVariant)}';
   }
 
   void _showMenu(BuildContext context, WidgetRef ref) {
-    final isMachine = (workoutExercise.equipmentVariant ?? exercise.modality)
+    final isMachine = (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality)
         .startsWith('machine');
     showModalBottomSheet(
       context: context,
@@ -402,7 +623,7 @@ class ActiveExerciseCard extends ConsumerWidget {
                 _showLinkSheet(context, ref);
               },
             ),
-            if (workoutExercise.supersetGroup != null)
+            if (widget.workoutExercise.supersetGroup != null)
               ListTile(
                 leading: const Icon(Icons.link_off),
                 title: const Text('Remove from linked set'),
@@ -411,7 +632,7 @@ class ActiveExerciseCard extends ConsumerWidget {
                   Navigator.pop(context);
                   ref
                       .read(workoutsRepositoryProvider)
-                      .unlinkWorkoutExercise(workoutExercise.id);
+                      .unlinkWorkoutExercise(widget.workoutExercise.id);
                 },
               ),
             ListTile(
@@ -420,7 +641,7 @@ class ActiveExerciseCard extends ConsumerWidget {
               subtitle: const Text('PRs per equipment & accessory combo'),
               onTap: () {
                 Navigator.pop(context);
-                ExercisePerformanceSheet.show(context, exercise);
+                ExercisePerformanceSheet.show(context, widget.exercise);
               },
             ),
             ListTile(
@@ -428,26 +649,26 @@ class ActiveExerciseCard extends ConsumerWidget {
               title: const Text('Change equipment'),
               subtitle: Text(
                 EquipmentVariantSheet.labelFor(
-                  workoutExercise.equipmentVariant ?? exercise.modality,
+                  widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
                 ),
               ),
               onTap: () async {
                 Navigator.pop(context);
                 final variant = await EquipmentVariantSheet.show(
                   context,
-                  exercise,
+                  widget.exercise,
                 );
                 if (variant != null) {
                   await ref
                       .read(workoutsRepositoryProvider)
                       .setEquipmentVariant(
-                        workoutExerciseId: workoutExercise.id,
+                        workoutExerciseId: widget.workoutExercise.id,
                         equipmentVariant: variant,
                       );
                 }
               },
             ),
-            if (isMachine || workoutExercise.machineConfigJson != null)
+            if (isMachine || widget.workoutExercise.machineConfigJson != null)
               ListTile(
                 leading: const Icon(Icons.tune),
                 title: const Text('Machine settings'),
@@ -461,7 +682,7 @@ class ActiveExerciseCard extends ConsumerWidget {
                       ?.gymId;
                   MachineConfigSheet.show(
                     context,
-                    workoutExercise: workoutExercise,
+                    workoutExercise: widget.workoutExercise,
                     gymId: gymId,
                   );
                 },
@@ -474,8 +695,8 @@ class ActiveExerciseCard extends ConsumerWidget {
                 Navigator.pop(context);
                 ProgressionOverrideSheet.show(
                   context,
-                  exerciseId: exercise.id,
-                  exerciseName: exercise.name,
+                  exerciseId: widget.exercise.id,
+                  exerciseName: widget.exercise.name,
                 );
               },
             ),
@@ -486,8 +707,8 @@ class ActiveExerciseCard extends ConsumerWidget {
                 Navigator.pop(context);
                 SmartSubstitutionSheet.show(
                   context,
-                  workoutExercise: workoutExercise,
-                  originalExercise: exercise,
+                  workoutExercise: widget.workoutExercise,
+                  originalExercise: widget.exercise,
                 );
               },
             ),
@@ -496,7 +717,7 @@ class ActiveExerciseCard extends ConsumerWidget {
               title: const Text('Remove exercise'),
               onTap: () {
                 Navigator.pop(context);
-                onRemove();
+                widget.onRemove();
               },
             ),
           ],
@@ -506,20 +727,20 @@ class ActiveExerciseCard extends ConsumerWidget {
   }
 
   String _linkTitle() {
-    final linkedCount = sessionExercises
-        .where((e) => e.supersetGroup == workoutExercise.supersetGroup)
+    final linkedCount = widget.sessionExercises
+        .where((e) => e.supersetGroup == widget.workoutExercise.supersetGroup)
         .length;
-    if (workoutExercise.supersetGroup == null || linkedCount <= 1) {
+    if (widget.workoutExercise.supersetGroup == null || linkedCount <= 1) {
       return 'Link as superset';
     }
     return linkedCount >= 3 ? 'Edit giant set' : 'Edit superset';
   }
 
   String _linkSubtitle() {
-    final linkedCount = sessionExercises
-        .where((e) => e.supersetGroup == workoutExercise.supersetGroup)
+    final linkedCount = widget.sessionExercises
+        .where((e) => e.supersetGroup == widget.workoutExercise.supersetGroup)
         .length;
-    if (workoutExercise.supersetGroup == null || linkedCount <= 1) {
+    if (widget.workoutExercise.supersetGroup == null || linkedCount <= 1) {
       return 'Pair with another exercise';
     }
     return 'Linked with ${linkedCount - 1} other exercise${linkedCount == 2 ? '' : 's'}';
@@ -527,8 +748,18 @@ class ActiveExerciseCard extends ConsumerWidget {
 
   void _showLinkSheet(BuildContext context, WidgetRef ref) {
     final candidates =
-        sessionExercises.where((we) => we.id != workoutExercise.id).toList()
+        widget.sessionExercises.where((we) => we.id != widget.workoutExercise.id).toList()
           ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    // Hard cap of 5 linked exercises per group (item 9): once the current
+    // group is full, unconnected candidates can no longer be added.
+    final currentGroupSize = widget.workoutExercise.supersetGroup == null
+        ? 1
+        : widget.sessionExercises
+              .where(
+                (e) => e.supersetGroup == widget.workoutExercise.supersetGroup,
+              )
+              .length;
+    final atCap = currentGroupSize >= 5;
 
     showModalBottomSheet<void>(
       context: context,
@@ -547,31 +778,7 @@ class ActiveExerciseCard extends ConsumerWidget {
               const ListTile(title: Text('Add another exercise first'))
             else
               for (final candidate in candidates)
-                ListTile(
-                  leading: Icon(
-                    candidate.supersetGroup == workoutExercise.supersetGroup &&
-                            candidate.supersetGroup != null
-                        ? Icons.check_circle
-                        : Icons.add_link,
-                  ),
-                  title: Text(_exerciseName(candidate.exerciseId)),
-                  subtitle: Text(
-                    candidate.supersetGroup == workoutExercise.supersetGroup &&
-                            candidate.supersetGroup != null
-                        ? 'Already connected'
-                        : 'Connect to this exercise',
-                  ),
-                  onTap: () async {
-                    await ref
-                        .read(workoutsRepositoryProvider)
-                        .linkWorkoutExercises(
-                          sessionId: workoutExercise.sessionId,
-                          sourceWorkoutExerciseId: workoutExercise.id,
-                          targetWorkoutExerciseId: candidate.id,
-                        );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  },
-                ),
+                _linkCandidateTile(ctx, ref, candidate, atCap),
           ],
         ),
       ),
@@ -579,8 +786,44 @@ class ActiveExerciseCard extends ConsumerWidget {
   }
 
   String _exerciseName(int exerciseId) {
-    return catalogExercises.firstWhereOrNull((e) => e.id == exerciseId)?.name ??
+    return widget.catalogExercises.firstWhereOrNull((e) => e.id == exerciseId)?.name ??
         'Exercise #$exerciseId';
+  }
+
+  Widget _linkCandidateTile(
+    BuildContext ctx,
+    WidgetRef ref,
+    WorkoutExerciseData candidate,
+    bool atCap,
+  ) {
+    final alreadyConnected =
+        candidate.supersetGroup == widget.workoutExercise.supersetGroup &&
+        candidate.supersetGroup != null;
+    final disabled = atCap && !alreadyConnected;
+    return ListTile(
+      enabled: !disabled,
+      leading: Icon(alreadyConnected ? Icons.check_circle : Icons.add_link),
+      title: Text(_exerciseName(candidate.exerciseId)),
+      subtitle: Text(
+        alreadyConnected
+            ? 'Already connected'
+            : disabled
+            ? 'Group is full (max 5)'
+            : 'Connect to this exercise',
+      ),
+      onTap: disabled
+          ? null
+          : () async {
+              await ref
+                  .read(workoutsRepositoryProvider)
+                  .linkWorkoutExercises(
+                    sessionId: widget.workoutExercise.sessionId,
+                    sourceWorkoutExerciseId: widget.workoutExercise.id,
+                    targetWorkoutExerciseId: candidate.id,
+                  );
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+    );
   }
 }
 
@@ -592,7 +835,7 @@ class _HeaderRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = theme.textTheme.labelSmall?.copyWith(
       color: AppColors.secondary,
-      letterSpacing: 1.0,
+      letterSpacing: 0.8,
     );
     // The weight column is labelled with whatever unit the fields expect.
     final unit = ref.watch(weightFormatProvider).suffix.toUpperCase();
@@ -600,42 +843,68 @@ class _HeaderRow extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
       child: Row(
         children: [
-          SizedBox(width: 28, child: Text('SET', style: s)),
-          const SizedBox(width: 8),
+          SizedBox(
+            width: 28,
+            child: Center(child: Text('SET', style: s)),
+          ),
+          const SizedBox(width: 4),
           Expanded(
+            flex: 2,
             child: Text(unit, style: s, textAlign: TextAlign.center),
           ),
+          const SizedBox(width: 4),
           Expanded(
+            flex: 2,
             child: Text('REPS', style: s, textAlign: TextAlign.center),
           ),
+          const SizedBox(width: 4),
           Expanded(
+            flex: 2,
             child: Text('RPE', style: s, textAlign: TextAlign.center),
           ),
-          const SizedBox(width: 78),
+          const SizedBox(width: 64),
         ],
       ),
     );
   }
 }
 
+
+
 class _SetRow extends ConsumerStatefulWidget {
   final int index;
   final SetEntryData set;
+  final int downSetOrdinal;
+  final SetEntryData? priorSet;
+  final String? microLabelText;
   final FocusNode? weightFocusNode;
-  final Future<void> Function(double? weight, int? reps, int? rpeX10) onUpdate;
+  final GlobalKey? cardKey;
+  final Future<void> Function(
+    double? weight,
+    int? reps,
+    int? rpeX10,
+    bool clearRpe,
+  )
+  onUpdate;
   final Future<void> Function(bool completed) onComplete;
   final VoidCallback onDelete;
   final VoidCallback onTypeTap;
+  final Future<void> Function(DownSetChainResult result) onDownSetChain;
   final VoidCallback onAccessories;
 
   const _SetRow({
     required this.index,
     required this.set,
+    this.downSetOrdinal = 0,
+    this.priorSet,
+    this.microLabelText,
     this.weightFocusNode,
+    this.cardKey,
     required this.onUpdate,
     required this.onComplete,
     required this.onDelete,
     required this.onTypeTap,
+    required this.onDownSetChain,
     required this.onAccessories,
   });
 
@@ -647,6 +916,11 @@ class _SetRowState extends ConsumerState<_SetRow> {
   late final TextEditingController _weight;
   late final TextEditingController _reps;
   late final TextEditingController _rpe;
+  late final FocusNode _fallbackWeightFocusNode;
+  late final FocusNode _repsFocusNode;
+  final _weightFieldKey = GlobalKey();
+  final _repsFieldKey = GlobalKey();
+  final _rpeFieldKey = GlobalKey();
 
   @override
   void initState() {
@@ -660,11 +934,20 @@ class _SetRowState extends ConsumerState<_SetRow> {
           ? ''
           : (widget.set.rpeX10! / 10).toStringAsFixed(1),
     );
+    _fallbackWeightFocusNode = FocusNode();
+    _repsFocusNode = FocusNode();
+    _weightFocusNode.addListener(_scrollWeightIntoViewOnFocus);
+    _repsFocusNode.addListener(_scrollRepsIntoViewOnFocus);
   }
 
   @override
   void didUpdateWidget(covariant _SetRow oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.weightFocusNode != widget.weightFocusNode) {
+      oldWidget.weightFocusNode?.removeListener(_scrollWeightIntoViewOnFocus);
+      _fallbackWeightFocusNode.removeListener(_scrollWeightIntoViewOnFocus);
+      _weightFocusNode.addListener(_scrollWeightIntoViewOnFocus);
+    }
     // Resync if upstream value diverged (e.g. duplicated from prev set).
     if (oldWidget.set.weightKg != widget.set.weightKg) {
       _weight.text = _fmtWeight(widget.set.weightKg);
@@ -672,14 +955,64 @@ class _SetRowState extends ConsumerState<_SetRow> {
     if (oldWidget.set.reps != widget.set.reps) {
       _reps.text = widget.set.reps == 0 ? '' : widget.set.reps.toString();
     }
+    if (oldWidget.set.rpeX10 != widget.set.rpeX10) {
+      _rpe.text = widget.set.rpeX10 == null
+          ? ''
+          : (widget.set.rpeX10! / 10).toStringAsFixed(1);
+    }
   }
 
   @override
   void dispose() {
+    _weightFocusNode.removeListener(_scrollWeightIntoViewOnFocus);
+    _repsFocusNode.removeListener(_scrollRepsIntoViewOnFocus);
+    _fallbackWeightFocusNode.dispose();
+    _repsFocusNode.dispose();
     _weight.dispose();
     _reps.dispose();
     _rpe.dispose();
     super.dispose();
+  }
+
+  FocusNode get _weightFocusNode =>
+      widget.weightFocusNode ?? _fallbackWeightFocusNode;
+
+  void _scrollWeightIntoViewOnFocus() {
+    if (_weightFocusNode.hasFocus) {
+      _scrollFieldIntoView(_weightFieldKey);
+    }
+  }
+
+  void _scrollRepsIntoViewOnFocus() {
+    if (_repsFocusNode.hasFocus) {
+      _scrollFieldIntoView(_repsFieldKey);
+    }
+  }
+
+  void _scrollFieldIntoView(GlobalKey fieldKey) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      if (!mounted) return;
+
+      final cardContext = widget.cardKey?.currentContext;
+      final fieldContext = fieldKey.currentContext;
+
+      if (cardContext != null && cardContext.mounted) {
+        await Scrollable.ensureVisible(
+          cardContext,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          alignment: 0.0,
+        );
+      } else if (fieldContext != null && fieldContext.mounted) {
+        await Scrollable.ensureVisible(
+          fieldContext,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          alignment: 0.0,
+        );
+      }
+    });
   }
 
   /// Sets are stored in kilograms; the field shows and accepts the user's
@@ -688,11 +1021,23 @@ class _SetRowState extends ConsumerState<_SetRow> {
 
   String _fmtWeight(double kg) => kg == 0 ? '' : _fmt.formatValue(kg);
 
-  /// Set index cell: warmups show 'W', non-standard set types show their
+  String get _hintWeight {
+    if (widget.priorSet == null) return '';
+    return _fmtWeight(widget.priorSet!.weightKg);
+  }
+
+  String get _hintReps {
+    if (widget.priorSet == null) return '';
+    return widget.priorSet!.reps == 0 ? '' : widget.priorSet!.reps.toString();
+  }
+
+  /// Set index cell: warmups show 'W', Down Sets show their position in the
+  /// current chain ('D1', 'D2', …), other non-standard types show their
   /// badge ('D' drop, 'RP' rest-pause, …), plain sets show the number.
   String _indexLabel() {
     if (widget.set.isWarmup) return 'W';
     final type = SetType.fromId(widget.set.setType);
+    if (type == SetType.downSets) return 'D${widget.downSetOrdinal}';
     final badge = SetTypeMenu.badge(type);
     return badge.isEmpty ? '${widget.index}' : badge;
   }
@@ -711,8 +1056,12 @@ class _SetRowState extends ConsumerState<_SetRow> {
     final rpe = double.tryParse(_rpe.text);
     // Convert the typed display value back to kilograms before it reaches
     // the repository — storage is always metric.
-    widget.onUpdate(entered == null ? null : _fmt.toKg(entered), r,
-        rpe == null ? null : (rpe * 10).round());
+    widget.onUpdate(
+      entered == null ? null : _fmt.toKg(entered),
+      r,
+      rpe == null ? null : (rpe * 10).round(),
+      rpe == null,
+    );
   }
 
   @override
@@ -779,8 +1128,25 @@ class _SetRowState extends ConsumerState<_SetRow> {
             Row(
               children: [
                 // Tapping the set index switches the set type (§15, §26).
+                // Long-pressing a Down Set opens the auto-fill wizard.
                 InkWell(
                   onTap: widget.onTypeTap,
+                  onLongPress:
+                      SetType.fromId(widget.set.setType) == SetType.downSets
+                      ? () async {
+                          Haptics.medium();
+                          final result = await DownSetConfigSheet.show(
+                            context,
+                            initialWeightKg: widget.set.weightKg,
+                            initialReps: widget.set.reps == 0
+                                ? 10
+                                : widget.set.reps,
+                          );
+                          if (result != null) {
+                            await widget.onDownSetChain(result);
+                          }
+                        }
+                      : null,
                   borderRadius: BorderRadius.circular(6),
                   child: SizedBox(
                     width: 28,
@@ -797,47 +1163,52 @@ class _SetRowState extends ConsumerState<_SetRow> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 Expanded(
+                  flex: 2,
                   child: GestureDetector(
                     onLongPress: () {
                       Haptics.medium();
                       final kg = double.tryParse(_weight.text);
                       final weightKg = kg != null ? _fmt.toKg(kg) : null;
-                      PlateCalculatorSheet.show(
-                        context,
-                        weightKg: weightKg,
-                      );
+                      PlateCalculatorSheet.show(context, weightKg: weightKg);
                     },
                     child: _numberField(
                       _weight,
                       decimal: true,
-                      fillColor: Colors.blue.withValues(alpha: 0.15),
-                      focusNode: widget.weightFocusNode,
+                      fillColor: Colors.blue.withValues(alpha: 0.12),
+                      focusNode: _weightFocusNode,
+                      fieldKey: _weightFieldKey,
+                      hintText: _hintWeight,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 Expanded(
+                  flex: 2,
                   child: _numberField(
                     _reps,
-                    fillColor: Colors.orange.withValues(alpha: 0.15),
+                    fillColor: Colors.orange.withValues(alpha: 0.12),
+                    focusNode: _repsFocusNode,
+                    fieldKey: _repsFieldKey,
+                    hintText: _hintReps,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(child: _rpeField(context)),
-                // Accessory quick-tray (§26): belt/bands/chains without leaving
-                // the set.
+                const SizedBox(width: 4),
+                Expanded(
+                  flex: 2,
+                  child: _rpeField(context),
+                ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
-                    minWidth: 30,
-                    minHeight: 30,
+                    minWidth: 28,
+                    minHeight: 28,
                   ),
                   icon: Icon(
                     Icons.construction,
-                    size: 18,
+                    size: 16,
                     color: activeTags.isNotEmpty
                         ? AppColors.primary
                         : AppColors.outline,
@@ -850,12 +1221,20 @@ class _SetRowState extends ConsumerState<_SetRow> {
                 GestureDetector(
                   onTap: () {
                     Haptics.medium();
+                    if (!isCompleted) {
+                      if (_weight.text.trim().isEmpty && _hintWeight.isNotEmpty) {
+                        _weight.text = _hintWeight;
+                      }
+                      if (_reps.text.trim().isEmpty && _hintReps.isNotEmpty) {
+                        _reps.text = _hintReps;
+                      }
+                    }
                     _commit();
                     widget.onComplete(!isCompleted);
                   },
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(4),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       width: 28,
@@ -878,12 +1257,26 @@ class _SetRowState extends ConsumerState<_SetRow> {
                               size: 18,
                               color: Colors.white,
                             )
-                          : null,
+                          : Icon(
+                              Icons.check,
+                              size: 16,
+                              color: AppColors.outline,
+                            ),
                     ),
                   ),
                 ),
               ],
             ),
+            if (widget.microLabelText != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 36, top: 2),
+                child: Text(
+                  widget.microLabelText!,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
+                ),
+              ),
             if (activeTags.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(left: 36, top: 2, bottom: 4),
@@ -1057,11 +1450,21 @@ class _SetRowState extends ConsumerState<_SetRow> {
     bool decimal = false,
     Color? fillColor,
     FocusNode? focusNode,
+    GlobalKey? fieldKey,
+    String? hintText,
   }) {
+    final theme = Theme.of(context);
     return TextField(
+      key: fieldKey,
       controller: ctrl,
       focusNode: focusNode,
+      textInputAction: TextInputAction.done,
+      onTap: fieldKey == null ? null : () => _scrollFieldIntoView(fieldKey),
       onEditingComplete: _commit,
+      onSubmitted: (_) {
+        _commit();
+        FocusManager.instance.primaryFocus?.unfocus();
+      },
       onTapOutside: (_) => _commit(),
       keyboardType: TextInputType.numberWithOptions(
         decimal: decimal,
@@ -1073,22 +1476,30 @@ class _SetRowState extends ConsumerState<_SetRow> {
         ),
       ],
       textAlign: TextAlign.center,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
       decoration: InputDecoration(
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         filled: true,
-        fillColor: fillColor ?? AppColors.surfaceContainer,
-        // Pill-shaped set inputs (stadium border).
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(24)),
-          borderSide: BorderSide.none,
+        fillColor: fillColor ?? AppColors.surfaceVariant,
+        hintText: hintText,
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
+          fontWeight: FontWeight.normal,
         ),
-        enabledBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(24)),
-          borderSide: BorderSide.none,
+        // Pill-shaped set inputs (stadium border).
+        border: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(24)),
+          borderSide: BorderSide(color: AppColors.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(24)),
+          borderSide: BorderSide(color: AppColors.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(24)),
+          borderRadius: const BorderRadius.all(Radius.circular(24)),
           borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
@@ -1099,7 +1510,11 @@ class _SetRowState extends ConsumerState<_SetRow> {
     final theme = Theme.of(context);
     final val = _rpe.text.isEmpty ? null : double.tryParse(_rpe.text);
     return InkWell(
-      onTap: () => _showRpeGrid(context),
+      key: _rpeFieldKey,
+      onTap: () {
+        _scrollFieldIntoView(_rpeFieldKey);
+        _showRpeGrid(context);
+      },
       borderRadius: BorderRadius.circular(24),
       child: Container(
         height: 40,
@@ -1120,54 +1535,62 @@ class _SetRowState extends ConsumerState<_SetRow> {
   }
 
   Future<void> _showRpeGrid(BuildContext context) async {
+    var selected = double.tryParse(_rpe.text) ?? 8.0;
     final res = await showModalBottomSheet<double?>(
       context: context,
       builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Select RPE',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [
-                  for (double i = 5.0; i <= 10.0; i += 0.5)
-                    InkWell(
-                      onTap: () => Navigator.pop(ctx, i),
-                      child: Container(
-                        width: 55,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.purple.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          i.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.purple,
-                          ),
-                        ),
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Select RPE',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
-                ],
+                    const SizedBox(height: 16),
+                    Text(
+                      selected.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                        color: Colors.purple,
+                      ),
+                    ),
+                    Slider(
+                      value: selected,
+                      min: 5.0,
+                      max: 10.0,
+                      divisions: 10,
+                      label: selected.toStringAsFixed(1),
+                      onChanged: (value) {
+                        setModalState(() => selected = value);
+                      },
+                    ),
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, -1.0),
+                          child: const Text('Clear RPE'),
+                        ),
+                        const Spacer(),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(ctx, selected),
+                          child: const Text('Done'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, -1.0),
-                child: const Text('Clear RPE'),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            );
+          },
         );
       },
     );

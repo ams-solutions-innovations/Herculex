@@ -623,7 +623,7 @@ class _Field extends StatelessWidget {
               : null,
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.surfaceContainer,
+            fillColor: AppColors.surfaceVariant,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
               vertical: 14,
@@ -631,11 +631,11 @@ class _Field extends StatelessWidget {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: AppColors.outlineVariant),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: AppColors.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),

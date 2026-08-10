@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -11,9 +12,14 @@ import '../domain/macro_targets.dart';
 import '../domain/carb_cycling.dart';
 import '../domain/target_resolver.dart';
 import '../domain/meal.dart';
+import '../domain/meal_slots.dart';
 import '../data/carb_cycle_service.dart';
 import '../data/wear_sync_service.dart';
+import '../data/wear_sync_contract.dart';
 import '../../analytics/presentation/analytics_providers.dart';
+import '../../analytics/domain/weekly_muscle_volume.dart';
+import '../../fasting/domain/fasting_sync_snapshot.dart';
+import '../../fasting/presentation/fasting_providers.dart';
 import 'meal_slots_provider.dart';
 
 /// Singleton [WidgetSyncService] for pushing data to Android home-screen widgets.
@@ -199,21 +205,190 @@ final wearSyncServiceProvider = Provider<WearSyncService>((ref) {
   return WearSyncService();
 });
 
+final wearSyncRevisionAllocatorProvider = Provider<WearRevisionAllocator>((_) {
+  return WearRevisionAllocator();
+});
+
+final formattedFastingProvider = Provider<String>((ref) {
+  final duration = ref.watch(fastingTimerTickerProvider).asData?.value;
+  if (duration == null) return '0h 0m';
+  return '${duration.inHours}h ${duration.inMinutes.remainder(60)}m';
+});
+
 final wearSyncControllerProvider = Provider<void>((ref) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
+  final appliedFastingCommands = <String>{};
+  final appliedQuickAddCommands = <String>{};
+
+  Future<void> syncQuickAddToWear() async {
+    final repo = ref.read(nutritionRepositoryProvider);
+    final items = await repo.quickAddFoods();
+    final mealSlots = ref.read(mealSlotsProvider);
+    final payload = jsonEncode({
+      'mealSlots': [for (final slot in mealSlots) slot.toJson()],
+      'items': [
+        for (final item in items)
+          {
+            'foodId': item.foodId,
+            'name': item.name,
+            'kcal': item.kcal.round(),
+            'protein': item.proteinG.round(),
+            'carbs': item.carbsG.round(),
+            'fat': item.fatG.round(),
+            'portionAmount': item.portionAmount,
+            'portionUnit': item.portionUnit,
+            'portionLabel': item.portionLabel,
+          },
+      ],
+    });
+    await ref.read(wearSyncServiceProvider).syncQuickAddFoods(payload);
+  }
+
+  Future<void> syncFastingToWear() async {
+    final repo = ref.read(fastingRepositoryProvider);
+    final session = await repo.activeSession();
+    final revision = ref.read(wearSyncRevisionAllocatorProvider).next();
+    await ref
+        .read(wearSyncServiceProvider)
+        .syncFastingSnapshot(
+          encodeFastingSnapshot(session: session, revision: revision),
+        );
+  }
+
+  Future<void> syncAllToWear() async {
+    final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
+    if (totals == null) return;
+
+    final fasting = ref.read(formattedFastingProvider);
+    final volume = ref.read(weeklyMuscleVolumeProvider).asData?.value;
+
+    String volumeJson = '[]';
+    if (volume != null) {
+      final list = volume.byMuscle
+          .map(
+            (m) => {'muscle': m.muscle, 'tonnage': m.tonnageKg, 'sets': m.sets},
+          )
+          .toList();
+      volumeJson = jsonEncode(list);
+    }
+
+    await ref
+        .read(wearSyncServiceProvider)
+        .syncMacros(
+          totals.kcal.round(),
+          totals.proteinG.round(),
+          carbs: totals.carbsG.round(),
+          fats: totals.fatG.round(),
+          fasting: fasting,
+          weeklyTonnage: volume?.totalTonnageKg ?? 0.0,
+          weeklySets: volume?.totalSets ?? 0,
+          weeklyVolumeJson: volumeJson,
+        );
+    await syncFastingToWear();
+    await syncQuickAddToWear();
+  }
+
+  WearSyncService.onWatchFastingCommand = (commandJson) async {
+    if (commandJson == null || commandJson.isEmpty) return;
+    try {
+      final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
+      final commandId = decoded['commandId'] as String?;
+      if (commandId == null || commandId.isEmpty) return;
+      if (!appliedFastingCommands.add(commandId)) {
+        await ref
+            .read(wearSyncServiceProvider)
+            .markWatchFastingCommandApplied(commandId);
+        return;
+      }
+
+      final action = (decoded['action'] as String? ?? '').toLowerCase();
+      final repo = ref.read(fastingRepositoryProvider);
+      if (action == 'start') {
+        await repo.startSession(
+          (decoded['targetSeconds'] as num?)?.toInt() ?? 16 * 60 * 60,
+        );
+      } else if (action == 'stop') {
+        await repo.endSession(completed: decoded['completed'] as bool? ?? true);
+      }
+
+      await ref
+          .read(wearSyncServiceProvider)
+          .markWatchFastingCommandApplied(commandId);
+      await syncFastingToWear();
+    } catch (_) {
+      // Keep the native pending command until a later retry succeeds.
+    }
+  };
+
+  WearSyncService.onWatchQuickAddCommand = (commandJson) async {
+    if (commandJson == null || commandJson.isEmpty) return;
+    try {
+      final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
+      final commandId = decoded['commandId'] as String?;
+      if (commandId == null || commandId.isEmpty) return;
+      if (!appliedQuickAddCommands.add(commandId)) {
+        await ref
+            .read(wearSyncServiceProvider)
+            .markWatchQuickAddCommandApplied(commandId);
+        return;
+      }
+
+      final foodId = (decoded['foodId'] as num?)?.toInt();
+      final mealKey = decoded['mealKey'] as String?;
+      final portionAmount = (decoded['portionAmount'] as num?)?.toDouble();
+      final portionUnit = decoded['portionUnit'] as String?;
+      if (foodId != null) {
+        await ref
+            .read(nutritionRepositoryProvider)
+            .logFood(
+              date: DateTime.now(),
+              mealKey: mealKey,
+              foodId: foodId,
+              portionAmount: portionAmount,
+              portionUnit: portionUnit,
+            );
+      }
+
+      await ref
+          .read(wearSyncServiceProvider)
+          .markWatchQuickAddCommandApplied(commandId);
+      await syncAllToWear();
+    } catch (_) {
+      // Keep the native pending command until a later retry succeeds.
+    }
+  };
 
   ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (
     previous,
     next,
   ) {
     if (next.hasValue && next.value != null) {
-      final totals = next.value!;
-      ref
-          .read(wearSyncServiceProvider)
-          .syncMacros(totals.kcal.round(), totals.proteinG.round());
+      syncAllToWear();
     }
   }, fireImmediately: true);
+
+  ref.listen<List<MealSlot>>(mealSlotsProvider, (previous, next) {
+    syncQuickAddToWear();
+  });
+
+  ref.listen<AsyncValue<FastingSessionData?>>(activeFastingSessionProvider, (
+    previous,
+    next,
+  ) {
+    if (next.hasValue) {
+      syncAllToWear();
+    }
+  });
+
+  ref.listen<AsyncValue<WeeklyMuscleVolume>>(weeklyMuscleVolumeProvider, (
+    previous,
+    next,
+  ) {
+    if (next.hasValue && next.value != null) {
+      syncAllToWear();
+    }
+  });
 });
 
 /// Syncs macro totals + targets to the Android home-screen pill widgets

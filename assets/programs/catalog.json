@@ -1,0 +1,59 @@
+{
+  "programs": [
+    {
+      "id": "531_beginner",
+      "name": "5/3/1 for Beginners",
+      "file": "assets/programs/531_beginner.csv",
+      "description": "Wendler's classic strength template. Three days a week, one main lift per day working up to a heavy top set, plus light accessory work.",
+      "weeks": 4,
+      "daysPerWeek": 3,
+      "level": "beginner",
+      "goal": "strength",
+      "periodization": "max_effort"
+    },
+    {
+      "id": "fullbody_beginner_3day",
+      "name": "Full Body Beginner",
+      "file": "assets/programs/fullbody_beginner_3day.csv",
+      "description": "A simple StrongLifts-style full body split for your first months of lifting. Squat every session, alternate upper body pushing and pulling.",
+      "weeks": 4,
+      "daysPerWeek": 3,
+      "level": "beginner",
+      "goal": "general",
+      "periodization": "linear"
+    },
+    {
+      "id": "upper_lower_4day",
+      "name": "Upper/Lower 4-Day",
+      "file": "assets/programs/upper_lower_4day.csv",
+      "description": "A four day upper/lower split balancing pressing, pulling and lower body volume for steady strength gains.",
+      "weeks": 4,
+      "daysPerWeek": 4,
+      "level": "intermediate",
+      "goal": "strength",
+      "periodization": "linear"
+    },
+    {
+      "id": "ppl_6day",
+      "name": "Push Pull Legs",
+      "file": "assets/programs/ppl_6day.csv",
+      "description": "A six day push/pull/legs split run twice a week, built for hypertrophy with higher exercise volume per muscle group.",
+      "weeks": 4,
+      "daysPerWeek": 6,
+      "level": "intermediate",
+      "goal": "hypertrophy",
+      "periodization": "linear"
+    },
+    {
+      "id": "gzclp_4day",
+      "name": "GZCLP",
+      "file": "assets/programs/gzclp_4day.csv",
+      "description": "Cody LeFever's linear progression program. Four days a week pairing a heavy Tier 1 lift with moderate Tier 2 and light Tier 3 accessory work.",
+      "weeks": 4,
+      "daysPerWeek": 4,
+      "level": "beginner",
+      "goal": "strength",
+      "periodization": "linear"
+    }
+  ]
+}

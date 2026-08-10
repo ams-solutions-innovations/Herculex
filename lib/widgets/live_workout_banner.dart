@@ -8,6 +8,8 @@ import '../features/workouts/presentation/workouts_providers.dart';
 import '../theme/colors.dart';
 import '../theme/haptics.dart';
 
+final liveWorkoutBannerAtTopProvider = StateProvider<bool>((ref) => false);
+
 class LiveWorkoutBanner extends ConsumerStatefulWidget {
   final VoidCallback onResume;
 
@@ -44,6 +46,7 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
 
   @override
   Widget build(BuildContext context) {
+    final bannerAtTop = ref.watch(liveWorkoutBannerAtTopProvider);
     final sessionAsync = ref.watch(activeSessionProvider);
     final session = sessionAsync.asData?.value;
     if (session == null) return const SizedBox.shrink();
@@ -73,6 +76,16 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
             onTap: () {
               Haptics.selection();
               widget.onResume();
+            },
+            onVerticalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+              if (velocity < -300) {
+                ref.read(liveWorkoutBannerAtTopProvider.notifier).state = true;
+                Haptics.medium();
+              } else if (velocity > 300) {
+                ref.read(liveWorkoutBannerAtTopProvider.notifier).state = false;
+                Haptics.medium();
+              }
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -149,25 +162,33 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Up arrow circle button
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.keyboard_arrow_up_rounded,
-                      color: Colors.white,
-                      size: 26,
+                  // Toggle arrow button
+                  GestureDetector(
+                    onTap: () {
+                      Haptics.selection();
+                      ref.read(liveWorkoutBannerAtTopProvider.notifier).update((state) => !state);
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        bannerAtTop
+                            ? Icons.keyboard_arrow_down_rounded
+                            : Icons.keyboard_arrow_up_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
                   ),
                 ],

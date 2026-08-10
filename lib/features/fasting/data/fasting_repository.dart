@@ -11,12 +11,16 @@ class FastingRepository {
 
   Future<int> startSession(int targetSeconds) async {
     // Ensure we don't have another active session running. If we do, close it.
-    final active = await (_db.select(_db.fastingSessions)..where((t) => t.endedAt.isNull())).get();
+    final active = await (_db.select(
+      _db.fastingSessions,
+    )..where((t) => t.endedAt.isNull())).get();
     for (var i = 0; i < active.length; i++) {
       await endSession(completed: false);
     }
 
-    return _db.into(_db.fastingSessions).insert(
+    return _db
+        .into(_db.fastingSessions)
+        .insert(
           FastingSessionsCompanion.insert(
             startedAt: _clock.now(),
             targetSeconds: targetSeconds,
@@ -26,15 +30,23 @@ class FastingRepository {
   }
 
   Future<void> endSession({bool completed = true}) async {
-    final active = await (_db.select(_db.fastingSessions)
-          ..where((t) => t.endedAt.isNull())
-          ..orderBy([(t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc)])
-          ..limit(1))
-        .getSingleOrNull();
+    final active =
+        await (_db.select(_db.fastingSessions)
+              ..where((t) => t.endedAt.isNull())
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.startedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
 
     if (active == null) return;
 
-    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(active.id))).write(
+    await (_db.update(
+      _db.fastingSessions,
+    )..where((t) => t.id.equals(active.id))).write(
       FastingSessionsCompanion(
         endedAt: Value(_clock.now()),
         completed: Value(completed),
@@ -49,24 +61,47 @@ class FastingRepository {
   Stream<FastingSessionData?> watchActiveSession() {
     return (_db.select(_db.fastingSessions)
           ..where((t) => t.endedAt.isNull())
-          ..orderBy([(t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc)])
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
+          ])
           ..limit(1))
         .watchSingleOrNull();
+  }
+
+  Future<FastingSessionData?> activeSession() {
+    return (_db.select(_db.fastingSessions)
+          ..where((t) => t.endedAt.isNull())
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
+          ])
+          ..limit(1))
+        .getSingleOrNull();
   }
 
   Stream<List<FastingSessionData>> watchHistory({int limit = 50}) {
     return (_db.select(_db.fastingSessions)
           ..where((t) => t.endedAt.isNotNull())
-          ..orderBy([(t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc)])
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
+          ])
           ..limit(limit))
         .watch();
   }
 
   Future<int> currentStreak() async {
-    final completedSessions = await (_db.select(_db.fastingSessions)
-          ..where((t) => t.completed.equals(true) & t.endedAt.isNotNull())
-          ..orderBy([(t) => OrderingTerm(expression: t.endedAt, mode: OrderingMode.desc)]))
-        .get();
+    final completedSessions =
+        await (_db.select(_db.fastingSessions)
+              ..where((t) => t.completed.equals(true) & t.endedAt.isNotNull())
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.endedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ]))
+            .get();
 
     if (completedSessions.isEmpty) return 0;
 
@@ -78,7 +113,11 @@ class FastingRepository {
 
     // If the most recent completed fast ended before yesterday, streak is broken
     final mostRecentEnd = completedSessions.first.endedAt!;
-    final daysSinceMostRecent = today.difference(DateTime(mostRecentEnd.year, mostRecentEnd.month, mostRecentEnd.day)).inDays;
+    final daysSinceMostRecent = today
+        .difference(
+          DateTime(mostRecentEnd.year, mostRecentEnd.month, mostRecentEnd.day),
+        )
+        .inDays;
     if (daysSinceMostRecent > 1) {
       return 0;
     }
@@ -102,10 +141,20 @@ class FastingRepository {
 
   Future<double> averageEatingWindow(int days) async {
     final cutoff = _clock.now().subtract(Duration(days: days));
-    final sessions = await (_db.select(_db.fastingSessions)
-          ..where((t) => t.endedAt.isNotNull() & t.startedAt.isBiggerOrEqualValue(cutoff))
-          ..orderBy([(t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.asc)]))
-        .get();
+    final sessions =
+        await (_db.select(_db.fastingSessions)
+              ..where(
+                (t) =>
+                    t.endedAt.isNotNull() &
+                    t.startedAt.isBiggerOrEqualValue(cutoff),
+              )
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.startedAt,
+                  mode: OrderingMode.asc,
+                ),
+              ]))
+            .get();
 
     if (sessions.isEmpty) {
       return 8.0; // Standard default eating window (16:8)

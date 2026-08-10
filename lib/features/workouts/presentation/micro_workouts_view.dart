@@ -121,8 +121,9 @@ class MicroWorkoutsView extends ConsumerWidget {
   }
 
   Future<void> _create(BuildContext context, WidgetRef ref) async {
-    final exercise = await ExercisePickerSheet.show(context);
-    if (exercise == null || !context.mounted) return;
+    final results = await ExercisePickerSheet.show(context);
+    if (results == null || results.isEmpty || !context.mounted) return;
+    final exercise = results.first;
 
     final repsCtrl = TextEditingController(text: '20');
     final timesCtrl = TextEditingController(text: '3');

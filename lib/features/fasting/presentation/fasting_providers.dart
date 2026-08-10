@@ -23,15 +23,17 @@ final fastingHistoryProvider = StreamProvider<List<FastingSessionData>>((ref) {
 
 final fastingStreakProvider = FutureProvider<int>((ref) {
   final repo = ref.watch(fastingRepositoryProvider);
-  // Watch active session so streak updates when a session ends
+  // Watch active session and history so streak updates when sessions change
   ref.watch(activeFastingSessionProvider);
+  ref.watch(fastingHistoryProvider);
   return repo.currentStreak();
 });
 
 final fastingAverageEatingWindowProvider = FutureProvider<double>((ref) {
   final repo = ref.watch(fastingRepositoryProvider);
-  // Watch active session so stats update when a session ends
+  // Watch active session and history so stats update when sessions change
   ref.watch(activeFastingSessionProvider);
+  ref.watch(fastingHistoryProvider);
   return repo.averageEatingWindow(30);
 });
 

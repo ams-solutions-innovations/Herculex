@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Gradle module build outputs. android/build.gradle.kts redirects these
+# under the top-level /build/ (already ignored above), but stray per-module
+# build/ dirs have been accidentally committed before (see LESSONS.md) —
+# block them here too.
+/android/build/
+/android/*/build/
+/android/.gradle/

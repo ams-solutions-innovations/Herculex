@@ -2,14 +2,17 @@ package com.ams.herculex.media
 
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.provider.MediaStore
 import android.provider.Settings
 import android.view.KeyEvent
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 data class MediaControlsState(
     val title: String = "No active media",
@@ -19,19 +22,164 @@ data class MediaControlsState(
     val isPlaying: Boolean = false,
 )
 
+/**
+ * Drives [MediaControlsState] from the platform's active [MediaController], pushing updates
+ * the moment the underlying session reports a change instead of polling on a timer. Polling
+ * was reading a controller's [MediaController.getPlaybackState] immediately after issuing a
+ * transport command, which raced the (often Bluetooth-relayed) session actually applying the
+ * command — the read almost always won the race and showed stale state, so the on-screen
+ * icon/title never appeared to change even though the command reached the player.
+ */
 class MediaControlsController(private val context: Context) {
 
-    fun state(): MediaControlsState {
+    private val _stateFlow = MutableStateFlow(snapshot())
+    val stateFlow: StateFlow<MediaControlsState> = _stateFlow.asStateFlow()
+
+    private val sessionManager = context.getSystemService(MediaSessionManager::class.java)
+    private val listenerComponent = ComponentName(context, MediaNotificationListenerService::class.java)
+
+    private var activeController: MediaController? = null
+    private var optimisticIsPlaying = false
+
+    private val controllerCallback = object : MediaController.Callback() {
+        override fun onPlaybackStateChanged(state: PlaybackState?) {
+            _stateFlow.value = snapshot()
+        }
+
+        override fun onMetadataChanged(metadata: MediaMetadata?) {
+            _stateFlow.value = snapshot()
+        }
+
+        override fun onSessionDestroyed() {
+            attachToActiveSession()
+        }
+    }
+
+    private val activeSessionsListener = MediaSessionManager.OnActiveSessionsChangedListener {
+        attachToActiveSession()
+    }
+
+    /** Call from a DisposableEffect (or equivalent) when the media controls UI becomes visible. */
+    fun start() {
+        runCatching {
+            sessionManager.addOnActiveSessionsChangedListener(activeSessionsListener, listenerComponent)
+        }
+        attachToActiveSession()
+    }
+
+    /** Call from a DisposableEffect's onDispose to avoid leaking the controller/listener. */
+    fun stop() {
+        activeController?.unregisterCallback(controllerCallback)
+        activeController = null
+        runCatching { sessionManager.removeOnActiveSessionsChangedListener(activeSessionsListener) }
+    }
+
+    fun state(): MediaControlsState = _stateFlow.value
+
+    /**
+     * Re-checks notification access and re-discovers the active session. There is no platform
+     * callback for "notification access was just granted", so callers poll this at a slow,
+     * safe cadence (it never runs right after a transport command, so it can't race one).
+     */
+    fun refresh() {
+        attachToActiveSession()
+    }
+
+    fun playPause() {
+        val controller = activeController
+        if (controller == null) {
+            optimisticIsPlaying = !optimisticIsPlaying
+            sendMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+            _stateFlow.value = snapshot()
+            return
+        }
+        if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) {
+            controller.transportControls.pause()
+        } else {
+            controller.transportControls.play()
+        }
+    }
+
+    fun next() {
+        val controller = activeController
+        if (controller == null) {
+            sendMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
+        } else {
+            controller.transportControls.skipToNext()
+        }
+    }
+
+    fun previous() {
+        val controller = activeController
+        if (controller == null) {
+            sendMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+        } else {
+            controller.transportControls.skipToPrevious()
+        }
+    }
+
+    fun openAccessSettings() {
+        runCatching {
+            context.startActivity(
+                android.content.Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }.recover {
+            runCatching {
+                val intent = android.content.Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = android.net.Uri.fromParts("package", context.packageName, null)
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            }
+        }
+    }
+
+    fun openSystemPlayer() {
+        val intent = android.content.Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(intent) }
+            .recover {
+                context.startActivity(
+                    android.content.Intent(Settings.ACTION_SOUND_SETTINGS)
+                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
+    }
+
+    private fun attachToActiveSession() {
+        activeController?.unregisterCallback(controllerCallback)
+        val next = findActiveController()
+        activeController = next
+        next?.registerCallback(controllerCallback)
+        _stateFlow.value = snapshot()
+    }
+
+    private fun findActiveController(): MediaController? {
+        return try {
+            val sessions = sessionManager.getActiveSessions(listenerComponent)
+            sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+                ?: sessions.firstOrNull()
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
+    private fun snapshot(): MediaControlsState {
         val hasAccess = hasNotificationAccess()
-        val controller = activeController()
+        val controller = activeController
         val metadata = controller?.metadata
         val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
             ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
-            ?: if (hasAccess) "No active media" else "Enable media access"
+            ?: "Media Controls"
         val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST)
             ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
-            ?: if (hasAccess) "Controls still send media keys" else "Tap access below"
-        val isPlaying = controller?.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
+            ?: "Tap buttons to control music"
+        val isPlaying = if (controller != null) {
+            controller.playbackState?.state == PlaybackState.STATE_PLAYING
+        } else {
+            optimisticIsPlaying
+        }
 
         return MediaControlsState(
             title = title,
@@ -40,60 +188,6 @@ class MediaControlsController(private val context: Context) {
             hasNotificationAccess = hasAccess,
             isPlaying = isPlaying,
         )
-    }
-
-    fun playPause() {
-        val controller = activeController()
-        if (controller == null) {
-            sendMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-            return
-        }
-        if (controller.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING) {
-            controller.transportControls.pause()
-        } else {
-            controller.transportControls.play()
-        }
-    }
-
-    fun next() {
-        activeController()?.transportControls?.skipToNext()
-            ?: sendMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
-    }
-
-    fun previous() {
-        activeController()?.transportControls?.skipToPrevious()
-            ?: sendMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
-    }
-
-    fun openAccessSettings() {
-        context.startActivity(
-            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
-    }
-
-    fun openSystemPlayer() {
-        val intent = Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { context.startActivity(intent) }
-            .recover {
-                context.startActivity(
-                    Intent(Settings.ACTION_SOUND_SETTINGS)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            }
-    }
-
-    private fun activeController(): MediaController? {
-        return try {
-            val manager = context.getSystemService(MediaSessionManager::class.java)
-            val listener = ComponentName(context, MediaNotificationListenerService::class.java)
-            manager.getActiveSessions(listener).firstOrNull {
-                it.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
-            } ?: manager.getActiveSessions(listener).firstOrNull()
-        } catch (_: SecurityException) {
-            null
-        }
     }
 
     private fun hasNotificationAccess(): Boolean {

@@ -1,5 +1,6 @@
 [
   {
+    "slug": "conventional-deadlift",
     "name": "Conventional Deadlift",
     "aka": [
       "Deads"
@@ -38,6 +39,7 @@
     "derived": true
   },
   {
+    "slug": "sumo-deadlift",
     "name": "Sumo Deadlift",
     "aka": [
       "Sumo Pull"
@@ -73,6 +75,7 @@
     "derived": true
   },
   {
+    "slug": "trap-bar-deadlift-low-handles",
     "name": "Trap Bar Deadlift (Low Handles)",
     "aka": [
       "Hex Bar Low Handle"
@@ -112,6 +115,7 @@
     "derived": true
   },
   {
+    "slug": "trap-bar-deadlift-high-handles",
     "name": "Trap Bar Deadlift (High Handles)",
     "aka": [
       "Hex Bar High Handle"
@@ -148,6 +152,7 @@
     "derived": true
   },
   {
+    "slug": "snatch-grip-deadlift",
     "name": "Snatch Grip Deadlift",
     "aka": [
       "Wide Grip Deadlift"
@@ -183,6 +188,7 @@
     "derived": true
   },
   {
+    "slug": "deficit-deadlift",
     "name": "Deficit Deadlift",
     "aka": [
       "Elevated Deadlift"
@@ -218,6 +224,7 @@
     "derived": true
   },
   {
+    "slug": "suitcase-deadlift",
     "name": "Suitcase Deadlift",
     "aka": [
       "Single-Arm Deadlift"
@@ -253,6 +260,7 @@
     "derived": true
   },
   {
+    "slug": "jefferson-deadlift",
     "name": "Jefferson Deadlift",
     "aka": [
       "Straddle Deadlift"
@@ -288,6 +296,7 @@
     "derived": true
   },
   {
+    "slug": "good-morning",
     "name": "Good Morning",
     "aka": [
       "Barbell Good Morning"
@@ -322,9 +331,11 @@
       "Safety Bar Good Morning",
       "Dumbbell Good Morning"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "good-morning-hinge"
   },
   {
+    "slug": "dumbbell-good-morning",
     "name": "Dumbbell Good Morning",
     "aka": [
       "DB Good Morning"
@@ -357,9 +368,11 @@
       "Barbell Good Morning",
       "RDL"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "good-morning-hinge"
   },
   {
+    "slug": "seated-good-morning",
     "name": "Seated Good Morning",
     "aka": [],
     "bodyPart": "Lower Body",
@@ -393,6 +406,7 @@
     "derived": true
   },
   {
+    "slug": "kettlebell-swing",
     "name": "Kettlebell Swing",
     "aka": [
       "KB Swing"
@@ -428,6 +442,7 @@
     "derived": true
   },
   {
+    "slug": "barbell-back-squat",
     "name": "Barbell Back Squat",
     "aka": [
       "Squat"
@@ -464,9 +479,11 @@
       "Duffalo Bar Squat",
       "Trap Bar Deadlift (Low Handles)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "squat-squat"
   },
   {
+    "slug": "front-squat",
     "name": "Front Squat",
     "aka": [
       "Barbell Front Squat"
@@ -500,9 +517,11 @@
       "Goblet Squat",
       "Dumbbell Front Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "front-squat-squat"
   },
   {
+    "slug": "dumbbell-front-squat",
     "name": "Dumbbell Front Squat",
     "aka": [
       "DB Front Squat"
@@ -535,9 +554,11 @@
       "Goblet Squat",
       "Dumbbell Back Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "front-squat-squat"
   },
   {
+    "slug": "zercher-squat",
     "name": "Zercher Squat",
     "aka": [
       "Elbow Squat"
@@ -573,6 +594,7 @@
     "derived": true
   },
   {
+    "slug": "steinborn-squat",
     "name": "Steinborn Squat",
     "aka": [
       "Steinborn Lift"
@@ -608,6 +630,7 @@
     "derived": true
   },
   {
+    "slug": "box-squat",
     "name": "Box Squat",
     "aka": [],
     "bodyPart": "Lower Body",
@@ -640,9 +663,11 @@
       "Safety Bar Low Box Squat",
       "Cambered Bar Box Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "box-squat-squat"
   },
   {
+    "slug": "landmine-squat",
     "name": "Landmine Squat",
     "aka": [
       "T-Bar Squat"
@@ -675,9 +700,11 @@
       "Front Squat",
       "Belt Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "squat-squat"
   },
   {
+    "slug": "pendulum-squat",
     "name": "Pendulum Squat",
     "aka": [
       "Machine Pendulum"
@@ -710,9 +737,11 @@
       "V-Squat",
       "Belt Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "squat-squat"
   },
   {
+    "slug": "v-squat",
     "name": "V-Squat",
     "aka": [
       "Machine V-Squat"
@@ -748,6 +777,7 @@
     "derived": true
   },
   {
+    "slug": "belt-squat",
     "name": "Belt Squat",
     "aka": [
       "Pit Shark Squat"
@@ -783,6 +813,7 @@
     "derived": true
   },
   {
+    "slug": "hack-squat-machine",
     "name": "Hack Squat (Machine)",
     "aka": [
       "Linear Hack Squat"
@@ -818,6 +849,7 @@
     "derived": true
   },
   {
+    "slug": "smith-machine-squat",
     "name": "Smith Machine Squat",
     "aka": [
       "Guided Squat"
@@ -850,9 +882,11 @@
       "Box Squat",
       "Hack Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "squat-squat"
   },
   {
+    "slug": "single-leg-press",
     "name": "Single-Leg Press",
     "aka": [
       "Unilateral Leg Press"
@@ -888,6 +922,7 @@
     "derived": true
   },
   {
+    "slug": "45-degree-leg-press",
     "name": "45-Degree Leg Press",
     "aka": [
       "Sled Leg Press"
@@ -923,6 +958,7 @@
     "derived": true
   },
   {
+    "slug": "bulgarian-split-squat",
     "name": "Bulgarian Split Squat",
     "aka": [
       "BSS"
@@ -957,9 +993,11 @@
       "Dumbbell Bulgarian Split Squat",
       "Safety Bar Walking Lunge"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "bulgarian-split-squat-lunge"
   },
   {
+    "slug": "dumbbell-bulgarian-split-squat",
     "name": "Dumbbell Bulgarian Split Squat",
     "aka": [
       "DB BSS"
@@ -992,9 +1030,11 @@
       "Dumbbell Lunge",
       "Pistol Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "bulgarian-split-squat-lunge"
   },
   {
+    "slug": "pistol-squat",
     "name": "Pistol Squat",
     "aka": [
       "Single Leg Squat"
@@ -1028,9 +1068,11 @@
       "Step-up",
       "Dumbbell Pistol Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pistol-squat-lunge"
   },
   {
+    "slug": "shrimp-squat",
     "name": "Shrimp Squat",
     "aka": [
       "Flamingo Squat"
@@ -1066,6 +1108,7 @@
     "derived": true
   },
   {
+    "slug": "cossack-squat",
     "name": "Cossack Squat",
     "aka": [
       "Side Lunge Squat"
@@ -1074,8 +1117,8 @@
     "category": "strength",
     "movementPattern": "lunge",
     "movementPatternRaw": "Knee Dominant (Lateral)",
-    "modality": "barbell",
-    "equipment": "Barbell",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Adductors",
     "primaryMuscles": [
       "Adductors"
@@ -1087,8 +1130,8 @@
     "stabilizers": [],
     "cnsScore": 7,
     "recoveryImpact": 5,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
       "Lateral Lunge",
@@ -1098,6 +1141,7 @@
     "derived": true
   },
   {
+    "slug": "curtsy-lunge",
     "name": "Curtsy Lunge",
     "aka": [
       "Cross-Behind Lunge"
@@ -1106,8 +1150,8 @@
     "category": "strength",
     "movementPattern": "lunge",
     "movementPatternRaw": "Knee Dominant (Unilateral)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Quads",
     "primaryMuscles": [
       "Quads",
@@ -1122,8 +1166,8 @@
     ],
     "cnsScore": 4,
     "recoveryImpact": 2,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
       "Reverse Lunge",
@@ -1133,6 +1177,7 @@
     "derived": true
   },
   {
+    "slug": "lateral-lunge",
     "name": "Lateral Lunge",
     "aka": [
       "Side Lunge"
@@ -1141,8 +1186,8 @@
     "category": "strength",
     "movementPattern": "lunge",
     "movementPatternRaw": "Knee Dominant (Lateral)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Quads",
     "primaryMuscles": [
       "Quads",
@@ -1157,8 +1202,8 @@
     ],
     "cnsScore": 4,
     "recoveryImpact": 2,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
       "Cossack Squat",
@@ -1168,6 +1213,7 @@
     "derived": true
   },
   {
+    "slug": "patrick-step-up",
     "name": "Patrick Step-Up",
     "aka": [
       "Knee-Friendly Step-Up"
@@ -1176,8 +1222,8 @@
     "category": "strength",
     "movementPattern": "lunge",
     "movementPatternRaw": "Knee Dominant (Unilateral)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Quads",
     "primaryMuscles": [
       "Quads",
@@ -1192,8 +1238,8 @@
     ],
     "cnsScore": 4,
     "recoveryImpact": 2,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
       "Bulgarian Split Squat",
@@ -1203,6 +1249,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-step-up",
     "name": "Dumbbell Step-Up",
     "aka": [
       "DB Step-Up"
@@ -1235,9 +1282,11 @@
       "Bulgarian Split Squat",
       "Box Step-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "step-up-lunge"
   },
   {
+    "slug": "depth-jump",
     "name": "Depth Jump",
     "aka": [
       "Drop Jump"
@@ -1273,6 +1322,7 @@
     "derived": true
   },
   {
+    "slug": "box-jump",
     "name": "Box Jump",
     "aka": [
       "Plyo Box Jump"
@@ -1308,6 +1358,7 @@
     "derived": true
   },
   {
+    "slug": "sissy-squat",
     "name": "Sissy Squat",
     "aka": [
       "Matrix Squat"
@@ -1337,6 +1388,7 @@
     "derived": true
   },
   {
+    "slug": "leg-press",
     "name": "Leg Press",
     "aka": [
       "Linear Leg Press"
@@ -1373,6 +1425,7 @@
     "derived": true
   },
   {
+    "slug": "leg-extension",
     "name": "Leg Extension",
     "aka": [
       "Knee Extension"
@@ -1402,6 +1455,7 @@
     "derived": true
   },
   {
+    "slug": "romanian-deadlift",
     "name": "Romanian Deadlift",
     "aka": [
       "RDL"
@@ -1436,9 +1490,11 @@
       "Trap Bar Deadlift (High Handles)",
       "Dumbbell RDL"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "romanian-deadlift-hinge"
   },
   {
+    "slug": "dumbbell-romanian-deadlift",
     "name": "Dumbbell Romanian Deadlift",
     "aka": [
       "DB RDL"
@@ -1471,9 +1527,11 @@
       "Dumbbell Good Morning",
       "Single-Leg DB RDL"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "romanian-deadlift-hinge"
   },
   {
+    "slug": "single-leg-dumbbell-rdl",
     "name": "Single-Leg Dumbbell RDL",
     "aka": [
       "Single-Leg DB RDL"
@@ -1509,6 +1567,7 @@
     "derived": true
   },
   {
+    "slug": "45-degree-hyperextension",
     "name": "45° Hyperextension",
     "aka": [
       "Back Extension Bench"
@@ -1544,6 +1603,7 @@
     "derived": true
   },
   {
+    "slug": "reverse-hyperextension",
     "name": "Reverse Hyperextension",
     "aka": [
       "Reverse Hyper"
@@ -1579,6 +1639,7 @@
     "derived": true
   },
   {
+    "slug": "nordic-hamstring-curl",
     "name": "Nordic Hamstring Curl",
     "aka": [
       "Nordics"
@@ -1612,6 +1673,7 @@
     "derived": true
   },
   {
+    "slug": "glute-ham-raise-ghr",
     "name": "Glute Ham Raise (GHR)",
     "aka": [
       "Glute Ham Developer"
@@ -1645,6 +1707,7 @@
     "derived": true
   },
   {
+    "slug": "lying-leg-curl",
     "name": "Lying Leg Curl",
     "aka": [
       "Prone Hamstring Curl"
@@ -1678,6 +1741,7 @@
     "derived": true
   },
   {
+    "slug": "seated-leg-curl",
     "name": "Seated Leg Curl",
     "aka": [
       "Upright Hamstring Curl"
@@ -1711,6 +1775,7 @@
     "derived": true
   },
   {
+    "slug": "standing-single-leg-curl",
     "name": "Standing Single Leg Curl",
     "aka": [
       "Iso-Lateral Leg Curl"
@@ -1743,6 +1808,7 @@
     "derived": true
   },
   {
+    "slug": "barbell-hip-thrust",
     "name": "Barbell Hip Thrust",
     "aka": [
       "Glute Thrust"
@@ -1776,9 +1842,11 @@
       "Banded Hip Thrust",
       "Bodyweight Hip Thrust"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hip-thrust-hinge"
   },
   {
+    "slug": "hip-thrust-machine",
     "name": "Hip Thrust Machine",
     "aka": [
       "Glute Drive Machine"
@@ -1809,9 +1877,11 @@
       "Smith Machine Hip Thrust",
       "Cable Hip Thrust"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hip-thrust-hinge"
   },
   {
+    "slug": "smith-machine-hip-thrust",
     "name": "Smith Machine Hip Thrust",
     "aka": [
       "Guided Hip Thrust"
@@ -1842,9 +1912,11 @@
       "Hip Thrust Machine",
       "Dumbbell Hip Thrust"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hip-thrust-hinge"
   },
   {
+    "slug": "dumbbell-hip-thrust",
     "name": "Dumbbell Hip Thrust",
     "aka": [
       "DB Hip Thrust"
@@ -1875,9 +1947,11 @@
       "Barbell Hip Thrust",
       "Single-Leg Dumbbell Hip Thrust"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hip-thrust-hinge"
   },
   {
+    "slug": "single-leg-hip-thrust",
     "name": "Single-Leg Hip Thrust",
     "aka": [
       "Unilateral Hip Thrust"
@@ -1886,8 +1960,8 @@
     "category": "strength",
     "movementPattern": "hinge",
     "movementPatternRaw": "Hip Hinge (Unilateral)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Glutes",
     "primaryMuscles": [
       "Glutes"
@@ -1900,8 +1974,8 @@
     ],
     "cnsScore": 6,
     "recoveryImpact": 3,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
       "Dumbbell Hip Thrust",
@@ -1911,6 +1985,7 @@
     "derived": true
   },
   {
+    "slug": "banded-hip-thrust",
     "name": "Banded Hip Thrust",
     "aka": [
       "Resistance Band Hip Thrust"
@@ -1941,9 +2016,11 @@
       "Bodyweight Hip Thrust",
       "Cable Hip Thrust"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hip-thrust-hinge"
   },
   {
+    "slug": "bodyweight-hip-thrust",
     "name": "Bodyweight Hip Thrust",
     "aka": [
       "Floor Hip Thrust"
@@ -1952,8 +2029,8 @@
     "category": "strength",
     "movementPattern": "hinge",
     "movementPatternRaw": "Hip Hinge",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Glutes",
     "primaryMuscles": [
       "Glutes"
@@ -1966,17 +2043,19 @@
     ],
     "cnsScore": 6,
     "recoveryImpact": 3,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
       "Single-Leg Hip Thrust",
       "Glute Bridge",
       "Frog Pump"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hip-thrust-hinge"
   },
   {
+    "slug": "cable-hip-thrust",
     "name": "Cable Hip Thrust",
     "aka": [
       "Cable Pull-Through Hip Thrust"
@@ -2007,9 +2086,11 @@
       "Hip Thrust Machine",
       "Banded Hip Thrust"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hip-thrust-hinge"
   },
   {
+    "slug": "b-stance-hip-thrust",
     "name": "B-Stance Hip Thrust",
     "aka": [
       "B-Stance Glute Bridge"
@@ -2018,8 +2099,8 @@
     "category": "strength",
     "movementPattern": "hinge",
     "movementPatternRaw": "Hip Hinge (Unilateral)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Glutes",
     "primaryMuscles": [
       "Glutes"
@@ -2032,8 +2113,8 @@
     ],
     "cnsScore": 6,
     "recoveryImpact": 3,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
       "Single-Leg Hip Thrust",
@@ -2043,6 +2124,7 @@
     "derived": true
   },
   {
+    "slug": "frog-pump",
     "name": "Frog Pump",
     "aka": [
       "Butterfly Hip Thrust"
@@ -2076,6 +2158,7 @@
     "derived": true
   },
   {
+    "slug": "glute-bridge",
     "name": "Glute Bridge",
     "aka": [
       "Floor Bridge"
@@ -2106,9 +2189,11 @@
       "Single-Leg Glute Bridge",
       "Frog Pump"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "glute-bridge-hinge"
   },
   {
+    "slug": "machine-glute-kickback",
     "name": "Machine Glute Kickback",
     "aka": [
       "Donkey Kick Machine"
@@ -2139,9 +2224,11 @@
       "Cable Kickback",
       "Banded Kickback"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "glute-kickback-hinge"
   },
   {
+    "slug": "cable-pull-through",
     "name": "Cable Pull-Through",
     "aka": [
       "Rope Pull-Through"
@@ -2175,6 +2262,7 @@
     "derived": true
   },
   {
+    "slug": "machine-abductor",
     "name": "Machine Abductor",
     "aka": [
       "Outer Thigh Machine"
@@ -2206,6 +2294,7 @@
     "derived": true
   },
   {
+    "slug": "machine-adductor",
     "name": "Machine Adductor",
     "aka": [
       "Inner Thigh Machine"
@@ -2238,6 +2327,7 @@
     "derived": true
   },
   {
+    "slug": "standing-cable-hip-abduction",
     "name": "Standing Cable Hip Abduction",
     "aka": [
       "Single-Leg Cable Abduction"
@@ -2269,6 +2359,7 @@
     "derived": true
   },
   {
+    "slug": "lying-cable-hip-adduction",
     "name": "Lying Cable Hip Adduction",
     "aka": [
       "Side-Lying Adduction"
@@ -2301,6 +2392,7 @@
     "derived": true
   },
   {
+    "slug": "copenhagen-adductor-plank",
     "name": "Copenhagen Adductor Plank",
     "aka": [
       "Copenhagen Side Plank"
@@ -2309,8 +2401,8 @@
     "category": "strength",
     "movementPattern": "isolation",
     "movementPatternRaw": "Isometric Adduction",
-    "modality": "machine_selectorized",
-    "equipment": "Machine",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Adductors",
     "primaryMuscles": [
       "Adductors"
@@ -2332,14 +2424,15 @@
     "derived": true
   },
   {
+    "slug": "standing-calf-raise",
     "name": "Standing Calf Raise",
     "aka": [],
     "bodyPart": "Lower Body",
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Isolation (Ankle plantarflexion)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Calves",
     "primaryMuscles": [
       "Calves"
@@ -2348,8 +2441,8 @@
     "stabilizers": [],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 75,
     "similar": [
       "Donkey Calf Raise",
@@ -2361,6 +2454,7 @@
     "derived": true
   },
   {
+    "slug": "single-leg-standing-calf-raise",
     "name": "Single-Leg Standing Calf Raise",
     "aka": [
       "Unilateral Calf Raise"
@@ -2369,8 +2463,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Isolation (Ankle plantarflexion)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Calves",
     "primaryMuscles": [
       "Calves"
@@ -2379,8 +2473,8 @@
     "stabilizers": [],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 75,
     "similar": [
       "Standing Calf Raise",
@@ -2390,6 +2484,7 @@
     "derived": true
   },
   {
+    "slug": "seated-calf-raise",
     "name": "Seated Calf Raise",
     "aka": [
       "Soleus Raise"
@@ -2398,8 +2493,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Isolation (Soleus)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "machine_plate",
+    "equipment": "Machine",
     "primaryMuscle": "Calves",
     "primaryMuscles": [
       "Calves"
@@ -2419,6 +2514,7 @@
     "derived": true
   },
   {
+    "slug": "donkey-calf-raise",
     "name": "Donkey Calf Raise",
     "aka": [
       "Donkey Raise"
@@ -2427,8 +2523,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Isolation (Gastrocnemius)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Calves",
     "primaryMuscles": [
       "Calves"
@@ -2437,8 +2533,8 @@
     "stabilizers": [],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 75,
     "similar": [
       "Standing Calf Raise",
@@ -2448,6 +2544,7 @@
     "derived": true
   },
   {
+    "slug": "tibialis-raise",
     "name": "Tibialis Raise",
     "aka": [
       "Tib Raise"
@@ -2456,8 +2553,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Isolation (Tibialis anterior)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Calves",
     "primaryMuscles": [
       "Tibialis"
@@ -2466,8 +2563,8 @@
     "stabilizers": [],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 75,
     "similar": [
       "Reverse Calf Raise",
@@ -2476,6 +2573,7 @@
     "derived": true
   },
   {
+    "slug": "death-march",
     "name": "Death March",
     "aka": [
       "Walking KB March"
@@ -2511,6 +2609,7 @@
     "derived": true
   },
   {
+    "slug": "sled-push",
     "name": "Sled Push",
     "aka": [
       "Prowler Push"
@@ -2545,6 +2644,7 @@
     "derived": true
   },
   {
+    "slug": "sled-drag",
     "name": "Sled Drag",
     "aka": [
       "Reverse Sled Drag"
@@ -2579,6 +2679,7 @@
     "derived": true
   },
   {
+    "slug": "safety-bar-squat",
     "name": "Safety Bar Squat",
     "aka": [
       "SSB Squat",
@@ -2613,9 +2714,11 @@
       "Belt Squat",
       "Duffalo Bar Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "squat-squat"
   },
   {
+    "slug": "safety-bar-good-morning",
     "name": "Safety Bar Good Morning",
     "aka": [
       "SSB Good Morning"
@@ -2648,9 +2751,11 @@
       "Cambered Bar Good Morning",
       "RDL"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "good-morning-hinge"
   },
   {
+    "slug": "safety-bar-low-box-squat",
     "name": "Safety Bar Low Box Squat",
     "aka": [
       "SSB Low Box Squat"
@@ -2686,6 +2791,7 @@
     "derived": true
   },
   {
+    "slug": "duffalo-bar-squat",
     "name": "Duffalo Bar Squat",
     "aka": [
       "Buffalo Bar Squat"
@@ -2718,9 +2824,11 @@
       "Safety Bar Squat",
       "Front Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "squat-squat"
   },
   {
+    "slug": "cambered-bar-good-morning",
     "name": "Cambered Bar Good Morning",
     "aka": [],
     "bodyPart": "Lower Body",
@@ -2751,9 +2859,11 @@
       "Safety Bar Good Morning",
       "RDL"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "good-morning-hinge"
   },
   {
+    "slug": "trap-bar-jump-squat",
     "name": "Trap Bar Jump Squat",
     "aka": [
       "Hex Bar Jump Squat (Low Handles)"
@@ -2787,9 +2897,11 @@
       "Broad Jump",
       "Trap Bar Deadlift (Low Handles)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "jump-squat-squat"
   },
   {
+    "slug": "axle-bar-deadlift",
     "name": "Axle Bar Deadlift",
     "aka": [
       "Fat Bar Deadlift"
@@ -2825,6 +2937,7 @@
     "derived": true
   },
   {
+    "slug": "safety-bar-walking-lunge",
     "name": "Safety Bar Walking Lunge",
     "aka": [
       "SSB Walking Lunge"
@@ -2857,9 +2970,11 @@
       "Dumbbell Lunge",
       "Bulgarian Split Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "walking-lunge-lunge"
   },
   {
+    "slug": "cambered-bar-box-squat",
     "name": "Cambered Bar Box Squat",
     "aka": [],
     "bodyPart": "Lower Body",
@@ -2890,9 +3005,11 @@
       "Safety Bar Squat",
       "Cambered Bar Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "box-squat-squat"
   },
   {
+    "slug": "safety-bar-calf-raise",
     "name": "Safety Bar Calf Raise",
     "aka": [
       "SSB Calf Raise"
@@ -2922,6 +3039,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-lunge",
     "name": "Dumbbell Lunge",
     "aka": [
       "DB Lunge"
@@ -2957,6 +3075,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-reverse-lunge",
     "name": "Dumbbell Reverse Lunge",
     "aka": [
       "DB Reverse Lunge"
@@ -2989,9 +3108,11 @@
       "Dumbbell Walking Lunge",
       "Bulgarian Split Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "reverse-lunge-lunge"
   },
   {
+    "slug": "dumbbell-walking-lunge",
     "name": "Dumbbell Walking Lunge",
     "aka": [
       "DB Walking Lunge"
@@ -3024,9 +3145,11 @@
       "Barbell Walking Lunge",
       "Safety Bar Walking Lunge"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "walking-lunge-lunge"
   },
   {
+    "slug": "dumbbell-squat",
     "name": "Dumbbell Squat",
     "aka": [
       "DB Goblet Squat or DB Back Squat"
@@ -3059,9 +3182,11 @@
       "Dumbbell Front Squat",
       "Barbell Back Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "squat-squat"
   },
   {
+    "slug": "dumbbell-glute-bridge",
     "name": "Dumbbell Glute Bridge",
     "aka": [
       "DB Glute Bridge"
@@ -3070,8 +3195,8 @@
     "category": "strength",
     "movementPattern": "hinge",
     "movementPatternRaw": "Hip Hinge",
-    "modality": "bodyweight",
-    "equipment": "Bodyweight",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Glutes",
     "primaryMuscles": [
       "Glutes"
@@ -3092,9 +3217,11 @@
       "Bodyweight Glute Bridge",
       "Barbell Hip Thrust"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "glute-bridge-hinge"
   },
   {
+    "slug": "rack-pull-below-knee",
     "name": "Rack Pull (Below Knee)",
     "aka": [
       "Partial Deadlift (shin)"
@@ -3131,6 +3258,7 @@
     "derived": true
   },
   {
+    "slug": "rack-pull-above-knee",
     "name": "Rack Pull (Above Knee)",
     "aka": [
       "Partial Deadlift (mid-thigh)"
@@ -3166,6 +3294,7 @@
     "derived": true
   },
   {
+    "slug": "rack-pull-mid-thigh",
     "name": "Rack Pull (Mid-Thigh)",
     "aka": [
       "High Rack Pull"
@@ -3201,6 +3330,7 @@
     "derived": true
   },
   {
+    "slug": "block-pull",
     "name": "Block Pull",
     "aka": [
       "Deficit from blocks"
@@ -3236,6 +3366,7 @@
     "derived": true
   },
   {
+    "slug": "barbell-bench-press",
     "name": "Barbell Bench Press",
     "aka": [
       "Flat Bench"
@@ -3271,9 +3402,11 @@
       "Swiss Bar Bench Press",
       "Close Grip Bench Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "press-horizontal-push"
   },
   {
+    "slug": "close-grip-bench-press",
     "name": "Close Grip Bench Press",
     "aka": [
       "CGBP"
@@ -3310,6 +3443,7 @@
     "derived": true
   },
   {
+    "slug": "reverse-grip-bench-press",
     "name": "Reverse Grip Bench Press",
     "aka": [
       "Supinated Bench Press"
@@ -3345,6 +3479,7 @@
     "derived": true
   },
   {
+    "slug": "incline-barbell-bench",
     "name": "Incline Barbell Bench",
     "aka": [
       "Incline Bench"
@@ -3377,9 +3512,11 @@
       "Machine Incline Press",
       "Swiss Bar Incline Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "incline-press-horizontal-push"
   },
   {
+    "slug": "decline-barbell-bench",
     "name": "Decline Barbell Bench",
     "aka": [
       "Decline Bench"
@@ -3412,9 +3549,11 @@
       "Dips",
       "Floor Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "decline-press-horizontal-push"
   },
   {
+    "slug": "floor-press",
     "name": "Floor Press",
     "aka": [
       "Dead Press"
@@ -3449,9 +3588,11 @@
       "Swiss Bar Floor Press",
       "Dumbbell Floor Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "floor-press-horizontal-push"
   },
   {
+    "slug": "dumbbell-floor-press",
     "name": "Dumbbell Floor Press",
     "aka": [
       "DB Floor Press"
@@ -3484,9 +3625,11 @@
       "Dumbbell Bench Press",
       "Barbell Floor Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "floor-press-horizontal-push"
   },
   {
+    "slug": "neutral-grip-dumbbell-press",
     "name": "Neutral Grip Dumbbell Press",
     "aka": [
       "DB Neutral Press"
@@ -3522,6 +3665,7 @@
     "derived": true
   },
   {
+    "slug": "guillotine-press",
     "name": "Guillotine Press",
     "aka": [
       "Neck Press (Bench)"
@@ -3556,6 +3700,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-bench-press",
     "name": "Dumbbell Bench Press",
     "aka": [
       "Flat DB Press"
@@ -3590,9 +3735,11 @@
       "Dumbbell Floor Press",
       "Neutral Grip DB Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "press-horizontal-push"
   },
   {
+    "slug": "incline-dumbbell-press",
     "name": "Incline Dumbbell Press",
     "aka": [
       "Incline DB Press"
@@ -3625,9 +3772,11 @@
       "Machine Incline Press",
       "Dumbbell Bench Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "incline-press-horizontal-push"
   },
   {
+    "slug": "decline-dumbbell-press",
     "name": "Decline Dumbbell Press",
     "aka": [
       "Decline DB Press"
@@ -3660,9 +3809,11 @@
       "Dips",
       "Dumbbell Bench Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "decline-press-horizontal-push"
   },
   {
+    "slug": "dumbbell-fly",
     "name": "Dumbbell Fly",
     "aka": [
       "DB Fly"
@@ -3694,9 +3845,11 @@
       "Svend Press",
       "Dumbbell Pullover"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "fly-isolation"
   },
   {
+    "slug": "cable-fly-high-to-low",
     "name": "Cable Fly (High to Low)",
     "aka": [
       "High Cable Fly"
@@ -3731,6 +3884,7 @@
     "derived": true
   },
   {
+    "slug": "cable-fly-low-to-high",
     "name": "Cable Fly (Low to High)",
     "aka": [
       "Low Cable Fly"
@@ -3764,6 +3918,7 @@
     "derived": true
   },
   {
+    "slug": "smith-machine-bench",
     "name": "Smith Machine Bench",
     "aka": [
       "Guided Bench Press"
@@ -3795,9 +3950,11 @@
       "Barbell Bench Press",
       "Dumbbell Bench Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "press-horizontal-push"
   },
   {
+    "slug": "machine-incline-press",
     "name": "Machine Incline Press",
     "aka": [
       "Upper Chest Press"
@@ -3830,9 +3987,11 @@
       "Smith Incline Press",
       "Incline Dumbbell Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "incline-press-horizontal-push"
   },
   {
+    "slug": "iso-lateral-chest-press",
     "name": "Iso-Lateral Chest Press",
     "aka": [
       "Converging Chest Mach."
@@ -3867,6 +4026,7 @@
     "derived": true
   },
   {
+    "slug": "seated-chest-press-machine",
     "name": "Seated Chest Press Machine",
     "aka": [
       "Selectorized Chest Press"
@@ -3902,6 +4062,7 @@
     "derived": true
   },
   {
+    "slug": "plate-loaded-converging-chest-press",
     "name": "Plate-Loaded Converging Chest Press",
     "aka": [
       "Hammer Strength Chest Press"
@@ -3937,43 +4098,13 @@
     "derived": true
   },
   {
-    "name": "Chest Dips",
+    "slug": "chest-dips",
+    "name": "Dip",
     "aka": [
-      "Parallel Bar Dips"
-    ],
-    "bodyPart": "Chest",
-    "category": "strength",
-    "movementPattern": "vertical_push",
-    "movementPatternRaw": "Vertical/Downward Push",
-    "modality": "bodyweight",
-    "equipment": "Bodyweight",
-    "primaryMuscle": "Chest",
-    "primaryMuscles": [
-      "Chest",
-      "Triceps"
-    ],
-    "secondaryMuscles": [
-      "Front Delts"
-    ],
-    "stabilizers": [
-      "Core"
-    ],
-    "cnsScore": 4,
-    "recoveryImpact": 2,
-    "loggingMetric": "reps",
-    "supportsWeightedBodyweight": true,
-    "defaultRestSeconds": 120,
-    "similar": [
-      "Decline Bench Press",
+      "Parallel Bar Dips",
+      "Chest Dip",
+      "Chest Dips",
       "Weighted Dip",
-      "Band-Assisted Dip",
-      "Seated Dip Machine"
-    ],
-    "derived": true
-  },
-  {
-    "name": "Weighted Dip",
-    "aka": [
       "Weighted Parallel Bar Dip"
     ],
     "bodyPart": "Chest",
@@ -3999,13 +4130,15 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Chest Dips",
       "Decline Bench Press",
-      "Close Grip Bench Press"
+      "Band-Assisted Dip",
+      "Seated Dip Machine"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "dip-vertical-push"
   },
   {
+    "slug": "band-assisted-dip",
     "name": "Band-Assisted Dip",
     "aka": [
       "Resistance Band Dip"
@@ -4033,13 +4166,15 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Chest Dips",
+      "Dip",
       "Weighted Dip (negative)",
       "Bench Dip"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "dip-vertical-push"
   },
   {
+    "slug": "seated-dip-machine",
     "name": "Seated Dip Machine",
     "aka": [
       "Assisted Dip Machine (Weight Stack)"
@@ -4067,7 +4202,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Chest Dips",
+      "Dip",
       "Bench Dip",
       "Tricep Pushdown",
       "Close Grip Bench Press"
@@ -4075,6 +4210,7 @@
     "derived": true
   },
   {
+    "slug": "standard-push-up",
     "name": "Standard Push-Up",
     "aka": [
       "Press-up"
@@ -4111,6 +4247,7 @@
     "derived": true
   },
   {
+    "slug": "incline-push-up",
     "name": "Incline Push-Up",
     "aka": [
       "Hands-Elevated Push-up"
@@ -4146,6 +4283,7 @@
     "derived": true
   },
   {
+    "slug": "decline-push-up",
     "name": "Decline Push-Up",
     "aka": [
       "Feet-Elevated Push-up"
@@ -4179,13 +4317,13 @@
       "Archer Push-Up",
       "Swiss Bar Decline Push-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "decline-push-up-horizontal-push"
   },
   {
+    "slug": "diamond-push-up",
     "name": "Diamond Push-Up",
-    "aka": [
-      "Close Grip Push-Up"
-    ],
+    "aka": [],
     "bodyPart": "Chest",
     "category": "strength",
     "movementPattern": "horizontal_push",
@@ -4217,6 +4355,7 @@
     "derived": true
   },
   {
+    "slug": "pseudo-planche-push-up",
     "name": "Pseudo Planche Push-Up",
     "aka": [
       "Lean Forward Push-Up"
@@ -4252,6 +4391,7 @@
     "derived": true
   },
   {
+    "slug": "clap-push-up",
     "name": "Clap Push-Up",
     "aka": [
       "Plyo Push-Up"
@@ -4287,6 +4427,7 @@
     "derived": true
   },
   {
+    "slug": "archer-push-up",
     "name": "Archer Push-Up",
     "aka": [
       "Bow-and-Arrow Push-up"
@@ -4319,9 +4460,11 @@
       "One-arm Push-up",
       "Pseudo Planche Push-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "archer-push-up-horizontal-push"
   },
   {
+    "slug": "tiger-bend-push-up",
     "name": "Tiger Bend Push-Up",
     "aka": [
       "Tricep-to-Chest Press"
@@ -4357,9 +4500,11 @@
     "derived": true
   },
   {
+    "slug": "ring-push-up",
     "name": "Ring Push-Up",
     "aka": [
-      "Standard Ring Push-Up"
+      "Standard Ring Push-Up",
+      "Ring Push-Up (Feet on Floor)"
     ],
     "bodyPart": "Chest",
     "category": "calisthenics",
@@ -4392,41 +4537,7 @@
     "derived": true
   },
   {
-    "name": "Ring Push-Up (Feet on Floor)",
-    "aka": [
-      "Standard Ring Push-Up"
-    ],
-    "bodyPart": "Chest",
-    "category": "calisthenics",
-    "movementPattern": "horizontal_push",
-    "movementPatternRaw": "Horizontal Push (Unstable)",
-    "modality": "bodyweight",
-    "equipment": "Rings",
-    "primaryMuscle": "Chest",
-    "primaryMuscles": [
-      "Chest"
-    ],
-    "secondaryMuscles": [
-      "Triceps",
-      "Front Delts"
-    ],
-    "stabilizers": [
-      "Serratus",
-      "Core"
-    ],
-    "cnsScore": 4,
-    "recoveryImpact": 2,
-    "loggingMetric": "reps",
-    "supportsWeightedBodyweight": true,
-    "defaultRestSeconds": 120,
-    "similar": [
-      "Ring Push-Up (Feet Elevated)",
-      "Ring Push-Up (Knees)",
-      "TRX Push-Up (Feet Strapped)"
-    ],
-    "derived": true
-  },
-  {
+    "slug": "ring-push-up-feet-elevated",
     "name": "Ring Push-Up (Feet Elevated)",
     "aka": [
       "Decline Ring Push-Up"
@@ -4455,13 +4566,14 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Ring Push-Up (Feet on Floor)",
+      "Ring Push-Up",
       "Archer Ring Push-Up",
       "TRX Push-Up (Feet Strapped)"
     ],
     "derived": true
   },
   {
+    "slug": "ring-push-up-knees",
     "name": "Ring Push-Up (Knees)",
     "aka": [
       "Beginner Ring Push-Up"
@@ -4490,13 +4602,15 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Ring Push-Up (Feet on Floor)",
+      "Ring Push-Up",
       "TRX Push-Up (Knees)",
       "Incline Push-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "push-up-knee-horizontal-push"
   },
   {
+    "slug": "trx-push-up-feet-strapped",
     "name": "TRX Push-Up (Feet Strapped)",
     "aka": [
       "Suspended Push-Up"
@@ -4532,6 +4646,7 @@
     "derived": true
   },
   {
+    "slug": "trx-push-up-knees",
     "name": "TRX Push-Up (Knees)",
     "aka": [
       "Beginner Suspended Push-Up"
@@ -4564,9 +4679,11 @@
       "Ring Push-Up (Knees)",
       "Incline Push-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "push-up-knee-horizontal-push"
   },
   {
+    "slug": "ring-flye",
     "name": "Ring Flye",
     "aka": [
       "Ring Chest Fly"
@@ -4597,9 +4714,11 @@
       "Cable Crossover",
       "Pec Deck Machine"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "fly-isolation"
   },
   {
+    "slug": "ring-dips",
     "name": "Ring Dips",
     "aka": [
       "Gymnastic Ring Dips"
@@ -4628,12 +4747,14 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Parallel Bar Dips",
-      "Weighted Dip",
+      "Dip",
       "Bench Dip"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "dip-vertical-push"
   },
   {
+    "slug": "ring-archer-push-up",
     "name": "Ring Archer Push-Up",
     "aka": [
       "Single-Arm Ring Push-Up"
@@ -4666,9 +4787,11 @@
       "Archer Push-Up",
       "Pseudo Planche Push-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "archer-push-up-horizontal-push"
   },
   {
+    "slug": "ring-support-hold",
     "name": "Ring Support Hold",
     "aka": [
       "Ring Hold"
@@ -4704,6 +4827,7 @@
     "derived": true
   },
   {
+    "slug": "trx-spiderman-push-up",
     "name": "TRX Spiderman Push-Up",
     "aka": [
       "TRX Push-Up with Knee Drive"
@@ -4739,6 +4863,7 @@
     "derived": true
   },
   {
+    "slug": "trx-hanging-dip",
     "name": "TRX Hanging Dip",
     "aka": [
       "Suspended Dip"
@@ -4773,6 +4898,7 @@
     "derived": true
   },
   {
+    "slug": "svend-press",
     "name": "Svend Press",
     "aka": [
       "Plate Squeeze Press"
@@ -4806,6 +4932,7 @@
     "derived": true
   },
   {
+    "slug": "cable-crossover",
     "name": "Cable Crossover",
     "aka": [
       "Standing Cable Fly"
@@ -4840,6 +4967,7 @@
     "derived": true
   },
   {
+    "slug": "pec-deck-machine",
     "name": "Pec Deck Machine",
     "aka": [
       "Machine Fly"
@@ -4873,6 +5001,7 @@
     "derived": true
   },
   {
+    "slug": "cambered-bar-bench-press",
     "name": "Cambered Bar Bench Press",
     "aka": [],
     "bodyPart": "Chest",
@@ -4904,9 +5033,11 @@
       "Dumbbell Bench Press",
       "Duffalo Bar Bench Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "press-horizontal-push"
   },
   {
+    "slug": "swiss-bar-bench-press",
     "name": "Swiss Bar Bench Press",
     "aka": [
       "Football Bar Bench Press"
@@ -4941,9 +5072,11 @@
       "Swiss Bar Floor Press",
       "Neutral Grip DB Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "press-horizontal-push"
   },
   {
+    "slug": "swiss-bar-incline-press",
     "name": "Swiss Bar Incline Press",
     "aka": [],
     "bodyPart": "Chest",
@@ -4974,9 +5107,11 @@
       "Dumbbell Incline Press",
       "Machine Incline Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "incline-press-horizontal-push"
   },
   {
+    "slug": "swiss-bar-floor-press",
     "name": "Swiss Bar Floor Press",
     "aka": [],
     "bodyPart": "Chest",
@@ -5007,9 +5142,11 @@
       "Dumbbell Floor Press",
       "Swiss Bar Bench Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "floor-press-horizontal-push"
   },
   {
+    "slug": "duffalo-bar-bench-press",
     "name": "Duffalo Bar Bench Press",
     "aka": [
       "Buffalo Bar Bench Press"
@@ -5042,9 +5179,11 @@
       "Cambered Bar Bench Press",
       "Floor Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "press-horizontal-push"
   },
   {
+    "slug": "swiss-bar-decline-push-up",
     "name": "Swiss Bar Decline Push-Up",
     "aka": [
       "Feet-Elevated Swiss Bar Push-Up"
@@ -5077,9 +5216,11 @@
       "Dips",
       "Swiss Bar Bench Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "decline-push-up-horizontal-push"
   },
   {
+    "slug": "pull-up-wide-grip",
     "name": "Pull-Up (Wide Grip)",
     "aka": [
       "Pronated Pull-Up"
@@ -5114,9 +5255,11 @@
       "Lat Pulldown (Wide)",
       "Negative Pull-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pull-up-wide-grip-vertical-pull"
   },
   {
+    "slug": "pull-up-super-wide",
     "name": "Pull-Up (Super Wide)",
     "aka": [
       "Extreme Wide Pull-Up"
@@ -5150,9 +5293,11 @@
       "Assisted Pull-Up Machine (Super Wide)",
       "Lat Pulldown (Super Wide)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pull-up-super-wide-vertical-pull"
   },
   {
+    "slug": "pull-up-neutral-grip",
     "name": "Pull-Up (Neutral Grip)",
     "aka": [
       "Hammer Grip Pull-Up"
@@ -5187,9 +5332,11 @@
       "Band-Assisted Pull-Up (Neutral)",
       "Typewriter Pull-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pull-up-neutral-grip-vertical-pull"
   },
   {
+    "slug": "chin-up-supinated",
     "name": "Chin-Up (Supinated)",
     "aka": [
       "Underhand Pull-Up"
@@ -5224,9 +5371,11 @@
       "Band-Assisted Chin-Up",
       "Negative Chin-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "chin-up-supinated-vertical-pull"
   },
   {
+    "slug": "behind-the-neck-pull-up",
     "name": "Behind the Neck Pull-Up",
     "aka": [
       "Rear Pull-Up"
@@ -5263,42 +5412,7 @@
     "derived": true
   },
   {
-    "name": "L-Sit Ring Pull-Up",
-    "aka": [
-      "Raised Legs Ring Pull"
-    ],
-    "bodyPart": "Back",
-    "category": "calisthenics",
-    "movementPattern": "vertical_pull",
-    "movementPatternRaw": "Vertical Pull + Core",
-    "modality": "bodyweight",
-    "equipment": "Rings",
-    "primaryMuscle": "Back",
-    "primaryMuscles": [
-      "Lats"
-    ],
-    "secondaryMuscles": [
-      "Biceps",
-      "Rhomboids",
-      "Rear Delts"
-    ],
-    "stabilizers": [
-      "Forearms",
-      "Core"
-    ],
-    "cnsScore": 4,
-    "recoveryImpact": 2,
-    "loggingMetric": "time",
-    "supportsWeightedBodyweight": true,
-    "defaultRestSeconds": 60,
-    "similar": [
-      "Ring Pull-Up",
-      "Strict Pull-Up",
-      "Assisted Pull-Up Machine (Neutral)"
-    ],
-    "derived": true
-  },
-  {
+    "slug": "typewriter-pull-up",
     "name": "Typewriter Pull-Up",
     "aka": [
       "Side-to-Side Pull-Up"
@@ -5335,6 +5449,7 @@
     "derived": true
   },
   {
+    "slug": "towel-pull-up",
     "name": "Towel Pull-Up",
     "aka": [
       "Gi Grip Pull-Up"
@@ -5371,6 +5486,7 @@
     "derived": true
   },
   {
+    "slug": "commando-pull-up",
     "name": "Commando Pull-Up",
     "aka": [
       "Horizontally Offset Pull-Up"
@@ -5407,6 +5523,7 @@
     "derived": true
   },
   {
+    "slug": "negative-pull-up",
     "name": "Negative Pull-Up",
     "aka": [
       "Eccentric Pull-Up"
@@ -5443,6 +5560,7 @@
     "derived": true
   },
   {
+    "slug": "scapular-pull-up",
     "name": "Scapular Pull-Up",
     "aka": [
       "Scap Retraction Pull"
@@ -5473,6 +5591,7 @@
     "derived": true
   },
   {
+    "slug": "lat-pulldown-wide-grip",
     "name": "Lat Pulldown (Wide Grip)",
     "aka": [
       "Pronated Pulldown"
@@ -5509,6 +5628,7 @@
     "derived": true
   },
   {
+    "slug": "lat-pulldown-super-wide",
     "name": "Lat Pulldown (Super Wide)",
     "aka": [
       "Wide Bar Pulldown Beyond Shoulders"
@@ -5545,6 +5665,7 @@
     "derived": true
   },
   {
+    "slug": "lat-pulldown-v-bar",
     "name": "Lat Pulldown (V-Bar)",
     "aka": [
       "Close",
@@ -5582,6 +5703,7 @@
     "derived": true
   },
   {
+    "slug": "lat-pulldown-reverse",
     "name": "Lat Pulldown (Reverse)",
     "aka": [
       "Supinated Pulldown"
@@ -5618,6 +5740,7 @@
     "derived": true
   },
   {
+    "slug": "lat-pulldown-rope",
     "name": "Lat Pulldown (Rope)",
     "aka": [
       "Rope Attachment Pulldown"
@@ -5654,6 +5777,7 @@
     "derived": true
   },
   {
+    "slug": "single-arm-pulldown",
     "name": "Single-Arm Pulldown",
     "aka": [
       "Iso-Lateral Pulldown"
@@ -5691,6 +5815,7 @@
     "derived": true
   },
   {
+    "slug": "behind-neck-pulldown",
     "name": "Behind Neck Pulldown",
     "aka": [
       "Nautilus Style"
@@ -5727,6 +5852,7 @@
     "derived": true
   },
   {
+    "slug": "machine-high-row",
     "name": "Machine High Row",
     "aka": [
       "Converging High Row"
@@ -5765,6 +5891,7 @@
     "derived": true
   },
   {
+    "slug": "machine-mid-row",
     "name": "Machine Mid Row",
     "aka": [
       "Chest-Supported Mid Row"
@@ -5803,6 +5930,7 @@
     "derived": true
   },
   {
+    "slug": "machine-low-row",
     "name": "Machine Low Row",
     "aka": [
       "Iso-Lateral Low Row"
@@ -5841,6 +5969,7 @@
     "derived": true
   },
   {
+    "slug": "seated-low-row-machine-chest-supported",
     "name": "Seated Low Row Machine (Chest-Supported)",
     "aka": [
       "Plate-Loaded Low Row"
@@ -5878,6 +6007,7 @@
     "derived": true
   },
   {
+    "slug": "seated-cable-row-v-bar",
     "name": "Seated Cable Row (V-Bar)",
     "aka": [
       "Close Grip Low Row"
@@ -5916,6 +6046,7 @@
     "derived": true
   },
   {
+    "slug": "seated-cable-row-wide",
     "name": "Seated Cable Row (Wide)",
     "aka": [
       "Wide Bar Row"
@@ -5953,6 +6084,7 @@
     "derived": true
   },
   {
+    "slug": "seated-cable-row-rope",
     "name": "Seated Cable Row (Rope)",
     "aka": [
       "Rope Handle Row"
@@ -5990,6 +6122,7 @@
     "derived": true
   },
   {
+    "slug": "seated-cable-row-neutral-single",
     "name": "Seated Cable Row (Neutral Single)",
     "aka": [
       "Unilateral Row"
@@ -6027,6 +6160,7 @@
     "derived": true
   },
   {
+    "slug": "barbell-row",
     "name": "Barbell Row",
     "aka": [
       "Bent-Over Row"
@@ -6065,9 +6199,11 @@
       "Two-Arm Dumbbell Row",
       "Kroc Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "row-horizontal-pull"
   },
   {
+    "slug": "kroc-row",
     "name": "Kroc Row",
     "aka": [
       "Heavy Single-Arm DB Row"
@@ -6105,6 +6241,7 @@
     "derived": true
   },
   {
+    "slug": "two-arm-dumbbell-row",
     "name": "Two-Arm Dumbbell Row",
     "aka": [
       "DB Bent-Over Row"
@@ -6142,6 +6279,7 @@
     "derived": true
   },
   {
+    "slug": "single-arm-dumbbell-row",
     "name": "Single-Arm Dumbbell Row",
     "aka": [
       "One-Arm DB Row"
@@ -6180,6 +6318,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-incline-row",
     "name": "Dumbbell Incline Row",
     "aka": [
       "Chest-Supported DB Row"
@@ -6217,6 +6356,7 @@
     "derived": true
   },
   {
+    "slug": "pendlay-row",
     "name": "Pendlay Row",
     "aka": [
       "Strict Barbell Row (Floor)"
@@ -6255,6 +6395,7 @@
     "derived": true
   },
   {
+    "slug": "yates-row",
     "name": "Yates Row",
     "aka": [
       "Underhand Barbell Row"
@@ -6292,6 +6433,7 @@
     "derived": true
   },
   {
+    "slug": "meadows-row",
     "name": "Meadows Row",
     "aka": [
       "Landmine High Row"
@@ -6326,9 +6468,11 @@
       "Seated Cable Row (Single)",
       "Single-Arm Dumbbell Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "row-horizontal-pull"
   },
   {
+    "slug": "seal-row",
     "name": "Seal Row",
     "aka": [
       "Chest-Supported Row (bench)"
@@ -6365,9 +6509,11 @@
       "Swiss Bar Seal Row",
       "Dumbbell Incline Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "seal-row-horizontal-pull"
   },
   {
+    "slug": "t-bar-row-machine",
     "name": "T-Bar Row Machine",
     "aka": [
       "Chest-Supported T-Bar"
@@ -6405,6 +6551,7 @@
     "derived": true
   },
   {
+    "slug": "pullover-machine",
     "name": "Pullover Machine",
     "aka": [
       "Nautilus",
@@ -6437,9 +6584,11 @@
       "Dumbbell Pullover",
       "Lat Pulldown"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pullover-vertical-pull"
   },
   {
+    "slug": "straight-arm-pulldown",
     "name": "Straight-Arm Pulldown",
     "aka": [
       "Lat Pushdown"
@@ -6474,6 +6623,7 @@
     "derived": true
   },
   {
+    "slug": "arc-row-ring",
     "name": "Arc Row (Ring)",
     "aka": [
       "Ring Face Pull Row"
@@ -6511,6 +6661,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-pullover",
     "name": "Dumbbell Pullover",
     "aka": [
       "DB Pullover"
@@ -6543,9 +6694,11 @@
       "Lat Pulldown",
       "Cable Pullover"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pullover-vertical-pull"
   },
   {
+    "slug": "cable-pullover",
     "name": "Cable Pullover",
     "aka": [
       "Rope Pullover"
@@ -6577,9 +6730,11 @@
       "Pullover Machine",
       "Straight-Arm Pulldown"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pullover-vertical-pull"
   },
   {
+    "slug": "swiss-bar-bent-over-row",
     "name": "Swiss Bar Bent-Over Row",
     "aka": [
       "Football Bar Row"
@@ -6615,9 +6770,11 @@
       "Seal Row",
       "Axle Bar Bent-Over Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "bent-over-row-horizontal-pull"
   },
   {
+    "slug": "swiss-bar-seal-row",
     "name": "Swiss Bar Seal Row",
     "aka": [],
     "bodyPart": "Back",
@@ -6651,9 +6808,11 @@
       "T-Bar Row",
       "Dumbbell Incline Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "seal-row-horizontal-pull"
   },
   {
+    "slug": "swiss-bar-lat-pulldown",
     "name": "Swiss Bar Lat Pulldown",
     "aka": [],
     "bodyPart": "Back",
@@ -6686,9 +6845,11 @@
       "Straight-Arm Pulldown",
       "Assisted Pull-Up Machine (Neutral)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "lat-pulldown-vertical-pull"
   },
   {
+    "slug": "axle-bar-bent-over-row",
     "name": "Axle Bar Bent-Over Row",
     "aka": [
       "Fat Bar Row"
@@ -6724,9 +6885,11 @@
       "Seal Row",
       "Swiss Bar Bent-Over Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "bent-over-row-horizontal-pull"
   },
   {
+    "slug": "swiss-bar-rack-pull",
     "name": "Swiss Bar Rack Pull",
     "aka": [],
     "bodyPart": "Back",
@@ -6762,6 +6925,7 @@
     "derived": true
   },
   {
+    "slug": "assisted-pull-up-machine-wide-grip",
     "name": "Assisted Pull-Up Machine (Wide Grip)",
     "aka": [
       "Counterweight Wide Pull-Up"
@@ -6796,9 +6960,11 @@
       "Band-Assisted Pull-Up (Wide)",
       "Assisted Pull-Up Machine (Neutral)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pull-up-wide-grip-vertical-pull"
   },
   {
+    "slug": "assisted-pull-up-machine-super-wide",
     "name": "Assisted Pull-Up Machine (Super Wide)",
     "aka": [
       "Counterweight Super Wide Pull-Up"
@@ -6832,9 +6998,11 @@
       "Assisted Pull-Up Machine (Wide)",
       "Lat Pulldown (Super Wide)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pull-up-super-wide-vertical-pull"
   },
   {
+    "slug": "assisted-pull-up-machine-neutral-grip",
     "name": "Assisted Pull-Up Machine (Neutral Grip)",
     "aka": [
       "Counterweight Neutral Pull-Up"
@@ -6869,9 +7037,11 @@
       "Assisted Pull-Up Machine (Wide Grip)",
       "Band-Assisted Pull-Up (Neutral)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pull-up-neutral-grip-vertical-pull"
   },
   {
+    "slug": "assisted-chin-up-machine-supinated",
     "name": "Assisted Chin-Up Machine (Supinated)",
     "aka": [
       "Counterweight Chin-Up"
@@ -6906,13 +7076,14 @@
       "Assisted Pull-Up Machine (Neutral Grip)",
       "Band-Assisted Chin-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "chin-up-supinated-vertical-pull"
   },
   {
+    "slug": "assisted-chin-up-dip-combo-machine",
     "name": "Assisted Chin-Up/Dip Combo Machine",
     "aka": [
-      "Weight-Assisted Pull-Up",
-      "Dip"
+      "Weight-Assisted Pull-Up"
     ],
     "bodyPart": "Back",
     "category": "strength",
@@ -6946,6 +7117,7 @@
     "derived": true
   },
   {
+    "slug": "band-assisted-pull-up-wide-grip",
     "name": "Band-Assisted Pull-Up (Wide Grip)",
     "aka": [
       "Resistance Band Wide Pull-Up"
@@ -6980,9 +7152,11 @@
       "Jumping Pull-Up",
       "Negative Pull-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pull-up-wide-grip-vertical-pull"
   },
   {
+    "slug": "band-assisted-pull-up-neutral-grip",
     "name": "Band-Assisted Pull-Up (Neutral Grip)",
     "aka": [
       "Resistance Band Neutral Pull-Up"
@@ -7016,9 +7190,11 @@
       "Pull-Up (Neutral Grip)",
       "Band-Assisted Chin-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pull-up-neutral-grip-vertical-pull"
   },
   {
+    "slug": "band-assisted-chin-up-supinated",
     "name": "Band-Assisted Chin-Up (Supinated)",
     "aka": [
       "Resistance Band Chin-Up"
@@ -7053,9 +7229,11 @@
       "Band-Assisted Pull-Up (Neutral)",
       "Negative Chin-Up"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "chin-up-supinated-vertical-pull"
   },
   {
+    "slug": "barbell-inverted-row",
     "name": "Barbell Inverted Row",
     "aka": [
       "Australian Pull-Up"
@@ -7091,9 +7269,11 @@
       "Seated Cable Row (Wide)",
       "Arc Row (Ring)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "inverted-row-horizontal-pull"
   },
   {
+    "slug": "barbell-inverted-row-feet-elevated",
     "name": "Barbell Inverted Row (Feet Elevated)",
     "aka": [
       "Decline Inverted Row"
@@ -7128,9 +7308,11 @@
       "Ring Row (Feet Elevated)",
       "TRX Inverted Row (Feet Elevated)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "inverted-row-feet-elevated-horizontal-pull"
   },
   {
+    "slug": "barbell-inverted-row-underhand-grip",
     "name": "Barbell Inverted Row (Underhand Grip)",
     "aka": [
       "Supinated Inverted Row"
@@ -7168,6 +7350,7 @@
     "derived": true
   },
   {
+    "slug": "barbell-inverted-row-wide-grip",
     "name": "Barbell Inverted Row (Wide Grip)",
     "aka": [
       "Wide Grip Australian Pull-Up"
@@ -7205,6 +7388,7 @@
     "derived": true
   },
   {
+    "slug": "smith-machine-inverted-row",
     "name": "Smith Machine Inverted Row",
     "aka": [
       "Fixed Bar Row"
@@ -7239,9 +7423,11 @@
       "TRX Inverted Row",
       "Seated Cable Row (V-Bar)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "inverted-row-horizontal-pull"
   },
   {
+    "slug": "suspension-trainer-inverted-row",
     "name": "Suspension Trainer Inverted Row",
     "aka": [
       "TRX",
@@ -7277,9 +7463,11 @@
       "Ring Row (Feet on Floor)",
       "Arc Row (Ring)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "inverted-row-horizontal-pull"
   },
   {
+    "slug": "ring-row-feet-on-floor",
     "name": "Ring Row (Feet on Floor)",
     "aka": [
       "Standard Ring Row"
@@ -7318,6 +7506,7 @@
     "derived": true
   },
   {
+    "slug": "ring-row-feet-elevated",
     "name": "Ring Row (Feet Elevated)",
     "aka": [
       "Advanced Ring Row"
@@ -7355,6 +7544,7 @@
     "derived": true
   },
   {
+    "slug": "ring-row-feet-on-floor-wide-grip",
     "name": "Ring Row (Feet on Floor, Wide Grip)",
     "aka": [
       "Wide Ring Row"
@@ -7392,6 +7582,7 @@
     "derived": true
   },
   {
+    "slug": "trx-inverted-row",
     "name": "TRX Inverted Row",
     "aka": [
       "Standard TRX Row"
@@ -7426,9 +7617,11 @@
       "Barbell Inverted Row",
       "Seated Cable Row (V-Bar)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "inverted-row-horizontal-pull"
   },
   {
+    "slug": "trx-inverted-row-feet-elevated",
     "name": "TRX Inverted Row (Feet Elevated)",
     "aka": [
       "Advanced TRX Row"
@@ -7463,9 +7656,11 @@
       "Ring Row (Feet Elevated)",
       "Seal Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "inverted-row-feet-elevated-horizontal-pull"
   },
   {
+    "slug": "trx-reaching-row",
     "name": "TRX Reaching Row",
     "aka": [
       "Single-Arm TRX Row"
@@ -7503,6 +7698,7 @@
     "derived": true
   },
   {
+    "slug": "ring-front-lever",
     "name": "Ring Front Lever",
     "aka": [
       "Front Lever Hold"
@@ -7536,9 +7732,11 @@
       "Tuck Front Lever",
       "Ring Rows (advanced)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "front-lever-horizontal-pull"
   },
   {
+    "slug": "ring-back-lever",
     "name": "Ring Back Lever",
     "aka": [
       "Back Lever Hold"
@@ -7572,9 +7770,11 @@
       "Front Lever",
       "German Hang"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "back-lever-horizontal-pull"
   },
   {
+    "slug": "ring-muscle-up",
     "name": "Ring Muscle-Up",
     "aka": [
       "Ring Pull-Up to Dip"
@@ -7611,9 +7811,11 @@
     "derived": true
   },
   {
+    "slug": "ring-l-sit-pull-up",
     "name": "Ring L-Sit Pull-Up",
     "aka": [
-      "L-Sit Ring Pull-Up"
+      "L-Sit Ring Pull-Up",
+      "Raised Legs Ring Pull"
     ],
     "bodyPart": "Back",
     "category": "calisthenics",
@@ -7647,6 +7849,7 @@
     "derived": true
   },
   {
+    "slug": "ring-bulgarian-split-squat",
     "name": "Ring Bulgarian Split Squat",
     "aka": [
       "Ring Assisted Split Squat"
@@ -7681,9 +7884,11 @@
       "TRX Assisted Pistol Squat",
       "Suspended Squats"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "bulgarian-split-squat-lunge"
   },
   {
+    "slug": "ring-bicep-curl",
     "name": "Ring Bicep Curl",
     "aka": [
       "Ring Curl"
@@ -7714,9 +7919,11 @@
       "Pelican Curl",
       "Ring Row (Close Grip)"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "ring-triceps-extension",
     "name": "Ring Triceps Extension",
     "aka": [
       "Ring French Press"
@@ -7746,9 +7953,11 @@
       "Overhead Cable Tricep",
       "Skullcrusher"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "triceps-extension-isolation"
   },
   {
+    "slug": "trx-bicep-curl",
     "name": "TRX Bicep Curl",
     "aka": [
       "TRX Curl"
@@ -7779,9 +7988,11 @@
       "Bayesian Curl",
       "Cable Bicep Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "trx-triceps-extension",
     "name": "TRX Triceps Extension",
     "aka": [
       "Suspended French Press"
@@ -7811,9 +8022,11 @@
       "Ring Triceps Extension",
       "Skullcrusher"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "triceps-extension-isolation"
   },
   {
+    "slug": "overhead-press",
     "name": "Overhead Press",
     "aka": [
       "OHP"
@@ -7850,9 +8063,11 @@
       "Dumbbell Overhead Press",
       "Push Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "overhead-press-vertical-push"
   },
   {
+    "slug": "push-press",
     "name": "Push Press",
     "aka": [
       "Push Jerk (similar)"
@@ -7886,9 +8101,11 @@
       "Split Jerk",
       "Power Jerk"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "push-press-vertical-push"
   },
   {
+    "slug": "dumbbell-push-press",
     "name": "Dumbbell Push Press",
     "aka": [
       "DB Push Press"
@@ -7921,9 +8138,11 @@
       "Dumbbell Overhead Press",
       "Seated DB Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "push-press-vertical-push"
   },
   {
+    "slug": "dumbbell-overhead-press",
     "name": "Dumbbell Overhead Press",
     "aka": [
       "Seated or Standing DB Press"
@@ -7957,9 +8176,11 @@
       "Machine Shoulder Press",
       "Push Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "overhead-press-vertical-push"
   },
   {
+    "slug": "behind-the-neck-ohp",
     "name": "Behind the Neck OHP",
     "aka": [
       "BNP"
@@ -7968,8 +8189,8 @@
     "category": "strength",
     "movementPattern": "vertical_push",
     "movementPatternRaw": "Vertical Push (riskier)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "barbell",
+    "equipment": "Barbell",
     "primaryMuscle": "Shoulders",
     "primaryMuscles": [
       "Front Delts"
@@ -7995,6 +8216,7 @@
     "derived": true
   },
   {
+    "slug": "bradford-press",
     "name": "Bradford Press",
     "aka": [
       "Rocky Press"
@@ -8030,6 +8252,7 @@
     "derived": true
   },
   {
+    "slug": "smith-machine-ohp",
     "name": "Smith Machine OHP",
     "aka": [
       "Guided Shoulder Press"
@@ -8062,9 +8285,11 @@
       "Machine Shoulder Press",
       "Arnold Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "overhead-press-vertical-push"
   },
   {
+    "slug": "arnold-press",
     "name": "Arnold Press",
     "aka": [
       "Rotation Press"
@@ -8100,6 +8325,7 @@
     "derived": true
   },
   {
+    "slug": "machine-shoulder-press",
     "name": "Machine Shoulder Press",
     "aka": [
       "Iso-Lateral Press"
@@ -8136,6 +8362,7 @@
     "derived": true
   },
   {
+    "slug": "seated-lateral-raise-machine",
     "name": "Seated Lateral Raise Machine",
     "aka": [
       "Plate-Loaded Side Lateral"
@@ -8165,6 +8392,7 @@
     "derived": true
   },
   {
+    "slug": "handstand-push-up",
     "name": "Handstand Push-Up",
     "aka": [
       "HSPU"
@@ -8201,8 +8429,11 @@
     "derived": true
   },
   {
-    "name": "Lateral Raise (DB)",
+    "slug": "dumbbell-lateral-raise",
+    "name": "Dumbbell Lateral Raise",
     "aka": [
+      "DB Side Raise",
+      "Lateral Raise (DB)",
       "Side Raises"
     ],
     "bodyPart": "Shoulders",
@@ -8226,42 +8457,13 @@
       "Cable Lateral Raise",
       "Machine Lateral Raise",
       "Lu Raise",
-      "Dumbbell Lateral Raise",
       "Lying Lateral Raise"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "lateral-raise-isolation"
   },
   {
-    "name": "Dumbbell Lateral Raise",
-    "aka": [
-      "DB Side Raise"
-    ],
-    "bodyPart": "Shoulders",
-    "category": "hypertrophy",
-    "movementPattern": "isolation",
-    "movementPatternRaw": "Abduction (isolation)",
-    "modality": "dumbbell",
-    "equipment": "Dumbbell",
-    "primaryMuscle": "Shoulders",
-    "primaryMuscles": [
-      "Side Delts"
-    ],
-    "secondaryMuscles": [],
-    "stabilizers": [],
-    "cnsScore": 2,
-    "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
-    "defaultRestSeconds": 75,
-    "similar": [
-      "Cable Lateral Raise",
-      "Machine Lateral Raise",
-      "Lu Raise",
-      "Lying Lateral Raise"
-    ],
-    "derived": true
-  },
-  {
+    "slug": "lying-lateral-raise",
     "name": "Lying Lateral Raise",
     "aka": [
       "Side-Lying DB Raise"
@@ -8270,8 +8472,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Abduction (isolation, limited ROM)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Shoulders",
     "primaryMuscles": [
       "Side Delts"
@@ -8291,6 +8493,7 @@
     "derived": true
   },
   {
+    "slug": "cable-lateral-raise",
     "name": "Cable Lateral Raise",
     "aka": [
       "Continuous Tension Raise"
@@ -8317,9 +8520,11 @@
       "Machine Lateral Raise",
       "Upright Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "lateral-raise-isolation"
   },
   {
+    "slug": "machine-lateral-raise",
     "name": "Machine Lateral Raise",
     "aka": [
       "Iso-Lateral Side Raise"
@@ -8346,9 +8551,11 @@
       "Cable Lateral Raise",
       "Seated Lateral Raise Machine"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "lateral-raise-isolation"
   },
   {
+    "slug": "lu-raise",
     "name": "Lu Raise",
     "aka": [
       "Lu Xiao Jun Raise"
@@ -8357,8 +8564,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Abduction + External Rotation",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Shoulders",
     "primaryMuscles": [
       "Side Delts"
@@ -8378,9 +8585,11 @@
     "derived": true
   },
   {
-    "name": "Front Raise (DB)",
+    "slug": "front-raise-db",
+    "name": "Dumbbell Front Raise",
     "aka": [
-      "Dumbbell Front Raise"
+      "Dumbbell Front Raise",
+      "Front Raise"
     ],
     "bodyPart": "Shoulders",
     "category": "hypertrophy",
@@ -8407,9 +8616,11 @@
       "Plate Front Raise",
       "Kettlebell Front Raise"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "front-raise-isolation"
   },
   {
+    "slug": "cable-front-raise",
     "name": "Cable Front Raise",
     "aka": [],
     "bodyPart": "Shoulders",
@@ -8436,9 +8647,11 @@
       "Barbell Front Raise",
       "Plate Front Raise"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "front-raise-isolation"
   },
   {
+    "slug": "plate-front-raise",
     "name": "Plate Front Raise",
     "aka": [
       "Weight Plate Raise"
@@ -8467,9 +8680,11 @@
       "Cable Front Raise",
       "Barbell Front Raise"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "front-raise-isolation"
   },
   {
+    "slug": "reverse-pec-deck",
     "name": "Reverse Pec Deck",
     "aka": [
       "Machine Rear Delt Fly"
@@ -8503,6 +8718,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-rear-delt-fly",
     "name": "Dumbbell Rear Delt Fly",
     "aka": [
       "Bent-Over DB Fly"
@@ -8532,9 +8748,11 @@
       "Face Pull",
       "Cable Rear Delt Fly"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "rear-delt-fly-horizontal-pull"
   },
   {
+    "slug": "cable-rear-delt-fly",
     "name": "Cable Rear Delt Fly",
     "aka": [],
     "bodyPart": "Shoulders",
@@ -8562,9 +8780,11 @@
       "Dumbbell Rear Delt Fly",
       "Face Pull"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "rear-delt-fly-horizontal-pull"
   },
   {
+    "slug": "face-pull",
     "name": "Face Pull",
     "aka": [
       "Cable Rear Delt Pull"
@@ -8573,8 +8793,8 @@
     "category": "strength",
     "movementPattern": "horizontal_pull",
     "movementPatternRaw": "Horizontal Pull + External rotation",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "cable",
+    "equipment": "Cable",
     "primaryMuscle": "Shoulders",
     "primaryMuscles": [
       "Rear Delts"
@@ -8598,6 +8818,7 @@
     "derived": true
   },
   {
+    "slug": "cuban-press",
     "name": "Cuban Press",
     "aka": [
       "Cuban Rotation"
@@ -8630,6 +8851,7 @@
     "derived": true
   },
   {
+    "slug": "scarecrow",
     "name": "Scarecrow",
     "aka": [
       "Empty Can"
@@ -8638,8 +8860,8 @@
     "category": "strength",
     "movementPattern": "isolation",
     "movementPatternRaw": "Scapular + Rotation",
-    "modality": "barbell",
-    "equipment": "Barbell",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Shoulders",
     "primaryMuscles": [
       "Rear Delts"
@@ -8662,6 +8884,7 @@
     "derived": true
   },
   {
+    "slug": "ytwli-raises",
     "name": "YTWLI Raises",
     "aka": [
       "Prone Scapular Series"
@@ -8670,8 +8893,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Scapular stability",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Shoulders",
     "primaryMuscles": [
       "Rear Delts"
@@ -8694,6 +8917,7 @@
     "derived": true
   },
   {
+    "slug": "upright-row-barbell",
     "name": "Upright Row (Barbell)",
     "aka": [
       "BB Upright Row"
@@ -8724,9 +8948,11 @@
       "Cable Upright Row",
       "EZ Bar Upright Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "upright-row-vertical-pull"
   },
   {
+    "slug": "upright-row-ez-bar",
     "name": "Upright Row (EZ Bar)",
     "aka": [
       "EZ Bar Upright Row"
@@ -8756,9 +8982,11 @@
       "Dumbbell Upright Row",
       "Cable Upright Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "upright-row-vertical-pull"
   },
   {
+    "slug": "upright-row-wide-grip",
     "name": "Upright Row (Wide Grip)",
     "aka": [
       "Wide Upright Row"
@@ -8791,6 +9019,7 @@
     "derived": true
   },
   {
+    "slug": "swiss-bar-upright-row",
     "name": "Swiss Bar Upright Row",
     "aka": [
       "Football Bar Upright Row"
@@ -8820,9 +9049,11 @@
       "Dumbbell Upright Row",
       "Cable Upright Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "upright-row-vertical-pull"
   },
   {
+    "slug": "dumbbell-upright-row",
     "name": "Dumbbell Upright Row",
     "aka": [
       "DB Upright Row"
@@ -8852,9 +9083,11 @@
       "Swiss Bar Upright Row",
       "Cable Upright Row"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "upright-row-vertical-pull"
   },
   {
+    "slug": "overhead-shrug",
     "name": "Overhead Shrug",
     "aka": [
       "Shrug Overhead"
@@ -8886,6 +9119,7 @@
     "derived": true
   },
   {
+    "slug": "behind-back-barbell-shrug",
     "name": "Behind Back Barbell Shrug",
     "aka": [
       "Posterior Shrug"
@@ -8917,6 +9151,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-shrug",
     "name": "Dumbbell Shrug",
     "aka": [
       "DB Shrug"
@@ -8946,9 +9181,11 @@
       "Cable Shrug",
       "Overhead Shrug"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "shrug-isolation"
   },
   {
+    "slug": "barbell-shrug",
     "name": "Barbell Shrug",
     "aka": [],
     "bodyPart": "Shoulders",
@@ -8976,9 +9213,11 @@
       "Trap Bar Shrug",
       "Behind Back Shrug"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "shrug-isolation"
   },
   {
+    "slug": "waiter-s-carry",
     "name": "Waiter's Carry",
     "aka": [
       "Single Arm Overhead Carry"
@@ -8987,8 +9226,8 @@
     "category": "strength",
     "movementPattern": "carry",
     "movementPatternRaw": "Carrying (overhead stability)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "kettlebell",
+    "equipment": "Kettlebell",
     "primaryMuscle": "Shoulders",
     "primaryMuscles": [
       "Side Delts"
@@ -9013,6 +9252,7 @@
     "derived": true
   },
   {
+    "slug": "around-the-world-plate",
     "name": "Around the World (Plate)",
     "aka": [
       "Plate Circle"
@@ -9042,9 +9282,11 @@
       "Cuban Press",
       "Dumbbell Around the World"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "around-the-world-core"
   },
   {
+    "slug": "dumbbell-around-the-world",
     "name": "Dumbbell Around the World",
     "aka": [
       "DB Circle"
@@ -9073,9 +9315,11 @@
       "Lateral Raise",
       "Lu Raise"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "around-the-world-core"
   },
   {
+    "slug": "swiss-bar-overhead-press",
     "name": "Swiss Bar Overhead Press",
     "aka": [
       "Football Bar OHP"
@@ -9110,9 +9354,11 @@
       "Axle Bar Overhead Press",
       "Dumbbell Overhead Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "overhead-press-vertical-push"
   },
   {
+    "slug": "safety-bar-overhead-press",
     "name": "Safety Bar Overhead Press",
     "aka": [
       "SSB OHP"
@@ -9145,9 +9391,11 @@
       "Swiss Bar OHP",
       "Machine Shoulder Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "overhead-press-vertical-push"
   },
   {
+    "slug": "axle-bar-overhead-press",
     "name": "Axle Bar Overhead Press",
     "aka": [
       "Fat Bar OHP"
@@ -9180,9 +9428,11 @@
       "Swiss Bar OHP",
       "Dumbbell Shoulder Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "overhead-press-vertical-push"
   },
   {
+    "slug": "barbell-bicep-curl",
     "name": "Barbell Bicep Curl",
     "aka": [
       "Standing Curl"
@@ -9215,9 +9465,11 @@
       "Swiss Bar Bicep Curl",
       "Cheat Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "cheat-curl",
     "name": "Cheat Curl",
     "aka": [
       "Body English Curl"
@@ -9250,6 +9502,7 @@
     "derived": true
   },
   {
+    "slug": "concentration-curl",
     "name": "Concentration Curl",
     "aka": [
       "Seated Unilateral Curl"
@@ -9258,8 +9511,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Flexion (isolation)",
-    "modality": "barbell",
-    "equipment": "Barbell",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Biceps",
     "primaryMuscles": [
       "Biceps"
@@ -9283,6 +9536,7 @@
     "derived": true
   },
   {
+    "slug": "bayesian-curl",
     "name": "Bayesian Curl",
     "aka": [
       "Cable Behind Back Curl"
@@ -9291,8 +9545,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Flexion (stretch focused)",
-    "modality": "barbell",
-    "equipment": "Barbell",
+    "modality": "cable",
+    "equipment": "Cable",
     "primaryMuscle": "Biceps",
     "primaryMuscles": [
       "Biceps"
@@ -9315,6 +9569,7 @@
     "derived": true
   },
   {
+    "slug": "ez-bar-curl",
     "name": "EZ Bar Curl",
     "aka": [
       "Curl with EZ bar"
@@ -9345,9 +9600,11 @@
       "Cable Curl",
       "Dumbbell Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "reverse-barbell-curl",
     "name": "Reverse Barbell Curl",
     "aka": [
       "Pronated Curl"
@@ -9378,9 +9635,11 @@
       "Wrist Curl",
       "Dumbbell Reverse Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "reverse-curl-isolation"
   },
   {
+    "slug": "reverse-ez-bar-curl",
     "name": "Reverse EZ Bar Curl",
     "aka": [
       "Pronated EZ Curl"
@@ -9410,9 +9669,11 @@
       "Hammer Curl",
       "Dumbbell Reverse Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "reverse-curl-isolation"
   },
   {
+    "slug": "dumbbell-reverse-curl",
     "name": "Dumbbell Reverse Curl",
     "aka": [
       "DB Pronated Curl"
@@ -9442,9 +9703,11 @@
       "Reverse EZ Bar Curl",
       "Hammer Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "reverse-curl-isolation"
   },
   {
+    "slug": "zottman-curl",
     "name": "Zottman Curl",
     "aka": [
       "Reverse + Supinated Curl"
@@ -9453,8 +9716,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Flexion (both grips)",
-    "modality": "barbell",
-    "equipment": "Barbell",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Biceps",
     "primaryMuscles": [
       "Biceps",
@@ -9476,6 +9739,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-curl",
     "name": "Dumbbell Curl",
     "aka": [
       "Alternating Curl"
@@ -9507,9 +9771,11 @@
       "Hammer Curl",
       "Concentration Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "hammer-curl",
     "name": "Hammer Curl",
     "aka": [
       "Neutral Grip Curl"
@@ -9518,8 +9784,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Flexion (brachialis/brachioradialis)",
-    "modality": "machine_plate",
-    "equipment": "Machine",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Biceps",
     "primaryMuscles": [
       "Biceps",
@@ -9540,9 +9806,11 @@
       "Cable Hammer Curl",
       "Dumbbell Hammer Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "drag-curl",
     "name": "Drag Curl",
     "aka": [],
     "bodyPart": "Arms",
@@ -9573,6 +9841,7 @@
     "derived": true
   },
   {
+    "slug": "machine-preacher-curl-seated",
     "name": "Machine Preacher Curl (Seated)",
     "aka": [
       "Pin-Selector Preacher Curl"
@@ -9605,6 +9874,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-preacher-curl",
     "name": "Dumbbell Preacher Curl",
     "aka": [
       "DB Preacher Curl"
@@ -9635,9 +9905,11 @@
       "Cable Curl",
       "Concentration Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "preacher-curl-isolation"
   },
   {
+    "slug": "seated-biceps-curl-machine",
     "name": "Seated Biceps Curl Machine",
     "aka": [
       "Plate-Loaded Bicep Curl"
@@ -9671,6 +9943,7 @@
     "derived": true
   },
   {
+    "slug": "cable-bicep-curl",
     "name": "Cable Bicep Curl",
     "aka": [
       "Continuous Tension Curl"
@@ -9701,9 +9974,11 @@
       "Machine Curl",
       "Bayesian Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "single-arm-cable-bicep-curl",
     "name": "Single-Arm Cable Bicep Curl",
     "aka": [
       "Single-Arm Curl"
@@ -9737,6 +10012,7 @@
     "derived": true
   },
   {
+    "slug": "pelican-curl",
     "name": "Pelican Curl",
     "aka": [
       "Ring Incline Stretch Curl"
@@ -9745,8 +10021,8 @@
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Flexion (stretch position)",
-    "modality": "barbell",
-    "equipment": "Barbell",
+    "modality": "bodyweight",
+    "equipment": "Rings",
     "primaryMuscle": "Biceps",
     "primaryMuscles": [
       "Biceps"
@@ -9758,8 +10034,8 @@
     "stabilizers": [],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 75,
     "similar": [
       "Incline Dumbbell Curl",
@@ -9769,6 +10045,7 @@
     "derived": true
   },
   {
+    "slug": "incline-dumbbell-curl",
     "name": "Incline Dumbbell Curl",
     "aka": [
       "DB Incline Curl"
@@ -9802,6 +10079,7 @@
     "derived": true
   },
   {
+    "slug": "wrist-curl-barbell",
     "name": "Wrist Curl (Barbell)",
     "aka": [
       "Forearm Flexion"
@@ -9828,9 +10106,11 @@
       "Wrist Roller",
       "Dumbbell Wrist Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "wrist-curl-isolation"
   },
   {
+    "slug": "dumbbell-wrist-curl",
     "name": "Dumbbell Wrist Curl",
     "aka": [
       "DB Wrist Curl"
@@ -9857,9 +10137,11 @@
       "Behind Back Wrist Curl",
       "Wrist Roller"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "wrist-curl-isolation"
   },
   {
+    "slug": "reverse-wrist-curl",
     "name": "Reverse Wrist Curl",
     "aka": [
       "Forearm Extension"
@@ -9886,9 +10168,11 @@
       "Barbell Reverse Curl",
       "Dumbbell Reverse Wrist Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "reverse-wrist-curl-isolation"
   },
   {
+    "slug": "dumbbell-reverse-wrist-curl",
     "name": "Dumbbell Reverse Wrist Curl",
     "aka": [
       "DB Forearm Extension"
@@ -9915,9 +10199,11 @@
       "Wrist Roller",
       "Barbell Reverse Wrist Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "reverse-wrist-curl-isolation"
   },
   {
+    "slug": "behind-the-back-wrist-curl",
     "name": "Behind the Back Wrist Curl",
     "aka": [
       "Reverse Wrist Curl (behind)"
@@ -9947,6 +10233,7 @@
     "derived": true
   },
   {
+    "slug": "wrist-roller",
     "name": "Wrist Roller",
     "aka": [
       "Forearm Roller"
@@ -9976,6 +10263,7 @@
     "derived": true
   },
   {
+    "slug": "tricep-pushdown-rope",
     "name": "Tricep Pushdown (Rope)",
     "aka": [
       "Cable Rope Pressdown"
@@ -10008,6 +10296,7 @@
     "derived": true
   },
   {
+    "slug": "tricep-pushdown-straight-bar",
     "name": "Tricep Pushdown (Straight Bar)",
     "aka": [
       "Straight Bar Pressdown"
@@ -10039,6 +10328,7 @@
     "derived": true
   },
   {
+    "slug": "tricep-pushdown-v-bar",
     "name": "Tricep Pushdown (V-Bar)",
     "aka": [
       "V-Bar Pressdown"
@@ -10070,6 +10360,7 @@
     "derived": true
   },
   {
+    "slug": "tricep-pushdown-ez-bar",
     "name": "Tricep Pushdown (EZ Bar)",
     "aka": [
       "EZ Bar Pressdown"
@@ -10097,9 +10388,11 @@
       "Straight Bar Pushdown",
       "Skullcrusher"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "triceps-pushdown-isolation"
   },
   {
+    "slug": "tricep-pushdown-reverse-grip",
     "name": "Tricep Pushdown (Reverse Grip)",
     "aka": [
       "Pronated Pressdown"
@@ -10131,6 +10424,7 @@
     "derived": true
   },
   {
+    "slug": "single-arm-cable-tricep-pushdown",
     "name": "Single-Arm Cable Tricep Pushdown",
     "aka": [
       "Single-Arm Pressdown"
@@ -10162,6 +10456,7 @@
     "derived": true
   },
   {
+    "slug": "machine-tricep-extension",
     "name": "Machine Tricep Extension",
     "aka": [
       "Seated Tricep Machine"
@@ -10191,9 +10486,11 @@
       "JM Press",
       "Dumbbell Tricep Extension"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "triceps-extension-isolation"
   },
   {
+    "slug": "seated-triceps-extension-machine",
     "name": "Seated Triceps Extension Machine",
     "aka": [
       "Lever Triceps Extensor"
@@ -10226,6 +10523,7 @@
     "derived": true
   },
   {
+    "slug": "cable-lying-triceps-extension",
     "name": "Cable Lying Triceps Extension",
     "aka": [
       "Lying Cable Extension"
@@ -10257,6 +10555,7 @@
     "derived": true
   },
   {
+    "slug": "skullcrusher",
     "name": "Skullcrusher",
     "aka": [
       "Lying Triceps Extension"
@@ -10265,8 +10564,8 @@
     "category": "strength",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Extension (horizontal)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "barbell",
+    "equipment": "Barbell",
     "primaryMuscle": "Triceps",
     "primaryMuscles": [
       "Triceps"
@@ -10284,13 +10583,15 @@
       "JM Press",
       "Overhead DB Tricep",
       "Close Grip Bench",
-      "Swiss Bar Skull Crusher",
+      "Swiss Bar Skullcrusher",
       "Dumbbell Skullcrusher",
       "Cable Lying Extension"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "skullcrusher-isolation"
   },
   {
+    "slug": "dumbbell-skullcrusher",
     "name": "Dumbbell Skullcrusher",
     "aka": [
       "Lying DB Triceps Extension"
@@ -10319,9 +10620,11 @@
       "JM Press",
       "Overhead Dumbbell Tricep"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "skullcrusher-isolation"
   },
   {
+    "slug": "single-arm-dumbbell-skullcrusher",
     "name": "Single-Arm Dumbbell Skullcrusher",
     "aka": [
       "Single-Arm Lying DB Extension"
@@ -10353,6 +10656,7 @@
     "derived": true
   },
   {
+    "slug": "tate-press",
     "name": "Tate Press",
     "aka": [
       "Triceps Extension (elbows flared)"
@@ -10385,6 +10689,7 @@
     "derived": true
   },
   {
+    "slug": "jm-press",
     "name": "JM Press",
     "aka": [
       "Blakely Press"
@@ -10414,9 +10719,11 @@
       "Tricep Pushdown",
       "Swiss Bar JM Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "jm-press-isolation"
   },
   {
+    "slug": "overhead-cable-tricep",
     "name": "Overhead Cable Tricep",
     "aka": [
       "Cable French Press"
@@ -10446,9 +10753,11 @@
       "Tate Press",
       "Single-Arm Cable French Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "overhead-tricep-isolation"
   },
   {
+    "slug": "single-arm-cable-french-press",
     "name": "Single-Arm Cable French Press",
     "aka": [
       "Single-Arm Overhead Cable Extension"
@@ -10480,6 +10789,7 @@
     "derived": true
   },
   {
+    "slug": "overhead-dumbbell-tricep",
     "name": "Overhead Dumbbell Tricep",
     "aka": [
       "DB French Press"
@@ -10510,9 +10820,11 @@
       "Dumbbell Skullcrusher",
       "Single-Arm Overhead DB Tricep"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "overhead-tricep-isolation"
   },
   {
+    "slug": "single-arm-overhead-dumbbell-tricep",
     "name": "Single-Arm Overhead Dumbbell Tricep",
     "aka": [
       "Single-Arm DB French Press"
@@ -10544,6 +10856,7 @@
     "derived": true
   },
   {
+    "slug": "cable-cross-body-triceps-extension",
     "name": "Cable Cross-body Triceps Extension",
     "aka": [
       "Single-Arm Cable Extension (across)"
@@ -10575,6 +10888,7 @@
     "derived": true
   },
   {
+    "slug": "cable-tricep-kickback",
     "name": "Cable Tricep Kickback",
     "aka": [
       "Rope Kickback"
@@ -10604,9 +10918,11 @@
       "Single-Arm Cable Kickback",
       "Dumbbell Kickback"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "tricep-kickback-isolation"
   },
   {
+    "slug": "single-arm-cable-tricep-kickback",
     "name": "Single-Arm Cable Tricep Kickback",
     "aka": [
       "Single-Arm Kickback"
@@ -10638,6 +10954,7 @@
     "derived": true
   },
   {
+    "slug": "dumbbell-tricep-kickback",
     "name": "Dumbbell Tricep Kickback",
     "aka": [
       "DB Kickback"
@@ -10666,9 +10983,11 @@
       "Cable Tricep Kickback",
       "Overhead Dumbbell Tricep"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "tricep-kickback-isolation"
   },
   {
+    "slug": "close-grip-push-up",
     "name": "Close Grip Push-Up",
     "aka": [
       "Triceps Push-Up"
@@ -10700,6 +11019,7 @@
     "derived": true
   },
   {
+    "slug": "bench-dip",
     "name": "Bench Dip",
     "aka": [
       "Parallel Bar Dip (bench)"
@@ -10727,20 +11047,21 @@
       "Tricep Pushdown",
       "Skullcrusher",
       "Close Grip Push-Up",
-      "Weighted Dip",
+      "Dip",
       "Seated Dip Machine"
     ],
     "derived": true
   },
   {
+    "slug": "band-triceps-pushdown",
     "name": "Band Triceps Pushdown",
     "aka": [],
     "bodyPart": "Arms",
     "category": "hypertrophy",
     "movementPattern": "isolation",
     "movementPatternRaw": "Elbow Extension",
-    "modality": "cable",
-    "equipment": "Cable",
+    "modality": "band",
+    "equipment": "Band",
     "primaryMuscle": "Triceps",
     "primaryMuscles": [
       "Triceps"
@@ -10758,10 +11079,12 @@
       "Cable Pushdown",
       "Band Overhead Extension"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "triceps-pushdown-isolation"
   },
   {
-    "name": "Swiss Bar Skull Crusher",
+    "slug": "swiss-bar-skull-crusher",
+    "name": "Swiss Bar Skullcrusher",
     "aka": [
       "Football Bar Triceps Extension"
     ],
@@ -10790,9 +11113,11 @@
       "Tate Press",
       "Swiss Bar JM Press"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "skullcrusher-isolation"
   },
   {
+    "slug": "swiss-bar-bicep-curl",
     "name": "Swiss Bar Bicep Curl",
     "aka": [
       "Football Bar Curl"
@@ -10824,9 +11149,11 @@
       "Axle Bar Bicep Curl",
       "Dumbbell Hammer Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "axle-bar-bicep-curl",
     "name": "Axle Bar Bicep Curl",
     "aka": [
       "Fat Bar Curl"
@@ -10857,9 +11184,11 @@
       "Reverse Barbell Curl",
       "Swiss Bar Bicep Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "curl-isolation"
   },
   {
+    "slug": "swiss-bar-jm-press",
     "name": "Swiss Bar JM Press",
     "aka": [
       "Football Bar JM Press"
@@ -10887,11 +11216,13 @@
       "JM Press",
       "Close Grip Bench",
       "Skull Crusher",
-      "Swiss Bar Skull Crusher"
+      "Swiss Bar Skullcrusher"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "jm-press-isolation"
   },
   {
+    "slug": "ab-crunch-machine",
     "name": "Ab Crunch Machine",
     "aka": [
       "Seated Crunch Machine"
@@ -10924,6 +11255,7 @@
     "derived": true
   },
   {
+    "slug": "total-core-trainer-crunch",
     "name": "Total Core Trainer Crunch",
     "aka": [
       "Ab Board Hyperextension Crunch"
@@ -10955,6 +11287,7 @@
     "derived": true
   },
   {
+    "slug": "semi-recumbent-ab-bench-crunch",
     "name": "Semi-Recumbent Ab Bench Crunch",
     "aka": [
       "45° Seat Angle Crunch"
@@ -10963,8 +11296,8 @@
     "category": "strength",
     "movementPattern": "core",
     "movementPatternRaw": "Spinal Flexion (Machine)",
-    "modality": "machine_selectorized",
-    "equipment": "Machine",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Abs",
     "primaryMuscles": [
       "Abs"
@@ -10975,8 +11308,8 @@
     "stabilizers": [],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
       "Total Core Trainer Crunch",
@@ -10986,6 +11319,7 @@
     "derived": true
   },
   {
+    "slug": "roman-chair-reverse-crunch",
     "name": "Roman Chair Reverse Crunch",
     "aka": [
       "Hyperextension Bench Reverse Crunch"
@@ -10994,8 +11328,8 @@
     "category": "strength",
     "movementPattern": "core",
     "movementPatternRaw": "Spinal Flexion (Lower Abs)",
-    "modality": "machine_selectorized",
-    "equipment": "Machine",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Abs",
     "primaryMuscles": [
       "Abs",
@@ -11009,8 +11343,8 @@
     ],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
       "Hanging Leg Raise",
@@ -11020,9 +11354,12 @@
     "derived": true
   },
   {
+    "slug": "rotary-torso-machine",
     "name": "Rotary Torso Machine",
     "aka": [
-      "Twist Machine"
+      "Twist Machine",
+      "Seated Rotary Torso Machine",
+      "Twist Seat Machine"
     ],
     "bodyPart": "Core & Abs",
     "category": "strength",
@@ -11046,47 +11383,14 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Russian Twist (Weighted)",
+      "Dumbbell Russian Twist",
       "GHD Russian Twist",
-      "Cable Woodchopper",
-      "Seated Rotary Torso Machine"
+      "Cable Woodchopper"
     ],
     "derived": true
   },
   {
-    "name": "Seated Rotary Torso Machine",
-    "aka": [
-      "Twist Seat Machine"
-    ],
-    "bodyPart": "Core & Abs",
-    "category": "strength",
-    "movementPattern": "core",
-    "movementPatternRaw": "Rotation (Machine)",
-    "modality": "machine_selectorized",
-    "equipment": "Machine",
-    "primaryMuscle": "Abs",
-    "primaryMuscles": [
-      "Obliques"
-    ],
-    "secondaryMuscles": [
-      "Abs"
-    ],
-    "stabilizers": [
-      "Hip Flexors"
-    ],
-    "cnsScore": 2,
-    "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
-    "defaultRestSeconds": 60,
-    "similar": [
-      "Russian Twist",
-      "Cable Woodchopper",
-      "GHD Russian Twist"
-    ],
-    "derived": true
-  },
-  {
+    "slug": "cable-woodchopper",
     "name": "Cable Woodchopper",
     "aka": [
       "Twist Cable Chop"
@@ -11120,6 +11424,7 @@
     "derived": true
   },
   {
+    "slug": "cable-crunch",
     "name": "Cable Crunch",
     "aka": [
       "Kneeling Rope Crunch"
@@ -11151,6 +11456,7 @@
     "derived": true
   },
   {
+    "slug": "reverse-crunch",
     "name": "Reverse Crunch",
     "aka": [
       "Pelvic Lift Crunch"
@@ -11159,8 +11465,8 @@
     "category": "strength",
     "movementPattern": "core",
     "movementPatternRaw": "Spinal Flexion (lower abs)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Abs",
     "primaryMuscles": [
       "Abs",
@@ -11174,8 +11480,8 @@
     ],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
       "Hanging Leg Raise",
@@ -11185,6 +11491,7 @@
     "derived": true
   },
   {
+    "slug": "decline-crunch",
     "name": "Decline Crunch",
     "aka": [
       "Decline Sit-Up"
@@ -11193,8 +11500,8 @@
     "category": "strength",
     "movementPattern": "core",
     "movementPatternRaw": "Spinal Flexion",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Abs",
     "primaryMuscles": [
       "Abs"
@@ -11205,8 +11512,8 @@
     "stabilizers": [],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
       "Weighted Crunch",
@@ -11216,6 +11523,7 @@
     "derived": true
   },
   {
+    "slug": "ab-crunch-bench-angled",
     "name": "Ab Crunch Bench (Angled)",
     "aka": [
       "Decline Ab Bench"
@@ -11224,8 +11532,8 @@
     "category": "strength",
     "movementPattern": "core",
     "movementPatternRaw": "Spinal Flexion",
-    "modality": "machine_selectorized",
-    "equipment": "Machine",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Abs",
     "primaryMuscles": [
       "Abs"
@@ -11236,8 +11544,8 @@
     "stabilizers": [],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
       "Decline Crunch",
@@ -11247,6 +11555,7 @@
     "derived": true
   },
   {
+    "slug": "hanging-leg-raise",
     "name": "Hanging Leg Raise",
     "aka": [
       "HLR"
@@ -11280,9 +11589,11 @@
       "V-Up",
       "Reverse Crunch"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hanging-leg-raise-core"
   },
   {
+    "slug": "toes-to-bar",
     "name": "Toes to Bar",
     "aka": [
       "T2B"
@@ -11317,6 +11628,7 @@
     "derived": true
   },
   {
+    "slug": "toes-to-rings",
     "name": "Toes to Rings",
     "aka": [
       "T2R"
@@ -11351,6 +11663,7 @@
     "derived": true
   },
   {
+    "slug": "windshield-wiper",
     "name": "Windshield Wiper",
     "aka": [
       "Hanging Oblique Twist"
@@ -11384,6 +11697,7 @@
     "derived": true
   },
   {
+    "slug": "ab-wheel-rollout",
     "name": "Ab Wheel Rollout",
     "aka": [
       "Roller Rollout"
@@ -11420,6 +11734,7 @@
     "derived": true
   },
   {
+    "slug": "plank",
     "name": "Plank",
     "aka": [
       "Front Hover"
@@ -11452,9 +11767,11 @@
       "Hollow Body Hold",
       "Side Plank"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "plank-core"
   },
   {
+    "slug": "side-plank",
     "name": "Side Plank",
     "aka": [
       "Lateral Hover"
@@ -11490,6 +11807,7 @@
     "derived": true
   },
   {
+    "slug": "reverse-plank",
     "name": "Reverse Plank",
     "aka": [
       "Supine Bridge"
@@ -11524,6 +11842,7 @@
     "derived": true
   },
   {
+    "slug": "dead-bug",
     "name": "Dead Bug",
     "aka": [],
     "bodyPart": "Core & Abs",
@@ -11556,6 +11875,7 @@
     "derived": true
   },
   {
+    "slug": "pallof-press",
     "name": "Pallof Press",
     "aka": [
       "Anti-Rotation Press"
@@ -11591,6 +11911,7 @@
     "derived": true
   },
   {
+    "slug": "dragon-flag",
     "name": "Dragon Flag",
     "aka": [
       "Bruce Lee Flag"
@@ -11625,6 +11946,7 @@
     "derived": true
   },
   {
+    "slug": "l-sit-floor",
     "name": "L-Sit (floor)",
     "aka": [],
     "bodyPart": "Core & Abs",
@@ -11655,6 +11977,7 @@
     "derived": true
   },
   {
+    "slug": "v-up",
     "name": "V-Up",
     "aka": [],
     "bodyPart": "Core & Abs",
@@ -11687,6 +12010,7 @@
     "derived": true
   },
   {
+    "slug": "trx-plank",
     "name": "TRX Plank",
     "aka": [
       "Suspended Plank"
@@ -11718,9 +12042,11 @@
       "TRX Mountain Climber",
       "Ring Plank"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "plank-core"
   },
   {
+    "slug": "trx-mountain-climber",
     "name": "TRX Mountain Climber",
     "aka": [
       "Suspended Knee Drive"
@@ -11752,6 +12078,7 @@
     "derived": true
   },
   {
+    "slug": "trx-burpee",
     "name": "TRX Burpee",
     "aka": [
       "Suspended Burpee"
@@ -11780,9 +12107,11 @@
       "TRX Mountain Climber",
       "Jump Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "burpee-other"
   },
   {
+    "slug": "trx-power-pull",
     "name": "TRX Power-Pull",
     "aka": [
       "Suspended Knee Tuck"
@@ -11814,6 +12143,7 @@
     "derived": true
   },
   {
+    "slug": "suspended-squat",
     "name": "Suspended Squat",
     "aka": [
       "TRX Assisted Squat"
@@ -11822,8 +12152,8 @@
     "category": "strength",
     "movementPattern": "squat",
     "movementPatternRaw": "Knee Dominant (Stability)",
-    "modality": "barbell",
-    "equipment": "Barbell",
+    "modality": "bodyweight",
+    "equipment": "TRX",
     "primaryMuscle": "Abs",
     "primaryMuscles": [
       "Abs"
@@ -11834,8 +12164,8 @@
     "stabilizers": [],
     "cnsScore": 7,
     "recoveryImpact": 5,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
       "Goblet Squat",
@@ -11845,6 +12175,7 @@
     "derived": true
   },
   {
+    "slug": "trx-assisted-pistol-squat",
     "name": "TRX Assisted Pistol Squat",
     "aka": [
       "TRX Single-Leg Squat"
@@ -11873,9 +12204,11 @@
       "TRX Squat",
       "Bulgarian Split Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "pistol-squat-lunge"
   },
   {
+    "slug": "trx-squat-to-y-raise",
     "name": "TRX Squat to Y Raise",
     "aka": [
       "Squat + Shoulder Raise"
@@ -11907,6 +12240,7 @@
     "derived": true
   },
   {
+    "slug": "trx-hanging-leg-raise",
     "name": "TRX Hanging Leg Raise",
     "aka": [
       "Suspended Leg Raise"
@@ -11938,9 +12272,11 @@
       "Toes to Rings",
       "TRX Knee Tuck"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "hanging-leg-raise-core"
   },
   {
+    "slug": "ring-l-sit",
     "name": "Ring L-Sit",
     "aka": [
       "Ring Support L-Sit"
@@ -11972,6 +12308,7 @@
     "derived": true
   },
   {
+    "slug": "ring-hanging-knee-raise",
     "name": "Ring Hanging Knee Raise",
     "aka": [
       "Ring Knee Raise"
@@ -12006,47 +12343,17 @@
     "derived": true
   },
   {
-    "name": "Weighted Side Bend",
+    "slug": "dumbbell-side-bend",
+    "name": "Dumbbell Side Bend",
     "aka": [
+      "DB Lateral Flexion",
+      "Weighted Side Bend",
       "Lateral Flexion"
     ],
     "bodyPart": "Core & Abs",
     "category": "strength",
     "movementPattern": "core",
     "movementPatternRaw": "Lateral Flexion",
-    "modality": "other",
-    "equipment": "Other",
-    "primaryMuscle": "Abs",
-    "primaryMuscles": [
-      "Obliques"
-    ],
-    "secondaryMuscles": [
-      "Abs"
-    ],
-    "stabilizers": [
-      "Hip Flexors"
-    ],
-    "cnsScore": 2,
-    "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": true,
-    "defaultRestSeconds": 60,
-    "similar": [
-      "Dumbbell Side Bend",
-      "Cable Side Bend",
-      "Oblique Extension Machine"
-    ],
-    "derived": true
-  },
-  {
-    "name": "Dumbbell Side Bend",
-    "aka": [
-      "DB Lateral Flexion"
-    ],
-    "bodyPart": "Core & Abs",
-    "category": "strength",
-    "movementPattern": "core",
-    "movementPatternRaw": "Lateral Flexion",
     "modality": "dumbbell",
     "equipment": "Dumbbell",
     "primaryMuscle": "Abs",
@@ -12065,50 +12372,18 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Weighted Side Bend",
       "Cable Side Bend",
       "Oblique Extension"
     ],
     "derived": true
   },
   {
-    "name": "Russian Twist (Weighted)",
-    "aka": [
-      "Seated Twist"
-    ],
-    "bodyPart": "Core & Abs",
-    "category": "strength",
-    "movementPattern": "core",
-    "movementPatternRaw": "Rotation",
-    "modality": "other",
-    "equipment": "Other",
-    "primaryMuscle": "Abs",
-    "primaryMuscles": [
-      "Obliques"
-    ],
-    "secondaryMuscles": [
-      "Abs"
-    ],
-    "stabilizers": [
-      "Hip Flexors"
-    ],
-    "cnsScore": 2,
-    "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": true,
-    "defaultRestSeconds": 60,
-    "similar": [
-      "GHD Russian Twist",
-      "Rotary Torso Machine",
-      "Cable Chop",
-      "Dumbbell Russian Twist"
-    ],
-    "derived": true
-  },
-  {
+    "slug": "dumbbell-russian-twist",
     "name": "Dumbbell Russian Twist",
     "aka": [
-      "DB Seated Twist"
+      "DB Seated Twist",
+      "Russian Twist (Weighted)",
+      "Seated Twist"
     ],
     "bodyPart": "Core & Abs",
     "category": "strength",
@@ -12132,13 +12407,13 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Russian Twist (Weighted)",
       "GHD Russian Twist",
       "Cable Chop"
     ],
     "derived": true
   },
   {
+    "slug": "ghd-russian-twist",
     "name": "GHD Russian Twist",
     "aka": [
       "GHD Trunk Rotation"
@@ -12147,8 +12422,8 @@
     "category": "strength",
     "movementPattern": "core",
     "movementPatternRaw": "Rotation (hyperextended)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Abs",
     "primaryMuscles": [
       "Obliques"
@@ -12161,17 +12436,18 @@
     ],
     "cnsScore": 2,
     "recoveryImpact": 1,
-    "loggingMetric": "weight_reps",
+    "loggingMetric": "reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Russian Twist (Weighted)",
+      "Dumbbell Russian Twist",
       "Windshield Wiper",
       "Cable Twist"
     ],
     "derived": true
   },
   {
+    "slug": "ghd-sit-up",
     "name": "GHD Sit-Up",
     "aka": [
       "Glute Ham Developer Sit-Up"
@@ -12203,6 +12479,7 @@
     "derived": true
   },
   {
+    "slug": "oblique-extension-machine",
     "name": "Oblique Extension (Machine)",
     "aka": [
       "Side Extension"
@@ -12229,13 +12506,13 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Weighted Side Bend",
-      "Cable Side Bend",
-      "Dumbbell Side Bend"
+      "Dumbbell Side Bend",
+      "Cable Side Bend"
     ],
     "derived": true
   },
   {
+    "slug": "swiss-bar-ab-rollout",
     "name": "Swiss Bar Ab Rollout",
     "aka": [],
     "bodyPart": "Core & Abs",
@@ -12268,6 +12545,7 @@
     "derived": true
   },
   {
+    "slug": "machine-4-way-neck",
     "name": "Machine 4-Way Neck",
     "aka": [
       "Cervical 4-Way Machine"
@@ -12297,6 +12575,7 @@
     "derived": true
   },
   {
+    "slug": "machine-neck-extension",
     "name": "Machine Neck Extension",
     "aka": [
       "Lever Neck Extension (Posterior)"
@@ -12323,9 +12602,11 @@
       "4-Way Neck",
       "Neck Harness Extension"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "neck-extension-core"
   },
   {
+    "slug": "machine-neck-curl",
     "name": "Machine Neck Curl",
     "aka": [
       "Lever Neck Flexion (Anterior)"
@@ -12352,9 +12633,11 @@
       "4-Way Neck",
       "Neck Harness Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "neck-curl-core"
   },
   {
+    "slug": "neck-harness-extension",
     "name": "Neck Harness Extension",
     "aka": [
       "Head Harness (Posterior)"
@@ -12384,6 +12667,7 @@
     "derived": true
   },
   {
+    "slug": "neck-harness-curl",
     "name": "Neck Harness Curl",
     "aka": [
       "Head Harness (Anterior)"
@@ -12413,6 +12697,7 @@
     "derived": true
   },
   {
+    "slug": "machine-neck-side-flexion",
     "name": "Machine Neck Side Flexion",
     "aka": [
       "Lever Lateral Neck Flexion"
@@ -12439,9 +12724,11 @@
       "Neck Harness Side",
       "Manual Resistance Side Flexion"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "neck-side-flexion-core"
   },
   {
+    "slug": "machine-neck-rotation",
     "name": "Machine Neck Rotation",
     "aka": [
       "Rotary Neck Machine"
@@ -12471,6 +12758,7 @@
     "derived": true
   },
   {
+    "slug": "plate-loaded-neck-curl",
     "name": "Plate-Loaded Neck Curl",
     "aka": [
       "Olympic Plate Neck Curl"
@@ -12497,9 +12785,11 @@
       "Machine Neck Curl",
       "Plate-Loaded Neck Extension"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "neck-curl-core"
   },
   {
+    "slug": "plate-loaded-neck-extension",
     "name": "Plate-Loaded Neck Extension",
     "aka": [
       "Olympic Plate Neck Extension"
@@ -12526,9 +12816,11 @@
       "Machine Neck Extension",
       "Plate-Loaded Neck Curl"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "neck-extension-core"
   },
   {
+    "slug": "band-neck-flexion",
     "name": "Band Neck Flexion",
     "aka": [
       "Resistance Band Neck Curl"
@@ -12558,6 +12850,7 @@
     "derived": true
   },
   {
+    "slug": "band-neck-extension",
     "name": "Band Neck Extension",
     "aka": [
       "Resistance Band Neck Hyperextension"
@@ -12584,9 +12877,11 @@
       "Neck Harness Extension",
       "Machine Neck Extension"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "neck-extension-core"
   },
   {
+    "slug": "band-neck-side-flexion",
     "name": "Band Neck Side Flexion",
     "aka": [
       "Resistance Band Lateral Flexion"
@@ -12613,9 +12908,11 @@
       "Band Neck Rotation",
       "Neck Harness Side"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "neck-side-flexion-core"
   },
   {
+    "slug": "neck-self-resisted-flexion",
     "name": "Neck Self-Resisted Flexion",
     "aka": [
       "Manual Resistance Neck Curl"
@@ -12645,6 +12942,7 @@
     "derived": true
   },
   {
+    "slug": "neck-self-resisted-extension",
     "name": "Neck Self-Resisted Extension",
     "aka": [
       "Manual Resistance Neck Extension"
@@ -12674,6 +12972,7 @@
     "derived": true
   },
   {
+    "slug": "neck-self-resisted-side-flexion",
     "name": "Neck Self-Resisted Side Flexion",
     "aka": [
       "Manual Resistance Lateral Flexion"
@@ -12703,6 +13002,7 @@
     "derived": true
   },
   {
+    "slug": "supine-neck-bridge-wrestling",
     "name": "Supine Neck Bridge (Wrestling)",
     "aka": [
       "Wrestler's Neck Bridge"
@@ -12732,6 +13032,7 @@
     "derived": true
   },
   {
+    "slug": "front-neck-bridge-wrestling",
     "name": "Front Neck Bridge (Wrestling)",
     "aka": [
       "Forehead Bridge"
@@ -12761,6 +13062,7 @@
     "derived": true
   },
   {
+    "slug": "prone-neck-shrug-floor",
     "name": "Prone Neck Shrug (Floor)",
     "aka": [
       "Lying Prone Neck Shrug"
@@ -12792,6 +13094,7 @@
     "derived": true
   },
   {
+    "slug": "supine-neck-shrug-floor",
     "name": "Supine Neck Shrug (Floor)",
     "aka": [
       "Lying Supine Neck Shrug"
@@ -12823,6 +13126,7 @@
     "derived": true
   },
   {
+    "slug": "hollow-body-hold",
     "name": "Hollow Body Hold",
     "aka": [],
     "bodyPart": "Calisthenics (Beginner/Int)",
@@ -12854,6 +13158,7 @@
     "derived": true
   },
   {
+    "slug": "arch-hold",
     "name": "Arch Hold",
     "aka": [
       "Superman Hold"
@@ -12887,6 +13192,7 @@
     "derived": true
   },
   {
+    "slug": "pike-push-up",
     "name": "Pike Push-Up",
     "aka": [],
     "bodyPart": "Calisthenics (Beginner/Int)",
@@ -12919,6 +13225,7 @@
     "derived": true
   },
   {
+    "slug": "dolphin-push-up",
     "name": "Dolphin Push-Up",
     "aka": [],
     "bodyPart": "Calisthenics (Beginner/Int)",
@@ -12949,6 +13256,7 @@
     "derived": true
   },
   {
+    "slug": "jump-squat",
     "name": "Jump Squat",
     "aka": [
       "Plyo Squat"
@@ -12982,9 +13290,11 @@
       "Trap Bar Jump Squat",
       "Dumbbell Jump Squat"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "jump-squat-squat"
   },
   {
+    "slug": "broad-jump",
     "name": "Broad Jump",
     "aka": [
       "Standing Long Jump"
@@ -13019,6 +13329,7 @@
     "derived": true
   },
   {
+    "slug": "strict-muscle-up",
     "name": "Strict Muscle-Up",
     "aka": [
       "Ring",
@@ -13056,6 +13367,7 @@
     "derived": true
   },
   {
+    "slug": "kipping-muscle-up",
     "name": "Kipping Muscle-Up",
     "aka": [
       "Kinetic Muscle-Up"
@@ -13091,6 +13403,7 @@
     "derived": true
   },
   {
+    "slug": "hefesto",
     "name": "Hefesto",
     "aka": [
       "Reverse Muscle-Up"
@@ -13099,8 +13412,8 @@
     "category": "calisthenics",
     "movementPattern": "vertical_push",
     "movementPatternRaw": "Vertical Push → Pull",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
     "primaryMuscle": "Back",
     "primaryMuscles": [
       "Lats"
@@ -13115,8 +13428,8 @@
     ],
     "cnsScore": 7,
     "recoveryImpact": 4,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
       "Negative Muscle-Up",
@@ -13126,6 +13439,7 @@
     "derived": true
   },
   {
+    "slug": "full-planche",
     "name": "Full Planche",
     "aka": [
       "Gymnastic Planche"
@@ -13161,6 +13475,7 @@
     "derived": true
   },
   {
+    "slug": "back-lever",
     "name": "Back Lever",
     "aka": [
       "BL"
@@ -13192,9 +13507,11 @@
       "Front Lever",
       "German Hang"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "back-lever-horizontal-pull"
   },
   {
+    "slug": "front-lever",
     "name": "Front Lever",
     "aka": [
       "FL Hold"
@@ -13228,9 +13545,11 @@
       "Rows (advanced)",
       "Human Flag"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "front-lever-horizontal-pull"
   },
   {
+    "slug": "human-flag",
     "name": "Human Flag",
     "aka": [
       "Side Flag"
@@ -13265,6 +13584,7 @@
     "derived": true
   },
   {
+    "slug": "farmers-walk",
     "name": "Farmers Walk",
     "aka": [
       "Hex Bar Farmers Walk"
@@ -13299,9 +13619,11 @@
       "Dumbbell Farmers Walk",
       "Yoke Walk"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "farmers-walk-carry"
   },
   {
+    "slug": "dumbbell-farmers-walk",
     "name": "Dumbbell Farmers Walk",
     "aka": [
       "DB Farmers Walk"
@@ -13334,9 +13656,11 @@
       "Suitcase Carry",
       "Trap Bar Carry"
     ],
-    "derived": true
+    "derived": true,
+    "movementSlug": "farmers-walk-carry"
   },
   {
+    "slug": "trap-bar-carry",
     "name": "Trap Bar Carry",
     "aka": [
       "Hex Bar Carry"
@@ -13373,6 +13697,7 @@
     "derived": true
   },
   {
+    "slug": "suitcase-carry",
     "name": "Suitcase Carry",
     "aka": [
       "Single-Arm Carry"
@@ -13381,8 +13706,8 @@
     "category": "strength",
     "movementPattern": "carry",
     "movementPatternRaw": "Loaded Carry (anti-lateral flexion)",
-    "modality": "other",
-    "equipment": "Other",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
     "primaryMuscle": "Forearms",
     "primaryMuscles": [
       "Forearms",
@@ -13409,6 +13734,7 @@
     "derived": true
   },
   {
+    "slug": "yoke-walk",
     "name": "Yoke Walk",
     "aka": [
       "Yoke Carry"
@@ -13443,5 +13769,502 @@
       "Suitcase Carry"
     ],
     "derived": true
+  },
+  {
+    "slug": "pull-up",
+    "name": "Pull-Up",
+    "aka": [
+      "Overhand Pull-Up"
+    ],
+    "bodyPart": "Back",
+    "category": "strength",
+    "movementPattern": "vertical_pull",
+    "movementPatternRaw": "Vertical Pull",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
+    "primaryMuscle": "Back",
+    "primaryMuscles": [
+      "Lats"
+    ],
+    "secondaryMuscles": [
+      "Biceps",
+      "Rhomboids",
+      "Rear Delts"
+    ],
+    "stabilizers": [
+      "Forearms",
+      "Core"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
+    "defaultRestSeconds": 120,
+    "similar": [
+      "Pull-Up (Wide Grip)",
+      "Pull-Up (Neutral Grip)",
+      "Chin-Up (Supinated)",
+      "Lat Pulldown"
+    ],
+    "derived": false
+  },
+  {
+    "slug": "lat-pulldown",
+    "name": "Lat Pulldown",
+    "aka": [
+      "Pulldown"
+    ],
+    "bodyPart": "Back",
+    "category": "strength",
+    "movementPattern": "vertical_pull",
+    "movementPatternRaw": "Vertical Pull",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Back",
+    "primaryMuscles": [
+      "Lats"
+    ],
+    "secondaryMuscles": [
+      "Biceps",
+      "Rhomboids",
+      "Rear Delts"
+    ],
+    "stabilizers": [
+      "Forearms",
+      "Core"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 120,
+    "similar": [
+      "Lat Pulldown (Wide Grip)",
+      "Lat Pulldown (V-Bar)",
+      "Pull-Up"
+    ],
+    "derived": false,
+    "movementSlug": "lat-pulldown-vertical-pull"
+  },
+  {
+    "slug": "goblet-squat",
+    "name": "Goblet Squat",
+    "aka": [
+      "Front-Loaded Squat"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "squat",
+    "movementPatternRaw": "Knee Dominant (Squat)",
+    "modality": "kettlebell",
+    "equipment": "Kettlebell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads"
+    ],
+    "secondaryMuscles": [
+      "Glutes",
+      "Adductors"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Abs"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 120,
+    "similar": [
+      "Dumbbell Squat",
+      "Front Squat",
+      "Barbell Back Squat"
+    ],
+    "derived": false
+  },
+  {
+    "slug": "ez-bar-preacher-curl",
+    "name": "EZ Bar Preacher Curl",
+    "aka": [
+      "Barbell Preacher Curl"
+    ],
+    "bodyPart": "Arms",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Elbow Flexion (supported)",
+    "modality": "barbell",
+    "equipment": "EZ Bar",
+    "primaryMuscle": "Biceps",
+    "primaryMuscles": [
+      "Biceps"
+    ],
+    "secondaryMuscles": [
+      "Brachialis",
+      "Forearms"
+    ],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 75,
+    "similar": [
+      "Dumbbell Preacher Curl",
+      "Machine Preacher Curl (Seated)",
+      "EZ Bar Curl"
+    ],
+    "derived": false,
+    "movementSlug": "preacher-curl-isolation"
+  },
+  {
+    "slug": "spider-curl",
+    "name": "Spider Curl",
+    "aka": [
+      "Prone Incline Curl"
+    ],
+    "bodyPart": "Arms",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Elbow Flexion (supported)",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
+    "primaryMuscle": "Biceps",
+    "primaryMuscles": [
+      "Biceps"
+    ],
+    "secondaryMuscles": [
+      "Brachialis"
+    ],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 75,
+    "similar": [
+      "Dumbbell Preacher Curl",
+      "Concentration Curl",
+      "Bayesian Curl"
+    ],
+    "derived": false
+  },
+  {
+    "slug": "cable-hammer-curl",
+    "name": "Cable Hammer Curl",
+    "aka": [
+      "Rope Hammer Curl"
+    ],
+    "bodyPart": "Arms",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Elbow Flexion (brachialis/brachioradialis)",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Biceps",
+    "primaryMuscles": [
+      "Biceps",
+      "Forearms"
+    ],
+    "secondaryMuscles": [
+      "Brachialis"
+    ],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 75,
+    "similar": [
+      "Hammer Curl",
+      "Zottman Curl",
+      "Cable Bicep Curl"
+    ],
+    "derived": false,
+    "movementSlug": "curl-isolation"
+  },
+  {
+    "slug": "landmine-press",
+    "name": "Landmine Press",
+    "aka": [
+      "Half-Kneeling Landmine Press"
+    ],
+    "bodyPart": "Shoulders",
+    "category": "strength",
+    "movementPattern": "vertical_push",
+    "movementPatternRaw": "Vertical Push (Angled)",
+    "modality": "barbell",
+    "equipment": "Landmine",
+    "primaryMuscle": "Shoulders",
+    "primaryMuscles": [
+      "Front Delts"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Chest"
+    ],
+    "stabilizers": [
+      "Core",
+      "Serratus"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 120,
+    "similar": [
+      "Overhead Press",
+      "Dumbbell Overhead Press",
+      "Machine Shoulder Press"
+    ],
+    "derived": false
+  },
+  {
+    "slug": "landmine-row",
+    "name": "Landmine Row",
+    "aka": [
+      "T-Bar Row"
+    ],
+    "bodyPart": "Back",
+    "category": "strength",
+    "movementPattern": "horizontal_pull",
+    "movementPatternRaw": "Horizontal Pull",
+    "modality": "barbell",
+    "equipment": "Landmine",
+    "primaryMuscle": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Rhomboids"
+    ],
+    "secondaryMuscles": [
+      "Biceps",
+      "Rear Delts"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Forearms"
+    ],
+    "cnsScore": 5,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 120,
+    "similar": [
+      "Barbell Row",
+      "T-Bar Row Machine",
+      "Meadows Row"
+    ],
+    "derived": false,
+    "movementSlug": "row-horizontal-pull"
+  },
+  {
+    "slug": "barbell-reverse-lunge",
+    "name": "Barbell Reverse Lunge",
+    "aka": [
+      "Back Lunge"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "lunge",
+    "movementPatternRaw": "Knee Dominant (Unilateral)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads",
+      "Glutes"
+    ],
+    "secondaryMuscles": [
+      "Hamstrings"
+    ],
+    "stabilizers": [
+      "Adductors",
+      "Abs",
+      "Erectors"
+    ],
+    "cnsScore": 6,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 150,
+    "similar": [
+      "Dumbbell Reverse Lunge",
+      "Barbell Walking Lunge",
+      "Bulgarian Split Squat"
+    ],
+    "derived": false,
+    "movementSlug": "reverse-lunge-lunge"
+  },
+  {
+    "slug": "barbell-walking-lunge",
+    "name": "Barbell Walking Lunge",
+    "aka": [],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "lunge",
+    "movementPatternRaw": "Knee Dominant (Unilateral)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads",
+      "Glutes"
+    ],
+    "secondaryMuscles": [
+      "Hamstrings"
+    ],
+    "stabilizers": [
+      "Adductors",
+      "Abs",
+      "Erectors"
+    ],
+    "cnsScore": 6,
+    "recoveryImpact": 4,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 150,
+    "similar": [
+      "Dumbbell Walking Lunge",
+      "Safety Bar Walking Lunge",
+      "Barbell Reverse Lunge"
+    ],
+    "derived": false,
+    "movementSlug": "walking-lunge-lunge"
+  },
+  {
+    "slug": "barbell-step-up",
+    "name": "Barbell Step-Up",
+    "aka": [],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "lunge",
+    "movementPatternRaw": "Knee Dominant (Unilateral)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads",
+      "Glutes"
+    ],
+    "secondaryMuscles": [
+      "Hamstrings"
+    ],
+    "stabilizers": [
+      "Adductors",
+      "Abs",
+      "Erectors"
+    ],
+    "cnsScore": 5,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 150,
+    "similar": [
+      "Dumbbell Step-Up",
+      "Patrick Step-Up",
+      "Bulgarian Split Squat"
+    ],
+    "derived": false,
+    "movementSlug": "step-up-lunge"
+  },
+  {
+    "slug": "calf-press",
+    "name": "Calf Press",
+    "aka": [
+      "Leg Press Calf Raise"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Isolation (Ankle plantarflexion)",
+    "modality": "machine_plate",
+    "equipment": "Machine",
+    "primaryMuscle": "Calves",
+    "primaryMuscles": [
+      "Calves"
+    ],
+    "secondaryMuscles": [],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 75,
+    "similar": [
+      "Standing Calf Raise",
+      "Seated Calf Raise",
+      "Donkey Calf Raise"
+    ],
+    "derived": false
+  },
+  {
+    "slug": "cable-glute-kickback",
+    "name": "Cable Glute Kickback",
+    "aka": [
+      "Cable Kickback"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "hypertrophy",
+    "movementPattern": "hinge",
+    "movementPatternRaw": "Hip Hinge (Glute isolation)",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Glutes",
+    "primaryMuscles": [
+      "Glutes"
+    ],
+    "secondaryMuscles": [
+      "Hamstrings"
+    ],
+    "stabilizers": [
+      "Erectors"
+    ],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 75,
+    "similar": [
+      "Machine Glute Kickback",
+      "Barbell Hip Thrust",
+      "Frog Pump"
+    ],
+    "derived": false,
+    "movementSlug": "glute-kickback-hinge"
+  },
+  {
+    "slug": "burpee",
+    "name": "Burpee",
+    "aka": [
+      "Squat Thrust"
+    ],
+    "bodyPart": "Core & Abs",
+    "category": "calisthenics",
+    "movementPattern": "other",
+    "movementPatternRaw": "Full Body (Explosive)",
+    "modality": "bodyweight",
+    "equipment": "Bodyweight",
+    "primaryMuscle": "Abs",
+    "primaryMuscles": [
+      "Abs"
+    ],
+    "secondaryMuscles": [
+      "Quads",
+      "Chest"
+    ],
+    "stabilizers": [
+      "Obliques"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "reps",
+    "supportsWeightedBodyweight": true,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "TRX Burpee",
+      "Jump Squat",
+      "Box Jump"
+    ],
+    "derived": false,
+    "movementSlug": "burpee-other"
   }
 ]

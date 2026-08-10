@@ -38,6 +38,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -49,18 +50,26 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Dialog
 import androidx.wear.compose.material.rememberPickerState
 import com.ams.herculex.media.MediaControlsScreen
+import com.ams.herculex.ui.OneUiPill
+import com.ams.herculex.ui.OneUiPillStyle
 import kotlinx.coroutines.launch
 
 private val weightOptions = (0..400).map { it * 0.5 }
 private val repsOptions = (1..50).toList()
-private val rpeOptions = (1..10).toList()
+private val rpeOptions = (2..20).map { it * 0.5 }
 private data class WatchSetType(val id: String, val label: String)
+enum class RotaryTarget { WEIGHT, REPS }
 
 private val setTypes = listOf(
     WatchSetType("standard", "Normal"),
     WatchSetType("warmup", "Warm up"),
     WatchSetType("drop", "Drop set"),
     WatchSetType("forced", "Failure"),
+    WatchSetType("rest_pause", "Rest-Pause"),
+    WatchSetType("myo_reps", "Myo Reps"),
+    WatchSetType("partials", "Partials"),
+    WatchSetType("negatives", "Negatives"),
+    WatchSetType("pause", "Pause Reps"),
 )
 private val accessoryOptions = listOf("None", "Belt", "Straps", "Bands", "Chains")
 
@@ -79,23 +88,50 @@ fun SetLoggerScreen(
     }
     val s = session ?: return
 
-    var exerciseIndex by remember(s.currentExerciseIndex, startExerciseIndex) {
+    var exerciseIndex by remember(startExerciseIndex) {
         val initialIndex = startExerciseIndex.takeIf { it in s.exercises.indices }
             ?: s.currentExerciseIndex
         mutableIntStateOf(initialIndex)
     }
+    var previousSize by remember { mutableIntStateOf(s.exercises.size) }
+    LaunchedEffect(s.exercises.size) {
+        if (s.exercises.size > previousSize) {
+            exerciseIndex = s.exercises.lastIndex
+            viewModel.selectExerciseInSession(exerciseIndex)
+        } else if (s.exercises.isNotEmpty() && exerciseIndex !in s.exercises.indices) {
+            exerciseIndex = s.exercises.lastIndex
+        }
+        previousSize = s.exercises.size
+    }
     val exercise = s.exercises.getOrNull(exerciseIndex) ?: return
     val setNumber = exercise.completedSets + 1
+    val plannedOrCurrentSet = remember(exerciseIndex, exercise.sets) {
+        exercise.sets.firstOrNull { !it.completed } ?: exercise.sets.lastOrNull()
+    }
 
-    var setType by remember { mutableStateOf(setTypes.first()) }
+    var setType by remember(exerciseIndex, plannedOrCurrentSet?.setType, plannedOrCurrentSet?.isWarmup) {
+        val plannedType = if (plannedOrCurrentSet?.isWarmup == true) {
+            "warmup"
+        } else {
+            plannedOrCurrentSet?.setType ?: "standard"
+        }
+        mutableStateOf(setTypes.firstOrNull { it.id == plannedType } ?: setTypes.first())
+    }
     var selectedAccessory by remember { mutableStateOf<String?>(null) }
     var showRpeDialog by remember { mutableStateOf(false) }
 
-    val initWeightIdx = remember(exerciseIndex) {
-        weightOptions.indexOfFirst { it >= exercise.template.prevWeight }.takeIf { it >= 0 } ?: 0
+    val initWeightIdx = remember(exerciseIndex, plannedOrCurrentSet?.weight) {
+        val initialWeight = plannedOrCurrentSet?.weight?.takeIf { it > 0 }
+            ?: exercise.template.plannedSets.firstOrNull { (it.targetWeightKg ?: 0.0) > 0 }?.targetWeightKg
+            ?: exercise.template.prevWeight
+        weightOptions.indexOfFirst { it >= initialWeight }.takeIf { it >= 0 } ?: 0
     }
-    val initRepsIdx = remember(exerciseIndex) {
-        (exercise.template.prevReps - 1).coerceIn(0, repsOptions.size - 1)
+    val initRepsIdx = remember(exerciseIndex, plannedOrCurrentSet?.reps) {
+        val initialReps = plannedOrCurrentSet?.reps?.takeIf { it > 0 }
+            ?: exercise.template.plannedSets.firstOrNull { (it.targetReps ?: 0) > 0 }?.targetReps
+            ?: exercise.template.prevReps.takeIf { it > 0 }
+            ?: 8
+        (initialReps - 1).coerceIn(0, repsOptions.size - 1)
     }
 
     val weightState = rememberPickerState(
@@ -109,16 +145,22 @@ fun SetLoggerScreen(
         repeatItems = false,
     )
 
-    var focusedCol by remember { mutableIntStateOf(0) }
-    val weightFocus = remember { FocusRequester() }
-    val repsFocus = remember { FocusRequester() }
+    var rotaryTarget by remember { mutableStateOf(RotaryTarget.WEIGHT) }
+    val setPickerFocus = remember { FocusRequester() }
 
     val selectedWeight = weightOptions[weightState.selectedOption]
     val selectedReps = repsOptions[repsState.selectedOption]
     val prevWeight = "%.1f".format(exercise.template.prevWeight)
 
     val pagerState = rememberPagerState(pageCount = { 3 })
-    val mediaPagerState = rememberPagerState(pageCount = { 2 })
+    // Page 0 = glance (swipe down), 1 = the set logger (default), 2 = media controls (swipe up).
+    val mediaPagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
+
+    LaunchedEffect(pagerState.currentPage, mediaPagerState.currentPage) {
+        if (pagerState.currentPage == 0 && mediaPagerState.currentPage == 1) {
+            runCatching { setPickerFocus.requestFocus() }
+        }
+    }
 
     // NestedScrollConnection to intercept swipe-right on page 0 and trigger popBackStack()
     val nestedScrollConnection = remember {
@@ -140,6 +182,8 @@ fun SetLoggerScreen(
             .background(Color.Black),
     ) { verticalPage ->
         if (verticalPage == 0) {
+            WorkoutGlanceScreen(session = s)
+        } else if (verticalPage == 1) {
             HorizontalPager(
         state = pagerState,
         modifier = Modifier
@@ -153,34 +197,47 @@ fun SetLoggerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 8.dp),
+                        .attachWorkoutSetPickerRotary(
+                            weightState = weightState,
+                            weightOptionsCount = weightOptions.size,
+                            repsState = repsState,
+                            repsOptionsCount = repsOptions.size,
+                            rotaryTarget = rotaryTarget,
+                            focusRequester = setPickerFocus,
+                        )
+                        .padding(top = 18.dp, bottom = 4.dp, start = 10.dp, end = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Spacer(Modifier.height(4.dp))
-                    
-                    // Header: Main exercise name and equipment variant on second line
+                    // Header: Main exercise name and equipment variant on second line.
                     val rawName = exercise.template.name
                     val mainName = if (rawName.contains("(")) rawName.substringBefore("(").trim() else rawName
-                    val subName = if (rawName.contains("(")) rawName.substringAfter("(").substringBefore(")").trim() else ""
+                    val qualifier = if (rawName.contains("(")) rawName.substringAfter("(").substringBefore(")").trim() else ""
+                    val subName = qualifier.ifEmpty {
+                        exercise.template.equipmentVariant?.let { ExerciseCatalog.equipmentLabel(it) } ?: ""
+                    }
 
                     Text(
                         mainName,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp),
+                        fontSize = 15.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 12.dp),
                     )
                     if (subName.isNotEmpty()) {
                         Text(
                             subName,
                             color = Color(0xFFB0BEC5),
                             fontWeight = FontWeight.Medium,
-                            fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp),
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 12.dp),
                         )
                     }
                     
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(4.dp))
                     
                     // Pickers (Weight & Reps with attachPickerRotary) and Set Control in between
                     Row(
@@ -194,16 +251,13 @@ fun SetLoggerScreen(
                         Column(
                             modifier = Modifier
                                 .width(64.dp)
-                                .clickable { focusedCol = 0 }
-                                .attachPickerRotary(
-                                    pickerState = weightState,
-                                    maxOptions = weightOptions.size,
-                                    focusRequester = weightFocus,
-                                    isFocused = focusedCol == 0,
-                                ),
+                                .clickable {
+                                    rotaryTarget = RotaryTarget.WEIGHT
+                                    runCatching { setPickerFocus.requestFocus() }
+                                },
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Text("Kg", color = if (focusedCol == 0) Color(0xFF42A5F5) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Kg", color = if (rotaryTarget == RotaryTarget.WEIGHT) Color(0xFF42A5F5) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             Picker(
                                 state = weightState,
                                 contentDescription = "Weight",
@@ -214,31 +268,39 @@ fun SetLoggerScreen(
                                 val isSelected = index == weightState.selectedOption
                                 Text(
                                     text = "%.1f".format(weightOptions[index]),
-                                    color = if (isSelected && focusedCol == 0) Color(0xFF42A5F5) else Color.White,
+                                    color = if (isSelected && rotaryTarget == RotaryTarget.WEIGHT) Color(0xFF42A5F5) else Color.White,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     fontSize = if (isSelected) 19.sp else 13.sp,
                                 )
                             }
                         }
 
-                        // Middle Column: Set Indicator (W above, 1/4 below)
+                        // Middle Column: Set Indicator (W/D/F if warmup/drop/failure, 1/3 below)
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                             modifier = Modifier.padding(horizontal = 4.dp),
                         ) {
-                            val indicatorChar = if (setType.id == "standard") "W" else setType.label.take(1).uppercase()
-                            Text(
-                                indicatorChar,
-                                color = Color(0xFFFFA726),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(Modifier.height(2.dp))
+                            val indicatorChar = when (setType.id) {
+                                "warmup" -> "W"
+                                "drop" -> "D"
+                                "forced" -> "F"
+                                "rest_pause" -> "R"
+                                else -> if (setType.id != "standard") setType.label.take(1).uppercase() else ""
+                            }
+                            if (indicatorChar.isNotEmpty()) {
+                                Text(
+                                    indicatorChar,
+                                    color = Color(0xFFFFA726),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Spacer(Modifier.height(2.dp))
+                            }
                             Text(
                                 "$setNumber/${exercise.template.targetSets}",
                                 color = Color.White,
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                             )
                         }
@@ -247,16 +309,13 @@ fun SetLoggerScreen(
                         Column(
                             modifier = Modifier
                                 .width(64.dp)
-                                .clickable { focusedCol = 1 }
-                                .attachPickerRotary(
-                                    pickerState = repsState,
-                                    maxOptions = repsOptions.size,
-                                    focusRequester = repsFocus,
-                                    isFocused = focusedCol == 1,
-                                ),
+                                .clickable {
+                                    rotaryTarget = RotaryTarget.REPS
+                                    runCatching { setPickerFocus.requestFocus() }
+                                },
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Text("Reps", color = if (focusedCol == 1) Color(0xFF42A5F5) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Reps", color = if (rotaryTarget == RotaryTarget.REPS) Color(0xFF42A5F5) else Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             Picker(
                                 state = repsState,
                                 contentDescription = "Reps",
@@ -267,7 +326,7 @@ fun SetLoggerScreen(
                                 val isSelected = index == repsState.selectedOption
                                 Text(
                                     text = "${repsOptions[index]}",
-                                    color = if (isSelected && focusedCol == 1) Color(0xFF42A5F5) else Color.White,
+                                    color = if (isSelected && rotaryTarget == RotaryTarget.REPS) Color(0xFF42A5F5) else Color.White,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     fontSize = if (isSelected) 21.sp else 14.sp,
                                 )
@@ -305,6 +364,7 @@ fun SetLoggerScreen(
                             NavCircleButton(label = "<", bg = Color(0xFF2C2C2E), size = 36) {
                                 if (exerciseIndex > 0) {
                                     exerciseIndex -= 1
+                                    viewModel.selectExerciseInSession(exerciseIndex)
                                 } else {
                                     navController.popBackStack()
                                 }
@@ -317,7 +377,10 @@ fun SetLoggerScreen(
                         Spacer(Modifier.width(12.dp))
                         Box(modifier = Modifier.offset(y = (-10).dp)) {
                             NavCircleButton(label = ">", bg = Color(0xFF2C2C2E), size = 36) {
-                                if (exerciseIndex < s.exercises.size - 1) exerciseIndex += 1
+                                if (exerciseIndex < s.exercises.size - 1) {
+                                    exerciseIndex += 1
+                                    viewModel.selectExerciseInSession(exerciseIndex)
+                                }
                             }
                         }
                     }
@@ -325,52 +388,62 @@ fun SetLoggerScreen(
             }
             1 -> {
                 // Page 1: Set Type Selection & Add/Remove Set Buttons
-                Column(
+                val setTypeListState = rememberScalingLazyListState()
+
+                ScalingLazyColumn(
+                    state = setTypeListState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .background(Color.Black)
+                        .attachRotaryScroll(setTypeListState),
+                    autoCentering = null,
+                    contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp, start = 12.dp, end = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("Set Type", color = Color(0xFF9E9E9E), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
-                    setTypes.forEach { type ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                                .background(if (setType.id == type.id) Color(0xFF1976D2) else Color(0xFF2C2C2E), shape = CircleShape)
-                                .clickable { setType = type }
-                                .padding(vertical = 6.dp),
-                            contentAlignment = Alignment.Center
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(type.label, color = Color.White, fontSize = 13.sp)
+                            Text(
+                                "Set Type",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 2.dp),
+                            )
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(Color(0xFF2C2C2E), shape = CircleShape)
-                                .clickable { viewModel.removeSetFromExercise(exerciseIndex) }
-                                .padding(vertical = 6.dp),
-                            contentAlignment = Alignment.Center
+                    items(setTypes) { type ->
+                        val isSel = setType.id == type.id
+                        OneUiPill(
+                            title = type.label,
+                            icon = if (isSel) "✓" else "•",
+                            style = if (isSel) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
+                            onClick = { setType = type },
+                        )
+                    }
+                    item {
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text("- Remove", color = Color(0xFFFF5252), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(Color(0xFF1976D2), shape = CircleShape)
-                                .clickable { viewModel.addSetToExercise(exerciseIndex) }
-                                .padding(vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("+ Add Set", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Box(modifier = Modifier.weight(1f)) {
+                                OneUiPill(
+                                    title = "- Remove",
+                                    style = OneUiPillStyle.DangerTransparent,
+                                    onClick = { viewModel.removeSetFromExercise(exerciseIndex) },
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                OneUiPill(
+                                    title = "+ Add Set",
+                                    icon = "+",
+                                    style = OneUiPillStyle.AccentBlue,
+                                    onClick = { viewModel.addSetToExercise(exerciseIndex) },
+                                )
+                            }
                         }
                     }
                 }
@@ -405,18 +478,14 @@ fun SetLoggerScreen(
                     }
                     items(accessoryOptions) { acc ->
                         val isSelected = (acc == "None" && selectedAccessory == null) || selectedAccessory == acc
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(if (isSelected) Color(0xFF1976D2) else Color(0xFF1C1C1E), shape = CircleShape)
-                                .clickable {
-                                    selectedAccessory = if (acc == "None") null else acc
-                                }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(acc, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        }
+                        OneUiPill(
+                            title = acc,
+                            icon = if (isSelected) "✓" else "⚙️",
+                            style = if (isSelected) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
+                            onClick = {
+                                selectedAccessory = if (acc == "None") null else acc
+                            },
+                        )
                     }
                 }
             }
@@ -429,7 +498,7 @@ fun SetLoggerScreen(
 
     if (showRpeDialog) {
         Dialog(showDialog = showRpeDialog, onDismissRequest = { showRpeDialog = false }) {
-            val rpeState = rememberPickerState(initialNumberOfOptions = rpeOptions.size, initiallySelectedOption = 7)
+            val rpeState = rememberPickerState(initialNumberOfOptions = rpeOptions.size, initiallySelectedOption = 14)
             val rpeFocus = remember { FocusRequester() }
             
             Column(
@@ -457,7 +526,11 @@ fun SetLoggerScreen(
                 ) { index ->
                     val isSelected = index == rpeState.selectedOption
                     Text(
-                        text = "${rpeOptions[index]}",
+                        text = if (rpeOptions[index] % 1.0 == 0.0) {
+                            rpeOptions[index].toInt().toString()
+                        } else {
+                            "%.1f".format(rpeOptions[index])
+                        },
                         color = Color.White,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         fontSize = if (isSelected) 24.sp else 16.sp,
