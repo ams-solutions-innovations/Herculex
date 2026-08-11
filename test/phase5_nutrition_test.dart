@@ -440,4 +440,70 @@ void main() {
       },
     );
   });
+
+  // ── Phase 5 (wear-sync-race-conditions-remediation-plan): watch water
+  // quick-add sync ────────────────────────────────────────────────────────
+  //
+  // The watch's "+500ml water" quick add previously only touched the
+  // watch's own local MacroStore and was never sent to (or applied on) the
+  // phone at all. addWaterMl is the phone-side write this newly-wired watch
+  // -> phone message applies.
+  group('Phase 5 — addWaterMl (watch water quick-add sync)', () {
+    test('creates the day\'s DailySummaries row on first add', () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
+
+      await repo.addWaterMl(DateTime(2026, 6, 15), 500);
+
+      final row = (await db.select(db.dailySummaries).get()).single;
+      expect(row.dateIso, '2026-06-15');
+      expect(row.waterMl, 500);
+    });
+
+    test('accumulates across repeated adds on the same day', () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
+
+      await repo.addWaterMl(DateTime(2026, 6, 15), 500);
+      await repo.addWaterMl(DateTime(2026, 6, 15), 250);
+      await repo.addWaterMl(DateTime(2026, 6, 15), 300);
+
+      final row = (await db.select(db.dailySummaries).get()).single;
+      expect(row.waterMl, 1050);
+    });
+
+    test('keeps separate days independent', () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
+
+      await repo.addWaterMl(DateTime(2026, 6, 15), 500);
+      await repo.addWaterMl(DateTime(2026, 6, 16), 200);
+
+      final rows = await db.select(db.dailySummaries).get();
+      expect(rows, hasLength(2));
+      expect(
+        rows.singleWhere((r) => r.dateIso == '2026-06-15').waterMl,
+        500,
+      );
+      expect(
+        rows.singleWhere((r) => r.dateIso == '2026-06-16').waterMl,
+        200,
+      );
+    });
+  });
 }

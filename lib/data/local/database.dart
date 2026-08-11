@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import 'accessory_seed.dart';
 import 'exercise_importer.dart';
@@ -64,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -338,6 +339,26 @@ class AppDatabase extends _$AppDatabase {
             WHERE p.archived = 0 AND sw.program_id IS NOT NULL
             ORDER BY sw.date_iso DESC LIMIT 1)
         ''');
+      }
+      if (from < 22) {
+        // Phase 1 of docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md:
+        // stable session identity for the phone<->watch wire protocol.
+        await m.addColumn(workoutSessions, workoutSessions.sessionUuid);
+        // No Drift/SQLite UUID() function exists, so backfill existing rows
+        // one at a time from Dart instead of a single customStatement.
+        final existingSessionIds = await customSelect(
+          'SELECT id FROM workout_sessions WHERE session_uuid IS NULL',
+        ).get();
+        for (final row in existingSessionIds) {
+          await customUpdate(
+            'UPDATE workout_sessions SET session_uuid = ? WHERE id = ?',
+            variables: [
+              Variable(const Uuid().v4()),
+              Variable(row.read<int>('id')),
+            ],
+            updates: {workoutSessions},
+          );
+        }
       }
     },
   );

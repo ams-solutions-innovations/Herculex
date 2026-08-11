@@ -2,9 +2,23 @@ package com.ams.herculex.workout
 
 import android.content.Context
 import com.ams.herculex.sync.SyncEnvelope
+import com.ams.herculex.sync.WearRevisionAllocator
 import com.ams.herculex.sync.WearSyncContract
 import org.json.JSONArray
 import org.json.JSONObject
+
+/// Resolves the wireId for an incoming exercise entry: the phone's
+/// round-tripped `exercise_<id>` if present, otherwise a fresh watch-minted
+/// one for a genuinely new exercise (Phase 3 of wear-sync remediation).
+/// Top-level and `internal` (rather than inlined in
+/// [WorkoutStore.parseAndUpdateSession]) so this — the only part of that
+/// function with real decision logic — is unit-testable without needing a
+/// live [WorkoutViewModel], which this module has no Robolectric shadow
+/// precedent for constructing (see the Phase 1 log entry in
+/// docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md's progress
+/// doc).
+internal fun resolveExerciseWireId(rawWireId: String): String =
+    rawWireId.takeIf { it.isNotBlank() } ?: "watch_exercise_${java.util.UUID.randomUUID()}"
 
 /// Persists workout definitions in SharedPreferences (JSON).
 /// Syncs with phone and falls back to built-in defaults if un-synced.
@@ -108,6 +122,8 @@ object WorkoutStore {
     fun getById(context: Context, id: String): WorkoutTemplate? =
         getWorkouts(context).firstOrNull { it.id == id }
 
+    // No callers anywhere in android/ as of Phase 1 — confirmed dead code,
+    // left as-is (not threaded with sessionId/entityId identity).
     fun parseAndStartSession(context: Context, json: String, viewModel: WorkoutViewModel?) {
         try {
             val obj = sessionPayloadObject(json)
@@ -169,7 +185,8 @@ object WorkoutStore {
                         completedAtEpochMs = sObj.optNullableLong("completedAtEpochMs"),
                     )
                 }
-                ActiveExercise(template = templateItem, sets = sets)
+                val wireId = resolveExerciseWireId(exObj.optString("wireId"))
+                ActiveExercise(template = templateItem, sets = sets, wireId = wireId)
             }
             viewModel?.updateSessionFromRemote(
                 exercises,
@@ -178,13 +195,14 @@ object WorkoutStore {
                 templateName,
                 startedAtEpochMs,
                 origin = envelope.origin,
+                sessionId = envelope.entityId,
             )
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    fun sessionToJson(session: WorkoutSession): String {
+    fun sessionToJson(context: Context, session: WorkoutSession): String {
         val obj = JSONObject()
         obj.put("template", templateToJson(session.template))
         obj.put("currentExerciseIndex", session.currentExerciseIndex)
@@ -193,6 +211,7 @@ object WorkoutStore {
         val exArr = JSONArray()
         session.exercises.forEach { ex ->
             val exObj = JSONObject()
+            exObj.put("wireId", ex.wireId)
             exObj.put("template", templateItemToJson(ex.template))
             val setsArr = JSONArray()
             ex.sets.forEach { set ->
@@ -220,14 +239,25 @@ object WorkoutStore {
         // workout the watch adopted from the phone is still phone-origin, and
         // the phone uses this field to decide whether to raise its "Workout
         // Started on Watch" alert.
-        val idPrefix = if (session.origin == WearSyncContract.ORIGIN_PHONE) "phone_session" else "watch_session"
         return WearSyncContract.encodeEnvelope(
             entity = WearSyncContract.ENTITY_ACTIVE_WORKOUT,
-            entityId = "${idPrefix}_${session.startTimeMs}",
-            revision = System.currentTimeMillis(),
+            entityId = session.sessionId,
+            revision = WearRevisionAllocator(context, "workout").next(),
             origin = session.origin,
             payload = obj,
         )
+    }
+
+    /// The active session's wire identity, for callers (e.g. [SyncService])
+    /// that need to gate an incoming envelope without a live ViewModel to
+    /// compare against.
+    fun activeSessionEntityId(context: Context): String? {
+        val json = getActiveSessionJson(context) ?: return null
+        return try {
+            sessionEnvelope(json).entityId
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun templateToJson(template: WorkoutTemplate): JSONObject {

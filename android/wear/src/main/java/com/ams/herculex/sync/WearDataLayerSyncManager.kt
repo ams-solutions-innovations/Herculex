@@ -1,6 +1,7 @@
 package com.ams.herculex.sync
 
 import android.content.Context
+import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
@@ -21,7 +22,7 @@ class WearDataLayerSyncManager(
     private val stateStore = WearStateStore(appContext)
     private val queueStore = WearRealtimeQueueStore(appContext)
 
-    suspend fun pushActiveWorkoutSession(sessionJson: String?) {
+    suspend fun pushActiveWorkoutSession(sessionJson: String?, endedEntityId: String? = null) {
         stateStore.saveString(WearStateStore.KEY_ACTIVE_WORKOUT_SESSION, sessionJson)
         putState(
             // Watch -> phone durable path (distinct from STATE_ACTIVE_WORKOUT,
@@ -30,6 +31,7 @@ class WearDataLayerSyncManager(
             values = mapOf(
                 "session_json" to (sessionJson ?: ""),
                 "has_active_session" to (sessionJson != null),
+                "ended_entity_id" to (endedEntityId ?: ""),
             ),
         )
     }
@@ -46,6 +48,10 @@ class WearDataLayerSyncManager(
 
     suspend fun sendQuickAddCommand(commandJson: String): Boolean {
         return sendRealtimeEvent(WearSyncPaths.MESSAGE_QUICKADD_COMMAND, commandJson)
+    }
+
+    suspend fun sendMacroCommand(commandJson: String): Boolean {
+        return sendRealtimeEvent(WearSyncPaths.MESSAGE_MACRO_COMMAND, commandJson)
     }
 
     /**
@@ -77,14 +83,36 @@ class WearDataLayerSyncManager(
         }
     }
 
+    /**
+     * Best-effort drain (Phase 4): every queued message gets its own
+     * delivery attempt, in order — a message that fails on some/all nodes no
+     * longer `break`s the loop and blocks every message behind it (the
+     * previous behavior, made worse by this queue being persisted in
+     * SharedPreferences, so the block survived a restart). Messages that
+     * exceed [MAX_DELIVERY_ATTEMPTS] or [MAX_MESSAGE_AGE_MS] are dropped
+     * rather than retried forever, so a permanently-undeliverable message
+     * can't grow the queue without bound. Mirrors
+     * `MobileWearSyncManager.flushPendingRealtimeMessages` on the phone side.
+     */
     suspend fun flushPendingRealtimeMessages(): Boolean {
         val nodes = nodeClient.connectedNodes.awaitResult()
         if (nodes.isEmpty()) {
             return false
         }
 
-        val sentIds = mutableListOf<String>()
-        for (message in queueStore.readAll()) {
+        val now = System.currentTimeMillis()
+        val pending = queueStore.readAll()
+        val expired = pending.filter { isExpired(it, now, MAX_DELIVERY_ATTEMPTS, MAX_MESSAGE_AGE_MS) }
+        if (expired.isNotEmpty()) {
+            Log.w(TAG, "Dropping ${expired.size} realtime message(s) past retry budget: ${expired.map { it.path }}")
+            queueStore.removeAll(expired.map { it.id })
+        }
+        val expiredIds = expired.map { it.id }.toSet()
+
+        val deliveredIds = mutableListOf<String>()
+        val failedIds = mutableListOf<String>()
+        for (message in pending) {
+            if (message.id in expiredIds) continue
             var deliveredToAllNodes = true
             for (node in nodes) {
                 try {
@@ -93,21 +121,28 @@ class WearDataLayerSyncManager(
                         message.path,
                         message.payloadJson.toByteArray(Charsets.UTF_8),
                     ).awaitResult()
-                } catch (_: Exception) {
+                } catch (error: Exception) {
+                    Log.e(TAG, "Failed to deliver queued ${message.path} to ${node.displayName}", error)
                     deliveredToAllNodes = false
-                    break
                 }
             }
 
-            if (!deliveredToAllNodes) {
-                break
+            if (deliveredToAllNodes) {
+                deliveredIds += message.id
+            } else {
+                failedIds += message.id
             }
-
-            sentIds += message.id
         }
 
-        queueStore.removeAll(sentIds)
-        return sentIds.isNotEmpty()
+        queueStore.removeAll(deliveredIds)
+        queueStore.recordFailedAttempts(failedIds)
+        return deliveredIds.isNotEmpty()
+    }
+
+    private companion object {
+        private const val TAG = "WearSync"
+        private const val MAX_DELIVERY_ATTEMPTS = 20
+        private const val MAX_MESSAGE_AGE_MS = 24L * 60L * 60L * 1000L
     }
 
     private suspend fun putState(path: String, values: Map<String, Any>) {
@@ -126,13 +161,31 @@ class WearDataLayerSyncManager(
     }
 }
 
-private data class PendingWearRealtimeMessage(
+/// [enqueuedAtEpochMs]/[attempts] back the Phase 4 retry cap in
+/// [WearDataLayerSyncManager.flushPendingRealtimeMessages] — `internal`
+/// (rather than `private`) and [isExpired] being a free function lets both
+/// be unit tested without mocking the Wearable `MessageClient`/`NodeClient`
+/// APIs. Mirrors `PendingWearMessage`/`isExpired` in
+/// `MobileWearSyncManager.kt` (separate Gradle module, so not literally
+/// shared code, but kept in lockstep).
+internal data class PendingWearRealtimeMessage(
     val id: String,
     val path: String,
     val payloadJson: String,
+    val enqueuedAtEpochMs: Long,
+    val attempts: Int,
 )
 
-private class WearRealtimeQueueStore(context: Context) {
+internal fun isExpired(
+    message: PendingWearRealtimeMessage,
+    nowEpochMs: Long,
+    maxAttempts: Int,
+    maxAgeMs: Long,
+): Boolean {
+    return message.attempts >= maxAttempts || (nowEpochMs - message.enqueuedAtEpochMs) > maxAgeMs
+}
+
+internal class WearRealtimeQueueStore(context: Context) {
     private val prefs = context.getSharedPreferences("wear_realtime_queue", Context.MODE_PRIVATE)
 
     fun enqueue(path: String, payloadJson: String) {
@@ -141,7 +194,9 @@ private class WearRealtimeQueueStore(context: Context) {
             JSONObject()
                 .put("id", UUID.randomUUID().toString())
                 .put("path", path)
-                .put("payloadJson", payloadJson),
+                .put("payloadJson", payloadJson)
+                .put("enqueuedAtEpochMs", System.currentTimeMillis())
+                .put("attempts", 0),
         )
         prefs.edit().putString(KEY_PENDING_MESSAGES, items.toString()).apply()
     }
@@ -156,6 +211,8 @@ private class WearRealtimeQueueStore(context: Context) {
                         id = item.getString("id"),
                         path = item.getString("path"),
                         payloadJson = item.optString("payloadJson", "{}"),
+                        enqueuedAtEpochMs = item.optLong("enqueuedAtEpochMs", 0L),
+                        attempts = item.optInt("attempts", 0),
                     ),
                 )
             }
@@ -176,6 +233,24 @@ private class WearRealtimeQueueStore(context: Context) {
             }
         }
         prefs.edit().putString(KEY_PENDING_MESSAGES, retained.toString()).apply()
+    }
+
+    /// Bumps the attempt counter for messages that were tried and failed to
+    /// deliver to at least one node this pass, so [isExpired] can eventually
+    /// retire a permanently-undeliverable message.
+    fun recordFailedAttempts(messageIds: Collection<String>) {
+        if (messageIds.isEmpty()) {
+            return
+        }
+
+        val current = JSONArray(prefs.getString(KEY_PENDING_MESSAGES, "[]"))
+        for (index in 0 until current.length()) {
+            val item = current.getJSONObject(index)
+            if (item.getString("id") in messageIds) {
+                item.put("attempts", item.optInt("attempts", 0) + 1)
+            }
+        }
+        prefs.edit().putString(KEY_PENDING_MESSAGES, current.toString()).apply()
     }
 
     private companion object {

@@ -64,6 +64,17 @@ data class LoggedSet(
 data class ActiveExercise(
     val template: ExerciseTemplate,
     val sets: List<LoggedSet> = emptyList(),
+    /// Stable identity for this exercise's *slot* in the session — separate
+    /// from [template], which identifies which exercise fills the slot.
+    /// Mirrors [LoggedSet.wireId] one level up. Round-tripped unmodified when
+    /// this instance came from the phone (its `exercise_<id>` wire id, see
+    /// `wear_workout_sync_service.dart:pushActiveSessionToWatch`);
+    /// watch-created exercises mint their own so the phone's Phase 3
+    /// wireId-based reconciliation can tell "substituted exercise in the same
+    /// slot" apart from "deleted + inserted exercise" instead of relying on
+    /// list position (see `substituteExerciseInSession`, which explicitly
+    /// keeps the old slot's wireId).
+    val wireId: String = "watch_exercise_${java.util.UUID.randomUUID()}",
 ) {
     val completedSets: Int get() = sets.count { it.completed }
 }
@@ -81,4 +92,11 @@ data class WorkoutSession(
     /// on Watch" alert on this; stamping everything `watch` made that alert fire
     /// for phone-started workouts that already had an ongoing surface.
     val origin: String = WearSyncContract.ORIGIN_WATCH,
+    /// Stable identity for this session on the phone<->watch wire protocol
+    /// (Phase 1 of wear-sync remediation) — used as `entityId` on every
+    /// message about it, including its end, and compared against on apply so
+    /// an update/end for a different session can't touch this one. Fixed at
+    /// creation just like [origin]: a session the watch adopted from the
+    /// phone keeps the phone's UUID rather than minting its own.
+    val sessionId: String = java.util.UUID.randomUUID().toString(),
 )

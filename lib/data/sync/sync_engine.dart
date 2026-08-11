@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../local/database.dart';
 
 /// SyncEngine - Persistent hybrid local-first sync coordinator.
-/// Drains the `pending_sync_ops` outbox to simulate/perform Cloud Firestore replication.
+/// Manages local outbox state for pending cloud synchronization.
 class SyncEngine {
   final AppDatabase _db;
   Timer? _syncTimer;
@@ -13,7 +13,7 @@ class SyncEngine {
   final _syncStatusController = StreamController<SyncStatus>.broadcast();
 
   SyncEngine(this._db) {
-    // Start periodic outbox processor every 15 seconds
+    // Periodic check on persistent outbox status every 15 seconds
     _syncTimer = Timer.periodic(const Duration(seconds: 15), (_) => triggerSync());
     _syncStatusController.add(SyncStatus.idle);
   }
@@ -33,47 +33,28 @@ class SyncEngine {
             operation: operation,
           ),
         );
-    
-    // Proactively trigger sync
-    triggerSync();
+
+    // Proactively update sync status
+    await triggerSync();
   }
 
-  /// Process and drain the persistent sync outbox to Firestore.
+  /// Check persistent sync outbox status and update the status stream.
   Future<void> triggerSync() async {
     if (_isSyncing) return;
     _isSyncing = true;
-    _syncStatusController.add(SyncStatus.syncing);
 
     try {
       final ops = await _db.select(_db.pendingSyncOps).get();
       if (ops.isEmpty) {
-        _syncStatusController.add(SyncStatus.synced);
-        _isSyncing = false;
-        return;
+        _syncStatusController.add(SyncStatus.savedLocally);
+      } else {
+        _syncStatusController.add(SyncStatus.pendingCloud);
       }
-
-      debugPrint("SyncEngine: Processing ${ops.length} cloud sync operations...");
-
-      // Simulate sending mutations to Firestore with artificial network latency
-      await Future<void>.delayed(const Duration(milliseconds: 1200));
-
-      for (final op in ops) {
-        debugPrint("SyncEngine: Synced ${op.entityType} (${op.entityId}) via Firestore.");
-        
-        // Remove from persistent local outbox upon successful cloud confirmation
-        await (_db.delete(_db.pendingSyncOps)..where((t) => t.id.equals(op.id))).go();
-      }
-
-      _syncStatusController.add(SyncStatus.synced);
     } catch (e) {
       debugPrint("SyncEngine Error: $e");
       _syncStatusController.add(SyncStatus.error);
     } finally {
       _isSyncing = false;
-      // Fade status back to idle after 3 seconds
-      Future.delayed(const Duration(seconds: 3), () {
-        if (!_isSyncing) _syncStatusController.add(SyncStatus.idle);
-      });
     }
   }
 
@@ -85,16 +66,17 @@ class SyncEngine {
 
 enum SyncStatus {
   idle,
-  syncing,
-  synced,
+  savedLocally,
+  pendingCloud,
   error,
 }
 
 extension SyncStatusExtension on SyncStatus {
   String get label => switch (this) {
-        SyncStatus.idle => "All data synced",
-        SyncStatus.syncing => "Syncing to cloud...",
-        SyncStatus.synced => "Sync completed!",
-        SyncStatus.error => "Sync error. Offline",
+        SyncStatus.idle => "Data saved locally",
+        SyncStatus.savedLocally => "Data saved locally",
+        SyncStatus.pendingCloud => "Pending cloud sync",
+        SyncStatus.error => "Local storage error",
       };
 }
+

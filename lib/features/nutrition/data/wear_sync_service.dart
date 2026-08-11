@@ -9,12 +9,14 @@ class _WatchEvent {
     this.sessionJson,
     this.jumpToWorkout = false,
     this.isDiscard = false,
+    this.entityId,
   });
 
   final _WatchEventType type;
   final String? sessionJson;
   final bool jumpToWorkout;
   final bool isDiscard;
+  final String? entityId;
 }
 
 class WearSyncService {
@@ -23,9 +25,10 @@ class WearSyncService {
 
   static Function(String?, bool)? _onWatchWorkoutStarted;
   static Function(String?)? _onWatchWorkoutUpdated;
-  static Function(bool)? _onWatchWorkoutEnded;
+  static Function(String?, bool)? _onWatchWorkoutEnded;
   static Function(String?)? _onWatchFastingCommand;
   static Function(String?)? _onWatchQuickAddCommand;
+  static Function(String?)? _onWatchMacroCommand;
   static Function()? onRequestSync;
 
   /// Watch events that arrived before the handlers below were registered.
@@ -39,6 +42,7 @@ class WearSyncService {
   static final List<_WatchEvent> _pendingWatchEvents = [];
   static final List<String?> _pendingFastingCommands = [];
   static final List<String?> _pendingQuickAddCommands = [];
+  static final List<String?> _pendingMacroCommands = [];
 
   static set onWatchWorkoutStarted(Function(String?, bool)? handler) {
     _onWatchWorkoutStarted = handler;
@@ -50,7 +54,7 @@ class WearSyncService {
     _drainPendingWatchEvents();
   }
 
-  static set onWatchWorkoutEnded(Function(bool)? handler) {
+  static set onWatchWorkoutEnded(Function(String?, bool)? handler) {
     _onWatchWorkoutEnded = handler;
     _drainPendingWatchEvents();
   }
@@ -63,6 +67,11 @@ class WearSyncService {
   static set onWatchQuickAddCommand(Function(String?)? handler) {
     _onWatchQuickAddCommand = handler;
     _drainPendingQuickAddCommands();
+  }
+
+  static set onWatchMacroCommand(Function(String?)? handler) {
+    _onWatchMacroCommand = handler;
+    _drainPendingMacroCommands();
   }
 
   WearSyncService() {
@@ -98,13 +107,23 @@ class WearSyncService {
           break;
         case 'onWatchWorkoutEnded':
           final isDiscard = call.arguments?['isDiscard'] as bool? ?? false;
-          _deliver(_WatchEvent(_WatchEventType.ended, isDiscard: isDiscard));
+          final entityId = call.arguments?['entityId'] as String?;
+          _deliver(
+            _WatchEvent(
+              _WatchEventType.ended,
+              isDiscard: isDiscard,
+              entityId: entityId,
+            ),
+          );
           break;
         case 'onWatchFastingCommand':
           _deliverFastingCommand(call.arguments?['command_json'] as String?);
           break;
         case 'onWatchQuickAddCommand':
           _deliverQuickAddCommand(call.arguments?['command_json'] as String?);
+          break;
+        case 'onWatchMacroCommand':
+          _deliverMacroCommand(call.arguments?['command_json'] as String?);
           break;
         case 'onRequestSync':
           onRequestSync?.call();
@@ -139,7 +158,7 @@ class WearSyncService {
       case _WatchEventType.ended:
         final handler = _onWatchWorkoutEnded;
         if (handler == null) return false;
-        handler(event.isDiscard);
+        handler(event.entityId, event.isDiscard);
         return true;
     }
   }
@@ -185,6 +204,23 @@ class WearSyncService {
     }
   }
 
+  static void _deliverMacroCommand(String? commandJson) {
+    final handler = _onWatchMacroCommand;
+    if (handler == null) {
+      _pendingMacroCommands.add(commandJson);
+      return;
+    }
+    handler(commandJson);
+  }
+
+  static void _drainPendingMacroCommands() {
+    final handler = _onWatchMacroCommand;
+    if (handler == null) return;
+    while (_pendingMacroCommands.isNotEmpty) {
+      handler(_pendingMacroCommands.removeAt(0));
+    }
+  }
+
   /// Visible for tests — the handlers and queue are process-global statics.
   @visibleForTesting
   static void resetForTesting() {
@@ -193,10 +229,12 @@ class WearSyncService {
     _onWatchWorkoutEnded = null;
     _onWatchFastingCommand = null;
     _onWatchQuickAddCommand = null;
+    _onWatchMacroCommand = null;
     onRequestSync = null;
     _pendingWatchEvents.clear();
     _pendingFastingCommands.clear();
     _pendingQuickAddCommands.clear();
+    _pendingMacroCommands.clear();
   }
 
   /// Tells the native host the watch's session is now in the phone's database,
@@ -282,6 +320,16 @@ class WearSyncService {
     }
   }
 
+  Future<void> markWatchMacroCommandApplied(String commandId) async {
+    try {
+      await _channel.invokeMethod('markWatchMacroCommandApplied', {
+        'command_id': commandId,
+      });
+    } catch (e) {
+      debugPrint('Failed to ack watch macro command: $e');
+    }
+  }
+
   Future<void> syncWorkouts(String workoutsJson) async {
     try {
       await _channel.invokeMethod('syncWorkouts', {
@@ -317,9 +365,11 @@ class WearSyncService {
     }
   }
 
-  Future<void> endWorkoutOnWatch() async {
+  Future<void> endWorkoutOnWatch(String entityId) async {
     try {
-      await _channel.invokeMethod('endWorkoutOnWatch');
+      await _channel.invokeMethod('endWorkoutOnWatch', {
+        'entity_id': entityId,
+      });
       debugPrint('Ended workout on watch');
     } on PlatformException catch (e) {
       debugPrint('Failed to end workout on watch: ${e.message}');

@@ -2850,6 +2850,17 @@ class $WorkoutSessionsTable extends WorkoutSessions
       'REFERENCES micro_workouts (id) ON DELETE SET NULL',
     ),
   );
+  static const VerificationMeta _sessionUuidMeta = const VerificationMeta(
+    'sessionUuid',
+  );
+  @override
+  late final GeneratedColumn<String> sessionUuid = GeneratedColumn<String>(
+    'session_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2860,6 +2871,7 @@ class $WorkoutSessionsTable extends WorkoutSessions
     sessionRpe,
     gymId,
     microWorkoutId,
+    sessionUuid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2923,6 +2935,15 @@ class $WorkoutSessionsTable extends WorkoutSessions
         ),
       );
     }
+    if (data.containsKey('session_uuid')) {
+      context.handle(
+        _sessionUuidMeta,
+        sessionUuid.isAcceptableOrUnknown(
+          data['session_uuid']!,
+          _sessionUuidMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2964,6 +2985,10 @@ class $WorkoutSessionsTable extends WorkoutSessions
         DriftSqlType.int,
         data['${effectivePrefix}micro_workout_id'],
       ),
+      sessionUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_uuid'],
+      ),
     );
   }
 
@@ -2989,6 +3014,13 @@ class WorkoutSessionData extends DataClass
   /// §20) — lets the micro-workout checklist count today's completions while
   /// the sets still flow through every engine as normal training.
   final int? microWorkoutId;
+
+  /// Stable session identity for the phone<->watch sync wire protocol (v22,
+  /// Phase 1 of wear-sync remediation). Generated once when the session
+  /// starts and reused as `entityId` on every message about it, including
+  /// its end — unlike the local autoincrement [id], which was never sent on
+  /// session end and offered nothing for the watch side to compare against.
+  final String? sessionUuid;
   const WorkoutSessionData({
     required this.id,
     this.name,
@@ -2998,6 +3030,7 @@ class WorkoutSessionData extends DataClass
     this.sessionRpe,
     this.gymId,
     this.microWorkoutId,
+    this.sessionUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3022,6 +3055,9 @@ class WorkoutSessionData extends DataClass
     if (!nullToAbsent || microWorkoutId != null) {
       map['micro_workout_id'] = Variable<int>(microWorkoutId);
     }
+    if (!nullToAbsent || sessionUuid != null) {
+      map['session_uuid'] = Variable<String>(sessionUuid);
+    }
     return map;
   }
 
@@ -3045,6 +3081,9 @@ class WorkoutSessionData extends DataClass
       microWorkoutId: microWorkoutId == null && nullToAbsent
           ? const Value.absent()
           : Value(microWorkoutId),
+      sessionUuid: sessionUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sessionUuid),
     );
   }
 
@@ -3062,6 +3101,7 @@ class WorkoutSessionData extends DataClass
       sessionRpe: serializer.fromJson<int?>(json['sessionRpe']),
       gymId: serializer.fromJson<int?>(json['gymId']),
       microWorkoutId: serializer.fromJson<int?>(json['microWorkoutId']),
+      sessionUuid: serializer.fromJson<String?>(json['sessionUuid']),
     );
   }
   @override
@@ -3076,6 +3116,7 @@ class WorkoutSessionData extends DataClass
       'sessionRpe': serializer.toJson<int?>(sessionRpe),
       'gymId': serializer.toJson<int?>(gymId),
       'microWorkoutId': serializer.toJson<int?>(microWorkoutId),
+      'sessionUuid': serializer.toJson<String?>(sessionUuid),
     };
   }
 
@@ -3088,6 +3129,7 @@ class WorkoutSessionData extends DataClass
     Value<int?> sessionRpe = const Value.absent(),
     Value<int?> gymId = const Value.absent(),
     Value<int?> microWorkoutId = const Value.absent(),
+    Value<String?> sessionUuid = const Value.absent(),
   }) => WorkoutSessionData(
     id: id ?? this.id,
     name: name.present ? name.value : this.name,
@@ -3099,6 +3141,7 @@ class WorkoutSessionData extends DataClass
     microWorkoutId: microWorkoutId.present
         ? microWorkoutId.value
         : this.microWorkoutId,
+    sessionUuid: sessionUuid.present ? sessionUuid.value : this.sessionUuid,
   );
   WorkoutSessionData copyWithCompanion(WorkoutSessionsCompanion data) {
     return WorkoutSessionData(
@@ -3114,6 +3157,9 @@ class WorkoutSessionData extends DataClass
       microWorkoutId: data.microWorkoutId.present
           ? data.microWorkoutId.value
           : this.microWorkoutId,
+      sessionUuid: data.sessionUuid.present
+          ? data.sessionUuid.value
+          : this.sessionUuid,
     );
   }
 
@@ -3127,7 +3173,8 @@ class WorkoutSessionData extends DataClass
           ..write('notes: $notes, ')
           ..write('sessionRpe: $sessionRpe, ')
           ..write('gymId: $gymId, ')
-          ..write('microWorkoutId: $microWorkoutId')
+          ..write('microWorkoutId: $microWorkoutId, ')
+          ..write('sessionUuid: $sessionUuid')
           ..write(')'))
         .toString();
   }
@@ -3142,6 +3189,7 @@ class WorkoutSessionData extends DataClass
     sessionRpe,
     gymId,
     microWorkoutId,
+    sessionUuid,
   );
   @override
   bool operator ==(Object other) =>
@@ -3154,7 +3202,8 @@ class WorkoutSessionData extends DataClass
           other.notes == this.notes &&
           other.sessionRpe == this.sessionRpe &&
           other.gymId == this.gymId &&
-          other.microWorkoutId == this.microWorkoutId);
+          other.microWorkoutId == this.microWorkoutId &&
+          other.sessionUuid == this.sessionUuid);
 }
 
 class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
@@ -3166,6 +3215,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   final Value<int?> sessionRpe;
   final Value<int?> gymId;
   final Value<int?> microWorkoutId;
+  final Value<String?> sessionUuid;
   const WorkoutSessionsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -3175,6 +3225,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     this.sessionRpe = const Value.absent(),
     this.gymId = const Value.absent(),
     this.microWorkoutId = const Value.absent(),
+    this.sessionUuid = const Value.absent(),
   });
   WorkoutSessionsCompanion.insert({
     this.id = const Value.absent(),
@@ -3185,6 +3236,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     this.sessionRpe = const Value.absent(),
     this.gymId = const Value.absent(),
     this.microWorkoutId = const Value.absent(),
+    this.sessionUuid = const Value.absent(),
   }) : startedAt = Value(startedAt);
   static Insertable<WorkoutSessionData> custom({
     Expression<int>? id,
@@ -3195,6 +3247,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     Expression<int>? sessionRpe,
     Expression<int>? gymId,
     Expression<int>? microWorkoutId,
+    Expression<String>? sessionUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3205,6 +3258,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
       if (sessionRpe != null) 'session_rpe': sessionRpe,
       if (gymId != null) 'gym_id': gymId,
       if (microWorkoutId != null) 'micro_workout_id': microWorkoutId,
+      if (sessionUuid != null) 'session_uuid': sessionUuid,
     });
   }
 
@@ -3217,6 +3271,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     Value<int?>? sessionRpe,
     Value<int?>? gymId,
     Value<int?>? microWorkoutId,
+    Value<String?>? sessionUuid,
   }) {
     return WorkoutSessionsCompanion(
       id: id ?? this.id,
@@ -3227,6 +3282,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
       sessionRpe: sessionRpe ?? this.sessionRpe,
       gymId: gymId ?? this.gymId,
       microWorkoutId: microWorkoutId ?? this.microWorkoutId,
+      sessionUuid: sessionUuid ?? this.sessionUuid,
     );
   }
 
@@ -3257,6 +3313,9 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     if (microWorkoutId.present) {
       map['micro_workout_id'] = Variable<int>(microWorkoutId.value);
     }
+    if (sessionUuid.present) {
+      map['session_uuid'] = Variable<String>(sessionUuid.value);
+    }
     return map;
   }
 
@@ -3270,7 +3329,8 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
           ..write('notes: $notes, ')
           ..write('sessionRpe: $sessionRpe, ')
           ..write('gymId: $gymId, ')
-          ..write('microWorkoutId: $microWorkoutId')
+          ..write('microWorkoutId: $microWorkoutId, ')
+          ..write('sessionUuid: $sessionUuid')
           ..write(')'))
         .toString();
   }
@@ -23333,6 +23393,7 @@ typedef $$WorkoutSessionsTableCreateCompanionBuilder =
       Value<int?> sessionRpe,
       Value<int?> gymId,
       Value<int?> microWorkoutId,
+      Value<String?> sessionUuid,
     });
 typedef $$WorkoutSessionsTableUpdateCompanionBuilder =
     WorkoutSessionsCompanion Function({
@@ -23344,6 +23405,7 @@ typedef $$WorkoutSessionsTableUpdateCompanionBuilder =
       Value<int?> sessionRpe,
       Value<int?> gymId,
       Value<int?> microWorkoutId,
+      Value<String?> sessionUuid,
     });
 
 final class $$WorkoutSessionsTableReferences
@@ -23492,6 +23554,11 @@ class $$WorkoutSessionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get sessionUuid => $composableBuilder(
+    column: $table.sessionUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$GymsTableFilterComposer get gymId {
     final $$GymsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -23628,6 +23695,11 @@ class $$WorkoutSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get sessionUuid => $composableBuilder(
+    column: $table.sessionUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$GymsTableOrderingComposer get gymId {
     final $$GymsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -23701,6 +23773,11 @@ class $$WorkoutSessionsTableAnnotationComposer
 
   GeneratedColumn<int> get sessionRpe => $composableBuilder(
     column: $table.sessionRpe,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sessionUuid => $composableBuilder(
+    column: $table.sessionUuid,
     builder: (column) => column,
   );
 
@@ -23845,6 +23922,7 @@ class $$WorkoutSessionsTableTableManager
                 Value<int?> sessionRpe = const Value.absent(),
                 Value<int?> gymId = const Value.absent(),
                 Value<int?> microWorkoutId = const Value.absent(),
+                Value<String?> sessionUuid = const Value.absent(),
               }) => WorkoutSessionsCompanion(
                 id: id,
                 name: name,
@@ -23854,6 +23932,7 @@ class $$WorkoutSessionsTableTableManager
                 sessionRpe: sessionRpe,
                 gymId: gymId,
                 microWorkoutId: microWorkoutId,
+                sessionUuid: sessionUuid,
               ),
           createCompanionCallback:
               ({
@@ -23865,6 +23944,7 @@ class $$WorkoutSessionsTableTableManager
                 Value<int?> sessionRpe = const Value.absent(),
                 Value<int?> gymId = const Value.absent(),
                 Value<int?> microWorkoutId = const Value.absent(),
+                Value<String?> sessionUuid = const Value.absent(),
               }) => WorkoutSessionsCompanion.insert(
                 id: id,
                 name: name,
@@ -23874,6 +23954,7 @@ class $$WorkoutSessionsTableTableManager
                 sessionRpe: sessionRpe,
                 gymId: gymId,
                 microWorkoutId: microWorkoutId,
+                sessionUuid: sessionUuid,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -1,6 +1,8 @@
 package com.ams.herculex.sync
 
 import android.content.Context
+import org.json.JSONObject
+import java.util.UUID
 
 /// Single source of truth on the watch for the latest macros pushed from the
 /// phone. Backed by SharedPreferences so tiles and complications (separate
@@ -82,6 +84,32 @@ object MacroStore {
             .putInt(KEY_CARBS,    p.getInt(KEY_CARBS,    0) + carbs)
             .putInt(KEY_FATS,     p.getInt(KEY_FATS,     0) + fats)
             .apply()
+    }
+
+    /// Watch -> phone command for a local macro/water quick add (Phase 5,
+    /// ENG-16 "missing nutrition sync") — mirrors [FastingStore.createCommand]/
+    /// `QuickAddStore.createLogCommand`'s shape. [kind] is one of
+    /// "calories"/"water"/"food"; only the fields relevant to that kind are
+    /// non-zero, but all are always present so the phone-side decoder doesn't
+    /// need per-kind optional handling.
+    fun createCommand(
+        kind: String,
+        calories: Int = 0,
+        protein: Int = 0,
+        carbs: Int = 0,
+        fats: Int = 0,
+        waterMl: Int = 0,
+    ): String {
+        return JSONObject()
+            .put("commandId", UUID.randomUUID().toString())
+            .put("kind", kind)
+            .put("calories", calories)
+            .put("protein", protein)
+            .put("carbs", carbs)
+            .put("fats", fats)
+            .put("waterMl", waterMl)
+            .put("createdAtEpochMs", System.currentTimeMillis())
+            .toString()
     }
 
     // ── Readers ──────────────────────────────────────────────────────────────

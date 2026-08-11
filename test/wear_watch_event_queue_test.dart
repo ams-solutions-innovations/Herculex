@@ -63,7 +63,7 @@ void main() {
     WearSyncService.onWatchWorkoutStarted = (json, _) => order.add('start:$json');
     // Nothing can drain past the start until every earlier handler exists, so
     // registering out of order must not let a later event overtake it.
-    WearSyncService.onWatchWorkoutEnded = (_) => order.add('end');
+    WearSyncService.onWatchWorkoutEnded = (_, _) => order.add('end');
     expect(order, <String>['start:start']);
 
     WearSyncService.onWatchWorkoutUpdated = (json) => order.add('update:$json');

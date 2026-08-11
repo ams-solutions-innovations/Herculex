@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:collection/collection.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/clock.dart';
 import '../../../data/local/database.dart';
@@ -415,7 +416,15 @@ class WorkoutsRepository {
         .watchSingleOrNull();
   }
 
-  Future<int> startSession({String? notes, int? gymId}) async {
+  /// [sessionUuid] identifies this session across the phone<->watch wire
+  /// protocol (Phase 1 of wear-sync remediation). Pass the watch's own UUID
+  /// when adopting a session it already started, so future updates about it
+  /// keep matching; omit it to mint a fresh one for a phone-started session.
+  Future<int> startSession({
+    String? notes,
+    int? gymId,
+    String? sessionUuid,
+  }) async {
     return _db
         .into(_db.workoutSessions)
         .insert(
@@ -423,6 +432,7 @@ class WorkoutsRepository {
             startedAt: _clock.now(),
             notes: Value(notes),
             gymId: Value(gymId),
+            sessionUuid: Value(sessionUuid ?? const Uuid().v4()),
           ),
         );
   }

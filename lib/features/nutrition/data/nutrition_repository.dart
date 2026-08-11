@@ -340,6 +340,31 @@ class NutritionRepository {
         );
   }
 
+  /// Adds [deltaMl] to the day's logged water intake, creating the
+  /// [DailySummaries] row if today doesn't have one yet. This is the phone
+  /// side of the watch's "+500ml water" quick add (Phase 5 of
+  /// docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md, ENG-16
+  /// "missing nutrition sync") — `waterMl` already existed on this table for
+  /// unrelated reasons (health-platform sync) but nothing previously wrote
+  /// to it from a user action.
+  Future<void> addWaterMl(DateTime date, int deltaMl) async {
+    final iso = dateIso(date);
+    await _db.transaction(() async {
+      final existing = await (_db.select(
+        _db.dailySummaries,
+      )..where((t) => t.dateIso.equals(iso))).getSingleOrNull();
+      final newTotal = (existing?.waterMl ?? 0) + deltaMl;
+      await _db
+          .into(_db.dailySummaries)
+          .insertOnConflictUpdate(
+            DailySummariesCompanion.insert(
+              dateIso: iso,
+              waterMl: Value(newTotal),
+            ),
+          );
+    });
+  }
+
   Future<void> logRecipe({
     required DateTime date,
     Meal? meal,

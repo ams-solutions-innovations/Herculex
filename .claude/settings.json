@@ -91,7 +91,26 @@
       "Bash(sed -i \"/^import '..\\\\/app\\\\/providers.dart';$/d\" lib/services/app_shortcuts_service.dart)",
       "Bash(sed -i \"/^import '..\\\\/..\\\\/..\\\\/app\\\\/providers.dart';$/d\" lib/features/workouts/presentation/templates_view.dart)",
       "PowerShell(flutter test test/phase6_dashboard_test.dart test/phase4_programs_test.dart 2>&1)",
-      "Bash(grep -vE \"^#|asynchronous suspension|elided|^\\\\s*$\")"
+      "Bash(grep -vE \"^#|asynchronous suspension|elided|^\\\\s*$\")",
+      "Bash(./gradlew :wear:testDebugUnitTest --console=plain)",
+      "Bash(find / -path \"*/test_api-*/lib/fake.dart\" 2>/dev/null | head -3)",
+      "Read(//c//**)",
+      "Bash(./gradlew :wear:testDebugUnitTest)",
+      "Bash(xargs grep -o 'tests=\"[0-9]*\" skipped=\"[0-9]*\" failures=\"[0-9]*\" errors=\"[0-9]*\"')",
+      "Bash(./gradlew :wear:assembleDebug :app:assembleDebug)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :wear:testDebugUnitTest --tests \"com.ams.herculex.sync.WearSyncContractTest\" --console=plain)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :wear:testDebugUnitTest --tests \"com.ams.herculex.sync.WearSyncContractTest.WearRevisionAllocator with different keys does not collide\" --console=plain)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :wear:testDebugUnitTest --tests 'com.ams.herculex.sync.WearSyncContractTest' --console=plain -Dtest.single=WearRevisionAllocator)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat \":wear:testDebugUnitTest\" \"--tests\" \"com.ams.herculex.sync.WearSyncContractTest\" \"--console=plain\")",
+      "Bash(xargs grep -l \"collide\")",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :app:testDebugUnitTest --console=plain)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :wear:assembleDebug :app:assembleDebug --console=plain)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :wear:compileDebugKotlin --rerun)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :wear:testDebugUnitTest)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :wear:assembleDebug :app:assembleDebug :app:testDebugUnitTest)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew :wear:testDebugUnitTest :app:testDebugUnitTest --console=plain)",
+      "Bash(xargs -I{} sh -c 'echo {}; grep -o \"tests=\\\\\"[0-9]*\\\\\" skipped=\\\\\"[0-9]*\\\\\" failures=\\\\\"[0-9]*\\\\\" errors=\\\\\"[0-9]*\\\\\"\" {}')",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew :wear:assembleDebug :app:assembleDebug --console=plain)"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation"

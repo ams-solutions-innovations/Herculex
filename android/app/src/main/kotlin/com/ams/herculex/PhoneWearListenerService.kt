@@ -23,6 +23,28 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
+/// entityId/revision extracted from a pending-workout slot's raw JSON, for
+/// [shouldReplacePendingWorkout]'s collision policy. `null` fields mean
+/// "unknown/legacy payload, can't compare" — never "zero"/"empty".
+internal data class PendingWorkoutSlot(val entityId: String?, val revision: Long?)
+
+/// Pure collision-resolution policy for [PhoneWearListenerService]'s single
+/// `KEY_SESSION_JSON` slot (Phase 4). Top-level and side-effect-free so it's
+/// unit-testable without standing up the full `WearableListenerService`.
+/// Callers are expected to have already established that [existing] and
+/// [incoming] carry different, non-null entityIds — i.e. this is only
+/// reached for an actual collision, not a normal in-place update.
+internal fun shouldReplacePendingWorkout(existing: PendingWorkoutSlot, incoming: PendingWorkoutSlot): Boolean {
+    val existingRevision = existing.revision
+    val incomingRevision = incoming.revision
+    if (existingRevision != null && incomingRevision != null) {
+        return incomingRevision >= existingRevision
+    }
+    // Can't compare revisions (legacy/malformed payload) — fall back to the
+    // pre-Phase-4 last-write-wins behavior rather than getting stuck.
+    return true
+}
+
 class PhoneWearListenerService : WearableListenerService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -34,6 +56,7 @@ class PhoneWearListenerService : WearableListenerService() {
         private const val KEY_SESSION_JSON = "session_json"
         private const val KEY_FASTING_COMMANDS = "fasting_commands"
         private const val KEY_QUICKADD_COMMANDS = "quickadd_commands"
+        private const val KEY_MACRO_COMMANDS = "macro_commands"
 
         /// Identifies the last watch-started session we raised [NOTIF_ID] for.
         ///
@@ -48,10 +71,11 @@ class PhoneWearListenerService : WearableListenerService() {
 
         var onWatchWorkoutStartListener: ((String?) -> Unit)? = null
         var onWatchWorkoutUpdateListener: ((String?) -> Unit)? = null
-        var onWatchWorkoutEndListener: ((Boolean) -> Unit)? = null
+        var onWatchWorkoutEndListener: ((Boolean, String?) -> Unit)? = null
         var onSyncRequestedListener: (() -> Unit)? = null
         var onWatchFastingCommandListener: ((String?) -> Unit)? = null
         var onWatchQuickAddCommandListener: ((String?) -> Unit)? = null
+        var onWatchMacroCommandListener: ((String?) -> Unit)? = null
 
         fun pendingWatchWorkout(context: Context): String? {
             return context.applicationContext
@@ -129,6 +153,32 @@ class PhoneWearListenerService : WearableListenerService() {
             }
             prefs.edit().putString(KEY_QUICKADD_COMMANDS, retained.toString()).apply()
         }
+
+        fun pendingMacroCommands(context: Context): List<String> {
+            val raw = context.applicationContext
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_MACRO_COMMANDS, "[]")
+            val array = JSONArray(raw ?: "[]")
+            return buildList(array.length()) {
+                for (index in 0 until array.length()) {
+                    array.optString(index).takeIf { it.isNotBlank() }?.let(::add)
+                }
+            }
+        }
+
+        fun clearPendingMacroCommand(context: Context, commandId: String) {
+            if (commandId.isBlank()) return
+            val prefs = context.applicationContext
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val current = JSONArray(prefs.getString(KEY_MACRO_COMMANDS, "[]") ?: "[]")
+            val retained = JSONArray()
+            for (index in 0 until current.length()) {
+                val commandJson = current.optString(index)
+                val id = runCatching { JSONObject(commandJson).optString("commandId") }.getOrNull()
+                if (id != commandId) retained.put(commandJson)
+            }
+            prefs.edit().putString(KEY_MACRO_COMMANDS, retained.toString()).apply()
+        }
     }
 
     override fun onDataChanged(dataEvents: DataEventBuffer) {
@@ -159,7 +209,8 @@ class PhoneWearListenerService : WearableListenerService() {
                         Log.d("PhoneWearListener", "Received watch workout end (durable path)")
                         clearPendingWatchWorkout(this)
                         dismissWorkoutNotification()
-                        onWatchWorkoutEndListener?.invoke(false)
+                        val entityId = dataMap.getString("ended_entity_id")?.takeIf { it.isNotBlank() }
+                        onWatchWorkoutEndListener?.invoke(false, entityId)
                     }
                 }
 
@@ -188,13 +239,15 @@ class PhoneWearListenerService : WearableListenerService() {
                     Log.d("PhoneWearListener", "Received watch workout end (legacy path)")
                     clearPendingWatchWorkout(this)
                     dismissWorkoutNotification()
-                    onWatchWorkoutEndListener?.invoke(false)
+                    // Legacy DataClient path predates the entityId envelope
+                    // entirely — no identity to extract, same as before Phase 1.
+                    onWatchWorkoutEndListener?.invoke(false, null)
                 }
                 "/herculex_watch_session_discard" -> {
                     Log.d("PhoneWearListener", "Received watch workout discard (legacy path)")
                     clearPendingWatchWorkout(this)
                     dismissWorkoutNotification()
-                    onWatchWorkoutEndListener?.invoke(true)
+                    onWatchWorkoutEndListener?.invoke(true, null)
                 }
             }
         }
@@ -218,12 +271,12 @@ class PhoneWearListenerService : WearableListenerService() {
             "/herculex_watch_session_end" -> {
                 clearPendingWatchWorkout(this)
                 dismissWorkoutNotification()
-                onWatchWorkoutEndListener?.invoke(false)
+                onWatchWorkoutEndListener?.invoke(false, extractEntityId(String(messageEvent.data)))
             }
             "/herculex_watch_session_discard" -> {
                 clearPendingWatchWorkout(this)
                 dismissWorkoutNotification()
-                onWatchWorkoutEndListener?.invoke(true)
+                onWatchWorkoutEndListener?.invoke(true, extractEntityId(String(messageEvent.data)))
             }
             "/request_sync" -> {
                 Log.d("PhoneWearListener", "Received /request_sync message from watch")
@@ -246,6 +299,12 @@ class PhoneWearListenerService : WearableListenerService() {
                 savePendingQuickAddCommand(commandJson)
                 onWatchQuickAddCommandListener?.invoke(commandJson)
             }
+            WearSyncPaths.MESSAGE_MACRO_COMMAND -> {
+                val commandJson = String(messageEvent.data)
+                Log.d("PhoneWearListener", "Received macro command")
+                savePendingMacroCommand(commandJson)
+                onWatchMacroCommandListener?.invoke(commandJson)
+            }
         }
     }
 
@@ -253,18 +312,52 @@ class PhoneWearListenerService : WearableListenerService() {
         super.onPeerConnected(peer)
         serviceScope.launch {
             val syncManager = MobileWearSyncManager(applicationContext)
-            syncManager.replayPersistentState()
-            syncManager.flushPendingRealtimeMessages()
+            // Isolated (Phase 4): a failure in one must not prevent the other
+            // from running — previously a durable-put exception in replay
+            // skipped the flush entirely.
+            runCatching { syncManager.replayPersistentState() }
+                .onFailure { Log.e("PhoneWearListener", "replayPersistentState failed", it) }
+            runCatching { syncManager.flushPendingRealtimeMessages() }
+                .onFailure { Log.e("PhoneWearListener", "flushPendingRealtimeMessages failed", it) }
         }
     }
 
+    /// Collision-safe (Phase 4): [KEY_SESSION_JSON] is a single slot that
+    /// previously overwrote blindly. It only holds an *unconfirmed* payload —
+    /// Dart clears it via `markWatchWorkoutApplied` once the payload is
+    /// durably applied — so if it's still populated with a *different*
+    /// entityId than the incoming one, that's a genuine collision (two
+    /// distinct sessions raced for the one slot before either was
+    /// confirmed), not just a normal in-place update. Resolve it by keeping
+    /// whichever envelope carries the higher (now trustworthy, per Phase 1)
+    /// revision, logging loudly either way instead of silently letting the
+    /// last write win.
     private fun savePendingWorkout(sessionJson: String?) {
         if (sessionJson.isNullOrBlank()) return
-        applicationContext
-            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_SESSION_JSON, sessionJson)
-            .apply()
+        val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val existingJson = prefs.getString(KEY_SESSION_JSON, null)?.takeIf { it.isNotBlank() }
+        val existing = existingJson?.let { PendingWorkoutSlot(extractEntityId(it), extractRevision(it)) }
+        val incoming = PendingWorkoutSlot(extractEntityId(sessionJson), extractRevision(sessionJson))
+        val isCollision = existing != null && existing.entityId != null && incoming.entityId != null &&
+            existing.entityId != incoming.entityId
+
+        if (isCollision) {
+            Log.w(
+                "PhoneWearListener",
+                "Pending workout collision: unconfirmed session ${existing!!.entityId} " +
+                    "(rev ${existing.revision}) vs incoming ${incoming.entityId} (rev ${incoming.revision})",
+            )
+        }
+
+        if (!isCollision || shouldReplacePendingWorkout(existing!!, incoming)) {
+            prefs.edit().putString(KEY_SESSION_JSON, sessionJson).apply()
+        } else {
+            Log.w(
+                "PhoneWearListener",
+                "Keeping existing pending workout ${existing!!.entityId} (rev ${existing.revision}) " +
+                    "over lower-revision incoming ${incoming.entityId} (rev ${incoming.revision})",
+            )
+        }
     }
 
     private fun savePendingFastingCommand(commandJson: String?) {
@@ -297,6 +390,21 @@ class PhoneWearListenerService : WearableListenerService() {
         prefs.edit().putString(KEY_QUICKADD_COMMANDS, items.toString()).apply()
     }
 
+    private fun savePendingMacroCommand(commandJson: String?) {
+        if (commandJson.isNullOrBlank()) return
+        val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val items = JSONArray(prefs.getString(KEY_MACRO_COMMANDS, "[]") ?: "[]")
+        val commandId = runCatching { JSONObject(commandJson).optString("commandId") }.getOrNull()
+        if (!commandId.isNullOrBlank()) {
+            for (index in 0 until items.length()) {
+                val existing = runCatching { JSONObject(items.optString(index)).optString("commandId") }.getOrNull()
+                if (existing == commandId) return
+            }
+        }
+        items.put(commandJson)
+        prefs.edit().putString(KEY_MACRO_COMMANDS, items.toString()).apply()
+    }
+
     /// Raises the "started on watch" alert at most once per watch-started
     /// session.
     ///
@@ -324,6 +432,31 @@ class PhoneWearListenerService : WearableListenerService() {
             obj.optString("entityId").takeIf { it.isNotBlank() }
                 ?: obj.optJSONObject("payload")?.optLong("startedAtEpochMs")?.takeIf { it > 0L }?.toString()
                 ?: obj.optLong("startedAtEpochMs").takeIf { it > 0L }?.toString()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /// Just the wire `entityId`, no fallback — used to gate an end/discard
+    /// event, where a fallback to a timestamp key (as [watchSessionKey] does
+    /// for notification dedup) would be the wrong semantics.
+    private fun extractEntityId(json: String?): String? {
+        if (json.isNullOrBlank()) return null
+        return try {
+            JSONObject(json).optString("entityId").takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /// Wire `revision`, used only to break a [savePendingWorkout] collision
+    /// between two different unconfirmed sessions — `null` (missing/legacy
+    /// payload) means "can't compare", not "zero".
+    private fun extractRevision(json: String?): Long? {
+        if (json.isNullOrBlank()) return null
+        return try {
+            val obj = JSONObject(json)
+            if (obj.has("revision")) obj.optLong("revision") else null
         } catch (_: Exception) {
             null
         }

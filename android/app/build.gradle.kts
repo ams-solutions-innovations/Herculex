@@ -105,4 +105,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("com.google.android.gms:play-services-auth:21.4.0")
     implementation("com.google.android.gms:play-services-wearable:20.0.1")
+
+    // Unit tests (JVM). This module had no test dependencies at all before
+    // Phase 4 of docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md
+    // — mirrors the wear module's Phase 0 setup. Robolectric provides a
+    // Context for the SharedPreferences-backed queue store.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.test:core:1.5.0")
+    testImplementation("org.robolectric:robolectric:4.11.1")
 }

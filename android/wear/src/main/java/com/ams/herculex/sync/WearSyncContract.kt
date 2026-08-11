@@ -15,7 +15,7 @@ data class SyncEnvelope(
 )
 
 object WearSyncContract {
-    const val SCHEMA_VERSION = 1
+    const val SCHEMA_VERSION = 2
     const val ENTITY_ACTIVE_WORKOUT = "active_workout"
     const val ENTITY_FASTING = "fasting"
     const val ORIGIN_PHONE = "phone"
@@ -85,13 +85,50 @@ object WearSyncContract {
     }
 }
 
+/// Issues revisions that never go backwards, even across a process restart.
+///
+/// Unlike the Dart side (`WearRevisionAllocator` in wear_sync_contract.dart),
+/// there was no revision-allocator construct here at all before Phase 1 —
+/// callers just inlined `System.currentTimeMillis()`, which reset on every
+/// restart. [key] namespaces the persisted high-water mark per entity (e.g.
+/// "workout" vs. "fasting") so their sequences can't collide. See Phase 1 of
+/// docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md.
+class WearRevisionAllocator(context: Context, key: String) {
+    private val prefs = context.applicationContext
+        .getSharedPreferences("wear_sync_revision", Context.MODE_PRIVATE)
+    private val prefKey = "revision_$key"
+
+    @Synchronized
+    fun next(): Long {
+        val persistedLast = prefs.getLong(prefKey, 0L)
+        val now = System.currentTimeMillis()
+        val next = if (now > persistedLast) now else persistedLast + 1
+        prefs.edit().putLong(prefKey, next).apply()
+        return next
+    }
+}
+
+/// Split (Phase 4) from a single combined `shouldAccept` into a pure
+/// [wouldAccept] check and a mutating [commit], mirroring the Dart-side
+/// `WearDedupeState.wouldAccept`/`commit` split from Phase 2. The old
+/// combined method wrote the high-water mark as a side effect of the check
+/// itself, *before* the caller's durable write (`persistSession`/
+/// `WorkoutStore.parseAndUpdateSession`/`FastingStore.saveSnapshot`) had even
+/// been attempted — a failed write still poisoned the dedupe state, so a
+/// retry of the identical envelope was silently dropped forever. This was
+/// deferred from both Phase 1 and Phase 2 (see their progress-log entries).
 class AppliedRevisionStore(context: Context) {
     private val prefs = context.applicationContext
         .getSharedPreferences("wear_sync_applied_revisions", Context.MODE_PRIVATE)
 
-    fun shouldAccept(envelope: SyncEnvelope): Boolean {
+    /// Pure check — does not mutate the persisted high-water mark.
+    fun wouldAccept(envelope: SyncEnvelope): Boolean {
+        // Fail-closed (Phase 1c): this bypass existed for pre-envelope watch
+        // builds. Once both APKs move to schemaVersion 2 together there's no
+        // legitimate sender left for this shape, so reject instead of
+        // always-accepting it.
         if (envelope.schemaVersion == 0 && envelope.revision == 0L && envelope.updatedAtEpochMs == 0L) {
-            return true
+            return false
         }
         val key = "${envelope.entity}:${envelope.entityId}:${envelope.origin}"
         val previousRevision = prefs.getLong("${key}:revision", Long.MIN_VALUE)
@@ -100,11 +137,16 @@ class AppliedRevisionStore(context: Context) {
         if (envelope.revision == previousRevision && envelope.updatedAtEpochMs <= previousUpdatedAt) {
             return false
         }
+        return true
+    }
+
+    /// Mutation only — call after the corresponding durable write succeeds.
+    fun commit(envelope: SyncEnvelope) {
+        val key = "${envelope.entity}:${envelope.entityId}:${envelope.origin}"
         prefs.edit()
             .putLong("${key}:revision", envelope.revision)
             .putLong("${key}:updatedAt", envelope.updatedAtEpochMs)
             .apply()
-        return true
     }
 }
 

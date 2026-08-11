@@ -37,4 +37,6 @@ object WearSyncPaths {
     const val MESSAGE_FASTING_ACK = "/herculex_fasting_ack"
     const val MESSAGE_QUICKADD_COMMAND = "/herculex_quickadd_command"
     const val MESSAGE_QUICKADD_ACK = "/herculex_quickadd_ack"
+    const val MESSAGE_MACRO_COMMAND = "/herculex_macro_command"
+    const val MESSAGE_MACRO_ACK = "/herculex_macro_ack"
 }

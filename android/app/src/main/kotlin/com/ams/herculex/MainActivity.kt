@@ -112,7 +112,8 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "endWorkoutOnWatch" -> {
-                    endWorkoutOnWear()
+                    val entityId = call.argument<String>("entity_id").orEmpty()
+                    endWorkoutOnWear(entityId)
                     result.success(null)
                 }
                 "checkPendingWatchWorkout" -> {
@@ -135,6 +136,12 @@ class MainActivity : FlutterActivity() {
                     val commandId = call.argument<String>("command_id") ?: ""
                     PhoneWearListenerService.clearPendingQuickAddCommand(applicationContext, commandId)
                     sendQuickAddAckToWear(commandId)
+                    result.success(null)
+                }
+                "markWatchMacroCommandApplied" -> {
+                    val commandId = call.argument<String>("command_id") ?: ""
+                    PhoneWearListenerService.clearPendingMacroCommand(applicationContext, commandId)
+                    sendMacroAckToWear(commandId)
                     result.success(null)
                 }
                 else -> result.notImplemented()
@@ -248,9 +255,12 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        PhoneWearListenerService.onWatchWorkoutEndListener = { isDiscard ->
+        PhoneWearListenerService.onWatchWorkoutEndListener = { isDiscard, entityId ->
             runOnUiThread {
-                methodChannel?.invokeMethod("onWatchWorkoutEnded", mapOf("isDiscard" to isDiscard))
+                methodChannel?.invokeMethod(
+                    "onWatchWorkoutEnded",
+                    mapOf("isDiscard" to isDiscard, "entityId" to entityId),
+                )
             }
         }
 
@@ -269,6 +279,12 @@ class MainActivity : FlutterActivity() {
         PhoneWearListenerService.onWatchQuickAddCommandListener = { commandJson ->
             runOnUiThread {
                 methodChannel?.invokeMethod("onWatchQuickAddCommand", mapOf("command_json" to commandJson))
+            }
+        }
+
+        PhoneWearListenerService.onWatchMacroCommandListener = { commandJson ->
+            runOnUiThread {
+                methodChannel?.invokeMethod("onWatchMacroCommand", mapOf("command_json" to commandJson))
             }
         }
 
@@ -444,6 +460,12 @@ class MainActivity : FlutterActivity() {
                 mapOf("command_json" to commandJson),
             )
         }
+        for (commandJson in PhoneWearListenerService.pendingMacroCommands(applicationContext)) {
+            methodChannel?.invokeMethod(
+                "onWatchMacroCommand",
+                mapOf("command_json" to commandJson),
+            )
+        }
     }
 
     // ── Wearable DataClient Sync Helpers ─────────────────────────────────────
@@ -520,12 +542,13 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun endWorkoutOnWear() {
+    private fun endWorkoutOnWear(entityId: String) {
+        if (entityId.isBlank()) return
         PhoneWearListenerService.clearPendingWatchWorkout(applicationContext)
         PhoneWearListenerService.clearNotifiedWatchSession(applicationContext)
         lifecycleScope.launch {
             try {
-                wearSyncManager.endActiveSession()
+                wearSyncManager.endActiveSession(entityId)
                 Log.d("WearSync", "Synced session end to wear")
             } catch (e: Exception) {
                 Log.e("WearSync", "Failed to sync session end to wear", e)
@@ -557,6 +580,20 @@ class MainActivity : FlutterActivity() {
                 )
             } catch (e: Exception) {
                 Log.e("WearSync", "Failed to ack quick-add command", e)
+            }
+        }
+    }
+
+    private fun sendMacroAckToWear(commandId: String) {
+        if (commandId.isBlank()) return
+        lifecycleScope.launch {
+            try {
+                wearSyncManager.sendRealtimeEvent(
+                    com.ams.herculex.sync.WearSyncPaths.MESSAGE_MACRO_ACK,
+                    "{\"commandId\":\"$commandId\"}",
+                )
+            } catch (e: Exception) {
+                Log.e("WearSync", "Failed to ack macro command", e)
             }
         }
     }

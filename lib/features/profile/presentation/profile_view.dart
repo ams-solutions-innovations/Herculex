@@ -1261,8 +1261,8 @@ class _SyncStatusBadge extends ConsumerWidget {
     final status = ref.watch(syncStatusProvider).valueOrNull ?? SyncStatus.idle;
 
     final Color color = switch (status) {
-      SyncStatus.syncing => Colors.orangeAccent,
-      SyncStatus.synced => Colors.green,
+      SyncStatus.pendingCloud => Colors.orangeAccent,
+      SyncStatus.savedLocally => AppColors.primary,
       SyncStatus.error => Colors.redAccent,
       SyncStatus.idle => AppColors.primary,
     };
@@ -1279,8 +1279,8 @@ class _SyncStatusBadge extends ConsumerWidget {
         children: [
           Icon(
             switch (status) {
-              SyncStatus.syncing => Icons.sync,
-              SyncStatus.synced => Icons.check_circle_outline,
+              SyncStatus.pendingCloud => Icons.cloud_upload_outlined,
+              SyncStatus.savedLocally => Icons.cloud_done_outlined,
               SyncStatus.error => Icons.cloud_off,
               SyncStatus.idle => Icons.cloud_done_outlined,
             },

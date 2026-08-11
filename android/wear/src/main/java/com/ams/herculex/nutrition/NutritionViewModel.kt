@@ -93,16 +93,27 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     fun addCalories(amount: Int) {
         MacroStore.addCalories(ctx(), amount)
         refresh()
+        sendMacroCommand(MacroStore.createCommand(kind = "calories", calories = amount))
     }
 
     fun addWater(amountMl: Int) {
         MacroStore.addWater(ctx(), amountMl)
         refresh()
+        sendMacroCommand(MacroStore.createCommand(kind = "water", waterMl = amountMl))
     }
 
     fun logFood(calories: Int, protein: Int, carbs: Int, fats: Int) {
         MacroStore.addFood(ctx(), calories, protein, carbs, fats)
         refresh()
+        sendMacroCommand(
+            MacroStore.createCommand(
+                kind = "food",
+                calories = calories,
+                protein = protein,
+                carbs = carbs,
+                fats = fats,
+            ),
+        )
     }
 
     fun refresh() {
@@ -117,7 +128,7 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
             startedAtEpochMs = now,
             targetSeconds = targetSeconds,
         )
-        val json = FastingStore.snapshotToJson(localSnapshot)
+        val json = FastingStore.snapshotToJson(ctx(), localSnapshot)
         FastingStore.saveSnapshot(ctx(), json)
         _data.value = _data.value.copy(fastingSnapshot = localSnapshot)
         sendFastingCommand(FastingStore.createCommand("start", targetSeconds))
@@ -129,7 +140,7 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
             startedAtEpochMs = null,
             targetSeconds = 16L * 60L * 60L,
         )
-        val json = FastingStore.snapshotToJson(localSnapshot)
+        val json = FastingStore.snapshotToJson(ctx(), localSnapshot)
         FastingStore.saveSnapshot(ctx(), json)
         _data.value = _data.value.copy(fastingSnapshot = localSnapshot)
         sendFastingCommand(FastingStore.createCommand("stop"))
@@ -163,6 +174,12 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     private fun sendFastingCommand(commandJson: String) {
         viewModelScope.launch {
             syncManager.sendFastingCommand(commandJson)
+        }
+    }
+
+    private fun sendMacroCommand(commandJson: String) {
+        viewModelScope.launch {
+            syncManager.sendMacroCommand(commandJson)
         }
     }
 }

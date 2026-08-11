@@ -22,13 +22,14 @@ class MobileWearSyncManager(
     private val stateStore = MobileWearStateStore(appContext)
     private val queueStore = WearMessageQueueStore(appContext, "mobile_wear_queue")
 
-    suspend fun syncActiveWorkoutSession(sessionJson: String?) {
+    suspend fun syncActiveWorkoutSession(sessionJson: String?, endedEntityId: String? = null) {
         stateStore.saveString(MobileWearStateStore.KEY_ACTIVE_WORKOUT_SESSION, sessionJson)
         putState(
             path = WearSyncPaths.STATE_ACTIVE_WORKOUT,
             values = mapOf(
                 "session_json" to (sessionJson ?: ""),
                 "has_active_session" to (sessionJson != null),
+                "ended_entity_id" to (endedEntityId ?: ""),
             ),
         )
     }
@@ -48,10 +49,36 @@ class MobileWearSyncManager(
         )
     }
 
-    suspend fun endActiveSession() {
+    suspend fun endActiveSession(entityId: String) {
         clearPendingWorkout()
-        syncActiveWorkoutSession(null)
-        sendMessageToAllNodes(path = WearSyncPaths.MESSAGE_ACTIVE_SESSION_END, payload = "")
+        syncActiveWorkoutSession(null, endedEntityId = entityId)
+        sendMessageToAllNodes(
+            path = WearSyncPaths.MESSAGE_ACTIVE_SESSION_END,
+            payload = buildEndEnvelope(entityId),
+        )
+    }
+
+    /**
+     * Minimal, wire-compatible envelope (same shape `WearSyncContract.
+     * encodeEnvelope` on the wear module produces) so the watch's existing
+     * `decodeEnvelope()` needs no special-casing for this message. Hand-built
+     * here because this `app` module has no `WearSyncContract`/`SyncEnvelope`
+     * type of its own — that lives in the `wear` module only.
+     */
+    private fun buildEndEnvelope(entityId: String): String {
+        val now = System.currentTimeMillis()
+        return JSONObject()
+            .put("schemaVersion", 2)
+            .put("entity", "active_workout")
+            .put("entityId", entityId)
+            // Session-end is idempotent by nature (ending an already-ended
+            // session is a no-op on the watch), so a plain timestamp is fine
+            // here without a full persisted WearRevisionAllocator instance.
+            .put("revision", now)
+            .put("origin", "phone")
+            .put("updatedAtEpochMs", now)
+            .put("payload", JSONObject())
+            .toString()
     }
 
     private fun savePendingWorkout(sessionJson: String) {
@@ -125,25 +152,64 @@ class MobileWearSyncManager(
         return flushPendingRealtimeMessages()
     }
 
+    /**
+     * Isolated (Phase 4): each field is replayed in its own [runCatching] so
+     * a `putState` failure on one (e.g. macro targets) can't prevent the
+     * others from replaying — previously these four ran as one unguarded
+     * sequence and `putState` rethrows on failure, so the first exception
+     * silently dropped every field after it.
+     */
     suspend fun replayPersistentState() {
-        stateStore.readString(MobileWearStateStore.KEY_ACTIVE_WORKOUT_SESSION)?.let {
-            syncActiveWorkoutSession(it.ifBlank { null })
-        }
-        stateStore.readString(MobileWearStateStore.KEY_MACRO_TARGETS)?.let { syncMacroTargets(it) }
-        stateStore.readString(MobileWearStateStore.KEY_FASTING_SNAPSHOT)?.let { syncFastingSnapshot(it) }
-        stateStore.readString(MobileWearStateStore.KEY_USER_TOKEN)?.let {
-            syncUserToken(it.ifBlank { null })
-        }
+        runCatching {
+            stateStore.readString(MobileWearStateStore.KEY_ACTIVE_WORKOUT_SESSION)?.let {
+                syncActiveWorkoutSession(it.ifBlank { null })
+            }
+        }.onFailure { Log.e(TAG, "replayPersistentState: active workout session failed", it) }
+
+        runCatching {
+            stateStore.readString(MobileWearStateStore.KEY_MACRO_TARGETS)?.let { syncMacroTargets(it) }
+        }.onFailure { Log.e(TAG, "replayPersistentState: macro targets failed", it) }
+
+        runCatching {
+            stateStore.readString(MobileWearStateStore.KEY_FASTING_SNAPSHOT)?.let { syncFastingSnapshot(it) }
+        }.onFailure { Log.e(TAG, "replayPersistentState: fasting snapshot failed", it) }
+
+        runCatching {
+            stateStore.readString(MobileWearStateStore.KEY_USER_TOKEN)?.let {
+                syncUserToken(it.ifBlank { null })
+            }
+        }.onFailure { Log.e(TAG, "replayPersistentState: user token failed", it) }
     }
 
+    /**
+     * Best-effort drain (Phase 4): every queued message gets its own
+     * delivery attempt, in order — a message that fails on some/all nodes no
+     * longer `break`s the loop and blocks every message behind it (the
+     * previous behavior, made worse by this queue being persisted in
+     * SharedPreferences, so the block survived a restart). Messages that
+     * exceed [MAX_DELIVERY_ATTEMPTS] or [MAX_MESSAGE_AGE_MS] are dropped
+     * rather than retried forever, so a permanently-undeliverable message
+     * can't grow the queue without bound.
+     */
     suspend fun flushPendingRealtimeMessages(): Boolean {
         val nodes = nodeClient.connectedNodes.awaitResult()
         if (nodes.isEmpty()) {
             return false
         }
 
-        val sentIds = mutableListOf<String>()
-        for (message in queueStore.readAll()) {
+        val now = System.currentTimeMillis()
+        val pending = queueStore.readAll()
+        val expired = pending.filter { isExpired(it, now, MAX_DELIVERY_ATTEMPTS, MAX_MESSAGE_AGE_MS) }
+        if (expired.isNotEmpty()) {
+            Log.w(TAG, "Dropping ${expired.size} realtime message(s) past retry budget: ${expired.map { it.path }}")
+            queueStore.removeAll(expired.map { it.id })
+        }
+        val expiredIds = expired.map { it.id }.toSet()
+
+        val deliveredIds = mutableListOf<String>()
+        val failedIds = mutableListOf<String>()
+        for (message in pending) {
+            if (message.id in expiredIds) continue
             var deliveredToAllNodes = true
             for (node in nodes) {
                 try {
@@ -152,25 +218,28 @@ class MobileWearSyncManager(
                         message.path,
                         message.payloadJson.toByteArray(Charsets.UTF_8),
                     ).awaitResult()
-                } catch (_: Exception) {
+                } catch (error: Exception) {
+                    Log.e(TAG, "Failed to deliver queued ${message.path} to ${node.displayName}", error)
                     deliveredToAllNodes = false
-                    break
                 }
             }
 
-            if (!deliveredToAllNodes) {
-                break
+            if (deliveredToAllNodes) {
+                deliveredIds += message.id
+            } else {
+                failedIds += message.id
             }
-
-            sentIds += message.id
         }
 
-        queueStore.removeAll(sentIds)
-        return sentIds.isNotEmpty()
+        queueStore.removeAll(deliveredIds)
+        queueStore.recordFailedAttempts(failedIds)
+        return deliveredIds.isNotEmpty()
     }
 
     private companion object {
         private const val TAG = "WearSync"
+        private const val MAX_DELIVERY_ATTEMPTS = 20
+        private const val MAX_MESSAGE_AGE_MS = 24L * 60L * 60L * 1000L
     }
 
     private suspend fun putState(path: String, values: Map<String, Any>) {
@@ -195,13 +264,23 @@ class MobileWearSyncManager(
     }
 }
 
-private data class PendingWearMessage(
+/// [enqueuedAtEpochMs]/[attempts] back the Phase 4 retry cap in
+/// [MobileWearSyncManager.flushPendingRealtimeMessages] — `internal` (rather
+/// than `private`) and [isExpired] being a free function lets both be unit
+/// tested without mocking the Wearable `MessageClient`/`NodeClient` APIs.
+internal data class PendingWearMessage(
     val id: String,
     val path: String,
     val payloadJson: String,
+    val enqueuedAtEpochMs: Long,
+    val attempts: Int,
 )
 
-private class WearMessageQueueStore(
+internal fun isExpired(message: PendingWearMessage, nowEpochMs: Long, maxAttempts: Int, maxAgeMs: Long): Boolean {
+    return message.attempts >= maxAttempts || (nowEpochMs - message.enqueuedAtEpochMs) > maxAgeMs
+}
+
+internal class WearMessageQueueStore(
     context: Context,
     private val prefsName: String,
 ) {
@@ -213,7 +292,9 @@ private class WearMessageQueueStore(
             JSONObject()
                 .put("id", UUID.randomUUID().toString())
                 .put("path", path)
-                .put("payloadJson", payloadJson),
+                .put("payloadJson", payloadJson)
+                .put("enqueuedAtEpochMs", System.currentTimeMillis())
+                .put("attempts", 0),
         )
         prefs.edit().putString(KEY_PENDING_MESSAGES, items.toString()).apply()
     }
@@ -228,6 +309,8 @@ private class WearMessageQueueStore(
                         id = item.getString("id"),
                         path = item.getString("path"),
                         payloadJson = item.optString("payloadJson", "{}"),
+                        enqueuedAtEpochMs = item.optLong("enqueuedAtEpochMs", 0L),
+                        attempts = item.optInt("attempts", 0),
                     ),
                 )
             }
@@ -248,6 +331,24 @@ private class WearMessageQueueStore(
             }
         }
         prefs.edit().putString(KEY_PENDING_MESSAGES, retained.toString()).apply()
+    }
+
+    /// Bumps the attempt counter for messages that were tried and failed to
+    /// deliver to at least one node this pass, so [isExpired] can eventually
+    /// retire a permanently-undeliverable message.
+    fun recordFailedAttempts(messageIds: Collection<String>) {
+        if (messageIds.isEmpty()) {
+            return
+        }
+
+        val current = JSONArray(prefs.getString(KEY_PENDING_MESSAGES, "[]"))
+        for (index in 0 until current.length()) {
+            val item = current.getJSONObject(index)
+            if (item.getString("id") in messageIds) {
+                item.put("attempts", item.optInt("attempts", 0) + 1)
+            }
+        }
+        prefs.edit().putString(KEY_PENDING_MESSAGES, current.toString()).apply()
     }
 
     private companion object {

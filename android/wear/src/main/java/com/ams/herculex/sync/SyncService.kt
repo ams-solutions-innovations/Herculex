@@ -148,7 +148,7 @@ class SyncService : WearableListenerService() {
                             updateOngoingService(sessionJson)
                         }
                     } else {
-                        handleSessionEnd()
+                        handleSessionEnd(dataMap.getString("ended_entity_id")?.takeIf { it.isNotBlank() })
                     }
                 }
 
@@ -188,6 +188,11 @@ class SyncService : WearableListenerService() {
             }
             WearSyncPaths.MESSAGE_FINISH_WORKOUT -> {
                 activeViewModel?.endSessionFromPhone()
+                // Direct stop, not gated on a live ViewModel (ENG-14) — see
+                // the comment on stopOngoingServiceDirect() for why this is
+                // needed even though endSessionFromPhone() also stops it
+                // when a ViewModel happens to be alive.
+                stopOngoingServiceDirect()
             }
             // Fast path: same payload/semantics as the DataClient paths above,
             // delivered via MessageClient for near-instant application.
@@ -200,7 +205,15 @@ class SyncService : WearableListenerService() {
                 }
             }
             WearSyncPaths.MESSAGE_ACTIVE_SESSION_END -> {
-                handleSessionEnd()
+                val entityId = runCatching {
+                    WearSyncContract.decodeEnvelope(
+                        String(messageEvent.data),
+                        fallbackEntity = WearSyncContract.ENTITY_ACTIVE_WORKOUT,
+                        fallbackEntityId = "",
+                        fallbackOrigin = WearSyncContract.ORIGIN_PHONE,
+                    ).entityId
+                }.getOrNull()?.takeIf { it.isNotBlank() }
+                handleSessionEnd(entityId)
             }
             WearSyncPaths.MESSAGE_FASTING_SNAPSHOT -> {
                 handleFastingSnapshot(String(messageEvent.data), messageEvent.path, "message")
@@ -214,6 +227,9 @@ class SyncService : WearableListenerService() {
             }
             WearSyncPaths.MESSAGE_QUICKADD_ACK -> {
                 Log.d("SyncService", "Phone applied quick-add command")
+            }
+            WearSyncPaths.MESSAGE_MACRO_ACK -> {
+                Log.d("SyncService", "Phone applied macro command")
             }
         }
     }
@@ -312,8 +328,18 @@ class SyncService : WearableListenerService() {
                 fallbackEntityId = "phone_active_workout",
                 fallbackOrigin = WearSyncContract.ORIGIN_PHONE,
             )
-            if (!appliedRevisions.shouldAccept(envelope)) {
+            if (!appliedRevisions.wouldAccept(envelope)) {
                 logWearSync(envelope, path, delivery, "ignored")
+                return false
+            }
+            // Apply-time gating (Phase 1a): reject an update for a session
+            // other than the one currently active, so it can't get wrongly
+            // persisted (and later restored on next launch) or applied on
+            // top of an unrelated in-progress session.
+            val currentEntityId = activeViewModel?.session?.value?.sessionId
+                ?: WorkoutStore.activeSessionEntityId(this)
+            if (currentEntityId != null && currentEntityId != envelope.entityId) {
+                logWearSync(envelope, path, delivery, "ignored-entity-mismatch")
                 return false
             }
             logWearSync(envelope, path, delivery, "accepted")
@@ -322,6 +348,9 @@ class SyncService : WearableListenerService() {
             // would be lost entirely rather than restored on next launch.
             persistSession(sessionJson)
             WorkoutStore.parseAndUpdateSession(sessionJson, activeViewModel)
+            // Commit only now that the writes above have actually run
+            // (Phase 4) — a failed write must not poison the dedupe state.
+            appliedRevisions.commit(envelope)
             return true
         }
         return false
@@ -334,19 +363,35 @@ class SyncService : WearableListenerService() {
             fallbackEntityId = "fasting",
             fallbackOrigin = WearSyncContract.ORIGIN_PHONE,
         )
-        if (!appliedRevisions.shouldAccept(envelope)) {
+        if (!appliedRevisions.wouldAccept(envelope)) {
             logWearSync(envelope, path, delivery, "ignored")
             return
         }
         FastingStore.saveSnapshot(this, fastingJson)
+        // Commit only now that the write above has actually run (Phase 4).
+        appliedRevisions.commit(envelope)
         logWearSync(envelope, path, delivery, "accepted")
         requestComplicationUpdates()
         requestTileUpdate()
     }
 
-    private fun handleSessionEnd() {
+    private fun handleSessionEnd(entityId: String?) {
+        // Same fail-open-on-null, hard-reject-on-mismatch policy as the Dart
+        // side's _handleWatchWorkoutEnded — a null id is a defensive default
+        // (shouldn't happen once both sides are on schemaVersion 2), a
+        // non-null mismatch means this end event is about a session the
+        // watch already moved on from.
+        val currentEntityId = activeViewModel?.session?.value?.sessionId
+            ?: WorkoutStore.activeSessionEntityId(this)
+        if (entityId != null && currentEntityId != null && entityId != currentEntityId) {
+            Log.d("SyncService", "handleSessionEnd ignored — entityId mismatch")
+            return
+        }
         WorkoutStore.clearActiveSession(this)
         activeViewModel?.endSessionFromPhone()
+        // Direct stop, not gated on a live ViewModel (ENG-14) — see the
+        // comment on stopOngoingServiceDirect() for why this is needed.
+        stopOngoingServiceDirect()
         // Also retire the watch -> phone durable state. Without this it keeps
         // claiming has_active_session=true, and replayPersistentState() on the
         // next onPeerConnected re-pushes the finished session to the phone —
@@ -356,10 +401,31 @@ class SyncService : WearableListenerService() {
         // isn't in the foreground.
         serviceScope.launch {
             try {
-                WearDataLayerSyncManager(applicationContext).pushActiveWorkoutSession(null)
+                WearDataLayerSyncManager(applicationContext)
+                    .pushActiveWorkoutSession(null, endedEntityId = entityId ?: currentEntityId)
             } catch (e: Exception) {
                 Log.e("SyncService", "Failed to clear watch active session state", e)
             }
+        }
+    }
+
+    /// Stops [WorkoutOngoingService] (foreground notification + Ongoing
+    /// Activity chip) directly, without going through [activeViewModel].
+    /// [WorkoutViewModel.endSession] already sends `ACTION_STOP` on
+    /// finish/discard, but that only runs when a `WorkoutViewModel` is alive
+    /// — and it commonly isn't, since Wear OS aggressively recycles
+    /// backgrounded activities. `activeViewModel` being null when a session
+    /// ends from the phone (ENG-14) used to leave the notification/
+    /// foreground service running forever, since nothing else ever sent
+    /// `ACTION_STOP` in that case.
+    private fun stopOngoingServiceDirect() {
+        val intent = Intent(applicationContext, WorkoutOngoingService::class.java).apply {
+            action = WorkoutOngoingService.ACTION_STOP
+        }
+        try {
+            applicationContext.startService(intent)
+        } catch (e: Exception) {
+            Log.e("SyncService", "Failed to stop ongoing service directly", e)
         }
     }
 
@@ -376,8 +442,13 @@ class SyncService : WearableListenerService() {
         super.onPeerConnected(peer)
         serviceScope.launch {
             val syncManager = WearDataLayerSyncManager(applicationContext)
-            syncManager.replayPersistentState()
-            syncManager.flushPendingRealtimeMessages()
+            // Isolated (Phase 4): a failure in one must not prevent the other
+            // from running — previously a durable-put exception in replay
+            // skipped the flush entirely.
+            runCatching { syncManager.replayPersistentState() }
+                .onFailure { Log.e("SyncService", "replayPersistentState failed", it) }
+            runCatching { syncManager.flushPendingRealtimeMessages() }
+                .onFailure { Log.e("SyncService", "flushPendingRealtimeMessages failed", it) }
         }
     }
 

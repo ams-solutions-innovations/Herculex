@@ -30,16 +30,31 @@ import com.ams.herculex.workout.WeeklyVolumeScreen
 import com.ams.herculex.workout.WorkoutDetailScreen
 import com.ams.herculex.workout.WorkoutListScreen
 import com.ams.herculex.workout.WorkoutViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
+    // Notification-tap "open the active workout" signal, tracked as a
+    // MutableStateFlow Compose actually observes (ENG-15) — the bare
+    // `intent` field `onNewIntent` used to update via `setIntent()` isn't
+    // observable state, so `LaunchedEffect(intent)`/`LaunchedEffect
+    // (activeSession != null)` never re-ran on a second tap while the
+    // Activity was already alive (`FLAG_ACTIVITY_SINGLE_TOP` reuses the same
+    // instance, no recomposition was otherwise triggered). Incremented, not
+    // boolean, so a tap while already viewing the active workout screen
+    // still forces the effect below to rerun instead of being suppressed by
+    // an unchanged key.
+    private val openActiveWorkoutRequests = MutableStateFlow(0L)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
             }
         }
+
+        consumeOpenActiveWorkoutExtra(intent)
 
         setContent {
             MaterialTheme {
@@ -47,6 +62,7 @@ class MainActivity : ComponentActivity() {
                 val nutritionViewModel: NutritionViewModel = viewModel()
                 val workoutViewModel:   WorkoutViewModel   = viewModel()
                 val activeSession by workoutViewModel.session.collectAsState()
+                val openWorkoutRequest by openActiveWorkoutRequests.collectAsState()
 
                 LaunchedEffect(intent) {
                     intent?.getStringExtra("route")?.let { route ->
@@ -55,7 +71,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                LaunchedEffect(activeSession != null) {
+                LaunchedEffect(activeSession != null, openWorkoutRequest) {
                     if (activeSession != null) {
                         try {
                             val intent = android.content.Intent(applicationContext, com.ams.herculex.workout.WorkoutOngoingService::class.java).apply {
@@ -152,5 +168,20 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        consumeOpenActiveWorkoutExtra(intent)
+    }
+
+    /// Reads and clears the `open_active_workout` extra
+    /// ([WorkoutOngoingService]'s notification tap intent,
+    /// [com.ams.herculex.sync.SyncService]'s `openActiveWorkoutScreenOnWatch`)
+    /// and, if present, bumps [openActiveWorkoutRequests] so the
+    /// `LaunchedEffect` in [onCreate] reruns even if `activeSession != null`
+    /// didn't itself change — see the field's own doc comment for why a
+    /// bare `Intent` extra can't drive this on its own.
+    private fun consumeOpenActiveWorkoutExtra(intent: Intent?) {
+        if (intent?.getBooleanExtra("open_active_workout", false) == true) {
+            intent.removeExtra("open_active_workout")
+            openActiveWorkoutRequests.value += 1
+        }
     }
 }

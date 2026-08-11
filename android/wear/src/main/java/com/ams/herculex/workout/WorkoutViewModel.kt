@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ams.herculex.sync.WearDataLayerSyncManager
+import com.ams.herculex.sync.WearRevisionAllocator
 import com.ams.herculex.sync.WearSyncContract
 import com.ams.herculex.sync.WearSyncPaths
 import com.ams.herculex.sync.SyncService
@@ -50,7 +51,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 if (session != null) {
                     WorkoutStore.saveActiveSession(
                         getApplication(),
-                        WorkoutStore.sessionToJson(session),
+                        WorkoutStore.sessionToJson(getApplication(), session),
                         sessionStartEpochMs,
                     )
                 } else {
@@ -79,6 +80,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         broadcastToPhone: Boolean = true,
         startEpochMs: Long = System.currentTimeMillis(),
         origin: String = WearSyncContract.ORIGIN_WATCH,
+        sessionId: String = java.util.UUID.randomUUID().toString(),
     ) {
         val newSession = WorkoutSession(
             template  = template,
@@ -90,6 +92,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             },
             startTimeMs = startEpochMs,
             origin = origin,
+            sessionId = sessionId,
         )
         _session.value = newSession
         _elapsedSeconds.value = 0L
@@ -119,6 +122,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         templateName: String = "Active Workout",
         startedAtEpochMs: Long? = null,
         origin: String = WearSyncContract.ORIGIN_PHONE,
+        sessionId: String = java.util.UUID.randomUUID().toString(),
     ) {
         val effectiveStartEpochMs = startedAtEpochMs ?: sessionStartEpochMs
         val current = _session.value
@@ -128,6 +132,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             // the other device never changes that. Letting a phone-sent update
             // rewrite a watch-started session to phone-origin would suppress
             // the phone's legitimate "started on watch" alert on reconnect.
+            // Same reasoning applies to `sessionId` — apply-time gating
+            // against a mismatched id happens one layer up (SyncService), so
+            // by the time we're here the id is already confirmed to match.
             sessionStartEpochMs = effectiveStartEpochMs
             _elapsedSeconds.value = ((System.currentTimeMillis() - effectiveStartEpochMs) / 1000).coerceAtLeast(0)
             _session.value = current.copy(
@@ -154,6 +161,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 currentExerciseIndex = currentExIndex,
                 currentSetIndex = currentSetIndex,
                 origin = origin,
+                sessionId = sessionId,
             )
             _session.value = newSession
             sessionStartEpochMs = effectiveStartEpochMs
@@ -203,7 +211,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val current = _session.value ?: return
         if (exerciseIndex !in current.exercises.indices) return
         val exercises = current.exercises.toMutableList()
-        exercises[exerciseIndex] = ActiveExercise(template = newTemplate)
+        // Same slot, different exercise — keep the slot's wireId so the
+        // phone's Phase 3 wireId-based reconciliation recognizes this as a
+        // substitution rather than a delete+insert.
+        exercises[exerciseIndex] = ActiveExercise(
+            template = newTemplate,
+            wireId = exercises[exerciseIndex].wireId,
+        )
         val updated = current.copy(exercises = exercises)
         _session.value = updated
         broadcastSessionToPhone("/herculex_watch_session_update", updated)
@@ -314,7 +328,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     private fun broadcastSessionToPhone(path: String, session: WorkoutSession) {
         try {
-            val json = WorkoutStore.sessionToJson(session)
+            val json = WorkoutStore.sessionToJson(getApplication(), session)
             viewModelScope.launch {
                 // Durable fallback: persists to WearSyncPaths.STATE_ACTIVE_WORKOUT,
                 // which the phone syncs via DataClient even if the node was
@@ -322,10 +336,18 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 // on this literal path (that used to double-deliver alongside
                 // the MessageClient send below, since the phone listened for
                 // both onDataChanged AND onMessageReceived on the same path).
-                syncManager.pushActiveWorkoutSession(json)
+                //
+                // Isolated in its own runCatching (ENG-16): an exception here
+                // (e.g. DataClient unreachable) used to propagate out of this
+                // unguarded sequential `await`, which both skipped the fast
+                // MessageClient send below entirely and crashed the coroutine
+                // (viewModelScope has no exception handler of its own).
+                runCatching { syncManager.pushActiveWorkoutSession(json) }
+                    .onFailure { android.util.Log.e("WorkoutViewModel", "Durable session push failed", it) }
                 // Fast path: near-instant MessageClient delivery so the phone
                 // reflects set/weight/exercise changes without waiting on
-                // DataClient's system-level batching.
+                // DataClient's system-level batching. Must run regardless of
+                // whether the durable put above succeeded.
                 syncManager.sendMessageToAllNodes(path, json)
             }
         } catch (e: Exception) {
@@ -359,26 +381,52 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun broadcastSessionEndToPhone() {
+    private fun broadcastSessionEndToPhone(entityId: String) {
         try {
             viewModelScope.launch {
-                syncManager.pushActiveWorkoutSession(null)
-                syncManager.sendMessageToAllNodes(WearSyncPaths.MESSAGE_WATCH_SESSION_END, "")
+                // See the matching comment in broadcastSessionToPhone (ENG-16)
+                // — a failed durable put must not skip the fast message send.
+                runCatching { syncManager.pushActiveWorkoutSession(null, endedEntityId = entityId) }
+                    .onFailure { android.util.Log.e("WorkoutViewModel", "Durable session-end push failed", it) }
+                syncManager.sendMessageToAllNodes(
+                    WearSyncPaths.MESSAGE_WATCH_SESSION_END,
+                    endEnvelope(entityId),
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun broadcastSessionDiscardToPhone() {
+    private fun broadcastSessionDiscardToPhone(entityId: String) {
         try {
             viewModelScope.launch {
-                syncManager.pushActiveWorkoutSession(null)
-                syncManager.sendMessageToAllNodes(WearSyncPaths.MESSAGE_WATCH_SESSION_DISCARD, "discard")
+                // See the matching comment in broadcastSessionToPhone (ENG-16)
+                // — a failed durable put must not skip the fast message send.
+                runCatching { syncManager.pushActiveWorkoutSession(null, endedEntityId = entityId) }
+                    .onFailure { android.util.Log.e("WorkoutViewModel", "Durable session-discard push failed", it) }
+                syncManager.sendMessageToAllNodes(
+                    WearSyncPaths.MESSAGE_WATCH_SESSION_DISCARD,
+                    endEnvelope(entityId),
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    /// Real, identity-carrying envelope for a session end/discard message —
+    /// these used to send an empty payload (`""`/`"discard"`), which is why
+    /// the phone couldn't tell which session was ending. Payload is empty on
+    /// purpose; only the entityId matters here.
+    private fun endEnvelope(entityId: String): String {
+        return WearSyncContract.encodeEnvelope(
+            entity = WearSyncContract.ENTITY_ACTIVE_WORKOUT,
+            entityId = entityId,
+            revision = WearRevisionAllocator(getApplication(), "workout").next(),
+            origin = WearSyncContract.ORIGIN_WATCH,
+            payload = org.json.JSONObject(),
+        )
     }
 
     private fun startServiceIfNeeded(
@@ -406,14 +454,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun endSession(isFinish: Boolean, notifyPhone: Boolean) {
+        val endingSessionId = _session.value?.sessionId
         timerJob?.cancel()
         _session.value        = null
         _elapsedSeconds.value = 0L
-        if (notifyPhone) {
+        if (notifyPhone && endingSessionId != null) {
             if (isFinish) {
-                broadcastSessionEndToPhone()
+                broadcastSessionEndToPhone(endingSessionId)
             } else {
-                broadcastSessionDiscardToPhone()
+                broadcastSessionDiscardToPhone(endingSessionId)
             }
         }
         val intent = Intent(getApplication(), WorkoutOngoingService::class.java).apply {

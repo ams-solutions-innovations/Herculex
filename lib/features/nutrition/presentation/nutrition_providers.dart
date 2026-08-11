@@ -205,8 +205,10 @@ final wearSyncServiceProvider = Provider<WearSyncService>((ref) {
   return WearSyncService();
 });
 
-final wearSyncRevisionAllocatorProvider = Provider<WearRevisionAllocator>((_) {
-  return WearRevisionAllocator();
+final wearSyncRevisionAllocatorProvider = Provider<WearRevisionAllocator>((
+  ref,
+) {
+  return WearRevisionAllocator(ref.watch(sharedPreferencesProvider), 'fasting');
 });
 
 final formattedFastingProvider = Provider<String>((ref) {
@@ -220,6 +222,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   final today = DateTime(now.year, now.month, now.day);
   final appliedFastingCommands = <String>{};
   final appliedQuickAddCommands = <String>{};
+  final appliedMacroCommands = <String>{};
 
   Future<void> syncQuickAddToWear() async {
     final repo = ref.read(nutritionRepositoryProvider);
@@ -295,7 +298,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
       final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
       final commandId = decoded['commandId'] as String?;
       if (commandId == null || commandId.isEmpty) return;
-      if (!appliedFastingCommands.add(commandId)) {
+      if (appliedFastingCommands.contains(commandId)) {
         await ref
             .read(wearSyncServiceProvider)
             .markWatchFastingCommandApplied(commandId);
@@ -312,12 +315,23 @@ final wearSyncControllerProvider = Provider<void>((ref) {
         await repo.endSession(completed: decoded['completed'] as bool? ?? true);
       }
 
+      // Only mark this command "seen" once the write above has actually
+      // succeeded. Adding it on the initial check (as before) meant a
+      // failed write still poisoned the dedupe set, so a retried delivery
+      // of the exact same command was silently dropped forever instead of
+      // reapplied — see Phase 2 of
+      // docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md
+      // (ENG-07/10/12).
+      appliedFastingCommands.add(commandId);
       await ref
           .read(wearSyncServiceProvider)
           .markWatchFastingCommandApplied(commandId);
       await syncFastingToWear();
     } catch (_) {
-      // Keep the native pending command until a later retry succeeds.
+      // Keep the native pending command until a later retry succeeds. Since
+      // commandId is only added to appliedFastingCommands after a
+      // successful write, that retry is reapplied rather than skipped as a
+      // duplicate.
     }
   };
 
@@ -327,7 +341,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
       final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
       final commandId = decoded['commandId'] as String?;
       if (commandId == null || commandId.isEmpty) return;
-      if (!appliedQuickAddCommands.add(commandId)) {
+      if (appliedQuickAddCommands.contains(commandId)) {
         await ref
             .read(wearSyncServiceProvider)
             .markWatchQuickAddCommandApplied(commandId);
@@ -350,12 +364,103 @@ final wearSyncControllerProvider = Provider<void>((ref) {
             );
       }
 
+      // Only mark this command "seen" once the write above has actually
+      // succeeded — see the matching comment in onWatchFastingCommand above.
+      appliedQuickAddCommands.add(commandId);
       await ref
           .read(wearSyncServiceProvider)
           .markWatchQuickAddCommandApplied(commandId);
       await syncAllToWear();
     } catch (_) {
-      // Keep the native pending command until a later retry succeeds.
+      // Keep the native pending command until a later retry succeeds. Since
+      // commandId is only added to appliedQuickAddCommands after a
+      // successful write, that retry is reapplied rather than skipped as a
+      // duplicate.
+    }
+  };
+
+  // Phase 5 (docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md,
+  // "manjkajoča nutrition sinhronizacija"): the watch's "+200 kcal" /
+  // "+500ml water" / manual food quick-adds (NutritionViewModel.addCalories/
+  // addWater/logFood) previously only touched the watch's own local
+  // MacroStore and were never sent to the phone at all. Mirrors the
+  // dedupe-after-success shape of the two handlers above. There's no
+  // existing "raw macros, no catalog food" concept on the phone, so a
+  // calorie/food quick-add is logged as a one-off custom food (created with
+  // the reported macros per 100g, then logged at exactly 100g so the
+  // contribution matches the reported totals exactly) rather than requiring
+  // a new data model.
+  WearSyncService.onWatchMacroCommand = (commandJson) async {
+    if (commandJson == null || commandJson.isEmpty) return;
+    try {
+      final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
+      final commandId = decoded['commandId'] as String?;
+      if (commandId == null || commandId.isEmpty) return;
+      if (appliedMacroCommands.contains(commandId)) {
+        await ref
+            .read(wearSyncServiceProvider)
+            .markWatchMacroCommandApplied(commandId);
+        return;
+      }
+
+      final kind = (decoded['kind'] as String? ?? '').toLowerCase();
+      final repo = ref.read(nutritionRepositoryProvider);
+      switch (kind) {
+        case 'water':
+          final waterMl = (decoded['waterMl'] as num?)?.toInt() ?? 0;
+          if (waterMl != 0) {
+            await repo.addWaterMl(DateTime.now(), waterMl);
+          }
+          break;
+        case 'calories':
+          final calories = (decoded['calories'] as num?)?.toInt() ?? 0;
+          if (calories > 0) {
+            final food = await repo.createCustomFood(
+              name: 'Quick Add (Watch)',
+              kcalPer100g: calories.toDouble(),
+            );
+            await repo.logFood(
+              date: DateTime.now(),
+              foodId: food.id,
+              portionAmount: 100,
+              portionUnit: 'g',
+            );
+          }
+          break;
+        case 'food':
+          final calories = (decoded['calories'] as num?)?.toInt() ?? 0;
+          final protein = (decoded['protein'] as num?)?.toInt() ?? 0;
+          final carbs = (decoded['carbs'] as num?)?.toInt() ?? 0;
+          final fats = (decoded['fats'] as num?)?.toInt() ?? 0;
+          if (calories > 0 || protein > 0 || carbs > 0 || fats > 0) {
+            final food = await repo.createCustomFood(
+              name: 'Quick Add (Watch)',
+              kcalPer100g: calories.toDouble(),
+              proteinPer100g: protein.toDouble(),
+              carbsPer100g: carbs.toDouble(),
+              fatPer100g: fats.toDouble(),
+            );
+            await repo.logFood(
+              date: DateTime.now(),
+              foodId: food.id,
+              portionAmount: 100,
+              portionUnit: 'g',
+            );
+          }
+          break;
+      }
+
+      // Only mark this command "seen" once the write above has actually
+      // succeeded — see the matching comment in onWatchFastingCommand above.
+      appliedMacroCommands.add(commandId);
+      await ref
+          .read(wearSyncServiceProvider)
+          .markWatchMacroCommandApplied(commandId);
+      await syncAllToWear();
+    } catch (_) {
+      // Keep the native pending command until a later retry succeeds. Since
+      // commandId is only added to appliedMacroCommands after a successful
+      // write, that retry is reapplied rather than skipped as a duplicate.
     }
   };
 

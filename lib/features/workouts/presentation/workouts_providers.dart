@@ -311,7 +311,7 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
         next.value == null &&
         previous?.hasValue == true &&
         previous?.value != null) {
-      syncService.notifySessionEnded();
+      syncService.notifySessionEnded(previous?.value?.sessionUuid);
     }
   });
 

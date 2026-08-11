@@ -139,6 +139,13 @@ class WorkoutSessions extends Table {
     #id,
     onDelete: KeyAction.setNull,
   )();
+
+  /// Stable session identity for the phone<->watch sync wire protocol (v22,
+  /// Phase 1 of wear-sync remediation). Generated once when the session
+  /// starts and reused as `entityId` on every message about it, including
+  /// its end — unlike the local autoincrement [id], which was never sent on
+  /// session end and offered nothing for the watch side to compare against.
+  TextColumn get sessionUuid => text().nullable()();
 }
 
 @DataClassName('WorkoutExerciseData')

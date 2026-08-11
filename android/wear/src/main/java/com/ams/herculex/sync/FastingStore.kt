@@ -64,7 +64,7 @@ object FastingStore {
         return runCatching { saveSnapshot(context, json) }.getOrDefault(FastingSnapshot())
     }
 
-    fun snapshotToJson(snapshot: FastingSnapshot): String {
+    fun snapshotToJson(context: Context, snapshot: FastingSnapshot): String {
         val payload = JSONObject()
             .put("hasActiveFast", snapshot.hasActiveFast)
             .put("startedAtEpochMs", snapshot.startedAtEpochMs)
@@ -73,7 +73,7 @@ object FastingStore {
         return WearSyncContract.encodeEnvelope(
             entity = WearSyncContract.ENTITY_FASTING,
             entityId = "fasting",
-            revision = System.currentTimeMillis(),
+            revision = WearRevisionAllocator(context, "fasting").next(),
             origin = WearSyncContract.ORIGIN_WATCH,
             payload = payload,
         )

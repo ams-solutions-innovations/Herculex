@@ -31,7 +31,16 @@ class HealthService {
       HealthDataType.WORKOUT,
     ];
 
-    final permissions = List<HealthDataAccess>.filled(types.length, HealthDataAccess.READ_WRITE);
+    // Only WATER, NUTRITION, and WORKOUT are ever written by this app; everything
+    // else is read-only telemetry and should not request write access.
+    const readWriteTypes = {
+      HealthDataType.WATER,
+      HealthDataType.NUTRITION,
+      HealthDataType.WORKOUT,
+    };
+    final permissions = types
+        .map((t) => readWriteTypes.contains(t) ? HealthDataAccess.READ_WRITE : HealthDataAccess.READ)
+        .toList();
 
     bool hasPermissions = false;
     try {
@@ -109,9 +118,26 @@ class HealthService {
         startTime: midnight.subtract(const Duration(hours: 14)),
         endTime: now,
       );
-      for (var point in sleepData) {
-        final duration = point.dateTo.difference(point.dateFrom);
-        sleepHours += duration.inMinutes / 60.0;
+      final intervals = sleepData.map((p) => (p.dateFrom, p.dateTo)).toList()
+        ..sort((a, b) => a.$1.compareTo(b.$1));
+
+      DateTime? mergedStart;
+      DateTime? mergedEnd;
+      for (final interval in intervals) {
+        final (start, end) = interval;
+        if (mergedEnd == null) {
+          mergedStart = start;
+          mergedEnd = end;
+        } else if (!start.isAfter(mergedEnd)) {
+          if (end.isAfter(mergedEnd)) mergedEnd = end;
+        } else {
+          sleepHours += mergedEnd.difference(mergedStart!).inMinutes / 60.0;
+          mergedStart = start;
+          mergedEnd = end;
+        }
+      }
+      if (mergedEnd != null) {
+        sleepHours += mergedEnd.difference(mergedStart!).inMinutes / 60.0;
       }
     } catch (_) {}
 
@@ -165,46 +191,48 @@ class HealthService {
       }
     } catch (_) {}
 
-    // Fallbacks if missing or ungranted
-    if (steps == null || steps == 0) steps = 8000;
-    if (activeKcal == 0) activeKcal = 300.0;
-    if (restingHr == 0) restingHr = 60.0;
-    if (sleepHours == 0) sleepHours = 7.5;
-
     await _db.transaction(() async {
       await (_db.delete(_db.healthSamples)..where((t) => t.dateIso.equals(todayStr))).go();
 
-      await _db.into(_db.healthSamples).insert(
-            HealthSamplesCompanion.insert(
-              dateIso: todayStr,
-              kind: 'steps',
-              value: steps!.toDouble(),
-            ),
-          );
+      if (steps != null && steps > 0) {
+        await _db.into(_db.healthSamples).insert(
+              HealthSamplesCompanion.insert(
+                dateIso: todayStr,
+                kind: 'steps',
+                value: steps.toDouble(),
+              ),
+            );
+      }
 
-      await _db.into(_db.healthSamples).insert(
-            HealthSamplesCompanion.insert(
-              dateIso: todayStr,
-              kind: 'sleep_hours',
-              value: sleepHours,
-            ),
-          );
+      if (sleepHours > 0) {
+        await _db.into(_db.healthSamples).insert(
+              HealthSamplesCompanion.insert(
+                dateIso: todayStr,
+                kind: 'sleep_hours',
+                value: sleepHours,
+              ),
+            );
+      }
 
-      await _db.into(_db.healthSamples).insert(
-            HealthSamplesCompanion.insert(
-              dateIso: todayStr,
-              kind: 'active_kcal',
-              value: activeKcal,
-            ),
-          );
+      if (activeKcal > 0) {
+        await _db.into(_db.healthSamples).insert(
+              HealthSamplesCompanion.insert(
+                dateIso: todayStr,
+                kind: 'active_kcal',
+                value: activeKcal,
+              ),
+            );
+      }
 
-      await _db.into(_db.healthSamples).insert(
-            HealthSamplesCompanion.insert(
-              dateIso: todayStr,
-              kind: 'resting_hr',
-              value: restingHr,
-            ),
-          );
+      if (restingHr > 0) {
+        await _db.into(_db.healthSamples).insert(
+              HealthSamplesCompanion.insert(
+                dateIso: todayStr,
+                kind: 'resting_hr',
+                value: restingHr,
+              ),
+            );
+      }
 
       if (waterMl > 0) {
         await _db.into(_db.healthSamples).insert(
