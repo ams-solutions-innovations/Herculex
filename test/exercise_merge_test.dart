@@ -1,8 +1,9 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_merge.dart';
+
+import 'support/test_database.dart';
 
 /// Proves the merge engine before any real merge ships.
 ///
@@ -17,8 +18,7 @@ void main() {
   late ExerciseMergeEngine engine;
 
   setUp(() async {
-    db = AppDatabase.forTesting(NativeDatabase.memory());
-    await db.customStatement('PRAGMA foreign_keys = ON');
+    db = await openTestDatabase();
     engine = ExerciseMergeEngine(db);
   });
   tearDown(() async => db.close());

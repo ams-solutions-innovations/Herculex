@@ -83,8 +83,16 @@ class RotationsRepository {
   }
 
   Future<void> deleteRotation(int id) async {
-    await (_db.delete(_db.exerciseRotations)..where((t) => t.id.equals(id)))
-        .go();
+    await _db.transaction(() async {
+      await (_db.delete(_db.rotationMembers)
+            ..where((t) => t.rotationId.equals(id)))
+          .go();
+      await (_db.update(_db.programDayExercises)
+            ..where((t) => t.rotationId.equals(id)))
+          .write(const ProgramDayExercisesCompanion(rotationId: Value(null)));
+      await (_db.delete(_db.exerciseRotations)..where((t) => t.id.equals(id)))
+          .go();
+    });
   }
 
   /// The exercise that should be performed for [rotationId] in program week

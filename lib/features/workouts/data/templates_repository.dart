@@ -24,8 +24,13 @@ class TemplatesRepository {
       (_db.update(_db.workoutFolders)..where((t) => t.id.equals(id)))
           .write(WorkoutFoldersCompanion(name: Value(name), emoji: Value(emoji)));
 
-  Future<void> deleteFolder(int id) =>
-      (_db.delete(_db.workoutFolders)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteFolder(int id) => _db.transaction(() async {
+        await (_db.update(_db.workoutTemplates)
+              ..where((t) => t.folderId.equals(id)))
+            .write(const WorkoutTemplatesCompanion(folderId: Value(null)));
+        await (_db.delete(_db.workoutFolders)..where((t) => t.id.equals(id)))
+            .go();
+      });
 
   // ── Templates ──────────────────────────────────────────────────────────
 
@@ -66,8 +71,34 @@ class TemplatesRepository {
         ),
       );
 
-  Future<void> deleteTemplate(int id) =>
-      (_db.delete(_db.workoutTemplates)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteTemplate(int id) => _db.transaction(() async {
+        final exerciseIds = (await (_db.select(_db.templateExercises)
+                  ..where((t) => t.templateId.equals(id)))
+                .get())
+            .map((e) => e.id)
+            .toList();
+
+        if (exerciseIds.isNotEmpty) {
+          await (_db.delete(_db.templateSets)
+                ..where((t) => t.templateExerciseId.isIn(exerciseIds)))
+              .go();
+        }
+        await (_db.delete(_db.templateExercises)
+              ..where((t) => t.templateId.equals(id)))
+            .go();
+        await (_db.update(_db.programDays)
+              ..where((t) => t.templateId.equals(id)))
+            .write(const ProgramDaysCompanion(templateId: Value(null)));
+        await (_db.update(_db.scheduledWorkouts)
+              ..where((t) => t.templateIdOverride.equals(id)))
+            .write(
+              const ScheduledWorkoutsCompanion(
+                templateIdOverride: Value(null),
+              ),
+            );
+        await (_db.delete(_db.workoutTemplates)..where((t) => t.id.equals(id)))
+            .go();
+      });
 
   Future<void> markUsed(int templateId) =>
       (_db.update(_db.workoutTemplates)..where((t) => t.id.equals(templateId)))
@@ -232,9 +263,14 @@ class TemplatesRepository {
   }
 
   Future<void> removeExerciseFromTemplate(int templateExerciseId) =>
-      (_db.delete(_db.templateExercises)
-            ..where((t) => t.id.equals(templateExerciseId)))
-          .go();
+      _db.transaction(() async {
+        await (_db.delete(_db.templateSets)
+              ..where((t) => t.templateExerciseId.equals(templateExerciseId)))
+            .go();
+        await (_db.delete(_db.templateExercises)
+              ..where((t) => t.id.equals(templateExerciseId)))
+            .go();
+      });
 
   /// Updates a template exercise's targets. When [targetSets] changes, the
   /// actual [TemplateSetData] rows are reconciled to match (via

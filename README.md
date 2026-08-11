@@ -22,7 +22,7 @@ sign-in, no cloud: all data lives in a local SQLite database (Drift) and
 | --- | --- |
 | State | `flutter_riverpod` |
 | Routing | `go_router` |
-| Local DB | `drift` + `sqlite3_flutter_libs` (schema v10) |
+| Local DB | `drift` + `sqlite3_flutter_libs` (schema v23) |
 | Charts | `fl_chart` |
 | Nutrition API | OpenFoodFacts via `http`, `mobile_scanner` barcode |
 

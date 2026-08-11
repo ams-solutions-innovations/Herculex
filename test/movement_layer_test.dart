@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/features/workouts/presentation/equipment_variant_sheet.dart';
 import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
+
+import 'support/test_database.dart';
 
 /// The movement layer is what turns "Barbell Row / Dumbbell Row / Cable Row"
 /// into one picker entry, and what stops the equipment prompt offering
@@ -17,7 +17,7 @@ void main() {
   late AppDatabase db;
 
   setUpAll(() async {
-    db = AppDatabase.forTesting(NativeDatabase.memory());
+    db = await openTestDatabase();
     // forTesting cannot read rootBundle, so feed both assets directly.
     await ExerciseImporter.runFromJson(
       db,

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/clock.dart';
 import '../../../data/local/database.dart';
 import '../../../data/local/exercise_biomechanics.dart';
+import '../../programs/domain/schedule_status.dart';
 import '../domain/active_workout_notification_target.dart';
 import '../domain/exercise_search.dart';
 
@@ -465,9 +466,51 @@ class WorkoutsRepository {
   }
 
   Future<void> deleteSession(int sessionId) async {
-    await (_db.delete(
-      _db.workoutSessions,
-    )..where((t) => t.id.equals(sessionId))).go();
+    await _db.transaction(() async {
+      final exerciseIds = (await (_db.select(
+        _db.workoutExercises,
+      )..where((t) => t.sessionId.equals(sessionId))).get())
+          .map((e) => e.id)
+          .toList();
+
+      if (exerciseIds.isNotEmpty) {
+        final setIds = (await (_db.select(
+          _db.setEntries,
+        )..where((t) => t.workoutExerciseId.isIn(exerciseIds))).get())
+            .map((s) => s.id)
+            .toList();
+
+        if (setIds.isNotEmpty) {
+          await (_db.delete(
+            _db.setAccessories,
+          )..where((t) => t.setEntryId.isIn(setIds))).go();
+          await (_db.delete(
+            _db.setBands,
+          )..where((t) => t.setEntryId.isIn(setIds))).go();
+        }
+        await (_db.delete(
+          _db.setEntries,
+        )..where((t) => t.workoutExerciseId.isIn(exerciseIds))).go();
+        await (_db.delete(
+          _db.workoutExercises,
+        )..where((t) => t.sessionId.equals(sessionId))).go();
+      }
+
+      // Not something the FK would do on its own: a schedule pointing at this
+      // session also loses the 'done' status it only gets from ending it.
+      await (_db.update(_db.scheduledWorkouts)
+            ..where((t) => t.completedSessionId.equals(sessionId)))
+          .write(
+            const ScheduledWorkoutsCompanion(
+              completedSessionId: Value(null),
+              status: Value(ScheduleStatus.planned),
+            ),
+          );
+
+      await (_db.delete(
+        _db.workoutSessions,
+      )..where((t) => t.id.equals(sessionId))).go();
+    });
   }
 
   Stream<List<WorkoutSessionData>> watchRecentSessions({int limit = 25}) {
@@ -665,9 +708,28 @@ class WorkoutsRepository {
   }
 
   Future<void> removeWorkoutExercise(int workoutExerciseId) async {
-    await (_db.delete(
-      _db.workoutExercises,
-    )..where((t) => t.id.equals(workoutExerciseId))).go();
+    await _db.transaction(() async {
+      final setIds = (await (_db.select(
+        _db.setEntries,
+      )..where((t) => t.workoutExerciseId.equals(workoutExerciseId))).get())
+          .map((s) => s.id)
+          .toList();
+
+      if (setIds.isNotEmpty) {
+        await (_db.delete(
+          _db.setAccessories,
+        )..where((t) => t.setEntryId.isIn(setIds))).go();
+        await (_db.delete(
+          _db.setBands,
+        )..where((t) => t.setEntryId.isIn(setIds))).go();
+      }
+      await (_db.delete(
+        _db.setEntries,
+      )..where((t) => t.workoutExerciseId.equals(workoutExerciseId))).go();
+      await (_db.delete(
+        _db.workoutExercises,
+      )..where((t) => t.id.equals(workoutExerciseId))).go();
+    });
   }
 
   Future<void> reorderWorkoutExercises({
@@ -847,7 +909,17 @@ class WorkoutsRepository {
   }
 
   Future<void> deleteSet(int setId) async {
-    await (_db.delete(_db.setEntries)..where((t) => t.id.equals(setId))).go();
+    await _db.transaction(() async {
+      await (_db.delete(
+        _db.setAccessories,
+      )..where((t) => t.setEntryId.equals(setId))).go();
+      await (_db.delete(
+        _db.setBands,
+      )..where((t) => t.setEntryId.equals(setId))).go();
+      await (_db.delete(
+        _db.setEntries,
+      )..where((t) => t.id.equals(setId))).go();
+    });
   }
 
   // ── Performance lookups ────────────────────────────────────────────────

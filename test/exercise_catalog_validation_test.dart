@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/data/local/database.dart';
+
+import 'support/test_database.dart';
 
 /// Invariants over the shipped catalog asset.
 ///
@@ -93,7 +93,7 @@ void main() {
   });
 
   test('the importer lands every slug in the database, uniquely', () async {
-    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final db = await openTestDatabase();
     addTearDown(db.close);
 
     final catalog = await db.select(db.exerciseCatalog).get();

@@ -1,3 +1,5 @@
+import 'dart:developer' show log;
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -6,6 +8,7 @@ import 'accessory_seed.dart';
 import 'exercise_importer.dart';
 import 'exercise_merge.dart';
 import 'exercise_merges.dart';
+import 'fk_repair.dart';
 import '../../features/nutrition/data/food_catalogue_importer.dart';
 import 'tables.dart';
 
@@ -65,7 +68,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -242,7 +245,6 @@ class AppDatabase extends _$AppDatabase {
           'CREATE UNIQUE INDEX IF NOT EXISTS idx_exercise_catalog_slug '
           'ON exercise_catalog (slug) WHERE slug IS NOT NULL',
         );
-        await _logOrphanedExerciseReferences();
       }
       if (from < 18) {
         // Movement layer: groups equipment variants in the picker and defines
@@ -360,43 +362,100 @@ class AppDatabase extends _$AppDatabase {
           );
         }
       }
+      if (from < 23) {
+        // RB-04 Phase 2: repair FK violations before enforcement lands in
+        // Phase 3. Runs with foreign_keys OFF — drift migrations are inside
+        // a transaction and the pragma lives in beforeOpen. Supersedes the
+        // v17 `_logOrphanedExerciseReferences` report-only sweep, which
+        // covered only 7 of the 36 declared edges and never fixed anything.
+        final report = await repairForeignKeyViolations(this);
+        for (final entry in report.nulled.entries) {
+          if (entry.value > 0) {
+            log('Migration v23: nulled ${entry.value} orphan ${entry.key}');
+          }
+        }
+        for (final entry in report.deleted.entries) {
+          if (entry.value > 0) {
+            log('Migration v23: deleted ${entry.value} orphan rows from ${entry.key}');
+          }
+        }
+        if (report.residualViolations > 0) {
+          log(
+            'Migration v23: ${report.residualViolations} FK violations '
+            'remain after repair',
+          );
+        }
+
+        // Every FK child column, for the repair's own NOT IN (...) scans and
+        // for cascade/restrict performance once enforcement lands.
+        const fkChildColumns = <(String, String)>[
+          ('exercise_aliases', 'exercise_id'),
+          ('exercise_muscles', 'exercise_id'),
+          ('exercise_progressions', 'exercise_id'),
+          ('food_entries', 'recipe_id'),
+          ('food_entries', 'food_id'),
+          ('food_micros', 'food_id'),
+          ('machine_settings', 'gym_id'),
+          ('machine_settings', 'exercise_id'),
+          ('micro_workouts', 'exercise_id'),
+          ('program_day_exercises', 'rotation_id'),
+          ('program_day_exercises', 'exercise_id'),
+          ('program_day_exercises', 'program_day_id'),
+          ('program_days', 'template_id'),
+          ('program_days', 'program_week_id'),
+          ('program_weeks', 'program_id'),
+          ('recipe_ingredients', 'food_id'),
+          ('recipe_ingredients', 'recipe_id'),
+          ('rotation_members', 'exercise_id'),
+          ('rotation_members', 'rotation_id'),
+          ('scheduled_workouts', 'template_id_override'),
+          ('scheduled_workouts', 'program_id'),
+          ('scheduled_workouts', 'completed_session_id'),
+          ('scheduled_workouts', 'program_day_id'),
+          ('set_accessories', 'accessory_id'),
+          ('set_bands', 'band_id'),
+          ('template_exercises', 'exercise_id'),
+          ('template_exercises', 'template_id'),
+          ('template_sets', 'template_exercise_id'),
+          ('workout_exercises', 'exercise_id'),
+          ('workout_exercises', 'session_id'),
+          ('workout_sessions', 'micro_workout_id'),
+          ('workout_sessions', 'gym_id'),
+          ('workout_templates', 'folder_id'),
+          // set_accessories.set_entry_id and set_bands.set_entry_id already
+          // have indexes from the v10 migration (idx_set_accessories_set,
+          // idx_set_bands_set) — not repeated here.
+        ];
+        for (final (table, column) in fkChildColumns) {
+          try {
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_fk_${table}_$column '
+              'ON $table ($column)',
+            );
+          } catch (_) {
+            // As with repairForeignKeyViolations above: a table this old
+            // migration step references may not exist on a hand-rolled test
+            // fixture that only stamps down a narrow slice of the schema.
+            // Never true on a real device, where every table here was
+            // created by an earlier onUpgrade step long before v23.
+          }
+        }
+      }
+    },
+    // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
+    // issued. It cannot live in onCreate/onUpgrade — those run inside a
+    // drift migration transaction, and SQLite silently ignores the pragma
+    // when set inside a transaction (see Phase 0's discovery, and the
+    // openTestDatabase() helper that has to force a query before issuing
+    // it for the same reason). beforeOpen runs after the migration
+    // transaction commits but before the database is handed back to
+    // callers, so every enforcement-dependent read/write in the app sees
+    // the pragma already on, and Phase 2's migration-time repair work
+    // above always runs with enforcement off.
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
     },
   );
-
-  /// Counts rows in every table referencing [ExerciseCatalog] whose exercise
-  /// no longer exists.
-  ///
-  /// Foreign keys have never been enforced in production (there is no
-  /// `beforeOpen` pragma), so historic importer name-churn may have left
-  /// dangling ids. Enabling enforcement before those are repaired would turn
-  /// them into a crash on open, so this only reports — see the deferred FK
-  /// enforcement step.
-  Future<void> _logOrphanedExerciseReferences() async {
-    const referencingTables = <String>[
-      'workout_exercises',
-      'program_day_exercises',
-      'rotation_members',
-      'micro_workouts',
-      'exercise_progressions',
-      'machine_settings',
-      'template_exercises',
-    ];
-    for (final table in referencingTables) {
-      try {
-        final rows = await customSelect(
-          'SELECT COUNT(*) AS c FROM $table '
-          'WHERE exercise_id NOT IN (SELECT id FROM exercise_catalog)',
-        ).get();
-        final count = rows.first.read<int>('c');
-        if (count > 0) {
-          // ignore: avoid_print
-          print('Migration v17: $count orphaned exercise_id in $table');
-        }
-      } catch (_) {
-        // Table may not exist on very old schemas; nothing to report.
-      }
-    }
-  }
 }
 
 QueryExecutor _open() => driftDatabase(name: 'herculex');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
+import '../../../data/local/db_exceptions.dart';
 import '../../../theme/colors.dart';
 import '../../nutrition/presentation/custom_food_form_sheet.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
@@ -56,15 +57,28 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
     );
 
     if (confirmed == true) {
-      await ref.read(nutritionRepositoryProvider).deleteFood(food.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Deleted ${food.name}'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-      );
+      try {
+        await ref.read(nutritionRepositoryProvider).deleteFood(food.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Deleted ${food.name}'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        );
+      } on FoodInUseException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Used in ${e.entryCount} logged entries and ${e.recipeCount} recipes',
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        );
+      }
     }
   }
 

@@ -49,7 +49,13 @@ class MicroWorkoutsRepository {
   }
 
   Future<void> delete(int id) async {
-    await (_db.delete(_db.microWorkouts)..where((t) => t.id.equals(id))).go();
+    await _db.transaction(() async {
+      await (_db.update(_db.workoutSessions)
+            ..where((t) => t.microWorkoutId.equals(id)))
+          .write(const WorkoutSessionsCompanion(microWorkoutId: Value(null)));
+      await (_db.delete(_db.microWorkouts)..where((t) => t.id.equals(id)))
+          .go();
+    });
   }
 
   /// Logs one completion: a closed mini-session containing a single completed

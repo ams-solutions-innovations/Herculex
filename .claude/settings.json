@@ -110,7 +110,12 @@
       "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :wear:assembleDebug :app:assembleDebug :app:testDebugUnitTest)",
       "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew :wear:testDebugUnitTest :app:testDebugUnitTest --console=plain)",
       "Bash(xargs -I{} sh -c 'echo {}; grep -o \"tests=\\\\\"[0-9]*\\\\\" skipped=\\\\\"[0-9]*\\\\\" failures=\\\\\"[0-9]*\\\\\" errors=\\\\\"[0-9]*\\\\\"\" {}')",
-      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew :wear:assembleDebug :app:assembleDebug --console=plain)"
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew :wear:assembleDebug :app:assembleDebug --console=plain)",
+      "Bash(perl -0pi -e \"s/db = AppDatabase\\\\.forTesting\\\\\\(NativeDatabase\\\\.memory\\\\\\(\\\\\\)\\\\\\);\\\\n      await db\\\\.customStatement\\\\\\('PRAGMA foreign_keys = ON'\\\\\\);/db = await openTestDatabase\\(\\);/g\" test/phase4_programs_test.dart)",
+      "Bash(perl -pi -e \"s/AppDatabase\\\\.forTesting\\\\\\(NativeDatabase\\\\.memory\\\\\\(\\\\\\)\\\\\\)/await openTestDatabase\\(\\)/g\" test/phase5_nutrition_test.dart)",
+      "Bash(jobs)",
+      "Bash(cd \"/c/Users/marti/AMS d.o.o/Herculex\" && find / -path \"*/drift_dev*/lib/api/migrations.dart\" 2>/dev/null | head -5)",
+      "Bash(tee /tmp/analyze_phase4.txt)"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation"

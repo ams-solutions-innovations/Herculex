@@ -226,7 +226,49 @@ class ProgramsRepository {
   }
 
   Future<void> deleteProgram(int programId) async {
-    await (_db.delete(_db.programs)..where((t) => t.id.equals(programId))).go();
+    await _db.transaction(() async {
+      final weekIds = (await (_db.select(
+        _db.programWeeks,
+      )..where((t) => t.programId.equals(programId))).get())
+          .map((w) => w.id)
+          .toList();
+
+      final dayIds = weekIds.isEmpty
+          ? <int>[]
+          : (await (_db.select(_db.programDays)
+                    ..where((t) => t.programWeekId.isIn(weekIds)))
+                .get())
+              .map((d) => d.id)
+              .toList();
+
+      if (dayIds.isNotEmpty) {
+        await (_db.delete(
+          _db.programDayExercises,
+        )..where((t) => t.programDayId.isIn(dayIds))).go();
+      }
+
+      // scheduled_workouts has two independent CASCADE edges into this tree
+      // (program_id and program_day_id) — both must be swept.
+      await (_db.delete(_db.scheduledWorkouts)..where(
+            (t) => dayIds.isEmpty
+                ? t.programId.equals(programId)
+                : t.programId.equals(programId) | t.programDayId.isIn(dayIds),
+          ))
+          .go();
+
+      if (dayIds.isNotEmpty) {
+        await (_db.delete(
+          _db.programDays,
+        )..where((t) => t.id.isIn(dayIds))).go();
+      }
+      if (weekIds.isNotEmpty) {
+        await (_db.delete(
+          _db.programWeeks,
+        )..where((t) => t.id.isIn(weekIds))).go();
+      }
+      await (_db.delete(_db.programs)..where((t) => t.id.equals(programId)))
+          .go();
+    });
   }
 
   Future<List<ProgramWeekData>> getProgramWeeks(int programId) {
@@ -357,9 +399,17 @@ class ProgramsRepository {
   }
 
   Future<void> deleteProgramDay(int programDayId) async {
-    await (_db.delete(
-      _db.programDays,
-    )..where((t) => t.id.equals(programDayId))).go();
+    await _db.transaction(() async {
+      await (_db.delete(
+        _db.programDayExercises,
+      )..where((t) => t.programDayId.equals(programDayId))).go();
+      await (_db.delete(
+        _db.scheduledWorkouts,
+      )..where((t) => t.programDayId.equals(programDayId))).go();
+      await (_db.delete(
+        _db.programDays,
+      )..where((t) => t.id.equals(programDayId))).go();
+    });
   }
 
   /// Links (or unlinks with null) the live template a program day generates its

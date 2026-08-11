@@ -1,4 +1,3 @@
-import 'package:drift/native.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +9,8 @@ import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
+
+import 'support/test_database.dart';
 
 /// Regression tests for the Phase 2 fixes in
 /// docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md:
@@ -87,7 +88,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
 
-    db = AppDatabase.forTesting(NativeDatabase.memory());
+    db = await openTestDatabase();
     repo = WorkoutsRepository(db, const SystemClock());
     container = ProviderContainer(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],

@@ -135,6 +135,16 @@ Recommended fix:
 
 ### 4. Database Foreign Keys Are Disabled
 
+> **Addressed.** See `docs/fk-enforcement-remediation-progress.md` (RB-04,
+> Phases 0-4) — orphan repair migration shipped (schema v23), delete paths
+> hardened independent of the pragma, and `PRAGMA foreign_keys = ON` is now
+> set in `beforeOpen` for every connection. Nutrition history snapshots and
+> soft-delete for catalog entities are deferred to RB-05 (see that doc's
+> "Deferred to RB-05" section). A manual device upgrade pass (pre-fix build →
+> this build, exercising every UI delete path) is still owed before this is
+> considered ship-ready — tracked in the progress doc, not yet performed by
+> any session.
+
 File:
 
 - `lib/data/local/database.dart`

@@ -30,15 +30,57 @@ class FoodCatalogueImporter {
 
     await db.transaction(() async {
       // A missing marker means the previous import did not complete. Only
-      // seeded rows are replaceable; custom foods and logged rows remain.
-      await (db.delete(db.foods)..where((t) => t.source.equals('food_catalogue_v1'))).go();
+      // seeded rows with no logged history are replaceable outright; custom
+      // foods always remain. Catalogue rows still referenced by a food_entry
+      // or recipe_ingredient must not be deleted here — under FK enforcement
+      // that RESTRICT edge would throw and roll back the whole migration.
+      // They are updated in place below instead.
+      final referencedFoodIds = <int>{
+        ...await (db.selectOnly(db.foodEntries, distinct: true)
+              ..addColumns([db.foodEntries.foodId])
+              ..where(db.foodEntries.foodId.isNotNull()))
+            .map((row) => row.read(db.foodEntries.foodId)!)
+            .get(),
+        ...await (db.selectOnly(db.recipeIngredients, distinct: true)
+              ..addColumns([db.recipeIngredients.foodId]))
+            .map((row) => row.read(db.recipeIngredients.foodId)!)
+            .get(),
+      };
+
+      final existingCatalogueRows = await (db.select(
+        db.foods,
+      )..where((t) => t.source.equals('food_catalogue_v1'))).get();
+
+      final staleIds = existingCatalogueRows
+          .where((f) => !referencedFoodIds.contains(f.id))
+          .map((f) => f.id)
+          .toList();
+      if (staleIds.isNotEmpty) {
+        await (db.delete(db.foods)..where((t) => t.id.isIn(staleIds))).go();
+      }
+
+      final existingByCatalogueId = {
+        for (final f in existingCatalogueRows)
+          if (f.catalogueId != null && !staleIds.contains(f.id))
+            f.catalogueId!: f,
+      };
 
       for (var start = 0; start < foods.length; start += 250) {
         final end = (start + 250).clamp(0, foods.length);
         final chunk = foods.sublist(start, end);
         await db.batch((batch) {
           for (final item in chunk) {
-            batch.insert(db.foods, _foodCompanion(item));
+            final companion = _foodCompanion(item);
+            final existing = existingByCatalogueId[item['id']?.toString()];
+            if (existing != null) {
+              batch.update(
+                db.foods,
+                companion,
+                where: (t) => t.id.equals(existing.id),
+              );
+            } else {
+              batch.insert(db.foods, companion);
+            }
           }
         });
       }

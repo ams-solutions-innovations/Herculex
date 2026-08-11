@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart' hide isNull;
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/clock.dart';
 import 'package:herculex/data/local/accessory_seed.dart';
@@ -8,6 +7,8 @@ import 'package:herculex/features/gyms/data/gyms_repository.dart';
 import 'package:herculex/features/measurements/data/measurements_repository.dart';
 import 'package:herculex/features/workouts/data/accessories_repository.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
+
+import 'support/test_database.dart';
 
 class _FixedClock implements Clock {
   final DateTime fixed;
@@ -19,11 +20,7 @@ class _FixedClock implements Clock {
 /// In-memory database for v10 schema tests. The first statement triggers the
 /// real onCreate path (createAll + asset importer + accessory seed), so these
 /// tests also prove the fresh-install path end to end.
-Future<AppDatabase> _openDb() async {
-  final db = AppDatabase.forTesting(NativeDatabase.memory());
-  await db.customStatement('PRAGMA foreign_keys = ON');
-  return db;
-}
+Future<AppDatabase> _openDb() => openTestDatabase();
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -2,6 +2,24 @@
 
 All changes are **additive** (new tables + nullable/defaulted columns). No existing column is renamed, retyped, or dropped, so every existing row remains valid with zero data rewriting. `exercises.json` and `ExerciseImporter` are untouched.
 
+> **Schema is at v23** (this doc's tables above describe up through v12; see
+> `docs/fk-enforcement-remediation-progress.md` for what v13–v23 added, most
+> recently RB-04's FK enforcement work). As of v23, **`PRAGMA foreign_keys`
+> is ON** for every connection (`beforeOpen` in `lib/data/local/database.dart`)
+> — all 36 declared `references(..., onDelete: KeyAction.x)` edges are live,
+> not just declared. Consequently:
+> - Migrations still run with FKs **OFF** — `onCreate`/`onUpgrade` execute
+>   inside drift's migration transaction, and SQLite silently ignores the
+>   pragma when set inside one, so `beforeOpen` (after the transaction
+>   commits) is the only correct place to turn it on. Do not move it.
+> - Any future constraint change (rename/retype/drop a column involved in a
+>   FK, or change an `onDelete` action) cannot be a plain `ALTER TABLE` —
+>   SQLite can't alter a declared constraint in place. Use the 12-step
+>   `legacy_alter_table` rebuild recipe recorded in the plan doc referenced
+>   above, and dump a `drift_schemas/` snapshot (via `dart run drift_dev
+>   schema dump`, kept up to date per "Schema tooling" below) before making
+>   the change, since `TableMigration` needs one.
+
 ## Schema v10 — Logging Foundation (Phase 1)
 
 ### New tables

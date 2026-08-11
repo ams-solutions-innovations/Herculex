@@ -1,4 +1,3 @@
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +7,8 @@ import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/training_blocks_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/test_database.dart';
 
 /// Smoke coverage for the reworked Blocks tab. The feature previously had no
 /// widget tests at all, so these assert the things a silent render failure or a
@@ -22,8 +23,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
-    db = AppDatabase.forTesting(NativeDatabase.memory());
-    await db.customStatement('PRAGMA foreign_keys = ON');
+    db = await openTestDatabase();
     repo = ProgramsRepository(db);
   });
 

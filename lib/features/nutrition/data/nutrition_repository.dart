@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../../core/clock.dart';
 import '../../../data/local/database.dart';
+import '../../../data/local/db_exceptions.dart';
 import '../domain/barcode_utils.dart';
 import '../domain/daily_totals.dart';
 import '../domain/meal.dart';
@@ -163,7 +164,32 @@ class NutritionRepository {
   }
 
   Future<void> deleteFood(int id) async {
-    await (_db.delete(_db.foods)..where((t) => t.id.equals(id))).go();
+    await _db.transaction(() async {
+      final entryCount = await (_db.selectOnly(_db.foodEntries)
+            ..addColumns([_db.foodEntries.id.count()])
+            ..where(_db.foodEntries.foodId.equals(id)))
+          .map((row) => row.read(_db.foodEntries.id.count())!)
+          .getSingle();
+      final recipeCount = await (_db.selectOnly(_db.recipeIngredients)
+            ..addColumns([_db.recipeIngredients.id.count()])
+            ..where(_db.recipeIngredients.foodId.equals(id)))
+          .map((row) => row.read(_db.recipeIngredients.id.count())!)
+          .getSingle();
+
+      if (entryCount > 0 || recipeCount > 0) {
+        throw FoodInUseException(
+          entryCount: entryCount,
+          recipeCount: recipeCount,
+        );
+      }
+
+      // TODO(RB-05): replace this hard delete with soft-delete
+      // (`deletedAt` + hiding from search) so the RESTRICT can stay forever
+      // and the UI never sees an in-use error.
+      await (_db.delete(_db.foodMicros)..where((t) => t.foodId.equals(id)))
+          .go();
+      await (_db.delete(_db.foods)..where((t) => t.id.equals(id))).go();
+    });
   }
 
   // ── Recipes ────────────────────────────────────────────────────────────

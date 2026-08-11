@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/clock.dart';
 import 'package:herculex/data/local/database.dart';
@@ -12,6 +11,8 @@ import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
+
+import 'support/test_database.dart';
 
 class _FixedClock implements Clock {
   DateTime fixed;
@@ -226,9 +227,8 @@ void main() {
 
   group('§22 food-log timezone fix', () {
     test('loggedAt is stamped from the local clock, matching dateIso', () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final db = await openTestDatabase();
       addTearDown(db.close);
-      await db.customStatement('PRAGMA foreign_keys = ON');
 
       // Clock set to local 11:30pm — under SQLite's UTC CURRENT_TIMESTAMP this
       // would have rolled to the next day for users behind UTC.
@@ -257,9 +257,8 @@ void main() {
     test(
       'day-specific targets resolve correctly given a real training session',
       () async {
-        final db = AppDatabase.forTesting(NativeDatabase.memory());
+        final db = await openTestDatabase();
         addTearDown(db.close);
-        await db.customStatement('PRAGMA foreign_keys = ON');
         final clock = _FixedClock(DateTime(2026, 6, 15, 12));
         final repo = NutritionRepository(db, OpenFoodFactsClient(), clock);
 
@@ -315,7 +314,7 @@ void main() {
 
   group('Nutrition portions and micronutrients', () {
     test('scales a 100 ml food and keeps source micronutrients', () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final db = await openTestDatabase();
       addTearDown(db.close);
       final repo = NutritionRepository(
         db,
@@ -355,7 +354,7 @@ void main() {
     });
 
     test('scales a legacy serving basis by serving or gram input', () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final db = await openTestDatabase();
       addTearDown(db.close);
       final repo = NutritionRepository(
         db,
@@ -411,7 +410,7 @@ void main() {
     test(
       'lookup accepts a normalized UPC-A and preserves custom barcode',
       () async {
-        final db = AppDatabase.forTesting(NativeDatabase.memory());
+        final db = await openTestDatabase();
         addTearDown(db.close);
         final repo = NutritionRepository(
           db,
@@ -450,7 +449,7 @@ void main() {
   // -> phone message applies.
   group('Phase 5 — addWaterMl (watch water quick-add sync)', () {
     test('creates the day\'s DailySummaries row on first add', () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final db = await openTestDatabase();
       addTearDown(db.close);
       final repo = NutritionRepository(
         db,
@@ -466,7 +465,7 @@ void main() {
     });
 
     test('accumulates across repeated adds on the same day', () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final db = await openTestDatabase();
       addTearDown(db.close);
       final repo = NutritionRepository(
         db,
@@ -483,7 +482,7 @@ void main() {
     });
 
     test('keeps separate days independent', () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      final db = await openTestDatabase();
       addTearDown(db.close);
       final repo = NutritionRepository(
         db,

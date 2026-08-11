@@ -1,16 +1,17 @@
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 
+import 'support/test_database.dart';
+
 void main() {
   late AppDatabase db;
   late WorkoutsRepository repo;
 
-  setUp(() {
-    db = AppDatabase.forTesting(NativeDatabase.memory());
+  setUp(() async {
+    db = await openTestDatabase();
     repo = WorkoutsRepository(db, const SystemClock());
   });
 

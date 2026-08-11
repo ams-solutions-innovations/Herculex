@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart' show Value, OrderingTerm;
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/clock.dart';
 import 'package:herculex/data/local/database.dart';
@@ -8,6 +7,8 @@ import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
+
+import 'support/test_database.dart';
 
 class _FixedClock implements Clock {
   DateTime fixed;
@@ -102,8 +103,7 @@ void main() {
     late _FixedClock clock;
 
     setUp(() async {
-      db = AppDatabase.forTesting(NativeDatabase.memory());
-      await db.customStatement('PRAGMA foreign_keys = ON');
+      db = await openTestDatabase();
       clock = _FixedClock(DateTime(2026, 6, 15, 8));
     });
     tearDown(() => db.close());

@@ -46,9 +46,17 @@ class GymsRepository {
     });
   }
 
-  /// Sessions referencing the gym keep their rows (FK set-null).
+  /// Sessions and saved machine settings referencing the gym keep their rows;
+  /// their `gymId` is nulled out (set-null) before the gym itself is deleted.
   Future<void> deleteGym(int id) async {
-    await (_db.delete(_db.gyms)..where((t) => t.id.equals(id))).go();
+    await _db.transaction(() async {
+      await (_db.update(_db.workoutSessions)..where((t) => t.gymId.equals(id)))
+          .write(const WorkoutSessionsCompanion(gymId: Value(null)));
+      await (_db.update(_db.machineSettings)
+            ..where((t) => t.gymId.equals(id)))
+          .write(const MachineSettingsCompanion(gymId: Value(null)));
+      await (_db.delete(_db.gyms)..where((t) => t.id.equals(id))).go();
+    });
   }
 
   Future<void> _clearDefault() async {
