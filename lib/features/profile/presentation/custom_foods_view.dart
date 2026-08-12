@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
-import '../../../data/local/db_exceptions.dart';
 import '../../../theme/colors.dart';
 import '../../nutrition/presentation/custom_food_form_sheet.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
@@ -38,7 +37,7 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete "${food.name}"?'),
-        content: const Text('Are you sure you want to delete this custom food? This action cannot be undone.'),
+        content: const Text('This hides it from your food catalogue and search. Any logged history keeps its recorded nutrition and stays unchanged.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -57,28 +56,15 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
     );
 
     if (confirmed == true) {
-      try {
-        await ref.read(nutritionRepositoryProvider).deleteFood(food.id);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Deleted ${food.name}'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-        );
-      } on FoodInUseException catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Used in ${e.entryCount} logged entries and ${e.recipeCount} recipes',
-            ),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-        );
-      }
+      await ref.read(nutritionRepositoryProvider).deleteFood(food.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Deleted ${food.name}'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      );
     }
   }
 

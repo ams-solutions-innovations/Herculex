@@ -505,4 +505,312 @@ void main() {
       );
     });
   });
+
+  // ── RB-05 Step 2: unfiltered id-lookup primitives ───────────────────────
+  //
+  // foodById / foodsByIds / watchFoodById / recipeById exist so history call
+  // sites can resolve a known id directly instead of scanning a limited
+  // search list. They are deliberately unfiltered by `deletedAt` — that
+  // filter is Step 4's job.
+  group('RB-05 Step 2 — id-lookup primitives', () {
+    test('foodById returns the matching row and null for an unknown id', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
+
+      final foodId = await db
+          .into(db.foods)
+          .insert(FoodsCompanion.insert(name: 'Direct Lookup', kcalPer100g: 90));
+
+      expect((await repo.foodById(foodId))?.name, 'Direct Lookup');
+      expect(await repo.foodById(foodId + 999), isNull);
+    });
+
+    test('foodsByIds batches a lookup keyed by id', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
+
+      final id1 = await db
+          .into(db.foods)
+          .insert(FoodsCompanion.insert(name: 'Batch A', kcalPer100g: 10));
+      final id2 = await db
+          .into(db.foods)
+          .insert(FoodsCompanion.insert(name: 'Batch B', kcalPer100g: 20));
+
+      final byId = await repo.foodsByIds([id1, id2, id1 + id2 + 999]);
+      expect(byId.length, 2);
+      expect(byId[id1]?.name, 'Batch A');
+      expect(byId[id2]?.name, 'Batch B');
+      expect(await repo.foodsByIds(const []), isEmpty);
+    });
+
+    test('watchFoodById emits updates when the row changes', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
+
+      final foodId = await db
+          .into(db.foods)
+          .insert(FoodsCompanion.insert(name: 'Watched', kcalPer100g: 50));
+
+      final emissions = <String?>[];
+      final sub = repo.watchFoodById(foodId).listen((f) => emissions.add(f?.name));
+      await pumpEventQueue();
+
+      await (db.update(db.foods)..where((t) => t.id.equals(foodId)))
+          .write(const FoodsCompanion(name: Value('Renamed')));
+      await pumpEventQueue();
+
+      await sub.cancel();
+      expect(emissions, ['Watched', 'Renamed']);
+    });
+
+    test('recipeById returns the matching row and null for an unknown id', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
+
+      final recipeId = await repo.createRecipe(name: 'Direct Recipe');
+
+      expect((await repo.recipeById(recipeId))?.name, 'Direct Recipe');
+      expect(await repo.recipeById(recipeId + 999), isNull);
+    });
+
+    test(
+      'foodById resolves a food past searchFoods\' 20-row limit '
+      '(regression: id resolution no longer scans a truncated search list)',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          _FixedClock(DateTime(2026, 6, 15, 12)),
+        );
+
+        // 25 foods, alphabetically ordered by name — searchFoods('') caps at
+        // 20, so the last few never appeared in a name-scan of that result.
+        int? targetId;
+        for (var i = 0; i < 25; i++) {
+          final name = 'Food ${i.toString().padLeft(2, '0')}';
+          final id = await db
+              .into(db.foods)
+              .insert(FoodsCompanion.insert(name: name, kcalPer100g: 100));
+          if (i == 24) targetId = id;
+        }
+
+        final viaSearch = await repo.searchFoods('');
+        expect(viaSearch.any((f) => f.id == targetId), isFalse);
+
+        expect((await repo.foodById(targetId!))?.name, 'Food 24');
+      },
+    );
+  });
+
+  // ── RB-05 Step 3: write-time snapshots + snapshot-first reads ───────────
+  //
+  // logFood/logRecipe now freeze nutrition onto the entry at log time
+  // (snapshot* columns); macrosForEntry/watchDailyTotalsForRange read those
+  // columns first and only fall back to the live catalogue when
+  // `snapshotBasis` is null (a pre-v24 row the migration couldn't backfill).
+  group('RB-05 Step 3 — snapshot write + snapshot-first read', () {
+    test(
+      'a food entry\'s totals are unaffected by a later live food edit',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          _FixedClock(DateTime(2026, 6, 15, 12)),
+        );
+
+        final foodId = await db
+            .into(db.foods)
+            .insert(
+              FoodsCompanion.insert(
+                name: 'Chicken Breast',
+                kcalPer100g: 200,
+                proteinPer100g: const Value(30),
+              ),
+            );
+
+        await repo.logFood(
+          date: DateTime(2026, 6, 15),
+          meal: Meal.lunch,
+          foodId: foodId,
+          grams: 100,
+        );
+        var entry = (await db.select(db.foodEntries).get()).single;
+        expect(entry.snapshotBasis, isNotNull);
+        expect(entry.snapshotKcal, 200);
+
+        var totals = await repo.macrosForEntry(entry);
+        expect(totals.kcal, 200);
+        expect(totals.proteinG, 30);
+
+        // Editing the catalogue row must not move history.
+        await repo.updateCustomFood(
+          id: foodId,
+          name: 'Chicken Breast',
+          kcalPer100g: 500,
+          proteinPer100g: 60,
+        );
+
+        entry = (await db.select(db.foodEntries).get()).single;
+        totals = await repo.macrosForEntry(entry);
+        expect(totals.kcal, 200);
+        expect(totals.proteinG, 30);
+      },
+    );
+
+    test(
+      'a recipe entry\'s totals are unaffected by a later live ingredient edit',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          _FixedClock(DateTime(2026, 6, 15, 12)),
+        );
+
+        final foodId = await db
+            .into(db.foods)
+            .insert(
+              FoodsCompanion.insert(
+                name: 'Oats',
+                kcalPer100g: 200,
+                sodiumMgPer100g: const Value(5),
+              ),
+            );
+        final recipeId = await repo.createRecipe(name: 'Porridge', servings: 1);
+        await repo.addIngredient(recipeId: recipeId, foodId: foodId, grams: 100);
+
+        await repo.logRecipe(
+          date: DateTime(2026, 6, 15),
+          meal: Meal.breakfast,
+          recipeId: recipeId,
+          servings: 1,
+        );
+        var entry = (await db.select(db.foodEntries).get()).single;
+        expect(entry.snapshotBasis, 'recipe serving');
+        expect(entry.snapshotKcal, 200);
+
+        var totals = await repo.macrosForEntry(entry);
+        expect(totals.kcal, 200);
+        expect(totals.micros['sodium'], 5);
+
+        // Swap the ingredient for a smaller portion — the live per-serving
+        // total halves, but the already-logged entry must not move.
+        final ingredients = await repo.watchIngredients(recipeId).first;
+        await repo.removeIngredient(ingredients.single.id);
+        await repo.addIngredient(recipeId: recipeId, foodId: foodId, grams: 50);
+
+        final livePer = await repo.recipeMacrosPerServing(recipeId);
+        expect(livePer.kcal, 100);
+
+        entry = (await db.select(db.foodEntries).get()).single;
+        totals = await repo.macrosForEntry(entry);
+        expect(totals.kcal, 200);
+        expect(totals.micros['sodium'], 5);
+      },
+    );
+
+    test(
+      'a null-snapshot (pre-v24) entry keeps resolving against the live '
+      'catalogue',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          _FixedClock(DateTime(2026, 6, 15, 12)),
+        );
+
+        final foodId = await db
+            .into(db.foods)
+            .insert(FoodsCompanion.insert(name: 'Legacy Row', kcalPer100g: 150));
+
+        // Simulate a pre-v24 row the migration couldn't backfill: written
+        // directly, bypassing logFood, so every snapshot* column is null.
+        await db
+            .into(db.foodEntries)
+            .insert(
+              FoodEntriesCompanion.insert(
+                dateIso: '2026-06-15',
+                meal: Meal.snack.name,
+                foodId: Value(foodId),
+                gramsOverride: const Value(100),
+                portionAmount: const Value(100),
+                portionUnit: const Value('g'),
+              ),
+            );
+        var entry = (await db.select(db.foodEntries).get()).single;
+        expect(entry.snapshotBasis, isNull);
+
+        var totals = await repo.macrosForEntry(entry);
+        expect(totals.kcal, 150);
+
+        // Unlike a snapshotted entry, this one is still expected to move
+        // with the catalogue — that's the documented fallback behavior, not
+        // a regression.
+        await repo.updateCustomFood(
+          id: foodId,
+          name: 'Legacy Row',
+          kcalPer100g: 300,
+        );
+        totals = await repo.macrosForEntry(entry);
+        expect(totals.kcal, 300);
+      },
+    );
+
+    test(
+      'recipeMacrosPerServing no longer drops micronutrients',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          _FixedClock(DateTime(2026, 6, 15, 12)),
+        );
+
+        final foodId = await db
+            .into(db.foods)
+            .insert(
+              FoodsCompanion.insert(
+                name: 'Spinach',
+                kcalPer100g: 23,
+                potassiumMgPer100g: const Value(550),
+              ),
+            );
+        final recipeId = await repo.createRecipe(name: 'Salad', servings: 1);
+        await repo.addIngredient(recipeId: recipeId, foodId: foodId, grams: 100);
+
+        final per = await repo.recipeMacrosPerServing(recipeId);
+        expect(per.kcal, 23);
+        expect(per.micros['potassium'], 550);
+        expect(per.hasMicros, isTrue);
+      },
+    );
+  });
 }

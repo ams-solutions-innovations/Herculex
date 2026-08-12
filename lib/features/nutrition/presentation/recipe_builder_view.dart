@@ -636,14 +636,9 @@ class _IngredientTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final food = ref
-        .watch(foodSearchProvider(null))
-        .asData
-        ?.value
-        .firstWhere(
-          (f) => f.id == ingredient.foodId,
-          orElse: () => _placeholder(ingredient.foodId),
-        );
+    final food =
+        ref.watch(watchFoodByIdProvider(ingredient.foodId)).asData?.value ??
+        _placeholder(ingredient.foodId);
     return Dismissible(
       key: ValueKey('ing_${ingredient.id}'),
       direction: DismissDirection.endToStart,
@@ -657,7 +652,7 @@ class _IngredientTile extends ConsumerWidget {
           ref.read(nutritionRepositoryProvider).removeIngredient(ingredient.id),
       child: ListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text(food?.name ?? 'Loading…'),
+        title: Text(food.name),
         trailing: Text('${ingredient.grams.toStringAsFixed(0)} g'),
       ),
     );

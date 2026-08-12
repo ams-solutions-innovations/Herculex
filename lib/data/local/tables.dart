@@ -248,6 +248,13 @@ class Foods extends Table {
 
   /// Full source nutrients/provenance/claims payload for later micro views.
   TextColumn get sourceMetadataJson => text().nullable()();
+
+  /// RB-05 soft delete. Non-null hides the row from every catalogue-facing
+  /// query while `food_entries` / `recipe_ingredients` keep referencing it,
+  /// so both RESTRICT edges stay satisfiable and history keeps its name and
+  /// brand context. Nullable DateTime rather than a bool: it records *when*,
+  /// and the "hidden" predicate stays a single `IS NULL`.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 }
 
 /// Free-form micronutrients per food (vitamins, minerals), per-100g (§19).
@@ -335,6 +342,13 @@ class Recipes extends Table {
   IntColumn get servings => integer().withDefault(const Constant(1))();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// RB-05 soft delete. Non-null hides the row from every catalogue-facing
+  /// query while `food_entries` / `recipe_ingredients` keep referencing it,
+  /// so both RESTRICT edges stay satisfiable and history keeps its name and
+  /// brand context. Nullable DateTime rather than a bool: it records *when*,
+  /// and the "hidden" predicate stays a single `IS NULL`.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 }
 
 @DataClassName('RecipeIngredientData')
@@ -376,6 +390,43 @@ class FoodEntries extends Table {
   RealColumn get portionAmount => real().nullable()();
   TextColumn get portionUnit => text().nullable()();
   DateTimeColumn get loggedAt => dateTime().withDefault(currentDateAndTime)();
+
+  // ── RB-05 nutrition snapshot ──
+  // Frozen at log time so historical totals never move when the catalogue is
+  // edited or a food is deleted. These hold the food's *per-basis* nutrition
+  // profile, not computed totals, so `_portionFactor` still runs at read time
+  // and `updateEntry`'s portion edits keep rescaling correctly.
+  //
+  // `snapshotBasis` is the sentinel: null ⇒ a pre-v24 row the migration could
+  // not backfill ⇒ fall back to the live catalogue. For food entries it holds
+  // the food's `referenceBasis`; for recipe entries the literal
+  // 'recipe serving', and the values below are per-serving totals.
+  //
+  // Every column is nullable with no default. A `required` generated ctor
+  // param would break the synthetic preview draft at log_entry_sheet.dart:991,
+  // and a `DEFAULT 0` would be indistinguishable from a measured zero — the
+  // exact bug class this fixes.
+  TextColumn get snapshotBasis => text().nullable()();
+  TextColumn get snapshotName => text().nullable()();
+  TextColumn get snapshotBrand => text().nullable()();
+  RealColumn get snapshotKcal => real().nullable()();
+  RealColumn get snapshotProteinG => real().nullable()();
+  RealColumn get snapshotCarbsG => real().nullable()();
+  RealColumn get snapshotFatG => real().nullable()();
+  RealColumn get snapshotFiberG => real().nullable()();
+  RealColumn get snapshotSodiumMg => real().nullable()();
+  RealColumn get snapshotPotassiumMg => real().nullable()();
+  RealColumn get snapshotCholesterolMg => real().nullable()();
+  RealColumn get snapshotServingGrams => real().nullable()();
+  RealColumn get snapshotServingAmount => real().nullable()();
+  TextColumn get snapshotServingUnit => text().nullable()();
+
+  /// The already-resolved micronutrient map — `_microsForFood`'s output at
+  /// factor 1.0, flat `{"vitamin_c": 4.0}`. Not the raw `sourceMetadataJson`
+  /// blob, which also carries claims/allergens/provenance and would be an
+  /// order of magnitude larger per row. Null when the map is empty;
+  /// `snapshotBasis` remains the sole "has snapshot" sentinel.
+  TextColumn get snapshotMicrosJson => text().nullable()();
 }
 
 @DataClassName('DailySummaryData')

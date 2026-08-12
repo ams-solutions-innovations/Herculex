@@ -4,7 +4,6 @@ import 'package:drift/drift.dart';
 
 import '../../../core/clock.dart';
 import '../../../data/local/database.dart';
-import '../../../data/local/db_exceptions.dart';
 import '../domain/barcode_utils.dart';
 import '../domain/daily_totals.dart';
 import '../domain/meal.dart';
@@ -20,6 +19,7 @@ class NutritionRepository {
 
   Stream<List<FoodData>> watchFoods({String? query}) {
     final q = _db.select(_db.foods)
+      ..where((t) => t.deletedAt.isNull())
       ..orderBy([(t) => OrderingTerm(expression: t.name)]);
     if (query != null && query.trim().isNotEmpty) {
       final like = '%${query.trim()}%';
@@ -36,12 +36,39 @@ class NutritionRepository {
   }) async {
     final local =
         await (_db.select(_db.foods)
+              ..where((t) => t.deletedAt.isNull())
               ..where((t) => t.name.like('%$query%') | t.brand.like('%$query%'))
               ..limit(20))
             .get();
     // The owned catalogue is authoritative. [includeRemote] remains in the
     // signature for caller compatibility but no network request is made.
     return local;
+  }
+
+  /// Unfiltered single-row lookup by primary key, deliberately not scoped
+  /// by `deletedAt` — history needs to resolve a food regardless of whether
+  /// it's still visible in catalogue search.
+  Future<FoodData?> foodById(int id) {
+    return (_db.select(_db.foods)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  /// Batched counterpart of [foodById] for call sites resolving several ids
+  /// at once. Unfiltered by `deletedAt` for the same reason.
+  Future<Map<int, FoodData>> foodsByIds(Iterable<int> ids) async {
+    final idList = ids.toSet().toList();
+    if (idList.isEmpty) return {};
+    final foods = await (_db.select(
+      _db.foods,
+    )..where((t) => t.id.isIn(idList))).get();
+    return {for (final f in foods) f.id: f};
+  }
+
+  /// Reactive counterpart of [foodById]. Unfiltered by `deletedAt` for the
+  /// same reason.
+  Stream<FoodData?> watchFoodById(int id) {
+    return (_db.select(
+      _db.foods,
+    )..where((t) => t.id.equals(id))).watchSingleOrNull();
   }
 
   /// Local-only exact lookup. Barcode identifiers remain strings.
@@ -53,9 +80,10 @@ class NutritionRepository {
 
   Future<FoodData?> _findByBarcode(List<String> barcodes) async {
     for (final barcode in barcodes) {
-      final exact = await (_db.select(
-        _db.foods,
-      )..where((t) => t.barcode.equals(barcode))).getSingleOrNull();
+      final exact = await (_db.select(_db.foods)
+            ..where((t) => t.barcode.equals(barcode))
+            ..where((t) => t.deletedAt.isNull()))
+          .getSingleOrNull();
       if (exact != null) return exact;
     }
     return null;
@@ -111,6 +139,7 @@ class NutritionRepository {
   Stream<List<FoodData>> watchCustomFoods({String? query}) {
     final q = _db.select(_db.foods)
       ..where((t) => t.isCustom.equals(true) | t.source.equals('local'))
+      ..where((t) => t.deletedAt.isNull())
       ..orderBy([(t) => OrderingTerm(expression: t.name)]);
     if (query != null && query.trim().isNotEmpty) {
       final like = '%${query.trim()}%';
@@ -119,6 +148,15 @@ class NutritionRepository {
     return q.watch();
   }
 
+  /// RB-05: writes through unconditionally, including for a soft-deleted
+  /// food. Deliberate — every UI path that reaches the edit sheet resolves
+  /// its target food through [watchCustomFoods]/[watchFoods]/[searchFoods],
+  /// which (4a) already exclude soft-deleted rows, so a soft-deleted food is
+  /// unreachable here in normal use. Blocking it here too would be
+  /// validation against a case the UI can't produce. And since Step 3's
+  /// snapshots already insulate logged history from a food's live values,
+  /// there's no correctness reason to block it even in a hypothetical direct
+  /// call — the edit stays invisible to search either way.
   Future<FoodData> updateCustomFood({
     required int id,
     required String name,
@@ -163,42 +201,37 @@ class NutritionRepository {
     return (_db.select(_db.foods)..where((t) => t.id.equals(id))).getSingle();
   }
 
+  /// RB-05: soft delete. Hides the food from every catalogue-facing query
+  /// (4a) while `food_entries` / `recipe_ingredients` keep pointing at the
+  /// still-present row, so both RESTRICT edges stay satisfiable and history
+  /// (via the unfiltered [foodById]/[foodsByIds]) keeps resolving its name
+  /// and snapshot context. `food_micros` rows are left in place — they have
+  /// no read path anywhere in the app (verified: only written by the
+  /// catalogue importer, never queried), so there's nothing to keep in sync.
   Future<void> deleteFood(int id) async {
-    await _db.transaction(() async {
-      final entryCount = await (_db.selectOnly(_db.foodEntries)
-            ..addColumns([_db.foodEntries.id.count()])
-            ..where(_db.foodEntries.foodId.equals(id)))
-          .map((row) => row.read(_db.foodEntries.id.count())!)
-          .getSingle();
-      final recipeCount = await (_db.selectOnly(_db.recipeIngredients)
-            ..addColumns([_db.recipeIngredients.id.count()])
-            ..where(_db.recipeIngredients.foodId.equals(id)))
-          .map((row) => row.read(_db.recipeIngredients.id.count())!)
-          .getSingle();
-
-      if (entryCount > 0 || recipeCount > 0) {
-        throw FoodInUseException(
-          entryCount: entryCount,
-          recipeCount: recipeCount,
-        );
-      }
-
-      // TODO(RB-05): replace this hard delete with soft-delete
-      // (`deletedAt` + hiding from search) so the RESTRICT can stay forever
-      // and the UI never sees an in-use error.
-      await (_db.delete(_db.foodMicros)..where((t) => t.foodId.equals(id)))
-          .go();
-      await (_db.delete(_db.foods)..where((t) => t.id.equals(id))).go();
-    });
+    await (_db.update(_db.foods)..where((t) => t.id.equals(id))).write(
+      FoodsCompanion(deletedAt: Value(_clock.now())),
+    );
   }
 
   // ── Recipes ────────────────────────────────────────────────────────────
 
   Stream<List<RecipeData>> watchRecipes() {
-    return (_db.select(_db.recipes)..orderBy([
-          (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
-        ]))
+    return (_db.select(_db.recipes)
+          ..where((t) => t.deletedAt.isNull())
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+          ]))
         .watch();
+  }
+
+  /// Unfiltered single-row lookup by primary key, deliberately not scoped
+  /// by `deletedAt` — see [foodById].
+  Future<RecipeData?> recipeById(int id) {
+    return (_db.select(
+      _db.recipes,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   Future<int> createRecipe({
@@ -232,13 +265,15 @@ class NutritionRepository {
     );
   }
 
+  /// RB-05: soft delete, mirroring [deleteFood]. `recipe_ingredients` rows
+  /// are left in place rather than cascade-deleted — [recipeMacrosPerServing]
+  /// still reads them directly (unfiltered by `deletedAt`, same as
+  /// [recipeById]) to resolve a pre-v24 entry that was never snapshotted and
+  /// now points at a soft-deleted recipe.
   Future<void> deleteRecipe(int id) async {
-    await _db.transaction(() async {
-      await (_db.delete(
-        _db.recipeIngredients,
-      )..where((t) => t.recipeId.equals(id))).go();
-      await (_db.delete(_db.recipes)..where((t) => t.id.equals(id))).go();
-    });
+    await (_db.update(_db.recipes)..where((t) => t.id.equals(id))).write(
+      RecipesCompanion(deletedAt: Value(_clock.now())),
+    );
   }
 
   Stream<List<RecipeIngredientData>> watchIngredients(int recipeId) {
@@ -271,9 +306,7 @@ class NutritionRepository {
 
   /// Macros per serving for a recipe.
   Future<DailyTotals> recipeMacrosPerServing(int recipeId) async {
-    final recipe = await (_db.select(
-      _db.recipes,
-    )..where((t) => t.id.equals(recipeId))).getSingleOrNull();
+    final recipe = await recipeById(recipeId);
     if (recipe == null) return DailyTotals.empty;
 
     final ings = await (_db.select(
@@ -281,11 +314,7 @@ class NutritionRepository {
     )..where((t) => t.recipeId.equals(recipeId))).get();
     if (ings.isEmpty) return DailyTotals.empty;
 
-    final foodIds = ings.map((i) => i.foodId).toSet().toList();
-    final foods = await (_db.select(
-      _db.foods,
-    )..where((t) => t.id.isIn(foodIds))).get();
-    final byId = {for (final f in foods) f.id: f};
+    final byId = await foodsByIds(ings.map((i) => i.foodId));
 
     var totals = DailyTotals.empty;
     for (final ing in ings) {
@@ -315,6 +344,7 @@ class NutritionRepository {
       sodiumMg: totals.sodiumMg / servings,
       potassiumMg: totals.potassiumMg / servings,
       cholesterolMg: totals.cholesterolMg / servings,
+      micros: _scaleMicros(totals.micros, 1 / servings),
     );
   }
 
@@ -346,6 +376,11 @@ class NutritionRepository {
     // Total consumed = servings × portion size, so a "2 × 30 g" entry stores
     // the 60 g the macros are actually computed from.
     final total = amount * (servings <= 0 ? 1 : servings);
+    // RB-05: freeze the food's nutrition profile onto the entry so later
+    // edits/deletes of the catalogue row don't move this entry's history. A
+    // missing food (shouldn't happen via normal UI flow) degrades gracefully
+    // to an un-snapshotted row, which the read path falls back on.
+    final food = await foodById(foodId);
     await _db
         .into(_db.foodEntries)
         .insert(
@@ -362,6 +397,43 @@ class NutritionRepository {
             // UTC, which drifts entries onto the wrong calendar day for users
             // behind UTC and corrupts recentFoods' loggedAt cutoff.
             loggedAt: Value(loggedAt ?? _clock.now()),
+            snapshotBasis: food == null
+                ? const Value.absent()
+                : Value(food.referenceBasis),
+            snapshotName: food == null ? const Value.absent() : Value(food.name),
+            snapshotBrand: food == null ? const Value.absent() : Value(food.brand),
+            snapshotKcal:
+                food == null ? const Value.absent() : Value(food.kcalPer100g),
+            snapshotProteinG: food == null
+                ? const Value.absent()
+                : Value(food.proteinPer100g),
+            snapshotCarbsG:
+                food == null ? const Value.absent() : Value(food.carbsPer100g),
+            snapshotFatG:
+                food == null ? const Value.absent() : Value(food.fatPer100g),
+            snapshotFiberG:
+                food == null ? const Value.absent() : Value(food.fiberPer100g),
+            snapshotSodiumMg: food == null
+                ? const Value.absent()
+                : Value(food.sodiumMgPer100g),
+            snapshotPotassiumMg: food == null
+                ? const Value.absent()
+                : Value(food.potassiumMgPer100g),
+            snapshotCholesterolMg: food == null
+                ? const Value.absent()
+                : Value(food.cholesterolMgPer100g),
+            snapshotServingGrams: food == null
+                ? const Value.absent()
+                : Value(food.servingGrams),
+            snapshotServingAmount: food == null
+                ? const Value.absent()
+                : Value(food.servingAmount),
+            snapshotServingUnit: food == null
+                ? const Value.absent()
+                : Value(food.servingUnit),
+            snapshotMicrosJson: food == null
+                ? const Value.absent()
+                : Value(_encodeMicrosOrNull(_microsForFood(food, 1.0))),
           ),
         );
   }
@@ -400,6 +472,14 @@ class NutritionRepository {
     DateTime? loggedAt,
   }) async {
     final resolvedMeal = mealKey ?? meal?.name ?? Meal.snack.name;
+    // RB-05: freeze the recipe's per-serving nutrition onto the entry, same
+    // rationale as logFood. `snapshotBasis` uses the 'recipe serving'
+    // sentinel the v24 backfill established (nutrition_snapshot_backfill.dart)
+    // so the read path can tell a recipe snapshot from a food snapshot.
+    // snapshot_serving_* stays unset for recipe entries — the read path
+    // scales by entry.servings, not a portion factor.
+    final recipe = await recipeById(recipeId);
+    final per = recipe == null ? null : await recipeMacrosPerServing(recipeId);
     await _db
         .into(_db.foodEntries)
         .insert(
@@ -409,6 +489,28 @@ class NutritionRepository {
             recipeId: Value(recipeId),
             servings: Value(servings),
             loggedAt: Value(loggedAt ?? _clock.now()),
+            snapshotBasis: per == null
+                ? const Value.absent()
+                : const Value('recipe serving'),
+            snapshotName:
+                recipe == null ? const Value.absent() : Value(recipe.name),
+            snapshotKcal: per == null ? const Value.absent() : Value(per.kcal),
+            snapshotProteinG:
+                per == null ? const Value.absent() : Value(per.proteinG),
+            snapshotCarbsG:
+                per == null ? const Value.absent() : Value(per.carbsG),
+            snapshotFatG: per == null ? const Value.absent() : Value(per.fatG),
+            snapshotFiberG:
+                per == null ? const Value.absent() : Value(per.fiberG),
+            snapshotSodiumMg:
+                per == null ? const Value.absent() : Value(per.sodiumMg),
+            snapshotPotassiumMg:
+                per == null ? const Value.absent() : Value(per.potassiumMg),
+            snapshotCholesterolMg:
+                per == null ? const Value.absent() : Value(per.cholesterolMg),
+            snapshotMicrosJson: per == null
+                ? const Value.absent()
+                : Value(_encodeMicrosOrNull(per.micros)),
           ),
         );
   }
@@ -442,27 +544,26 @@ class NutritionRepository {
   }
 
   /// Resolves an entry's macro contribution, handling both food and recipe.
+  ///
+  /// RB-05: snapshot-first. A non-null `snapshotBasis` means the entry froze
+  /// its nutrition at log time, so totals come straight from the entry's own
+  /// snapshot* columns with no food/recipe table touched at all — that's what
+  /// keeps history from moving when the catalogue is edited or a food/recipe
+  /// is deleted. `snapshotBasis == null` marks a pre-v24 row the migration
+  /// couldn't backfill (no matching catalogue row existed then either), so it
+  /// falls back to today's live-catalogue resolution via the Step 2 id-lookup
+  /// primitives.
   Future<DailyTotals> macrosForEntry(FoodEntryData entry) async {
     if (entry.foodId != null) {
-      final food = await (_db.select(
-        _db.foods,
-      )..where((t) => t.id.equals(entry.foodId!))).getSingleOrNull();
+      if (entry.snapshotBasis != null) return _totalsForFoodSnapshot(entry);
+      final food = await foodById(entry.foodId!);
       if (food == null) return DailyTotals.empty;
       return _totalsForFood(food, entry: entry);
     }
     if (entry.recipeId != null) {
+      if (entry.snapshotBasis != null) return _totalsForRecipeSnapshot(entry);
       final per = await recipeMacrosPerServing(entry.recipeId!);
-      return DailyTotals(
-        kcal: per.kcal * entry.servings,
-        proteinG: per.proteinG * entry.servings,
-        carbsG: per.carbsG * entry.servings,
-        fatG: per.fatG * entry.servings,
-        fiberG: per.fiberG * entry.servings,
-        sodiumMg: per.sodiumMg * entry.servings,
-        potassiumMg: per.potassiumMg * entry.servings,
-        cholesterolMg: per.cholesterolMg * entry.servings,
-        micros: _scaleMicros(per.micros, entry.servings),
-      );
+      return _scaleTotals(per, entry.servings);
     }
     return DailyTotals.empty;
   }
@@ -508,23 +609,19 @@ class NutritionRepository {
     await for (final entries in entriesQuery.watch()) {
       final resultMap = <String, DailyTotals>{};
 
-      final foodIds = entries
+      // Only entries without a snapshot need the live catalogue at all — a
+      // snapshotted entry resolves entirely from its own row below.
+      final unsnapshotted = entries.where((e) => e.snapshotBasis == null);
+      final foodIds = unsnapshotted
           .map((e) => e.foodId)
           .whereType<int>()
-          .toSet()
-          .toList();
-      final recipeIds = entries
+          .toSet();
+      final recipeIds = unsnapshotted
           .map((e) => e.recipeId)
           .whereType<int>()
-          .toSet()
-          .toList();
+          .toSet();
 
-      final foods = foodIds.isEmpty
-          ? <FoodData>[]
-          : await (_db.select(
-              _db.foods,
-            )..where((t) => t.id.isIn(foodIds))).get();
-      final foodMap = {for (final f in foods) f.id: f};
+      final foodMap = await foodsByIds(foodIds);
 
       final recipeMacrosMap = <int, DailyTotals>{};
       for (final rId in recipeIds) {
@@ -533,23 +630,21 @@ class NutritionRepository {
 
       for (final entry in entries) {
         DailyTotals entryTotals = DailyTotals.empty;
-        if (entry.foodId != null && foodMap.containsKey(entry.foodId)) {
-          final food = foodMap[entry.foodId]!;
-          entryTotals = _totalsForFood(food, entry: entry);
-        } else if (entry.recipeId != null &&
-            recipeMacrosMap.containsKey(entry.recipeId)) {
-          final per = recipeMacrosMap[entry.recipeId]!;
-          entryTotals = DailyTotals(
-            kcal: per.kcal * entry.servings,
-            proteinG: per.proteinG * entry.servings,
-            carbsG: per.carbsG * entry.servings,
-            fatG: per.fatG * entry.servings,
-            fiberG: per.fiberG * entry.servings,
-            sodiumMg: per.sodiumMg * entry.servings,
-            potassiumMg: per.potassiumMg * entry.servings,
-            cholesterolMg: per.cholesterolMg * entry.servings,
-            micros: _scaleMicros(per.micros, entry.servings),
-          );
+        if (entry.foodId != null) {
+          if (entry.snapshotBasis != null) {
+            entryTotals = _totalsForFoodSnapshot(entry);
+          } else if (foodMap.containsKey(entry.foodId)) {
+            entryTotals = _totalsForFood(foodMap[entry.foodId]!, entry: entry);
+          }
+        } else if (entry.recipeId != null) {
+          if (entry.snapshotBasis != null) {
+            entryTotals = _totalsForRecipeSnapshot(entry);
+          } else if (recipeMacrosMap.containsKey(entry.recipeId)) {
+            entryTotals = _scaleTotals(
+              recipeMacrosMap[entry.recipeId]!,
+              entry.servings,
+            );
+          }
         }
 
         final existing = resultMap[entry.dateIso] ?? DailyTotals.empty;
@@ -593,19 +688,99 @@ class NutritionRepository {
     );
   }
 
-  double _portionFactor(FoodData food, double amount, String unit) {
-    final basis = food.referenceBasis.toLowerCase();
+  double _portionFactor(FoodData food, double amount, String unit) =>
+      _portionFactorForBasis(food.referenceBasis, food.servingGrams, amount, unit);
+
+  /// Basis-driven core of [_portionFactor], extracted so the snapshot read
+  /// path ([_totalsForFoodSnapshot]) can reproduce the exact same math off
+  /// `entry.snapshotBasis`/`entry.snapshotServingGrams` without touching the
+  /// live `foods` table.
+  double _portionFactorForBasis(
+    String basis,
+    double? servingGrams,
+    double amount,
+    String unit,
+  ) {
+    final b = basis.toLowerCase();
     if (unit == 'serving') return amount;
-    if (basis.contains('legacy serving')) {
-      final servingWeight = food.servingGrams;
-      if (unit == 'g' && servingWeight != null && servingWeight > 0) {
-        return amount / servingWeight;
+    if (b.contains('legacy serving')) {
+      if (unit == 'g' && servingGrams != null && servingGrams > 0) {
+        return amount / servingGrams;
       }
       return amount;
     }
-    if (basis.contains('100 ml')) return amount / 100.0;
+    if (b.contains('100 ml')) return amount / 100.0;
     return amount / 100.0;
   }
+
+  /// RB-05 snapshot-first totals for a food entry: identical portion math to
+  /// [_totalsForFood], but sourced entirely from `entry.snapshot*` columns
+  /// instead of a live [FoodData] row.
+  DailyTotals _totalsForFoodSnapshot(FoodEntryData entry) {
+    final amount =
+        entry.portionAmount ??
+        entry.gramsOverride ??
+        entry.snapshotServingAmount ??
+        entry.snapshotServingGrams ??
+        100;
+    final unit =
+        entry.portionUnit ??
+        (entry.gramsOverride != null ? 'g' : entry.snapshotServingUnit ?? 'g');
+    final factor = _portionFactorForBasis(
+      entry.snapshotBasis!,
+      entry.snapshotServingGrams,
+      amount,
+      unit,
+    );
+    final micros = entry.snapshotMicrosJson == null
+        ? const <String, double>{}
+        : _scaleMicros(_decodeMicros(entry.snapshotMicrosJson!), factor);
+    return DailyTotals(
+      kcal: (entry.snapshotKcal ?? 0) * factor,
+      proteinG: (entry.snapshotProteinG ?? 0) * factor,
+      carbsG: (entry.snapshotCarbsG ?? 0) * factor,
+      fatG: (entry.snapshotFatG ?? 0) * factor,
+      fiberG: (entry.snapshotFiberG ?? 0) * factor,
+      sodiumMg: (entry.snapshotSodiumMg ?? 0) * factor,
+      potassiumMg: (entry.snapshotPotassiumMg ?? 0) * factor,
+      cholesterolMg: (entry.snapshotCholesterolMg ?? 0) * factor,
+      micros: micros,
+    );
+  }
+
+  /// RB-05 snapshot-first totals for a recipe entry. Unlike food snapshots,
+  /// the recipe snapshot columns already hold *per-serving* totals (mirroring
+  /// [recipeMacrosPerServing]'s output at log time), so there's no portion
+  /// factor — only the entry's own `servings` multiplier, same as the live
+  /// recipe path.
+  DailyTotals _totalsForRecipeSnapshot(FoodEntryData entry) {
+    final per = DailyTotals(
+      kcal: entry.snapshotKcal ?? 0,
+      proteinG: entry.snapshotProteinG ?? 0,
+      carbsG: entry.snapshotCarbsG ?? 0,
+      fatG: entry.snapshotFatG ?? 0,
+      fiberG: entry.snapshotFiberG ?? 0,
+      sodiumMg: entry.snapshotSodiumMg ?? 0,
+      potassiumMg: entry.snapshotPotassiumMg ?? 0,
+      cholesterolMg: entry.snapshotCholesterolMg ?? 0,
+      micros: entry.snapshotMicrosJson == null
+          ? const {}
+          : _decodeMicros(entry.snapshotMicrosJson!),
+    );
+    return _scaleTotals(per, entry.servings);
+  }
+
+  DailyTotals _scaleTotals(DailyTotals totals, double factor) => DailyTotals(
+    kcal: totals.kcal * factor,
+    proteinG: totals.proteinG * factor,
+    carbsG: totals.carbsG * factor,
+    fatG: totals.fatG * factor,
+    fiberG: totals.fiberG * factor,
+    sodiumMg: totals.sodiumMg * factor,
+    potassiumMg: totals.potassiumMg * factor,
+    cholesterolMg: totals.cholesterolMg * factor,
+    micros: _scaleMicros(totals.micros, factor),
+  );
 
   Map<String, double> _microsForFood(FoodData food, double factor) {
     final nutrients = <String, double>{};
@@ -641,6 +816,27 @@ class NutritionRepository {
 
   Map<String, double> _scaleMicros(Map<String, double> values, double factor) =>
       {for (final item in values.entries) item.key: item.value * factor};
+
+  /// Decodes a `snapshotMicrosJson` blob — the flat, already-resolved
+  /// `{"vitamin_c": 4.0}` map `_microsForFood`/the v24 backfill produce, not
+  /// the raw `sourceMetadataJson` provenance blob.
+  Map<String, double> _decodeMicros(String json) {
+    try {
+      final root = jsonDecode(json) as Map<String, dynamic>;
+      return {
+        for (final item in root.entries)
+          if (item.value is num) item.key: (item.value as num).toDouble(),
+      };
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  /// Inverse of [_decodeMicros] for writing a snapshot: null when empty, so
+  /// `snapshotBasis` stays the sole "has snapshot" sentinel (an empty `{}`
+  /// would otherwise be indistinguishable from "not snapshotted").
+  String? _encodeMicrosOrNull(Map<String, double> micros) =>
+      micros.isEmpty ? null : jsonEncode(micros);
 
   // ── Nutrition targets, diet schedules, carb plans (v12, §19) ────────────
 
@@ -800,9 +996,10 @@ class NutritionRepository {
     final topIds = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final ids = topIds.take(limit).map((e) => e.key).toList();
-    final foods = await (_db.select(
-      _db.foods,
-    )..where((t) => t.id.isIn(ids))).get();
+    final foods = await (_db.select(_db.foods)
+          ..where((t) => t.id.isIn(ids))
+          ..where((t) => t.deletedAt.isNull()))
+        .get();
     // Preserve frequency order.
     final byId = {for (final f in foods) f.id: f};
     return [for (final id in ids) byId[id]].whereType<FoodData>().toList();

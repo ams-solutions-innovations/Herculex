@@ -4961,6 +4961,17 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodData> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4988,6 +4999,7 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodData> {
     category,
     country,
     sourceMetadataJson,
+    deletedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5194,6 +5206,12 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodData> {
         ),
       );
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -5303,6 +5321,10 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodData> {
         DriftSqlType.string,
         data['${effectivePrefix}source_metadata_json'],
       ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -5344,6 +5366,13 @@ class FoodData extends DataClass implements Insertable<FoodData> {
 
   /// Full source nutrients/provenance/claims payload for later micro views.
   final String? sourceMetadataJson;
+
+  /// RB-05 soft delete. Non-null hides the row from every catalogue-facing
+  /// query while `food_entries` / `recipe_ingredients` keep referencing it,
+  /// so both RESTRICT edges stay satisfiable and history keeps its name and
+  /// brand context. Nullable DateTime rather than a bool: it records *when*,
+  /// and the "hidden" predicate stays a single `IS NULL`.
+  final DateTime? deletedAt;
   const FoodData({
     required this.id,
     required this.name,
@@ -5370,6 +5399,7 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     this.category,
     this.country,
     this.sourceMetadataJson,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5428,6 +5458,9 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     }
     if (!nullToAbsent || sourceMetadataJson != null) {
       map['source_metadata_json'] = Variable<String>(sourceMetadataJson);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     return map;
   }
@@ -5489,6 +5522,9 @@ class FoodData extends DataClass implements Insertable<FoodData> {
       sourceMetadataJson: sourceMetadataJson == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceMetadataJson),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -5529,6 +5565,7 @@ class FoodData extends DataClass implements Insertable<FoodData> {
       sourceMetadataJson: serializer.fromJson<String?>(
         json['sourceMetadataJson'],
       ),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -5560,6 +5597,7 @@ class FoodData extends DataClass implements Insertable<FoodData> {
       'category': serializer.toJson<String?>(category),
       'country': serializer.toJson<String?>(country),
       'sourceMetadataJson': serializer.toJson<String?>(sourceMetadataJson),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
@@ -5589,6 +5627,7 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     Value<String?> category = const Value.absent(),
     Value<String?> country = const Value.absent(),
     Value<String?> sourceMetadataJson = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
   }) => FoodData(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -5625,6 +5664,7 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     sourceMetadataJson: sourceMetadataJson.present
         ? sourceMetadataJson.value
         : this.sourceMetadataJson,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   FoodData copyWithCompanion(FoodsCompanion data) {
     return FoodData(
@@ -5683,6 +5723,7 @@ class FoodData extends DataClass implements Insertable<FoodData> {
       sourceMetadataJson: data.sourceMetadataJson.present
           ? data.sourceMetadataJson.value
           : this.sourceMetadataJson,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -5713,7 +5754,8 @@ class FoodData extends DataClass implements Insertable<FoodData> {
           ..write('servingUnit: $servingUnit, ')
           ..write('category: $category, ')
           ..write('country: $country, ')
-          ..write('sourceMetadataJson: $sourceMetadataJson')
+          ..write('sourceMetadataJson: $sourceMetadataJson, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -5745,6 +5787,7 @@ class FoodData extends DataClass implements Insertable<FoodData> {
     category,
     country,
     sourceMetadataJson,
+    deletedAt,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -5774,7 +5817,8 @@ class FoodData extends DataClass implements Insertable<FoodData> {
           other.servingUnit == this.servingUnit &&
           other.category == this.category &&
           other.country == this.country &&
-          other.sourceMetadataJson == this.sourceMetadataJson);
+          other.sourceMetadataJson == this.sourceMetadataJson &&
+          other.deletedAt == this.deletedAt);
 }
 
 class FoodsCompanion extends UpdateCompanion<FoodData> {
@@ -5803,6 +5847,7 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
   final Value<String?> category;
   final Value<String?> country;
   final Value<String?> sourceMetadataJson;
+  final Value<DateTime?> deletedAt;
   const FoodsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -5829,6 +5874,7 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     this.category = const Value.absent(),
     this.country = const Value.absent(),
     this.sourceMetadataJson = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   });
   FoodsCompanion.insert({
     this.id = const Value.absent(),
@@ -5856,6 +5902,7 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     this.category = const Value.absent(),
     this.country = const Value.absent(),
     this.sourceMetadataJson = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   }) : name = Value(name),
        kcalPer100g = Value(kcalPer100g);
   static Insertable<FoodData> custom({
@@ -5884,6 +5931,7 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     Expression<String>? category,
     Expression<String>? country,
     Expression<String>? sourceMetadataJson,
+    Expression<DateTime>? deletedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5914,6 +5962,7 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
       if (country != null) 'country': country,
       if (sourceMetadataJson != null)
         'source_metadata_json': sourceMetadataJson,
+      if (deletedAt != null) 'deleted_at': deletedAt,
     });
   }
 
@@ -5943,6 +5992,7 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     Value<String?>? category,
     Value<String?>? country,
     Value<String?>? sourceMetadataJson,
+    Value<DateTime?>? deletedAt,
   }) {
     return FoodsCompanion(
       id: id ?? this.id,
@@ -5970,6 +6020,7 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
       category: category ?? this.category,
       country: country ?? this.country,
       sourceMetadataJson: sourceMetadataJson ?? this.sourceMetadataJson,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
@@ -6053,6 +6104,9 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
     if (sourceMetadataJson.present) {
       map['source_metadata_json'] = Variable<String>(sourceMetadataJson.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     return map;
   }
 
@@ -6083,7 +6137,8 @@ class FoodsCompanion extends UpdateCompanion<FoodData> {
           ..write('servingUnit: $servingUnit, ')
           ..write('category: $category, ')
           ..write('country: $country, ')
-          ..write('sourceMetadataJson: $sourceMetadataJson')
+          ..write('sourceMetadataJson: $sourceMetadataJson, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -6149,8 +6204,26 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, RecipeData> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, servings, notes, createdAt];
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    servings,
+    notes,
+    createdAt,
+    deletedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -6192,6 +6265,12 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, RecipeData> {
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -6221,6 +6300,10 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, RecipeData> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -6236,12 +6319,20 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
   final int servings;
   final String? notes;
   final DateTime createdAt;
+
+  /// RB-05 soft delete. Non-null hides the row from every catalogue-facing
+  /// query while `food_entries` / `recipe_ingredients` keep referencing it,
+  /// so both RESTRICT edges stay satisfiable and history keeps its name and
+  /// brand context. Nullable DateTime rather than a bool: it records *when*,
+  /// and the "hidden" predicate stays a single `IS NULL`.
+  final DateTime? deletedAt;
   const RecipeData({
     required this.id,
     required this.name,
     required this.servings,
     this.notes,
     required this.createdAt,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6253,6 +6344,9 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
       map['notes'] = Variable<String>(notes);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     return map;
   }
 
@@ -6265,6 +6359,9 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
           ? const Value.absent()
           : Value(notes),
       createdAt: Value(createdAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -6279,6 +6376,7 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
       servings: serializer.fromJson<int>(json['servings']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -6290,6 +6388,7 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
       'servings': serializer.toJson<int>(servings),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
@@ -6299,12 +6398,14 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
     int? servings,
     Value<String?> notes = const Value.absent(),
     DateTime? createdAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
   }) => RecipeData(
     id: id ?? this.id,
     name: name ?? this.name,
     servings: servings ?? this.servings,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt ?? this.createdAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   RecipeData copyWithCompanion(RecipesCompanion data) {
     return RecipeData(
@@ -6313,6 +6414,7 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
       servings: data.servings.present ? data.servings.value : this.servings,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -6323,13 +6425,15 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
           ..write('name: $name, ')
           ..write('servings: $servings, ')
           ..write('notes: $notes, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, servings, notes, createdAt);
+  int get hashCode =>
+      Object.hash(id, name, servings, notes, createdAt, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6338,7 +6442,8 @@ class RecipeData extends DataClass implements Insertable<RecipeData> {
           other.name == this.name &&
           other.servings == this.servings &&
           other.notes == this.notes &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class RecipesCompanion extends UpdateCompanion<RecipeData> {
@@ -6347,12 +6452,14 @@ class RecipesCompanion extends UpdateCompanion<RecipeData> {
   final Value<int> servings;
   final Value<String?> notes;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> deletedAt;
   const RecipesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.servings = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   });
   RecipesCompanion.insert({
     this.id = const Value.absent(),
@@ -6360,6 +6467,7 @@ class RecipesCompanion extends UpdateCompanion<RecipeData> {
     this.servings = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<RecipeData> custom({
     Expression<int>? id,
@@ -6367,6 +6475,7 @@ class RecipesCompanion extends UpdateCompanion<RecipeData> {
     Expression<int>? servings,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? deletedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -6374,6 +6483,7 @@ class RecipesCompanion extends UpdateCompanion<RecipeData> {
       if (servings != null) 'servings': servings,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
     });
   }
 
@@ -6383,6 +6493,7 @@ class RecipesCompanion extends UpdateCompanion<RecipeData> {
     Value<int>? servings,
     Value<String?>? notes,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? deletedAt,
   }) {
     return RecipesCompanion(
       id: id ?? this.id,
@@ -6390,6 +6501,7 @@ class RecipesCompanion extends UpdateCompanion<RecipeData> {
       servings: servings ?? this.servings,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
@@ -6411,6 +6523,9 @@ class RecipesCompanion extends UpdateCompanion<RecipeData> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     return map;
   }
 
@@ -6421,7 +6536,8 @@ class RecipesCompanion extends UpdateCompanion<RecipeData> {
           ..write('name: $name, ')
           ..write('servings: $servings, ')
           ..write('notes: $notes, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -6852,6 +6968,171 @@ class $FoodEntriesTable extends FoodEntries
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _snapshotBasisMeta = const VerificationMeta(
+    'snapshotBasis',
+  );
+  @override
+  late final GeneratedColumn<String> snapshotBasis = GeneratedColumn<String>(
+    'snapshot_basis',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotNameMeta = const VerificationMeta(
+    'snapshotName',
+  );
+  @override
+  late final GeneratedColumn<String> snapshotName = GeneratedColumn<String>(
+    'snapshot_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotBrandMeta = const VerificationMeta(
+    'snapshotBrand',
+  );
+  @override
+  late final GeneratedColumn<String> snapshotBrand = GeneratedColumn<String>(
+    'snapshot_brand',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotKcalMeta = const VerificationMeta(
+    'snapshotKcal',
+  );
+  @override
+  late final GeneratedColumn<double> snapshotKcal = GeneratedColumn<double>(
+    'snapshot_kcal',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotProteinGMeta = const VerificationMeta(
+    'snapshotProteinG',
+  );
+  @override
+  late final GeneratedColumn<double> snapshotProteinG = GeneratedColumn<double>(
+    'snapshot_protein_g',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotCarbsGMeta = const VerificationMeta(
+    'snapshotCarbsG',
+  );
+  @override
+  late final GeneratedColumn<double> snapshotCarbsG = GeneratedColumn<double>(
+    'snapshot_carbs_g',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotFatGMeta = const VerificationMeta(
+    'snapshotFatG',
+  );
+  @override
+  late final GeneratedColumn<double> snapshotFatG = GeneratedColumn<double>(
+    'snapshot_fat_g',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotFiberGMeta = const VerificationMeta(
+    'snapshotFiberG',
+  );
+  @override
+  late final GeneratedColumn<double> snapshotFiberG = GeneratedColumn<double>(
+    'snapshot_fiber_g',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotSodiumMgMeta = const VerificationMeta(
+    'snapshotSodiumMg',
+  );
+  @override
+  late final GeneratedColumn<double> snapshotSodiumMg = GeneratedColumn<double>(
+    'snapshot_sodium_mg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotPotassiumMgMeta =
+      const VerificationMeta('snapshotPotassiumMg');
+  @override
+  late final GeneratedColumn<double> snapshotPotassiumMg =
+      GeneratedColumn<double>(
+        'snapshot_potassium_mg',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _snapshotCholesterolMgMeta =
+      const VerificationMeta('snapshotCholesterolMg');
+  @override
+  late final GeneratedColumn<double> snapshotCholesterolMg =
+      GeneratedColumn<double>(
+        'snapshot_cholesterol_mg',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _snapshotServingGramsMeta =
+      const VerificationMeta('snapshotServingGrams');
+  @override
+  late final GeneratedColumn<double> snapshotServingGrams =
+      GeneratedColumn<double>(
+        'snapshot_serving_grams',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _snapshotServingAmountMeta =
+      const VerificationMeta('snapshotServingAmount');
+  @override
+  late final GeneratedColumn<double> snapshotServingAmount =
+      GeneratedColumn<double>(
+        'snapshot_serving_amount',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _snapshotServingUnitMeta =
+      const VerificationMeta('snapshotServingUnit');
+  @override
+  late final GeneratedColumn<String> snapshotServingUnit =
+      GeneratedColumn<String>(
+        'snapshot_serving_unit',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _snapshotMicrosJsonMeta =
+      const VerificationMeta('snapshotMicrosJson');
+  @override
+  late final GeneratedColumn<String> snapshotMicrosJson =
+      GeneratedColumn<String>(
+        'snapshot_micros_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6864,6 +7145,21 @@ class $FoodEntriesTable extends FoodEntries
     portionAmount,
     portionUnit,
     loggedAt,
+    snapshotBasis,
+    snapshotName,
+    snapshotBrand,
+    snapshotKcal,
+    snapshotProteinG,
+    snapshotCarbsG,
+    snapshotFatG,
+    snapshotFiberG,
+    snapshotSodiumMg,
+    snapshotPotassiumMg,
+    snapshotCholesterolMg,
+    snapshotServingGrams,
+    snapshotServingAmount,
+    snapshotServingUnit,
+    snapshotMicrosJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6947,6 +7243,141 @@ class $FoodEntriesTable extends FoodEntries
         loggedAt.isAcceptableOrUnknown(data['logged_at']!, _loggedAtMeta),
       );
     }
+    if (data.containsKey('snapshot_basis')) {
+      context.handle(
+        _snapshotBasisMeta,
+        snapshotBasis.isAcceptableOrUnknown(
+          data['snapshot_basis']!,
+          _snapshotBasisMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_name')) {
+      context.handle(
+        _snapshotNameMeta,
+        snapshotName.isAcceptableOrUnknown(
+          data['snapshot_name']!,
+          _snapshotNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_brand')) {
+      context.handle(
+        _snapshotBrandMeta,
+        snapshotBrand.isAcceptableOrUnknown(
+          data['snapshot_brand']!,
+          _snapshotBrandMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_kcal')) {
+      context.handle(
+        _snapshotKcalMeta,
+        snapshotKcal.isAcceptableOrUnknown(
+          data['snapshot_kcal']!,
+          _snapshotKcalMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_protein_g')) {
+      context.handle(
+        _snapshotProteinGMeta,
+        snapshotProteinG.isAcceptableOrUnknown(
+          data['snapshot_protein_g']!,
+          _snapshotProteinGMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_carbs_g')) {
+      context.handle(
+        _snapshotCarbsGMeta,
+        snapshotCarbsG.isAcceptableOrUnknown(
+          data['snapshot_carbs_g']!,
+          _snapshotCarbsGMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_fat_g')) {
+      context.handle(
+        _snapshotFatGMeta,
+        snapshotFatG.isAcceptableOrUnknown(
+          data['snapshot_fat_g']!,
+          _snapshotFatGMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_fiber_g')) {
+      context.handle(
+        _snapshotFiberGMeta,
+        snapshotFiberG.isAcceptableOrUnknown(
+          data['snapshot_fiber_g']!,
+          _snapshotFiberGMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_sodium_mg')) {
+      context.handle(
+        _snapshotSodiumMgMeta,
+        snapshotSodiumMg.isAcceptableOrUnknown(
+          data['snapshot_sodium_mg']!,
+          _snapshotSodiumMgMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_potassium_mg')) {
+      context.handle(
+        _snapshotPotassiumMgMeta,
+        snapshotPotassiumMg.isAcceptableOrUnknown(
+          data['snapshot_potassium_mg']!,
+          _snapshotPotassiumMgMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_cholesterol_mg')) {
+      context.handle(
+        _snapshotCholesterolMgMeta,
+        snapshotCholesterolMg.isAcceptableOrUnknown(
+          data['snapshot_cholesterol_mg']!,
+          _snapshotCholesterolMgMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_serving_grams')) {
+      context.handle(
+        _snapshotServingGramsMeta,
+        snapshotServingGrams.isAcceptableOrUnknown(
+          data['snapshot_serving_grams']!,
+          _snapshotServingGramsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_serving_amount')) {
+      context.handle(
+        _snapshotServingAmountMeta,
+        snapshotServingAmount.isAcceptableOrUnknown(
+          data['snapshot_serving_amount']!,
+          _snapshotServingAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_serving_unit')) {
+      context.handle(
+        _snapshotServingUnitMeta,
+        snapshotServingUnit.isAcceptableOrUnknown(
+          data['snapshot_serving_unit']!,
+          _snapshotServingUnitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_micros_json')) {
+      context.handle(
+        _snapshotMicrosJsonMeta,
+        snapshotMicrosJson.isAcceptableOrUnknown(
+          data['snapshot_micros_json']!,
+          _snapshotMicrosJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -6996,6 +7427,66 @@ class $FoodEntriesTable extends FoodEntries
         DriftSqlType.dateTime,
         data['${effectivePrefix}logged_at'],
       )!,
+      snapshotBasis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_basis'],
+      ),
+      snapshotName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_name'],
+      ),
+      snapshotBrand: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_brand'],
+      ),
+      snapshotKcal: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_kcal'],
+      ),
+      snapshotProteinG: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_protein_g'],
+      ),
+      snapshotCarbsG: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_carbs_g'],
+      ),
+      snapshotFatG: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_fat_g'],
+      ),
+      snapshotFiberG: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_fiber_g'],
+      ),
+      snapshotSodiumMg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_sodium_mg'],
+      ),
+      snapshotPotassiumMg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_potassium_mg'],
+      ),
+      snapshotCholesterolMg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_cholesterol_mg'],
+      ),
+      snapshotServingGrams: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_serving_grams'],
+      ),
+      snapshotServingAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}snapshot_serving_amount'],
+      ),
+      snapshotServingUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_serving_unit'],
+      ),
+      snapshotMicrosJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_micros_json'],
+      ),
     );
   }
 
@@ -7022,6 +7513,27 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
   final double? portionAmount;
   final String? portionUnit;
   final DateTime loggedAt;
+  final String? snapshotBasis;
+  final String? snapshotName;
+  final String? snapshotBrand;
+  final double? snapshotKcal;
+  final double? snapshotProteinG;
+  final double? snapshotCarbsG;
+  final double? snapshotFatG;
+  final double? snapshotFiberG;
+  final double? snapshotSodiumMg;
+  final double? snapshotPotassiumMg;
+  final double? snapshotCholesterolMg;
+  final double? snapshotServingGrams;
+  final double? snapshotServingAmount;
+  final String? snapshotServingUnit;
+
+  /// The already-resolved micronutrient map — `_microsForFood`'s output at
+  /// factor 1.0, flat `{"vitamin_c": 4.0}`. Not the raw `sourceMetadataJson`
+  /// blob, which also carries claims/allergens/provenance and would be an
+  /// order of magnitude larger per row. Null when the map is empty;
+  /// `snapshotBasis` remains the sole "has snapshot" sentinel.
+  final String? snapshotMicrosJson;
   const FoodEntryData({
     required this.id,
     required this.dateIso,
@@ -7033,6 +7545,21 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
     this.portionAmount,
     this.portionUnit,
     required this.loggedAt,
+    this.snapshotBasis,
+    this.snapshotName,
+    this.snapshotBrand,
+    this.snapshotKcal,
+    this.snapshotProteinG,
+    this.snapshotCarbsG,
+    this.snapshotFatG,
+    this.snapshotFiberG,
+    this.snapshotSodiumMg,
+    this.snapshotPotassiumMg,
+    this.snapshotCholesterolMg,
+    this.snapshotServingGrams,
+    this.snapshotServingAmount,
+    this.snapshotServingUnit,
+    this.snapshotMicrosJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7057,6 +7584,51 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
       map['portion_unit'] = Variable<String>(portionUnit);
     }
     map['logged_at'] = Variable<DateTime>(loggedAt);
+    if (!nullToAbsent || snapshotBasis != null) {
+      map['snapshot_basis'] = Variable<String>(snapshotBasis);
+    }
+    if (!nullToAbsent || snapshotName != null) {
+      map['snapshot_name'] = Variable<String>(snapshotName);
+    }
+    if (!nullToAbsent || snapshotBrand != null) {
+      map['snapshot_brand'] = Variable<String>(snapshotBrand);
+    }
+    if (!nullToAbsent || snapshotKcal != null) {
+      map['snapshot_kcal'] = Variable<double>(snapshotKcal);
+    }
+    if (!nullToAbsent || snapshotProteinG != null) {
+      map['snapshot_protein_g'] = Variable<double>(snapshotProteinG);
+    }
+    if (!nullToAbsent || snapshotCarbsG != null) {
+      map['snapshot_carbs_g'] = Variable<double>(snapshotCarbsG);
+    }
+    if (!nullToAbsent || snapshotFatG != null) {
+      map['snapshot_fat_g'] = Variable<double>(snapshotFatG);
+    }
+    if (!nullToAbsent || snapshotFiberG != null) {
+      map['snapshot_fiber_g'] = Variable<double>(snapshotFiberG);
+    }
+    if (!nullToAbsent || snapshotSodiumMg != null) {
+      map['snapshot_sodium_mg'] = Variable<double>(snapshotSodiumMg);
+    }
+    if (!nullToAbsent || snapshotPotassiumMg != null) {
+      map['snapshot_potassium_mg'] = Variable<double>(snapshotPotassiumMg);
+    }
+    if (!nullToAbsent || snapshotCholesterolMg != null) {
+      map['snapshot_cholesterol_mg'] = Variable<double>(snapshotCholesterolMg);
+    }
+    if (!nullToAbsent || snapshotServingGrams != null) {
+      map['snapshot_serving_grams'] = Variable<double>(snapshotServingGrams);
+    }
+    if (!nullToAbsent || snapshotServingAmount != null) {
+      map['snapshot_serving_amount'] = Variable<double>(snapshotServingAmount);
+    }
+    if (!nullToAbsent || snapshotServingUnit != null) {
+      map['snapshot_serving_unit'] = Variable<String>(snapshotServingUnit);
+    }
+    if (!nullToAbsent || snapshotMicrosJson != null) {
+      map['snapshot_micros_json'] = Variable<String>(snapshotMicrosJson);
+    }
     return map;
   }
 
@@ -7082,6 +7654,51 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
           ? const Value.absent()
           : Value(portionUnit),
       loggedAt: Value(loggedAt),
+      snapshotBasis: snapshotBasis == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotBasis),
+      snapshotName: snapshotName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotName),
+      snapshotBrand: snapshotBrand == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotBrand),
+      snapshotKcal: snapshotKcal == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotKcal),
+      snapshotProteinG: snapshotProteinG == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotProteinG),
+      snapshotCarbsG: snapshotCarbsG == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotCarbsG),
+      snapshotFatG: snapshotFatG == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotFatG),
+      snapshotFiberG: snapshotFiberG == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotFiberG),
+      snapshotSodiumMg: snapshotSodiumMg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotSodiumMg),
+      snapshotPotassiumMg: snapshotPotassiumMg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotPotassiumMg),
+      snapshotCholesterolMg: snapshotCholesterolMg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotCholesterolMg),
+      snapshotServingGrams: snapshotServingGrams == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotServingGrams),
+      snapshotServingAmount: snapshotServingAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotServingAmount),
+      snapshotServingUnit: snapshotServingUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotServingUnit),
+      snapshotMicrosJson: snapshotMicrosJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotMicrosJson),
     );
   }
 
@@ -7101,6 +7718,33 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
       portionAmount: serializer.fromJson<double?>(json['portionAmount']),
       portionUnit: serializer.fromJson<String?>(json['portionUnit']),
       loggedAt: serializer.fromJson<DateTime>(json['loggedAt']),
+      snapshotBasis: serializer.fromJson<String?>(json['snapshotBasis']),
+      snapshotName: serializer.fromJson<String?>(json['snapshotName']),
+      snapshotBrand: serializer.fromJson<String?>(json['snapshotBrand']),
+      snapshotKcal: serializer.fromJson<double?>(json['snapshotKcal']),
+      snapshotProteinG: serializer.fromJson<double?>(json['snapshotProteinG']),
+      snapshotCarbsG: serializer.fromJson<double?>(json['snapshotCarbsG']),
+      snapshotFatG: serializer.fromJson<double?>(json['snapshotFatG']),
+      snapshotFiberG: serializer.fromJson<double?>(json['snapshotFiberG']),
+      snapshotSodiumMg: serializer.fromJson<double?>(json['snapshotSodiumMg']),
+      snapshotPotassiumMg: serializer.fromJson<double?>(
+        json['snapshotPotassiumMg'],
+      ),
+      snapshotCholesterolMg: serializer.fromJson<double?>(
+        json['snapshotCholesterolMg'],
+      ),
+      snapshotServingGrams: serializer.fromJson<double?>(
+        json['snapshotServingGrams'],
+      ),
+      snapshotServingAmount: serializer.fromJson<double?>(
+        json['snapshotServingAmount'],
+      ),
+      snapshotServingUnit: serializer.fromJson<String?>(
+        json['snapshotServingUnit'],
+      ),
+      snapshotMicrosJson: serializer.fromJson<String?>(
+        json['snapshotMicrosJson'],
+      ),
     );
   }
   @override
@@ -7117,6 +7761,25 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
       'portionAmount': serializer.toJson<double?>(portionAmount),
       'portionUnit': serializer.toJson<String?>(portionUnit),
       'loggedAt': serializer.toJson<DateTime>(loggedAt),
+      'snapshotBasis': serializer.toJson<String?>(snapshotBasis),
+      'snapshotName': serializer.toJson<String?>(snapshotName),
+      'snapshotBrand': serializer.toJson<String?>(snapshotBrand),
+      'snapshotKcal': serializer.toJson<double?>(snapshotKcal),
+      'snapshotProteinG': serializer.toJson<double?>(snapshotProteinG),
+      'snapshotCarbsG': serializer.toJson<double?>(snapshotCarbsG),
+      'snapshotFatG': serializer.toJson<double?>(snapshotFatG),
+      'snapshotFiberG': serializer.toJson<double?>(snapshotFiberG),
+      'snapshotSodiumMg': serializer.toJson<double?>(snapshotSodiumMg),
+      'snapshotPotassiumMg': serializer.toJson<double?>(snapshotPotassiumMg),
+      'snapshotCholesterolMg': serializer.toJson<double?>(
+        snapshotCholesterolMg,
+      ),
+      'snapshotServingGrams': serializer.toJson<double?>(snapshotServingGrams),
+      'snapshotServingAmount': serializer.toJson<double?>(
+        snapshotServingAmount,
+      ),
+      'snapshotServingUnit': serializer.toJson<String?>(snapshotServingUnit),
+      'snapshotMicrosJson': serializer.toJson<String?>(snapshotMicrosJson),
     };
   }
 
@@ -7131,6 +7794,21 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
     Value<double?> portionAmount = const Value.absent(),
     Value<String?> portionUnit = const Value.absent(),
     DateTime? loggedAt,
+    Value<String?> snapshotBasis = const Value.absent(),
+    Value<String?> snapshotName = const Value.absent(),
+    Value<String?> snapshotBrand = const Value.absent(),
+    Value<double?> snapshotKcal = const Value.absent(),
+    Value<double?> snapshotProteinG = const Value.absent(),
+    Value<double?> snapshotCarbsG = const Value.absent(),
+    Value<double?> snapshotFatG = const Value.absent(),
+    Value<double?> snapshotFiberG = const Value.absent(),
+    Value<double?> snapshotSodiumMg = const Value.absent(),
+    Value<double?> snapshotPotassiumMg = const Value.absent(),
+    Value<double?> snapshotCholesterolMg = const Value.absent(),
+    Value<double?> snapshotServingGrams = const Value.absent(),
+    Value<double?> snapshotServingAmount = const Value.absent(),
+    Value<String?> snapshotServingUnit = const Value.absent(),
+    Value<String?> snapshotMicrosJson = const Value.absent(),
   }) => FoodEntryData(
     id: id ?? this.id,
     dateIso: dateIso ?? this.dateIso,
@@ -7146,6 +7824,45 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
         : this.portionAmount,
     portionUnit: portionUnit.present ? portionUnit.value : this.portionUnit,
     loggedAt: loggedAt ?? this.loggedAt,
+    snapshotBasis: snapshotBasis.present
+        ? snapshotBasis.value
+        : this.snapshotBasis,
+    snapshotName: snapshotName.present ? snapshotName.value : this.snapshotName,
+    snapshotBrand: snapshotBrand.present
+        ? snapshotBrand.value
+        : this.snapshotBrand,
+    snapshotKcal: snapshotKcal.present ? snapshotKcal.value : this.snapshotKcal,
+    snapshotProteinG: snapshotProteinG.present
+        ? snapshotProteinG.value
+        : this.snapshotProteinG,
+    snapshotCarbsG: snapshotCarbsG.present
+        ? snapshotCarbsG.value
+        : this.snapshotCarbsG,
+    snapshotFatG: snapshotFatG.present ? snapshotFatG.value : this.snapshotFatG,
+    snapshotFiberG: snapshotFiberG.present
+        ? snapshotFiberG.value
+        : this.snapshotFiberG,
+    snapshotSodiumMg: snapshotSodiumMg.present
+        ? snapshotSodiumMg.value
+        : this.snapshotSodiumMg,
+    snapshotPotassiumMg: snapshotPotassiumMg.present
+        ? snapshotPotassiumMg.value
+        : this.snapshotPotassiumMg,
+    snapshotCholesterolMg: snapshotCholesterolMg.present
+        ? snapshotCholesterolMg.value
+        : this.snapshotCholesterolMg,
+    snapshotServingGrams: snapshotServingGrams.present
+        ? snapshotServingGrams.value
+        : this.snapshotServingGrams,
+    snapshotServingAmount: snapshotServingAmount.present
+        ? snapshotServingAmount.value
+        : this.snapshotServingAmount,
+    snapshotServingUnit: snapshotServingUnit.present
+        ? snapshotServingUnit.value
+        : this.snapshotServingUnit,
+    snapshotMicrosJson: snapshotMicrosJson.present
+        ? snapshotMicrosJson.value
+        : this.snapshotMicrosJson,
   );
   FoodEntryData copyWithCompanion(FoodEntriesCompanion data) {
     return FoodEntryData(
@@ -7165,6 +7882,51 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
           ? data.portionUnit.value
           : this.portionUnit,
       loggedAt: data.loggedAt.present ? data.loggedAt.value : this.loggedAt,
+      snapshotBasis: data.snapshotBasis.present
+          ? data.snapshotBasis.value
+          : this.snapshotBasis,
+      snapshotName: data.snapshotName.present
+          ? data.snapshotName.value
+          : this.snapshotName,
+      snapshotBrand: data.snapshotBrand.present
+          ? data.snapshotBrand.value
+          : this.snapshotBrand,
+      snapshotKcal: data.snapshotKcal.present
+          ? data.snapshotKcal.value
+          : this.snapshotKcal,
+      snapshotProteinG: data.snapshotProteinG.present
+          ? data.snapshotProteinG.value
+          : this.snapshotProteinG,
+      snapshotCarbsG: data.snapshotCarbsG.present
+          ? data.snapshotCarbsG.value
+          : this.snapshotCarbsG,
+      snapshotFatG: data.snapshotFatG.present
+          ? data.snapshotFatG.value
+          : this.snapshotFatG,
+      snapshotFiberG: data.snapshotFiberG.present
+          ? data.snapshotFiberG.value
+          : this.snapshotFiberG,
+      snapshotSodiumMg: data.snapshotSodiumMg.present
+          ? data.snapshotSodiumMg.value
+          : this.snapshotSodiumMg,
+      snapshotPotassiumMg: data.snapshotPotassiumMg.present
+          ? data.snapshotPotassiumMg.value
+          : this.snapshotPotassiumMg,
+      snapshotCholesterolMg: data.snapshotCholesterolMg.present
+          ? data.snapshotCholesterolMg.value
+          : this.snapshotCholesterolMg,
+      snapshotServingGrams: data.snapshotServingGrams.present
+          ? data.snapshotServingGrams.value
+          : this.snapshotServingGrams,
+      snapshotServingAmount: data.snapshotServingAmount.present
+          ? data.snapshotServingAmount.value
+          : this.snapshotServingAmount,
+      snapshotServingUnit: data.snapshotServingUnit.present
+          ? data.snapshotServingUnit.value
+          : this.snapshotServingUnit,
+      snapshotMicrosJson: data.snapshotMicrosJson.present
+          ? data.snapshotMicrosJson.value
+          : this.snapshotMicrosJson,
     );
   }
 
@@ -7180,13 +7942,28 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
           ..write('gramsOverride: $gramsOverride, ')
           ..write('portionAmount: $portionAmount, ')
           ..write('portionUnit: $portionUnit, ')
-          ..write('loggedAt: $loggedAt')
+          ..write('loggedAt: $loggedAt, ')
+          ..write('snapshotBasis: $snapshotBasis, ')
+          ..write('snapshotName: $snapshotName, ')
+          ..write('snapshotBrand: $snapshotBrand, ')
+          ..write('snapshotKcal: $snapshotKcal, ')
+          ..write('snapshotProteinG: $snapshotProteinG, ')
+          ..write('snapshotCarbsG: $snapshotCarbsG, ')
+          ..write('snapshotFatG: $snapshotFatG, ')
+          ..write('snapshotFiberG: $snapshotFiberG, ')
+          ..write('snapshotSodiumMg: $snapshotSodiumMg, ')
+          ..write('snapshotPotassiumMg: $snapshotPotassiumMg, ')
+          ..write('snapshotCholesterolMg: $snapshotCholesterolMg, ')
+          ..write('snapshotServingGrams: $snapshotServingGrams, ')
+          ..write('snapshotServingAmount: $snapshotServingAmount, ')
+          ..write('snapshotServingUnit: $snapshotServingUnit, ')
+          ..write('snapshotMicrosJson: $snapshotMicrosJson')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     dateIso,
     meal,
@@ -7197,7 +7974,22 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
     portionAmount,
     portionUnit,
     loggedAt,
-  );
+    snapshotBasis,
+    snapshotName,
+    snapshotBrand,
+    snapshotKcal,
+    snapshotProteinG,
+    snapshotCarbsG,
+    snapshotFatG,
+    snapshotFiberG,
+    snapshotSodiumMg,
+    snapshotPotassiumMg,
+    snapshotCholesterolMg,
+    snapshotServingGrams,
+    snapshotServingAmount,
+    snapshotServingUnit,
+    snapshotMicrosJson,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7211,7 +8003,22 @@ class FoodEntryData extends DataClass implements Insertable<FoodEntryData> {
           other.gramsOverride == this.gramsOverride &&
           other.portionAmount == this.portionAmount &&
           other.portionUnit == this.portionUnit &&
-          other.loggedAt == this.loggedAt);
+          other.loggedAt == this.loggedAt &&
+          other.snapshotBasis == this.snapshotBasis &&
+          other.snapshotName == this.snapshotName &&
+          other.snapshotBrand == this.snapshotBrand &&
+          other.snapshotKcal == this.snapshotKcal &&
+          other.snapshotProteinG == this.snapshotProteinG &&
+          other.snapshotCarbsG == this.snapshotCarbsG &&
+          other.snapshotFatG == this.snapshotFatG &&
+          other.snapshotFiberG == this.snapshotFiberG &&
+          other.snapshotSodiumMg == this.snapshotSodiumMg &&
+          other.snapshotPotassiumMg == this.snapshotPotassiumMg &&
+          other.snapshotCholesterolMg == this.snapshotCholesterolMg &&
+          other.snapshotServingGrams == this.snapshotServingGrams &&
+          other.snapshotServingAmount == this.snapshotServingAmount &&
+          other.snapshotServingUnit == this.snapshotServingUnit &&
+          other.snapshotMicrosJson == this.snapshotMicrosJson);
 }
 
 class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
@@ -7225,6 +8032,21 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
   final Value<double?> portionAmount;
   final Value<String?> portionUnit;
   final Value<DateTime> loggedAt;
+  final Value<String?> snapshotBasis;
+  final Value<String?> snapshotName;
+  final Value<String?> snapshotBrand;
+  final Value<double?> snapshotKcal;
+  final Value<double?> snapshotProteinG;
+  final Value<double?> snapshotCarbsG;
+  final Value<double?> snapshotFatG;
+  final Value<double?> snapshotFiberG;
+  final Value<double?> snapshotSodiumMg;
+  final Value<double?> snapshotPotassiumMg;
+  final Value<double?> snapshotCholesterolMg;
+  final Value<double?> snapshotServingGrams;
+  final Value<double?> snapshotServingAmount;
+  final Value<String?> snapshotServingUnit;
+  final Value<String?> snapshotMicrosJson;
   const FoodEntriesCompanion({
     this.id = const Value.absent(),
     this.dateIso = const Value.absent(),
@@ -7236,6 +8058,21 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     this.portionAmount = const Value.absent(),
     this.portionUnit = const Value.absent(),
     this.loggedAt = const Value.absent(),
+    this.snapshotBasis = const Value.absent(),
+    this.snapshotName = const Value.absent(),
+    this.snapshotBrand = const Value.absent(),
+    this.snapshotKcal = const Value.absent(),
+    this.snapshotProteinG = const Value.absent(),
+    this.snapshotCarbsG = const Value.absent(),
+    this.snapshotFatG = const Value.absent(),
+    this.snapshotFiberG = const Value.absent(),
+    this.snapshotSodiumMg = const Value.absent(),
+    this.snapshotPotassiumMg = const Value.absent(),
+    this.snapshotCholesterolMg = const Value.absent(),
+    this.snapshotServingGrams = const Value.absent(),
+    this.snapshotServingAmount = const Value.absent(),
+    this.snapshotServingUnit = const Value.absent(),
+    this.snapshotMicrosJson = const Value.absent(),
   });
   FoodEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -7248,6 +8085,21 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     this.portionAmount = const Value.absent(),
     this.portionUnit = const Value.absent(),
     this.loggedAt = const Value.absent(),
+    this.snapshotBasis = const Value.absent(),
+    this.snapshotName = const Value.absent(),
+    this.snapshotBrand = const Value.absent(),
+    this.snapshotKcal = const Value.absent(),
+    this.snapshotProteinG = const Value.absent(),
+    this.snapshotCarbsG = const Value.absent(),
+    this.snapshotFatG = const Value.absent(),
+    this.snapshotFiberG = const Value.absent(),
+    this.snapshotSodiumMg = const Value.absent(),
+    this.snapshotPotassiumMg = const Value.absent(),
+    this.snapshotCholesterolMg = const Value.absent(),
+    this.snapshotServingGrams = const Value.absent(),
+    this.snapshotServingAmount = const Value.absent(),
+    this.snapshotServingUnit = const Value.absent(),
+    this.snapshotMicrosJson = const Value.absent(),
   }) : dateIso = Value(dateIso),
        meal = Value(meal);
   static Insertable<FoodEntryData> custom({
@@ -7261,6 +8113,21 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     Expression<double>? portionAmount,
     Expression<String>? portionUnit,
     Expression<DateTime>? loggedAt,
+    Expression<String>? snapshotBasis,
+    Expression<String>? snapshotName,
+    Expression<String>? snapshotBrand,
+    Expression<double>? snapshotKcal,
+    Expression<double>? snapshotProteinG,
+    Expression<double>? snapshotCarbsG,
+    Expression<double>? snapshotFatG,
+    Expression<double>? snapshotFiberG,
+    Expression<double>? snapshotSodiumMg,
+    Expression<double>? snapshotPotassiumMg,
+    Expression<double>? snapshotCholesterolMg,
+    Expression<double>? snapshotServingGrams,
+    Expression<double>? snapshotServingAmount,
+    Expression<String>? snapshotServingUnit,
+    Expression<String>? snapshotMicrosJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -7273,6 +8140,27 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
       if (portionAmount != null) 'portion_amount': portionAmount,
       if (portionUnit != null) 'portion_unit': portionUnit,
       if (loggedAt != null) 'logged_at': loggedAt,
+      if (snapshotBasis != null) 'snapshot_basis': snapshotBasis,
+      if (snapshotName != null) 'snapshot_name': snapshotName,
+      if (snapshotBrand != null) 'snapshot_brand': snapshotBrand,
+      if (snapshotKcal != null) 'snapshot_kcal': snapshotKcal,
+      if (snapshotProteinG != null) 'snapshot_protein_g': snapshotProteinG,
+      if (snapshotCarbsG != null) 'snapshot_carbs_g': snapshotCarbsG,
+      if (snapshotFatG != null) 'snapshot_fat_g': snapshotFatG,
+      if (snapshotFiberG != null) 'snapshot_fiber_g': snapshotFiberG,
+      if (snapshotSodiumMg != null) 'snapshot_sodium_mg': snapshotSodiumMg,
+      if (snapshotPotassiumMg != null)
+        'snapshot_potassium_mg': snapshotPotassiumMg,
+      if (snapshotCholesterolMg != null)
+        'snapshot_cholesterol_mg': snapshotCholesterolMg,
+      if (snapshotServingGrams != null)
+        'snapshot_serving_grams': snapshotServingGrams,
+      if (snapshotServingAmount != null)
+        'snapshot_serving_amount': snapshotServingAmount,
+      if (snapshotServingUnit != null)
+        'snapshot_serving_unit': snapshotServingUnit,
+      if (snapshotMicrosJson != null)
+        'snapshot_micros_json': snapshotMicrosJson,
     });
   }
 
@@ -7287,6 +8175,21 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     Value<double?>? portionAmount,
     Value<String?>? portionUnit,
     Value<DateTime>? loggedAt,
+    Value<String?>? snapshotBasis,
+    Value<String?>? snapshotName,
+    Value<String?>? snapshotBrand,
+    Value<double?>? snapshotKcal,
+    Value<double?>? snapshotProteinG,
+    Value<double?>? snapshotCarbsG,
+    Value<double?>? snapshotFatG,
+    Value<double?>? snapshotFiberG,
+    Value<double?>? snapshotSodiumMg,
+    Value<double?>? snapshotPotassiumMg,
+    Value<double?>? snapshotCholesterolMg,
+    Value<double?>? snapshotServingGrams,
+    Value<double?>? snapshotServingAmount,
+    Value<String?>? snapshotServingUnit,
+    Value<String?>? snapshotMicrosJson,
   }) {
     return FoodEntriesCompanion(
       id: id ?? this.id,
@@ -7299,6 +8202,23 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
       portionAmount: portionAmount ?? this.portionAmount,
       portionUnit: portionUnit ?? this.portionUnit,
       loggedAt: loggedAt ?? this.loggedAt,
+      snapshotBasis: snapshotBasis ?? this.snapshotBasis,
+      snapshotName: snapshotName ?? this.snapshotName,
+      snapshotBrand: snapshotBrand ?? this.snapshotBrand,
+      snapshotKcal: snapshotKcal ?? this.snapshotKcal,
+      snapshotProteinG: snapshotProteinG ?? this.snapshotProteinG,
+      snapshotCarbsG: snapshotCarbsG ?? this.snapshotCarbsG,
+      snapshotFatG: snapshotFatG ?? this.snapshotFatG,
+      snapshotFiberG: snapshotFiberG ?? this.snapshotFiberG,
+      snapshotSodiumMg: snapshotSodiumMg ?? this.snapshotSodiumMg,
+      snapshotPotassiumMg: snapshotPotassiumMg ?? this.snapshotPotassiumMg,
+      snapshotCholesterolMg:
+          snapshotCholesterolMg ?? this.snapshotCholesterolMg,
+      snapshotServingGrams: snapshotServingGrams ?? this.snapshotServingGrams,
+      snapshotServingAmount:
+          snapshotServingAmount ?? this.snapshotServingAmount,
+      snapshotServingUnit: snapshotServingUnit ?? this.snapshotServingUnit,
+      snapshotMicrosJson: snapshotMicrosJson ?? this.snapshotMicrosJson,
     );
   }
 
@@ -7335,6 +8255,61 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
     if (loggedAt.present) {
       map['logged_at'] = Variable<DateTime>(loggedAt.value);
     }
+    if (snapshotBasis.present) {
+      map['snapshot_basis'] = Variable<String>(snapshotBasis.value);
+    }
+    if (snapshotName.present) {
+      map['snapshot_name'] = Variable<String>(snapshotName.value);
+    }
+    if (snapshotBrand.present) {
+      map['snapshot_brand'] = Variable<String>(snapshotBrand.value);
+    }
+    if (snapshotKcal.present) {
+      map['snapshot_kcal'] = Variable<double>(snapshotKcal.value);
+    }
+    if (snapshotProteinG.present) {
+      map['snapshot_protein_g'] = Variable<double>(snapshotProteinG.value);
+    }
+    if (snapshotCarbsG.present) {
+      map['snapshot_carbs_g'] = Variable<double>(snapshotCarbsG.value);
+    }
+    if (snapshotFatG.present) {
+      map['snapshot_fat_g'] = Variable<double>(snapshotFatG.value);
+    }
+    if (snapshotFiberG.present) {
+      map['snapshot_fiber_g'] = Variable<double>(snapshotFiberG.value);
+    }
+    if (snapshotSodiumMg.present) {
+      map['snapshot_sodium_mg'] = Variable<double>(snapshotSodiumMg.value);
+    }
+    if (snapshotPotassiumMg.present) {
+      map['snapshot_potassium_mg'] = Variable<double>(
+        snapshotPotassiumMg.value,
+      );
+    }
+    if (snapshotCholesterolMg.present) {
+      map['snapshot_cholesterol_mg'] = Variable<double>(
+        snapshotCholesterolMg.value,
+      );
+    }
+    if (snapshotServingGrams.present) {
+      map['snapshot_serving_grams'] = Variable<double>(
+        snapshotServingGrams.value,
+      );
+    }
+    if (snapshotServingAmount.present) {
+      map['snapshot_serving_amount'] = Variable<double>(
+        snapshotServingAmount.value,
+      );
+    }
+    if (snapshotServingUnit.present) {
+      map['snapshot_serving_unit'] = Variable<String>(
+        snapshotServingUnit.value,
+      );
+    }
+    if (snapshotMicrosJson.present) {
+      map['snapshot_micros_json'] = Variable<String>(snapshotMicrosJson.value);
+    }
     return map;
   }
 
@@ -7350,7 +8325,22 @@ class FoodEntriesCompanion extends UpdateCompanion<FoodEntryData> {
           ..write('gramsOverride: $gramsOverride, ')
           ..write('portionAmount: $portionAmount, ')
           ..write('portionUnit: $portionUnit, ')
-          ..write('loggedAt: $loggedAt')
+          ..write('loggedAt: $loggedAt, ')
+          ..write('snapshotBasis: $snapshotBasis, ')
+          ..write('snapshotName: $snapshotName, ')
+          ..write('snapshotBrand: $snapshotBrand, ')
+          ..write('snapshotKcal: $snapshotKcal, ')
+          ..write('snapshotProteinG: $snapshotProteinG, ')
+          ..write('snapshotCarbsG: $snapshotCarbsG, ')
+          ..write('snapshotFatG: $snapshotFatG, ')
+          ..write('snapshotFiberG: $snapshotFiberG, ')
+          ..write('snapshotSodiumMg: $snapshotSodiumMg, ')
+          ..write('snapshotPotassiumMg: $snapshotPotassiumMg, ')
+          ..write('snapshotCholesterolMg: $snapshotCholesterolMg, ')
+          ..write('snapshotServingGrams: $snapshotServingGrams, ')
+          ..write('snapshotServingAmount: $snapshotServingAmount, ')
+          ..write('snapshotServingUnit: $snapshotServingUnit, ')
+          ..write('snapshotMicrosJson: $snapshotMicrosJson')
           ..write(')'))
         .toString();
   }
@@ -25394,6 +26384,7 @@ typedef $$FoodsTableCreateCompanionBuilder =
       Value<String?> category,
       Value<String?> country,
       Value<String?> sourceMetadataJson,
+      Value<DateTime?> deletedAt,
     });
 typedef $$FoodsTableUpdateCompanionBuilder =
     FoodsCompanion Function({
@@ -25422,6 +26413,7 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<String?> category,
       Value<String?> country,
       Value<String?> sourceMetadataJson,
+      Value<DateTime?> deletedAt,
     });
 
 final class $$FoodsTableReferences
@@ -25622,6 +26614,11 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<String> get sourceMetadataJson => $composableBuilder(
     column: $table.sourceMetadataJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -25834,6 +26831,11 @@ class $$FoodsTableOrderingComposer
     column: $table.sourceMetadataJson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FoodsTableAnnotationComposer
@@ -25949,6 +26951,9 @@ class $$FoodsTableAnnotationComposer
     column: $table.sourceMetadataJson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   Expression<T> recipeIngredientsRefs<T extends Object>(
     Expression<T> Function($$RecipeIngredientsTableAnnotationComposer a) f,
@@ -26084,6 +27089,7 @@ class $$FoodsTableTableManager
                 Value<String?> category = const Value.absent(),
                 Value<String?> country = const Value.absent(),
                 Value<String?> sourceMetadataJson = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
               }) => FoodsCompanion(
                 id: id,
                 name: name,
@@ -26110,6 +27116,7 @@ class $$FoodsTableTableManager
                 category: category,
                 country: country,
                 sourceMetadataJson: sourceMetadataJson,
+                deletedAt: deletedAt,
               ),
           createCompanionCallback:
               ({
@@ -26138,6 +27145,7 @@ class $$FoodsTableTableManager
                 Value<String?> category = const Value.absent(),
                 Value<String?> country = const Value.absent(),
                 Value<String?> sourceMetadataJson = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
               }) => FoodsCompanion.insert(
                 id: id,
                 name: name,
@@ -26164,6 +27172,7 @@ class $$FoodsTableTableManager
                 category: category,
                 country: country,
                 sourceMetadataJson: sourceMetadataJson,
+                deletedAt: deletedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -26283,6 +27292,7 @@ typedef $$RecipesTableCreateCompanionBuilder =
       Value<int> servings,
       Value<String?> notes,
       Value<DateTime> createdAt,
+      Value<DateTime?> deletedAt,
     });
 typedef $$RecipesTableUpdateCompanionBuilder =
     RecipesCompanion Function({
@@ -26291,6 +27301,7 @@ typedef $$RecipesTableUpdateCompanionBuilder =
       Value<int> servings,
       Value<String?> notes,
       Value<DateTime> createdAt,
+      Value<DateTime?> deletedAt,
     });
 
 final class $$RecipesTableReferences
@@ -26374,6 +27385,11 @@ class $$RecipesTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -26461,6 +27477,11 @@ class $$RecipesTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RecipesTableAnnotationComposer
@@ -26486,6 +27507,9 @@ class $$RecipesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   Expression<T> recipeIngredientsRefs<T extends Object>(
     Expression<T> Function($$RecipeIngredientsTableAnnotationComposer a) f,
@@ -26575,12 +27599,14 @@ class $$RecipesTableTableManager
                 Value<int> servings = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
               }) => RecipesCompanion(
                 id: id,
                 name: name,
                 servings: servings,
                 notes: notes,
                 createdAt: createdAt,
+                deletedAt: deletedAt,
               ),
           createCompanionCallback:
               ({
@@ -26589,12 +27615,14 @@ class $$RecipesTableTableManager
                 Value<int> servings = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
               }) => RecipesCompanion.insert(
                 id: id,
                 name: name,
                 servings: servings,
                 notes: notes,
                 createdAt: createdAt,
+                deletedAt: deletedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -27090,6 +28118,21 @@ typedef $$FoodEntriesTableCreateCompanionBuilder =
       Value<double?> portionAmount,
       Value<String?> portionUnit,
       Value<DateTime> loggedAt,
+      Value<String?> snapshotBasis,
+      Value<String?> snapshotName,
+      Value<String?> snapshotBrand,
+      Value<double?> snapshotKcal,
+      Value<double?> snapshotProteinG,
+      Value<double?> snapshotCarbsG,
+      Value<double?> snapshotFatG,
+      Value<double?> snapshotFiberG,
+      Value<double?> snapshotSodiumMg,
+      Value<double?> snapshotPotassiumMg,
+      Value<double?> snapshotCholesterolMg,
+      Value<double?> snapshotServingGrams,
+      Value<double?> snapshotServingAmount,
+      Value<String?> snapshotServingUnit,
+      Value<String?> snapshotMicrosJson,
     });
 typedef $$FoodEntriesTableUpdateCompanionBuilder =
     FoodEntriesCompanion Function({
@@ -27103,6 +28146,21 @@ typedef $$FoodEntriesTableUpdateCompanionBuilder =
       Value<double?> portionAmount,
       Value<String?> portionUnit,
       Value<DateTime> loggedAt,
+      Value<String?> snapshotBasis,
+      Value<String?> snapshotName,
+      Value<String?> snapshotBrand,
+      Value<double?> snapshotKcal,
+      Value<double?> snapshotProteinG,
+      Value<double?> snapshotCarbsG,
+      Value<double?> snapshotFatG,
+      Value<double?> snapshotFiberG,
+      Value<double?> snapshotSodiumMg,
+      Value<double?> snapshotPotassiumMg,
+      Value<double?> snapshotCholesterolMg,
+      Value<double?> snapshotServingGrams,
+      Value<double?> snapshotServingAmount,
+      Value<String?> snapshotServingUnit,
+      Value<String?> snapshotMicrosJson,
     });
 
 final class $$FoodEntriesTableReferences
@@ -27193,6 +28251,81 @@ class $$FoodEntriesTableFilterComposer
 
   ColumnFilters<DateTime> get loggedAt => $composableBuilder(
     column: $table.loggedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotBasis => $composableBuilder(
+    column: $table.snapshotBasis,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotName => $composableBuilder(
+    column: $table.snapshotName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotBrand => $composableBuilder(
+    column: $table.snapshotBrand,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotKcal => $composableBuilder(
+    column: $table.snapshotKcal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotProteinG => $composableBuilder(
+    column: $table.snapshotProteinG,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotCarbsG => $composableBuilder(
+    column: $table.snapshotCarbsG,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotFatG => $composableBuilder(
+    column: $table.snapshotFatG,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotFiberG => $composableBuilder(
+    column: $table.snapshotFiberG,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotSodiumMg => $composableBuilder(
+    column: $table.snapshotSodiumMg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotPotassiumMg => $composableBuilder(
+    column: $table.snapshotPotassiumMg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotCholesterolMg => $composableBuilder(
+    column: $table.snapshotCholesterolMg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotServingGrams => $composableBuilder(
+    column: $table.snapshotServingGrams,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get snapshotServingAmount => $composableBuilder(
+    column: $table.snapshotServingAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotServingUnit => $composableBuilder(
+    column: $table.snapshotServingUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotMicrosJson => $composableBuilder(
+    column: $table.snapshotMicrosJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -27292,6 +28425,81 @@ class $$FoodEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get snapshotBasis => $composableBuilder(
+    column: $table.snapshotBasis,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get snapshotName => $composableBuilder(
+    column: $table.snapshotName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get snapshotBrand => $composableBuilder(
+    column: $table.snapshotBrand,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotKcal => $composableBuilder(
+    column: $table.snapshotKcal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotProteinG => $composableBuilder(
+    column: $table.snapshotProteinG,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotCarbsG => $composableBuilder(
+    column: $table.snapshotCarbsG,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotFatG => $composableBuilder(
+    column: $table.snapshotFatG,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotFiberG => $composableBuilder(
+    column: $table.snapshotFiberG,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotSodiumMg => $composableBuilder(
+    column: $table.snapshotSodiumMg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotPotassiumMg => $composableBuilder(
+    column: $table.snapshotPotassiumMg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotCholesterolMg => $composableBuilder(
+    column: $table.snapshotCholesterolMg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotServingGrams => $composableBuilder(
+    column: $table.snapshotServingGrams,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get snapshotServingAmount => $composableBuilder(
+    column: $table.snapshotServingAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get snapshotServingUnit => $composableBuilder(
+    column: $table.snapshotServingUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get snapshotMicrosJson => $composableBuilder(
+    column: $table.snapshotMicrosJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$FoodsTableOrderingComposer get foodId {
     final $$FoodsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -27378,6 +28586,81 @@ class $$FoodEntriesTableAnnotationComposer
   GeneratedColumn<DateTime> get loggedAt =>
       $composableBuilder(column: $table.loggedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get snapshotBasis => $composableBuilder(
+    column: $table.snapshotBasis,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get snapshotName => $composableBuilder(
+    column: $table.snapshotName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get snapshotBrand => $composableBuilder(
+    column: $table.snapshotBrand,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotKcal => $composableBuilder(
+    column: $table.snapshotKcal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotProteinG => $composableBuilder(
+    column: $table.snapshotProteinG,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotCarbsG => $composableBuilder(
+    column: $table.snapshotCarbsG,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotFatG => $composableBuilder(
+    column: $table.snapshotFatG,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotFiberG => $composableBuilder(
+    column: $table.snapshotFiberG,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotSodiumMg => $composableBuilder(
+    column: $table.snapshotSodiumMg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotPotassiumMg => $composableBuilder(
+    column: $table.snapshotPotassiumMg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotCholesterolMg => $composableBuilder(
+    column: $table.snapshotCholesterolMg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotServingGrams => $composableBuilder(
+    column: $table.snapshotServingGrams,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get snapshotServingAmount => $composableBuilder(
+    column: $table.snapshotServingAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get snapshotServingUnit => $composableBuilder(
+    column: $table.snapshotServingUnit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get snapshotMicrosJson => $composableBuilder(
+    column: $table.snapshotMicrosJson,
+    builder: (column) => column,
+  );
+
   $$FoodsTableAnnotationComposer get foodId {
     final $$FoodsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -27463,6 +28746,21 @@ class $$FoodEntriesTableTableManager
                 Value<double?> portionAmount = const Value.absent(),
                 Value<String?> portionUnit = const Value.absent(),
                 Value<DateTime> loggedAt = const Value.absent(),
+                Value<String?> snapshotBasis = const Value.absent(),
+                Value<String?> snapshotName = const Value.absent(),
+                Value<String?> snapshotBrand = const Value.absent(),
+                Value<double?> snapshotKcal = const Value.absent(),
+                Value<double?> snapshotProteinG = const Value.absent(),
+                Value<double?> snapshotCarbsG = const Value.absent(),
+                Value<double?> snapshotFatG = const Value.absent(),
+                Value<double?> snapshotFiberG = const Value.absent(),
+                Value<double?> snapshotSodiumMg = const Value.absent(),
+                Value<double?> snapshotPotassiumMg = const Value.absent(),
+                Value<double?> snapshotCholesterolMg = const Value.absent(),
+                Value<double?> snapshotServingGrams = const Value.absent(),
+                Value<double?> snapshotServingAmount = const Value.absent(),
+                Value<String?> snapshotServingUnit = const Value.absent(),
+                Value<String?> snapshotMicrosJson = const Value.absent(),
               }) => FoodEntriesCompanion(
                 id: id,
                 dateIso: dateIso,
@@ -27474,6 +28772,21 @@ class $$FoodEntriesTableTableManager
                 portionAmount: portionAmount,
                 portionUnit: portionUnit,
                 loggedAt: loggedAt,
+                snapshotBasis: snapshotBasis,
+                snapshotName: snapshotName,
+                snapshotBrand: snapshotBrand,
+                snapshotKcal: snapshotKcal,
+                snapshotProteinG: snapshotProteinG,
+                snapshotCarbsG: snapshotCarbsG,
+                snapshotFatG: snapshotFatG,
+                snapshotFiberG: snapshotFiberG,
+                snapshotSodiumMg: snapshotSodiumMg,
+                snapshotPotassiumMg: snapshotPotassiumMg,
+                snapshotCholesterolMg: snapshotCholesterolMg,
+                snapshotServingGrams: snapshotServingGrams,
+                snapshotServingAmount: snapshotServingAmount,
+                snapshotServingUnit: snapshotServingUnit,
+                snapshotMicrosJson: snapshotMicrosJson,
               ),
           createCompanionCallback:
               ({
@@ -27487,6 +28800,21 @@ class $$FoodEntriesTableTableManager
                 Value<double?> portionAmount = const Value.absent(),
                 Value<String?> portionUnit = const Value.absent(),
                 Value<DateTime> loggedAt = const Value.absent(),
+                Value<String?> snapshotBasis = const Value.absent(),
+                Value<String?> snapshotName = const Value.absent(),
+                Value<String?> snapshotBrand = const Value.absent(),
+                Value<double?> snapshotKcal = const Value.absent(),
+                Value<double?> snapshotProteinG = const Value.absent(),
+                Value<double?> snapshotCarbsG = const Value.absent(),
+                Value<double?> snapshotFatG = const Value.absent(),
+                Value<double?> snapshotFiberG = const Value.absent(),
+                Value<double?> snapshotSodiumMg = const Value.absent(),
+                Value<double?> snapshotPotassiumMg = const Value.absent(),
+                Value<double?> snapshotCholesterolMg = const Value.absent(),
+                Value<double?> snapshotServingGrams = const Value.absent(),
+                Value<double?> snapshotServingAmount = const Value.absent(),
+                Value<String?> snapshotServingUnit = const Value.absent(),
+                Value<String?> snapshotMicrosJson = const Value.absent(),
               }) => FoodEntriesCompanion.insert(
                 id: id,
                 dateIso: dateIso,
@@ -27498,6 +28826,21 @@ class $$FoodEntriesTableTableManager
                 portionAmount: portionAmount,
                 portionUnit: portionUnit,
                 loggedAt: loggedAt,
+                snapshotBasis: snapshotBasis,
+                snapshotName: snapshotName,
+                snapshotBrand: snapshotBrand,
+                snapshotKcal: snapshotKcal,
+                snapshotProteinG: snapshotProteinG,
+                snapshotCarbsG: snapshotCarbsG,
+                snapshotFatG: snapshotFatG,
+                snapshotFiberG: snapshotFiberG,
+                snapshotSodiumMg: snapshotSodiumMg,
+                snapshotPotassiumMg: snapshotPotassiumMg,
+                snapshotCholesterolMg: snapshotCholesterolMg,
+                snapshotServingGrams: snapshotServingGrams,
+                snapshotServingAmount: snapshotServingAmount,
+                snapshotServingUnit: snapshotServingUnit,
+                snapshotMicrosJson: snapshotMicrosJson,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -9,6 +9,7 @@ import 'exercise_importer.dart';
 import 'exercise_merge.dart';
 import 'exercise_merges.dart';
 import 'fk_repair.dart';
+import 'migrations/nutrition_snapshot_backfill.dart';
 import '../../features/nutrition/data/food_catalogue_importer.dart';
 import 'tables.dart';
 
@@ -68,7 +69,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -439,6 +440,60 @@ class AppDatabase extends _$AppDatabase {
             // Never true on a real device, where every table here was
             // created by an earlier onUpgrade step long before v23.
           }
+        }
+      }
+      if (from < 24) {
+        // RB-05: freeze each logged entry's nutrition at log time, and give
+        // foods/recipes a soft-delete tombstone so the RESTRICT edges from
+        // food_entries and recipe_ingredients stay satisfiable forever.
+        // Every column is nullable with no default and none carries a
+        // REFERENCES clause, so these are plain ALTER TABLE ADD COLUMNs —
+        // no legacy_alter_table rebuild, no FK edge moves.
+        //
+        // As with the v23 fkChildColumns loop above: foods/recipes/
+        // food_entries may not exist on a hand-rolled test fixture that only
+        // stamps down a narrow slice of the schema (see
+        // test/schema_v21_test.dart, test/fk_repair_test.dart). Never true on
+        // a real device, where all three were created by the v2 onUpgrade
+        // step long before v24.
+        Future<void> tryAddColumn(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          try {
+            await m.addColumn(table, column);
+          } catch (_) {
+            // Table doesn't exist on this fixture; see comment above.
+          }
+        }
+
+        await tryAddColumn(foods, foods.deletedAt);
+        await tryAddColumn(recipes, recipes.deletedAt);
+        await tryAddColumn(foodEntries, foodEntries.snapshotBasis);
+        await tryAddColumn(foodEntries, foodEntries.snapshotName);
+        await tryAddColumn(foodEntries, foodEntries.snapshotBrand);
+        await tryAddColumn(foodEntries, foodEntries.snapshotKcal);
+        await tryAddColumn(foodEntries, foodEntries.snapshotProteinG);
+        await tryAddColumn(foodEntries, foodEntries.snapshotCarbsG);
+        await tryAddColumn(foodEntries, foodEntries.snapshotFatG);
+        await tryAddColumn(foodEntries, foodEntries.snapshotFiberG);
+        await tryAddColumn(foodEntries, foodEntries.snapshotSodiumMg);
+        await tryAddColumn(foodEntries, foodEntries.snapshotPotassiumMg);
+        await tryAddColumn(foodEntries, foodEntries.snapshotCholesterolMg);
+        await tryAddColumn(foodEntries, foodEntries.snapshotServingGrams);
+        await tryAddColumn(foodEntries, foodEntries.snapshotServingAmount);
+        await tryAddColumn(foodEntries, foodEntries.snapshotServingUnit);
+        await tryAddColumn(foodEntries, foodEntries.snapshotMicrosJson);
+
+        try {
+          final filled = await backfillNutritionSnapshots(this);
+          log(
+            'Migration v24: snapshotted ${filled.foodEntries} food and '
+            '${filled.recipeEntries} recipe diary entries, '
+            '${filled.microsFoods} foods with micronutrients',
+          );
+        } catch (_) {
+          // Same as above: no nutrition tables on this fixture.
         }
       }
     },

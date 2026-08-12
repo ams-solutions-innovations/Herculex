@@ -161,8 +161,34 @@ final customFoodsProvider = StreamProvider.family<List<FoodData>, String?>((
   return ref.watch(nutritionRepositoryProvider).watchCustomFoods(query: query);
 });
 
+/// Unfiltered single-food lookup by id, for resolving a known [FoodEntryData]
+/// or [RecipeIngredientData] reference rather than scanning search results.
+final foodByIdProvider = FutureProvider.family<FoodData?, int>((ref, id) {
+  return ref.watch(nutritionRepositoryProvider).foodById(id);
+});
+
+/// Batched counterpart of [foodByIdProvider].
+final foodsByIdsProvider = FutureProvider.family<Map<int, FoodData>, List<int>>((
+  ref,
+  ids,
+) {
+  return ref.watch(nutritionRepositoryProvider).foodsByIds(ids);
+});
+
+/// Reactive counterpart of [foodByIdProvider], for widgets that need to
+/// rebuild when the referenced food changes.
+final watchFoodByIdProvider = StreamProvider.family<FoodData?, int>((ref, id) {
+  return ref.watch(nutritionRepositoryProvider).watchFoodById(id);
+});
+
 final recipesProvider = StreamProvider<List<RecipeData>>((ref) {
   return ref.watch(nutritionRepositoryProvider).watchRecipes();
+});
+
+/// Unfiltered single-recipe lookup by id, for resolving a known
+/// [FoodEntryData] reference rather than scanning [recipesProvider].
+final recipeByIdProvider = FutureProvider.family<RecipeData?, int>((ref, id) {
+  return ref.watch(nutritionRepositoryProvider).recipeById(id);
 });
 
 final recipeIngredientsProvider =

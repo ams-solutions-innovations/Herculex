@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:herculex/core/clock.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/data/local/db_exceptions.dart';
 import 'package:herculex/features/gyms/data/gyms_repository.dart';
 import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
 import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
@@ -15,6 +14,13 @@ import 'package:herculex/features/workouts/data/templates_repository.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 
 import 'support/test_database.dart';
+
+class _FixedClock implements Clock {
+  final DateTime fixed;
+  _FixedClock(this.fixed);
+  @override
+  DateTime now() => fixed;
+}
 
 /// Phase 1 of RB-04: every delete path below is hardened to be explicitly
 /// transactional and child-first, mirroring what the declared cascade would
@@ -735,22 +741,26 @@ void main() {
       return id;
     }
 
-    test('succeeds and removes food_micros when unreferenced', () async {
+    test('soft-deletes: row and food_micros stay, deletedAt is stamped', () async {
       final db = await openTestDatabase();
       addTearDown(db.close);
       final foodId = await insertFood(db);
+      final clock = _FixedClock(DateTime(2026, 6, 1));
 
       await NutritionRepository(
         db,
         OpenFoodFactsClient(),
-        const SystemClock(),
+        clock,
       ).deleteFood(foodId);
 
-      expect(await db.select(db.foods).get(), isEmpty);
-      expect(await db.select(db.foodMicros).get(), isEmpty);
+      final food = await (db.select(
+        db.foods,
+      )..where((t) => t.id.equals(foodId))).getSingle();
+      expect(food.deletedAt, clock.now());
+      expect(await db.select(db.foodMicros).get(), hasLength(1));
     });
 
-    test('throws FoodInUseException when a food_entry references it', () async {
+    test('soft-deletes without throwing when a food_entry references it', () async {
       final db = await openTestDatabase();
       addTearDown(db.close);
       final foodId = await insertFood(db);
@@ -764,22 +774,20 @@ void main() {
             ),
           );
 
-      await expectLater(
-        NutritionRepository(
-          db,
-          OpenFoodFactsClient(),
-          const SystemClock(),
-        ).deleteFood(foodId),
-        throwsA(
-          isA<FoodInUseException>()
-              .having((e) => e.entryCount, 'entryCount', 1)
-              .having((e) => e.recipeCount, 'recipeCount', 0),
-        ),
-      );
-      expect(await db.select(db.foods).get(), hasLength(1));
+      await NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        const SystemClock(),
+      ).deleteFood(foodId);
+
+      final food = await (db.select(
+        db.foods,
+      )..where((t) => t.id.equals(foodId))).getSingle();
+      expect(food.deletedAt, isNotNull);
+      expectNoForeignKeyViolations(await foreignKeyViolations(db));
     });
 
-    test('throws FoodInUseException when a recipe references it', () async {
+    test('soft-deletes without throwing when a recipe references it', () async {
       final db = await openTestDatabase();
       addTearDown(db.close);
       final foodId = await insertFood(db);
@@ -796,15 +804,81 @@ void main() {
             ),
           );
 
-      await expectLater(
-        NutritionRepository(
-          db,
-          OpenFoodFactsClient(),
-          const SystemClock(),
-        ).deleteFood(foodId),
-        throwsA(isA<FoodInUseException>()),
-      );
-      expect(await db.select(db.foods).get(), hasLength(1));
+      await NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        const SystemClock(),
+      ).deleteFood(foodId);
+
+      final food = await (db.select(
+        db.foods,
+      )..where((t) => t.id.equals(foodId))).getSingle();
+      expect(food.deletedAt, isNotNull);
+      expectNoForeignKeyViolations(await foreignKeyViolations(db));
+    });
+  });
+
+  group('NutritionRepository.deleteRecipe', () {
+    test('soft-deletes: row and recipe_ingredients stay, deletedAt is stamped', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      final foodId = await db
+          .into(db.foods)
+          .insert(FoodsCompanion.insert(name: 'Rice', kcalPer100g: 130));
+      final recipeId = await db
+          .into(db.recipes)
+          .insert(RecipesCompanion.insert(name: 'Bowl'));
+      await db
+          .into(db.recipeIngredients)
+          .insert(
+            RecipeIngredientsCompanion.insert(
+              recipeId: recipeId,
+              foodId: foodId,
+              grams: 100,
+            ),
+          );
+      final clock = _FixedClock(DateTime(2026, 6, 1));
+
+      await NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        clock,
+      ).deleteRecipe(recipeId);
+
+      final recipe = await (db.select(
+        db.recipes,
+      )..where((t) => t.id.equals(recipeId))).getSingle();
+      expect(recipe.deletedAt, clock.now());
+      expect(await db.select(db.recipeIngredients).get(), hasLength(1));
+    });
+
+    test('soft-deletes without crashing when a food_entry references it', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      final recipeId = await db
+          .into(db.recipes)
+          .insert(RecipesCompanion.insert(name: 'Bowl'));
+      await db
+          .into(db.foodEntries)
+          .insert(
+            FoodEntriesCompanion.insert(
+              dateIso: '2026-01-01',
+              meal: 'lunch',
+              recipeId: Value(recipeId),
+            ),
+          );
+
+      await NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        const SystemClock(),
+      ).deleteRecipe(recipeId);
+
+      final recipe = await (db.select(
+        db.recipes,
+      )..where((t) => t.id.equals(recipeId))).getSingle();
+      expect(recipe.deletedAt, isNotNull);
+      expectNoForeignKeyViolations(await foreignKeyViolations(db));
     });
   });
 }

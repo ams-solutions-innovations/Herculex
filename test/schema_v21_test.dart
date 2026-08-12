@@ -141,15 +141,16 @@ void main() {
   });
 
   group('v20 -> v21 migration', () {
-    test('reaches schema version 23', () async {
+    test('reaches schema version 24', () async {
       // The v20->v21 migration under test here runs as one step of the full
-      // upgrade chain, which now continues on to 23 (v22 added the
-      // sessionUuid column; v23 is RB-04 Phase 2's FK orphan repair) since
-      // this test opens the real AppDatabase rather than stopping at v21.
+      // upgrade chain, which now continues on to 24 (v22 added the
+      // sessionUuid column; v23 is RB-04 Phase 2's FK orphan repair; v24 is
+      // RB-05's nutrition snapshot + soft delete) since this test opens the
+      // real AppDatabase rather than stopping at v21.
       final row = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(row.data.values.first, 23);
+      expect(row.data.values.first, 24);
     });
 
     test('added columns are readable with their defaults', () async {

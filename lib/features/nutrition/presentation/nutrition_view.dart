@@ -735,11 +735,21 @@ class _EntryTile extends ConsumerWidget {
               vertical: 2,
             ),
             dense: true,
-            title: Text(
-              display?.name ?? 'Loading…',
-              style: theme.textTheme.bodyMedium,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+            title: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    display?.name ?? 'Loading…',
+                    style: theme.textTheme.bodyMedium,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+                if (display?.isDeleted ?? false) ...[
+                  const SizedBox(width: 6),
+                  const _DeletedBadge(),
+                ],
+              ],
             ),
             subtitle: Text(
               display?.subtitleWithMacros ?? '',
@@ -769,12 +779,13 @@ class _EntryTile extends ConsumerWidget {
     NutritionRepository repo,
   ) async {
     final macros = await repo.macrosForEntry(entry);
-    final name = await _resolveName(ref);
+    final resolved = await _resolveNameInfo(ref);
     final portionText = entry.foodId != null
         ? '${(entry.gramsOverride ?? 0).toStringAsFixed(0)} g'
         : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
     return _EntryDisplay(
-      name: name,
+      name: resolved.name,
+      isDeleted: resolved.isDeleted,
       portionText: portionText,
       kcal: macros.kcal,
       proteinG: macros.proteinG,
@@ -830,11 +841,22 @@ class _EntryTile extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            display.name,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  display.name,
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (display.isDeleted) ...[
+                                const SizedBox(width: 8),
+                                const _DeletedBadge(),
+                              ],
+                            ],
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -907,15 +929,9 @@ class _EntryTile extends ConsumerWidget {
                         FoodData? food;
                         RecipeData? recipe;
                         if (entry.foodId != null) {
-                          final foods = await repo.searchFoods('');
-                          food = foods
-                              .where((f) => f.id == entry.foodId)
-                              .firstOrNull;
+                          food = await repo.foodById(entry.foodId!);
                         } else if (entry.recipeId != null) {
-                          final recipes = await repo.watchRecipes().first;
-                          recipe = recipes
-                              .where((r) => r.id == entry.recipeId)
-                              .firstOrNull;
+                          recipe = await repo.recipeById(entry.recipeId!);
                         }
                         if (!context.mounted) return;
                         LogEntrySheet.forEntry(
@@ -1026,15 +1042,9 @@ class _EntryTile extends ConsumerWidget {
                       FoodData? food;
                       RecipeData? recipe;
                       if (entry.foodId != null) {
-                        final foods = await repo.searchFoods('');
-                        food = foods
-                            .where((f) => f.id == entry.foodId)
-                            .firstOrNull;
+                        food = await repo.foodById(entry.foodId!);
                       } else if (entry.recipeId != null) {
-                        final recipes = await repo.watchRecipes().first;
-                        recipe = recipes
-                            .where((r) => r.id == entry.recipeId)
-                            .firstOrNull;
+                        recipe = await repo.recipeById(entry.recipeId!);
                       }
                       if (!context.mounted) return;
                       LogEntrySheet.forEntry(
@@ -1057,26 +1067,24 @@ class _EntryTile extends ConsumerWidget {
     );
   }
 
-  Future<String> _resolveName(WidgetRef ref) async {
+  /// Resolves both the display name and whether the underlying catalogue row
+  /// is soft-deleted (RB-05). Always resolves the food/recipe — even when
+  /// [entry.snapshotName] already has a name to show — because `deletedAt`
+  /// only lives on the live row, not the entry's snapshot.
+  Future<({String name, bool isDeleted})> _resolveNameInfo(
+    WidgetRef ref,
+  ) async {
     if (entry.foodId != null) {
-      final list = await ref.read(foodSearchProvider(null).future);
-      return list
-          .firstWhere(
-            (f) => f.id == entry.foodId,
-            orElse: () => _placeholderFood(),
-          )
-          .name;
+      final food = await ref.read(foodByIdProvider(entry.foodId!).future);
+      final name = entry.snapshotName ?? (food ?? _placeholderFood()).name;
+      return (name: name, isDeleted: food?.deletedAt != null);
     }
     if (entry.recipeId != null) {
-      final list = await ref.read(recipesProvider.future);
-      return list
-          .firstWhere(
-            (r) => r.id == entry.recipeId,
-            orElse: () => _placeholderRecipe(),
-          )
-          .name;
+      final recipe = await ref.read(recipeByIdProvider(entry.recipeId!).future);
+      final name = entry.snapshotName ?? (recipe ?? _placeholderRecipe()).name;
+      return (name: name, isDeleted: recipe?.deletedAt != null);
     }
-    return '—';
+    return (name: entry.snapshotName ?? '—', isDeleted: false);
   }
 
   FoodData _placeholderFood() => FoodData(
@@ -1096,8 +1104,35 @@ class _EntryTile extends ConsumerWidget {
       RecipeData(id: 0, name: '—', servings: 1, createdAt: DateTime.now());
 }
 
+/// RB-05: flags an entry whose food/recipe has been soft-deleted from the
+/// catalogue. Matches the rounded-chip idiom used elsewhere for entry-row
+/// badges (e.g. the kcal chip in the custom-foods list tile).
+class _DeletedBadge extends StatelessWidget {
+  const _DeletedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.secondary.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Deleted',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: AppColors.secondary,
+        ),
+      ),
+    );
+  }
+}
+
 class _EntryDisplay {
   final String name;
+  final bool isDeleted;
   final String portionText;
   final double kcal;
   final double proteinG;
@@ -1109,6 +1144,7 @@ class _EntryDisplay {
 
   _EntryDisplay({
     required this.name,
+    this.isDeleted = false,
     required this.portionText,
     required this.kcal,
     required this.proteinG,

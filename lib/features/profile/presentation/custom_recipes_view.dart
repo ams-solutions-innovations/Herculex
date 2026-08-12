@@ -16,7 +16,7 @@ class CustomRecipesView extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete "${recipe.name}"?'),
-        content: const Text('Are you sure you want to delete this recipe? This action cannot be undone.'),
+        content: const Text('This hides it from your recipe list. Any logged history keeps its recorded nutrition and stays unchanged.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
