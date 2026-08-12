@@ -186,7 +186,7 @@ final blocksViewModeProvider =
 
 /// The day (and therefore week/month) the Blocks tab is focused on.
 final selectedBlockDateProvider = StateProvider<DateTime>((ref) {
-  final now = DateTime.now();
+  final now = ref.watch(clockProvider).now();
   return DateTime(now.year, now.month, now.day);
 });
 

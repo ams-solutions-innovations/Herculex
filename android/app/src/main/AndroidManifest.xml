@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Phase 3: barcode scanner + OpenFoodFacts lookup -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -32,10 +33,20 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
+    <!-- Backup is off across the board: the Drift database holds training,
+         nutrition and health data that must not leave the device via
+         `adb backup`, cloud backup or device-to-device transfer.
+         `fullBackupContent` covers API 26-30; `dataExtractionRules` is what
+         API 31+ actually reads. `tools:replace` stops a plugin's library
+         manifest from merging `allowBackup="true"` back in. -->
     <application
         android:label="Herculex"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        tools:replace="android:allowBackup">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -60,6 +71,16 @@
             <!-- Required for Health Connect permission rationale screen -->
             <intent-filter>
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+            <!-- Supabase OAuth / password-reset redirect target. Must stay in
+                 sync with Env.authCallbackUrl and the "Additional Redirect
+                 URLs" list in the Supabase dashboard. Native Google sign-in
+                 does not use this, but Apple-on-web and email links do. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="io.supabase.herculex" android:host="login-callback"/>
             </intent-filter>
         </activity>
 

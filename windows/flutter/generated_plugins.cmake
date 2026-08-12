@@ -3,7 +3,10 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  app_links
+  connectivity_plus
   file_selector_windows
+  flutter_secure_storage_windows
   permission_handler_windows
   share_plus
   sqlite3_flutter_libs

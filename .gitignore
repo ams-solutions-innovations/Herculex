@@ -1,3 +1,16 @@
+# Secrets / backend credentials
+# NOTE: android/app/google-services.json was tracked here historically and its
+# API key is still in git history — it was rotated during the Supabase cutover.
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+supabase/.temp/
+supabase/.branches/
+.env
+.env.*
+
+# Kotlin incremental-compile cache (created by direct gradlew invocations)
+android/.kotlin/
+
 # Miscellaneous
 *.class
 *.log

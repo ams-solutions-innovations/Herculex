@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/clock.dart';
 import '../../../../data/local/database.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/haptics.dart';
@@ -29,16 +30,13 @@ class DayColumnCard extends ConsumerWidget {
   /// A vacation/rest/deload range covering this date, if any.
   final ExternalEventData? event;
 
-  bool get _isToday {
-    final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
-  }
+  bool _isTodayOn(DateTime now) =>
+      date.year == now.year && date.month == now.month && date.day == now.day;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isToday = _isTodayOn(ref.watch(clockProvider).now());
 
     return DragTarget<int>(
       onWillAcceptWithDetails: (details) =>
@@ -64,16 +62,16 @@ class DayColumnCard extends ConsumerWidget {
             border: Border.all(
               color: hovering
                   ? AppColors.primary
-                  : _isToday
+                  : isToday
                   ? AppColors.primary.withValues(alpha: 0.5)
                   : AppColors.outlineVariant.withValues(alpha: 0.3),
-              width: hovering || _isToday ? 1.5 : 1,
+              width: hovering || isToday ? 1.5 : 1,
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _header(theme),
+              _header(theme, isToday),
               if (event != null) ...[
                 const SizedBox(height: 8),
                 _eventBanner(theme),
@@ -144,14 +142,14 @@ class DayColumnCard extends ConsumerWidget {
     );
   }
 
-  Widget _header(ThemeData theme) {
+  Widget _header(ThemeData theme, bool isToday) {
     return Row(
       children: [
         Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: _isToday
+            color: isToday
                 ? AppColors.primary
                 : AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(12),
@@ -164,7 +162,7 @@ class DayColumnCard extends ConsumerWidget {
                 style: theme.textTheme.labelSmall?.copyWith(
                   fontSize: 9,
                   letterSpacing: 0.5,
-                  color: _isToday ? Colors.white : AppColors.secondary,
+                  color: isToday ? Colors.white : AppColors.secondary,
                 ),
               ),
               Text(
@@ -172,7 +170,7 @@ class DayColumnCard extends ConsumerWidget {
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   height: 1.1,
-                  color: _isToday ? Colors.white : null,
+                  color: isToday ? Colors.white : null,
                 ),
               ),
             ],

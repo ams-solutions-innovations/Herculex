@@ -1,10 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
+import '../core/env.dart';
 import '../data/local/database.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/local_auth_repository.dart';
-import '../features/auth/data/native_auth_service.dart';
+import '../features/auth/data/supabase_auth_service.dart';
+import '../features/auth/data/unconfigured_auth_service.dart';
+import '../features/auth/domain/auth_provider_service.dart';
 import '../features/auth/domain/auth_session.dart';
 import '../features/profile/data/local_profile_repository.dart';
 import '../features/profile/domain/profile.dart';
@@ -47,15 +51,21 @@ final localAuthRepositoryProvider = Provider<LocalAuthRepository>((ref) {
   return repo;
 });
 
-final nativeAuthServiceProvider = Provider<NativeAuthService>((ref) {
-  return NativeAuthService();
+/// Resolves to Supabase when the build carries backend credentials, and to a
+/// local-only stub otherwise. Reading `Supabase.instance` unconditionally would
+/// assert in tests and in any credential-less dev build.
+final authServiceProvider = Provider<AuthProviderService>((ref) {
+  if (!Env.hasSupabase) return const UnconfiguredAuthService();
+  return SupabaseAuthService(Supabase.instance.client);
 });
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository(
+  final repo = AuthRepository(
     localRepository: ref.watch(localAuthRepositoryProvider),
-    nativeService: ref.watch(nativeAuthServiceProvider),
+    authService: ref.watch(authServiceProvider),
   );
+  ref.onDispose(repo.dispose);
+  return repo;
 });
 
 final authSessionProvider = StreamProvider<AuthSession?>((ref) {

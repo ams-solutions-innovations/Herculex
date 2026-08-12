@@ -23,7 +23,7 @@ void main() {
       expect(snapshot.totalSets, 5);
       expect(snapshot.weightKg, 82.5);
       expect(snapshot.setLabel, 'Set 3/5');
-      expect(snapshot.valueLabel, '82.5 kg x 8');
+      expect(snapshot.valueLabel, '82.5 kg x 8 reps');
     });
 
     test('builds expanded action labels from the configured load step', () {
@@ -37,13 +37,21 @@ void main() {
         loadStepKg: 5,
       );
 
+      // Spelled out rather than spread from the constant the builder itself
+      // iterates — otherwise a reordering of the priority list can never fail
+      // this test. Completing the set leads: it is the primary action on a
+      // collapsed notification.
       expect(snapshot.actions.map((action) => action.id), [
-        ...WorkoutNotificationActionIds.lowRiskSurfaceActionsInPriorityOrder,
+        WorkoutNotificationActionIds.completeSet,
+        WorkoutNotificationActionIds.repsUp,
+        WorkoutNotificationActionIds.weightUp,
+        WorkoutNotificationActionIds.repsDown,
+        WorkoutNotificationActionIds.weightDown,
       ]);
       expect(snapshot.actions.map((action) => action.label), [
+        'Done',
         '+ Rep',
         '+ 5 kg',
-        'Done',
         '- Rep',
         '- 5 kg',
       ]);

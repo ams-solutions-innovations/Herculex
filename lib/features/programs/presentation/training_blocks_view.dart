@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/clock.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
@@ -170,7 +171,7 @@ class _BlockHeader extends ConsumerWidget {
     final startIso = program.startDateIso;
     if (startIso == null) return null;
     final start = DateTime.parse(startIso);
-    final now = DateTime.now();
+    final now = ref.read(clockProvider).now();
     final days = DateTime(now.year, now.month, now.day).difference(start).inDays;
     if (days < 0) return null;
     final week = (days ~/ 7) + 1;

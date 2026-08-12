@@ -8,7 +8,7 @@ This document describes the project state at the end of **Phase 3** and what's l
 
 ### What's working
 
-- **Local-only foundation** (no Firebase yet). Profile + display name stored in `SharedPreferences`. Auth guard via go_router redirects between `/landing → /login → /onboarding → /app`.
+- **Local-first foundation** (Supabase auth wired; cloud sync not yet built). Profile + display name stored in `SharedPreferences`. Auth guard via go_router redirects between `/landing → /login → /onboarding → /app`.
 - **Workout logger** (Hevy core, Phase 2): start empty workouts, log sets with weight/reps/RPE, auto rest timer, last-time hint, swipe-to-delete, supersets schema present (UI not yet wired), workout history, Insights tab with weekly tonnage chart + top-5 1RM projections.
 - **Nutrition logger** (MFP core, Phase 3): daily diary with meal sections, food picker with Search/Recent/Recipes/Custom tabs, barcode scanner, OpenFoodFacts lookup with local caching, custom food creation, recipe builder, macro targets calculated from profile (Mifflin-St Jeor), live macro rings on the dashboard.
 - **Five-tab shell**: Dashboard · Nutrition · Workout · Programs · Insights. Each tab is now backed by real data except Programs (still the Phase-1 visual mock).
@@ -30,7 +30,7 @@ lib/
 ├── core/                 clock, result, failures
 ├── data/local/           tables.dart, database.dart, seed_data.dart
 ├── features/
-│   ├── auth/             local auth — replace with Firebase Auth in a later phase
+│   ├── auth/             Supabase auth + local session cache
 │   ├── profile/          on-device profile
 │   ├── onboarding/       3-step wizard
 │   ├── dashboard/        live macros, fasting placeholder, today's plan placeholder
@@ -277,30 +277,45 @@ The taxonomy is already in `exercise_catalog` (mechanics, force, plane, equipmen
 
 ---
 
-## Phase 10 — Firebase Migration (when user is ready)
+## Phase 10 — Supabase Backend (in progress)
 
-Originally Phase 1 plan. Deferred per user choice to ship local-first. When you're ready to add cloud sync + Google sign-in:
+Originally planned as a Firebase migration; **superseded**. Firebase only ever
+existed as a native-Kotlin auth bridge (`com.ams.herculex/auth` MethodChannel),
+which meant iOS auth never worked at all. Replaced by Supabase — see
+`docs/supabase-auth-wear-setup.md` and the migration plan for the full design.
 
-### Auth
+### Auth — DONE
 
-- Add `firebase_core`, `firebase_auth`, `google_sign_in`
-- Replace `LocalAuthRepository` with `FirebaseAuthRepository`. The interface (`Stream<AppUser?> authStateChanges()`, `signIn`, `signOut`) is intentionally identical — UI doesn't change.
-- `flutterfire configure` to generate `firebase_options.dart`
-- Google sign-in: SHA-1/SHA-256 fingerprints in Firebase console, URL scheme in iOS Info.plist
+- `supabase_flutter` (pure Dart, so iOS works for the first time).
+- `AuthProviderService` interface + `SupabaseAuthService`; `AuthRepository`'s
+  public API is unchanged, so no screen above it was touched.
+- Session persisted via `SecureAuthStorage` (Keychain / EncryptedSharedPreferences).
+- Auth state is now a *subscription* (`onAuthStateChange`), not the old one-shot
+  `hydrateFromNative()` — token refresh and expiry are finally observed.
+- `UnconfiguredAuthService` keeps credential-less builds and tests fully local-first.
+- ⚠️ Existing users must sign in again once (Firebase uid → Supabase UUID).
 
-### Sync (hybrid C per original plan)
+### Sync — NOT STARTED
 
-- **Firestore** for: `profile`, `programs`, `recipes`, custom `exercises`, custom `foods` (the curated stuff)
-- **Drift** stays the source of truth for: every set, every food entry, every fasting session (high-volume personal data)
-- New `data/sync/sync_engine.dart` — outbox pattern. Drift mutations write to a `pending_sync_ops` table (already sketched in Phase 1 plan but not built); a background isolate drains the outbox to Firestore when online.
-- Conflict resolution: last-write-wins per entity for v1 (rarely an issue for personal-use single-user case).
+The blocker is identity: 40 of 43 Drift tables use autoincrement int PKs with no
+`userId`, no `updatedAt` and (except `Foods`/`Recipes`) no tombstones, so two
+devices both mint `id = 5`. Schema v25 must add `syncUuid` / `updatedAt` /
+`deletedAt` / `syncedAt` before any push/pull can be correct.
 
-### Acceptance
+- **Syncs:** the user's own data — sessions, exercises, sets, food entries,
+  fasting, measurements, programs, templates, gyms, targets, and `isCustom = 1`
+  catalogue rows.
+- **Does not sync:** the asset-seeded exercise catalogue and food catalogue —
+  they rebuild from `assets/data/*.json` on any device.
+- Outbox gets `attempts` / `lastError` / `nextRetryAt` and a unique
+  `(entityType, entityId)` index; enqueueing happens via SQLite triggers rather
+  than hand-instrumenting three ~1000-line repositories.
+- An op is deleted **only** after the server confirms the write — the failure
+  the 2026-08-10 audit flagged.
+- Conflict resolution: last-write-wins on *server* `updated_at`.
+- Realtime events are treated as a hint to run a delta pull, not applied directly.
 
-- Sign in with Google on phone A → profile + recipes appear on phone B after sign-in
-- Log a set offline → set persists locally → set appears in Firestore after reconnect
-
-**Estimated effort**: 3-5 days.
+**Estimated remaining effort**: 12-14 days.
 
 ---
 
@@ -329,7 +344,7 @@ Phase 4  ──▶  Phase 5  ──┬──▶  Phase 6  ──▶  Phase 7
                                   │
                                   └──▶  Phase 8 (analytics — needs Phase 6 data)
                                           │
-                                          └──▶  Phase 10 (Firebase)
+                                          └──▶  Phase 10 (Supabase)
                                                   │
                                                   └──▶  Phase 11 (polish)
 ```

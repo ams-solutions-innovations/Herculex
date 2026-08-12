@@ -1,14 +1,10 @@
 package com.ams.herculex
 
-import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
-import com.ams.herculex.auth.AuthSession
-import com.ams.herculex.auth.FirebaseAuthRepository
-import com.ams.herculex.auth.HerculexAuthProvider
 import com.ams.herculex.sync.MobileWearSyncManager
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
@@ -19,51 +15,10 @@ import kotlinx.coroutines.launch
 
 class MainActivity : FlutterActivity() {
 
-    companion object {
-        private const val GOOGLE_SIGN_IN_REQUEST_CODE = 4231
-    }
-
     private val wearChannel = "com.example.herculex/wear"
     private val widgetChannel = "com.ams.herculex/widget"
-    private val authChannel = "com.ams.herculex/auth"
     private var methodChannel: MethodChannel? = null
-    private val authRepository by lazy { FirebaseAuthRepository(applicationContext) }
     private val wearSyncManager by lazy { MobileWearSyncManager(applicationContext) }
-    private var pendingGoogleAuthResult: MethodChannel.Result? = null
-    private var pendingGoogleServerClientId: String? = null
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != GOOGLE_SIGN_IN_REQUEST_CODE) {
-            return
-        }
-
-        val pendingResult = pendingGoogleAuthResult ?: return
-        pendingGoogleAuthResult = null
-        val serverClientId = pendingGoogleServerClientId
-        pendingGoogleServerClientId = null
-
-        if (resultCode != Activity.RESULT_OK) {
-            pendingResult.error(
-                "GOOGLE_SIGN_IN_CANCELLED",
-                "Google Sign-In was cancelled by the user.",
-                null,
-            )
-            return
-        }
-
-        lifecycleScope.launch {
-            try {
-                val session = authRepository.signInWithGoogleResult(
-                    data = data,
-                    serverClientId = serverClientId.orEmpty(),
-                )
-                pendingResult.success(session.toMap())
-            } catch (error: Exception) {
-                pendingResult.error("GOOGLE_SIGN_IN_FAILED", error.message, null)
-            }
-        }
-    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -147,98 +102,6 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
-
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, authChannel)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "getCurrentUser" -> {
-                        result.success(authRepository.currentUser?.toAuthSessionMap())
-                    }
-                    "registerWithEmail" -> {
-                        val email = call.argument<String>("email")
-                        val password = call.argument<String>("password")
-                        val displayName = call.argument<String>("displayName")
-                        if (email.isNullOrBlank() || password.isNullOrBlank()) {
-                            result.error("INVALID_ARGS", "Email and password are required.", null)
-                            return@setMethodCallHandler
-                        }
-                        lifecycleScope.launch {
-                            try {
-                                val session = authRepository.registerWithEmail(email, password, displayName)
-                                result.success(session.toMap())
-                            } catch (error: Exception) {
-                                result.error("REGISTER_FAILED", error.message, null)
-                            }
-                        }
-                    }
-                    "loginWithEmail" -> {
-                        val email = call.argument<String>("email")
-                        val password = call.argument<String>("password")
-                        if (email.isNullOrBlank() || password.isNullOrBlank()) {
-                            result.error("INVALID_ARGS", "Email and password are required.", null)
-                            return@setMethodCallHandler
-                        }
-                        lifecycleScope.launch {
-                            try {
-                                val session = authRepository.loginWithEmail(email, password)
-                                result.success(session.toMap())
-                            } catch (error: Exception) {
-                                result.error("LOGIN_FAILED", error.message, null)
-                            }
-                        }
-                    }
-                    "sendPasswordReset" -> {
-                        val email = call.argument<String>("email")
-                        if (email.isNullOrBlank()) {
-                            result.error("INVALID_ARGS", "Email is required.", null)
-                            return@setMethodCallHandler
-                        }
-                        lifecycleScope.launch {
-                            try {
-                                authRepository.sendPasswordReset(email)
-                                result.success(null)
-                            } catch (error: Exception) {
-                                result.error("PASSWORD_RESET_FAILED", error.message, null)
-                            }
-                        }
-                    }
-                    "signInWithGoogle" -> {
-                        val serverClientId = call.argument<String>("serverClientId")
-                        if (serverClientId.isNullOrBlank()) {
-                            result.error("INVALID_ARGS", "A Firebase Web client ID is required.", null)
-                            return@setMethodCallHandler
-                        }
-                        pendingGoogleAuthResult = result
-                        pendingGoogleServerClientId = serverClientId
-                        startActivityForResult(
-                            authRepository.buildGoogleSignInIntent(serverClientId),
-                            GOOGLE_SIGN_IN_REQUEST_CODE,
-                        )
-                    }
-                    "signInWithApple" -> {
-                        lifecycleScope.launch {
-                            try {
-                                val session = authRepository.signInWithApple(this@MainActivity)
-                                result.success(session.toMap())
-                            } catch (error: Exception) {
-                                result.error("APPLE_SIGN_IN_FAILED", error.message, null)
-                            }
-                        }
-                    }
-                    "signOut" -> {
-                        val serverClientId = call.argument<String>("serverClientId")
-                        lifecycleScope.launch {
-                            try {
-                                authRepository.signOut(serverClientId)
-                                result.success(null)
-                            } catch (error: Exception) {
-                                result.error("SIGN_OUT_FAILED", error.message, null)
-                            }
-                        }
-                    }
-                    else -> result.notImplemented()
-                }
-            }
 
         // Connect PhoneWearListenerService callbacks to Flutter MethodChannel
         PhoneWearListenerService.onWatchWorkoutStartListener = { sessionJson ->
@@ -596,34 +459,5 @@ class MainActivity : FlutterActivity() {
                 Log.e("WearSync", "Failed to ack macro command", e)
             }
         }
-    }
-
-    private fun AuthSession.toMap(): Map<String, Any?> {
-        return mapOf(
-            "uid" to uid,
-            "email" to email,
-            "displayName" to displayName,
-            "photoUrl" to photoUrl,
-            "provider" to provider.name,
-            "idToken" to idToken,
-            "isEmailVerified" to isEmailVerified,
-        )
-    }
-
-    private fun com.google.firebase.auth.FirebaseUser.toAuthSessionMap(): Map<String, Any?> {
-        val provider = when {
-            providerData.any { it.providerId == "google.com" } -> HerculexAuthProvider.GOOGLE
-            providerData.any { it.providerId == "apple.com" } -> HerculexAuthProvider.APPLE
-            else -> HerculexAuthProvider.EMAIL_PASSWORD
-        }
-        return AuthSession(
-            uid = uid,
-            email = email,
-            displayName = displayName,
-            photoUrl = photoUrl?.toString(),
-            provider = provider,
-            idToken = null,
-            isEmailVerified = isEmailVerified,
-        ).toMap()
     }
 }

@@ -127,7 +127,19 @@
       "Bash(cp /tmp/step2_backup/nutrition_providers.dart lib/features/nutrition/presentation/nutrition_providers.dart)",
       "Bash(cp /tmp/step2_backup/nutrition_view.dart lib/features/nutrition/presentation/nutrition_view.dart)",
       "Bash(cp /tmp/step2_backup/recipe_builder_view.dart lib/features/nutrition/presentation/recipe_builder_view.dart)",
-      "Bash(cp /tmp/step2_backup/phase5_nutrition_test.dart test/phase5_nutrition_test.dart)"
+      "Bash(cp /tmp/step2_backup/phase5_nutrition_test.dart test/phase5_nutrition_test.dart)",
+      "PowerShell(flutter test test/ongoing_workout_surface_snapshot_test.dart)",
+      "PowerShell(flutter test test/widgets/training_blocks_view_test.dart)",
+      "PowerShell(flutter test test/widgets/training_blocks_view_test.dart --plain-name \"the week board shows real day names\")",
+      "PowerShell(flutter analyze)",
+      "PowerShell(flutter build apk --debug 2>&1)",
+      "PowerShell(Get-ChildItem -Recurse -Path \"android\\\\app\\\\build\\\\intermediates\\\\merged_manifests\" -Filter AndroidManifest.xml | ForEach-Object { $_.FullName; \\(Select-String -Path $_.FullName -Pattern 'allowBackup|fullBackupContent|dataExtractionRules'\\).Line })",
+      "PowerShell(Get-ChildItem -Recurse -Path \"build\" -Filter \"AndroidManifest.xml\" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'merged_manifest' } | Select-Object -ExpandProperty FullName)",
+      "PowerShell(foreach \\($p in @\\(\"build\\\\app\\\\intermediates\\\\merged_manifests\\\\debug\\\\processDebugManifest\\\\AndroidManifest.xml\",\"build\\\\wear\\\\intermediates\\\\merged_manifests\\\\debug\\\\processDebugManifest\\\\AndroidManifest.xml\"\\)\\) { \"=== $p ===\"; \\(Select-String -Path $p -Pattern 'allowBackup|fullBackupContent|dataExtractionRules'\\).Line })",
+      "Bash(./gradlew :app:lintDebug --quiet)",
+      "Bash(awk '/^  supabase_flutter:/,/^  [a-z]/' pubspec.lock)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew :app:compileDebugKotlin -q --console=plain)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew :app:compileDebugKotlin --console=plain)"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation"

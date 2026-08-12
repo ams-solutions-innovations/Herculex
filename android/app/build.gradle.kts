@@ -6,7 +6,6 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
 }
 
 // Release signing is read from android/key.properties when present (see RELEASE.md).
@@ -99,11 +98,10 @@ afterEvaluate {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
-    implementation("com.google.firebase:firebase-auth")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-    implementation("com.google.android.gms:play-services-auth:21.4.0")
+    // Wear OS Data Layer. Deliberately kept: watch<->phone sync is unrelated to
+    // the cloud backend and still runs over Google Play services.
     implementation("com.google.android.gms:play-services-wearable:20.0.1")
 
     // Unit tests (JVM). This module had no test dependencies at all before

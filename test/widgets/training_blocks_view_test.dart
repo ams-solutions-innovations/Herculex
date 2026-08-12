@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
@@ -13,6 +14,22 @@ import '../support/test_database.dart';
 /// Smoke coverage for the reworked Blocks tab. The feature previously had no
 /// widget tests at all, so these assert the things a silent render failure or a
 /// regression to the old placeholder UI would break.
+class _FixedClock implements Clock {
+  _FixedClock(this.fixed);
+
+  DateTime fixed;
+
+  @override
+  DateTime now() => fixed;
+}
+
+/// A Monday. The board renders the Monday–Sunday week around "today", and
+/// `ScheduleWalker` drops any week-0 occurrence that would fall before the
+/// block's start date — so anchoring both to the same Monday is what keeps the
+/// whole first week visible. Run this suite against a midweek date and the
+/// week-board test fails, which is exactly what it used to do off-Monday.
+final _testNow = DateTime(2026, 6, 1, 9);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -35,6 +52,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           appDatabaseProvider.overrideWithValue(db),
+          clockProvider.overrideWithValue(_FixedClock(_testNow)),
         ],
         child: const MaterialApp(home: TrainingBlocksView()),
       ),
@@ -58,7 +76,7 @@ void main() {
       name: 'Test PPL',
       weeks: 4,
       plan: SplitTemplates.generate(type: SplitType.ppl, daysPerWeek: 3),
-      startDate: DateTime.now(),
+      startDate: _testNow,
       templateIdsBySlot: {0: templateId, 1: templateId, 2: templateId},
     );
   }

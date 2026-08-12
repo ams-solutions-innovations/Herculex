@@ -42,7 +42,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   void initState() {
     super.initState();
     Future<void>.microtask(() {
-      ref.read(authRepositoryProvider).hydrateFromNative();
+      ref.read(authRepositoryProvider).hydrate();
     });
     WorkoutNotificationService.onNotificationTap = () {
       ref.read(mainTabIndexProvider.notifier).state = 2;

@@ -43,13 +43,15 @@ class AuthSession {
     );
   }
 
+  /// Disk-facing serialization. Deliberately omits [idToken] — that is a
+  /// bearer credential and must never land in SharedPreferences; callers
+  /// that need it read it from secure storage via `LocalAuthRepository`.
   Map<String, dynamic> toJson() => {
     'uid': uid,
     'email': email,
     'displayName': displayName,
     'photoUrl': photoUrl,
     'provider': provider.name,
-    'idToken': idToken,
     'isEmailVerified': isEmailVerified,
   };
 
@@ -64,7 +66,6 @@ class AuthSession {
         'apple' => AuthProvider.apple,
         _ => AuthProvider.emailPassword,
       },
-      idToken: json['idToken'] as String?,
       isEmailVerified: json['isEmailVerified'] as bool? ?? false,
     );
   }

@@ -58,9 +58,6 @@ final geminiFoodAnalyzerServiceProvider = Provider<GeminiFoodAnalyzerService>((
 class GeminiFoodAnalyzerService {
   final SharedPreferences _prefs;
 
-  // Secret API Key provided by user
-  static const String _defaultApiKey =
-      'AQ.Ab8RN6JQiyabn4Js32ty-3COmv5SvNipZn59Q2iYFScTy5QbAg';
   static const String _keyPrefsName = 'gemini_api_key';
 
   GeminiFoodAnalyzerService(this._prefs);
@@ -70,7 +67,10 @@ class GeminiFoodAnalyzerService {
     return customKey != null && customKey.trim().isNotEmpty;
   }
 
-  String get apiKey {
+  /// No default key ships with the client. Callers must set their own key
+  /// via [setApiKey] (or the `GEMINI_API_KEY` dart-define for dev builds)
+  /// before any analysis call; see [apiKey] for the failure mode otherwise.
+  String? get _configuredApiKey {
     final customKey = _prefs.getString(_keyPrefsName);
     if (customKey != null && customKey.trim().isNotEmpty) {
       return customKey.trim();
@@ -79,7 +79,18 @@ class GeminiFoodAnalyzerService {
     if (envKey.isNotEmpty) {
       return envKey.trim();
     }
-    return _defaultApiKey;
+    return null;
+  }
+
+  /// Throws if no key has been configured — there is no embedded fallback.
+  String get apiKey {
+    final key = _configuredApiKey;
+    if (key == null) {
+      throw Exception(
+        'Ni nastavljenega Gemini API ključa. Prosimo nastavite svoj Google Gemini API ključ (začne se z AIzaSy...).',
+      );
+    }
+    return key;
   }
 
   Future<void> setApiKey(String key) async {
@@ -134,7 +145,7 @@ Vrneš ISKALNI JSON objekt z naslednjo strukturo:
 ''';
 
     final uri = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
     );
 
     final requestBody = jsonEncode({
@@ -156,7 +167,7 @@ Vrneš ISKALNI JSON objekt z naslednjo strukturo:
 
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'x-goog-api-key': apiKey},
       body: requestBody,
     );
 
@@ -290,11 +301,11 @@ JSON schema:
     if (path.endsWith('.png')) mimeType = 'image/png';
     if (path.endsWith('.webp')) mimeType = 'image/webp';
     final uri = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
     );
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'x-goog-api-key': apiKey},
       body: jsonEncode({
         'contents': [
           {
