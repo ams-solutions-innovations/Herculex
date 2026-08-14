@@ -10,6 +10,8 @@ import 'package:herculex/features/reps/data/phone_motion_source.dart';
 import 'package:herculex/features/reps/data/rep_capture_service.dart';
 import 'package:herculex/features/reps/data/rep_tracking_repository.dart';
 import 'package:herculex/features/reps/domain/motion_sample.dart';
+import 'package:herculex/features/reps/domain/rep_calibration.dart';
+import 'package:herculex/features/reps/domain/rep_features.dart';
 import 'package:herculex/features/reps/domain/rep_movement.dart';
 import 'package:herculex/features/reps/domain/rep_suggestion.dart';
 import 'package:herculex/features/reps/presentation/rep_review_sheet.dart';
@@ -123,12 +125,13 @@ void main() {
     await repo.setExerciseEnabled(slug, true);
   }
 
-  Widget wrap(Widget child) {
+  Widget wrap(Widget child, {List<Override> extraOverrides = const []}) {
     return ProviderScope(
       overrides: [
         repTrackingRepositoryProvider.overrideWithValue(repo),
         repCaptureServiceProvider.overrideWithValue(captureService),
         phoneMotionSourceProvider.overrideWithValue(phoneSource),
+        ...extraOverrides,
       ],
       child: MaterialApp(home: Scaffold(body: child)),
     );
@@ -313,7 +316,15 @@ void main() {
   });
 
   group('RepReviewSheet', () {
-    RepSuggestion suggestion({int proposedReps = 8}) => RepSuggestion(
+    const CalibrationProfileKey wristPullUpKey = (
+      slug: 'pull-up',
+      source: 'wrist',
+      placement: null,
+      sensorType: MotionSensorType.linearAcceleration,
+    );
+
+    RepSuggestion suggestion({int proposedReps = 8, Map<String, dynamic>? featuresJson}) =>
+        RepSuggestion(
           captureId: 'cap-review',
           exerciseSlug: 'pull-up',
           movement: RepMovement.pullUp,
@@ -329,10 +340,18 @@ void main() {
           missedBatches: 0,
           sampleCount: 500,
           coverageRatio: 1.0,
-          featuresJson: null,
+          featuresJson: featuresJson,
           state: TrackerState.tracking,
           stateReason: null,
         );
+
+    /// An `insufficient` profile for every pre-existing sheet case below —
+    /// 10-05 made the sheet read `calibrationProfileProvider`, and without
+    /// this override these cases would hit the real (empty) repository
+    /// instead of asserting a known, fixed calibration state.
+    final insufficientOverride = calibrationProfileProvider(
+      wristPullUpKey,
+    ).overrideWith((ref) async => CalibrationProfile.fromObservations(const []));
 
     testWidgets('the rep field is editable, pre-filled, and the edited '
         'value — not proposedReps — reaches onConfirm', (tester) async {
@@ -352,6 +371,7 @@ void main() {
               child: const Text('open'),
             ),
           ),
+          extraOverrides: [insufficientOverride],
         ),
       );
       await tester.tap(find.text('open'));
@@ -365,6 +385,89 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(confirmedReps, 5);
+    });
+
+    testWidgets(
+        'a calibrated profile pre-fills an editable RPE suggestion, and the '
+        'rep field is identical to the insufficient case', (tester) async {
+      // Ten sets, three sessions, cadence strongly correlated with RPE —
+      // the same shape `test/rep_calibration_test.dart` uses to reach
+      // `calibrated`.
+      for (var i = 0; i < 10; i++) {
+        final period = 1000.0 + i * 50;
+        final rpe = 5.0 + i * 0.3;
+        await repo.recordObservation(
+          exerciseSlug: 'pull-up',
+          sessionId: 1 + (i % 3),
+          recordedAt: DateTime(2026, 1, 1).add(Duration(minutes: i)),
+          source: 'wrist',
+          sensorType: MotionSensorType.linearAcceleration,
+          detectedReps: 8,
+          confirmedReps: 8,
+          confidence: 0.9,
+          confirmedRpeX10: (rpe * 10).round(),
+          featuresJson: jsonEncode({
+            'v': RepFeatures.version,
+            'meanPeriodMs': period,
+            'periodCv': 0.05,
+            'normalisedAmplitude': 1.0,
+            'finalRepPeriodRatio': 1.0,
+            'amplitudeDecayRatio': 1.0,
+          }),
+        );
+      }
+
+      final profile = await repo.profileFor(
+        slug: 'pull-up',
+        source: 'wrist',
+        sensorType: MotionSensorType.linearAcceleration,
+      );
+      expect(profile.status, CalibrationStatus.calibrated);
+
+      final incomingFeatures = RepFeatures(
+        meanPeriodMs: 1225,
+        periodCv: 0.05,
+        normalisedAmplitude: 1.0,
+        finalRepPeriodRatio: 1.0,
+        amplitudeDecayRatio: 1.0,
+      );
+      final expectedRpe = profile.estimate(incomingFeatures);
+      expect(expectedRpe, isNotNull);
+
+      final calibratedOverride = calibrationProfileProvider(
+        wristPullUpKey,
+      ).overrideWith((ref) async => profile);
+
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => RepReviewSheet.show(
+                context,
+                suggestion: suggestion(
+                  proposedReps: 8,
+                  featuresJson: incomingFeatures.toJson(),
+                ),
+                sessionId: 1,
+                onConfirm: (reps, rpeX10) async {},
+              ),
+              child: const Text('open'),
+            ),
+          ),
+          extraOverrides: [calibratedOverride],
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      // The rep field is unaffected by calibration status — identical
+      // pre-fill behaviour to the insufficient case above.
+      expect(find.widgetWithText(TextField, '8'), findsOneWidget);
+
+      final slider = tester.widget<Slider>(find.byType(Slider));
+      expect(slider.value, expectedRpe);
+      expect(slider.onChanged, isNotNull); // still editable
+      expect(find.text('suggested — edit if it looks wrong'), findsOneWidget);
     });
   });
 }

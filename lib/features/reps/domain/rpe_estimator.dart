@@ -264,6 +264,12 @@ class RpeEstimator {
 
   final RpeModel? _model;
 
+  /// The fitted model, or null when fewer than two rows survived the
+  /// null-feature filter. Exposed for `CalibrationProfile`, which reports
+  /// it publicly only while [gatePasses] holds — this getter itself does
+  /// not gate.
+  RpeModel? get model => _model;
+
   /// The single named gate predicate. All three REP-05 thresholds live
   /// here and nowhere else in this file, so a future threshold change
   /// happens in exactly one place.

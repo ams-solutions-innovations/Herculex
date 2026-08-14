@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../domain/rep_calibration.dart';
 import '../domain/rep_suggestion.dart';
 import 'rep_tracking_providers.dart';
 
@@ -69,6 +70,18 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
   bool _measurementExpanded = false;
   String? _error;
 
+  /// True once the user has directly touched the RPE slider or the clear
+  /// button — from then on the field is theirs, and a calibration
+  /// suggestion (however it changes across rebuilds) must never overwrite
+  /// it (10-05, REP-05: the model only ever *suggests*).
+  bool _rpeEditedByUser = false;
+
+  /// The most recent auto-suggested value computed during [build], kept
+  /// outside of `setState` so `_save` can read exactly what was on screen
+  /// without re-deriving it from a provider read that could race a
+  /// just-recorded observation.
+  double? _lastAutoSuggestedRpe;
+
   @override
   void initState() {
     super.initState();
@@ -85,7 +98,14 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
 
   Future<void> _save() async {
     final reps = int.tryParse(_repsCtrl.text) ?? widget.suggestion.proposedReps;
-    final rpeX10 = _rpe == null ? null : (_rpe! * 10).round();
+    // The value actually on screen: the user's own edit if they touched the
+    // field, otherwise whatever the calibration suggestion last rendered
+    // (which is null whenever the profile isn't calibrated).
+    final effectiveRpe = _rpeEditedByUser ? _rpe : (_rpe ?? _lastAutoSuggestedRpe);
+    final rpeX10 = effectiveRpe == null ? null : (effectiveRpe * 10).round();
+    final suggestedRpeX10 = _lastAutoSuggestedRpe == null
+        ? null
+        : (_lastAutoSuggestedRpe! * 10).round();
     setState(() {
       _saving = true;
       _error = null;
@@ -120,8 +140,10 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
           detectedReps: widget.suggestion.proposedReps,
           confirmedReps: reps,
           confidence: widget.suggestion.setConfidence,
-          // 10-05 owns the RPE-suggestion gate; nothing suggests one yet.
-          suggestedRpeX10: null,
+          // Null whenever no suggestion was offered (not calibrated, or no
+          // usable feature vector) — a later profile can measure how often
+          // the user overrode what was actually suggested.
+          suggestedRpeX10: suggestedRpeX10,
           confirmedRpeX10: rpeX10,
           featuresJson: jsonEncode(widget.suggestion.featuresJson ?? const {}),
         );
@@ -134,6 +156,29 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
     final theme = Theme.of(context);
     final s = widget.suggestion;
     final mediaQuery = MediaQuery.of(context);
+
+    final profileAsync = ref.watch(
+      calibrationProfileProvider((
+        slug: s.exerciseSlug,
+        source: s.source,
+        placement: s.placement,
+        sensorType: s.sensorType,
+      )),
+    );
+    final profile = profileAsync.valueOrNull;
+
+    // Only ever suggest while the field is still "the model's" — the
+    // instant the user touches it, this is null forever for this sheet
+    // instance, whatever the profile does on a later rebuild.
+    double? autoSuggestedRpe;
+    if (!_rpeEditedByUser && profile?.status == CalibrationStatus.calibrated) {
+      final features = s.features;
+      if (features != null) {
+        autoSuggestedRpe = profile!.estimate(features);
+      }
+    }
+    _lastAutoSuggestedRpe = autoSuggestedRpe;
+    final effectiveRpe = _rpeEditedByUser ? _rpe : (_rpe ?? autoSuggestedRpe);
 
     return Padding(
       padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
@@ -232,29 +277,48 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              Text(
-                'RPE (optional)',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                children: [
+                  Text(
+                    'RPE (optional)',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (autoSuggestedRpe != null) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      'suggested — edit if it looks wrong',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ],
+                ],
               ),
               Row(
                 children: [
                   Expanded(
                     child: Slider(
-                      value: _rpe ?? 8.0,
+                      value: effectiveRpe ?? 8.0,
                       min: 5.0,
                       max: 10.0,
                       divisions: 10,
-                      label: _rpe?.toStringAsFixed(1) ?? 'Not set',
-                      onChanged: (v) => setState(() => _rpe = v),
+                      label: effectiveRpe?.toStringAsFixed(1) ?? 'Not set',
+                      onChanged: (v) => setState(() {
+                        _rpe = v;
+                        _rpeEditedByUser = true;
+                      }),
                     ),
                   ),
-                  if (_rpe != null)
+                  if (effectiveRpe != null)
                     IconButton(
                       icon: const Icon(Icons.close, size: 18),
                       tooltip: 'Clear RPE',
-                      onPressed: () => setState(() => _rpe = null),
+                      onPressed: () => setState(() {
+                        _rpe = null;
+                        _rpeEditedByUser = true;
+                      }),
                     ),
                 ],
               ),
@@ -279,8 +343,8 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
                         '${s.missedBatches > 0 ? ' (${s.missedBatches} missed batches)' : ''}',
                   ),
                   _measurementRow(
-                    'Calibration applied',
-                    s.features != null ? 'yes' : 'no',
+                    'Calibration',
+                    _calibrationLabel(profile),
                   ),
                 ],
               ),
@@ -317,14 +381,38 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
     );
   }
 
+  /// The "how this was measured" progress line. `countOnly` and
+  /// `insufficient` are stated progress states, never styled or worded as
+  /// errors (10-CONTEXT "Confidence and fallback states").
+  String _calibrationLabel(CalibrationProfile? profile) {
+    if (profile == null) return 'checking…';
+    switch (profile.status) {
+      case CalibrationStatus.calibrated:
+        return 'calibrated';
+      case CalibrationStatus.countOnly:
+        return 'still learning your pace — not yet confident enough to '
+            'suggest an RPE';
+      case CalibrationStatus.insufficient:
+        return 'calibrating for this setup (${profile.sampleCount} of 10 '
+            'sets)';
+    }
+  }
+
   Widget _measurementRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(color: AppColors.secondary)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
         ],
       ),
     );

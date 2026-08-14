@@ -5,6 +5,7 @@ import '../../../data/local/database.dart';
 import '../data/phone_motion_source.dart';
 import '../data/rep_capture_service.dart';
 import '../data/rep_tracking_repository.dart';
+import '../domain/rep_calibration.dart';
 
 final repTrackingRepositoryProvider = Provider<RepTrackingRepository>((ref) {
   return RepTrackingRepository(ref.watch(appDatabaseProvider));
@@ -26,6 +27,36 @@ final repTrackingEnabledForProvider = FutureProvider.family<bool, String>((
 ) {
   return ref.watch(repTrackingRepositoryProvider).isEnabledFor(slug);
 });
+
+/// The four-part key `calibrationProfileProvider` is keyed on. A `List`
+/// key will not memoise correctly with Riverpod's `.family` (list equality
+/// is identity-based, not structural) — this named record gets structural
+/// `==`/`hashCode` for free.
+typedef CalibrationProfileKey = ({
+  String slug,
+  String source,
+  String? placement,
+  String sensorType,
+});
+
+/// The learning profile for one exact (slug, source, placement, sensorType)
+/// tuple. 10-05's calibration surface — the review sheet watches this,
+/// keyed on the suggestion's own tuple, to decide whether to pre-fill an
+/// RPE suggestion or show a "calibrating" progress line.
+final calibrationProfileProvider =
+    FutureProvider.family<CalibrationProfile, CalibrationProfileKey>((
+      ref,
+      key,
+    ) {
+      return ref
+          .watch(repTrackingRepositoryProvider)
+          .profileFor(
+            slug: key.slug,
+            source: key.source,
+            placement: key.placement,
+            sensorType: key.sensorType,
+          );
+    });
 
 /// App-lifetime singleton: registers the three `WearSyncService.onWatchRep*`
 /// bridge callbacks once and keeps their `stateStream`/`suggestions` alive

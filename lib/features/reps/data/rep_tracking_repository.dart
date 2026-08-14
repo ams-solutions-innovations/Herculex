@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../data/local/database.dart';
+import '../domain/rep_calibration.dart';
 import '../domain/rep_tracking_eligibility.dart';
 
 /// The single read/write surface for assisted rep tracking's local-only
@@ -14,6 +15,22 @@ class RepTrackingRepository {
   final AppDatabase _db;
 
   RepTrackingRepository(this._db);
+
+  /// In-memory, per-session cache of [profileFor], keyed by the same
+  /// four-part tuple `observationsFor` filters on. Recomputing a profile
+  /// from ~30 rows is cheap, but a set-completion flow may read it several
+  /// times in quick succession (panel, review sheet, "how this was
+  /// measured" expander) — the cache just avoids redundant work, not
+  /// staleness: [recordObservation] evicts the matching key so the very
+  /// next read reflects the set just confirmed.
+  final Map<String, CalibrationProfile> _profileCache = {};
+
+  static String _profileCacheKey({
+    required String slug,
+    required String source,
+    String? placement,
+    required String sensorType,
+  }) => '$slug|$source|${placement ?? ''}|$sensorType';
 
   // ── Consent ────────────────────────────────────────────────────────────
 
@@ -211,6 +228,17 @@ class RepTrackingRepository {
             featuresJson: featuresJson,
           ),
         );
+    // The set just confirmed changes this exact key's training set — evict
+    // it so the next read (10-05) recomputes rather than serving a profile
+    // that predates this observation.
+    _profileCache.remove(
+      _profileCacheKey(
+        slug: exerciseSlug,
+        source: source,
+        placement: placement,
+        sensorType: sensorType,
+      ),
+    );
   }
 
   /// The training set for one exact (slug, source, placement, sensorType)
@@ -238,5 +266,35 @@ class RepTrackingRepository {
       )
       ..orderBy([(t) => OrderingTerm(expression: t.recordedAt)]);
     return q.get();
+  }
+
+  /// The learning profile for one exact (slug, source, placement,
+  /// sensorType) tuple — `CalibrationProfile.fromObservations` over that
+  /// tuple's [observationsFor]. Cached per key for the session; see
+  /// [_profileCache]'s doc for the invalidation contract.
+  Future<CalibrationProfile> profileFor({
+    required String slug,
+    required String source,
+    String? placement,
+    required String sensorType,
+  }) async {
+    final key = _profileCacheKey(
+      slug: slug,
+      source: source,
+      placement: placement,
+      sensorType: sensorType,
+    );
+    final cached = _profileCache[key];
+    if (cached != null) return cached;
+
+    final rows = await observationsFor(
+      slug: slug,
+      source: source,
+      placement: placement,
+      sensorType: sensorType,
+    );
+    final profile = CalibrationProfile.fromObservations(rows);
+    _profileCache[key] = profile;
+    return profile;
   }
 }
