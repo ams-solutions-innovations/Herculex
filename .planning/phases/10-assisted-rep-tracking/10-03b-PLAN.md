@@ -2,8 +2,8 @@
 phase: 10-assisted-rep-tracking
 plan: 03b
 type: execute
-wave: 2
-depends_on: ["10-02", "10-03a"]
+wave: 3
+depends_on: ["10-01", "10-02", "10-03a"]
 files_modified:
   - lib/features/reps/domain/rep_suggestion.dart
   - lib/features/reps/data/rep_capture_service.dart
@@ -49,6 +49,10 @@ must_haves:
       via: "WearSyncService callbacks on the three /herculex/reps/* message paths from 10-03a"
       pattern: "capture_start|samples|capture_end"
     - from: "lib/features/reps/data/phone_motion_source.dart"
+      to: "lib/features/reps/data/rep_tracking_repository.dart"
+      via: "settings().phonePlacement is the null-guard the source refuses to start without (REP-02)"
+      pattern: "phonePlacement"
+    - from: "lib/features/reps/data/phone_motion_source.dart"
       to: "lib/features/reps/domain/motion_sample.dart"
       via: "emits the identical MotionTrace shape as the wrist source, so detection is source-agnostic"
       pattern: "MotionTrace"
@@ -61,6 +65,8 @@ Purpose: this is where the authoritative count is decided and where the "raw sam
 Output: `rep_suggestion.dart` (the shared contract), `rep_capture_service.dart`, `phone_motion_source.dart`, `sensors_plus` in `pubspec.yaml`, and a fake-bridge test suite that needs no device.
 
 Split from the original 10-03 with 10-03a, which owns everything Kotlin and is verified by Gradle. This half is verified entirely by `flutter test`.
+
+**REP-03 fence, enforced two plans early:** nothing created here may import anything from `lib/features/workouts/`. In particular `wear_workout_sync_service.dart` lives there and holds a `WorkoutsRepository` — read it for its callback-registration idiom, import `lib/features/nutrition/data/wear_sync_service.dart` instead. 10-04 Task 4 adds the static test that catches a violation, but it does not exist yet, so this plan has to hold the line by discipline.
 </objective>
 
 <execution_context>
@@ -125,7 +131,10 @@ class RepSuggestion {
   final int sampleCount;
   final double coverageRatio;       // received batches / expected batchCount
 
-  final Map<String, dynamic>? featuresJson; // RepFeatures.toJson(), for recordObservation
+  final Map<String, dynamic>? featuresJson;   // RepFeatures.toJson(), for recordObservation
+  RepFeatures? get features;                 // derived: RepFeatures.fromJson(featuresJson),
+                                             // null when featuresJson is null or its 'v' mismatches.
+                                             // 10-05 consumes THIS, not featuresJson.
   final TrackerState state;
   final String? stateReason;        // non-null whenever state is manual or countOnly
 }
@@ -147,11 +156,13 @@ Create `lib/features/reps/domain/rep_suggestion.dart` declaring `enum TrackerSta
 
 Declare the immutable `RepSuggestion` class with the full field list in this plan's `<interfaces>` block, all `final`, with a `const` constructor and named required parameters. Add a `ConfidenceBand bandFor(double setConfidence)` static helper with fixed thresholds so band derivation lives in exactly one place.
 
+Add a derived getter `RepFeatures? get features => featuresJson == null ? null : RepFeatures.fromJson(featuresJson!);`. **This getter is the contract 10-05 consumes** (`estimate(suggestion.features)`); it returns null both when nothing was captured and when the stored vector's `v` key does not match the current detector version, which is exactly the behaviour 10-05's gate expects. `featuresJson` stays on the class as the raw map 10-04 passes to `recordObservation`.
+
 Document `proposedReps` as **authoritative — always `RepDetectionResult.repCount`** and `provisionalCount` as **non-authoritative, display and diagnostic only, never used to compute `proposedReps`, never averaged with it**. That doc comment is the contract 10-04 relies on when it renders the disagreement notice.
 
 `stateReason` must be non-null whenever `state` is `manual` or `countOnly`; assert this in the constructor. `countOnly` and `manual` are not error states (10-CONTEXT) — nothing in this file may name them errors or failures.
 
-Import only `package:meta/meta.dart` and `rep_movement.dart`. No Drift, no Flutter widgets, no plugins.
+Import only `package:flutter/foundation.dart` (which re-exports `@immutable`) and `rep_movement.dart`/`rep_features.dart`. **Do not import `package:meta/meta.dart`** — `meta` is not a declared dependency in `pubspec.yaml` and referencing it directly trips `depend_on_referenced_packages`, failing this task's own analyze gate. No Drift, no Flutter widgets, no plugins.
   </action>
   <verify>
     <automated>flutter analyze lib/features/reps/domain/rep_suggestion.dart</automated>
@@ -163,7 +174,7 @@ Import only `package:meta/meta.dart` and `rep_movement.dart`. No Drift, no Flutt
   <name>Task 2: Build the capture service — batch reassembly, authoritative detection, and the divergence rule</name>
   <read_first>
     lib/features/nutrition/data/wear_sync_service.dart (the Dart side of the bridge and its static-callback idiom, `onWatchWorkoutStarted` and friends)
-    lib/features/nutrition/data/wear_workout_sync_service.dart (lines 37-40 — where those callbacks are wired up; mirror this registration shape)
+    lib/features/workouts/data/wear_workout_sync_service.dart (lines 39-41 — the three `WearSyncService.onWatchWorkout*` assignments; **read for idiom only**)
     lib/features/reps/domain/rep_detector.dart (10-02 output — `RepDetector.detect` is the only source of `proposedReps`)
     lib/features/reps/domain/motion_sample.dart (10-02 output — `MotionTrace.resampled`)
     lib/features/reps/domain/rep_suggestion.dart (Task 1 output — the emitted contract)
@@ -172,7 +183,9 @@ Import only `package:meta/meta.dart` and `rep_movement.dart`. No Drift, no Flutt
   </read_first>
   <files>lib/features/reps/data/rep_capture_service.dart</files>
   <action>
-Create `lib/features/reps/data/rep_capture_service.dart` registering `WearSyncService` callbacks for `/herculex/reps/capture_start`, `/herculex/reps/samples` and `/herculex/reps/capture_end`, mirroring the registration shape in `wear_workout_sync_service.dart:37-40`.
+Create `lib/features/reps/data/rep_capture_service.dart` registering `WearSyncService` callbacks for `/herculex/reps/capture_start`, `/herculex/reps/samples` and `/herculex/reps/capture_end`, mirroring the registration shape at `lib/features/workouts/data/wear_workout_sync_service.dart:39-41`.
+
+**Import fence:** that file is read for idiom only. `rep_capture_service.dart` imports `lib/features/nutrition/data/wear_sync_service.dart` (the bridge itself) and **never** `wear_workout_sync_service.dart`, which lives under `lib/features/workouts/` and holds `_workoutsRepository` (line 30). 10-04 Task 4's boundary test bans **any** import from `lib/features/workouts/` across the whole of `lib/features/reps/`; importing it here would break REP-03 two plans later, long after this plan's own gates went green.
 
 Accumulate batches in a private `Map<String, List<_Batch>>` keyed by `captureId`, order by `seq`, and record any missing `seq` as `missedBatches`. A gap must degrade confidence, not be papered over by concatenating across it — and `coverageRatio` is `receivedBatches / batchCount` from the capture-end payload.
 
@@ -201,7 +214,7 @@ Attach `RepFeatures.fromResult(result).toJson()` to the suggestion as `featuresJ
   </read_first>
   <files>lib/features/reps/data/phone_motion_source.dart, pubspec.yaml</files>
   <action>
-Add `sensors_plus` to `pubspec.yaml` under `dependencies`, pinned in the same style as the existing entries. Before adding it, confirm it appears in RESEARCH/CONTEXT-approved form; if the phase has a `## Package Legitimacy Audit` marking it `[ASSUMED]` or `[SUS]`, stop and raise a blocking checkpoint before installing.
+Add `sensors_plus` to `pubspec.yaml` under `dependencies`, pinned in the same style as the existing entries. Before adding it, verify the package unconditionally at `https://pub.dev/packages/sensors_plus`: confirm the publisher is `fluttercommunity.dev`, the package is not discontinued, and the version selected is the current stable. There is no RESEARCH.md for this phase, so there is no audit table to consult — the pub.dev check is the whole gate.
 
 Create `lib/features/reps/data/phone_motion_source.dart` implementing the phone-local source with **identical `MotionTrace` output** to the wrist path, so `RepDetector` is source-agnostic: subscribe to `userAccelerometerEventStream()` (linear acceleration equivalent) with `samplingPeriod: SensorInterval.gameInterval`, falling back to `accelerometerEventStream()` with `sensorType: 'accelerometer'` where the linear stream is unavailable, and stamp each sample with a monotonic `tMs` from an injected clock.
 
@@ -264,7 +277,7 @@ Create `test/rep_capture_service_test.dart` driving `RepCaptureService` through 
 | T-10-14 | Tampering (fabricated data) | capture-end with zero batches | mitigate | Emits `manual` with a stated reason and never a zero-rep suggestion, never a provisional fallback (Tasks 2 and 4). |
 | T-10-15 | Elevation of Privilege | `phone_motion_source.dart` | mitigate | Hard null-check on `RepTrackingSettings.phonePlacement` before any subscription; typed refusal, no default placement (Task 3, REP-02). |
 | T-10-16 | Denial of Service (battery) | `phone_motion_source.dart` | mitigate | 15 % refusal and 5-minute cap with injected clock/battery, fake-tested (Tasks 3 and 4). |
-| T-10-SC | Tampering | `sensors_plus` install | mitigate | Task 3 halts for a blocking legitimacy checkpoint if the phase audit marks `sensors_plus` `[ASSUMED]` or `[SUS]`; verify at pub.dev before install. |
+| T-10-SC | Tampering | `sensors_plus` install | mitigate | The single new dependency in the phase. Task 3 requires an unconditional pub.dev verification (publisher `fluttercommunity.dev`, not discontinued, current stable) before the `pubspec.yaml` edit; `git diff pubspec.yaml` in this plan's verification confirms nothing else was added. |
 </threat_model>
 
 <verification>
@@ -287,4 +300,3 @@ Create `test/rep_capture_service_test.dart` driving `RepCaptureService` through 
 <output>
 Create `.planning/phases/10-assisted-rep-tracking/10-03b-SUMMARY.md` when done
 </output>
-</content>

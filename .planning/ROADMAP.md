@@ -76,12 +76,12 @@ Plans:
 **Plans:** 0/6 plans complete
 
 Plans:
-- [ ] 10-01-PLAN.md — Schema v26, consent/eligibility state, rep tracking repository (wave 1)
-- [ ] 10-02-PLAN.md — Pure-Dart rep detection engine and recorded trace fixtures (wave 1, blocking human fixture-recording checkpoint)
+- [ ] 10-01-PLAN.md — Schema v26, RepMovement, consent/eligibility state, rep tracking repository (wave 1)
 - [ ] 10-03a-PLAN.md — Wear Kotlin capture, both WearSyncPaths copies, phone-side routing (wave 1, Gradle-verified)
-- [ ] 10-03b-PLAN.md — Dart capture service, RepSuggestion/TrackerState contract, phone motion source (wave 2)
-- [ ] 10-04-PLAN.md — Consent flow, live counter, review-and-confirm sheet (wave 3)
-- [ ] 10-05-PLAN.md — Calibration learning and LOO-gated RPE suggestion (wave 4)
+- [ ] 10-02-PLAN.md — Pure-Dart rep detection engine and recorded trace fixtures (wave 2, blocking human fixture-recording checkpoint)
+- [ ] 10-03b-PLAN.md — Dart capture service, RepSuggestion/TrackerState contract, phone motion source (wave 3)
+- [ ] 10-04-PLAN.md — Consent flow, live counter, review-and-confirm sheet (wave 4)
+- [ ] 10-05-PLAN.md — Calibration learning and LOO-gated RPE suggestion (wave 5)
 
 **Risk:** 10-02 is gated on a human task — recording real pull-up and dip traces on both a watch and a pocketed phone with ground-truth counts. Synthetic traces cannot meet the accuracy bar.
 
