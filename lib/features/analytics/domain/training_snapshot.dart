@@ -69,15 +69,19 @@ class TrainingSnapshot {
   /// Loads every completed, non-warmup set with its attachments resolved.
   static Future<TrainingSnapshot> load(AppDatabase db) async {
     final results = await Future.wait([
-      db.select(db.setEntries).get(),
-      db.select(db.workoutExercises).get(),
-      db.select(db.workoutSessions).get(),
-      db.select(db.exerciseCatalog).get(),
+      (db.select(db.setEntries)..where((t) => t.deletedAt.isNull())).get(),
+      (db.select(db.workoutExercises)..where((t) => t.deletedAt.isNull()))
+          .get(),
+      (db.select(db.workoutSessions)..where((t) => t.deletedAt.isNull()))
+          .get(),
+      (db.select(db.exerciseCatalog)..where((t) => t.deletedAt.isNull()))
+          .get(),
       db.select(db.exerciseMuscles).get(),
-      db.select(db.setAccessories).get(),
-      db.select(db.setBands).get(),
-      db.select(db.accessories).get(),
-      db.select(db.bands).get(),
+      (db.select(db.setAccessories)..where((t) => t.deletedAt.isNull()))
+          .get(),
+      (db.select(db.setBands)..where((t) => t.deletedAt.isNull())).get(),
+      (db.select(db.accessories)..where((t) => t.deletedAt.isNull())).get(),
+      (db.select(db.bands)..where((t) => t.deletedAt.isNull())).get(),
     ]);
     final setRows = results[0] as List<SetEntryData>;
     final weRows = results[1] as List<WorkoutExerciseData>;
