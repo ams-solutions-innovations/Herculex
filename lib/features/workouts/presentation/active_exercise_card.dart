@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/units.dart';
@@ -11,6 +12,11 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../profile/domain/profile.dart';
+import '../../reps/domain/rep_suggestion.dart';
+import '../../reps/domain/rep_tracking_eligibility.dart';
+import '../../reps/presentation/rep_review_sheet.dart';
+import '../../reps/presentation/rep_tracker_panel.dart';
+import '../../reps/presentation/rep_tracking_providers.dart';
 import '../data/workouts_repository.dart';
 import '../domain/drop_set_rounding.dart';
 import '../domain/progression_engine.dart';
@@ -58,6 +64,13 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   final GlobalKey _cardKey = GlobalKey();
   static const _collapsedSetLimit = 5;
   bool _setsExpanded = false;
+
+  /// The most recent [RepSuggestion] `RepTrackerPanel` has produced for a
+  /// given set-entry id, awaiting the user's own tap on that set's
+  /// completion checkmark. Nothing here is written to the database — see
+  /// the `onComplete` handler below, which is the only place that opens
+  /// `RepReviewSheet` and the only place `onConfirm` is supplied.
+  final Map<int, RepSuggestion> _pendingSuggestions = {};
 
   @override
   Widget build(BuildContext context) {
@@ -230,10 +243,44 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                             clearRpe: clearRpe,
                           ),
                       onComplete: (completed) async {
-                        await repo.updateSet(
-                          setId: rows[i].id,
-                          isCompleted: completed,
-                        );
+                        // A pending suggestion for this exact set entry means
+                        // the tracker proposed a count for it — the review
+                        // sheet is the *only* place that can turn "completed"
+                        // into a write, and only after the user's own Save
+                        // tap (REP-03). Dismissing it leaves the set and the
+                        // observation table both untouched.
+                        final suggestion =
+                            completed ? _pendingSuggestions[rows[i].id] : null;
+                        var saved = suggestion == null;
+                        if (suggestion != null) {
+                          if (!context.mounted) return;
+                          await RepReviewSheet.show(
+                            context,
+                            suggestion: suggestion,
+                            sessionId: workoutExercise.sessionId,
+                            setEntryId: rows[i].id,
+                            onConfirm: (reps, rpeX10) async {
+                              await repo.updateSet(
+                                setId: rows[i].id,
+                                reps: reps,
+                                rpeX10: rpeX10,
+                                isCompleted: true,
+                              );
+                              saved = true;
+                            },
+                          );
+                          if (mounted) {
+                            setState(
+                              () => _pendingSuggestions.remove(rows[i].id),
+                            );
+                          }
+                          if (!saved) return;
+                        } else {
+                          await repo.updateSet(
+                            setId: rows[i].id,
+                            isCompleted: completed,
+                          );
+                        }
                         if (completed) {
                           final advanced =
                               widget.onCompletedSet?.call(
@@ -320,6 +367,21 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                           _setsExpanded ? 'Show less' : 'Show all (${rows.length})',
                         ),
                       ),
+                    ),
+                  // Additive insertion (Task 2): a non-eligible exercise, or
+                  // one with no incomplete set left, renders nothing extra
+                  // here — the card is identical to before the phase.
+                  if (isEligible(exercise.slug) && _trackedSetId(rows) != null)
+                    RepTrackerPanel(
+                      key: ValueKey('rep_tracker_${workoutExercise.id}'),
+                      exerciseSlug: exercise.slug!,
+                      sessionId: workoutExercise.sessionId,
+                      setEntryId: _trackedSetId(rows)!,
+                      onSuggestion: (s) {
+                        final id = _trackedSetId(rows);
+                        if (id == null) return;
+                        setState(() => _pendingSuggestions[id] = s);
+                      },
                     ),
                 ],
               );
@@ -416,6 +478,13 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
         ],
       ),
     );
+  }
+
+  /// The set entry `RepTrackerPanel` tracks for this exercise card: the
+  /// next incomplete set, or null once every set is done.
+  int? _trackedSetId(List<SetEntryData> rows) {
+    final i = rows.indexWhere((r) => !r.isCompleted);
+    return i < 0 ? null : rows[i].id;
   }
 
   SetEntryData? _findPriorSet(
@@ -608,12 +677,14 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   void _showMenu(BuildContext context, WidgetRef ref) {
     final isMachine = (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality)
         .startsWith('machine');
+    final slug = widget.exercise.slug;
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isEligible(slug)) _RepTrackingMenuTile(exerciseSlug: slug!),
             ListTile(
               leading: const Icon(Icons.link),
               title: Text(_linkTitle()),
@@ -1602,6 +1673,53 @@ class _SetRowState extends ConsumerState<_SetRow> {
       }
       _commit();
     }
+  }
+}
+
+/// Per-exercise assisted-rep-tracking opt-in, shown in the exercise options
+/// menu for an eligible slug (Task 1, REP-01). When consent has not been
+/// granted, this degrades to a link back to the dedicated consent screen —
+/// **never** a silent no-op and never an inline consent shortcut.
+class _RepTrackingMenuTile extends ConsumerWidget {
+  const _RepTrackingMenuTile({required this.exerciseSlug});
+
+  final String exerciseSlug;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settingsAsync = ref.watch(repTrackingSettingsProvider);
+    final consented = settingsAsync.asData?.value?.consentGrantedAt != null;
+
+    if (!consented) {
+      return ListTile(
+        leading: const Icon(Icons.sensors_outlined),
+        title: const Text('Assisted rep tracking'),
+        subtitle: const Text('Enable from the consent screen first'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push('/rep-tracking-consent');
+        },
+      );
+    }
+
+    final enabledAsync =
+        ref.watch(repTrackingEnabledForProvider(exerciseSlug));
+    final enabled = enabledAsync.asData?.value ?? false;
+
+    return ListTile(
+      leading: const Icon(Icons.sensors_outlined),
+      title: const Text('Assisted rep tracking'),
+      subtitle: const Text('Propose a rep count for this exercise'),
+      trailing: Switch(
+        value: enabled,
+        onChanged: (val) {
+          ref
+              .read(repTrackingRepositoryProvider)
+              .setExerciseEnabled(exerciseSlug, val);
+          ref.invalidate(repTrackingEnabledForProvider(exerciseSlug));
+        },
+      ),
+    );
   }
 }
 
