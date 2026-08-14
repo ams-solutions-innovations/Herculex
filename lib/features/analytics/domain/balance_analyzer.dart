@@ -1,4 +1,4 @@
-import '../../../data/local/database.dart';
+import 'training_snapshot.dart';
 
 class BalanceResult {
   final double pushPercentage;
@@ -20,43 +20,29 @@ class BalanceResult {
 
 class BalanceAnalyzer {
   static BalanceResult summary({
-    required List<SetEntryData> sets,
-    required List<WorkoutExerciseData> workoutExercises,
-    required List<ExerciseCatalogData> catalog,
+    required List<ResolvedSet> sets,
   }) {
-    // Index mapping
-    final exerciseMap = {for (var ex in catalog) ex.id: ex};
-    final weMap = {for (var we in workoutExercises) we.id: we};
+    double pushTonnage = 0;
+    double pullTonnage = 0;
 
-    int pushSets = 0;
-    int pullSets = 0;
-
-    for (final set in sets) {
-      if (!set.isCompleted) continue;
-
-      final we = weMap[set.workoutExerciseId];
-      if (we == null) continue;
-
-      final ex = exerciseMap[we.exerciseId];
-      if (ex == null) continue;
-
-      final force = ex.force.toLowerCase();
-      final muscle = ex.primaryMuscle.toLowerCase();
+    for (final resolvedSet in sets) {
+      final force = resolvedSet.exercise.force.toLowerCase();
+      final muscle = resolvedSet.exercise.primaryMuscle.toLowerCase();
 
       if (force == 'push' || muscle == 'chest' || muscle == 'shoulders' || muscle == 'triceps') {
-        pushSets++;
+        pushTonnage += resolvedSet.tonnageKg;
       } else if (force == 'pull' || muscle == 'back' || muscle == 'biceps') {
-        pullSets++;
+        pullTonnage += resolvedSet.tonnageKg;
       }
     }
 
-    final total = pushSets + pullSets;
+    final total = pushTonnage + pullTonnage;
     if (total == 0) {
       return BalanceResult.balanced;
     }
 
-    final pushPct = (pushSets / total) * 100.0;
-    final pullPct = (pullSets / total) * 100.0;
+    final pushPct = (pushTonnage / total) * 100.0;
+    final pullPct = (pullTonnage / total) * 100.0;
 
     final diff = (pushPct - pullPct).abs();
     final hasAsymmetry = diff > 25.0;
