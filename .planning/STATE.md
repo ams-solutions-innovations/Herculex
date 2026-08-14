@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-08-14T12:33:10.919Z"
+last_updated: "2026-08-14T12:55:00.000Z"
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 18
-  completed_plans: 13
-  percent: 72
+  completed_plans: 14
+  percent: 78
 ---
 
 # Project State
@@ -65,3 +65,13 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - Migration suite repointed to version 26 across four replays (current-schema, v23, v24, and a new v25 fixture). Full suite green: 538 passed, 4 skipped, 0 failed.
 - REP-01 and REP-04 marked complete in REQUIREMENTS.md; ROADMAP shows Phase 10 at 1/6 plans executed.
 - Next implementation focus: Phase 10 wave 1 remainder (10-02 detection engine, 10-03a Wear capture).
+
+## Session update — 2026-08-14 (Phase 10 plan 10-03a)
+
+- Plan 10-03a executed: the Kotlin/Wear half of rep capture. Three `/herculex/reps/*` paths (`capture_start`, `samples`, `capture_end`) added to **both** `WearSyncPaths.kt` copies by editing one and `cp`-ing it verbatim — `diff` is empty. The watch manifest's `pathPrefix="/herculex"` already covered them, so the manifest and the permission list are byte-unchanged and no second foreground service exists.
+- `RepCaptureController` owns the accelerometer for one set: linear-acceleration with an accelerometer fallback, 300 s in-memory ring buffer, ~1 s batches with a monotonic `seq`, order-preserving hold-and-retry, a 15 % battery refusal that registers nothing, and a clock-driven 5-minute cap. All five teardown paths unregister exactly once and `stop()` is idempotent — 12 tests assert it with a fake gateway, fake clock and fake battery supplier (the automated stand-in for UAT rows 6, 7 and 9).
+- `ProvisionalRepCounter` is deliberately dumb and non-authoritative: closed trough-peak-trough cycles with an **absolute** 2.5 m/s² amplitude floor, which is what makes a walking-noise trace count exactly 0. Its output crosses the bridge only as `provisionalCount` on capture-end and is never persisted.
+- Three seams had to be introduced against the plan's literal wording, all blocking-issue fixes: `SensorManager` cannot be faked in a JVM unit test (`registerListenerImpl` is a throwing stub in the test `android.jar`), so a narrow `RepSensorGateway` is injected instead; `sendMessageToAllNodes` returns `Unit` while the only Boolean-returning send (`sendRealtimeEvent`) persists through SharedPreferences — which would have written raw motion samples to disk — so an additive `sendMessageToAllNodesReporting` was added; and `ProcessLifecycleOwner` would have meant a new Gradle dependency, so the app-background stop uses framework `ActivityLifecycleCallbacks`.
+- `PhoneWearListenerService` routes all three paths verbatim through one `onRepMessageListener`, holding payloads in a **process-lifetime in-memory** queue (not the SharedPreferences pending stores) when Flutter is detached, drained in arrival order on attach so a real dropout still reads as a `seq` gap.
+- REP-02 deliberately NOT marked complete — the sensor-source choice needs the phone half (10-03b/10-04). REP-04 remains satisfied: no sample payload touches disk on either device.
+- Next implementation focus: 10-02 (Dart detection engine, wave 1) and 10-03b (Dart half of capture).
