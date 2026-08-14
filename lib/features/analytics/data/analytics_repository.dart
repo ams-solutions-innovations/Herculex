@@ -44,7 +44,10 @@ class AnalyticsRepository {
     ])
           ..where(_db.setEntries.isCompleted.equals(true) &
               _db.setEntries.isWarmup.equals(false) &
-              _db.workoutSessions.startedAt.isBiggerOrEqualValue(from)))
+              _db.workoutSessions.startedAt.isBiggerOrEqualValue(from) &
+              _db.setEntries.deletedAt.isNull() &
+              _db.workoutExercises.deletedAt.isNull() &
+              _db.workoutSessions.deletedAt.isNull()))
         .get();
 
     final buckets = <DateTime, double>{
@@ -76,7 +79,10 @@ class AnalyticsRepository {
       ),
     ])
           ..where(_db.setEntries.isCompleted.equals(true) &
-              _db.setEntries.isWarmup.equals(false)))
+              _db.setEntries.isWarmup.equals(false) &
+              _db.setEntries.deletedAt.isNull() &
+              _db.workoutExercises.deletedAt.isNull() &
+              _db.exerciseCatalog.deletedAt.isNull()))
         .get();
 
     final best = <int, OneRmProjection>{};

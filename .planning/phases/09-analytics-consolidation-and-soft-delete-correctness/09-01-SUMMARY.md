@@ -26,80 +26,79 @@ key-files:
     - lib/features/analytics/domain/biometric_correlations.dart
 
 key-decisions:
-  - "Task 1 (soft-delete filtering in training_snapshot.dart / analytics_repository.dart) was NOT executed — see Blocked Task below. Reverted to committed state to keep the tree compiling."
-  - "Tasks 2 and 3 executed as planned since they only require List<ResolvedSet> ergonomics and effective-load math, both of which already exist and do not depend on the missing deletedAt columns."
+  - "Task 1 (soft-delete filtering in training_snapshot.dart / analytics_repository.dart) was originally BLOCKED because the worktree that first ran this plan was forked from a commit predating the schema v25 migration that added SyncColumns/SyncTombstone (deletedAt) to the 8 workout tables. That migration has since landed on master (RB-01..05 cross-device sync rewrite, schema v25). Re-run from a worktree forked off current HEAD confirmed all 8 tables (ExerciseCatalog, WorkoutSessions, WorkoutExercises, SetEntries, SetAccessories, SetBands, Accessories, Bands) carry `SyncTombstone`/`deletedAt`, and Task 1 was executed as originally planned."
+  - "Tasks 2 and 3 executed as planned since they only require List<ResolvedSet> ergonomics and effective-load math, both of which already existed and did not depend on the (then-missing, now-present) deletedAt columns."
 
 patterns-established:
   - "Effective-load consumers (balance, correlations) take List<ResolvedSet> rather than raw table rows + manual joins."
+  - "Soft-delete filtering (deletedAt.isNull()) applied uniformly at every SyncTombstone-table read in the analytics domain layer, matching the existing pattern in nutrition_repository.dart."
 
-requirements-completed: [ANLY-04]  # ANLY-03 NOT completed — see Blocked Task below.
+requirements-completed: [ANLY-03, ANLY-04]
 
 # Metrics
-duration: ~20min
+duration: ~20min (Tasks 2/3) + Task 1 re-run
 completed: 2026-08-14
 ---
 
-# Phase 9 Plan 01: Effective-load rewrite of BalanceAnalyzer/BiometricCorrelations Summary
+# Phase 9 Plan 01: Effective-load rewrite + soft-delete filtering for analytics Summary
 
-**BalanceAnalyzer and BiometricCorrelations now consume `List<ResolvedSet>` and compute from effective load (tonnageKg) instead of raw set counts/raw weight×reps; both hardcoded mock-fallback correlation point lists are deleted. Task 1 (soft-delete filtering) is BLOCKED — the `SyncTombstone`/`deletedAt` mechanism this plan assumes exists on `SetEntries`/`WorkoutExercises`/`WorkoutSessions`/`ExerciseCatalog`/`SetAccessories`/`SetBands`/`Accessories`/`Bands` does not exist anywhere in the current codebase.**
+**`TrainingSnapshot.load` and `AnalyticsRepository`'s `weeklyTonnage()`/`topOneRms()` now exclude soft-deleted rows via `deletedAt.isNull()` on every `SyncTombstone`-carrying table they read. `BalanceAnalyzer` and `BiometricCorrelations` consume `List<ResolvedSet>` and compute from effective load (tonnageKg) instead of raw set counts/raw weight×reps; both hardcoded mock-fallback correlation point lists are deleted. All 3 tasks are now complete.**
 
 ## Performance
 
-- **Duration:** ~20 min
+- **Duration:** ~20 min (Tasks 2/3) + Task 1 re-run after schema v25 landed
 - **Completed:** 2026-08-14
-- **Tasks:** 2 of 3 completed (Task 1 blocked)
-- **Files modified:** 2
+- **Tasks:** 3 of 3 completed
+- **Files modified:** 4 (training_snapshot.dart, analytics_repository.dart, balance_analyzer.dart, biometric_correlations.dart)
 
 ## Accomplishments
+- `TrainingSnapshot.load` now filters every one of the 8 `SyncTombstone`-carrying table reads (`setEntries`, `workoutExercises`, `workoutSessions`, `exerciseCatalog`, `setAccessories`, `setBands`, `accessories`, `bands`) with `deletedAt.isNull()`; `exerciseMuscles` is left unfiltered (no `deletedAt` column, static seed data).
+- `AnalyticsRepository.weeklyTonnage()` and `.topOneRms()` join queries now AND `deletedAt.isNull()` predicates (on `setEntries`/`workoutExercises`/`workoutSessions` and `setEntries`/`workoutExercises`/`exerciseCatalog` respectively) into their existing `..where(...)` clauses.
 - `BalanceAnalyzer.summary` now takes `List<ResolvedSet>` and sums `tonnageKg` (effective load) per push/pull category instead of counting raw sets.
 - `BiometricCorrelations.sleepVsRpe` / `restingHrVsTonnage` now take `List<ResolvedSet>` and derive sessions from the resolved sets; `restingHrVsTonnage` sums `tonnageKg` instead of `weightKg * reps`.
 - Deleted both hardcoded 5-point mock-fallback blocks (`CorrelationPoint(5.5, 8.5)` etc. and `CorrelationPoint(56.0, 4200.0)` etc.) that previously masked real low-sample correlation results. Low-sample runs now return the real `points`/`sampleSize`, and `BiometricCorrelationResult.interpretation`'s existing `"Insufficient sessions recorded yet."` copy is now reachable (it was dead code before this fix — the mock block always forced `sampleSize: 5`).
 
 ## Task Commits
 
-1. **Task 2: Rewrite BalanceAnalyzer to consume ResolvedSet and use effective load** - `b509777` (feat)
-2. **Task 3: Rewrite BiometricCorrelations to consume ResolvedSet, use tonnageKg, and drop the mock fallback** - `ef5b1d6` (feat)
-
-**Task 1: Filter soft-deleted rows out of TrainingSnapshot and AnalyticsRepository — NOT EXECUTED.** See "Blocked Task" below.
+1. **Task 1: Filter soft-deleted rows out of TrainingSnapshot and AnalyticsRepository** - `ba1c23e` (feat)
+2. **Task 2: Rewrite BalanceAnalyzer to consume ResolvedSet and use effective load** - `b509777` (feat)
+3. **Task 3: Rewrite BiometricCorrelations to consume ResolvedSet, use tonnageKg, and drop the mock fallback** - `ef5b1d6` (feat)
 
 ## Files Created/Modified
+- `lib/features/analytics/domain/training_snapshot.dart` - `TrainingSnapshot.load` filters `deletedAt.isNull()` on all 8 tombstoned table reads
+- `lib/features/analytics/data/analytics_repository.dart` - `weeklyTonnage()`/`topOneRms()` exclude soft-deleted sets/exercises/sessions
 - `lib/features/analytics/domain/balance_analyzer.dart` - `BalanceAnalyzer.summary` rewritten to take `List<ResolvedSet>`, sum `tonnageKg` per push/pull category
 - `lib/features/analytics/domain/biometric_correlations.dart` - `sleepVsRpe`/`restingHrVsTonnage` rewritten to take `List<ResolvedSet>`; mock-fallback blocks deleted
 
 ## Decisions Made
-- Reverted Task 1's edits rather than leaving the tree in a non-compiling state, since the plan's premise (deletedAt columns on 8 workout tables) does not hold — see Blocked Task.
-- Proceeded with Tasks 2 and 3 out of their written order relative to Task 1's blocker, since neither depends on soft-delete filtering — both only need `ResolvedSet`'s existing `tonnageKg`/`exercise`/`session` fields, which are already correct today.
+- Task 1 was initially reported BLOCKED (see below for the historical record) because the worktree that first attempted it was forked from a commit predating the schema v25 migration. On re-run from a worktree forked off current `master` HEAD (which includes the schema v25 `SyncColumns`/`SyncTombstone` migration), `lib/data/local/tables.dart` was verified to carry `SyncTombstone`/`deletedAt` on all 8 tables the plan targets, and Task 1 was executed exactly as originally planned — no architectural rework needed.
+- Proceeded with Tasks 2 and 3 out of their written order relative to Task 1 originally, since neither depended on soft-delete filtering — both only needed `ResolvedSet`'s existing `tonnageKg`/`exercise`/`session` fields.
 
 ## Deviations from Plan
 
-### Blocked Task (Rule 4 — architectural, requires user/planner decision)
+None on the final pass — Task 1 executed as written once the schema v25 migration (added by an earlier, unrelated commit to master) was present in the worktree base. No auto-fixes needed for Tasks 1, 2, or 3.
 
-**1. [Rule 4 - Architectural] Task 1 cannot be implemented as written: `SyncTombstone`/`deletedAt` does not exist on the 8 tables the plan and `09-CONTEXT.md` claim carry it**
+### Historical note: earlier blocked attempt (resolved)
 
-- **Found during:** Task 1 (filtering soft-deleted rows in `training_snapshot.dart` / `analytics_repository.dart`)
-- **Issue:** The plan's `<interfaces>` section and `09-CONTEXT.md`'s "Established Patterns" section both assert that `ExerciseCatalog`, `WorkoutSessions`, `WorkoutExercises`, `SetEntries`, `SetAccessories`, `SetBands`, `Accessories`, `Bands` all `extends Table with SyncColumns, SyncTombstone` and carry a `deletedAt` column, citing `lib/data/local/tables.dart:22`. Verified against the actual file on this branch (base commit `3c36331`): no `SyncTombstone` or `SyncColumns` mixin exists anywhere in the repo (`grep -rn "SyncTombstone|SyncColumns" lib/` returns zero matches, and `git log --all --oneline | grep -i tombstone` returns zero commits). `deletedAt` exists on exactly two tables in the whole schema — `Foods` and `Recipes` (`lib/data/local/tables.dart:257,351`), both nutrition-domain, unrelated to workouts/analytics. Confirmed further that workout-entity deletes are hard SQL `DELETE` statements today (`workouts_repository.dart` `deleteSet`/`deleteSession` call `_db.delete(...).go()` directly), not soft-delete-via-`deletedAt`. There is a `PendingSyncOps` table, but it is an outbound cloud-sync operation queue for `profile | program | recipe | food | exercise` entities, not a tombstone marker on the workout tables, and it does not cover `SetEntries`/`WorkoutExercises`/`WorkoutSessions`/`SetAccessories`/`SetBands`/`Accessories`/`Bands` at all.
-- **Why not auto-fixed:** Making Task 1's actual goal (soft-delete correctness) achievable would require: (1) a schema migration adding `deletedAt` columns to 8 tables, (2) rewiring every hard-delete call site across `workouts_repository.dart` (and any other repository touching these tables) from `DELETE` to `UPDATE ... SET deletedAt = ...`, (3) resolving the cascade-delete semantics that currently rely on `onDelete: KeyAction.cascade` FKs (soft-delete doesn't cascade automatically the way hard delete does), and (4) deciding what "cross-device sync" delete-propagation mechanism is supposed to write `deletedAt` in the first place, since no such mechanism exists today either. This is a multi-file schema/architecture change spanning outside this plan's 4 listed files and outside the analytics feature entirely — squarely Rule 4 territory, not a same-task auto-fix.
-- **Files NOT modified (reverted after discovering the compile failure):** `lib/features/analytics/domain/training_snapshot.dart`, `lib/features/analytics/data/analytics_repository.dart` — both are back to their pre-plan committed state (verify via `git diff HEAD -- lib/features/analytics/domain/training_snapshot.dart lib/features/analytics/data/analytics_repository.dart` — no output).
-- **Proposed alternatives for the orchestrator/planner:**
-  - **(a)** Re-plan Task 1 as a proper schema-migration plan (add `deletedAt` to the 8 tables, bump schema version, migrate hard-deletes to soft-deletes in `workouts_repository.dart` and any sibling repositories, decide/implement the actual cross-device sync propagation mechanism this is meant to protect against). This is a correctly-scoped standalone plan, likely deserving its own wave before 09-02/09-03 can proceed, since 09-03's regression test (D-04: "soft-delete a set and assert it's excluded") also has no mechanism to exercise without this.
-  - **(b)** Descope ANLY-03 from this phase entirely if soft-delete for workout entities is not actually planned/needed right now (hard-delete already means there's no "cross-device tombstone reappearing" bug today — the analytics-inflation risk this task guards against may not currently exist, since there's nothing to filter).
-  - **(c)** If a soft-delete mechanism is added in a different, already-planned phase (check for overlap — none found in `10-CONTEXT.md`, which explicitly says Phase 10 shares only a schema-version slot, not soft-delete work), retarget this task at that phase's output instead.
-- **Recommendation:** (a) or (b) — this needs a human/planner decision on whether soft-delete for workouts is in scope for the app at all before Task 1 (and ANLY-03, and Plan 09-03's D-04 acceptance gate) can be written correctly.
+An earlier execution attempt of Task 1 reported it BLOCKED under Rule 4 (architectural), because the worktree at that time was forked from a commit (`3c36331`) that predated the schema v25 migration adding `SyncColumns`/`SyncTombstone` (`deletedAt`) to `ExerciseCatalog`, `WorkoutSessions`, `WorkoutExercises`, `SetEntries`, `SetAccessories`, `SetBands`, `Accessories`, `Bands`. At that time, `grep -rn "SyncTombstone|SyncColumns" lib/` genuinely returned zero matches on that worktree's base commit, and the earlier attempt's analysis and recommendations (documented then) were correct for the state of the codebase at that point.
+
+That schema v25 migration has since landed on `master` (RB-01..05 cross-device sync rewrite, referenced in `.planning/PROJECT.md`/`STATE.md` as recent work). This execution's worktree was forked from current `master` HEAD (commit `c27867d`, "feat: RB-01..05 cross-device sync rewrite, health/cycle/fasting integrations, schema v25"), which includes the migration. Verified via `grep -n "SyncTombstone\|SyncColumns\|class.*extends Table" lib/data/local/tables.dart` that all 8 target tables now `extends Table with SyncColumns, SyncTombstone`. Task 1 was therefore executed as originally scoped, with no schema/architecture rework required — the earlier blocker was a worktree-staleness issue, not an actual gap in the codebase.
 
 ---
 
-**Total deviations:** 1 blocked (Rule 4 — architectural, requires decision). Tasks 2 and 3 executed exactly as planned, no auto-fixes needed for those.
-**Impact on plan:** ANLY-04 (effective-load push/pull + correlations) is fully delivered at the domain layer. ANLY-03 (soft-delete correctness) is not delivered and cannot be delivered as scoped — the plan's premise about existing schema was incorrect. Plan 09-02 (provider consolidation) can proceed using the Task 2/3 domain functions, but wiring `trainingSnapshotProvider`'s soft-delete-filtered output (as `09-CONTEXT.md` D-05 describes) has no `deletedAt` to filter on yet. Plan 09-03's D-04 regression test also cannot be written until the schema question above is resolved.
+**Total deviations:** 0 on this pass. All 3 tasks executed exactly as planned.
+**Impact on plan:** ANLY-03 (soft-delete correctness) and ANLY-04 (effective-load push/pull + correlations) are both fully delivered at the domain layer. Plan 09-02 (provider consolidation) can proceed using all three fixed/rewritten functions, including wiring `trainingSnapshotProvider`'s soft-delete-filtered output as `09-CONTEXT.md` D-05 describes. Plan 09-03's D-04 regression test ("soft-delete a set and assert it's excluded") can now be written against real `deletedAt` semantics.
 
 ## Issues Encountered
-None beyond the Task 1 blocker documented above.
+None. The only prior issue (Task 1 blocker) was resolved by re-running from a worktree with the schema v25 migration present; see "Historical note" above.
 
 ## User Setup Required
 None - no external service configuration required.
 
 ## Next Phase Readiness
-- `BalanceAnalyzer` and `BiometricCorrelations` are ready for `analytics_providers.dart` to consume (`analytics_providers.dart:82,96,161` currently call these with the old signatures and will need updating — that update belongs to Plan 09-02's provider-consolidation work, or as a small follow-up if 09-02 doesn't already cover it, since `flutter analyze` on the whole project will currently fail at those three call sites until they're updated to pass `List<ResolvedSet>`).
-- **Blocker for the phase:** ANLY-03 and Plan 09-03's D-04 acceptance gate cannot proceed until a decision is made on the soft-delete architecture question above (see "Blocked Task"). Recommend surfacing this to the user before continuing to Plan 09-02/09-03.
+- `BalanceAnalyzer` and `BiometricCorrelations` are ready for `analytics_providers.dart` to consume (`analytics_providers.dart:82,96,161` currently call these with the old signatures and will need updating — that update belongs to Plan 09-02's provider-consolidation work, since `flutter analyze` on the whole project will currently fail at those three call sites until they're updated to pass `List<ResolvedSet>`).
+- `TrainingSnapshot.load` and `AnalyticsRepository` now correctly exclude soft-deleted rows, unblocking Plan 09-03's D-04 regression test and 09-CONTEXT.md's D-05 provider-wiring work.
+- No remaining blockers for the phase from this plan.
 
 ---
 *Phase: 09-analytics-consolidation-and-soft-delete-correctness*
@@ -107,9 +106,11 @@ None - no external service configuration required.
 
 ## Self-Check: PASSED
 
+- FOUND: lib/features/analytics/domain/training_snapshot.dart
+- FOUND: lib/features/analytics/data/analytics_repository.dart
 - FOUND: lib/features/analytics/domain/balance_analyzer.dart
 - FOUND: lib/features/analytics/domain/biometric_correlations.dart
 - FOUND: .planning/phases/09-analytics-consolidation-and-soft-delete-correctness/09-01-SUMMARY.md
+- FOUND: ba1c23e (Task 1 commit)
 - FOUND: b509777 (Task 2 commit)
 - FOUND: ef5b1d6 (Task 3 commit)
-- FOUND: d275b5f (SUMMARY commit)
