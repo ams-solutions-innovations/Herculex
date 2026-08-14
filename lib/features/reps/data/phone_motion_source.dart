@@ -96,6 +96,14 @@ class PhoneMotionSource {
       StreamController<TrackerState>.broadcast();
   Stream<TrackerState> get stateStream => _stateController.stream;
 
+  /// Fires whenever a capture ends, including a cap firing autonomously
+  /// mid-capture (there is otherwise no way for a caller to learn what was
+  /// collected when the 5-minute cap — not an explicit [stop] call — is what
+  /// ended the set).
+  final StreamController<PhoneMotionCaptureResult> _captureEndedController =
+      StreamController<PhoneMotionCaptureResult>.broadcast();
+  Stream<PhoneMotionCaptureResult> get captureEnded => _captureEndedController.stream;
+
   String? get stateReason => _stateReason;
   String? _stateReason;
 
@@ -186,7 +194,9 @@ class PhoneMotionSource {
       sensorType: _sensorType!,
     );
     _samples = [];
-    return PhoneMotionCaptureResult(trace: trace, stoppedReason: reason);
+    final result = PhoneMotionCaptureResult(trace: trace, stoppedReason: reason);
+    _captureEndedController.add(result);
+    return result;
   }
 
   void _emitManual(String reason) {
@@ -202,6 +212,7 @@ class PhoneMotionSource {
     } finally {
       _subscription = null;
       _stateController.close();
+      _captureEndedController.close();
     }
   }
 }

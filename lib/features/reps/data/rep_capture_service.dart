@@ -107,6 +107,23 @@ class RepCaptureService {
     _suggestionController.close();
   }
 
+  // ── Fake-bridge test entry points ────────────────────────────────────
+  //
+  // Production wiring goes through the three `WearSyncService.onWatchRep*`
+  // setters assigned in the constructor above. These public aliases let a
+  // test drive the exact same handlers directly — no plugin channel, no
+  // device, no Gradle — while still exercising every line real traffic
+  // would.
+
+  /// Simulates one `/herculex/reps/capture_start` delivery.
+  void handleCaptureStart(String? payloadJson) => _handleCaptureStart(payloadJson);
+
+  /// Simulates one `/herculex/reps/samples` delivery.
+  void handleSamples(String? payloadJson) => _handleSamples(payloadJson);
+
+  /// Simulates one `/herculex/reps/capture_end` delivery.
+  void handleCaptureEnd(String? payloadJson) => _handleCaptureEnd(payloadJson);
+
   // ── Bridge callbacks ──────────────────────────────────────────────────
 
   void _handleCaptureStart(String? payloadJson) {
