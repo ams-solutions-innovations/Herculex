@@ -18,6 +18,7 @@ import '../features/nutrition/presentation/goals_view.dart';
 import '../features/nutrition/presentation/nutrition_targets_view.dart';
 import '../features/nutrition/presentation/meal_slots_view.dart';
 import '../features/nutrition/presentation/nutrient_overview_view.dart';
+import '../features/reps/presentation/fixture_recording_view.dart';
 import '../features/nutrition/presentation/nutrient_settings_view.dart';
 import '../features/onboarding/presentation/onboarding_view.dart';
 import '../features/programs/presentation/rotation_pools_view.dart';
@@ -164,6 +165,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         GoRoute(
           path: '/admin/recipe',
           builder: (_, _) => const AdminInsertRecipeView(),
+        ),
+        GoRoute(
+          path: '/admin/fixture-recording',
+          builder: (_, _) => const FixtureRecordingView(),
         ),
       ],
     ],
