@@ -151,6 +151,18 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        // Rep-capture traffic (`/herculex/reps/*`, 10-03b). One listener for
+        // all three paths, forwarded verbatim — this file never parses,
+        // reorders or recomputes a capture payload (REP-04/T-10-12).
+        PhoneWearListenerService.onRepMessageListener = { path, payload ->
+            runOnUiThread {
+                methodChannel?.invokeMethod(
+                    "onRepMessage",
+                    mapOf("path" to path, "payload" to payload),
+                )
+            }
+        }
+
         // ── Home-screen widget sync channel ──────────────────────────────────
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, widgetChannel)
             .setMethodCallHandler { call, result ->

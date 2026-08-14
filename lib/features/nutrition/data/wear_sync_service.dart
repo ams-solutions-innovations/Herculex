@@ -31,6 +31,33 @@ class WearSyncService {
   static Function(String?)? _onWatchMacroCommand;
   static Function()? onRequestSync;
 
+  // Rep-capture traffic (`/herculex/reps/*`, 10-03). The native host
+  // (`PhoneWearListenerService.onRepMessageListener`) forwards all three
+  // paths through a single `onRepMessage` method call carrying `path` and
+  // `payload`; this class demultiplexes by path into the three setters
+  // below so `RepCaptureService` can mirror the same one-setter-per-event
+  // idiom the workout sync service uses, without parsing a sample value
+  // itself (REP-04 — this file only ever forwards raw JSON strings).
+  static Function(String?)? _onWatchRepCaptureStart;
+  static Function(String?)? _onWatchRepSamples;
+  static Function(String?)? _onWatchRepCaptureEnd;
+
+  static set onWatchRepCaptureStart(Function(String?)? handler) {
+    _onWatchRepCaptureStart = handler;
+  }
+
+  static set onWatchRepSamples(Function(String?)? handler) {
+    _onWatchRepSamples = handler;
+  }
+
+  static set onWatchRepCaptureEnd(Function(String?)? handler) {
+    _onWatchRepCaptureEnd = handler;
+  }
+
+  static const String repCaptureStartPath = '/herculex/reps/capture_start';
+  static const String repSamplesPath = '/herculex/reps/samples';
+  static const String repCaptureEndPath = '/herculex/reps/capture_end';
+
   /// Watch events that arrived before the handlers below were registered.
   ///
   /// The native host fires these from `MainActivity.onResume` (notification
@@ -128,6 +155,12 @@ class WearSyncService {
         case 'onRequestSync':
           onRequestSync?.call();
           break;
+        case 'onRepMessage':
+          _deliverRepMessage(
+            call.arguments?['path'] as String?,
+            call.arguments?['payload'] as String?,
+          );
+          break;
       }
     });
 
@@ -204,6 +237,23 @@ class WearSyncService {
     }
   }
 
+  /// Demultiplexes one `onRepMessage` call by wire path. No sample value is
+  /// parsed or inspected here — the raw JSON string is handed straight to
+  /// whichever setter matches, exactly as the native host sent it.
+  static void _deliverRepMessage(String? path, String? payload) {
+    switch (path) {
+      case repCaptureStartPath:
+        _onWatchRepCaptureStart?.call(payload);
+        break;
+      case repSamplesPath:
+        _onWatchRepSamples?.call(payload);
+        break;
+      case repCaptureEndPath:
+        _onWatchRepCaptureEnd?.call(payload);
+        break;
+    }
+  }
+
   static void _deliverMacroCommand(String? commandJson) {
     final handler = _onWatchMacroCommand;
     if (handler == null) {
@@ -230,6 +280,9 @@ class WearSyncService {
     _onWatchFastingCommand = null;
     _onWatchQuickAddCommand = null;
     _onWatchMacroCommand = null;
+    _onWatchRepCaptureStart = null;
+    _onWatchRepSamples = null;
+    _onWatchRepCaptureEnd = null;
     onRequestSync = null;
     _pendingWatchEvents.clear();
     _pendingFastingCommands.clear();
