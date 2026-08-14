@@ -369,6 +369,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               onTap: () => context.push('/health'),
             ),
             _SettingsDivider(),
+            _SettingsTile(
+              icon: Icons.fitness_center,
+              label: 'Assisted Rep Tracking',
+              trailing: Icon(
+                Icons.chevron_right,
+                color: AppColors.onSurfaceVariant,
+              ),
+              onTap: () => context.push('/rep-tracking-consent'),
+            ),
+            _SettingsDivider(),
             // Its own row: this reports cloud sync, and hanging it off the
             // Samsung Health tile read as that integration's status.
             _SettingsTile(

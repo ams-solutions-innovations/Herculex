@@ -25,6 +25,7 @@ import '../features/profile/domain/profile.dart';
 import '../features/profile/presentation/custom_foods_view.dart';
 import '../features/profile/presentation/custom_recipes_view.dart';
 import '../features/profile/presentation/profile_view.dart';
+import '../features/reps/presentation/rep_tracking_consent_view.dart';
 import '../features/shell/main_scaffold.dart';
 import '../features/shell/splash_view.dart';
 import '../features/workouts/presentation/micro_workouts_view.dart';
@@ -98,6 +99,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/insights', builder: (_, _) => const InsightsView()),
       GoRoute(path: '/health', builder: (_, _) => const HealthIntegrationsView()),
+      GoRoute(
+        path: '/rep-tracking-consent',
+        builder: (_, _) => const RepTrackingConsentView(),
+      ),
       GoRoute(path: '/cycle', builder: (_, _) => const CycleTrackingView()),
       GoRoute(
         path: '/health/samsung',

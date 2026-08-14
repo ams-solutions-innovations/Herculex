@@ -73,6 +73,40 @@ class RepTrackingRepository {
     });
   }
 
+  /// Persists the consent screen's sensor-source choice and, for `phone`,
+  /// its placement (REP-02). Called from `rep_tracking_consent_view.dart`
+  /// immediately after [grantConsent] — added by 10-04 because neither
+  /// `RepTrackingSettings.defaultSource` nor `.phonePlacement` had a writer
+  /// before this plan, and the consent screen is the only place either may
+  /// be set. Never defaults [placement] itself; the caller decides whether
+  /// one was actually chosen.
+  Future<void> updateSensorPreferences({
+    required String source,
+    String? placement,
+  }) async {
+    await _db.transaction(() async {
+      final existing = await settings();
+      final companion = RepTrackingSettingsCompanion(
+        defaultSource: Value(source),
+        phonePlacement: Value(placement),
+      );
+      if (existing == null) {
+        await _db
+            .into(_db.repTrackingSettings)
+            .insert(
+              RepTrackingSettingsCompanion.insert(
+                defaultSource: Value(source),
+                phonePlacement: Value(placement),
+              ),
+            );
+      } else {
+        await (_db.update(
+          _db.repTrackingSettings,
+        )..where((t) => t.id.equals(existing.id))).write(companion);
+      }
+    });
+  }
+
   // ── Per-exercise opt-in ────────────────────────────────────────────────
 
   /// Enables or disables tracking for [slug].
