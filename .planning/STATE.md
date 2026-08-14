@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-08-14T15:35:00.000Z"
+last_updated: "2026-08-14T16:10:00.000Z"
 progress:
   total_phases: 10
   completed_phases: 9
-  total_plans: 19
-  completed_plans: 17
-  percent: 89
+  total_plans: 20
+  completed_plans: 18
+  percent: 90
 ---
 
 # Project State
@@ -104,3 +104,12 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - Deviation (Rule 1 - bug): the new progress text overflowed `_measurementRow`'s fixed two-`Text` layout — caught by the pre-existing armband placement e2e test, not a new one. Fixed by wrapping the value in `Expanded`/right-aligned text.
 - REP-05 marked complete in REQUIREMENTS.md. REP-06 remains the only open Phase 10 requirement, still gated on 10-02 Task 5's pending human fixture-recording checkpoint.
 - Next implementation focus: 10-06 (in-app fixture-recording debug tool) and/or closing REP-06 by recording real motion traces.
+
+## Session update — 2026-08-14 (Phase 10 plan 10-06)
+
+- Plan 10-06 executed (wave 6): the in-app fixture-recording debug tool that replaces 10-02 Task 5's manual hardware procedure. `fixture_corpus.dart` declares the closed 11-fixture `requiredFixtures` list (verbatim from 10-02's table) and `FixtureCorpusStatus.evaluate`, always derived from a fresh on-device scan, never cached state. `fixture_recorder.dart` writes `<name>.csv`/`<name>.json` matching 10-02's exact schema, reusing `MotionTrace.toCsv()`, with `synthetic: false` hardcoded as a literal — never a parameter.
+- `RepCaptureService` gained `debugRawTraceObserver`, a nullable field defaulting to null, called inside the existing REP-04 discard `finally` immediately before the raw buffer clears, wrapped in its own try/catch. Verified as the only two reference sites in `lib/features/`: the declaration/call in `rep_capture_service.dart` and one assignment in the new `fixture_recording_view.dart`. All 15 pre-existing capture-service tests pass unmodified.
+- `fixture_recording_view.dart` is reachable only at `/admin/fixture-recording` (same `kDebugMode`-gated convention as the rest of `/admin/*`), showing the 11-fixture checklist with sufficiency banner, a per-fixture capture form with a ground-truth `repCount` field explicitly labelled human-counted, wrist capture arming/disarming the debug observer around the watch's own capture, phone capture driving `PhoneMotionSource` directly, and an "Export recorded fixtures" action via `share_plus`.
+- Deviation: the plan's `<interfaces>` sketch for `RepCaptureService` predated 10-04's real additions (`buildPhoneSuggestion`/`activeCaptureIdFor`) — read the actual current file before editing, as instructed, and Task 3's edit is purely additive. Also: `RepMovement` has no `ringDip` value (only `{pullUp, dip}`); `ring-dips` fixtures use `RepMovement.dip`, matching `rep_tracking_eligibility.dart`'s real mapping rather than the plan's interface sketch.
+- **This plan does not close REP-06.** It produces app-local files only; the developer still has to physically perform pull-ups/dips wearing the watch across upcoming workouts, use this screen to capture and label each one, export via the share sheet, and commit the files under `test/fixtures/motion/` by hand. 10-02 Task 5's automated fixture-count/provenance check remains the actual gate that closes REP-06.
+- Next implementation focus: the developer records the real fixture corpus using this tool across upcoming workouts, then commits the exported files so 10-02 Task 5's checkpoint and Task 6's accuracy suite can run.

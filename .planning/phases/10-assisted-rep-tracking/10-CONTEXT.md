@@ -126,8 +126,11 @@ One enum, `TrackerState`, consumed by every surface:
 | 10-03 | 2 | 10-02 | Wear Kotlin capture, Data Layer transport, phone capture |
 | 10-04 | 3 | 10-01, 10-02, 10-03 | Consent flow, live counter, review-and-confirm sheet |
 | 10-05 | 4 | 10-01, 10-04 | Calibration learning and RPE gating |
+| 10-06 | 6 | 10-02, 10-03b, 10-04 | In-app debug tool: fixture-recording checklist and capture flow, replacing the manual hardware procedure in 10-02 Task 5 |
 
 10-01 and 10-02 are independent and can run in parallel: 10-02 is pure functions over a sample list and touches no database.
+
+10-06 does not close REP-06 by itself — it produces app-local files the developer still exports and commits under `test/fixtures/motion/` by hand. 10-02 Task 5's automated fixture-count check remains the actual gate.
 </plans>
 
 <risks>
