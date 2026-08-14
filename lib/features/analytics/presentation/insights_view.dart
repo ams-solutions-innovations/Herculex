@@ -8,7 +8,6 @@ import '../../../theme/colors.dart';
 import '../data/analytics_repository.dart';
 import 'analytics_providers.dart';
 import 'cns_recovery_cards.dart';
-import 'recovery_heatmap_widget.dart';
 
 class InsightsView extends ConsumerWidget {
   const InsightsView({super.key});
@@ -44,8 +43,6 @@ class InsightsView extends ConsumerWidget {
               style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
             ),
             const SizedBox(height: 24),
-            const _RecoveryCard(),
-            const SizedBox(height: 24),
             const RecoveryDetailCard(),
             const SizedBox(height: 24),
             const CnsTrendCard(),
@@ -62,70 +59,6 @@ class InsightsView extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _RecoveryCard extends ConsumerWidget {
-  const _RecoveryCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final recoveryAsync = ref.watch(muscleRecoveryProvider);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Recovery Heatmap', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text('Muscle fatigue decaying exponentially over 72 hours.', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
-          const SizedBox(height: 24),
-          recoveryAsync.when(
-            data: (list) => Column(
-              children: [
-                RecoveryHeatmapWidget(recoveryList: list),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _legendItem("Recovered", Colors.green),
-                    _legendItem("Recovering", Colors.amber),
-                    _legendItem("Fatigued", Colors.red),
-                  ],
-                ),
-              ],
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('Error: $e'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _legendItem(String label, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.withValues(alpha: 0.5),
-            border: Border.all(color: color, width: 1.5),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(label, style: TextStyle(fontSize: 11, color: AppColors.secondary, fontWeight: FontWeight.bold)),
-      ],
     );
   }
 }

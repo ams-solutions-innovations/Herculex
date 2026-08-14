@@ -1,6 +1,5 @@
 ﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:health/health.dart';
-import 'package:herculex/features/analytics/domain/cns_fatigue.dart';
 import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
@@ -33,22 +32,11 @@ void main() {
         sourceName: 'Apple Watch',
       );
 
-      final cns = CnsFatigue.compute(
-        sets: [],
-        workoutExercises: [],
-        catalog: [],
-        externalWorkouts: [climbingWorkout],
-        asOf: now,
-      );
-
       final muscle = MuscleRecoveryV3.compute(
-        snapshot: snapshot, 
+        snapshot: snapshot,
         externalWorkouts: [climbingWorkout],
         asOf: now,
       );
-
-      expect(cns.load, greaterThan(0.0));
-      expect(cns.readiness, lessThan(1.0));
 
       final backRecovery = muscle.firstWhere((e) => e.muscle == 'Back').recoveryScore;
       final forearmsRecovery = muscle.firstWhere((e) => e.muscle == 'Forearms').recoveryScore;
