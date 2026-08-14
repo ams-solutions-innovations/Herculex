@@ -8,8 +8,8 @@ progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 19
-  completed_plans: 15
-  percent: 79
+  completed_plans: 16
+  percent: 84
 ---
 
 # Project State
@@ -85,3 +85,13 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - 15-case fake-bridge test suite (`test/rep_capture_service_test.dart`) driven through public handler aliases on `RepCaptureService` — no plugin channel, no device, no Gradle — using a synthetic deterministic pull-up trace (there is still no recorded fixture corpus; 10-02 Task 5 remains a pending human checkpoint). All green; no regressions in existing rep_*/wear_* suites.
 - REP-02 still not marked complete — 10-04 wires `PhoneMotionSource` into the settings UI that actually lets a user choose a placement. REP-04 remains satisfied end to end.
 - Next implementation focus: 10-04 (consent flow, live counter, review-and-confirm sheet).
+
+## Session update — 2026-08-14 (Phase 10 plan 10-04)
+
+- Plan 10-04 executed (wave 4): the user-facing surface. `rep_tracking_consent_view.dart` is the app's only `grantConsent()` call site, gates the phone source behind a required (never-defaulted) placement pick, and links from Profile; `RepTrackingRepository` gained `updateSensorPreferences`, the writer `defaultSource`/`phonePlacement` never had before.
+- `RepTrackerPanel` renders all five `TrackerState` values (`disabled` → `SizedBox.shrink()`, `countOnly`/`manual` styled neutral, never as errors) with no auto-start anywhere. `RepReviewSheet`'s only write route is the injected `onConfirm(reps, rpeX10)` callback; it imports nothing from `lib/features/workouts/`.
+- Deviation: the plan named `active_workout_view.dart` as the integration point, but that file has no per-set logic at all — the real set-completion handler and exercise options menu live in `active_exercise_card.dart`, so all workouts-side wiring (per-exercise toggle, panel insertion, review-sheet interception of the completion tap) landed there instead.
+- `RepCaptureService` gained `buildPhoneSuggestion`, answering 10-03b's explicitly-open question of how a phone-sourced trace reaches `RepDetector`.
+- `test/rep_tracker_write_boundary_test.dart` widens the REP-03 gate to the whole `lib/features/reps/` directory (imports included, not just symbol references) and is verified to fail on a deliberately introduced violation. 10 new tests total across the write-boundary, widget and fixture-driven e2e suites; all existing rep_* suites remain green.
+- REP-02 and REP-03 marked complete in REQUIREMENTS.md. REP-06 deliberately left open — 10-02 Task 5's recorded fixture corpus still does not exist, so the e2e test substitutes a synthetic trace (following 10-03b's precedent) rather than a real one.
+- Next implementation focus: 10-05 (calibration learning and LOO-gated RPE suggestion) and, separately, closing 10-02 Task 5's fixture-recording checkpoint.
