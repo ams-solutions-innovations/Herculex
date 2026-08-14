@@ -63,6 +63,27 @@ Plans:
 - [x] 09-02-PLAN.md — Retarget remaining providers onto trainingSnapshotProvider; delete dead cnsFatigueProvider/muscleRecoveryProvider and the duplicate recovery card
 - [x] 09-03-PLAN.md — Automated regression test proving soft-deleted sets are excluded from analytics
 
+## Phase 10: Assisted rep tracking
+
+**Goal:** Add an opt-in, on-device rep counter for pull-ups and dips that *proposes* a rep count — and, once calibrated, an RPE — at the end of a set, which the user reviews and confirms or edits. The tracker can never write a set.
+
+**Requirements:** REP-01–06
+
+**Depends on:** Phase 9 (merge order only — Phase 9 adds no tables, this phase takes schema v26)
+
+**Success:** Nothing under `lib/features/reps/` imports `workouts_repository.dart` or references `updateSet`, enforced by a static test; the authoritative detector is pure Dart on the phone and the Kotlin watch counter is provisional-only and never persisted; the three new tables are local-only with no `SyncColumns`/tombstones/outbox triggers and raw samples are discarded at set end; an RPE is offered only past the n ≥ 10 / ≥ 3 sessions / LOO MAE ≤ 1.0 gate; and recorded pull-up and dip traces verify counting accuracy, missed reps, false-positive resistance and the never-auto-complete guarantee.
+
+**Plans:** 0/5 plans complete
+
+Plans:
+- [ ] 10-01-PLAN.md — Schema v26, consent/eligibility state, rep tracking repository
+- [ ] 10-02-PLAN.md — Pure-Dart rep detection engine and recorded trace fixtures
+- [ ] 10-03-PLAN.md — Wear Kotlin capture, Data Layer transport, phone capture
+- [ ] 10-04-PLAN.md — Consent flow, live counter, review-and-confirm sheet
+- [ ] 10-05-PLAN.md — Calibration learning and LOO-gated RPE suggestion
+
+**Risk:** 10-02 is gated on a human task — recording real pull-up and dip traces on both a watch and a pocketed phone with ground-truth counts. Synthetic traces cannot meet the accuracy bar.
+
 ## Later — Samsung Now Bar, recipe import, meal planning, social, voice
 
 **Requirements:** NOWBAR-01–03, PLAN-01–02, SOC-01, VOICE-01

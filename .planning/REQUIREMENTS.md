@@ -43,6 +43,15 @@
 - [x] **ANLY-03**: Every analytics query excludes soft-deleted (`deletedAt`) sets, sessions and exercises, so a cross-device sync delete cannot inflate tonnage, CNS load or recovery fatigue on another device.
 - [x] **ANLY-04**: Push/pull balance and biometric-correlation cards compute from effective load (bands, chains, bodyweight) rather than raw weight/reps.
 
+### Assisted rep tracking
+
+- [ ] **REP-01**: Rep tracking is off until the user completes a dedicated consent screen, and then off per exercise until separately enabled. It is offered only for the enumerated eligible slugs.
+- [ ] **REP-02**: The user chooses the sensor source. The phone accelerometer is used only when a placement is explicitly selected.
+- [ ] **REP-03**: The tracker never completes, saves or alters a set. Every rep count and RPE reaches the database only through a user confirmation, and the tracker feature directory contains no reference to the set write path.
+- [ ] **REP-04**: Raw accelerometer samples are processed on the user's devices and discarded at set end. Only derived features and confirmed outcomes persist, and none of it syncs.
+- [ ] **REP-05**: An RPE suggestion appears only after ≥ 10 confirmed sets across ≥ 3 sessions for that exercise/device/placement, and only when leave-one-out error is within 1.0 RPE point. Low confidence, changed placement or unsupported movement yields a count-only state.
+- [ ] **REP-06**: Recorded motion traces for pull-ups and dips verify counting accuracy, missed-rep handling, false-positive resistance, source and placement changes, and the never-auto-complete guarantee.
+
 ## v2 Requirements
 
 - **PLAN-01**: Recipe URL import with user review/matching.
@@ -70,3 +79,4 @@
 | CAP-02–03 | 6 | Complete |
 | NOWBAR-01–03 | 8 | Pending |
 | ANLY-01–04 | 9 | Complete |
+| REP-01–06 | 10 | Planned |
