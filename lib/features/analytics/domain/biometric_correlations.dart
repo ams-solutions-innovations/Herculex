@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../../data/local/database.dart';
+import 'training_snapshot.dart';
 
 class CorrelationPoint {
   final double x;
@@ -31,9 +32,7 @@ class BiometricCorrelationResult {
 class BiometricCorrelations {
   static BiometricCorrelationResult sleepVsRpe({
     required List<HealthSampleData> healthSamples,
-    required List<SetEntryData> sets,
-    required List<WorkoutExerciseData> workoutExercises,
-    required List<WorkoutSessionData> sessions,
+    required List<ResolvedSet> resolvedSets,
   }) {
     final Map<String, double> sleepByDate = {};
     for (final s in healthSamples) {
@@ -42,24 +41,28 @@ class BiometricCorrelations {
       }
     }
 
+    final sessions = <int, WorkoutSessionData>{
+      for (final r in resolvedSets) r.session.id: r.session,
+    };
+
     final points = <CorrelationPoint>[];
 
     // Compute average session RPE and join by date
-    for (final session in sessions) {
+    for (final session in sessions.values) {
       final sessionDateStr = _formatDateIso(session.startedAt);
       final sleepHrs = sleepByDate[sessionDateStr];
       if (sleepHrs == null) continue;
 
       // Find average RPE for this session
-      final weIds = workoutExercises.where((we) => we.sessionId == session.id).map((we) => we.id).toSet();
-      final sessionSets = sets.where((s) => weIds.contains(s.workoutExerciseId) && s.isCompleted).toList();
+      final sessionSets =
+          resolvedSets.where((r) => r.session.id == session.id).toList();
       if (sessionSets.isEmpty) continue;
 
       double sumRpe = 0;
       int rpeCount = 0;
       for (final s in sessionSets) {
-        if (s.rpeX10 != null) {
-          sumRpe += s.rpeX10! / 10.0;
+        if (s.set.rpeX10 != null) {
+          sumRpe += s.set.rpeX10! / 10.0;
           rpeCount++;
         }
       }
@@ -68,21 +71,6 @@ class BiometricCorrelations {
         final avgRpe = sumRpe / rpeCount;
         points.add(CorrelationPoint(sleepHrs, avgRpe));
       }
-    }
-
-    // Default mock fallback points if user doesn't have sufficient historical logs yet
-    if (points.length < 3) {
-      return const BiometricCorrelationResult(
-        points: [
-          CorrelationPoint(5.5, 8.5),
-          CorrelationPoint(6.2, 7.8),
-          CorrelationPoint(7.0, 7.2),
-          CorrelationPoint(8.2, 6.0),
-          CorrelationPoint(8.8, 5.5),
-        ],
-        r2: 0.64,
-        sampleSize: 5,
-      );
     }
 
     final r2 = _calculateR2(points);
@@ -96,9 +84,7 @@ class BiometricCorrelations {
 
   static BiometricCorrelationResult restingHrVsTonnage({
     required List<HealthSampleData> healthSamples,
-    required List<SetEntryData> sets,
-    required List<WorkoutExerciseData> workoutExercises,
-    required List<WorkoutSessionData> sessions,
+    required List<ResolvedSet> resolvedSets,
   }) {
     final Map<String, double> hrByDate = {};
     for (final s in healthSamples) {
@@ -107,39 +93,29 @@ class BiometricCorrelations {
       }
     }
 
+    final sessions = <int, WorkoutSessionData>{
+      for (final r in resolvedSets) r.session.id: r.session,
+    };
+
     final points = <CorrelationPoint>[];
 
-    for (final session in sessions) {
+    for (final session in sessions.values) {
       final sessionDateStr = _formatDateIso(session.startedAt);
       final rHr = hrByDate[sessionDateStr];
       if (rHr == null) continue;
 
-      final weIds = workoutExercises.where((we) => we.sessionId == session.id).map((we) => we.id).toSet();
-      final sessionSets = sets.where((s) => weIds.contains(s.workoutExerciseId) && s.isCompleted).toList();
+      final sessionSets =
+          resolvedSets.where((r) => r.session.id == session.id).toList();
       if (sessionSets.isEmpty) continue;
 
       double sessionTonnage = 0.0;
-      for (final s in sessionSets) {
-        sessionTonnage += s.weightKg * s.reps;
+      for (final r in sessionSets) {
+        sessionTonnage += r.tonnageKg;
       }
 
       if (sessionTonnage > 0) {
         points.add(CorrelationPoint(rHr, sessionTonnage));
       }
-    }
-
-    if (points.length < 3) {
-      return const BiometricCorrelationResult(
-        points: [
-          CorrelationPoint(56.0, 4200.0),
-          CorrelationPoint(60.0, 3800.0),
-          CorrelationPoint(65.0, 3100.0),
-          CorrelationPoint(68.0, 2700.0),
-          CorrelationPoint(72.0, 2100.0),
-        ],
-        r2: 0.52,
-        sampleSize: 5,
-      );
     }
 
     final r2 = _calculateR2(points);
