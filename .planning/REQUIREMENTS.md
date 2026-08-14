@@ -38,10 +38,10 @@
 
 ### Analytics correctness
 
-- [ ] **ANLY-01**: All recovery, CNS, balance and correlation providers read from the shared `trainingSnapshotProvider` effective-load snapshot instead of independent unfiltered table scans.
-- [ ] **ANLY-02**: The legacy coarse recovery engine (`muscle_recovery.dart`, `cnsFatigueProvider`) and the duplicate recovery card in Insights are removed; exactly one recovery model is shown.
-- [ ] **ANLY-03**: Every analytics query excludes soft-deleted (`deletedAt`) sets, sessions and exercises, so a cross-device sync delete cannot inflate tonnage, CNS load or recovery fatigue on another device.
-- [ ] **ANLY-04**: Push/pull balance and biometric-correlation cards compute from effective load (bands, chains, bodyweight) rather than raw weight/reps.
+- [x] **ANLY-01**: All recovery, CNS, balance and correlation providers read from the shared `trainingSnapshotProvider` effective-load snapshot instead of independent unfiltered table scans.
+- [x] **ANLY-02**: The legacy coarse recovery engine (`muscle_recovery.dart`, `cnsFatigueProvider`) and the duplicate recovery card in Insights are removed; exactly one recovery model is shown.
+- [x] **ANLY-03**: Every analytics query excludes soft-deleted (`deletedAt`) sets, sessions and exercises, so a cross-device sync delete cannot inflate tonnage, CNS load or recovery fatigue on another device.
+- [x] **ANLY-04**: Push/pull balance and biometric-correlation cards compute from effective load (bands, chains, bodyweight) rather than raw weight/reps.
 
 ## v2 Requirements
 
@@ -69,4 +69,4 @@
 | CAP-01 | 5 | Complete |
 | CAP-02–03 | 6 | Complete |
 | NOWBAR-01–03 | 8 | Pending |
-| ANLY-01–04 | 9 | Pending |
+| ANLY-01–04 | 9 | Complete |
