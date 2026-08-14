@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-08-14T12:55:00.000Z"
+last_updated: "2026-08-14T15:30:00.000Z"
 progress:
   total_phases: 10
   completed_phases: 9
-  total_plans: 18
-  completed_plans: 14
-  percent: 78
+  total_plans: 19
+  completed_plans: 15
+  percent: 79
 ---
 
 # Project State
@@ -75,3 +75,13 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - `PhoneWearListenerService` routes all three paths verbatim through one `onRepMessageListener`, holding payloads in a **process-lifetime in-memory** queue (not the SharedPreferences pending stores) when Flutter is detached, drained in arrival order on attach so a real dropout still reads as a `seq` gap.
 - REP-02 deliberately NOT marked complete — the sensor-source choice needs the phone half (10-03b/10-04). REP-04 remains satisfied: no sample payload touches disk on either device.
 - Next implementation focus: 10-02 (Dart detection engine, wave 1) and 10-03b (Dart half of capture).
+
+## Session update — 2026-08-14 (Phase 10 plan 10-03b)
+
+- Plan 10-03b executed (wave 3): the Dart half of rep capture. `rep_suggestion.dart` publishes the exact five-state `TrackerState`, an ordered `ConfidenceBand` with `lowerByOne()` saturating at `low`, and the immutable `RepSuggestion` contract 10-04 will render and 10-05 will extend.
+- `RepCaptureService` reassembles the watch's `/herculex/reps/*` batches by `seq`, runs the single authoritative `RepDetector.detect` over the resulting trace, and discards the raw buffer in a `finally` on both the success and thrown-detector paths (REP-04). `proposedReps` is always the detector's output; `provisionalCount` only feeds `provisionalDisagrees` and steps `ConfidenceBand` down by exactly one rung on a >1-rep disagreement — never averaged, never substituted. A sample gap independently steps the band down too. Zero batches, a watch battery refusal, or an explicit abort all degrade to `TrackerState.manual` with a stated reason, never a zero-rep suggestion.
+- `PhoneMotionSource` adds `sensors_plus` (the phase's only new dependency, resolved 6.1.2, fluttercommunity.dev) and refuses to start without an explicit `RepTrackingSettings.phonePlacement` (REP-02) or below 15% battery, with a constructor-injected clock/battery supplier so the 5-minute cap and both gates are fake-testable.
+- Real gap found and fixed during execution: `WearSyncService` had no Dart-side entry point for the three `/herculex/reps/*` paths at all, and `MainActivity.kt` never assigned `PhoneWearListenerService.onRepMessageListener` (10-03a built the Kotlin listener but nothing wired it to Flutter). Added a demultiplexing `onRepMessage` bridge to `WearSyncService` and wired `MainActivity.kt`, mirroring the existing `onWatchWorkout*` idiom — verified with `:app:compileDebugKotlin`. Without this the rep-tracking path would have passed every fake-bridge test while doing nothing on a real device.
+- 15-case fake-bridge test suite (`test/rep_capture_service_test.dart`) driven through public handler aliases on `RepCaptureService` — no plugin channel, no device, no Gradle — using a synthetic deterministic pull-up trace (there is still no recorded fixture corpus; 10-02 Task 5 remains a pending human checkpoint). All green; no regressions in existing rep_*/wear_* suites.
+- REP-02 still not marked complete — 10-04 wires `PhoneMotionSource` into the settings UI that actually lets a user choose a placement. REP-04 remains satisfied end to end.
+- Next implementation focus: 10-04 (consent flow, live counter, review-and-confirm sheet).

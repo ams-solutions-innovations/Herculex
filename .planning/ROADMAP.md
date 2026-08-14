@@ -73,13 +73,13 @@ Plans:
 
 **Success:** Nothing under `lib/features/reps/` imports `workouts_repository.dart` or references `updateSet`, enforced by a static test; the authoritative detector is pure Dart on the phone and the Kotlin watch counter is provisional-only and never persisted; the three new tables are local-only with no `SyncColumns`/tombstones/outbox triggers and raw samples are discarded at set end; an RPE is offered only past the n ≥ 10 / ≥ 3 sessions / LOO MAE ≤ 1.0 gate; and recorded pull-up and dip traces verify counting accuracy, missed reps, false-positive resistance and the never-auto-complete guarantee.
 
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 
 Plans:
 - [x] 10-01-PLAN.md — Schema v26, RepMovement, consent/eligibility state, rep tracking repository (wave 1)
 - [x] 10-03a-PLAN.md — Wear Kotlin capture, both WearSyncPaths copies, phone-side routing (wave 1, Gradle-verified)
-- [ ] 10-02-PLAN.md — Pure-Dart rep detection engine and recorded trace fixtures (wave 2, blocking human fixture-recording checkpoint)
-- [ ] 10-03b-PLAN.md — Dart capture service, RepSuggestion/TrackerState contract, phone motion source (wave 3)
+- [ ] 10-02-PLAN.md — Pure-Dart rep detection engine and recorded trace fixtures (wave 2, Tasks 1-4 done, blocking human fixture-recording checkpoint remains)
+- [x] 10-03b-PLAN.md — Dart capture service, RepSuggestion/TrackerState contract, phone motion source (wave 3)
 - [ ] 10-04-PLAN.md — Consent flow, live counter, review-and-confirm sheet (wave 4)
 - [ ] 10-05-PLAN.md — Calibration learning and LOO-gated RPE suggestion (wave 5)
 
