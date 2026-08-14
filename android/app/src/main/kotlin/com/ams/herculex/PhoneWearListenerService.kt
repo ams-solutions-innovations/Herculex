@@ -77,6 +77,46 @@ class PhoneWearListenerService : WearableListenerService() {
         var onWatchQuickAddCommandListener: ((String?) -> Unit)? = null
         var onWatchMacroCommandListener: ((String?) -> Unit)? = null
 
+        /// Rep-capture traffic (`/herculex/reps/*`). One listener for all three
+        /// paths — the path is passed through as the first argument and the
+        /// payload verbatim as the second, so this file never parses, reorders
+        /// or reinterprets a capture payload.
+        ///
+        /// Assigning a non-null listener drains anything held while Flutter was
+        /// detached, in arrival order, before any new message is delivered
+        /// (LESSONS.md:72 — a batch that arrives while Flutter is not running
+        /// must be held and delivered on attach, not dropped; a dropped mid-set
+        /// batch is indistinguishable at the Dart layer from a Bluetooth
+        /// dropout).
+        var onRepMessageListener: ((String, String) -> Unit)? = null
+            set(value) {
+                field = value
+                if (value != null) drainHeldRepMessages(value)
+            }
+
+        /// In-memory ONLY, for the lifetime of this process (T-10-11 / REP-04).
+        /// Deliberately NOT the SharedPreferences-backed stores the workout and
+        /// command paths use: raw motion samples must never touch disk.
+        private val heldRepMessages = ArrayDeque<Pair<String, String>>()
+        private val repHoldLock = Any()
+
+        /// ~300 s at roughly one batch per second — matches the watch's ring
+        /// buffer depth, so an unbounded detach can't grow the hold forever.
+        private const val MAX_HELD_REP_MESSAGES = 320
+
+        private fun drainHeldRepMessages(listener: (String, String) -> Unit) {
+            val drained = synchronized(repHoldLock) {
+                if (heldRepMessages.isEmpty()) return
+                val snapshot = heldRepMessages.toList()
+                heldRepMessages.clear()
+                snapshot
+            }
+            Log.d("PhoneWearListener", "Delivering ${drained.size} held rep message(s) on attach")
+            // Replayed in arrival order and never coalesced, so `seq` stays
+            // meaningful and a real gap still reads as a gap.
+            for ((path, payload) in drained) listener(path, payload)
+        }
+
         fun pendingWatchWorkout(context: Context): String? {
             return context.applicationContext
                 .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -305,7 +345,36 @@ class PhoneWearListenerService : WearableListenerService() {
                 savePendingMacroCommand(commandJson)
                 onWatchMacroCommandListener?.invoke(commandJson)
             }
+
+            // Rep capture. Forwarded verbatim — this file computes, adjusts
+            // and substitutes nothing, and in particular never touches the
+            // capture-end payload's `provisionalCount`, which is
+            // non-authoritative by contract (T-10-09).
+            WearSyncPaths.MESSAGE_REP_CAPTURE_START,
+            WearSyncPaths.MESSAGE_REP_SAMPLES,
+            WearSyncPaths.MESSAGE_REP_CAPTURE_END -> {
+                deliverOrHoldRepMessage(messageEvent.path, String(messageEvent.data))
+            }
         }
+    }
+
+    /// Delivers to Dart when attached, otherwise holds in memory for delivery
+    /// on attach. The check and the enqueue share a lock so a listener
+    /// attaching concurrently cannot cause a batch to be both held and
+    /// delivered, or neither.
+    private fun deliverOrHoldRepMessage(path: String, payload: String) {
+        val listener = synchronized(repHoldLock) {
+            val current = onRepMessageListener
+            if (current == null) {
+                heldRepMessages.addLast(path to payload)
+                while (heldRepMessages.size > MAX_HELD_REP_MESSAGES) {
+                    heldRepMessages.removeFirst()
+                }
+                Log.d("PhoneWearListener", "Flutter detached — holding $path (${heldRepMessages.size} held)")
+            }
+            current
+        }
+        listener?.invoke(path, payload)
     }
 
     override fun onPeerConnected(peer: Node) {
