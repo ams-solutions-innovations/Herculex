@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../services/widget_sync_service.dart';
 import '../data/analytics_repository.dart';
-import '../domain/cns_fatigue.dart';
 import '../domain/cns_trends.dart';
-import '../domain/muscle_recovery.dart';
 import '../domain/muscle_recovery_v3.dart';
 import '../domain/balance_analyzer.dart';
 import '../domain/biometric_correlations.dart';
@@ -40,64 +38,19 @@ final weeklyMuscleVolumeProvider =
   );
 });
 
-final muscleRecoveryProvider = FutureProvider<List<MuscleRecoveryResult>>((ref) async {
-  final db = ref.watch(appDatabaseProvider);
-  final sets = await db.select(db.setEntries).get();
-  final exercises = await db.select(db.workoutExercises).get();
-  final catalog = await db.select(db.exerciseCatalog).get();
-  final muscles = await db.select(db.exerciseMuscles).get();
-
-  return MuscleRecovery.compute(
-    sets: sets,
-    workoutExercises: exercises,
-    catalog: catalog,
-    exerciseMuscles: muscles,
-    asOf: DateTime.now(),
-  );
-});
-
-/// Rolling CNS readiness derived from per-exercise CNS scores.
-final cnsFatigueProvider = FutureProvider<CnsFatigueResult>((ref) async {
-  final db = ref.watch(appDatabaseProvider);
-  final sets = await db.select(db.setEntries).get();
-  final exercises = await db.select(db.workoutExercises).get();
-  final catalog = await db.select(db.exerciseCatalog).get();
-  final externalWorkouts = await ref.watch(externalWorkoutsProvider.future);
-
-  return CnsFatigue.compute(
-    sets: sets,
-    workoutExercises: exercises,
-    catalog: catalog,
-    externalWorkouts: externalWorkouts,
-    asOf: DateTime.now(),
-  );
-});
-
 final pushPullBalanceProvider = FutureProvider<BalanceResult>((ref) async {
-  final db = ref.watch(appDatabaseProvider);
-  final sets = await db.select(db.setEntries).get();
-  final exercises = await db.select(db.workoutExercises).get();
-  final catalog = await db.select(db.exerciseCatalog).get();
-  
-  return BalanceAnalyzer.summary(
-    sets: sets,
-    workoutExercises: exercises,
-    catalog: catalog,
-  );
+  final snapshot = await ref.watch(trainingSnapshotProvider.future);
+  return BalanceAnalyzer.summary(sets: snapshot.sets);
 });
 
 final sleepVsRpeProvider = FutureProvider<BiometricCorrelationResult>((ref) async {
   final db = ref.watch(appDatabaseProvider);
   final healthSamples = await db.select(db.healthSamples).get();
-  final sets = await db.select(db.setEntries).get();
-  final exercises = await db.select(db.workoutExercises).get();
-  final sessions = await db.select(db.workoutSessions).get();
-  
+  final snapshot = await ref.watch(trainingSnapshotProvider.future);
+
   return BiometricCorrelations.sleepVsRpe(
     healthSamples: healthSamples,
-    sets: sets,
-    workoutExercises: exercises,
-    sessions: sessions,
+    resolvedSets: snapshot.sets,
   );
 });
 
@@ -154,15 +107,11 @@ final accessoryPerformanceProvider =
 final hrVsTonnageProvider = FutureProvider<BiometricCorrelationResult>((ref) async {
   final db = ref.watch(appDatabaseProvider);
   final healthSamples = await db.select(db.healthSamples).get();
-  final sets = await db.select(db.setEntries).get();
-  final exercises = await db.select(db.workoutExercises).get();
-  final sessions = await db.select(db.workoutSessions).get();
-  
+  final snapshot = await ref.watch(trainingSnapshotProvider.future);
+
   return BiometricCorrelations.restingHrVsTonnage(
     healthSamples: healthSamples,
-    sets: sets,
-    workoutExercises: exercises,
-    sessions: sessions,
+    resolvedSets: snapshot.sets,
   );
 });
 
