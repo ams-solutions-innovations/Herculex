@@ -147,3 +147,7 @@ None. The plan's four `mitigate` dispositions (T-10-01 through T-10-04) are each
 - The `RepTrackingSettings` singleton is enforced by convention in `grantConsent`, not by a schema constraint (the table has an autoincrement `id`, matching the plan's spec). Any future code that inserts into this table directly must update the existing row instead. `settings()` reads with `limit(1)`, so a stray second row would be silently ignored rather than throwing.
 - `consentVersion` exists but nothing yet compares it against a current-version constant. When data handling changes, 10-04's consent flow is where the re-consent check belongs.
 - `phonePlacement` must be non-null before the phone source is usable (REP-02). That invariant is documented on the column but not yet enforced — enforcement belongs to 10-03/10-04, where the source is actually selected.
+
+## Self-Check: PASSED
+
+All 11 declared files exist on disk; all 4 commits (`33ec560`, `78669bf`, `1412832`, `0f8f728`) are present in git history; `schemaVersion` reads 26 in `lib/data/local/database.dart`.

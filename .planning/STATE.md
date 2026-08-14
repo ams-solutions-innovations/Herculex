@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-08-14T08:13:39.702Z"
+status: in_progress
+last_updated: "2026-08-14T12:33:10.919Z"
 progress:
-  total_phases: 7
-  completed_phases: 6
-  total_plans: 6
-  completed_plans: 6
-  percent: 86
+  total_phases: 10
+  completed_phases: 9
+  total_plans: 18
+  completed_plans: 13
+  percent: 72
 ---
 
 # Project State
@@ -19,7 +19,7 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-07-30)
 
 **Core value:** Fast, trustworthy local food logging.
-**Current focus:** RB-05 — Nutrition history immutability and catalog deletion handling.
+**Current focus:** Phase 10 — assisted-rep-tracking
 
 ## Progress
 
@@ -54,3 +54,14 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - UI-SPEC.md written and approved for Phase 9 — a "no new design" contract confirming the only visual change is deleting `_RecoveryCard`; everything else on Insights is pixel-unchanged. Environment note: `gsd-*` subagents (planner, ui-researcher, etc.) were missing from `~/.claude/agents/`; copied in from the installed `get-shit-done-cc` npm package, but this session's Agent tool roster didn't pick them up live (likely needs a fresh session to register) — so the UI research/check steps were performed inline instead of via subagent spawn.
 - Phase 9 planned: 3 plans across 3 waves (09-01 domain-layer soft-delete filter + effective-load rewrite of BalanceAnalyzer/BiometricCorrelations, incl. deleting the hardcoded mock-fallback correlation points found during planning discovery; 09-02 provider consolidation onto `trainingSnapshotProvider` + deletion of the dead `cnsFatigueProvider`/`muscleRecoveryProvider`/`_RecoveryCard`/`muscle_recovery.dart`/`cns_fatigue.dart`/`recovery_heatmap_widget.dart`; 09-03 automated soft-delete regression test, the ANLY-03/D-04 acceptance gate). Planned inline (gsd-planner unavailable this session, same as ui-researcher) and self-verified against gsd-plan-checker's dimensions — clean, no blockers. Plans validated via `gsd-sdk query frontmatter.validate`/`verify.plan-structure`.
 - Next implementation focus: `/gsd:execute-phase 9`.
+
+## Session update — 2026-08-14 (Phase 10 execution)
+
+- Phase 10 plan 10-01 executed (wave 1): schema v26 lands three **local-only** rep-tracking tables (`rep_tracking_settings`, `rep_tracking_exercise_prefs`, `rep_set_observations`) with no `SyncColumns`/`SyncTombstone`, absent from both `syncedTableNames` and `syncTableSpecs`. `sync_backfill.dart` and `sync_table_specs.dart` are byte-unchanged.
+- REP-04 is proven positively, not by grep: `test/rep_local_only_test.dart` queries `sqlite_master` on a fully-migrated database and asserts no outbox trigger names any of the three tables (with an `isNotEmpty` guard so it cannot pass vacuously), plus a `PRAGMA table_info` check that `rep_set_observations` has no raw-sample column and no BLOB column at all.
+- `RepMovement` is declared exactly once, in `lib/features/reps/domain/rep_movement.dart` — 10-02, 10-03b and 10-05 must import it, never redeclare it. `eligibleRepSlugs` closes the list at the seven catalogue slugs; all seven were verified to resolve against `assets/data/exercises.json`.
+- `RepTrackingRepository` is the single consent surface: `isEnabledFor` checks consent first and short-circuits (a stale `enabled: true` pref cannot re-enable tracking), and `revokeConsent()` deletes every pref and every observation in one transaction.
+- Bug fixed during execution: `insertOnConflictUpdate` targets the primary key, so toggling the same slug twice raised `SQLITE_CONSTRAINT_UNIQUE` (2067) on the `exercise_slug` unique key — a user could enable an exercise but never disable it. Replaced with an explicit `DoUpdate(target: [exerciseSlug])`.
+- Migration suite repointed to version 26 across four replays (current-schema, v23, v24, and a new v25 fixture). Full suite green: 538 passed, 4 skipped, 0 failed.
+- REP-01 and REP-04 marked complete in REQUIREMENTS.md; ROADMAP shows Phase 10 at 1/6 plans executed.
+- Next implementation focus: Phase 10 wave 1 remainder (10-02 detection engine, 10-03a Wear capture).
