@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-08-14T15:30:00.000Z"
+last_updated: "2026-08-14T15:35:00.000Z"
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 19
-  completed_plans: 16
-  percent: 84
+  completed_plans: 17
+  percent: 89
 ---
 
 # Project State
@@ -95,3 +95,12 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - `test/rep_tracker_write_boundary_test.dart` widens the REP-03 gate to the whole `lib/features/reps/` directory (imports included, not just symbol references) and is verified to fail on a deliberately introduced violation. 10 new tests total across the write-boundary, widget and fixture-driven e2e suites; all existing rep_* suites remain green.
 - REP-02 and REP-03 marked complete in REQUIREMENTS.md. REP-06 deliberately left open — 10-02 Task 5's recorded fixture corpus still does not exist, so the e2e test substitutes a synthetic trace (following 10-03b's precedent) rather than a real one.
 - Next implementation focus: 10-05 (calibration learning and LOO-gated RPE suggestion) and, separately, closing 10-02 Task 5's fixture-recording checkpoint.
+
+## Session update — 2026-08-14 (Phase 10 plan 10-05)
+
+- Plan 10-05 executed (wave 5): calibration learning and the LOO-gated RPE suggestion. `rpe_estimator.dart` fits ridge-regularised OLS on five standardised features (fixed small lambda, never tuned) and exposes `RpeEstimator.gatePasses` as the single named predicate for the three REP-05 thresholds (n ≥ 10, sessions ≥ 3, LOO MAE ≤ 1.0) — the only place those literals appear under `lib/features/reps/`.
+- `rep_calibration.dart`'s `CalibrationProfile.fromObservations` is computed on demand from `observationsFor`, drops rows whose `featuresJson` fails the detector-version check, and derives `insufficient`/`countOnly`/`calibrated` entirely through two calls to `gatePasses` (one with `looMae` forced to `0.0` to isolate the count/session check) rather than restating any threshold. A random-RPE synthetic user never calibrates; an amplitude-decay-only user does, proving the model is not cadence-only.
+- `RepTrackingRepository.profileFor` (cached, invalidated by `recordObservation`) and `calibrationProfileProvider` (a `FutureProvider.family` keyed on a record, not a `List`) wire the profile into `rep_review_sheet.dart`, which now pre-fills the RPE slider only while calibrated and the user hasn't touched it, and states a plain "N of 10 sets" / "still learning your pace" progress line otherwise. The rep-count field carries no `CalibrationStatus` branch.
+- Deviation (Rule 1 - bug): the new progress text overflowed `_measurementRow`'s fixed two-`Text` layout — caught by the pre-existing armband placement e2e test, not a new one. Fixed by wrapping the value in `Expanded`/right-aligned text.
+- REP-05 marked complete in REQUIREMENTS.md. REP-06 remains the only open Phase 10 requirement, still gated on 10-02 Task 5's pending human fixture-recording checkpoint.
+- Next implementation focus: 10-06 (in-app fixture-recording debug tool) and/or closing REP-06 by recording real motion traces.
