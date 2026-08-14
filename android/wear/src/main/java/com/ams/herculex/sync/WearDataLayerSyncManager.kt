@@ -77,6 +77,35 @@ class WearDataLayerSyncManager(
         }
     }
 
+    /**
+     * As [sendMessageToAllNodes], but reports whether at least one node
+     * accepted the message. Rep-capture sample batches need that signal to
+     * decide whether to hold a batch in their in-memory ring buffer for
+     * retry — they must NOT go through [sendRealtimeEvent], whose queue is
+     * SharedPreferences-backed and would persist raw motion samples to disk
+     * (REP-04 forbids that).
+     *
+     * @return true when the payload reached at least one connected node.
+     */
+    suspend fun sendMessageToAllNodesReporting(path: String, payload: String): Boolean {
+        val nodes = try {
+            nodeClient.connectedNodes.awaitResult()
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val bytes = payload.toByteArray(Charsets.UTF_8)
+        var delivered = false
+        for (node in nodes) {
+            try {
+                messageClient.sendMessage(node.id, path, bytes).awaitResult()
+                delivered = true
+            } catch (_: Exception) {
+                // Caller decides whether to hold and retry.
+            }
+        }
+        return delivered
+    }
+
     suspend fun replayPersistentState() {
         stateStore.readString(WearStateStore.KEY_ACTIVE_WORKOUT_SESSION)?.let {
             pushActiveWorkoutSession(it.ifBlank { null })
