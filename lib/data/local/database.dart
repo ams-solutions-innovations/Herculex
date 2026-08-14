@@ -63,6 +63,11 @@ part 'database.g.dart';
     DietSchedules,
     CarbCyclePlans,
     SyncCursors,
+    // Assisted rep tracking (v26). Local-only: never added to
+    // syncedTableNames or syncTableSpecs.
+    RepTrackingSettings,
+    RepTrackingExercisePrefs,
+    RepSetObservations,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -72,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 25;
+  int get schemaVersion => 26;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -634,6 +639,15 @@ class AppDatabase extends _$AppDatabase {
         }
 
         await installSyncTriggers(this);
+      }
+      if (from < 26) {
+        // Assisted rep tracking (Phase 10). Three local-only tables — no
+        // sync columns, no outbox trigger, no entry in syncedTableNames.
+        // No backfill: the absence of a row correctly means "no consent
+        // given" and "not enabled for this exercise".
+        await m.createTable(repTrackingSettings);
+        await m.createTable(repTrackingExercisePrefs);
+        await m.createTable(repSetObservations);
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is

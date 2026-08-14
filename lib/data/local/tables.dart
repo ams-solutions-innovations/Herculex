@@ -954,3 +954,98 @@ class ProgressPhotos extends Table {
   TextColumn get filePath => text()();
   TextColumn get notes => text().nullable()();
 }
+
+// ── Assisted rep tracking (v26) ────────────────────────────────────────────
+//
+// The three tables below are **local-only by design** (REP-04, Phase 10
+// CONTEXT "Persistence and sync"). None of them mixes in [SyncColumns] or
+// [SyncTombstone], and none appears in `syncedTableNames`
+// (`lib/data/local/migrations/sync_backfill.dart`) or in `syncTableSpecs`
+// (`lib/data/sync/sync_table_specs.dart`) — adding a name to either list
+// installs an outbox trigger and puts motion-derived data on the wire.
+// Calibration is specific to one user, on one device, in one placement, so
+// it is not meaningful anywhere else. `test/rep_local_only_test.dart` asserts
+// this positively against `sqlite_master` rather than by source grep.
+
+/// Single-row global rep-tracking consent and defaults.
+///
+/// [consentGrantedAt] is the master gate: null means the dedicated consent
+/// screen has not been completed and **no** rep-tracking code may run,
+/// regardless of any per-exercise preference row.
+@DataClassName('RepTrackingSettingData')
+class RepTrackingSettings extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  /// Null ⇒ consent screen not completed. The single authority for whether
+  /// the tracker may run at all.
+  DateTimeColumn get consentGrantedAt => dateTime().nullable()();
+
+  /// Bumping this in code forces re-consent when data handling changes.
+  IntColumn get consentVersion => integer().withDefault(const Constant(1))();
+
+  /// wrist | phone
+  TextColumn get defaultSource => text().nullable()();
+
+  /// pocket_front | armband | null. Must be non-null before the phone source
+  /// is usable (REP-02).
+  TextColumn get phonePlacement => text().nullable()();
+  BoolColumn get hapticsEnabled => boolean().withDefault(const Constant(true))();
+}
+
+/// Per-exercise opt-in, keyed by [ExerciseCatalog.slug] rather than by
+/// `exerciseId` so a catalogue re-import cannot orphan a preference.
+@DataClassName('RepTrackingExercisePrefData')
+class RepTrackingExercisePrefs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get exerciseSlug => text()();
+  BoolColumn get enabled => boolean().withDefault(const Constant(false))();
+
+  /// wrist | phone. Null ⇒ fall back to [RepTrackingSettings.defaultSource].
+  TextColumn get preferredSource => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {exerciseSlug},
+  ];
+}
+
+/// One row per confirmed set that had tracking active — the calibration
+/// training set 10-05 consumes.
+///
+/// **No raw sample column of any kind.** Raw accelerometer arrays live in
+/// memory for the duration of the set and are discarded at set end (REP-04);
+/// only the derived feature vector ([featuresJson]) and the user-confirmed
+/// outcome persist.
+@DataClassName('RepSetObservationData')
+class RepSetObservations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get exerciseSlug => text()();
+  IntColumn get sessionId => integer()();
+
+  /// Deliberately a plain nullable int and **not** a `references(...)` edge:
+  /// a discarded set must leave no dangling FK, and these rows must survive
+  /// set deletion so calibration history stays continuous.
+  IntColumn get setEntryId => integer().nullable()();
+  DateTimeColumn get recordedAt => dateTime()();
+
+  /// wrist | phone
+  TextColumn get source => text()();
+
+  /// pocket_front | armband | null (wrist source).
+  TextColumn get placement => text().nullable()();
+
+  /// linear_acceleration | accelerometer. Recorded because the two are not
+  /// interchangeable for calibration — a profile must not mix them.
+  TextColumn get sensorType => text()();
+  IntColumn get detectedReps => integer()();
+  IntColumn get confirmedReps => integer()();
+
+  /// 0–1.
+  RealColumn get confidence => real()();
+  IntColumn get suggestedRpeX10 => integer().nullable()();
+  IntColumn get confirmedRpeX10 => integer().nullable()();
+
+  /// The derived feature vector; its schema is owned by 10-02.
+  TextColumn get featuresJson => text()();
+}

@@ -1,6 +1,6 @@
 // RB-04 Phase 4: schema tooling. Verifies the hand-written `tables.dart`
 // declarations (as materialized by `AppDatabase`) match the schema drift_dev
-// dumped to `drift_schemas/drift_schema_v24.json`. `schema dump` only
+// dumped to `drift_schemas/drift_schema_v26.json`. `schema dump` only
 // captures the *current* version — there is no retroactive v1-v22 snapshot —
 // so this only proves "the code matches what was dumped", not a full
 // migration-chain replay. Re-run `dart run drift_dev schema dump
@@ -17,10 +17,10 @@ import 'support/test_database.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('current schema matches the v25 drift_schemas snapshot', () async {
+  test('current schema matches the v26 drift_schemas snapshot', () async {
     final db = await openTestDatabase();
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 25);
+    await verifier.migrateAndValidate(db, 26);
   });
 
   // With two dumped snapshots (v23, v24) now on disk, startAt(23) has real
@@ -31,7 +31,7 @@ void main() {
     final connection = await verifier.startAt(23);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 25);
+    await verifier.migrateAndValidate(db, 26);
   });
 
   // Phase 10 sync (v25) touches every synced table at once — this is the
@@ -41,6 +41,15 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 25);
+    await verifier.migrateAndValidate(db, 26);
+  });
+
+  // Phase 10 assisted rep tracking (v26) adds three local-only tables. Same
+  // generated-fixture replay as the v23/v24 blocks above, one step narrower.
+  test('upgrades cleanly from a generated v25 fixture', () async {
+    final connection = await verifier.startAt(25);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 26);
   });
 }
