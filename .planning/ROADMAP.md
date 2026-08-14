@@ -48,18 +48,20 @@
 
 **Success:** OCR parsing is editable and stores evidence/confidence; visual/internet analysis is opt-in, privacy-labelled and never bypasses the review screen.
 
-## Phase 8: Samsung Now Bar Live Update — Pending
+## Phase 9: Analytics consolidation and soft-delete correctness
 
-**Goal:** Turn the prepared ongoing-workout surface into a real Android 16 Live Update so One UI can promote the active workout into the Now Bar, and collapse the two competing notification publishers into one.
+**Goal:** Make Insights report one correct number per metric, sourced from the shared effective-load snapshot, and make sure sync tombstones (`deletedAt`) can never inflate analytics after a cross-device delete.
 
-**Requirements:** NOWBAR-01–03
+**Requirements:** ANLY-01–04
 
-**Success:** The renderer calls the real `requestPromotedOngoing(true)` / `ProgressStyle` / `setShortCriticalText` platform API on API 36+ instead of writing a reflective extras flag after `build()`; logcat reports `promotable=true`; a single publisher owns notification id 1 and the surface is no longer rebuilt at 1 Hz; the rest timer regains its own high-importance channel; the surface clears on workout end and on dispose. The snapshot contract, MethodChannel bridge, native action receiver, queue and Dart command helpers are unchanged — only the renderer boundary and the publish path move.
+**Success:** `analytics_providers.dart` has one recovery/CNS/balance/correlation data path (`trainingSnapshotProvider`), the legacy `muscle_recovery.dart` + `cns_fatigue.dart` engines and the duplicate recovery card in `insights_view.dart` are removed, every analytics query excludes soft-deleted rows, and push/pull + biometric-correlation cards use effective load (bands/chains/bodyweight included) instead of raw weight.
 
-**Depends on:** the existing Now Bar adapter layer under `android/app/src/main/kotlin/com/ams/herculex/nowbar/` and `docs/now-bar-native-adapter-contract.md`.
+## Later — Samsung Now Bar, recipe import, meal planning, social, voice
 
-## Later — Recipe import, meal planning, social, voice
+**Requirements:** NOWBAR-01–03, PLAN-01–02, SOC-01, VOICE-01
 
-**Requirements:** PLAN-01–02, SOC-01, VOICE-01
+- **Samsung Now Bar Live Update (Deferred to January):** Upgrade the ongoing workout surface into a native Android 16 (API 36) `requestPromotedOngoing(true)` / `ProgressStyle` Live Update and collapse notification publishers.
+- **Recipe import & meal planning**
+- **Social & voice**
 
-**Scope fence:** Do not add these before the local catalogue and trustworthy diary foundation are verified.
+**Scope fence:** Do not add these before the local catalogue, trustworthy diary foundation, and release blockers are verified.
