@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-08-04T15:41:13.853Z"
+last_updated: "2026-08-14T08:13:39.702Z"
 progress:
   total_phases: 7
-  completed_phases: 7
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  completed_phases: 6
+  total_plans: 6
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -19,7 +19,7 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-07-30)
 
 **Core value:** Fast, trustworthy local food logging.
-**Current focus:** Phase 08 — samsung-now-bar-live-update
+**Current focus:** RB-05 — Nutrition history immutability and catalog deletion handling.
 
 ## Progress
 
@@ -42,3 +42,12 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - Also found: Flutter and the native renderer both publish notification id 1 on channel `workout_live` once per second, so the native post always overwrites the Flutter fallback; the rest timer is silently downgraded by sharing that low-importance channel; and the bridge's `clear()` is never called on dispose.
 - Phase 8 (Samsung Now Bar Live Update) added to ROADMAP.md with NOWBAR-01–03 in REQUIREMENTS.md, plus CONTEXT and two plans: 08-01 rewrites the renderer against the real API 36 setters, 08-02 collapses the publish path and fixes the collateral issues.
 - Next implementation focus: `/gsd:execute-phase 8`.
+
+## Session update — 2026-08-14
+
+- Phase 8 (Samsung Now Bar) confirmed complete — all NOWBAR-01–03 requirements checked.
+- Audited `lib/features/analytics/` to scope a previously-undefined "Phase 9" (only referenced in passing by `10-CONTEXT.md`, absent from ROADMAP.md/REQUIREMENTS.md). Found: a duplicate legacy recovery card stacked with the v3 recovery card in `insights_view.dart`, a dead `cnsFatigueProvider`, five providers still doing independent unfiltered `setEntries` scans instead of the shared `trainingSnapshotProvider`, and — most importantly — zero soft-delete (`deletedAt`) filtering anywhere in analytics, a latent correctness bug for cross-device sync deletes.
+- Added Phase 9 (Analytics consolidation and soft-delete correctness) to ROADMAP.md and REQUIREMENTS.md (ANLY-01–04), ran phase discussion, and wrote `09-CONTEXT.md`.
+- Decisions locked: delete the legacy recovery card and `muscle_recovery.dart`/`cnsFatigueProvider` outright (no fallback); ship the effective-load number changes silently, no user-facing banner; verify soft-delete correctness with an automated regression test (acceptance gate for ANLY-03).
+- Note: `agents_installed` is false in this environment (no `gsd-planner`/`gsd-executor`/etc. under `.claude/agents/`) — `/gsd:plan-phase 9` may need those agents available before it can run.
+- Next implementation focus: `/gsd:plan-phase 9`.
