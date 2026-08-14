@@ -72,6 +72,18 @@ class RepCaptureService {
 
   final Map<String, _CaptureState> _captures = {};
 
+  /// **Debug-only.** Defaults to `null` in every production code path.
+  /// Assigned from exactly one place: 10-06's fixture-recording screen
+  /// (`lib/features/reps/presentation/fixture_recording_view.dart`), and
+  /// reset to `null` there in a `finally` after every debug capture. When
+  /// non-null, called with the reassembled wrist [MotionTrace] immediately
+  /// before the raw buffer is cleared at set end — never instead of clearing
+  /// it, and never affecting whether or how the buffer is cleared. A
+  /// throwing observer is swallowed so a bug in debug tooling can never break
+  /// production capture. Do not reference this field from anywhere else in
+  /// `lib/` — consent flow, live counter and review sheet must never see it.
+  void Function(String captureId, MotionTrace trace)? debugRawTraceObserver;
+
   final StreamController<TrackerState> _stateController =
       StreamController<TrackerState>.broadcast();
   final StreamController<RepSuggestion> _suggestionController =
@@ -298,6 +310,7 @@ class RepCaptureService {
       return;
     }
 
+    MotionTrace? trace;
     try {
       final orderedSeqs = capture.batchesBySeq.keys.toList()..sort();
       final maxSeq = orderedSeqs.last;
@@ -309,7 +322,7 @@ class RepCaptureService {
       final samples = <MotionSample>[
         for (final seq in orderedSeqs) ...capture.batchesBySeq[seq]!.samples,
       ];
-      final trace = MotionTrace(samples: samples, sensorType: capture.sensorType);
+      trace = MotionTrace(samples: samples, sensorType: capture.sensorType);
 
       // The single authoritative call. proposedReps is its output,
       // unconditionally — see the class doc and T-10-12.
@@ -361,6 +374,17 @@ class RepCaptureService {
       _suggestionController.add(suggestion);
       _stateController.add(state);
     } finally {
+      // Debug-only observer, called before the buffer is cleared — see
+      // [debugRawTraceObserver]'s doc comment. Runs inside its own try/catch
+      // so a bug in debug tooling can never stop the buffer from clearing.
+      final observedTrace = trace;
+      if (observedTrace != null) {
+        try {
+          debugRawTraceObserver?.call(captureId, observedTrace);
+        } catch (_) {
+          // Swallowed deliberately — see [debugRawTraceObserver] doc.
+        }
+      }
       // Cleared on every exit path, including an exception thrown by
       // _detect — REP-04's "discarded at set end" is enforced here, not
       // assumed.
