@@ -5,6 +5,7 @@ import '../../nutrition/data/wear_sync_service.dart';
 import '../domain/motion_sample.dart';
 import '../domain/rep_detector.dart';
 import '../domain/rep_features.dart';
+import '../domain/rep_movement.dart';
 import '../domain/rep_suggestion.dart';
 import '../domain/rep_tracking_eligibility.dart';
 
@@ -97,6 +98,98 @@ class RepCaptureService {
   void abort(String captureId, {String reason = 'capture aborted'}) {
     _captures.remove(captureId);
     _emitManual(reason);
+  }
+
+  /// The `captureId` currently accumulating batches for [exerciseSlug], or
+  /// null when nothing is in flight for it. 10-04's tracker panel uses this
+  /// so a phone-side "Stop" tap can abort the matching wrist capture — the
+  /// watch is the only device that can end a wrist capture normally, but the
+  /// phone still needs a way to cancel one the user changed their mind about.
+  String? activeCaptureIdFor(String exerciseSlug) {
+    for (final entry in _captures.entries) {
+      if (entry.value.exerciseSlug == exerciseSlug) return entry.key;
+    }
+    return null;
+  }
+
+  /// Builds a [RepSuggestion] from a phone-captured [trace] — the
+  /// counterpart to the wrist bridge's `_handleCaptureEnd` above, added by
+  /// 10-04 to answer the question 10-03b's summary left open ("how a
+  /// phone-sourced trace reaches detection"). There is no on-device
+  /// provisional count on this path (that only exists on the watch), so
+  /// [RepSuggestion.provisionalCount] is always null and
+  /// [RepSuggestion.provisionalDisagrees] is always false.
+  ///
+  /// Like the wrist path, this only ever proposes — it calls the same
+  /// authoritative [RepDetector] and never touches anything under
+  /// `lib/features/workouts/`.
+  RepSuggestion buildPhoneSuggestion({
+    required String captureId,
+    required String exerciseSlug,
+    required MotionTrace trace,
+    required String placement,
+    required String stoppedReason,
+  }) {
+    final movement = movementFor(exerciseSlug);
+    if (movement == null || trace.samples.isEmpty) {
+      return RepSuggestion(
+        captureId: captureId,
+        exerciseSlug: exerciseSlug,
+        movement: movement ?? RepMovement.pullUp,
+        source: 'phone',
+        placement: placement,
+        sensorType: trace.sensorType,
+        proposedReps: 0,
+        provisionalCount: null,
+        provisionalDisagrees: false,
+        setConfidence: 0,
+        confidenceBand: ConfidenceBand.low,
+        missedRepSuspected: false,
+        missedBatches: 0,
+        sampleCount: trace.samples.length,
+        coverageRatio: 0,
+        featuresJson: null,
+        state: TrackerState.manual,
+        stateReason: 'nothing captured — count not verified',
+      );
+    }
+
+    final result =
+        _detect(trace, config: RepDetectorConfig.forMovement(movement));
+    var band = RepSuggestion.bandFor(result.setConfidence);
+    // A cap-truncated (or otherwise non-'user'-ended) capture is incomplete,
+    // the same treatment 10-03b's notes give a non-'user' stoppedReason on
+    // the wrist path.
+    final incomplete = stoppedReason != 'user';
+    if (incomplete) band = band.lowerByOne();
+
+    final isLowConfidence = band == ConfidenceBand.low;
+    final state =
+        isLowConfidence ? TrackerState.countOnly : TrackerState.tracking;
+    final reason = isLowConfidence
+        ? 'low confidence — reps proposed, no RPE suggestion'
+        : (incomplete ? 'capture ended early ($stoppedReason)' : null);
+
+    return RepSuggestion(
+      captureId: captureId,
+      exerciseSlug: exerciseSlug,
+      movement: movement,
+      source: 'phone',
+      placement: placement,
+      sensorType: trace.sensorType,
+      proposedReps: result.repCount,
+      provisionalCount: null,
+      provisionalDisagrees: false,
+      setConfidence: result.setConfidence,
+      confidenceBand: band,
+      missedRepSuspected: result.missedRepSuspected,
+      missedBatches: 0,
+      sampleCount: trace.samples.length,
+      coverageRatio: 1.0,
+      featuresJson: RepFeatures.fromResult(result).toJson(),
+      state: state,
+      stateReason: reason,
+    );
   }
 
   void dispose() {
