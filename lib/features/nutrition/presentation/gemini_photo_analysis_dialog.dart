@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,11 +9,6 @@ import '../domain/meal.dart';
 import 'nutrition_providers.dart';
 
 class GeminiPhotoAnalysisDialog extends ConsumerStatefulWidget {
-  final File imageFile;
-  final Meal meal;
-  final String? mealKey;
-  final DateTime date;
-
   const GeminiPhotoAnalysisDialog({
     super.key,
     required this.imageFile,
@@ -20,6 +16,11 @@ class GeminiPhotoAnalysisDialog extends ConsumerStatefulWidget {
     this.mealKey,
     required this.date,
   });
+
+  final File imageFile;
+  final Meal meal;
+  final String? mealKey;
+  final DateTime date;
 
   static Future<bool?> show(
     BuildContext context, {
@@ -56,22 +57,11 @@ class _GeminiPhotoAnalysisDialogState
   final _carbsCtrl = TextEditingController();
   final _fatCtrl = TextEditingController();
   final _fiberCtrl = TextEditingController();
-  final _apiKeyCtrl = TextEditingController();
 
   bool _analyzing = false;
   bool _saving = false;
-  bool _showApiKeyInput = false;
   String? _error;
   GeminiFoodAnalysisResult? _result;
-
-  @override
-  void initState() {
-    super.initState();
-    final analyzer = ref.read(geminiFoodAnalyzerServiceProvider);
-    if (analyzer.hasCustomApiKey) {
-      _apiKeyCtrl.text = analyzer.apiKey;
-    }
-  }
 
   @override
   void dispose() {
@@ -83,7 +73,6 @@ class _GeminiPhotoAnalysisDialogState
     _carbsCtrl.dispose();
     _fatCtrl.dispose();
     _fiberCtrl.dispose();
-    _apiKeyCtrl.dispose();
     super.dispose();
   }
 
@@ -95,7 +84,7 @@ class _GeminiPhotoAnalysisDialogState
 
     try {
       final analyzer = ref.read(geminiFoodAnalyzerServiceProvider);
-      final res = await analyzer.analyzeFoodPhoto(
+      final result = await analyzer.analyzeFoodPhoto(
         imageFile: widget.imageFile,
         userNote: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
       );
@@ -103,28 +92,20 @@ class _GeminiPhotoAnalysisDialogState
       if (!mounted) return;
       setState(() {
         _analyzing = false;
-        _result = res;
-        _nameCtrl.text = res.name;
-        _gramsCtrl.text = res.estimatedServingGrams.toStringAsFixed(0);
-        _kcalCtrl.text = res.kcalPer100g.toStringAsFixed(0);
-        _proteinCtrl.text = res.proteinPer100g.toStringAsFixed(1);
-        _carbsCtrl.text = res.carbsPer100g.toStringAsFixed(1);
-        _fatCtrl.text = res.fatPer100g.toStringAsFixed(1);
-        _fiberCtrl.text = (res.fiberPer100g ?? 0).toStringAsFixed(1);
+        _result = result;
+        _nameCtrl.text = result.name;
+        _gramsCtrl.text = result.estimatedServingGrams.toStringAsFixed(0);
+        _kcalCtrl.text = result.kcalPer100g.toStringAsFixed(0);
+        _proteinCtrl.text = result.proteinPer100g.toStringAsFixed(1);
+        _carbsCtrl.text = result.carbsPer100g.toStringAsFixed(1);
+        _fatCtrl.text = result.fatPer100g.toStringAsFixed(1);
+        _fiberCtrl.text = (result.fiberPer100g ?? 0).toStringAsFixed(1);
       });
     } catch (e) {
       if (!mounted) return;
-      final errStr = e.toString().replaceAll('Exception: ', '');
-      final isKeyErr = errStr.contains('401') ||
-          errStr.contains('API ključ') ||
-          errStr.contains('UNAUTHENTICATED') ||
-          errStr.contains('ACCESS_TOKEN_TYPE_UNSUPPORTED');
       setState(() {
         _analyzing = false;
-        _error = errStr;
-        if (isKeyErr) {
-          _showApiKeyInput = true;
-        }
+        _error = e.toString().replaceAll('Exception: ', '');
       });
     }
   }
@@ -173,7 +154,7 @@ class _GeminiPhotoAnalysisDialogState
     }
   }
 
-  Color _getRatingColor(double rating) {
+  Color _ratingColor(double rating) {
     if (rating >= 8.0) return Colors.green.shade600;
     if (rating >= 6.0) return Colors.amber.shade700;
     return Colors.orange.shade800;
@@ -221,18 +202,6 @@ class _GeminiPhotoAnalysisDialogState
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: Icon(
-                      _showApiKeyInput ? Icons.key : Icons.key_outlined,
-                      color: _showApiKeyInput ? AppColors.primary : null,
-                    ),
-                    tooltip: 'Vnesite Gemini API ključ',
-                    onPressed: () {
-                      setState(() {
-                        _showApiKeyInput = !_showApiKeyInput;
-                      });
-                    },
-                  ),
-                  IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -245,7 +214,6 @@ class _GeminiPhotoAnalysisDialogState
                 controller: controller,
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Photo preview card
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
@@ -261,111 +229,11 @@ class _GeminiPhotoAnalysisDialogState
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  if (_showApiKeyInput) ...[
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.key, color: AppColors.primary, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Gemini API Ključ',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Vnesite svoj Google Gemini API ključ (začne se z AIzaSy...). Brezplačen ključ lahko ustvarite na aistudio.google.com.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.secondary,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _apiKeyCtrl,
-                            decoration: InputDecoration(
-                              hintText: 'Vnesite API ključ (AIzaSy...)',
-                              filled: true,
-                              fillColor: AppColors.surfaceContainer,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: () async {
-                                final key = _apiKeyCtrl.text.trim();
-                                if (key.isNotEmpty) {
-                                  final analyzer = ref.read(
-                                    geminiFoodAnalyzerServiceProvider,
-                                  );
-                                  await analyzer.setApiKey(key);
-                                  setState(() {
-                                    _error = null;
-                                    _showApiKeyInput = false;
-                                  });
-                                  _startAnalysis();
-                                }
-                              },
-                              icon: const Icon(Icons.check, size: 18),
-                              label: const Text('Shrani ključ in analiziraj'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
                   if (_error != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade900.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.error_outline, color: Colors.red.shade300),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _error!,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.red.shade300,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    _ErrorPanel(error: _error!),
                     const SizedBox(height: 16),
                   ],
-
                   if (_result == null && !_analyzing) ...[
-                    // Step 1: Note prompt & Start Analysis button
                     Text(
                       'Opomba / Sestava hrane (neobvezno)',
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -374,7 +242,7 @@ class _GeminiPhotoAnalysisDialogState
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Dodajte opombo o količini ali sestavinah (npr. "200g piščančji zrezek z rižem in solato"), da bo Gemini natančneje ocenil obrok.',
+                      'Dodajte opombo o kolicini ali sestavinah, da bo analiza natancnejsa.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.secondary,
                       ),
@@ -384,8 +252,7 @@ class _GeminiPhotoAnalysisDialogState
                       controller: _noteCtrl,
                       maxLines: 2,
                       decoration: InputDecoration(
-                        hintText:
-                            'Napišite opombo (npr. 150g riža, 2 jajci)...',
+                        hintText: 'Napisite opombo (npr. 150g riza, 2 jajci)',
                         filled: true,
                         fillColor: AppColors.surfaceContainer,
                         border: OutlineInputBorder(
@@ -417,7 +284,6 @@ class _GeminiPhotoAnalysisDialogState
                       ),
                     ),
                   ] else if (_analyzing) ...[
-                    // Step 2: Loading State
                     const SizedBox(height: 40),
                     Center(
                       child: Column(
@@ -430,7 +296,7 @@ class _GeminiPhotoAnalysisDialogState
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Računanje hranilnih vrednosti in ocene obroka',
+                            'Racunanje hranilnih vrednosti in ocene obroka',
                             style: TextStyle(
                               color: AppColors.secondary,
                               fontSize: 12,
@@ -441,69 +307,11 @@ class _GeminiPhotoAnalysisDialogState
                     ),
                     const SizedBox(height: 40),
                   ] else if (_result != null) ...[
-                    // Step 3: Analysis Result & Confirm/Edit
-                    // Quality Rating Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _getRatingColor(
-                          _result!.rating,
-                        ).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: _getRatingColor(
-                            _result!.rating,
-                          ).withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getRatingColor(_result!.rating),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.star,
-                                      size: 16,
-                                      color: Colors.white,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Ocena hrane: ${_result!.rating.toStringAsFixed(1)} / 10',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _result!.ratingReason,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              height: 1.3,
-                            ),
-                          ),
-                        ],
-                      ),
+                    _RatingPanel(
+                      result: _result!,
+                      color: _ratingColor(_result!.rating),
                     ),
                     const SizedBox(height: 20),
-
                     Text(
                       'Podrobnosti obroka',
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -511,125 +319,67 @@ class _GeminiPhotoAnalysisDialogState
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    TextField(
-                      controller: _nameCtrl,
-                      decoration: InputDecoration(
-                        labelText: 'Ime hrane',
-                        filled: true,
-                        fillColor: AppColors.surfaceContainer,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
+                    _NumberField(controller: _nameCtrl, label: 'Ime hrane'),
                     const SizedBox(height: 12),
-
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: _NumberField(
                             controller: _gramsCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Celotna masa (g)',
-                              suffixText: 'g',
-                              filled: true,
-                              fillColor: AppColors.surfaceContainer,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            label: 'Celotna masa (g)',
+                            suffix: 'g',
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: TextField(
+                          child: _NumberField(
                             controller: _kcalCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Kalorije / 100g',
-                              suffixText: 'kcal',
-                              filled: true,
-                              fillColor: AppColors.surfaceContainer,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            label: 'Kalorije / 100g',
+                            suffix: 'kcal',
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-
                     Text(
-                      'Makronutraienti (na 100g)',
+                      'Makronutrienti (na 100g)',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.secondary,
                       ),
                     ),
                     const SizedBox(height: 8),
-
                     Row(
                       children: [
                         Expanded(
-                          child: TextField(
+                          child: _NumberField(
                             controller: _proteinCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: 'Beljakovine',
-                              suffixText: 'g',
-                              filled: true,
-                              fillColor: AppColors.surfaceContainer,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            label: 'Beljakovine',
+                            suffix: 'g',
+                            decimal: true,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: TextField(
+                          child: _NumberField(
                             controller: _carbsCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: 'Oglj. hidrati',
-                              suffixText: 'g',
-                              filled: true,
-                              fillColor: AppColors.surfaceContainer,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            label: 'Oglj. hidrati',
+                            suffix: 'g',
+                            decimal: true,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: TextField(
+                          child: _NumberField(
                             controller: _fatCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: 'Maščobe',
-                              suffixText: 'g',
-                              filled: true,
-                              fillColor: AppColors.surfaceContainer,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            label: 'Mascobe',
+                            suffix: 'g',
+                            decimal: true,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -654,11 +404,7 @@ class _GeminiPhotoAnalysisDialogState
                     const SizedBox(height: 12),
                     Center(
                       child: TextButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _result = null;
-                          });
-                        },
+                        onPressed: () => setState(() => _result = null),
                         icon: const Icon(Icons.refresh, size: 18),
                         label: const Text('Ponovno analiziraj sliko'),
                       ),
@@ -669,6 +415,122 @@ class _GeminiPhotoAnalysisDialogState
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ErrorPanel extends StatelessWidget {
+  const _ErrorPanel({required this.error});
+
+  final String error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade900.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red.shade300),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              error,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.red.shade300),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RatingPanel extends StatelessWidget {
+  const _RatingPanel({required this.result, required this.color});
+
+  final GeminiFoodAnalysisResult result;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.star, size: 16, color: Colors.white),
+                const SizedBox(width: 4),
+                Text(
+                  'Ocena hrane: ${result.rating.toStringAsFixed(1)} / 10',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            result.ratingReason,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(height: 1.3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NumberField extends StatelessWidget {
+  const _NumberField({
+    required this.controller,
+    required this.label,
+    this.suffix,
+    this.decimal = false,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String? suffix;
+  final bool decimal;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: suffix == null
+          ? TextInputType.text
+          : TextInputType.numberWithOptions(decimal: decimal),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: suffix,
+        filled: true,
+        fillColor: AppColors.surfaceContainer,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

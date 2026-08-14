@@ -17,10 +17,10 @@ import 'support/test_database.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('current schema matches the v24 drift_schemas snapshot', () async {
+  test('current schema matches the v25 drift_schemas snapshot', () async {
     final db = await openTestDatabase();
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 24);
+    await verifier.migrateAndValidate(db, 25);
   });
 
   // With two dumped snapshots (v23, v24) now on disk, startAt(23) has real
@@ -31,6 +31,16 @@ void main() {
     final connection = await verifier.startAt(23);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 24);
+    await verifier.migrateAndValidate(db, 25);
+  });
+
+  // Phase 10 sync (v25) touches every synced table at once — this is the
+  // widest single migration step yet, so it gets its own generated-fixture
+  // replay in addition to the v23 one above.
+  test('upgrades cleanly from a generated v24 fixture', () async {
+    final connection = await verifier.startAt(24);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 25);
   });
 }

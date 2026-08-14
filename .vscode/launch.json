@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Herculex (Supabase)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": [
+                "--dart-define=SUPABASE_URL=https://jioesomepkauponjrena.supabase.co",
+                "--dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imppb2Vzb21lcGthdXBvbmpyZW5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MzAyMDUsImV4cCI6MjEwMjEwNjIwNX0.aTDAh41HZypdjkPBiYKmJDkKgP57pAoh2I6wwk0i08g"
+            ]
+        },
+        {
+            "name": "Herculex (local-only, no backend)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart"
+        }
+    ]
+}

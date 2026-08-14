@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
 import '../../../widgets/glass_container.dart';
+import '../domain/health_read_state.dart';
 import 'health_providers.dart';
 
 enum HealthPlatform { samsung, apple, google }
@@ -72,58 +73,127 @@ class _HealthPlatformDetailViewState
     switch (widget.platform) {
       case HealthPlatform.samsung:
         return [
-          _CategoryItem('Hrana in makrohranila', Icons.restaurant_rounded,
-              samsungHealthSyncFoodProvider),
-          _CategoryItem('Voda in hidracija', Icons.water_drop_rounded,
-              samsungHealthSyncWaterProvider),
-          _CategoryItem('Dnevni koraki', Icons.directions_walk_rounded,
-              samsungHealthSyncStepsProvider),
-          _CategoryItem('Vadbe in kardio', Icons.fitness_center_rounded,
-              samsungHealthSyncWorkoutsProvider),
-          _CategoryItem('Spanec in faze spanca', Icons.bedtime_rounded,
-              samsungHealthSyncSleepProvider),
-          _CategoryItem('Srčni utrip, HRV in biometrija', Icons.favorite_rounded,
-              samsungHealthSyncBiometricsProvider),
-          _CategoryItem('Telesna teža', Icons.monitor_weight_rounded,
-              samsungHealthSyncWeightProvider),
+          _CategoryItem(
+            'Hrana in makrohranila',
+            Icons.restaurant_rounded,
+            samsungHealthSyncFoodProvider,
+          ),
+          _CategoryItem(
+            'Voda in hidracija',
+            Icons.water_drop_rounded,
+            samsungHealthSyncWaterProvider,
+          ),
+          _CategoryItem(
+            'Dnevni koraki',
+            Icons.directions_walk_rounded,
+            samsungHealthSyncStepsProvider,
+          ),
+          _CategoryItem(
+            'Vadbe in kardio',
+            Icons.fitness_center_rounded,
+            samsungHealthSyncWorkoutsProvider,
+          ),
+          _CategoryItem(
+            'Spanec in faze spanca',
+            Icons.bedtime_rounded,
+            samsungHealthSyncSleepProvider,
+          ),
+          _CategoryItem(
+            'Srčni utrip, HRV in biometrija',
+            Icons.favorite_rounded,
+            samsungHealthSyncBiometricsProvider,
+          ),
+          _CategoryItem(
+            'Telesna teža',
+            Icons.monitor_weight_rounded,
+            samsungHealthSyncWeightProvider,
+          ),
         ];
       case HealthPlatform.apple:
         return [
-          _CategoryItem('Hrana in makrohranila', Icons.restaurant_rounded,
-              appleHealthSyncFoodProvider),
-          _CategoryItem('Voda in hidracija', Icons.water_drop_rounded,
-              appleHealthSyncWaterProvider),
-          _CategoryItem('Dnevni koraki', Icons.directions_walk_rounded,
-              appleHealthSyncStepsProvider),
-          _CategoryItem('Vadbe in kardio', Icons.fitness_center_rounded,
-              appleHealthSyncWorkoutsProvider),
-          _CategoryItem('Spanec in faze spanca', Icons.bedtime_rounded,
-              appleHealthSyncSleepProvider),
-          _CategoryItem('Srčni utrip, HRV in biometrija', Icons.favorite_rounded,
-              appleHealthSyncBiometricsProvider),
-          _CategoryItem('Telesna teža', Icons.monitor_weight_rounded,
-              appleHealthSyncWeightProvider),
-          _CategoryItem('Mindfulness in dihanje', Icons.self_improvement_rounded,
-              appleHealthSyncMindfulnessProvider),
+          _CategoryItem(
+            'Hrana in makrohranila',
+            Icons.restaurant_rounded,
+            appleHealthSyncFoodProvider,
+          ),
+          _CategoryItem(
+            'Voda in hidracija',
+            Icons.water_drop_rounded,
+            appleHealthSyncWaterProvider,
+          ),
+          _CategoryItem(
+            'Dnevni koraki',
+            Icons.directions_walk_rounded,
+            appleHealthSyncStepsProvider,
+          ),
+          _CategoryItem(
+            'Vadbe in kardio',
+            Icons.fitness_center_rounded,
+            appleHealthSyncWorkoutsProvider,
+          ),
+          _CategoryItem(
+            'Spanec in faze spanca',
+            Icons.bedtime_rounded,
+            appleHealthSyncSleepProvider,
+          ),
+          _CategoryItem(
+            'Srčni utrip, HRV in biometrija',
+            Icons.favorite_rounded,
+            appleHealthSyncBiometricsProvider,
+          ),
+          _CategoryItem(
+            'Telesna teža',
+            Icons.monitor_weight_rounded,
+            appleHealthSyncWeightProvider,
+          ),
+          _CategoryItem(
+            'Mindfulness in dihanje',
+            Icons.self_improvement_rounded,
+            appleHealthSyncMindfulnessProvider,
+          ),
         ];
       case HealthPlatform.google:
         return [
-          _CategoryItem('Hrana in makrohranila', Icons.restaurant_rounded,
-              googleHealthSyncFoodProvider),
-          _CategoryItem('Voda in hidracija', Icons.water_drop_rounded,
-              googleHealthSyncWaterProvider),
-          _CategoryItem('Dnevni koraki', Icons.directions_walk_rounded,
-              googleHealthSyncStepsProvider),
-          _CategoryItem('Vadbe in kardio', Icons.fitness_center_rounded,
-              googleHealthSyncWorkoutsProvider),
-          _CategoryItem('Spanec in faze spanca', Icons.bedtime_rounded,
-              googleHealthSyncSleepProvider),
-          _CategoryItem('Srčni utrip, HRV in biometrija', Icons.favorite_rounded,
-              googleHealthSyncBiometricsProvider),
-          _CategoryItem('Telesna teža', Icons.monitor_weight_rounded,
-              googleHealthSyncWeightProvider),
-          _CategoryItem('Nasičenost s kisikom (SpO₂)', Icons.air_rounded,
-              googleHealthSyncBloodOxygenProvider),
+          _CategoryItem(
+            'Hrana in makrohranila',
+            Icons.restaurant_rounded,
+            googleHealthSyncFoodProvider,
+          ),
+          _CategoryItem(
+            'Voda in hidracija',
+            Icons.water_drop_rounded,
+            googleHealthSyncWaterProvider,
+          ),
+          _CategoryItem(
+            'Dnevni koraki',
+            Icons.directions_walk_rounded,
+            googleHealthSyncStepsProvider,
+          ),
+          _CategoryItem(
+            'Vadbe in kardio',
+            Icons.fitness_center_rounded,
+            googleHealthSyncWorkoutsProvider,
+          ),
+          _CategoryItem(
+            'Spanec in faze spanca',
+            Icons.bedtime_rounded,
+            googleHealthSyncSleepProvider,
+          ),
+          _CategoryItem(
+            'Srčni utrip, HRV in biometrija',
+            Icons.favorite_rounded,
+            googleHealthSyncBiometricsProvider,
+          ),
+          _CategoryItem(
+            'Telesna teža',
+            Icons.monitor_weight_rounded,
+            googleHealthSyncWeightProvider,
+          ),
+          _CategoryItem(
+            'Nasičenost s kisikom (SpO₂)',
+            Icons.air_rounded,
+            googleHealthSyncBloodOxygenProvider,
+          ),
         ];
     }
   }
@@ -165,19 +235,40 @@ class _HealthPlatformDetailViewState
 
   Future<void> _syncNow() async {
     setState(() => _isSyncing = true);
-    await ref.read(healthServiceProvider).runDailySync();
+    final result = await ref.read(healthServiceProvider).runDailySync();
+    ref.read(lastDailyHealthReadProvider.notifier).state = result;
     ref.read(lastHealthSyncTimestampProvider.notifier).state = DateTime.now();
     if (!mounted) return;
     setState(() => _isSyncing = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$_title uspešno sinhroniziran! 🍃'),
-        backgroundColor: _accentColor,
+        content: Text(_syncMessage(result)),
+        backgroundColor: result.hasAnyAvailableMetric
+            ? _accentColor
+            : Theme.of(context).colorScheme.error,
       ),
     );
   }
 
   // ─── Build ────────────────────────────────────────────────────────────────
+
+  String _syncMessage(DailyHealthRead result) {
+    if (result.hasAnyAvailableMetric) {
+      return '$_title sinhroniziran.';
+    }
+    switch (result.overallStatus) {
+      case HealthReadStatus.denied:
+        return 'Dostop do $_title je zavrnjen.';
+      case HealthReadStatus.unavailable:
+        return '$_title na tej napravi ni na voljo.';
+      case HealthReadStatus.error:
+        return 'Branje iz $_title ni uspelo.';
+      case HealthReadStatus.empty:
+        return 'V $_title ni podatkov za izbrano obdobje.';
+      case HealthReadStatus.available:
+        return '$_title sinhroniziran.';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,8 +285,10 @@ class _HealthPlatformDetailViewState
       appBar: AppBar(
         title: Text(
           _title.toUpperCase(),
-          style: theme.textTheme.titleMedium
-              ?.copyWith(letterSpacing: 2.0, fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            letterSpacing: 2.0,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -261,7 +354,8 @@ class _HealthPlatformDetailViewState
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
                 icon: _isSyncing
@@ -269,13 +363,17 @@ class _HealthPlatformDetailViewState
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.sync_rounded, size: 20),
                 label: Text(
                   _isSyncing ? 'Sinhroniziranje...' : 'Sinhroniziraj sedaj',
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
@@ -288,7 +386,11 @@ class _HealthPlatformDetailViewState
   // ─── Sub-widgets ──────────────────────────────────────────────────────────
 
   Widget _buildHeaderCard(
-      ThemeData theme, bool isConnected, DateTime? lastSync, String key) {
+    ThemeData theme,
+    bool isConnected,
+    DateTime? lastSync,
+    String key,
+  ) {
     final accent = _accentColor;
 
     return GlassContainer(
@@ -312,14 +414,17 @@ class _HealthPlatformDetailViewState
                   children: [
                     Text(
                       _title,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _description,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: AppColors.secondary, height: 1.4),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                        height: 1.4,
+                      ),
                     ),
                   ],
                 ),
@@ -343,11 +448,12 @@ class _HealthPlatformDetailViewState
                 child: Text(
                   isConnected
                       ? lastSync != null
-                          ? 'Zadnji sync: ${_formatTime(lastSync)}'
-                          : 'Povezano — ni prejšnjih sinhronizacij'
+                            ? 'Zadnji sync: ${_formatTime(lastSync)}'
+                            : 'Povezano — ni prejšnjih sinhronizacij'
                       : 'Ni povežano — vklopi, da dovoliš dostop',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: AppColors.secondary),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
                 ),
               ),
               // Connection toggle
@@ -369,7 +475,8 @@ class _HealthPlatformDetailViewState
                   side: BorderSide(color: accent.withValues(alpha: 0.5)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 icon: const Icon(Icons.link_rounded, size: 18),
                 label: const Text(
@@ -418,16 +525,16 @@ class _HealthPlatformDetailViewState
           Expanded(
             child: Text(
               item.label,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w500),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           Switch(
             value: value,
             activeThumbColor: _accentColor,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            onChanged: (v) =>
-                ref.read(item.provider.notifier).state = v,
+            onChanged: (v) => ref.read(item.provider.notifier).state = v,
           ),
         ],
       ),
@@ -457,12 +564,19 @@ class _HealthPlatformDetailViewState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600)),
-              Text(subtitle,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: AppColors.secondary, fontSize: 11)),
+              Text(
+                title,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                  fontSize: 11,
+                ),
+              ),
             ],
           ),
         ),
@@ -490,8 +604,9 @@ class _HealthPlatformDetailViewState
 
   void _toggleConnection(String key, bool connect) async {
     if (connect) {
-      final success =
-          await ref.read(healthServiceProvider).requestPermissions(key);
+      final success = await ref
+          .read(healthServiceProvider)
+          .requestPermissions(key);
       if (success) {
         final current = ref.read(healthPermissionStatusProvider);
         ref.read(healthPermissionStatusProvider.notifier).state = {

@@ -9,7 +9,7 @@ class FastingRepository {
 
   FastingRepository(this._db, this._clock);
 
-  Future<int> startSession(int targetSeconds) async {
+  Future<int> startSession(int targetSeconds, {DateTime? customStartTime}) async {
     // Ensure we don't have another active session running. If we do, close it.
     final active = await (_db.select(
       _db.fastingSessions,
@@ -22,7 +22,7 @@ class FastingRepository {
         .into(_db.fastingSessions)
         .insert(
           FastingSessionsCompanion.insert(
-            startedAt: _clock.now(),
+            startedAt: customStartTime ?? _clock.now(),
             targetSeconds: targetSeconds,
             completed: const Value(false),
           ),
@@ -56,6 +56,27 @@ class FastingRepository {
 
   Future<void> deleteSession(int id) async {
     await (_db.delete(_db.fastingSessions)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> updateSessionStartTime(int id, DateTime newStartTime) async {
+    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(id))).write(
+      FastingSessionsCompanion(startedAt: Value(newStartTime)),
+    );
+  }
+
+  Future<void> updateSessionTarget(int id, int targetSeconds) async {
+    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(id))).write(
+      FastingSessionsCompanion(targetSeconds: Value(targetSeconds)),
+    );
+  }
+
+  Future<void> updateSessionCompletion(int id, bool completed, {DateTime? endedAt}) async {
+    await (_db.update(_db.fastingSessions)..where((t) => t.id.equals(id))).write(
+      FastingSessionsCompanion(
+        completed: Value(completed),
+        endedAt: endedAt == null ? const Value.absent() : Value(endedAt),
+      ),
+    );
   }
 
   Stream<FastingSessionData?> watchActiveSession() {

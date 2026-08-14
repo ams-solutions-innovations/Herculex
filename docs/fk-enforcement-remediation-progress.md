@@ -20,6 +20,8 @@ Foreign Keys Are Disabled".
    gotchas hit, and what was verified.
 4. Do the next `pending` phase. Update this file's Status table and add a
    log entry when done, following the existing entries' format.
+5. Before closing RB-04, run the dedicated device verification plan in
+   `docs/rb04-device-verification-plan.md`.
 
 ## Status
 
@@ -30,6 +32,7 @@ Foreign Keys Are Disabled".
 | 2 | Orphan repair migration (schema v23) | **Done** | 2026-08-11 |
 | 3 | Flip the pragma | **Done** | 2026-08-11 |
 | 4 | Schema tooling + doc bookkeeping | **Done** | 2026-08-11 |
+| 5 | Manual device upgrade + UI delete-path verification | **Planned** | 2026-08-13 |
 
 ---
 

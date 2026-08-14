@@ -319,6 +319,7 @@ class TemplatesRepository {
     DateTime? startedAt,
     int? gymId,
     String? notes,
+    double volumeFactor = 1.0,
   }) async {
     final exercises = await (_db.select(_db.templateExercises)
           ..where((t) => t.templateId.equals(templateId))
@@ -345,11 +346,21 @@ class TemplatesRepository {
 
         final templateSets = await getTemplateSets(te.id);
         if (templateSets.isNotEmpty) {
-          for (final ts in templateSets) {
+          final warmups = templateSets.where((s) => s.isWarmup).toList();
+          final working = templateSets.where((s) => !s.isWarmup).toList();
+          final targetWorkingCount = volumeFactor < 1.0 && working.isNotEmpty
+              ? (working.length * volumeFactor).ceil().clamp(1, working.length)
+              : working.length;
+          final adjustedWorking = working.take(targetWorkingCount).toList();
+          final setsToInsert = [...warmups, ...adjustedWorking]
+            ..sort((a, b) => a.setOrder.compareTo(b.setOrder));
+
+          var idx = 1;
+          for (final ts in setsToInsert) {
             await _db.into(_db.setEntries).insert(
                   SetEntriesCompanion.insert(
                     workoutExerciseId: workoutExerciseId,
-                    setIndex: ts.setOrder,
+                    setIndex: idx++,
                     reps: ts.targetReps ?? te.targetRepsMin ?? 0,
                     weightKg: ts.targetWeightKg ?? 0.0,
                     setType: Value(ts.setType),
@@ -362,7 +373,10 @@ class TemplatesRepository {
         } else {
           // Fallback if no sets
           final defaultReps = te.targetRepsMin ?? 8;
-          for (var i = 0; i < te.targetSets; i++) {
+          final setsCount = volumeFactor < 1.0 && te.targetSets > 1
+              ? (te.targetSets * volumeFactor).ceil().clamp(1, te.targetSets)
+              : te.targetSets;
+          for (var i = 0; i < setsCount; i++) {
             await _db.into(_db.setEntries).insert(
                   SetEntriesCompanion.insert(
                     workoutExerciseId: workoutExerciseId,

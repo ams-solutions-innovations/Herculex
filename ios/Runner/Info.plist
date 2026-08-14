@@ -6,6 +6,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan food barcodes to log meals quickly.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Sync daily steps, active calories, sleep, and heart rate to provide accurate workout and nutrition recommendations.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Record completed workouts, hydration, and nutrition data to Apple Health.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

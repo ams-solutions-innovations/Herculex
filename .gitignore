@@ -7,9 +7,15 @@ supabase/.temp/
 supabase/.branches/
 .env
 .env.*
+# Credentials for the live sync round trip (test/sync/live_round_trip_test.dart).
+# Real account passwords — never committed. See docs/rb02-sync-verification.md.
+.secrets/
 
 # Kotlin incremental-compile cache (created by direct gradlew invocations)
 android/.kotlin/
+
+# Node deps for the Supabase CLI devDependency (package.json)
+node_modules/
 
 # Miscellaneous
 *.class

@@ -1,77 +1,75 @@
-# Herculex Watch Sync Context
+# Herculex Context
 
-Date: 2026-08-02
+Last updated: 2026-08-13
 
-## Recent Focus
+## What Herculex is
 
-We debugged active workout synchronization between the Flutter phone app and the native Wear OS app.
+A local-first Flutter workout + nutrition tracker (MyFitnessPal + Hevy +
+cycle/recovery intelligence), with an optional Supabase cloud sync layer.
+Phone (Flutter/Dart) + a native Wear OS companion app. See `HANDOFF.md` for
+the full feature roadmap (Phases 1–11) — that document is stale on sync status
+specifically (still says Phase 10 "NOT STARTED"); this file is the current
+source of truth for sync.
 
-The user observed:
-- Adding an exercise on the watch synced successfully to the phone.
-- Adding an exercise on the phone did not sync to the watch.
-- Earlier behavior looked like sync worked once, then stopped.
+## Current state: RB-02 (cloud sync) is closed
 
-## Relevant Architecture
+The 2026-08-10 audit (`docs/app-audit-report-2026-08-10.md`) flagged that
+cloud sync reported success without ever contacting a backend. That's fixed
+and, as of this session, **proven against the live Supabase project**, not
+just against a fake:
 
-- Phone Flutter/Dart sync facade:
-  - `lib/features/workouts/data/wear_workout_sync_service.dart`
-  - `lib/features/workouts/presentation/workouts_providers.dart`
-  - `lib/features/nutrition/data/wear_sync_service.dart`
-- Phone Android bridge/listener:
-  - `android/app/src/main/kotlin/com/ams/herculex/MainActivity.kt`
-  - `android/app/src/main/kotlin/com/ams/herculex/PhoneWearListenerService.kt`
-  - `android/app/src/main/kotlin/com/ams/herculex/sync/MobileWearSyncManager.kt`
-  - `android/app/src/main/kotlin/com/ams/herculex/sync/WearSyncPaths.kt`
-- Watch native app:
-  - `android/wear/src/main/java/com/ams/herculex/sync/SyncService.kt`
-  - `android/wear/src/main/java/com/ams/herculex/sync/WearDataLayerSyncManager.kt`
-  - `android/wear/src/main/java/com/ams/herculex/workout/WorkoutViewModel.kt`
-  - `android/wear/src/main/java/com/ams/herculex/workout/WorkoutStore.kt`
-  - `android/wear/src/main/java/com/ams/herculex/MainActivity.kt`
+- `SyncService` (`lib/data/sync/sync_service.dart`) owns push/pull/tombstones/
+  quarantine/retry. `lib/data/sync/sync_table_specs.dart` is the ~36-table
+  registry (FK shapes, local-only columns, renames). Migrations
+  `supabase/migrations/0001`–`0007` are applied.
+- `test/sync/live_round_trip_test.dart` runs two `SyncService` instances
+  against the real project (two in-memory Drift DBs, two authenticated
+  `SupabaseClient`s) — skips itself without credentials, so `flutter test`
+  stays offline by default. Run it with
+  `flutter test test/sync/live_round_trip_test.dart --dart-define-from-file=.secrets/live_sync.json`.
+  Ran green twice in a row on 2026-08-13.
+- Local fake-backed coverage: `test/sync/sync_service_test.dart` (50 tests),
+  `test/sync/sync_payload_test.dart` (FK payload paths), plus
+  `test/widgets/sync_status_badge_test.dart` for the UI contract.
 
-There is also an older separate `herculex-wear/` tree. The active Gradle project includes `:wear` from `android/wear`, so focus there unless proven otherwise.
+**Full detail, defects found and fixed, and what's still owed:**
+`docs/rb02-sync-verification.md`. **Current open items:** `BLOCKERS.md`,
+`TASKS.md`, `DEBT.md`.
 
-## Fixes Already Applied
+## Current state: RB-01 (Gemini client secret) is closed
 
-- Phone listener now persists the latest watch workout snapshot so Flutter can consume it later if the Dart callback was not alive.
-- Phone `MainActivity.dispatchPendingWorkout()` now replays stored watch state to Dart on `checkPendingWatchWorkout`.
-- Phone outbound sync now skips short echo windows while applying remote watch state.
-- Phone active session content changes now push a full session snapshot to the watch.
-- Phone no longer sends JSON `"rpe": null`; it omits `rpe` when absent.
-- Watch parser tolerates missing or null `rpe`.
-- Phone outbound `pushActiveSessionToWatch()` marks `_lastSyncedSessionId` immediately at function entry to prevent duplicate `START` sends from racing async listeners.
-- Phone payload now includes `startedAtEpochMs`.
-- Phone `activeSessionProvider` listener no longer sends active-session snapshots; it only notifies the watch when the phone session ends.
-- Watch `WorkoutStore` reads `startedAtEpochMs` on start/update.
-- Watch `WorkoutViewModel` accepts a remote start epoch and uses it to set `sessionStartEpochMs` and elapsed time.
-- Watch `SyncService.persistSession()` preserves the phone-provided start epoch when saving durable state.
-- Watch `MainActivity` navigates to `active_workout` when an active session exists.
-- Phone estimates `currentExerciseIndex` and `currentSetIndex` from the first incomplete set so the watch does not always highlight exercise 0.
+Flutter no longer ships, accepts, stores, or directly uses a Gemini API key.
+Gemini requests now go through the Supabase Edge Function
+`supabase/functions/gemini-analyze`. Details and verification:
+`docs/rb01-gemini-secret-remediation.md`.
 
-## Verification
+The external close-out is also done: `GEMINI_API_KEY` is set as a Supabase
+Function secret on `jioesomepkauponjrena`, and `gemini-analyze` is deployed and
+active with JWT verification enabled.
 
-Commands run successfully:
+## Working agreement for this project
 
-```powershell
-dart analyze lib\features\workouts\data\wear_workout_sync_service.dart lib\features\workouts\presentation\workouts_providers.dart
-```
+- **"Now" bar vs. backlog**: the app is still being built. Treat something as
+  a blocker only if it stops current functionality from working — not
+  "would be nice before a public release." Longer-term/deferred items belong
+  in `TASKS.md`'s Later section or `DEBT.md`, not `BLOCKERS.md`.
+- Three sync verification steps genuinely cannot be done headlessly (sign-in
+  starting sync, the Profile badge, offline behavior) — they need a real
+  device/emulator. Don't try to script around this; it's a real ceiling on
+  what automated testing can prove here.
+- Live-backend test credentials live in `.secrets/live_sync.json`
+  (gitignored). Format documented in `docs/rb02-sync-verification.md`.
 
-```powershell
-$env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
-$env:Path="$env:JAVA_HOME\bin;$env:Path"
-.\gradlew.bat :app:compileDebugKotlin :wear:compileDebugKotlin
-```
+## Where things are tracked
 
-Important environment note:
-- The system `java` is Java 26.
-- Gradle/Kotlin fails before project compilation with `IllegalArgumentException: 26`.
-- Use Android Studio JBR/JDK 21 for Android builds.
-
-## Critical Testing Note
-
-Both APKs must be updated for sync testing:
-- Phone app (`:app` / Flutter Android app)
-- Watch app (`:wear`)
-
-`flutter run` may update only the phone app. If the watch APK remains old, phone-to-watch sync may still appear broken.
-
+| File | Purpose |
+| --- | --- |
+| `CONTEXT.md` (this file) | Current project state, updated per session |
+| `BLOCKERS.md` | What's actually stopping current functionality, right now |
+| `TASKS.md` | Backlog, split Now / Later |
+| `DEBT.md` | Known shortcuts, stale docs, cleanup owed |
+| `LESSONS.md` | Durable lessons — testing gotchas, architecture traps |
+| `HANDOFF.md` | Long-range feature roadmap (Phases 4–11) — update its Phase 10 section, it's stale |
+| `RELEASE.md` | Store-submission checklist — also stale, says "no backend to provision" |
+| `docs/app-audit-report-2026-08-10.md` | The original 5-item release-blocker audit; RB-01/RB-02 closed, RB-03/04/05 still open |
+| `docs/rb02-sync-verification.md` | Full RB-02 verification record |

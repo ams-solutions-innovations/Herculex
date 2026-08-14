@@ -1,9 +1,37 @@
 # Release checklist
 
-Herculex is on-device only, so there is no backend to provision. The remaining
-work to ship is platform packaging and store submission.
+Herculex is a local-first app backed by Supabase for authentication, cloud
+sync, and serverless AI label/meal analysis. This checklist covers backend
+provisioning, platform packaging, and store submission.
 
-## 1. Confirm the application / bundle ID
+## 1. Backend provisioning (Supabase)
+
+### Database migrations
+Ensure all migrations (`0001` through `0007`+) in `supabase/migrations/` are applied to the production Supabase project:
+```bash
+npx supabase db push
+```
+
+### Edge Functions & Secrets
+Deploy the `gemini-analyze` edge function and set the server-side Gemini API key:
+```bash
+npx supabase secrets set GEMINI_API_KEY="<your-gemini-api-key>"
+npx supabase functions deploy gemini-analyze
+```
+
+### Build-time compile arguments
+Production builds require the Supabase URL and anonymous key (plus optional OAuth client IDs for Google Sign-In) passed at compile time via `--dart-define` or `--dart-define-from-file`:
+```bash
+flutter build appbundle --release \
+  --dart-define=SUPABASE_URL=https://<your-project-id>.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=<your-anon-key> \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=<web-client-id> \
+  --dart-define=GOOGLE_IOS_CLIENT_ID=<ios-client-id>
+```
+
+---
+
+## 2. Confirm the application / bundle ID
 
 The placeholder `com.example.*` has been replaced with **`com.ams.herculex`** in:
 
@@ -15,7 +43,7 @@ The placeholder `com.example.*` has been replaced with **`com.ams.herculex`** in
 > is not the reverse form of a domain you control, change it now (search & replace
 > the three locations above) before the first upload.
 
-## 2. Android release signing
+## 3. Android release signing
 
 A keystore is **not** committed. The build reads `android/key.properties` when
 present and otherwise falls back to debug signing (so `flutter run --release`
@@ -46,7 +74,7 @@ R8 shrinking/obfuscation is enabled; keep rules live in
 `android/app/proguard-rules.pro`. Smoke-test the release build on a device before
 uploading (R8 can strip code the rules miss).
 
-## 3. iOS release signing
+## 4. iOS release signing
 
 Open `ios/Runner.xcworkspace` in Xcode → Signing & Capabilities → select your
 team and a provisioning profile for `com.ams.herculex`, then:
@@ -55,29 +83,29 @@ team and a provisioning profile for `com.ams.herculex`, then:
 flutter build ipa --release
 ```
 
-## 4. Permissions / privacy
+## 5. Permissions / privacy
 
 Declared permissions and their justification (needed for store privacy forms):
 
 | Permission | Used for |
 | --- | --- |
-| Camera | Barcode scanning for nutrition lookup |
-| Internet | OpenFoodFacts product lookup (the only network call) |
-| Notifications | Active-workout lock-screen status |
+| Camera | Barcode scanning and food packaging OCR |
+| Internet | Supabase sync/auth, OpenFoodFacts product lookup, Gemini label analysis |
+| Notifications | Active-workout lock-screen status and timers |
 | Foreground service (health) | Keeping the active-workout notification alive |
 
-Data collection: **none leaves the device** except the barcode/product query to
-OpenFoodFacts. Both stores will ask you to declare this; the honest answer is
-"no data collected / no account."
+Data collection:
+- **Local-first by default**: unauthenticated usage stores all workouts, nutrition logs, and profile data solely on-device.
+- **When signed in**: user-created workout history, nutrition logs, and custom entries sync securely to Supabase PostgreSQL protected by Row Level Security (`user_id = auth.uid()`).
+- **AI features**: food photos/labels sent for OCR are routed via secure Supabase Edge Function to Google Gemini; no user credentials or personal history leave the device.
 
-## 5. Store assets still required
+## 6. Store assets still required
 
 - App icon set (`flutter_launcher_icons` or the existing `scripts/generate_icons.py`).
 - Screenshots per required device size.
-- Short + full description, privacy-policy URL (a simple "all data stays on your
-  device" page satisfies both stores).
+- Short + full description, privacy-policy URL.
 
-## 6. Pre-flight
+## 7. Pre-flight
 
 ```bash
 flutter analyze        # expect: no issues

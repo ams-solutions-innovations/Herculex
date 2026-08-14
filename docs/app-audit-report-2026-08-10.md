@@ -14,7 +14,7 @@ The highest priority work is:
 
 1. Rotate and remove the embedded Gemini API key from the client.
 2. Stop fabricating health data when permissions or platform reads fail.
-3. Fix fake cloud sync behavior so pending sync operations are not reported as successful without remote acknowledgement.
+3. Fix fake cloud sync behavior so pending sync operations are not reported as successful without remote acknowledgement. *(Addressed — see §2; a live round-trip run and three device-only checks remain.)*
 4. Re-enable and test database foreign keys, or implement equivalent durable cascading behavior.
 5. Stabilize phone-Wear workout identity, revision ordering, dedupe, and transactional apply.
 6. Fix the failing Flutter tests and native Android widget lint errors.
@@ -48,6 +48,14 @@ Phone Android lint failures:
 ## Release Blockers
 
 ### 1. Embedded Gemini API Key and Insecure Token Storage
+
+> **Closed (2026-08-13).** Flutter no longer ships, accepts, stores, or
+> directly uses a Gemini API key. Food-photo analysis, nutrition-label fallback,
+> and exercise-image identification now invoke the authenticated Supabase Edge
+> Function `gemini-analyze`; the `google_generative_ai` dependency and
+> SharedPreferences API-key path were removed. `GEMINI_API_KEY` is set as a
+> Supabase Function secret and `gemini-analyze` is deployed with JWT
+> verification enabled. See `docs/rb01-gemini-secret-remediation.md`.
 
 Files:
 
@@ -84,9 +92,73 @@ Recommended fix:
 
 ### 2. Cloud Sync Reports Success Without Real Cloud Sync
 
+> **Addressed (2026-08-12), pending one manual device pass.** `SyncEngine` is
+> deleted; the real `SyncService` now owns the whole path and exposes a
+> `SyncState` derived from actual push/pull results, which the Profile badge
+> renders (including an explicit "Cloud sync off" when no backend is
+> configured — an empty outbox can no longer read as success). Pending ops are
+> only cleared on backend acknowledgement, failures are bounded by a
+> quarantine cap after `maxPushAttempts` and surfaced instead of retrying
+> invisibly, quarantined ops no longer freeze their row's inbound sync, and
+> pull errors are no longer swallowed. Hard deletes now propagate across
+> devices via server-side tombstones (`supabase/migrations/0005`, with 90-day
+> retention and a full-reconcile fallback in `0006`), and an account switch on
+> a shared device clears the outbox rather than uploading one user's rows into
+> another's account. 23 tests in `test/sync/sync_service_test.dart`; security
+> advisors clean.
+>
+> **Updated 2026-08-12 (second pass).** Verification is no longer a manual
+> two-emulator exercise. `test/sync/live_round_trip_test.dart` runs two
+> `SyncService` instances against the **live** project and proves the push, the
+> server-owned `updated_at` clock, cross-device arrival, tombstone deletes,
+> echo suppression, the catalogue FK paths, and cross-user RLS — headlessly and
+> repeatably. It skips itself without credentials, so plain `flutter test`
+> stays offline. Coverage gaps around it are closed too:
+> `test/sync/sync_payload_test.dart` (the `CatalogueFk`/`BandFk` payload paths,
+> previously untested — nearly every existing test drove `gyms`, which has no
+> FK fields), the retry-backoff schedule and its `next_retry_at` gate, and
+> `test/widgets/sync_status_badge_test.dart` for the phase→label mapping that
+> is the user-facing half of this blocker.
+>
+> That pass found three real defects, all now fixed:
+>
+> - `is_custom` never crossed the wire, so a custom exercise/food/accessory/band
+>   arrived on a second device as a *seeded* row and every child referencing it
+>   either failed a Postgres `check` constraint into quarantine or silently
+>   bound to the wrong row (`supabase/migrations/0007_catalogue_is_custom.sql`).
+> - The outbox could drain in an order that put a child ahead of its parent,
+>   since the triggers stamp `created_at` at second granularity and nothing
+>   broke the tie (`ORDER BY created_at, id`).
+> - **Found by the live run itself, not by any unit test:** pulling a row for
+>   the first time left a phantom outbox entry behind — the local INSERT that
+>   writes down a pulled row fires the same trigger a real local edit would,
+>   and nothing purged the echo. Until that entry was eventually pushed away,
+>   `_applyTombstoneBatch`'s local-wins check treated the freshly-pulled row as
+>   a genuine unpushed edit and silently refused to apply a delete for it — a
+>   delete from another device landing soon after a row's first arrival could
+>   sit invisibly stuck for up to 20 seconds, or indefinitely if that push
+>   happened to fail. `_applyPulledRow` now deletes its own echo immediately
+>   after writing the row. Two regression tests reproduce it directly against
+>   `FakeSyncBackendService` in `test/sync/sync_service_test.dart`.
+>
+> **Verified 2026-08-13 against the live project**, twice in a row (proving
+> cleanup and cursor seeding are idempotent): push, the server-owned
+> `updated_at` clock, cross-device arrival, tombstone deletes, echo
+> suppression on both the delete path and the newly-found pull-echo path, the
+> catalogue FK round trip including `is_custom`, cross-user RLS (empty reads,
+> rejected forged writes), and realtime delivery. Server-side afterward: 0
+> rows left in any table for the test accounts, 0 wrong-owner rows, 0
+> client-supplied `updated_at` values, security advisors clean (one
+> pre-existing, unrelated finding: leaked-password protection is disabled
+> project-wide — not caused by and out of scope for this work).
+>
+> **Still owed:** three device-only steps that don't fit a headless test —
+> sign-in starts sync, the badge, offline behaviour. In
+> `docs/rb02-sync-verification.md`.
+
 File:
 
-- `lib/data/sync/sync_engine.dart`
+- `lib/data/sync/sync_engine.dart` (deleted)
 
 Findings:
 
@@ -176,6 +248,13 @@ Recommended fix:
 - Add migration tests and repository delete tests.
 
 ### 5. Nutrition History Changes After Catalog Deletion
+
+> **Closed (2026-08-13).** `FoodEntries` now stores immutable nutrition
+> snapshots at log time (`snapshot_kcal`, `snapshot_protein_g`, etc.) with
+> schema v24 migration backfills. `deleteFood` and `deleteRecipe` use soft-deletes
+> (`deleted_at` timestamp), hiding rows from search and picker queries while
+> preserving foreign key integrity and full macro calculation for past diary history.
+> Verified via `test/rb05_soft_delete_test.dart` and `test/phase5_nutrition_test.dart`.
 
 File:
 
@@ -407,7 +486,7 @@ Recommended additions:
 
 ### Phase 3: Sync Correctness
 
-- Replace fake cloud sync with real acknowledgement semantics or remove claims.
+- Replace fake cloud sync with real acknowledgement semantics or remove claims. *(Addressed — see §2.)*
 - Redesign phone-Wear session identity and revision model.
 - Make Wear apply transactional.
 - Fix dedupe-after-success behavior.

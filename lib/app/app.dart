@@ -284,6 +284,10 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     ref.watch(widgetCnsSyncControllerProvider);
     ref.watch(widgetRecoverySyncControllerProvider);
 
+    // Starts/stops Phase 10 cloud sync off the auth session — see
+    // syncServiceProvider in app/providers.dart.
+    ref.watch(syncServiceProvider);
+
     final router = ref.watch(routerProvider);
     WorkoutNotificationService.onNotificationTap = () {
       ref.read(mainTabIndexProvider.notifier).state = 2;

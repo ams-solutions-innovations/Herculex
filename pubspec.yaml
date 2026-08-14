@@ -60,7 +60,6 @@ dependencies:
   device_calendar: ^4.3.1
   timezone: ^0.9.4
   health: ^13.3.1
-  google_generative_ai: ^0.4.7
   google_mlkit_text_recognition: ^0.16.0
   wakelock_plus: ^1.2.10
   quick_actions: ^1.1.0

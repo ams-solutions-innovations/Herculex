@@ -19,6 +19,10 @@ Obe spremembi (stabilen session UUID in monotona/Lamport revizija namesto `Syste
 
 **Izven obsega:** `lib/data/sync/sync_engine.dart` — trenutno v delu (uncommitted), audit finding #2 (lažen cloud sync). Ne dotikaj se tega v okviru tega načrta.
 
+> **Opomba (2026-08-12):** `sync_engine.dart` je medtem izbrisan — nadomestil
+> ga je `lib/data/sync/sync_service.dart` (RB-02). Omembe spodaj so
+> zgodovinske; obseg tega načrta se ni spremenil, cloud sync ostaja ločen.
+
 ---
 
 ## Faza 0 — Testna osnova (majhna, naredi prva)

@@ -1,12 +1,12 @@
 /// Compile-time configuration, supplied via `--dart-define`.
 ///
-/// The app deliberately has no `.env` file or dotenv dependency — every other
-/// secret in the codebase (`GEMINI_API_KEY`) already arrives this way, so this
-/// stays consistent with that.
+/// The app deliberately has no `.env` file or dotenv dependency. Client-safe
+/// build-time values arrive through `--dart-define`; real server secrets, such
+/// as `GEMINI_API_KEY`, live only in backend secret storage.
 ///
 /// The Supabase anon key is a *public* client credential: it identifies the
 /// project, it does not authorise anything. Row Level Security is the actual
-/// boundary. Shipping it in the binary is expected and safe — see
+/// boundary. Shipping it in the binary is expected and safe; see
 /// `supabase/migrations/*_rls.sql`.
 abstract final class Env {
   const Env._();
@@ -18,8 +18,12 @@ abstract final class Env {
   /// Supabase verifies the ID token against, so it is required on every
   /// platform; the iOS client id is additionally needed by `google_sign_in`
   /// on Apple platforms.
-  static const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
-  static const googleIosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+  static const googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+  );
+  static const googleIosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+  );
 
   static const sentryDsn = String.fromEnvironment('SENTRY_DSN');
   static const oneSignalAppId = String.fromEnvironment('ONESIGNAL_APP_ID');

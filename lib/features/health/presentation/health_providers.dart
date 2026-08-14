@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health/health.dart';
+import 'package:collection/collection.dart';
 
 import '../../../app/providers.dart';
 import '../data/health_service.dart';
 import '../../../data/local/database.dart';
 import '../domain/activity_adjuster.dart';
+import '../domain/health_read_state.dart';
 
 final healthServiceProvider = Provider<HealthService>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -12,9 +14,15 @@ final healthServiceProvider = Provider<HealthService>((ref) {
   return HealthService(db, clock);
 });
 
-final todayHealthSamplesProvider = StreamProvider<List<HealthSampleData>>((ref) {
+final todayHealthSamplesProvider = StreamProvider<List<HealthSampleData>>((
+  ref,
+) {
   final service = ref.watch(healthServiceProvider);
   return service.watchTodaySamples();
+});
+
+final lastDailyHealthReadProvider = StateProvider<DailyHealthRead?>((ref) {
+  return null;
 });
 
 final healthPermissionStatusProvider = StateProvider<Map<String, bool>>((ref) {
@@ -65,28 +73,56 @@ final googleHealthBidirectionalProvider = StateProvider<bool>((ref) => true);
 /// Last sync timestamp provider
 final lastHealthSyncTimestampProvider = StateProvider<DateTime?>((ref) => null);
 
-final externalWorkoutsProvider = FutureProvider<List<HealthDataPoint>>((ref) async {
-  final service = ref.watch(healthServiceProvider);
-  return service.getWorkouts(14); // 14 days is enough for recovery window
+final externalWorkoutReadProvider =
+    FutureProvider<HealthRead<List<HealthDataPoint>>>((ref) async {
+      final service = ref.watch(healthServiceProvider);
+      return service.readWorkouts(14); // 14 days is enough for recovery window
+    });
+
+final externalWorkoutsProvider = FutureProvider<List<HealthDataPoint>>((
+  ref,
+) async {
+  final read = await ref.watch(externalWorkoutReadProvider.future);
+  return read.value ?? const [];
 });
 
 final autoAdjustGymVolumeProvider = StateProvider<bool>((ref) {
   return true;
 });
 
-final activityBasedAdjustmentProvider = FutureProvider<ActivityAdjustmentResult>((ref) async {
-  final samplesAsync = ref.watch(todayHealthSamplesProvider);
-  final samples = samplesAsync.asData?.value ?? [];
+final activityBasedAdjustmentProvider =
+    FutureProvider<ActivityAdjustmentResult>((ref) async {
+      final samplesAsync = ref.watch(todayHealthSamplesProvider);
+      final samples = samplesAsync.asData?.value ?? [];
 
-  final todaySteps = samples.firstWhere((s) => s.kind == 'steps', orElse: () => HealthSampleData(id: 0, dateIso: '', kind: 'steps', value: 0.0)).value;
-  final service = ref.watch(healthServiceProvider);
-  final baselineSteps = await service.getAverageSteps(30);
+      final lastRead = ref.watch(lastDailyHealthReadProvider);
+      final stepsRead = lastRead?.steps;
+      final todaySteps = stepsRead?.isAvailable == true
+          ? stepsRead?.value
+          : samples.where((s) => s.kind == 'steps').firstOrNull?.value;
+      if (todaySteps == null) return ActivityAdjustmentResult.unavailable;
 
-  final autoAdjust = ref.watch(autoAdjustGymVolumeProvider);
-  if (!autoAdjust) return ActivityAdjustmentResult.normal;
+      final service = ref.watch(healthServiceProvider);
+      final baselineSteps = await service.getAverageSteps(30);
+      if (!baselineSteps.isAvailable || baselineSteps.value == null) {
+        return ActivityAdjustmentResult.unavailable;
+      }
 
-  return ActivityBasedAdjuster.suggest(
-    todaySteps: todaySteps,
-    baselineSteps: baselineSteps,
-  );
-});
+      final autoAdjust = ref.watch(autoAdjustGymVolumeProvider);
+      if (!autoAdjust) return ActivityAdjustmentResult.normal;
+
+      final sleepHours = lastRead?.sleepHours.isAvailable == true
+          ? lastRead?.sleepHours.value
+          : samples.where((s) => s.kind == 'sleep_hours').firstOrNull?.value;
+
+      final restingHr = lastRead?.restingHr.isAvailable == true
+          ? lastRead?.restingHr.value
+          : samples.where((s) => s.kind == 'resting_hr').firstOrNull?.value;
+
+      return ActivityBasedAdjuster.suggest(
+        todaySteps: todaySteps,
+        baselineSteps: baselineSteps.value!,
+        sleepHours: sleepHours,
+        restingHr: restingHr,
+      );
+    });

@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/env.dart';
 import '../../../core/units.dart';
-import '../../../data/sync/sync_engine.dart';
+import '../../../data/sync/sync_service.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/theme_provider.dart';
 import '../../nutrition/domain/macro_targets.dart';
@@ -361,18 +362,22 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             _SettingsTile(
               icon: Icons.health_and_safety_rounded,
               label: 'Samsung Health & Integrations',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const _SyncStatusBadge(),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ],
+              trailing: Icon(
+                Icons.chevron_right,
+                color: AppColors.onSurfaceVariant,
               ),
               onTap: () => context.push('/health'),
+            ),
+            _SettingsDivider(),
+            // Its own row: this reports cloud sync, and hanging it off the
+            // Samsung Health tile read as that integration's status.
+            _SettingsTile(
+              icon: Icons.cloud_outlined,
+              label: 'Cloud sync',
+              trailing: const SyncStatusBadge(),
+              onTap: ref.watch(authSessionProvider).valueOrNull == null
+                  ? () => _showAuthSheet(context)
+                  : null,
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -479,6 +484,49 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         const SizedBox(height: 12),
         _SettingsCard(
           children: [
+            if (ref.watch(authSessionProvider).valueOrNull == null) ...[
+              _SettingsTile(
+                icon: Icons.cloud_sync_rounded,
+                label: 'Sign in to Supabase',
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: AppColors.primary,
+                ),
+                onTap: () => _showAuthSheet(context),
+              ),
+              _SettingsDivider(),
+            ] else ...[
+              _SettingsTile(
+                icon: Icons.person_outline_rounded,
+                label: ref.watch(authSessionProvider).valueOrNull?.email ?? 'Signed in',
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Online',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              _SettingsDivider(),
+              _SettingsTile(
+                icon: Icons.logout_rounded,
+                label: 'Sign Out',
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: AppColors.onSurfaceVariant,
+                ),
+                onTap: () => _signOut(context),
+              ),
+              _SettingsDivider(),
+            ],
             _SettingsTile(
               icon: Icons.delete_forever_rounded,
               label: 'Clear All Data',
@@ -490,6 +538,40 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         ),
       ],
     );
+  }
+
+  Future<void> _showAuthSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _AuthSheet(),
+    );
+  }
+
+  Future<void> _signOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out'),
+        content: const Text(
+          'Signing out will pause cloud sync. Your local workout and nutrition data will remain on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await ref.read(authRepositoryProvider).signOut();
+    }
   }
 
   void _showComingSoon(BuildContext context, String feature) {
@@ -1253,51 +1335,298 @@ class _ThemePill extends StatelessWidget {
   }
 }
 
-class _SyncStatusBadge extends ConsumerWidget {
-  const _SyncStatusBadge();
+/// Reports what cloud sync has actually done — never "synced" unless the
+/// backend acknowledged every queued write (RB-02).
+///
+/// Public only so `test/widgets/sync_status_badge_test.dart` can pump it
+/// directly: this switch *is* the user-facing half of RB-02's claim, and
+/// reaching it through the whole of [ProfileView] would mean the assertion
+/// depended on an unrelated settings list staying scrollable.
+@visibleForTesting
+class SyncStatusBadge extends ConsumerWidget {
+  const SyncStatusBadge({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(syncStatusProvider).valueOrNull ?? SyncStatus.idle;
+    final state =
+        ref.watch(syncStateProvider).valueOrNull ??
+        const SyncState(phase: SyncPhase.disabled);
 
-    final Color color = switch (status) {
-      SyncStatus.pendingCloud => Colors.orangeAccent,
-      SyncStatus.savedLocally => AppColors.primary,
-      SyncStatus.error => Colors.redAccent,
-      SyncStatus.idle => AppColors.primary,
+    final Color color = switch (state.phase) {
+      SyncPhase.disabled => AppColors.onSurfaceVariant,
+      SyncPhase.syncing => AppColors.primary,
+      SyncPhase.pending => Colors.orangeAccent,
+      SyncPhase.synced => AppColors.primary,
+      SyncPhase.error => Colors.redAccent,
     };
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            switch (status) {
-              SyncStatus.pendingCloud => Icons.cloud_upload_outlined,
-              SyncStatus.savedLocally => Icons.cloud_done_outlined,
-              SyncStatus.error => Icons.cloud_off,
-              SyncStatus.idle => Icons.cloud_done_outlined,
-            },
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            status.label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+    final String label = switch (state.phase) {
+      SyncPhase.disabled => 'Cloud sync off',
+      SyncPhase.syncing => 'Syncing…',
+      SyncPhase.pending => '${state.pendingCount} pending',
+      SyncPhase.synced => 'Synced',
+      SyncPhase.error => 'Sync error',
+    };
+
+    return Tooltip(
+      message: switch (state.phase) {
+        SyncPhase.disabled => 'This build has no cloud backend configured, or '
+            'you are signed out. Data is saved on this device only.',
+        SyncPhase.error =>
+          state.lastError ?? 'Some changes could not be uploaded.',
+        _ => state.lastSyncedAt == null
+            ? 'Not yet synced to the cloud.'
+            : 'Last synced ${state.lastSyncedAt}',
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              switch (state.phase) {
+                SyncPhase.disabled => Icons.cloud_off_outlined,
+                SyncPhase.syncing => Icons.cloud_sync_outlined,
+                SyncPhase.pending => Icons.cloud_upload_outlined,
+                SyncPhase.synced => Icons.cloud_done_outlined,
+                SyncPhase.error => Icons.cloud_off,
+              },
+              size: 14,
               color: color,
             ),
-          ),
-        ],
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+// ── Auth Sheet ───────────────────────────────────────────────────────────────
+
+class _AuthSheet extends ConsumerStatefulWidget {
+  const _AuthSheet();
+
+  @override
+  ConsumerState<_AuthSheet> createState() => _AuthSheetState();
+}
+
+class _AuthSheetState extends ConsumerState<_AuthSheet> {
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _busy = false;
+  bool _isRegister = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter both email and password.');
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      if (_isRegister) {
+        await repo.registerWithEmail(email: email, password: password);
+      } else {
+        await repo.loginWithEmail(email: email, password: password);
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() {
+      _busy = true;
+      _errorMessage = null;
+    });
+    try {
+      await ref.read(authRepositoryProvider).signInWithGoogle();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.cloud_sync_rounded, color: AppColors.primary, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isRegister ? 'Create Supabase Account' : 'Sign in to Supabase',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Sync your workouts and nutrition across devices',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordCtrl,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                prefixIcon: const Icon(Icons.lock_outline),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+              ),
+            ],
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _busy ? null : _submit,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: _busy
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      _isRegister ? 'Create Account & Sync' : 'Sign In & Sync',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+            ),
+            if (Env.hasGoogleSignIn) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _googleSignIn,
+                icon: const Icon(Icons.g_mobiledata_rounded, size: 24),
+                label: const Text('Continue with Google'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _busy
+                  ? null
+                  : () => setState(() {
+                        _isRegister = !_isRegister;
+                        _errorMessage = null;
+                      }),
+              child: Text(
+                _isRegister
+                    ? 'Already have an account? Sign In'
+                    : "Don't have an account? Create one",
+                style: TextStyle(color: AppColors.primary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

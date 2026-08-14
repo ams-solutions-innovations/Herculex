@@ -7,6 +7,7 @@ import '../features/admin/presentation/admin_insert_recipe_view.dart';
 import '../features/admin/presentation/admin_insert_workout_view.dart';
 import '../features/analytics/presentation/insights_view.dart';
 import '../features/gyms/presentation/gyms_view.dart';
+import '../features/health/presentation/cycle_tracking_view.dart';
 import '../features/health/presentation/health_integrations_view.dart';
 import '../features/health/presentation/health_platform_detail_view.dart';
 import '../features/measurements/presentation/measurements_view.dart';
@@ -97,6 +98,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/insights', builder: (_, _) => const InsightsView()),
       GoRoute(path: '/health', builder: (_, _) => const HealthIntegrationsView()),
+      GoRoute(path: '/cycle', builder: (_, _) => const CycleTrackingView()),
       GoRoute(
         path: '/health/samsung',
         builder: (_, _) => const HealthPlatformDetailView(platform: HealthPlatform.samsung),

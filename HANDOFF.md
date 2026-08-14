@@ -98,9 +98,9 @@ Or use `tool/codegen.ps1` (Windows) / `./tool/codegen.sh` (Unix). Use `--watch` 
 
 ---
 
-## Phase 5 — Programs & Training Blocks
+## Phase 5 — Programs & Training Blocks (DONE)
 
-This is the biggest single piece left. It's the "Hevy program" plus the "smart calendar planner" combined.
+Full periodized program builder, split generation, marketplace preset templates, week/month calendar timelines, drag-to-move rescheduling, muscle conflict detection, day inspection sheets, and pre-populated smart workout launching. 29 automated tests passing.
 
 ### Data
 
@@ -277,45 +277,36 @@ The taxonomy is already in `exercise_catalog` (mechanics, force, plane, equipmen
 
 ---
 
-## Phase 10 — Supabase Backend (in progress)
+## Phase 10 — Supabase Backend — DONE
 
-Originally planned as a Firebase migration; **superseded**. Firebase only ever
-existed as a native-Kotlin auth bridge (`com.ams.herculex/auth` MethodChannel),
-which meant iOS auth never worked at all. Replaced by Supabase — see
-`docs/supabase-auth-wear-setup.md` and the migration plan for the full design.
+Originally planned as a Firebase migration; **superseded**. Replaced by Supabase —
+see `docs/supabase-auth-wear-setup.md`, `docs/rb01-gemini-secret-remediation.md`,
+and `docs/rb02-sync-verification.md` for full design and verification logs.
 
 ### Auth — DONE
 
-- `supabase_flutter` (pure Dart, so iOS works for the first time).
+- `supabase_flutter` (pure Dart, so iOS works seamlessly).
 - `AuthProviderService` interface + `SupabaseAuthService`; `AuthRepository`'s
-  public API is unchanged, so no screen above it was touched.
+  public API is unchanged.
 - Session persisted via `SecureAuthStorage` (Keychain / EncryptedSharedPreferences).
-- Auth state is now a *subscription* (`onAuthStateChange`), not the old one-shot
-  `hydrateFromNative()` — token refresh and expiry are finally observed.
+- Auth state is a live subscription (`onAuthStateChange`) observing token refresh
+  and expiry.
 - `UnconfiguredAuthService` keeps credential-less builds and tests fully local-first.
-- ⚠️ Existing users must sign in again once (Firebase uid → Supabase UUID).
 
-### Sync — NOT STARTED
+### Cloud Sync — DONE
 
-The blocker is identity: 40 of 43 Drift tables use autoincrement int PKs with no
-`userId`, no `updatedAt` and (except `Foods`/`Recipes`) no tombstones, so two
-devices both mint `id = 5`. Schema v25 must add `syncUuid` / `updatedAt` /
-`deletedAt` / `syncedAt` before any push/pull can be correct.
-
-- **Syncs:** the user's own data — sessions, exercises, sets, food entries,
-  fasting, measurements, programs, templates, gyms, targets, and `isCustom = 1`
-  catalogue rows.
-- **Does not sync:** the asset-seeded exercise catalogue and food catalogue —
-  they rebuild from `assets/data/*.json` on any device.
-- Outbox gets `attempts` / `lastError` / `nextRetryAt` and a unique
-  `(entityType, entityId)` index; enqueueing happens via SQLite triggers rather
-  than hand-instrumenting three ~1000-line repositories.
-- An op is deleted **only** after the server confirms the write — the failure
-  the 2026-08-10 audit flagged.
-- Conflict resolution: last-write-wins on *server* `updated_at`.
-- Realtime events are treated as a hint to run a delta pull, not applied directly.
-
-**Estimated remaining effort**: 12-14 days.
+- **Schema v25+**: Added `syncUuid`, `updatedAt`, `deletedAt`, `syncedAt` across
+  all 36 user tables.
+- **Server migrations**: `0001`–`0007` applied to Supabase PostgreSQL, with 100%
+  RLS coverage (`user_id = auth.uid()`), server-enforced `updated_at` timestamps,
+  `sync_tombstones` hard-delete propagation, and Realtime publication on all 37 tables.
+- **Sync Engine**: `SyncService` outbox architecture driven by SQLite triggers,
+  parent-first ordering, natural-key resolution for seeded catalogue items vs
+  `sync_uuid` for custom rows (`is_custom`).
+- **Edge Functions**: `gemini-analyze` deployed on Supabase Functions using server-side
+  `GEMINI_API_KEY` for AI photo/label analysis.
+- **Automated Round-Trip Verification**: Multi-client live sync test suite
+  (`test/sync/live_round_trip_test.dart`) passes green against the live backend.
 
 ---
 

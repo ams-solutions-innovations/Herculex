@@ -26,6 +26,8 @@ class FastingBottomSheet extends ConsumerStatefulWidget {
 
 class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
   FastingPlan _selectedPlan = FastingPlan.h16;
+  int _customTargetHours = 15;
+  DateTime? _customStartTime;
 
   @override
   Widget build(BuildContext context) {
@@ -192,12 +194,14 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
               "STARTED",
               startedStr,
               Icons.play_arrow,
+              onTap: () => _editActiveStartTime(context, active),
             ),
             _buildTimeDetailCard(
               theme,
               "TARGET END",
               targetEndStr,
               Icons.outlined_flag,
+              onTap: () => _editActiveTargetHours(context, active),
             ),
           ],
         ),
@@ -216,6 +220,11 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
   }
 
   Widget _buildStartFastView(ThemeData theme) {
+    final format = DateFormat('HH:mm (MMM d)');
+    final startTimeDisplay = _customStartTime != null
+        ? format.format(_customStartTime!)
+        : "Now";
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -240,7 +249,44 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
             ],
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
+        InkWell(
+          onTap: () => _pickCustomStartTime(context),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.schedule_rounded, size: 18, color: AppColors.primary),
+                const SizedBox(width: 12),
+                Text(
+                  "Start time:",
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.secondary,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  startTimeDisplay,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(Icons.edit, size: 14, color: AppColors.primary),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
         Center(
           child: Text(
             "INTERMITTENT",
@@ -294,6 +340,8 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
             padding: const EdgeInsets.only(bottom: 12),
             child: _planTile(theme, plan),
           ),
+        const SizedBox(height: 12),
+        _customPlanTile(theme),
         const SizedBox(height: 32),
         SizedBox(
           width: double.infinity,
@@ -301,11 +349,7 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
             text: "START FAST NOW",
             isPrimary: true,
             icon: Icons.play_arrow_outlined,
-            onTap: () {
-              ref
-                  .read(fastingRepositoryProvider)
-                  .startSession(_selectedPlan.targetSeconds);
-            },
+            onTap: _startFast,
           ),
         ),
       ],
@@ -383,54 +427,306 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
     );
   }
 
+  Widget _customPlanTile(ThemeData theme) {
+    final isSelected = _selectedPlan == FastingPlan.custom;
+    return InkWell(
+      onTap: () {
+        setState(() => _selectedPlan = FastingPlan.custom);
+        _pickCustomTargetHours(context);
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.primary.withValues(alpha: 0.2)
+                    : AppColors.surfaceVariant,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.tune_rounded,
+                color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Custom (${_customTargetHours}h)',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Set your own target hours (tap to change)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: AppColors.primary,
+                size: 24,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickCustomTargetHours(BuildContext context) async {
+    int tempHours = _customTargetHours;
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: AppColors.surfaceContainerLowest,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text('Custom Fast Duration'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$tempHours hours',
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Slider(
+                value: tempHours.toDouble(),
+                min: 1,
+                max: 168,
+                divisions: 167,
+                activeColor: AppColors.primary,
+                onChanged: (val) => setDlgState(() => tempHours = val.round()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CANCEL'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, tempHours),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('SET DURATION'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      setState(() => _customTargetHours = selected);
+    }
+  }
+
+  Future<void> _pickCustomStartTime(BuildContext context) async {
+    final now = DateTime.now();
+    final initialTime = TimeOfDay.fromDateTime(_customStartTime ?? now);
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+
+    if (pickedTime == null) return;
+
+    var dt = DateTime(now.year, now.month, now.day, pickedTime.hour, pickedTime.minute);
+    if (dt.isAfter(now)) {
+      // If the selected time is later today, assume the fast began yesterday at that time
+      dt = dt.subtract(const Duration(days: 1));
+    }
+
+    setState(() => _customStartTime = dt);
+  }
+
+  Future<void> _startFast() async {
+    final targetSec = _selectedPlan == FastingPlan.custom
+        ? _customTargetHours * 3600
+        : _selectedPlan.targetSeconds;
+
+    final repo = ref.read(fastingRepositoryProvider);
+    await repo.startSession(targetSec, customStartTime: _customStartTime);
+
+    final started = _customStartTime ?? DateTime.now();
+    final targetTime = started.add(Duration(seconds: targetSec));
+    final planName = _selectedPlan == FastingPlan.custom
+        ? '$_customTargetHours-Hour'
+        : _selectedPlan.nameString;
+
+    await ref
+        .read(fastingNotificationSchedulerProvider)
+        .scheduleFastingGoal(targetTime, planName: planName);
+  }
+
+  Future<void> _editActiveStartTime(BuildContext context, dynamic active) async {
+    final initialTime = TimeOfDay.fromDateTime(active.startedAt as DateTime);
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+
+    if (pickedTime == null) return;
+
+    final orig = active.startedAt as DateTime;
+    var newStartTime = DateTime(
+      orig.year,
+      orig.month,
+      orig.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+    if (newStartTime.isAfter(DateTime.now())) {
+      newStartTime = newStartTime.subtract(const Duration(days: 1));
+    }
+
+    final repo = ref.read(fastingRepositoryProvider);
+    await repo.updateSessionStartTime(active.id as int, newStartTime);
+
+    final targetTime = newStartTime.add(Duration(seconds: active.targetSeconds as int));
+    await ref
+        .read(fastingNotificationSchedulerProvider)
+        .scheduleFastingGoal(targetTime, planName: 'Fasting');
+  }
+
+  Future<void> _editActiveTargetHours(BuildContext context, dynamic active) async {
+    int currentHours = (active.targetSeconds as int) ~/ 3600;
+    int tempHours = currentHours > 0 ? currentHours : 16;
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: AppColors.surfaceContainerLowest,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text('Adjust Target Fast Duration'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$tempHours hours',
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Slider(
+                value: tempHours.toDouble(),
+                min: 1,
+                max: 168,
+                divisions: 167,
+                activeColor: AppColors.primary,
+                onChanged: (val) => setDlgState(() => tempHours = val.round()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CANCEL'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, tempHours),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('UPDATE'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      final newTargetSec = selected * 3600;
+      final repo = ref.read(fastingRepositoryProvider);
+      await repo.updateSessionTarget(active.id as int, newTargetSec);
+
+      final started = active.startedAt as DateTime;
+      final targetTime = started.add(Duration(seconds: newTargetSec));
+      await ref
+          .read(fastingNotificationSchedulerProvider)
+          .scheduleFastingGoal(targetTime, planName: '${selected}h');
+    }
+  }
+
   Widget _buildTimeDetailCard(
     ThemeData theme,
     String title,
     String value,
-    IconData icon,
-  ) {
-    return Expanded(
-      child: Card(
-        color: AppColors.surfaceContainerLowest,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: AppColors.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontSize: 9,
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      value,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+    IconData icon, {
+    VoidCallback? onTap,
+  }) {
+    final card = Card(
+      color: AppColors.surfaceContainerLowest,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              Icon(Icons.edit, size: 12, color: AppColors.primary.withValues(alpha: 0.7)),
+          ],
+        ),
+      ),
+    );
+
+    return Expanded(
+      child: onTap != null
+          ? InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(16),
+              child: card,
+            )
+          : card,
     );
   }
 
@@ -632,63 +928,70 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
                   onDismissed: (_) {
                     ref.read(fastingRepositoryProvider).deleteSession(session.id);
                   },
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: session.completed
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : AppColors.surfaceVariant,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          session.completed
-                              ? Icons.check_circle_outline
-                              : Icons.close,
-                          color: session.completed
-                              ? AppColors.primary
-                              : AppColors.secondary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                  child: InkWell(
+                    onTap: () => _showHistoryDetails(context, session),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: session.completed
+                                  ? AppColors.primary.withValues(alpha: 0.1)
+                                  : AppColors.surfaceVariant,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              session.completed
+                                  ? Icons.check_circle_outline
+                                  : Icons.close,
+                              color: session.completed
+                                  ? AppColors.primary
+                                  : AppColors.secondary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "$hours hrs $minutes min fast",
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  "Target: ${targetHours}h • $dateStr",
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.secondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (session.completed)
                             Text(
-                              "$hours hrs $minutes min fast",
-                              style: theme.textTheme.bodyLarge?.copyWith(
+                              "SUCCESS",
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.bold,
                               ),
-                            ),
+                            )
+                          else
                             Text(
-                              "Target: ${targetHours}h • $dateStr",
-                              style: theme.textTheme.bodySmall?.copyWith(
+                              "INCOMPLETE",
+                              style: theme.textTheme.labelSmall?.copyWith(
                                 color: AppColors.secondary,
                               ),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
-                      if (session.completed)
-                        Text(
-                          "SUCCESS",
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      else
-                        Text(
-                          "INCOMPLETE",
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.secondary,
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                 );
               },
@@ -698,6 +1001,94 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
           error: (e, s) => Center(child: Text('Error: $e')),
         ),
       ],
+    );
+  }
+
+  Future<void> _showHistoryDetails(BuildContext context, dynamic session) async {
+    final format = DateFormat('yyyy-MM-dd HH:mm');
+    final startedStr = format.format(session.startedAt as DateTime);
+    final endedStr = session.endedAt != null
+        ? format.format(session.endedAt as DateTime)
+        : 'Ongoing';
+    final duration = session.endedAt != null
+        ? (session.endedAt as DateTime).difference(session.startedAt as DateTime)
+        : Duration.zero;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainer,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Fasting Session Details',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.play_arrow_outlined),
+              title: const Text('Started'),
+              subtitle: Text(startedStr),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.stop_outlined),
+              title: const Text('Ended'),
+              subtitle: Text(endedStr),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.timer_outlined),
+              title: const Text('Total Duration'),
+              subtitle: Text('${duration.inHours}h ${duration.inMinutes % 60}m'),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      await ref
+                          .read(fastingRepositoryProvider)
+                          .updateSessionCompletion(session.id as int, !(session.completed as bool));
+                    },
+                    icon: Icon(session.completed as bool ? Icons.close : Icons.check),
+                    label: Text(session.completed as bool ? 'Mark Incomplete' : 'Mark Completed'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                IconButton.filledTonal(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await ref.read(fastingRepositoryProvider).deleteSession(session.id as int);
+                  },
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -717,9 +1108,10 @@ class _FastingBottomSheetState extends ConsumerState<FastingBottomSheet> {
               child: const Text("CANCEL"),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                ref.read(fastingRepositoryProvider).endSession(completed: true);
+                await ref.read(fastingNotificationSchedulerProvider).cancelFastingGoal();
+                await ref.read(fastingRepositoryProvider).endSession(completed: true);
               },
               child: Text(
                 "END FAST",

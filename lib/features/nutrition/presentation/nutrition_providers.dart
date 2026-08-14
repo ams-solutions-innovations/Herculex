@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -20,6 +21,7 @@ import '../../analytics/presentation/analytics_providers.dart';
 import '../../analytics/domain/weekly_muscle_volume.dart';
 import '../../fasting/domain/fasting_sync_snapshot.dart';
 import '../../fasting/presentation/fasting_providers.dart';
+import '../../health/presentation/health_providers.dart';
 import 'meal_slots_provider.dart';
 
 /// Singleton [WidgetSyncService] for pushing data to Android home-screen widgets.
@@ -90,22 +92,32 @@ final effectiveTargetsProvider = FutureProvider.autoDispose
       final isTrainingDay = await repo.trainedOn(date);
 
       // Apply burned calories if enabled in profile
-      final profile = ref.watch(profileProvider).asData?.value;
+      final profile = ref.watch(profileProvider).valueOrNull ??
+          await ref.watch(profileProvider.future);
       double extraCalories = 0;
       if (profile?.countBurnedCalories == true) {
-        // We would need to fetch the active kcal for this specific date
-        // Since healthSamples are synced daily, we can use the db directly or healthService.
-        final healthSamples = await ref
-            .read(appDatabaseProvider)
-            .select(ref.read(appDatabaseProvider).healthSamples)
-            .get();
-        final isoDate =
-            "\${date.year}-\${date.month.toString().padLeft(2, '0')}-\${date.day.toString().padLeft(2, '0')}";
-        final sample = healthSamples
-            .where((s) => s.dateIso == isoDate && s.kind == 'active_kcal')
-            .firstOrNull;
-        if (sample != null) {
-          extraCalories = sample.value;
+        final now = ref.watch(clockProvider).now();
+        final today = DateTime(now.year, now.month, now.day);
+        final selectedDay = DateTime(date.year, date.month, date.day);
+        final activeRead = ref.watch(lastDailyHealthReadProvider)?.activeKcal;
+        if (selectedDay == today &&
+            activeRead != null &&
+            !activeRead.isAvailable) {
+          extraCalories = 0;
+        } else {
+          // We fetch the active kcal for this specific date from health_samples
+          final healthSamples = await ref
+              .read(appDatabaseProvider)
+              .select(ref.read(appDatabaseProvider).healthSamples)
+              .get();
+          final isoDate =
+              "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+          final sample = healthSamples
+              .where((s) => s.dateIso == isoDate && s.kind == 'active_kcal')
+              .firstOrNull;
+          if (sample != null) {
+            extraCalories = sample.value;
+          }
         }
       }
 
@@ -168,12 +180,11 @@ final foodByIdProvider = FutureProvider.family<FoodData?, int>((ref, id) {
 });
 
 /// Batched counterpart of [foodByIdProvider].
-final foodsByIdsProvider = FutureProvider.family<Map<int, FoodData>, List<int>>((
-  ref,
-  ids,
-) {
-  return ref.watch(nutritionRepositoryProvider).foodsByIds(ids);
-});
+final foodsByIdsProvider = FutureProvider.family<Map<int, FoodData>, List<int>>(
+  (ref, ids) {
+    return ref.watch(nutritionRepositoryProvider).foodsByIds(ids);
+  },
+);
 
 /// Reactive counterpart of [foodByIdProvider], for widgets that need to
 /// rebuild when the referenced food changes.

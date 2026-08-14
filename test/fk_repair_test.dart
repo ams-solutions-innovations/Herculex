@@ -257,7 +257,7 @@ void main() {
       await tempDir.delete(recursive: true);
     });
 
-    test('reaches user_version 24 and repairs a planted orphan', () async {
+    test('reaches the current schema version and repairs a planted orphan', () async {
       // The v22 table shapes are byte-identical to v23's — Phase 2 adds no
       // columns, only a data repair and indexes — so building a real,
       // fully-shaped database via the normal onCreate path and then
@@ -295,7 +295,7 @@ void main() {
       final versionRow = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(versionRow.data.values.first, 24);
+      expect(versionRow.data.values.first, db.schemaVersion);
 
       expectNoForeignKeyViolations(await foreignKeyViolations(db));
       expect(await db.select(db.workoutExercises).get(), isEmpty);

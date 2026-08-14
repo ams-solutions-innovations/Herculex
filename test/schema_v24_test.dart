@@ -195,9 +195,9 @@ void main() {
   });
 
   group('v23 -> v24 migration (RB-05 nutrition snapshot)', () {
-    test('reaches schema version 24', () async {
+    test('reaches the current schema version', () async {
       final row = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(row.data.values.first, 24);
+      expect(row.data.values.first, db.schemaVersion);
     });
 
     test('food entry snapshot copies the food row basis untouched', () async {

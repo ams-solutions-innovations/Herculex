@@ -1,9 +1,15 @@
-import 'dart:async';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../data/fasting_notification_scheduler.dart';
 import '../data/fasting_repository.dart';
 import '../../../data/local/database.dart';
+
+final fastingNotificationSchedulerProvider =
+    Provider<FastingNotificationScheduler>((ref) {
+  return FastingNotificationScheduler(FlutterLocalNotificationsPlugin());
+});
 
 final fastingRepositoryProvider = Provider<FastingRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);

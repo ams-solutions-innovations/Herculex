@@ -1,9 +1,32 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
+
+/// Sync identity columns shared by every table that participates in Phase 10
+/// cloud sync. `syncUuid` is the row's identity in Postgres (client-generated
+/// so offline inserts already have an id); `updatedAt` is a purely local
+/// "last touched" timestamp, unrelated to conflict resolution — the server's
+/// own `updated_at` is the LWW clock. `syncedAt` is null until the row has
+/// been successfully pushed at least once.
+///
+/// `Foods`/`Recipes` already declare their own `deletedAt` (v24 RB-05
+/// tombstone) and must not mix in [SyncTombstone] a second time; every other
+/// synced table mixes in both.
+mixin SyncColumns on Table {
+  TextColumn get syncUuid =>
+      text().nullable().clientDefault(() => const Uuid().v4())();
+  DateTimeColumn get updatedAt =>
+      dateTime().nullable().clientDefault(() => DateTime.now())();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+}
+
+mixin SyncTombstone on Table {
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+}
 
 /// Canonical exercise library. Most rows are seeded; user-created rows have
 /// [isCustom] = true.
 @DataClassName('ExerciseCatalogData')
-class ExerciseCatalog extends Table {
+class ExerciseCatalog extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
 
   /// Stable identity (v17), kebab-case, unique across seeded rows.
@@ -118,7 +141,7 @@ class ExerciseAliases extends Table {
 }
 
 @DataClassName('WorkoutSessionData')
-class WorkoutSessions extends Table {
+class WorkoutSessions extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().nullable()();
   DateTimeColumn get startedAt => dateTime()();
@@ -149,7 +172,7 @@ class WorkoutSessions extends Table {
 }
 
 @DataClassName('WorkoutExerciseData')
-class WorkoutExercises extends Table {
+class WorkoutExercises extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get sessionId =>
       integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
@@ -175,7 +198,7 @@ class WorkoutExercises extends Table {
 }
 
 @DataClassName('SetEntryData')
-class SetEntries extends Table {
+class SetEntries extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get workoutExerciseId => integer().references(
     WorkoutExercises,
@@ -213,7 +236,7 @@ class SetEntries extends Table {
 /// All nutrient values are per-100g (or per-100ml for liquids); convert via
 /// [servingGrams] when displaying a serving-sized macro.
 @DataClassName('FoodData')
-class Foods extends Table {
+class Foods extends Table with SyncColumns {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get brand => text().nullable()();
@@ -289,7 +312,7 @@ class FoodCatalogueMeta extends Table {
 /// Calorie + macro target, scoped by [appliesTo] (§19). One global row plus
 /// optional training-day / rest-day / weekday / specific-date overrides.
 @DataClassName('NutritionTargetData')
-class NutritionTargets extends Table {
+class NutritionTargets extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get label => text()();
   IntColumn get kcal => integer()();
@@ -310,7 +333,7 @@ class NutritionTargets extends Table {
 /// [intervalDays], starting [startDateIso]. The active schedule scales the
 /// resolved daily target down over time.
 @DataClassName('DietScheduleData')
-class DietSchedules extends Table {
+class DietSchedules extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get startDateIso => text()();
   RealColumn get reducePct => real()();
@@ -321,7 +344,7 @@ class DietSchedules extends Table {
 /// A generated weekly carb-cycle plan (§19): 7 day levels (high|med|low)
 /// keyed off the week's Monday.
 @DataClassName('CarbCyclePlanData')
-class CarbCyclePlans extends Table {
+class CarbCyclePlans extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get weekStartIso => text()();
 
@@ -336,7 +359,7 @@ class CarbCyclePlans extends Table {
 }
 
 @DataClassName('RecipeData')
-class Recipes extends Table {
+class Recipes extends Table with SyncColumns {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   IntColumn get servings => integer().withDefault(const Constant(1))();
@@ -352,7 +375,7 @@ class Recipes extends Table {
 }
 
 @DataClassName('RecipeIngredientData')
-class RecipeIngredients extends Table {
+class RecipeIngredients extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get recipeId =>
       integer().references(Recipes, #id, onDelete: KeyAction.cascade)();
@@ -364,7 +387,7 @@ class RecipeIngredients extends Table {
 /// One row per logged food/recipe per meal per day.
 /// Exactly one of [foodId] / [recipeId] is populated.
 @DataClassName('FoodEntryData')
-class FoodEntries extends Table {
+class FoodEntries extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   // Stored as yyyy-mm-dd to keep date math timezone-stable in queries.
   TextColumn get dateIso => text()();
@@ -430,7 +453,7 @@ class FoodEntries extends Table {
 }
 
 @DataClassName('DailySummaryData')
-class DailySummaries extends Table {
+class DailySummaries extends Table with SyncColumns, SyncTombstone {
   TextColumn get dateIso => text()();
   IntColumn get waterMl => integer().withDefault(const Constant(0))();
   RealColumn get weighInKg => real().nullable()();
@@ -441,7 +464,7 @@ class DailySummaries extends Table {
 }
 
 @DataClassName('FastingSessionData')
-class FastingSessions extends Table {
+class FastingSessions extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
@@ -450,7 +473,7 @@ class FastingSessions extends Table {
 }
 
 @DataClassName('ProgramData')
-class Programs extends Table {
+class Programs extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get description => text().nullable()();
@@ -490,7 +513,7 @@ class Programs extends Table {
 }
 
 @DataClassName('ProgramWeekData')
-class ProgramWeeks extends Table {
+class ProgramWeeks extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get programId =>
       integer().references(Programs, #id, onDelete: KeyAction.cascade)();
@@ -504,7 +527,7 @@ class ProgramWeeks extends Table {
 }
 
 @DataClassName('ProgramDayData')
-class ProgramDays extends Table {
+class ProgramDays extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get programWeekId =>
       integer().references(ProgramWeeks, #id, onDelete: KeyAction.cascade)();
@@ -544,7 +567,7 @@ class ProgramDays extends Table {
 }
 
 @DataClassName('ProgramDayExerciseData')
-class ProgramDayExercises extends Table {
+class ProgramDayExercises extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get programDayId =>
       integer().references(ProgramDays, #id, onDelete: KeyAction.cascade)();
@@ -581,7 +604,7 @@ class ProgramDayExercises extends Table {
 /// A pool of exercise variations for one movement pattern. The program
 /// rotates the active member every [rotateEveryWeeks] weeks (§12).
 @DataClassName('ExerciseRotationData')
-class ExerciseRotations extends Table {
+class ExerciseRotations extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get movementPattern => text().nullable()();
@@ -589,7 +612,7 @@ class ExerciseRotations extends Table {
 }
 
 @DataClassName('RotationMemberData')
-class RotationMembers extends Table {
+class RotationMembers extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get rotationId => integer().references(
     ExerciseRotations,
@@ -608,7 +631,7 @@ class RotationMembers extends Table {
 /// write real workout sessions/sets so volume, recovery, and analytics see
 /// them like any other training.
 @DataClassName('MicroWorkoutData')
-class MicroWorkouts extends Table {
+class MicroWorkouts extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   IntColumn get exerciseId => integer().references(
@@ -626,7 +649,7 @@ class MicroWorkouts extends Table {
 
 /// Per-exercise progressive-overload override (§16). Absent row = goal default.
 @DataClassName('ExerciseProgressionData')
-class ExerciseProgressions extends Table {
+class ExerciseProgressions extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get exerciseId =>
       integer().references(ExerciseCatalog, #id, onDelete: KeyAction.cascade)();
@@ -642,7 +665,7 @@ class ExerciseProgressions extends Table {
 }
 
 @DataClassName('ScheduledWorkoutData')
-class ScheduledWorkouts extends Table {
+class ScheduledWorkouts extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
   IntColumn get programDayId =>
@@ -683,7 +706,7 @@ class ScheduledWorkouts extends Table {
 }
 
 @DataClassName('ExternalEventData')
-class ExternalEvents extends Table {
+class ExternalEvents extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateFromIso => text()();
   TextColumn get dateToIso => text()();
@@ -701,7 +724,7 @@ class HealthSamples extends Table {
 }
 
 @DataClassName('CycleLogData')
-class CycleLogs extends Table {
+class CycleLogs extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
   TextColumn get phase =>
@@ -712,7 +735,7 @@ class CycleLogs extends Table {
 }
 
 @DataClassName('CycleSettingData')
-class CycleSettings extends Table {
+class CycleSettings extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().withDefault(const Constant(1))();
   IntColumn get avgCycleDays => integer().withDefault(const Constant(28))();
   IntColumn get avgPeriodDays => integer().withDefault(const Constant(5))();
@@ -730,6 +753,26 @@ class PendingSyncOps extends Table {
   TextColumn get entityId => text()(); // local unique identifier (UUID)
   TextColumn get operation => text()(); // upsert | delete
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  // ── Phase 10 sync (v25) ──
+  /// Filled in by [SyncService] at push time — SQLite triggers have no auth
+  /// context, so this stays null until the outbox is actually drained.
+  TextColumn get userId => text().nullable()();
+  IntColumn get attempts => integer().withDefault(const Constant(0))();
+  TextColumn get lastError => text().nullable()();
+  DateTimeColumn get nextRetryAt => dateTime().nullable()();
+}
+
+/// Per-table delta-pull cursor (§Phase 10 sync, v25). Lives in Drift rather
+/// than SharedPreferences so it survives the same backup/restore path as the
+/// rest of local data.
+@DataClassName('SyncCursorData')
+class SyncCursors extends Table {
+  TextColumn get entityType => text()();
+  TextColumn get cursorIso => text()();
+
+  @override
+  Set<Column> get primaryKey => {entityType};
 }
 
 // ── Workout Templates & Folders ────────────────────────────────────────────
@@ -737,7 +780,7 @@ class PendingSyncOps extends Table {
 /// A folder that groups workout templates (optional — templates without a
 /// folderId are "unfiled").
 @DataClassName('WorkoutFolderData')
-class WorkoutFolders extends Table {
+class WorkoutFolders extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get emoji => text().withDefault(const Constant('💪'))();
@@ -746,7 +789,7 @@ class WorkoutFolders extends Table {
 
 /// A reusable workout template. Optionally belongs to a folder.
 @DataClassName('WorkoutTemplateData')
-class WorkoutTemplates extends Table {
+class WorkoutTemplates extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get notes => text().nullable()();
@@ -761,7 +804,7 @@ class WorkoutTemplates extends Table {
 
 /// One exercise slot inside a template, with optional set targets.
 @DataClassName('TemplateExerciseData')
-class TemplateExercises extends Table {
+class TemplateExercises extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get templateId => integer().references(
     WorkoutTemplates,
@@ -783,7 +826,7 @@ class TemplateExercises extends Table {
 
 /// Prescribed sets inside a template exercise.
 @DataClassName('TemplateSetData')
-class TemplateSets extends Table {
+class TemplateSets extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get templateExerciseId => integer().references(
     TemplateExercises,
@@ -805,7 +848,7 @@ class TemplateSets extends Table {
 /// A gym profile. Sessions tag their gym so machine performance can be
 /// compared per location while global analytics still aggregate everything.
 @DataClassName('GymData')
-class Gyms extends Table {
+class Gyms extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
@@ -815,7 +858,7 @@ class Gyms extends Table {
 /// Lifting accessory catalog (belt, sleeves, wraps, straps, fat grips, chains
 /// + user-defined). Seeded defaults have [isCustom] = false.
 @DataClassName('AccessoryData')
-class Accessories extends Table {
+class Accessories extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   // belt | knee_sleeves | wrist_wraps | straps | fat_grips | chains | custom
@@ -830,7 +873,7 @@ class Accessories extends Table {
 /// Resistance/assistance band catalog with estimated tension. Seeded with
 /// common colors; users can add brand-specific bands.
 @DataClassName('BandData')
-class Bands extends Table {
+class Bands extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get color => text()();
@@ -841,7 +884,7 @@ class Bands extends Table {
 /// Accessories toggled on a single set. PRs/1RM are reported per accessory
 /// combination by grouping these rows.
 @DataClassName('SetAccessoryData')
-class SetAccessories extends Table {
+class SetAccessories extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get setEntryId =>
       integer().references(SetEntries, #id, onDelete: KeyAction.cascade)();
@@ -857,7 +900,7 @@ class SetAccessories extends Table {
 /// Bands attached to a single set. [mode] decides the sign of the band's
 /// contribution to effective load (resistance adds, assistance subtracts).
 @DataClassName('SetBandData')
-class SetBands extends Table {
+class SetBands extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get setEntryId =>
       integer().references(SetEntries, #id, onDelete: KeyAction.cascade)();
@@ -871,7 +914,7 @@ class SetBands extends Table {
 /// Saved machine configuration per exercise (optionally per gym), recalled
 /// when the user logs the same machine again.
 @DataClassName('MachineSettingData')
-class MachineSettings extends Table {
+class MachineSettings extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get exerciseId =>
       integer().references(ExerciseCatalog, #id, onDelete: KeyAction.cascade)();
@@ -881,13 +924,19 @@ class MachineSettings extends Table {
 
   /// JSON object of free-form settings, e.g. {"seat":"6","angle":"45°"}.
   TextColumn get settingsJson => text()();
+
+  /// "Last recalled" UX timestamp (unrelated to sync — [SyncColumns] also
+  /// declares an `updatedAt`, but this table's own predates it and keeps its
+  /// original meaning; it maps to the remote `recalled_at` column so it never
+  /// collides with the server's authoritative sync clock).
+  @override
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 /// One body measurement sample. [metric] is a stable key (bodyweight | arms_l |
 /// chest | waist | … | `custom:<name>`); values are metric units (kg / cm).
 @DataClassName('BodyMeasurementData')
-class BodyMeasurements extends Table {
+class BodyMeasurements extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
   TextColumn get metric => text()();

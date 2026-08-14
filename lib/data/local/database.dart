@@ -10,6 +10,8 @@ import 'exercise_merge.dart';
 import 'exercise_merges.dart';
 import 'fk_repair.dart';
 import 'migrations/nutrition_snapshot_backfill.dart';
+import 'migrations/sync_backfill.dart';
+import 'migrations/sync_triggers.dart';
 import '../../features/nutrition/data/food_catalogue_importer.dart';
 import 'tables.dart';
 
@@ -60,6 +62,7 @@ part 'database.g.dart';
     NutritionTargets,
     DietSchedules,
     CarbCyclePlans,
+    SyncCursors,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -69,7 +72,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -80,6 +83,20 @@ class AppDatabase extends _$AppDatabase {
       if (seedFoodCatalogue) {
         await FoodCatalogueImporter.runIfNeeded(this);
       }
+      // A fresh install has no pre-v25 rows to backfill, but still needs the
+      // sync_uuid uniqueness guarantee and the outbox triggers — onUpgrade's
+      // v25 block only runs for databases that already existed pre-sync.
+      for (final tableName in syncedTableNames) {
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_$tableName '
+          'ON $tableName(sync_uuid)',
+        );
+      }
+      await customStatement(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_sync_ops_entity '
+        'ON pending_sync_ops(entity_type, entity_id)',
+      );
+      await installSyncTriggers(this);
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -495,6 +512,128 @@ class AppDatabase extends _$AppDatabase {
         } catch (_) {
           // Same as above: no nutrition tables on this fixture.
         }
+      }
+      if (from < 25) {
+        await m.createTable(syncCursors);
+
+        // Phase 10: cloud sync. Every synced table gains sync_uuid (client-
+        // generated identity, mirrored as the Postgres PK), updatedAt (local
+        // "last touched", unrelated to conflict resolution), and syncedAt
+        // (null until first successful push). All but foods/recipes also
+        // gain deletedAt (those two already carry it from v24's RB-05
+        // tombstone). Mirrors `supabase/migrations/000{1,2}_sync_schema_*.sql`
+        // — see `SyncColumns`/`SyncTombstone` in tables.dart.
+        Future<void> tryAddColumn(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          try {
+            await m.addColumn(table, column);
+          } catch (_) {
+            // Table/column doesn't exist on this fixture, or (MachineSettings
+            // .updatedAt only) the column already existed pre-sync — same
+            // swallow-and-move-on precedent as the v24 block above.
+          }
+        }
+
+        final syncColumnTables = <TableInfo<Table, dynamic>>[
+          gyms,
+          workoutFolders,
+          exerciseCatalog,
+          accessories,
+          bands,
+          nutritionTargets,
+          dietSchedules,
+          carbCyclePlans,
+          fastingSessions,
+          bodyMeasurements,
+          cycleLogs,
+          cycleSettings,
+          exerciseRotations,
+          dailySummaries,
+          externalEvents,
+          microWorkouts,
+          recipeIngredients,
+          workoutTemplates,
+          workoutSessions,
+          programs,
+          exerciseProgressions,
+          machineSettings,
+          foodEntries,
+          workoutExercises,
+          templateExercises,
+          programWeeks,
+          rotationMembers,
+          setEntries,
+          templateSets,
+          programDays,
+          programDayExercises,
+          scheduledWorkouts,
+          setAccessories,
+          setBands,
+        ];
+        for (final t in syncColumnTables) {
+          await tryAddColumn(t, (t as dynamic).syncUuid as GeneratedColumn);
+          await tryAddColumn(t, (t as dynamic).updatedAt as GeneratedColumn);
+          await tryAddColumn(t, (t as dynamic).syncedAt as GeneratedColumn);
+          await tryAddColumn(t, (t as dynamic).deletedAt as GeneratedColumn);
+        }
+        // foods/recipes: skip deletedAt, already present since v24.
+        for (final t in <TableInfo<Table, dynamic>>[foods, recipes]) {
+          await tryAddColumn(t, (t as dynamic).syncUuid as GeneratedColumn);
+          await tryAddColumn(t, (t as dynamic).updatedAt as GeneratedColumn);
+          await tryAddColumn(t, (t as dynamic).syncedAt as GeneratedColumn);
+        }
+
+        await tryAddColumn(
+          pendingSyncOps,
+          pendingSyncOps.userId as GeneratedColumn,
+        );
+        await tryAddColumn(
+          pendingSyncOps,
+          pendingSyncOps.attempts as GeneratedColumn,
+        );
+        await tryAddColumn(
+          pendingSyncOps,
+          pendingSyncOps.lastError as GeneratedColumn,
+        );
+        await tryAddColumn(
+          pendingSyncOps,
+          pendingSyncOps.nextRetryAt as GeneratedColumn,
+        );
+
+        // Backfill sync_uuid for rows that predate this migration — same
+        // per-row customUpdate pattern as v22's workoutSessions.sessionUuid.
+        for (final tableName in syncedTableNames) {
+          try {
+            await backfillSyncUuids(this, tableName);
+          } catch (_) {
+            // Table doesn't exist on this fixture.
+          }
+        }
+
+        for (final tableName in syncedTableNames) {
+          try {
+            await customStatement(
+              'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_$tableName '
+              'ON $tableName(sync_uuid)',
+            );
+          } catch (_) {
+            // Table doesn't exist on this fixture.
+          }
+        }
+        try {
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_sync_ops_entity '
+            'ON pending_sync_ops(entity_type, entity_id)',
+          );
+        } catch (_) {
+          // Pre-existing duplicate rows (shouldn't happen — queueSyncOp was
+          // never called in production — but don't let a stale fixture
+          // block the rest of the migration).
+        }
+
+        await installSyncTriggers(this);
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
