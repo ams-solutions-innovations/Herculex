@@ -104,3 +104,12 @@ None - no external service configuration required.
 ---
 *Phase: 09-analytics-consolidation-and-soft-delete-correctness*
 *Completed: 2026-08-14*
+
+## Self-Check: PASSED
+
+- FOUND: lib/features/analytics/domain/balance_analyzer.dart
+- FOUND: lib/features/analytics/domain/biometric_correlations.dart
+- FOUND: .planning/phases/09-analytics-consolidation-and-soft-delete-correctness/09-01-SUMMARY.md
+- FOUND: b509777 (Task 2 commit)
+- FOUND: ef5b1d6 (Task 3 commit)
+- FOUND: d275b5f (SUMMARY commit)
