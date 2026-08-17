@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
-import 'package:flutter_media_controller/flutter_media_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -32,7 +31,7 @@ class ActiveWorkoutView extends ConsumerStatefulWidget {
 
 class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   Timer? _ticker;
-
+  final Map<int, FocusNode> _firstSetFocusNodes = {};
 
   @override
   void initState() {
