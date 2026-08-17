@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/auth_validator.dart';
 import '../../auth/domain/auth_session.dart';
 import '../../../theme/colors.dart';
 import '../../../widgets/glass_container.dart';
@@ -24,6 +25,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   final _ageCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
+  final _rateLimiter = AuthRateLimiter();
 
   int _index = 0;
   bool _isRegisterMode = true;
@@ -45,7 +47,6 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   }
 
   bool _canAdvance(AuthSession? authSession) => switch (_index) {
-    // TEMP: login skip enabled — was `_goal != null && authSession != null`.
     0 => _goal != null,
     1 => _activity != null,
     2 => true,
@@ -54,7 +55,6 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
 
   Future<void> _next(AuthSession? authSession) async {
     if (_index < 2) {
-      // TEMP: login requirement disabled to allow skipping straight into the app.
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -65,8 +65,6 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   }
 
   Future<void> _complete() async {
-    // TEMP: login requirement disabled — was blocking completion when
-    // authSession was null. Restore the guard to re-enable required login.
     final name = _nameCtrl.text.trim();
     final profile = Profile(
       name: name.isEmpty ? null : name,
@@ -77,7 +75,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       heightCm: double.tryParse(_heightCtrl.text.trim()),
       sex:
           _sex ??
-          BiologicalSex.male, // Default to male if omitted during transition
+          BiologicalSex.male,
     );
     await ref.read(localProfileRepositoryProvider).save(profile);
     if (!mounted) return;
@@ -85,11 +83,36 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   }
 
   Future<void> _submitEmailAuth({required bool register}) async {
+    final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
+    if (!allowed) {
+      _showMessage('Too many failed attempts. Please wait $secondsRemaining seconds.');
+      return;
+    }
+
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
-    if (email.isEmpty || password.isEmpty) {
-      _showMessage('Enter both email and password.');
+
+    final emailError = AuthValidator.validateEmail(email);
+    if (emailError != null) {
+      _showMessage(emailError);
       return;
+    }
+
+    final passwordError = AuthValidator.validatePassword(password, isRegistration: register);
+    if (passwordError != null) {
+      _showMessage(passwordError);
+      return;
+    }
+
+    if (register) {
+      final name = _nameCtrl.text.trim();
+      if (name.isNotEmpty) {
+        final nameError = AuthValidator.validateUsername(name);
+        if (nameError != null) {
+          _showMessage(nameError);
+          return;
+        }
+      }
     }
 
     setState(() => _authBusy = true);
@@ -104,9 +127,11 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       } else {
         await authRepository.loginWithEmail(email: email, password: password);
       }
+      _rateLimiter.recordSuccess();
       _showMessage(register ? 'Account created successfully.' : 'Signed in successfully.');
     } catch (error) {
-      _showMessage('$error');
+      _rateLimiter.recordFailure();
+      _showMessage('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -118,9 +143,10 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     setState(() => _authBusy = true);
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
+      _rateLimiter.recordSuccess();
       _showMessage('Signed in with Google.');
     } catch (error) {
-      _showMessage('$error');
+      _showMessage('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -132,9 +158,10 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     setState(() => _authBusy = true);
     try {
       await ref.read(authRepositoryProvider).signInWithApple();
+      _rateLimiter.recordSuccess();
       _showMessage('Signed in with Apple.');
     } catch (error) {
-      _showMessage('$error');
+      _showMessage('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -143,9 +170,16 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   }
 
   Future<void> _sendPasswordReset() async {
+    final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
+    if (!allowed) {
+      _showMessage('Too many attempts. Please wait $secondsRemaining seconds.');
+      return;
+    }
+
     final email = _emailCtrl.text.trim();
-    if (email.isEmpty) {
-      _showMessage('Enter your email first.');
+    final emailError = AuthValidator.validateEmail(email);
+    if (emailError != null) {
+      _showMessage(emailError);
       return;
     }
 
@@ -154,7 +188,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       await ref.read(authRepositoryProvider).sendPasswordReset(email);
       _showMessage('Password reset email sent.');
     } catch (error) {
-      _showMessage('$error');
+      _showMessage('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -353,6 +387,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
             "e.g. Alex",
             _nameCtrl,
             keyboardType: TextInputType.name,
+            maxLength: AuthValidator.maxUsernameLength,
           ),
           const SizedBox(height: 16),
           _numField("Age", "e.g. 25", _ageCtrl),
@@ -377,7 +412,13 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     String label,
     String hint,
     TextEditingController controller,
-  ) => _textField(label, hint, controller, keyboardType: TextInputType.number);
+  ) => _textField(
+        label,
+        hint,
+        controller,
+        keyboardType: TextInputType.number,
+        maxLength: 5,
+      );
 
   Widget _buildSexSelector(ThemeData theme) {
     return Column(
@@ -480,6 +521,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
             'you@example.com',
             _emailCtrl,
             keyboardType: TextInputType.emailAddress,
+            maxLength: AuthValidator.maxEmailLength,
           ),
           const SizedBox(height: 16),
           _textField(
@@ -488,6 +530,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
             _passwordCtrl,
             keyboardType: TextInputType.visiblePassword,
             obscureText: true,
+            maxLength: AuthValidator.maxPasswordLength,
           ),
           const SizedBox(height: 16),
           Row(
@@ -560,6 +603,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     TextEditingController controller, {
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
+    int? maxLength,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,8 +616,10 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
         TextField(
           controller: controller,
           obscureText: obscureText,
+          maxLength: maxLength,
           decoration: InputDecoration(
             hintText: hint,
+            counterText: '',
             filled: true,
             fillColor: AppColors.surfaceContainerLowest,
             border: OutlineInputBorder(
