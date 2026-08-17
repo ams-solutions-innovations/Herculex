@@ -23,6 +23,8 @@ node_modules/
 *.pyc
 *.swp
 .DS_Store
+._*
+.AppleDouble
 .atom/
 .build/
 .buildlog/
