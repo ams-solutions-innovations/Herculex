@@ -721,6 +721,10 @@ class AppDatabase extends _$AppDatabase {
     // above always runs with enforcement off.
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      // The exercise catalogue is an app asset, not a schema concern. Refresh
+      // it on every open so catalogue-only releases (e.g. cardio entries)
+      // become visible on existing installs without a database migration.
+      await ExerciseImporter.runFromAsset(this);
     },
   );
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../domain/equipment_variants.dart';
+import 'equipment_icon.dart';
 
 /// Hevy-style equipment prompt (§26): immediately after picking an exercise,
 /// large tappable buttons ask which equipment it will be performed with. The
@@ -14,7 +15,9 @@ class EquipmentVariantSheet extends StatelessWidget {
   /// Returns the chosen variant id, or null if dismissed. Skips the prompt
   /// (returning the catalog modality) when only one option makes sense.
   static Future<String?> show(
-      BuildContext context, ExerciseCatalogData exercise) {
+    BuildContext context,
+    ExerciseCatalogData exercise,
+  ) {
     final options = optionsFor(exercise);
     if (options.length <= 1) {
       return Future.value(exercise.modality);
@@ -44,6 +47,13 @@ class EquipmentVariantSheet extends StatelessWidget {
   static IconData iconFor(String variant) =>
       _icons[variant] ?? Icons.fitness_center_outlined;
 
+  static Widget iconWidget(String variant, {double size = 20, Color? color}) =>
+      EquipmentGlyph(
+        variant: variant,
+        size: size,
+        color: color ?? AppColors.secondary,
+      );
+
   static String labelFor(String variant) => equipmentVariantLabel(variant);
 
   /// Plausible equipment options per exercise, catalog default first.
@@ -63,7 +73,8 @@ class EquipmentVariantSheet extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.bottomSheetTheme.backgroundColor ??
+        color:
+            theme.bottomSheetTheme.backgroundColor ??
             AppColors.surfaceContainerLowest,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
@@ -86,9 +97,12 @@ class EquipmentVariantSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(exercise.name,
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                exercise.name,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 4),
               Text('Which equipment?', style: theme.textTheme.bodyMedium),
               const SizedBox(height: 16),
@@ -101,7 +115,7 @@ class EquipmentVariantSheet extends StatelessWidget {
                       for (final (i, option) in options.indexed)
                         _VariantButton(
                           label: labelFor(option),
-                          icon: iconFor(option),
+                          variant: option,
                           isDefault: i == 0,
                           onTap: () => Navigator.of(context).pop(option),
                         ),
@@ -119,13 +133,13 @@ class EquipmentVariantSheet extends StatelessWidget {
 
 class _VariantButton extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final String variant;
   final bool isDefault;
   final VoidCallback onTap;
 
   const _VariantButton({
     required this.label,
-    required this.icon,
+    required this.variant,
     required this.isDefault,
     required this.onTap,
   });
@@ -155,9 +169,11 @@ class _VariantButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                size: 20,
-                color: isDefault ? AppColors.primary : AppColors.secondary),
+            EquipmentGlyph(
+              variant: variant,
+              size: 22,
+              color: isDefault ? AppColors.primary : AppColors.secondary,
+            ),
             const SizedBox(width: 10),
             Text(
               label,

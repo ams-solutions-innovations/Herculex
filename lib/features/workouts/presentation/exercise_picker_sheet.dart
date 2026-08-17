@@ -9,7 +9,8 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../services/ai_service.dart';
 import 'custom_exercise_builder_view.dart';
-import 'equipment_variant_sheet.dart';
+import 'exercise_artwork.dart';
+import 'equipment_icon.dart';
 import 'workouts_providers.dart';
 
 /// Result from [ExercisePickerSheet.show]. [equipmentAlreadyChosen] is true
@@ -50,9 +51,8 @@ const exercisePickerFilterChips = <String>[
   'Side Delts',
   'Front Delts',
   'Calisthenics',
-  // No 'Cardio' / 'Mobility' chips: the catalog has no exercise in either
-  // category, and neither can be logged until SetEntries gains duration and
-  // distance columns.
+  'Cardio',
+  'CrossFit',
 ];
 
 /// Display name for a collapsed movement group, e.g. the barbell/dumbbell/
@@ -229,7 +229,10 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                           );
                           if (created != null && context.mounted) {
                             Navigator.of(context).pop([
-                              (exercise: created, equipmentAlreadyChosen: false),
+                              (
+                                exercise: created,
+                                equipmentAlreadyChosen: false,
+                              ),
                             ]);
                           }
                         },
@@ -268,12 +271,14 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                                 setState(() => _isScanningAi = true);
                                 try {
                                   final ai = ref.read(aiServiceProvider);
-                                  final match = await ai.identifyExerciseFromImage(
-                                    xfile,
-                                  );
+                                  final match = await ai
+                                      .identifyExerciseFromImage(xfile);
                                   if (context.mounted && match != null) {
                                     Navigator.of(context).pop([
-                                      (exercise: match, equipmentAlreadyChosen: false),
+                                      (
+                                        exercise: match,
+                                        equipmentAlreadyChosen: false,
+                                      ),
                                     ]);
                                   } else if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -356,7 +361,10 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                         // Recency only orders the unfiltered browse list. While a
                         // query is typed, relevance wins — otherwise any of the 50
                         // recent exercises outranks an exact name match.
-                        filteredList = sortRecentExercisesFirst(list, recentIds);
+                        filteredList = sortRecentExercisesFirst(
+                          list,
+                          recentIds,
+                        );
                       }
 
                       if (filteredList.isEmpty) {
@@ -382,7 +390,9 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                         itemBuilder: (_, i) {
                           final g = groups[i];
                           if (g.length == 1) {
-                            final isSelected = _selectedMap.containsKey(g.first.id);
+                            final isSelected = _selectedMap.containsKey(
+                              g.first.id,
+                            );
                             return _ExerciseTile(
                               exercise: g.first,
                               isSelected: isSelected,
@@ -401,7 +411,8 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                       );
                     },
                     error: (e, _) => Center(child: Text('Failed to load: $e')),
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                   ),
                 ),
               ],
@@ -496,20 +507,13 @@ class _FamilyTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.primaryContainer.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.fitness_center,
-                  size: 20,
-                  color: isSelected ? Colors.white : AppColors.primary,
-                ),
+              ExerciseArtwork(
+                exercise: variants.first,
+                size: 48,
+                radius: 10,
+                fallbackColor: isSelected
+                    ? AppColors.primary
+                    : AppColors.primaryContainer.withValues(alpha: 0.35),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -549,7 +553,9 @@ class _FamilyTile extends StatelessWidget {
                       : '${variants.length} styles',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: isSelected ? Colors.white : AppColors.secondary,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
               ),
@@ -735,7 +741,7 @@ class _StyleChooserSheet extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _StyleOption(
-                              icon: EquipmentVariantSheet.iconFor(v.modality),
+                              equipmentVariant: v.modality,
                               label: v.equipment,
                               subtitle: v.name,
                               onTap: () => Navigator.of(context).pop(v),
@@ -745,10 +751,11 @@ class _StyleChooserSheet extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _StyleOption(
-                              icon: Icons.monitor_weight_outlined,
+                              equipmentVariant: 'weighted',
                               label: 'Weighted',
                               subtitle: '${weightedBase.name} + added load',
-                              onTap: () => Navigator.of(context).pop(weightedBase),
+                              onTap: () =>
+                                  Navigator.of(context).pop(weightedBase),
                             ),
                           ),
                       ],
@@ -765,12 +772,12 @@ class _StyleChooserSheet extends StatelessWidget {
 }
 
 class _StyleOption extends StatelessWidget {
-  final IconData icon;
+  final String equipmentVariant;
   final String label;
   final String subtitle;
   final VoidCallback onTap;
   const _StyleOption({
-    required this.icon,
+    required this.equipmentVariant,
     required this.label,
     required this.subtitle,
     required this.onTap,
@@ -794,7 +801,11 @@ class _StyleOption extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: AppColors.secondary),
+            EquipmentGlyph(
+              variant: equipmentVariant,
+              size: 22,
+              color: AppColors.secondary,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -865,20 +876,13 @@ class _ExerciseTile extends StatelessWidget {
             children: [
               Stack(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.primaryContainer.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      Icons.fitness_center,
-                      size: 20,
-                      color: isSelected ? Colors.white : AppColors.primary,
-                    ),
+                  ExerciseArtwork(
+                    exercise: exercise,
+                    size: 48,
+                    radius: 10,
+                    fallbackColor: isSelected
+                        ? AppColors.primary
+                        : AppColors.primaryContainer.withValues(alpha: 0.35),
                   ),
                   if (isSelected)
                     Positioned(

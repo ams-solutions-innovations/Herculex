@@ -249,8 +249,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         // into a write, and only after the user's own Save
                         // tap (REP-03). Dismissing it leaves the set and the
                         // observation table both untouched.
-                        final suggestion =
-                            completed ? _pendingSuggestions[rows[i].id] : null;
+                        final suggestion = completed
+                            ? _pendingSuggestions[rows[i].id]
+                            : null;
                         var saved = suggestion == null;
                         if (suggestion != null) {
                           if (!context.mounted) return;
@@ -368,7 +369,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         onPressed: () =>
                             setState(() => _setsExpanded = !_setsExpanded),
                         child: Text(
-                          _setsExpanded ? 'Show less' : 'Show all (${rows.length})',
+                          _setsExpanded
+                              ? 'Show less'
+                              : 'Show all (${rows.length})',
                         ),
                       ),
                     ),
@@ -426,8 +429,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         final pct = meta['dropPercent'] as int? ?? 20;
                         nextWeight = nextWeight * (1 - (pct / 100));
                         final stepKg = dropSetRoundingStepKg(
-                          workoutExercise.equipmentVariant ??
-                              exercise.modality,
+                          workoutExercise.equipmentVariant ?? exercise.modality,
                         );
                         nextWeight =
                             (nextWeight / stepKg).roundToDouble() * stepKg;
@@ -571,7 +573,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       lastWeightKg: best.weightKg,
       lastReps: best.reps,
       goal: settings.goal,
-      equipmentVariant: widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
+      equipmentVariant:
+          widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
       weeklyIncreasePctOverride: settings.weeklyPctOverride,
     );
     if (target.weightKg <= 0 && best.weightKg <= 0) {
@@ -679,8 +682,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   }
 
   void _showMenu(BuildContext context, WidgetRef ref) {
-    final isMachine = (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality)
-        .startsWith('machine');
+    final isMachine =
+        (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality)
+            .startsWith('machine');
     final slug = widget.exercise.slug;
     showModalBottomSheet(
       context: context,
@@ -712,8 +716,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               ),
             ListTile(
               leading: const Icon(Icons.insights),
-              title: const Text('View performance'),
-              subtitle: const Text('PRs per equipment & accessory combo'),
+              title: const Text('Exercise info'),
+              subtitle: const Text('Quick view and full exercise details'),
               onTap: () {
                 Navigator.pop(context);
                 ExercisePerformanceSheet.show(context, widget.exercise);
@@ -724,7 +728,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               title: const Text('Change equipment'),
               subtitle: Text(
                 EquipmentVariantSheet.labelFor(
-                  widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
+                  widget.workoutExercise.equipmentVariant ??
+                      widget.exercise.modality,
                 ),
               ),
               onTap: () async {
@@ -823,7 +828,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
 
   void _showLinkSheet(BuildContext context, WidgetRef ref) {
     final candidates =
-        widget.sessionExercises.where((we) => we.id != widget.workoutExercise.id).toList()
+        widget.sessionExercises
+            .where((we) => we.id != widget.workoutExercise.id)
+            .toList()
           ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
     // Hard cap of 5 linked exercises per group (item 9): once the current
     // group is full, unconnected candidates can no longer be added.
@@ -861,7 +868,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   }
 
   String _exerciseName(int exerciseId) {
-    return widget.catalogExercises.firstWhereOrNull((e) => e.id == exerciseId)?.name ??
+    return widget.catalogExercises
+            .firstWhereOrNull((e) => e.id == exerciseId)
+            ?.name ??
         'Exercise #$exerciseId';
   }
 
@@ -943,8 +952,6 @@ class _HeaderRow extends ConsumerWidget {
     );
   }
 }
-
-
 
 class _SetRow extends ConsumerStatefulWidget {
   final int index;
@@ -1270,10 +1277,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                Expanded(
-                  flex: 2,
-                  child: _rpeField(context),
-                ),
+                Expanded(flex: 2, child: _rpeField(context)),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
@@ -1297,7 +1301,8 @@ class _SetRowState extends ConsumerState<_SetRow> {
                   onTap: () {
                     Haptics.medium();
                     if (!isCompleted) {
-                      if (_weight.text.trim().isEmpty && _hintWeight.isNotEmpty) {
+                      if (_weight.text.trim().isEmpty &&
+                          _hintWeight.isNotEmpty) {
                         _weight.text = _hintWeight;
                       }
                       if (_reps.text.trim().isEmpty && _hintReps.isNotEmpty) {
@@ -1551,9 +1556,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
         ),
       ],
       textAlign: TextAlign.center,
-      style: theme.textTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w600,
-      ),
+      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
@@ -1706,8 +1709,7 @@ class _RepTrackingMenuTile extends ConsumerWidget {
       );
     }
 
-    final enabledAsync =
-        ref.watch(repTrackingEnabledForProvider(exerciseSlug));
+    final enabledAsync = ref.watch(repTrackingEnabledForProvider(exerciseSlug));
     final enabled = enabledAsync.asData?.value ?? false;
 
     return ListTile(

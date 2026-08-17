@@ -33,6 +33,7 @@ import '../features/reps/presentation/rep_tracking_consent_view.dart';
 import '../features/shell/main_scaffold.dart';
 import '../features/shell/splash_view.dart';
 import '../features/workouts/presentation/micro_workouts_view.dart';
+import '../features/workouts/presentation/exercise_details_view.dart';
 import '../features/workouts/presentation/workout_history_view.dart';
 import 'providers.dart';
 
@@ -88,6 +89,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/exercise/:id',
+        builder: (_, state) => ExerciseDetailsView(
+          exerciseId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
         path: '/measurements',
         builder: (_, _) => const MeasurementsView(),
       ),
@@ -107,7 +114,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const MicroWorkoutsView(),
       ),
       GoRoute(path: '/insights', builder: (_, _) => const InsightsView()),
-      GoRoute(path: '/health', builder: (_, _) => const HealthIntegrationsView()),
+      GoRoute(
+        path: '/health',
+        builder: (_, _) => const HealthIntegrationsView(),
+      ),
       GoRoute(
         path: '/rep-tracking-consent',
         builder: (_, _) => const RepTrackingConsentView(),
@@ -115,15 +125,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/cycle', builder: (_, _) => const CycleTrackingView()),
       GoRoute(
         path: '/health/samsung',
-        builder: (_, _) => const HealthPlatformDetailView(platform: HealthPlatform.samsung),
+        builder: (_, _) =>
+            const HealthPlatformDetailView(platform: HealthPlatform.samsung),
       ),
       GoRoute(
         path: '/health/apple',
-        builder: (_, _) => const HealthPlatformDetailView(platform: HealthPlatform.apple),
+        builder: (_, _) =>
+            const HealthPlatformDetailView(platform: HealthPlatform.apple),
       ),
       GoRoute(
         path: '/health/google',
-        builder: (_, _) => const HealthPlatformDetailView(platform: HealthPlatform.google),
+        builder: (_, _) =>
+            const HealthPlatformDetailView(platform: HealthPlatform.google),
       ),
       GoRoute(path: '/profile', builder: (_, _) => const ProfileView()),
       GoRoute(
