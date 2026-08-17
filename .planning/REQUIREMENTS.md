@@ -52,8 +52,20 @@
 - [x] **REP-05**: An RPE suggestion appears only after ≥ 10 confirmed sets across ≥ 3 sessions for that exercise/device/placement, and only when leave-one-out error is within 1.0 RPE point. Low confidence, changed placement or unsupported movement yields a count-only state.
 - [ ] **REP-06**: Recorded motion traces for pull-ups and dips verify counting accuracy, missed-rep handling, false-positive resistance, source and placement changes, and the never-auto-complete guarantee.
 
+### Gym Buddy — live shared workout
+
+- [ ] **BUD-01**: Sharing an active workout is an explicit user action. A partner joins by scanning a short-lived, single-session QR code reached from an additional entry in the `+` button; the token cannot be reused after the session ends.
+- [ ] **BUD-02**: Each participant keeps their own `WorkoutSessions` row, owned by them and synced under their own `user_id`. A shared `buddySessionId` links the two. No participant's sets, reps, weight, RPE or measurements are ever written into another participant's tables, and buddy sessions never double-count in analytics.
+- [ ] **BUD-03**: Exercise choreography — add, remove, reorder and replace — propagates live between participants. Every change offers a scope choice of "both of us" or "only me"; "only me" never mutates the partner's exercise list.
+- [ ] **BUD-04**: Live state travels over Supabase Realtime broadcast, and every choreography event is also appended to a durable event log, so a participant who loses connection, backgrounds the app or restarts the phone rejoins at the correct shared state rather than an empty one.
+- [ ] **BUD-05**: The existing owner-only RLS policies in `0003_sync_rls.sql` are left unchanged. Cross-user visibility is confined to the new buddy tables and to a minimal participant display identity; no policy grants a partner read access to another user's training, nutrition or biometric tables.
+- [ ] **BUD-06**: Either participant can leave a buddy session at any time. The other's workout continues uninterrupted, both sessions save normally, and a partner disconnecting is never able to complete, alter or discard the other's sets.
+
 ## v2 Requirements
 
+- **BUD-07**: Buddy VS comparison in workout history — per-exercise winner, calisthenics rep counts and per-session volume, computed after the fact from both participants' sessions via the shared `buddySessionId`.
+- **BUD-08**: Persistent friends model — user identity, search/invite, accept/block, so a relationship outlives a single scanned session.
+- **BUD-09**: Friend challenges — each participant sets a goal with a deadline (strength target, body-fat %, kg lost or gained), progress is tracked from existing measurement and training data, and the challenge resolves at the deadline.
 - **PLAN-01**: Recipe URL import with user review/matching.
 - **PLAN-02**: Meal planner, grocery list and dietary-preference/allergen planning.
 - **SOC-01**: Sharing/copying diaries across users after an account and sync model exist.
@@ -80,3 +92,4 @@
 | NOWBAR-01–03 | 8 | Pending |
 | ANLY-01–04 | 9 | Complete |
 | REP-01–06 | 10 | In Progress |
+| BUD-01–06 | 11 | Pending |

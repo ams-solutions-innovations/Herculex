@@ -86,12 +86,27 @@ Plans:
 
 **Risk:** 10-02 is gated on a human task — recording real pull-up and dip traces on both a watch and a pocketed phone with ground-truth counts. Synthetic traces cannot meet the accuracy bar. 10-06 makes this easier to do opportunistically across real workouts but does not remove the requirement for a human to actually perform them.
 
-## Later — Samsung Now Bar, recipe import, meal planning, social, voice
+## Phase 11: Gym Buddy — live shared workout
 
-**Requirements:** NOWBAR-01–03, PLAN-01–02, SOC-01, VOICE-01
+**Goal:** Let two people train the same workout together in real time. One shares an active workout, the other joins by scanning a QR code from the `+` button, and from then on the exercise list stays in step between them — while each person's sets, reps, weights and measurements stay entirely their own.
+
+**Requirements:** BUD-01–06
+
+**Depends on:** Nothing functionally. Takes local schema v29 and a new Supabase migration; merge after Phase 10's v26–v28 chain has landed to avoid a schema-version race.
+
+**Success:** Two phones running a shared session see the same exercise list within a second of any change; a change made with scope "only me" provably does not appear on the partner's device while "both" does; each participant's `WorkoutSessions` row is owned and synced by them alone, and a test proves no partner-owned set row is ever written into the other's tables or counted in their analytics; killing and reopening the app on one phone restores the shared exercise list from the durable event log rather than an empty session; and a static test proves `0003_sync_rls.sql`'s owner-only policies are unmodified, with cross-user reads confined to the new buddy tables.
+
+**Scope fence:** MVP is the live shared session only. VS comparison in history (BUD-07), the persistent friends model (BUD-08) and challenges (BUD-09) are deliberately deferred — they are separate phases that build on this one. Do not add a friends list, a challenge model or history comparison screens in this phase; the QR join token is a session token, not a relationship.
+
+## Later — Samsung Now Bar, buddy VS, friends, challenges, recipe import, meal planning, voice
+
+**Requirements:** NOWBAR-01–03, BUD-07–09, PLAN-01–02, SOC-01, VOICE-01
 
 - **Samsung Now Bar Live Update (Deferred to January):** Upgrade the ongoing workout surface into a native Android 16 (API 36) `requestPromotedOngoing(true)` / `ProgressStyle` Live Update and collapse notification publishers.
+- **Buddy VS comparison (BUD-07):** Three comparison views in workout history — who won each exercise, calisthenics rep counts, per-session volume — computed after the fact from both sessions via `buddySessionId`. Depends on Phase 11.
+- **Friends model (BUD-08):** Persistent identity, search/invite, accept/block. Prerequisite for challenges.
+- **Challenges (BUD-09):** Goal + deadline per participant (strength, BF%, kg lost/gained), progress read from existing measurement and training data. Depends on BUD-08.
 - **Recipe import & meal planning**
-- **Social & voice**
+- **Voice**
 
 **Scope fence:** Do not add these before the local catalogue, trustworthy diary foundation, and release blockers are verified.
