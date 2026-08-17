@@ -78,6 +78,36 @@ The QR code encodes a join token that is scoped to one buddy session, expires qu
 
 Either participant can leave at any time. The other's workout continues uninterrupted and both sessions save normally. A partner disconnecting, leaving, or force-quitting can never complete, alter or discard the other's sets — this follows from the two-session model but deserves an explicit test.
 
+### Resolving the BUD-03 × BUD-06 collision: data loss loses to nothing
+
+Research found a real conflict, not a risk. `WorkoutsRepository.removeWorkoutExercise` (`lib/features/workouts/data/workouts_repository.dart:710-733`) hard-deletes every child `SetEntries` row in one transaction. A `scope: both` remove applied verbatim on the partner's device therefore destroys their logged sets — BUD-03 says remove propagates, BUD-06 says a partner can never discard your sets.
+
+**Locked resolution — BUD-06 wins.** The receiving side's `remove` handler is asymmetric by design:
+
+- Partner's slot has **no logged work** → remove normally.
+- Partner's slot has **any logged set** → **unlink the slot from the buddy choreography and keep the local exercise in place**, surfacing a one-line note ("Your partner dropped Bench Press — yours is kept").
+
+This is a documented plan decision with its own test, not an implementation detail. A plan task describing remove as "apply the same repository call on both devices" is wrong.
+
+### Scope presentation: sticky defaults, visible override
+
+The scope choice is not a modal on every change. Defaults are sticky per action kind:
+
+- `add`, `reorder`, `replace` → default `both`
+- `remove` → default `mine`
+
+Every action shows a visible toggle to override for that one action. This satisfies "must not make 'both' implicit for destructive operations" without putting a dialog in the middle of a workout.
+
+### Joining auto-starts the joiner's workout
+
+Scanning the QR code when the joiner has no active workout **creates their own session and links it immediately**. One gesture from scan to training together. The joiner's session is theirs, owned and synced under their `user_id` exactly like any other — auto-creation changes nothing about ownership.
+
+### Migrations are automated via the Supabase CLI
+
+Neither the `supabase` CLI nor `psql` is currently installed, and how migrations `0001`–`0010` reached the server is undocumented. This phase **installs and wires up the Supabase CLI** and applies the new migration through `supabase db push` rather than a human paste into the SQL Editor.
+
+This is a real prerequisite, not a footnote: every server-side requirement (BUD-04's log, BUD-05's policies, the join-token RPC) is unverifiable until migrations can be applied repeatably, and the live integration tests in `test/sync/live_round_trip_test.dart` need the schema present. The plan must sequence CLI setup and project linking before any task that depends on server-side behaviour, and must record the resulting workflow in the repo so it is no longer tribal knowledge.
+
 ### Claude's Discretion
 
 - Exact local table shapes and the v29 migration contents.
