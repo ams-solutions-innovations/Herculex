@@ -464,7 +464,7 @@ class _MealAccordionState extends State<_MealAccordion>
           // ── Body (animated) ─────────────────────────────────────────────
           SizeTransition(
             sizeFactor: _expandAnim,
-            alignment: Alignment.topCenter,
+            axisAlignment: -1.0,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

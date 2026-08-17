@@ -32,16 +32,7 @@ class ActiveWorkoutView extends ConsumerStatefulWidget {
 
 class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   Timer? _ticker;
-  Timer? _mediaTicker;
-  final Map<int, FocusNode> _firstSetFocusNodes = {};
 
-  // Mini media pill state.
-  String _miniTrack = '';
-  bool _miniPlaying = false;
-  bool _mediaPillVisible = false;
-
-  // Swipe-up tracking.
-  final double _swipeDy = 0;
 
   @override
   void initState() {
@@ -51,12 +42,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     });
     // Enable wakelock if the user preference is on (default: true).
     _applyWakelock();
-    // Poll media info for the mini pill every 3 s.
-    _pollMediaPill();
-    _mediaTicker = Timer.periodic(
-      const Duration(seconds: 3),
-      (_) => _pollMediaPill(),
-    );
+
   }
 
   void _applyWakelock() {
@@ -64,29 +50,12 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     WakelockPlus.toggle(enable: keepAwake);
   }
 
-  Future<void> _pollMediaPill() async {
-    try {
-      final info = await FlutterMediaController.getCurrentMediaInfo();
-      if (!mounted) return;
-      // Hide pill when track is the sentinel for "no permission / nothing playing".
-      final hasTrack =
-          info.track.isNotEmpty && info.track != 'No track playing';
-      setState(() {
-        _miniTrack = info.track;
-        _miniPlaying = info.isPlaying;
-        _mediaPillVisible = hasTrack;
-      });
-    } catch (_) {
-      // Silently ignore — the pill just won't show.
-    }
-  }
 
-  void _openMediaSheet() => MediaControlsSheet.show(context);
 
   @override
   void dispose() {
     _ticker?.cancel();
-    _mediaTicker?.cancel();
+
     // Always release the wakelock when leaving the workout screen.
     WakelockPlus.disable();
     for (final node in _firstSetFocusNodes.values) {
