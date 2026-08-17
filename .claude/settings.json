@@ -165,10 +165,41 @@
       "Bash(curl -s -X POST https://jioesomepkauponjrena.supabase.co/auth/v1/token?grant_type=password -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imppb2Vzb21lcGthdXBvbmpyZW5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MzAyMDUsImV4cCI6MjEwMjEwNjIwNX0.aTDAh41HZypdjkPBiYKmJDkKgP57pAoh2I6wwk0i08g' -H 'Content-Type: application/json' -d '{\"email\":\"aleksandar.bojic12@gmail.com\",\"password\":\"NikoliVecPKU.2026!\"}')",
       "Bash(awk '/^class SyncCursors/,/^}/' lib/data/local/tables.dart)",
       "Bash(cp /tmp/sync_service_fixed.dart \"c:/Users/marti/AMS d.o.o/Herculex/lib/data/sync/sync_service.dart\")",
-      "Bash(rm /tmp/sync_service_fixed.dart)"
+      "Bash(rm /tmp/sync_service_fixed.dart)",
+      "Bash(cd \"c:/Users/marti/AMS d.o.o/Herculex\" && sed -n '/^## 10\\\\./,/^## 11\\\\./p' \"$HOME/.claude/get-shit-done/workflows/plan-phase.md\" | head -120)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew.bat :app:compileDebugKotlin)",
+      "Bash(cd \"c:\\\\Users\\\\marti\\\\AMS d.o.o\\\\Herculex\" && find / -iname \"QUERY-HANDLERS.md\" 2>/dev/null | head -5)",
+      "Bash(npm root *)",
+      "Bash(where gsd-sdk *)",
+      "Bash(xargs grep -l \"record-metric\")",
+      "Bash(unzip -p build/app/outputs/flutter-apk/app-debug.apk lib/arm64-v8a/libbarhopper_v3.so)",
+      "Bash(unzip -p build/app/outputs/flutter-apk/app-debug.apk lib/arm64-v8a/libimage_processing_util_jni.so)",
+      "PowerShell(flutter analyze --no-pub)",
+      "Bash(curl -s --max-time 30 \"https://api.github.com/repos/google/fonts/contents/ofl/manrope/static\")",
+      "Bash(curl -s --max-time 30 \"https://api.github.com/repos/google/fonts/contents/ofl/manrope\")",
+      "Bash(curl -s --max-time 30 \"https://api.github.com/repos/google/fonts/contents/ofl/spacegrotesk\")",
+      "Bash(curl -s --max-time 30 \"https://api.github.com/repos/sharanda/manrope/contents/fonts\")",
+      "Bash(curl -s --max-time 30 \"https://api.github.com/repos/sharanda/manrope/contents/fonts/ttf\")",
+      "Bash(curl -s --max-time 30 \"https://api.github.com/repos/floriankarsten/space-grotesk/contents/fonts\")",
+      "Bash(curl -s --max-time 30 \"https://api.github.com/repos/floriankarsten/space-grotesk/contents/fonts/ttf/static\")",
+      "Bash(curl -s --max-time 30 \"https://data.jsdelivr.com/v1/packages/npm/@fontsource/manrope\")",
+      "WebFetch(domain:pub.dev)",
+      "Bash(xargs wc -l)",
+      "Bash(xargs grep -l \"GOOGLE_WEB_CLIENT_ID\\\\|signingConfig\")",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys",
+      "Read(//etc/**)",
+      "Bash(xargs grep -l \"supabase\")",
+      "Bash(npx supabase *)",
+      "Bash(adb -s adb-R5CY12RLCWE-9MruKG._adb-tls-connect._tcp install -r build/app/outputs/flutter-apk/app-debug.apk)",
+      "Bash(xargs -n1 basename)",
+      "Bash(find / -maxdepth 0 2>/dev/null; echo \"---jbr search---\"; find \"/c/Program Files/Android/Android Studio\" -maxdepth 2 -iname \"jbr\" 2>/dev/null)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./android/gradlew -p android :app:compileDebugKotlin --console=plain -q)",
+      "Bash(find / -iname \"*ui-input*-sources.jar\" 2>/dev/null | grep -i compose | head -5; find ~/.gradle -iname \"RotaryEvent*.kt\" 2>/dev/null | head -5)"
     ],
     "additionalDirectories": [
-      "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation"
+      "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",
+      "C:\\Users\\marti\\.claude\\get-shit-done\\workflows"
     ]
   }
 }

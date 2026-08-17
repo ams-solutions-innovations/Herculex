@@ -7,8 +7,8 @@
             "type": "dart",
             "program": "lib/main.dart",
             "args": [
-                "--dart-define=SUPABASE_URL=https://jioesomepkauponjrena.supabase.co",
-                "--dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imppb2Vzb21lcGthdXBvbmpyZW5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MzAyMDUsImV4cCI6MjEwMjEwNjIwNX0.aTDAh41HZypdjkPBiYKmJDkKgP57pAoh2I6wwk0i08g"
+                "--dart-define=SUPABASE_URL=https://ldzgyzigvbwofbswitrv.supabase.co",
+                "--dart-define=SUPABASE_ANON_KEY=sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag"
             ]
         },
         {

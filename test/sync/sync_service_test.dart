@@ -660,4 +660,54 @@ void main() {
       expect(backend.upsertCalls, hasLength(1));
     });
   });
+
+  group('re-upload', () {
+    test('re-pushes rows already marked synced', () async {
+      await sync.start(userId);
+      gyms = GymsRepository(db);
+      final id = await gyms.createGym('Iron Temple');
+      await sync.pushOnce();
+
+      // Steady state: the row is up, the outbox is empty, and nothing in the
+      // normal path would ever send it again.
+      expect(backend.upsertCalls, hasLength(1));
+      expect(await db.select(db.pendingSyncOps).get(), isEmpty);
+      final before = await (db.select(db.gyms)
+            ..where((t) => t.id.equals(id)))
+          .getSingle();
+      expect(before.syncedAt, isNotNull);
+
+      // This is the repoint-to-a-new-backend case: the row's synced_at refers
+      // to a project that no longer holds it.
+      final enqueued = await sync.reuploadAllLocalData();
+
+      expect(enqueued, greaterThanOrEqualTo(1));
+      expect(backend.upsertCalls, hasLength(2));
+      expect(backend.upsertCalls.last.$1, 'gyms');
+      expect(backend.upsertCalls.last.$2['name'], 'Iron Temple');
+      // Drained, not left behind to re-push on every later cycle.
+      expect(await db.select(db.pendingSyncOps).get(), isEmpty);
+    });
+
+    test('skips seeded catalogue rows', () async {
+      await sync.start(userId);
+      // Seeded catalogue rows never leave the device: their natural key is
+      // what identifies them, and pushing one sends both catalogue columns
+      // null, which Postgres rejects (0007_catalogue_is_custom.sql).
+      await db.customStatement(
+        'INSERT INTO exercise_catalog '
+        '(name, primary_muscle, equipment, mechanics, force, plane, '
+        'is_custom, sync_uuid) '
+        "VALUES ('Back Squat', 'Quads', 'Barbell', 'compound', 'push', "
+        "'axial', 0, 'seeded-uuid')",
+      );
+
+      await sync.reuploadAllLocalData();
+
+      expect(
+        backend.upsertCalls.where((c) => c.$1 == 'exercise_catalog'),
+        isEmpty,
+      );
+    });
+  });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/providers.dart';
 import '../../../widgets/glass_container.dart';
 
 /// Developer-only content tooling. Reachable only in debug builds (the routes
@@ -58,6 +59,17 @@ class AdminDashboardView extends ConsumerWidget {
           const SizedBox(height: 32),
           Divider(color: Colors.grey.withValues(alpha: 0.2)),
           const SizedBox(height: 32),
+          Text("Cloud Sync", style: theme.textTheme.displayMedium),
+          const SizedBox(height: 16),
+          _buildActionCard(
+            context: context,
+            title: "Re-upload All Local Data",
+            icon: Icons.cloud_upload,
+            onTap: () => _confirmReupload(context, ref),
+          ),
+          const SizedBox(height: 32),
+          Divider(color: Colors.grey.withValues(alpha: 0.2)),
+          const SizedBox(height: 32),
           Text("App Previews", style: theme.textTheme.displayMedium),
           const SizedBox(height: 16),
           _buildActionCard(
@@ -69,6 +81,51 @@ class AdminDashboardView extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Forces every local row back up to the cloud. Only meaningful after the
+  /// app has been repointed at a different Supabase project — rows already
+  /// marked synced against the *old* project are otherwise never re-pushed.
+  ///
+  /// Sign in first: the push is a no-op without a user id, and signing in
+  /// after enqueueing would clear the outbox again (`_claimLocalDatabaseFor`).
+  Future<void> _confirmReupload(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Re-upload all local data?'),
+        content: const Text(
+          'Queues every local row for upload to the cloud account you are '
+          'signed in as. Use this after switching the app to a different '
+          'Supabase project.\n\n'
+          'Make sure you are signed in first.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Re-upload'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Queueing local data for upload…')),
+    );
+    try {
+      final count = await ref.read(syncServiceProvider).reuploadAllLocalData();
+      messenger.showSnackBar(
+        SnackBar(content: Text('Queued $count row(s). Watch the sync badge.')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Re-upload failed: $e')));
+    }
   }
 
   Widget _buildActionCard({

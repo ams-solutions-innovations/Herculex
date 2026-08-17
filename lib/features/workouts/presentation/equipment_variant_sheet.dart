@@ -26,18 +26,23 @@ class EquipmentVariantSheet extends StatelessWidget {
     );
   }
 
+  // Keep equipment icons in one place so the post-pick prompt and the
+  // family-style chooser use the same visual language.
   static const _icons = <String, IconData>{
-    'barbell': Icons.fitness_center,
+    'barbell': Icons.horizontal_rule,
     'dumbbell': Icons.fitness_center,
     'smith': Icons.view_column,
     'cable': Icons.cable,
-    'machine_plate': Icons.settings,
+    'machine_plate': Icons.settings_outlined,
     'machine_selectorized': Icons.tune,
     'kettlebell': Icons.sports_handball,
     'band': Icons.gesture,
     'bodyweight': Icons.accessibility_new,
     'other': Icons.more_horiz,
   };
+
+  static IconData iconFor(String variant) =>
+      _icons[variant] ?? Icons.fitness_center_outlined;
 
   static String labelFor(String variant) => equipmentVariantLabel(variant);
 
@@ -96,7 +101,7 @@ class EquipmentVariantSheet extends StatelessWidget {
                       for (final (i, option) in options.indexed)
                         _VariantButton(
                           label: labelFor(option),
-                          icon: _icons[option] ?? Icons.fitness_center,
+                          icon: iconFor(option),
                           isDefault: i == 0,
                           onTap: () => Navigator.of(context).pop(option),
                         ),

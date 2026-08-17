@@ -6,6 +6,8 @@ import '../features/admin/presentation/admin_dashboard_view.dart';
 import '../features/admin/presentation/admin_insert_recipe_view.dart';
 import '../features/admin/presentation/admin_insert_workout_view.dart';
 import '../features/analytics/presentation/insights_view.dart';
+import '../features/fasting/presentation/fasting_schedule_view.dart';
+import '../features/fasting/presentation/fasting_view.dart';
 import '../features/gyms/presentation/gyms_view.dart';
 import '../features/health/presentation/cycle_tracking_view.dart';
 import '../features/health/presentation/health_integrations_view.dart';
@@ -20,6 +22,7 @@ import '../features/nutrition/presentation/meal_slots_view.dart';
 import '../features/nutrition/presentation/nutrient_overview_view.dart';
 import '../features/reps/presentation/fixture_recording_view.dart';
 import '../features/nutrition/presentation/nutrient_settings_view.dart';
+import '../features/nutrition/presentation/weekly_calories_view.dart';
 import '../features/onboarding/presentation/onboarding_view.dart';
 import '../features/programs/presentation/rotation_pools_view.dart';
 import '../features/profile/domain/profile.dart';
@@ -93,6 +96,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) =>
             MetricDetailView(metric: state.pathParameters['metric']!),
       ),
+      GoRoute(path: '/fasting', builder: (_, _) => const FastingView()),
+      GoRoute(
+        path: '/fasting/schedule',
+        builder: (_, _) => const FastingScheduleView(),
+      ),
       GoRoute(path: '/gyms', builder: (_, _) => const GymsView()),
       GoRoute(
         path: '/micro-workouts',
@@ -141,6 +149,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/nutrient-overview',
         builder: (_, _) => const NutrientOverviewView(),
+      ),
+      GoRoute(
+        path: '/nutrition/weekly-stats',
+        builder: (_, _) => const WeeklyCaloriesView(),
       ),
       GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
       GoRoute(

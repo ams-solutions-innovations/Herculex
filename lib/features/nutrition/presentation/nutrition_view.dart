@@ -480,7 +480,14 @@ class _MealAccordionState extends State<_MealAccordion>
                     ),
                   )
                 else
-                  for (final e in widget.entries) _EntryTile(entry: e),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                    child: Column(
+                      children: [
+                        for (final e in widget.entries) _EntryTile(entry: e),
+                      ],
+                    ),
+                  ),
                 // ── + Add button at bottom ───────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
@@ -719,55 +726,94 @@ class _EntryTile extends ConsumerWidget {
       future: _resolve(ref, repo),
       builder: (context, snap) {
         final display = snap.data;
-        return Dismissible(
-          key: ValueKey('entry_${entry.id}'),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            color: Colors.redAccent.withValues(alpha: 0.85),
-            child: const Icon(Icons.delete, color: Colors.white),
-          ),
-          onDismissed: (_) => repo.deleteEntry(entry.id),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 2,
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Dismissible(
+            key: ValueKey('entry_${entry.id}'),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(Icons.delete, color: Colors.white),
             ),
-            dense: true,
-            title: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    display?.name ?? 'Loading…',
-                    style: theme.textTheme.bodyMedium,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+            onDismissed: (_) => repo.deleteEntry(entry.id),
+            child: Material(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: display == null
+                    ? null
+                    : () => _showEntryDetail(context, theme, display, ref),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.macroKcal.withValues(alpha: 0.7),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    display?.name ?? 'Loading…',
+                                    style: theme.textTheme.bodyMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                                if (display?.isDeleted ?? false) ...[
+                                  const SizedBox(width: 6),
+                                  const _DeletedBadge(),
+                                ],
+                              ],
+                            ),
+                            Text(
+                              display?.subtitleWithMacros ?? '',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        display == null
+                            ? ''
+                            : '${display.kcal.toStringAsFixed(0)} kcal',
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ],
                   ),
                 ),
-                if (display?.isDeleted ?? false) ...[
-                  const SizedBox(width: 6),
-                  const _DeletedBadge(),
-                ],
-              ],
-            ),
-            subtitle: Text(
-              display?.subtitleWithMacros ?? '',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.secondary,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-            trailing: Text(
-              display == null ? '' : '${display.kcal.toStringAsFixed(0)} kcal',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
               ),
             ),
-            onTap: display == null
-                ? null
-                : () => _showEntryDetail(context, theme, display, ref),
           ),
         );
       },

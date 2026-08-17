@@ -2,6 +2,14 @@
 
 Date: 2026-08-13
 
+> ⚠️ **Wrong project (corrected 2026-08-15).** Every `jioesomepkauponjrena`
+> reference below is the **SummitSki** project, not Herculex. Herculex's real
+> backend is **`ldzgyzigvbwofbswitrv`**. The code remediation described here is
+> unaffected, but the deployment close-out landed in the wrong project. The
+> `gemini-analyze` function was redeployed to `ldzgyzigvbwofbswitrv` on
+> 2026-08-15; **`GEMINI_API_KEY` still has to be set there** before AI food
+> analysis works.
+
 ## Status
 
 RB-01 is closed as of 2026-08-13.

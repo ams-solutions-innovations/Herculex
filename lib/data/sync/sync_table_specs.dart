@@ -135,6 +135,7 @@ final List<SyncTableSpec> syncTableSpecs = [
     'fasting_sessions',
     dateTimeColumns: ['started_at', 'ended_at'],
   ),
+  const SyncTableSpec('fasting_schedules'),
   const SyncTableSpec('body_measurements'),
   const SyncTableSpec('cycle_logs'),
   const SyncTableSpec(

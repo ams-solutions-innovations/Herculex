@@ -143,6 +143,7 @@ class _Subtitle extends StatelessWidget {
     );
 
     final parts = <String>[];
+    if (row.hasStartTime) parts.add(row.startTimeLabel!);
     if (row.template != null) {
       parts.add(row.template!.name);
     } else if (row.isEmpty) {

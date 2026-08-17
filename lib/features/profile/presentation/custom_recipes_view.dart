@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
+import '../../../theme/tokens/tokens.dart';
 import '../../nutrition/domain/daily_totals.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 import '../../nutrition/presentation/recipe_builder_view.dart';
@@ -75,7 +75,7 @@ class CustomRecipesView extends ConsumerWidget {
         onPressed: () => _openRecipeBuilder(context),
         icon: const Icon(Icons.add_rounded),
         label: const Text('New Recipe'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.hx.primary,
         foregroundColor: Colors.white,
       ),
       body: recipesAsync.when(
@@ -90,7 +90,7 @@ class CustomRecipesView extends ConsumerWidget {
                     Icon(
                       Icons.menu_book_rounded,
                       size: 64,
-                      color: AppColors.secondary.withValues(alpha: 0.5),
+                      color: context.hx.secondary.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -104,7 +104,7 @@ class CustomRecipesView extends ConsumerWidget {
                       'Tap the button below to build your first recipe with custom ingredients.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.secondary,
+                        color: context.hx.secondary,
                       ),
                     ),
                   ],
@@ -161,9 +161,9 @@ class _RecipeTile extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: context.hx.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(color: context.hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -184,13 +184,13 @@ class _RecipeTile extends ConsumerWidget {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: context.hx.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '$kcal kcal / serving',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: AppColors.primary,
+                      color: context.hx.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -207,11 +207,11 @@ class _RecipeTile extends ConsumerWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.room_service_outlined, size: 14, color: AppColors.secondary),
+                Icon(Icons.room_service_outlined, size: 14, color: context.hx.secondary),
                 const SizedBox(width: 4),
                 Text(
                   '${recipe.servings} ${recipe.servings == 1 ? 'serving' : 'servings'} • $count ${count == 1 ? 'ingredient' : 'ingredients'}',
-                  style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                  style: theme.textTheme.bodySmall?.copyWith(color: context.hx.secondary),
                 ),
               ],
             ),
@@ -222,7 +222,7 @@ class _RecipeTile extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.onSurfaceVariant,
+                  color: context.hx.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -253,7 +253,7 @@ class _RecipeTile extends ConsumerWidget {
           children: [
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
-              color: AppColors.onSurfaceVariant,
+              color: context.hx.onSurfaceVariant,
               onPressed: onTap,
             ),
             IconButton(

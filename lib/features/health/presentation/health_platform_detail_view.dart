@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,6 +22,30 @@ class HealthPlatformDetailView extends ConsumerStatefulWidget {
 class _HealthPlatformDetailViewState
     extends ConsumerState<HealthPlatformDetailView> {
   bool _isSyncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydratePermissionStatus());
+  }
+
+  /// Reconciles this platform's "connected" toggle with the real OS grant,
+  /// since the status map isn't persisted and resets to false on every launch.
+  Future<void> _hydratePermissionStatus() async {
+    final granted = await ref.read(healthServiceProvider).checkHasPermissions();
+    if (!mounted) return;
+    final platformKey = widget.platform.name;
+    final appliesToThisScreen =
+        (Platform.isAndroid &&
+            (platformKey == 'samsung' || platformKey == 'google')) ||
+        (Platform.isIOS && platformKey == 'apple');
+    if (!appliesToThisScreen) return;
+    final current = ref.read(healthPermissionStatusProvider);
+    ref.read(healthPermissionStatusProvider.notifier).state = {
+      ...current,
+      platformKey: granted,
+    };
+  }
 
   // ─── Platform meta ────────────────────────────────────────────────────────
 

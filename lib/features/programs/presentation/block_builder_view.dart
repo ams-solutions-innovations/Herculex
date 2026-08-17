@@ -50,6 +50,7 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
   // Step 4
   DateTime _startDate = _today();
   DateTimeRange? _vacation;
+  TimeOfDay? _defaultStartTime;
 
   static DateTime _today() {
     final n = DateTime.now();
@@ -508,6 +509,30 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
           },
         ),
         const SizedBox(height: 24),
+        _sectionLabel(theme, 'Default start time (optional)'),
+        _radioCard(
+          theme,
+          title: _defaultStartTime == null
+              ? 'No particular time'
+              : _defaultStartTime!.format(context),
+          subtitle: 'Applied to every session; edit any one later',
+          selected: true,
+          onTap: () async {
+            final picked = await showTimePicker(
+              context: context,
+              initialTime: _defaultStartTime ?? const TimeOfDay(hour: 7, minute: 0),
+            );
+            if (picked != null) setState(() => _defaultStartTime = picked);
+          },
+          trailing: _defaultStartTime == null
+              ? null
+              : IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.close_rounded, color: AppColors.secondary),
+                  onPressed: () => setState(() => _defaultStartTime = null),
+                ),
+        ),
+        const SizedBox(height: 24),
         _sectionLabel(theme, 'Planned break (optional)'),
         GlassContainer(
           padding: const EdgeInsets.all(20),
@@ -691,6 +716,7 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
     required String subtitle,
     required bool selected,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return GestureDetector(
       onTap: () {
@@ -711,22 +737,29 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
             width: selected ? 1.5 : 1,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(
-              title,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.secondary,
-              ),
-            ),
+            ?trailing,
           ],
         ),
       ),
@@ -795,6 +828,9 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
         startDate: _startDate,
         periodizationModel: _model.id,
         templateIdsBySlot: _templatesBySlot,
+        defaultStartTimeMinutes: _defaultStartTime == null
+            ? null
+            : _defaultStartTime!.hour * 60 + _defaultStartTime!.minute,
       );
 
       if (_vacation != null) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
+import '../../../theme/tokens/tokens.dart';
 import '../../nutrition/presentation/custom_food_form_sheet.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 
@@ -88,7 +88,7 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
         onPressed: () => CustomFoodFormSheet.show(context),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add Food'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.hx.primary,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -107,7 +107,7 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
                       )
                     : null,
                 filled: true,
-                fillColor: AppColors.surfaceContainer,
+                fillColor: context.hx.surfaceContainer,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -129,7 +129,7 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
                           Icon(
                             Icons.restaurant_rounded,
                             size: 64,
-                            color: AppColors.secondary.withValues(alpha: 0.5),
+                            color: context.hx.secondary.withValues(alpha: 0.5),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -145,7 +145,7 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
                                 : 'Try searching for another keyword.',
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.secondary,
+                              color: context.hx.secondary,
                             ),
                           ),
                         ],
@@ -199,9 +199,9 @@ class _CustomFoodTile extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: context.hx.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(color: context.hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -219,13 +219,13 @@ class _CustomFoodTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: context.hx.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '$kcal kcal',
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: AppColors.primary,
+                  color: context.hx.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -240,7 +240,7 @@ class _CustomFoodTile extends StatelessWidget {
               Text(
                 food.brand!,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.secondary,
+                  color: context.hx.secondary,
                 ),
               ),
             ],
@@ -255,7 +255,7 @@ class _CustomFoodTile extends StatelessWidget {
                 _MacroBadge(label: 'F', value: '${f}g', color: Colors.pink.shade600),
                 Text(
                   '/ 100g',
-                  style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary),
+                  style: theme.textTheme.labelSmall?.copyWith(color: context.hx.secondary),
                 ),
               ],
             ),
@@ -266,7 +266,7 @@ class _CustomFoodTile extends StatelessWidget {
           children: [
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
-              color: AppColors.onSurfaceVariant,
+              color: context.hx.onSurfaceVariant,
               onPressed: onTap,
             ),
             IconButton(

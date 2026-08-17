@@ -109,7 +109,7 @@ String _captureEndJson({
       'endedAtMs': 999999,
       'batchCount': batchCount,
       'stoppedReason': stoppedReason,
-      if (provisionalCount != null) 'provisionalCount': provisionalCount,
+      'provisionalCount': ?provisionalCount,
     });
 
 /// Delivers a full intact capture (start, every batch in order, end) for

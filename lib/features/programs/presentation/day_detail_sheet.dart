@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
-import '../../../widgets/app_bottom_sheet.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/premium_button.dart';
 import '../../dashboard/presentation/dashboard_providers.dart';
 import '../../workouts/presentation/template_builder_view.dart';
@@ -27,7 +27,7 @@ class DayDetailSheet extends ConsumerWidget {
     required DateTime date,
     required int? programId,
   }) {
-    return AppBottomSheet.show(
+    return HxSheet.show(
       context,
       builder: (_) => DayDetailSheet(date: date, programId: programId),
     );
@@ -39,9 +39,9 @@ class DayDetailSheet extends ConsumerWidget {
     final range = ScheduleRange.week(date, programId: programId);
     final byDate = ref.watch(scheduleByDateProvider(range));
     final iso = _iso(date);
-    final rows = byDate.value?[iso] ?? const <ScheduledWorkoutRow>[];
+    final rows = sortedByStartTime(byDate.value?[iso] ?? const <ScheduledWorkoutRow>[]);
 
-    return AppBottomSheet(
+    return HxSheet(
       title: DateFormat('EEEE, MMMM d').format(date),
       subtitle: rows.isEmpty
           ? 'Nothing scheduled'
@@ -159,6 +159,8 @@ class _SessionCard extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           _contentRow(context, ref, theme),
+          const SizedBox(height: 8),
+          _timeRow(context, ref, theme),
           const SizedBox(height: 14),
           if (ScheduleStatus.isOpen(row.status) && !row.isEmpty)
             PremiumButton(
@@ -293,6 +295,59 @@ class _SessionCard extends ConsumerWidget {
     );
   }
 
+  Widget _timeRow(BuildContext context, WidgetRef ref, ThemeData theme) {
+    return InkWell(
+      onTap: () => _pickTime(context, ref),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.schedule_rounded, size: 16, color: AppColors.secondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                row.hasStartTime
+                    ? 'Starts at ${row.startTimeLabel}'
+                    : 'No start time set',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
+              ),
+            ),
+            if (row.hasStartTime)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.close_rounded, size: 16, color: AppColors.secondary),
+                tooltip: 'Clear start time',
+                onPressed: () => ref
+                    .read(programsRepositoryProvider)
+                    .setScheduleStartTime(row.id, null),
+              )
+            else
+              Icon(Icons.edit, size: 14, color: AppColors.secondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickTime(BuildContext context, WidgetRef ref) async {
+    final current = row.startTimeMinutes;
+    final initial = current == null
+        ? const TimeOfDay(hour: 7, minute: 0)
+        : TimeOfDay(hour: current ~/ 60, minute: current % 60);
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked == null) return;
+    await ref
+        .read(programsRepositoryProvider)
+        .setScheduleStartTime(row.id, picked.hour * 60 + picked.minute);
+  }
+
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     final navigator = Navigator.of(context);
     final service = ref.read(scheduledWorkoutServiceProvider);
@@ -336,7 +391,7 @@ class _SessionCard extends ConsumerWidget {
     final scope = await showModalBottomSheet<_TemplateScope>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => AppBottomSheet(
+      builder: (_) => HxSheet(
         scrollable: false,
         title: 'Apply to',
         subtitle: 'This template can cover one session or all of them.',

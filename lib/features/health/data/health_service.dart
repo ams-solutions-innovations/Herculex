@@ -19,39 +19,59 @@ class HealthService {
   DateTime? get lastSyncTime => _lastSyncTime;
   DailyHealthRead? get lastDailyRead => _lastDailyRead;
 
+  static const List<HealthDataType> _syncTypes = [
+    HealthDataType.STEPS,
+    HealthDataType.ACTIVE_ENERGY_BURNED,
+    HealthDataType.RESTING_HEART_RATE,
+    HealthDataType.HEART_RATE,
+    HealthDataType.SLEEP_SESSION,
+    HealthDataType.SLEEP_ASLEEP,
+    HealthDataType.SLEEP_DEEP,
+    HealthDataType.SLEEP_REM,
+    HealthDataType.WATER,
+    HealthDataType.NUTRITION,
+    HealthDataType.WEIGHT,
+    HealthDataType.WORKOUT,
+    HealthDataType.MENSTRUATION_FLOW,
+  ];
+
+  // Only WATER, NUTRITION, and WORKOUT are ever written by this app; everything
+  // else is read-only telemetry and should not request write access.
+  static const Set<HealthDataType> _readWriteTypes = {
+    HealthDataType.WATER,
+    HealthDataType.NUTRITION,
+    HealthDataType.WORKOUT,
+  };
+
+  static List<HealthDataAccess> get _syncPermissions => _syncTypes
+      .map(
+        (t) => _readWriteTypes.contains(t)
+            ? HealthDataAccess.READ_WRITE
+            : HealthDataAccess.READ,
+      )
+      .toList();
+
+  /// Checks whether authorization has already been granted, without
+  /// prompting. Used to reconcile UI "connected" state with the real OS
+  /// grant on app start, since that state is never persisted locally.
+  Future<bool> checkHasPermissions() async {
+    await _health.configure();
+    try {
+      return await _health.hasPermissions(
+            _syncTypes,
+            permissions: _syncPermissions,
+          ) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Requests authorizations required for Samsung Health / Health Connect / Apple Health.
   Future<bool> requestPermissions(String platform) async {
     await _health.configure();
-    final types = [
-      HealthDataType.STEPS,
-      HealthDataType.ACTIVE_ENERGY_BURNED,
-      HealthDataType.RESTING_HEART_RATE,
-      HealthDataType.HEART_RATE,
-      HealthDataType.SLEEP_SESSION,
-      HealthDataType.SLEEP_ASLEEP,
-      HealthDataType.SLEEP_DEEP,
-      HealthDataType.SLEEP_REM,
-      HealthDataType.WATER,
-      HealthDataType.NUTRITION,
-      HealthDataType.WEIGHT,
-      HealthDataType.WORKOUT,
-      HealthDataType.MENSTRUATION_FLOW,
-    ];
-
-    // Only WATER, NUTRITION, and WORKOUT are ever written by this app; everything
-    // else is read-only telemetry and should not request write access.
-    const readWriteTypes = {
-      HealthDataType.WATER,
-      HealthDataType.NUTRITION,
-      HealthDataType.WORKOUT,
-    };
-    final permissions = types
-        .map(
-          (t) => readWriteTypes.contains(t)
-              ? HealthDataAccess.READ_WRITE
-              : HealthDataAccess.READ,
-        )
-        .toList();
+    final types = _syncTypes;
+    final permissions = _syncPermissions;
 
     bool hasPermissions = false;
     try {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../data/fasting_notification_scheduler.dart';
 import '../data/fasting_repository.dart';
+import '../data/fasting_schedule_service.dart';
 import '../../../data/local/database.dart';
 
 final fastingNotificationSchedulerProvider =
@@ -11,10 +12,19 @@ final fastingNotificationSchedulerProvider =
   return FastingNotificationScheduler(FlutterLocalNotificationsPlugin());
 });
 
+final fastingScheduleServiceProvider = Provider<FastingScheduleService>((ref) {
+  return FastingScheduleService(FlutterLocalNotificationsPlugin());
+});
+
 final fastingRepositoryProvider = Provider<FastingRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final clock = ref.watch(clockProvider);
   return FastingRepository(db, clock);
+});
+
+final fastingSchedulesProvider = StreamProvider<List<FastingScheduleData>>((ref) {
+  final repo = ref.watch(fastingRepositoryProvider);
+  return repo.watchSchedules();
 });
 
 final activeFastingSessionProvider = StreamProvider<FastingSessionData?>((ref) {

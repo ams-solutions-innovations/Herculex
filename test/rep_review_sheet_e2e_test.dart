@@ -111,7 +111,7 @@ String _captureEndJson({
       'endedAtMs': 999999,
       'batchCount': batchCount,
       'stoppedReason': stoppedReason,
-      if (provisionalCount != null) 'provisionalCount': provisionalCount,
+      'provisionalCount': ?provisionalCount,
     });
 
 Future<RepSuggestion> _captureWrist(

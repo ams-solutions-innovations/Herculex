@@ -8,6 +8,9 @@ import '../app/providers.dart';
 import '../core/units.dart';
 import '../data/local/database.dart';
 import '../features/analytics/presentation/analytics_providers.dart';
+import '../features/fasting/data/fasting_schedule_action_queue.dart';
+import '../features/fasting/domain/fasting_schedule_occurrence.dart';
+import '../features/fasting/presentation/fasting_providers.dart';
 import '../features/nutrition/presentation/barcode_scanner_view.dart';
 import '../features/nutrition/presentation/nutrition_providers.dart';
 import '../features/shell/main_scaffold.dart';
@@ -55,6 +58,11 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         );
     WorkoutNotificationService.instance.init();
     Future<void>.microtask(_drainPendingWorkoutNotificationActions);
+    Future<void>.microtask(_drainPendingFastingScheduleActions);
+    // An Android reboot clears exact alarms, and edits made offline before
+    // the app last closed still need to reach the notification plugin —
+    // full rehydrate on every launch, same reasoning as workout actions.
+    Future<void>.microtask(_rehydrateFastingSchedules);
 
     // Listen for the scanner deep-link from the Scanner home-screen widget.
     // When the user taps the widget, Android sends 'openScanner' via
@@ -260,6 +268,49 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     }
   }
 
+  /// Starts the fast a schedule reminds about, when it's set to autoStart —
+  /// skipping if a fast is already running rather than ending it out from
+  /// under the user. Shared by both the live tap handler and the
+  /// background-tap drain below, since a background tap has no UI to
+  /// navigate from anyway.
+  Future<void> _startFastFromScheduleIfNeeded(int scheduleId) async {
+    final repo = ref.read(fastingRepositoryProvider);
+    final schedule = await repo.schedule(scheduleId);
+    if (schedule == null || !schedule.autoStart) return;
+    final active = await repo.activeSession();
+    if (active != null) return;
+    final targetSeconds = resolveScheduleTargetSeconds(
+      schedule.planName,
+      schedule.customTargetSeconds,
+    );
+    await repo.startSession(targetSeconds);
+  }
+
+  Future<void> _handleFastingScheduleTap(int scheduleId) async {
+    await _startFastFromScheduleIfNeeded(scheduleId);
+    if (!mounted) return;
+    final router = ref.read(routerProvider);
+    router.go('/app');
+    router.push('/fasting');
+  }
+
+  Future<void> _drainPendingFastingScheduleActions() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final ids = PendingFastingScheduleActionQueue.read(prefs);
+    if (ids.isEmpty) return;
+    await PendingFastingScheduleActionQueue.replace(prefs, const []);
+    for (final id in ids) {
+      await _startFastFromScheduleIfNeeded(id);
+    }
+  }
+
+  Future<void> _rehydrateFastingSchedules() async {
+    final repo = ref.read(fastingRepositoryProvider);
+    final scheduler = ref.read(fastingScheduleServiceProvider);
+    final schedules = await repo.watchSchedules().first;
+    await scheduler.rescheduleAll(schedules);
+  }
+
   void _startPendingWorkoutActionDrain() {
     if (_workoutActionDrainTimer?.isActive ?? false) return;
     _workoutActionDrainTimer = Timer.periodic(
@@ -293,6 +344,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       ref.read(mainTabIndexProvider.notifier).state = 2;
       router.go('/app');
     };
+    WorkoutNotificationService.onFastingScheduleTap = _handleFastingScheduleTap;
 
     // Keep notification in sync when active session changes.
     ref.listen(activeSessionProvider, (previous, next) {

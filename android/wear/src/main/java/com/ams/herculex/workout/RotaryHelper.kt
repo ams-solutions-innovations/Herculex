@@ -92,6 +92,34 @@ private fun Modifier.attachRoutedPickerRotary(
     val coroutineScope = rememberCoroutineScope()
     var accumulatedScroll by remember { mutableFloatStateOf(0f) }
     var scrollJob by remember { mutableStateOf<Job?>(null) }
+    // Both the pre-pass and main-pass handlers below are registered so we still
+    // catch the event regardless of which phase a given device/OEM delivers it
+    // in — but on devices that dispatch through BOTH phases for the same
+    // physical detent (observed on Samsung Galaxy Watch), that duplicate
+    // delivery was processed twice, doubling (or worse, compounding with
+    // multi-event bursts) the steps applied per bezel click. RotaryScrollEvent
+    // carries the originating input event's uptimeMillis, which is identical
+    // across both deliveries of the same physical event, so we key on it to
+    // process each physical event exactly once.
+    var lastHandledUptimeMillis by remember { mutableStateOf(-1L) }
+
+    fun handle(event: androidx.compose.ui.input.rotary.RotaryScrollEvent): Boolean {
+        val deltaPixels = if (event.verticalScrollPixels != 0f) event.verticalScrollPixels else event.horizontalScrollPixels
+        if (deltaPixels == 0f) return false
+        if (event.uptimeMillis == lastHandledUptimeMillis) return true
+        lastHandledUptimeMillis = event.uptimeMillis
+
+        val steps = calculateRotarySteps(deltaPixels, accumulatedScroll) { newAccum ->
+            accumulatedScroll = newAccum
+        }
+        if (steps != 0) {
+            scrollJob?.cancel()
+            scrollJob = coroutineScope.launch {
+                onStep(steps)
+            }
+        }
+        return true
+    }
 
     LaunchedEffect(isFocused) {
         if (isFocused) {
@@ -103,36 +131,8 @@ private fun Modifier.attachRoutedPickerRotary(
     }
 
     this
-        .onPreRotaryScrollEvent { event ->
-            val deltaPixels = if (event.verticalScrollPixels != 0f) event.verticalScrollPixels else event.horizontalScrollPixels
-            if (deltaPixels == 0f) return@onPreRotaryScrollEvent false
-
-            val steps = calculateRotarySteps(deltaPixels, accumulatedScroll) { newAccum ->
-                accumulatedScroll = newAccum
-            }
-            if (steps != 0) {
-                scrollJob?.cancel()
-                scrollJob = coroutineScope.launch {
-                    onStep(steps)
-                }
-            }
-            true
-        }
-        .onRotaryScrollEvent { event ->
-            val deltaPixels = if (event.verticalScrollPixels != 0f) event.verticalScrollPixels else event.horizontalScrollPixels
-            if (deltaPixels == 0f) return@onRotaryScrollEvent false
-
-            val steps = calculateRotarySteps(deltaPixels, accumulatedScroll) { newAccum ->
-                accumulatedScroll = newAccum
-            }
-            if (steps != 0) {
-                scrollJob?.cancel()
-                scrollJob = coroutineScope.launch {
-                    onStep(steps)
-                }
-            }
-            true
-        }
+        .onPreRotaryScrollEvent { event -> handle(event) }
+        .onRotaryScrollEvent { event -> handle(event) }
         .focusRequester(focusRequester)
         .focusable()
 }
@@ -151,13 +151,26 @@ private fun calculateRotarySteps(
         updateAccumulated(0f)
         return sign
     } else {
-        // Pixel delta mode (e.g. ±24f, ±48f per scroll event)
+        // Pixel delta mode (e.g. ±24f, ±48f per scroll event). Some devices'
+        // physical rotating bezel (notably Samsung Galaxy Watch) report a much
+        // larger single-event delta than that (~90f+) for what is physically
+        // one detent of rotation. Dividing that straight through the old 18f
+        // threshold produced 4-5 steps per detent instead of 1 (reps jumping
+        // by 5 on one bezel click). Capping each event to a single step fixes
+        // that while still supporting fine-grained continuous input (crown /
+        // touch bezel): a sustained rotation just fires this callback
+        // repeatedly, each contributing its own single step.
         val newAccum = accumulated + deltaPixels
         val threshold = 18f
         if (kotlin.math.abs(newAccum) >= threshold) {
-            val steps = (newAccum / threshold).toInt()
-            updateAccumulated(newAccum - steps * threshold)
-            return steps
+            val step = if (newAccum > 0) 1 else -1
+            // A single event whose own delta already clears the threshold is
+            // one physical notch reported as one big number (Samsung), not
+            // several small ones accumulating toward it — drop the remainder
+            // instead of carrying it forward, or the next notch would inherit
+            // this one's leftover and eventually over-step too.
+            updateAccumulated(if (absDelta >= threshold) 0f else newAccum - step * threshold)
+            return step
         } else {
             updateAccumulated(newAccum)
             return 0

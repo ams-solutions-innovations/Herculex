@@ -1,19 +1,28 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
+import '../theme/tokens/tokens.dart';
+import '../ui/hx_glass.dart';
+
+/// Frosted surface used across the dashboard, health and programs cards.
+///
+/// Now a thin adapter over [HxGlass] so the blur, fill and border come from
+/// the token palette instead of the hardcoded hex fallbacks this widget used
+/// to carry (which never matched light mode).
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final double borderRadius;
   final EdgeInsets padding;
   final double blur;
+
+  /// Legacy sentinel: [Colors.white10] means "use the themed fill".
   final Color color;
   final Border? border;
 
   const GlassContainer({
     super.key,
     required this.child,
-    this.borderRadius = 28.0,
-    this.padding = const EdgeInsets.all(16.0),
+    this.borderRadius = HxRadius.xl,
+    this.padding = const EdgeInsets.all(HxSpace.x4),
     this.blur = 15.0,
     this.color = Colors.white10,
     this.border,
@@ -21,31 +30,13 @@ class GlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final fallbackColor = isDark
-        ? const Color(0xFF161E2E).withValues(alpha: 0.85)
-        : Colors.white.withValues(alpha: 0.92);
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : const Color(0xFF007AFF).withValues(alpha: 0.12);
-
-    return ClipRRect(
+    return HxGlass(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: color == Colors.white10 ? fallbackColor : color,
-            borderRadius: BorderRadius.circular(borderRadius),
-            border: border ?? Border.all(
-              color: borderColor,
-              width: 1.0,
-            ),
-          ),
-          child: child,
-        ),
-      ),
+      padding: padding,
+      blur: blur,
+      fill: color == Colors.white10 ? null : color,
+      borderColor: border?.top.color,
+      child: child,
     );
   }
 }

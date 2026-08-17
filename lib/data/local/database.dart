@@ -68,6 +68,7 @@ part 'database.g.dart';
     RepTrackingSettings,
     RepTrackingExercisePrefs,
     RepSetObservations,
+    FastingSchedules,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -77,7 +78,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 26;
+  int get schemaVersion => 28;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -648,6 +649,64 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(repTrackingSettings);
         await m.createTable(repTrackingExercisePrefs);
         await m.createTable(repSetObservations);
+      }
+      if (from < 27) {
+        // UI rework Phase 6: recurring fasting "notify to start" schedules.
+        // Synced (SyncColumns + SyncTombstone), so it needs the same
+        // sync_uuid unique index and outbox trigger every other synced table
+        // gets in onCreate — mirrored here for upgrades.
+        await m.createTable(fastingSchedules);
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_fasting_schedules '
+          'ON fasting_schedules(sync_uuid)',
+        );
+        // Re-runs for every synced table, but each CREATE TRIGGER/INDEX is
+        // guarded IF NOT EXISTS, so this only actually installs the three
+        // new triggers for fasting_schedules — same idiom as the v25 block.
+        await installSyncTriggers(this);
+      }
+      if (from < 28 && to >= 28) {
+        // UI rework Phase 8: session start times. Both columns are plain
+        // nullable ints with no default and no REFERENCES clause, so these
+        // are ordinary ALTER TABLE ADD COLUMNs — no legacy_alter_table
+        // rebuild, and (per RB-04's sync design) no sync_table_specs.dart
+        // change is needed either: SyncService derives the remote payload
+        // generically from whatever local columns exist beyond the
+        // registered FK/localOnly/dateTime ones.
+        //
+        // The `to >= 28` half of the guard matters here specifically (no
+        // other block in this function checks `to`): `SchemaVerifier.
+        // migrateAndValidate` fakes an intermediate target version, so a
+        // v25/26/27 migration test calls this closure with `from` below 28
+        // but `to` well below 28 too. Without the check, this block would
+        // still fire (blocks above only ever gate on `from`) and add these
+        // columns onto program_days/scheduled_workouts — tables that already
+        // exist at every one of those versions — which then shows up as an
+        // unexpected extra column against that older version's frozen
+        // reference schema. createTable-based blocks don't have this
+        // problem (IF NOT EXISTS makes an early table creation a silent
+        // no-op against a schema that doesn't track columns on a table that
+        // isn't compared at all until its own version), but addColumn has no
+        // such guard, so it needs to actually gate on `to` here.
+        //
+        // Same try/catch-per-column idiom as the v24/v25 blocks above:
+        // several migration tests build a fresh (current-schema) database via
+        // onCreate, then rewind its stamped user_version to simulate an old
+        // install, so these columns can already exist by the time this block
+        // runs — addColumn (unlike createTable) has no IF NOT EXISTS guard.
+        Future<void> tryAddColumn(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          try {
+            await m.addColumn(table, column);
+          } catch (_) {
+            // Column already exists on this fixture; see comment above.
+          }
+        }
+
+        await tryAddColumn(programDays, programDays.startTimeMinutes);
+        await tryAddColumn(scheduledWorkouts, scheduledWorkouts.startTimeMinutes);
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is

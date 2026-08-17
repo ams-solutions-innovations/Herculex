@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 
+import '../local/migrations/sync_backfill.dart' show isCustomFilteredTableNames;
 import 'sync_backend_service.dart';
 import 'sync_id_resolver.dart';
 import 'sync_table_specs.dart';
@@ -258,6 +259,60 @@ class SyncService {
       _lastRunError = null;
     }
     await _writeCursor(_ownerKey, userId);
+  }
+
+  /// Re-enqueues every syncable local row so the whole database is pushed to
+  /// the cloud again, then drains the outbox.
+  ///
+  /// Normal operation never needs this: the outbox triggers enqueue rows as
+  /// they are written, and [_pushOne] clears the op once the row lands. It
+  /// exists for the case where the *backend itself* changed underneath a
+  /// device — the app was repointed at a different Supabase project — so rows
+  /// carry a `synced_at` from a project that no longer holds them. Nothing in
+  /// the normal path would ever re-push those, and they would stay local
+  /// forever.
+  ///
+  /// The `WHERE` clauses mirror the trigger guards in `sync_triggers.dart`
+  /// exactly: rows with no `sync_uuid` are not syncable, and the catalogue
+  /// tables only ever push their `is_custom` rows — enqueueing a seeded
+  /// catalogue row would send both catalogue columns null and be rejected by
+  /// the Postgres check constraint (see `0007_catalogue_is_custom.sql`).
+  ///
+  /// Insertion follows [syncTableOrder] so the outbox ids ascend parent-first;
+  /// [pushOnce] orders by `created_at, id`, and every row inserted here shares
+  /// a `created_at` second, so id order is what actually decides. That matters
+  /// because Postgres rejects a child whose parent is not up yet.
+  ///
+  /// Returns the number of rows enqueued.
+  Future<int> reuploadAllLocalData() async {
+    var enqueued = 0;
+    for (final table in syncTableOrder) {
+      // `recipes` is in the is_custom list for documentation but has no such
+      // column — every recipe is user-authored. Same carve-out as the triggers.
+      final isCustomGuard =
+          (isCustomFilteredTableNames.contains(table) && table != 'recipes')
+          ? ' AND is_custom = 1'
+          : '';
+      try {
+        final result = await _db.customUpdate(
+          'INSERT INTO pending_sync_ops (entity_type, entity_id, operation, created_at) '
+          "SELECT ?, sync_uuid, 'upsert', strftime('%s','now') "
+          'FROM $table WHERE sync_uuid IS NOT NULL$isCustomGuard '
+          'ON CONFLICT(entity_type, entity_id) DO UPDATE SET '
+          "operation = 'upsert', created_at = excluded.created_at, "
+          'attempts = 0, last_error = NULL, next_retry_at = NULL',
+          variables: [Variable(table)],
+        );
+        enqueued += result;
+      } catch (e) {
+        // One unsyncable table must not abort the whole re-upload; the rest of
+        // the database is still worth getting up.
+        log('SyncService: re-upload could not enqueue $table: $e');
+      }
+    }
+    log('SyncService: re-upload enqueued $enqueued row(s)');
+    await pushOnce();
+    return enqueued;
   }
 
   Future<DateTime?> _readLastSyncedAt() async {

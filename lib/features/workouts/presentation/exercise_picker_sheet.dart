@@ -9,6 +9,7 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../services/ai_service.dart';
 import 'custom_exercise_builder_view.dart';
+import 'equipment_variant_sheet.dart';
 import 'workouts_providers.dart';
 
 /// Result from [ExercisePickerSheet.show]. [equipmentAlreadyChosen] is true
@@ -734,7 +735,7 @@ class _StyleChooserSheet extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _StyleOption(
-                              icon: Icons.fitness_center,
+                              icon: EquipmentVariantSheet.iconFor(v.modality),
                               label: v.equipment,
                               subtitle: v.name,
                               onTap: () => Navigator.of(context).pop(v),

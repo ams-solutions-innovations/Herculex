@@ -14316,6 +14316,17 @@ class $ProgramDaysTable extends ProgramDays
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _startTimeMinutesMeta = const VerificationMeta(
+    'startTimeMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> startTimeMinutes = GeneratedColumn<int>(
+    'start_time_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     syncUuid,
@@ -14331,6 +14342,7 @@ class $ProgramDaysTable extends ProgramDays
     slotLabel,
     cycleDayIndex,
     isRest,
+    startTimeMinutes,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -14431,6 +14443,15 @@ class $ProgramDaysTable extends ProgramDays
         isRest.isAcceptableOrUnknown(data['is_rest']!, _isRestMeta),
       );
     }
+    if (data.containsKey('start_time_minutes')) {
+      context.handle(
+        _startTimeMinutesMeta,
+        startTimeMinutes.isAcceptableOrUnknown(
+          data['start_time_minutes']!,
+          _startTimeMinutesMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -14492,6 +14513,10 @@ class $ProgramDaysTable extends ProgramDays
         DriftSqlType.bool,
         data['${effectivePrefix}is_rest'],
       )!,
+      startTimeMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_time_minutes'],
+      ),
     );
   }
 
@@ -14536,6 +14561,13 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
   /// Explicit rest slot inside a cycle. Never materialized to a scheduled
   /// workout; rendered as a rest marker in the builder preview and week board.
   final bool isRest;
+
+  /// Default time of day (minutes since midnight) sessions on this day
+  /// materialize with (v28). Null means no particular time. Copied onto each
+  /// new [ScheduledWorkouts.startTimeMinutes] row at materialization time —
+  /// editing it and re-materializing only reaches future untouched `planned`
+  /// occurrences, same as [templateId].
+  final int? startTimeMinutes;
   const ProgramDayData({
     this.syncUuid,
     this.updatedAt,
@@ -14550,6 +14582,7 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
     this.slotLabel,
     this.cycleDayIndex,
     required this.isRest,
+    this.startTimeMinutes,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -14581,6 +14614,9 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
       map['cycle_day_index'] = Variable<int>(cycleDayIndex);
     }
     map['is_rest'] = Variable<bool>(isRest);
+    if (!nullToAbsent || startTimeMinutes != null) {
+      map['start_time_minutes'] = Variable<int>(startTimeMinutes);
+    }
     return map;
   }
 
@@ -14613,6 +14649,9 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
           ? const Value.absent()
           : Value(cycleDayIndex),
       isRest: Value(isRest),
+      startTimeMinutes: startTimeMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startTimeMinutes),
     );
   }
 
@@ -14635,6 +14674,7 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
       slotLabel: serializer.fromJson<String?>(json['slotLabel']),
       cycleDayIndex: serializer.fromJson<int?>(json['cycleDayIndex']),
       isRest: serializer.fromJson<bool>(json['isRest']),
+      startTimeMinutes: serializer.fromJson<int?>(json['startTimeMinutes']),
     );
   }
   @override
@@ -14654,6 +14694,7 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
       'slotLabel': serializer.toJson<String?>(slotLabel),
       'cycleDayIndex': serializer.toJson<int?>(cycleDayIndex),
       'isRest': serializer.toJson<bool>(isRest),
+      'startTimeMinutes': serializer.toJson<int?>(startTimeMinutes),
     };
   }
 
@@ -14671,6 +14712,7 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
     Value<String?> slotLabel = const Value.absent(),
     Value<int?> cycleDayIndex = const Value.absent(),
     bool? isRest,
+    Value<int?> startTimeMinutes = const Value.absent(),
   }) => ProgramDayData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -14687,6 +14729,9 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
         ? cycleDayIndex.value
         : this.cycleDayIndex,
     isRest: isRest ?? this.isRest,
+    startTimeMinutes: startTimeMinutes.present
+        ? startTimeMinutes.value
+        : this.startTimeMinutes,
   );
   ProgramDayData copyWithCompanion(ProgramDaysCompanion data) {
     return ProgramDayData(
@@ -14711,6 +14756,9 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
           ? data.cycleDayIndex.value
           : this.cycleDayIndex,
       isRest: data.isRest.present ? data.isRest.value : this.isRest,
+      startTimeMinutes: data.startTimeMinutes.present
+          ? data.startTimeMinutes.value
+          : this.startTimeMinutes,
     );
   }
 
@@ -14729,7 +14777,8 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
           ..write('orderIndex: $orderIndex, ')
           ..write('slotLabel: $slotLabel, ')
           ..write('cycleDayIndex: $cycleDayIndex, ')
-          ..write('isRest: $isRest')
+          ..write('isRest: $isRest, ')
+          ..write('startTimeMinutes: $startTimeMinutes')
           ..write(')'))
         .toString();
   }
@@ -14749,6 +14798,7 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
     slotLabel,
     cycleDayIndex,
     isRest,
+    startTimeMinutes,
   );
   @override
   bool operator ==(Object other) =>
@@ -14766,7 +14816,8 @@ class ProgramDayData extends DataClass implements Insertable<ProgramDayData> {
           other.orderIndex == this.orderIndex &&
           other.slotLabel == this.slotLabel &&
           other.cycleDayIndex == this.cycleDayIndex &&
-          other.isRest == this.isRest);
+          other.isRest == this.isRest &&
+          other.startTimeMinutes == this.startTimeMinutes);
 }
 
 class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
@@ -14783,6 +14834,7 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
   final Value<String?> slotLabel;
   final Value<int?> cycleDayIndex;
   final Value<bool> isRest;
+  final Value<int?> startTimeMinutes;
   const ProgramDaysCompanion({
     this.syncUuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -14797,6 +14849,7 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
     this.slotLabel = const Value.absent(),
     this.cycleDayIndex = const Value.absent(),
     this.isRest = const Value.absent(),
+    this.startTimeMinutes = const Value.absent(),
   });
   ProgramDaysCompanion.insert({
     this.syncUuid = const Value.absent(),
@@ -14812,6 +14865,7 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
     this.slotLabel = const Value.absent(),
     this.cycleDayIndex = const Value.absent(),
     this.isRest = const Value.absent(),
+    this.startTimeMinutes = const Value.absent(),
   }) : programWeekId = Value(programWeekId),
        dayOfWeek = Value(dayOfWeek),
        name = Value(name);
@@ -14829,6 +14883,7 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
     Expression<String>? slotLabel,
     Expression<int>? cycleDayIndex,
     Expression<bool>? isRest,
+    Expression<int>? startTimeMinutes,
   }) {
     return RawValuesInsertable({
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -14844,6 +14899,7 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
       if (slotLabel != null) 'slot_label': slotLabel,
       if (cycleDayIndex != null) 'cycle_day_index': cycleDayIndex,
       if (isRest != null) 'is_rest': isRest,
+      if (startTimeMinutes != null) 'start_time_minutes': startTimeMinutes,
     });
   }
 
@@ -14861,6 +14917,7 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
     Value<String?>? slotLabel,
     Value<int?>? cycleDayIndex,
     Value<bool>? isRest,
+    Value<int?>? startTimeMinutes,
   }) {
     return ProgramDaysCompanion(
       syncUuid: syncUuid ?? this.syncUuid,
@@ -14876,6 +14933,7 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
       slotLabel: slotLabel ?? this.slotLabel,
       cycleDayIndex: cycleDayIndex ?? this.cycleDayIndex,
       isRest: isRest ?? this.isRest,
+      startTimeMinutes: startTimeMinutes ?? this.startTimeMinutes,
     );
   }
 
@@ -14921,6 +14979,9 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
     if (isRest.present) {
       map['is_rest'] = Variable<bool>(isRest.value);
     }
+    if (startTimeMinutes.present) {
+      map['start_time_minutes'] = Variable<int>(startTimeMinutes.value);
+    }
     return map;
   }
 
@@ -14939,7 +15000,8 @@ class ProgramDaysCompanion extends UpdateCompanion<ProgramDayData> {
           ..write('orderIndex: $orderIndex, ')
           ..write('slotLabel: $slotLabel, ')
           ..write('cycleDayIndex: $cycleDayIndex, ')
-          ..write('isRest: $isRest')
+          ..write('isRest: $isRest, ')
+          ..write('startTimeMinutes: $startTimeMinutes')
           ..write(')'))
         .toString();
   }
@@ -16580,6 +16642,17 @@ class $ScheduledWorkoutsTable extends ScheduledWorkouts
       'REFERENCES workout_templates (id) ON DELETE SET NULL',
     ),
   );
+  static const VerificationMeta _startTimeMinutesMeta = const VerificationMeta(
+    'startTimeMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> startTimeMinutes = GeneratedColumn<int>(
+    'start_time_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     syncUuid,
@@ -16595,6 +16668,7 @@ class $ScheduledWorkoutsTable extends ScheduledWorkouts
     orderIndex,
     occurrenceIndex,
     templateIdOverride,
+    startTimeMinutes,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -16699,6 +16773,15 @@ class $ScheduledWorkoutsTable extends ScheduledWorkouts
         ),
       );
     }
+    if (data.containsKey('start_time_minutes')) {
+      context.handle(
+        _startTimeMinutesMeta,
+        startTimeMinutes.isAcceptableOrUnknown(
+          data['start_time_minutes']!,
+          _startTimeMinutesMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -16760,6 +16843,10 @@ class $ScheduledWorkoutsTable extends ScheduledWorkouts
         DriftSqlType.int,
         data['${effectivePrefix}template_id_override'],
       ),
+      startTimeMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_time_minutes'],
+      ),
     );
   }
 
@@ -16799,6 +16886,14 @@ class ScheduledWorkoutData extends DataClass
   /// One-off template swap for this occurrence only. Wins over
   /// [ProgramDays.templateId] when resolving the session to start.
   final int? templateIdOverride;
+
+  /// Time of day (minutes since midnight) this specific occurrence is
+  /// scheduled to start (v28). Initialized from
+  /// [ProgramDays.startTimeMinutes] at materialization, freely editable per
+  /// occurrence afterward — there is no separate "override" column because,
+  /// unlike the template link, nothing in the UI needs to distinguish "this
+  /// session's own time" from "inherited from the day's default".
+  final int? startTimeMinutes;
   const ScheduledWorkoutData({
     this.syncUuid,
     this.updatedAt,
@@ -16813,6 +16908,7 @@ class ScheduledWorkoutData extends DataClass
     required this.orderIndex,
     required this.occurrenceIndex,
     this.templateIdOverride,
+    this.startTimeMinutes,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -16843,6 +16939,9 @@ class ScheduledWorkoutData extends DataClass
     map['occurrence_index'] = Variable<int>(occurrenceIndex);
     if (!nullToAbsent || templateIdOverride != null) {
       map['template_id_override'] = Variable<int>(templateIdOverride);
+    }
+    if (!nullToAbsent || startTimeMinutes != null) {
+      map['start_time_minutes'] = Variable<int>(startTimeMinutes);
     }
     return map;
   }
@@ -16876,6 +16975,9 @@ class ScheduledWorkoutData extends DataClass
       templateIdOverride: templateIdOverride == null && nullToAbsent
           ? const Value.absent()
           : Value(templateIdOverride),
+      startTimeMinutes: startTimeMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startTimeMinutes),
     );
   }
 
@@ -16898,6 +17000,7 @@ class ScheduledWorkoutData extends DataClass
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
       occurrenceIndex: serializer.fromJson<int>(json['occurrenceIndex']),
       templateIdOverride: serializer.fromJson<int?>(json['templateIdOverride']),
+      startTimeMinutes: serializer.fromJson<int?>(json['startTimeMinutes']),
     );
   }
   @override
@@ -16917,6 +17020,7 @@ class ScheduledWorkoutData extends DataClass
       'orderIndex': serializer.toJson<int>(orderIndex),
       'occurrenceIndex': serializer.toJson<int>(occurrenceIndex),
       'templateIdOverride': serializer.toJson<int?>(templateIdOverride),
+      'startTimeMinutes': serializer.toJson<int?>(startTimeMinutes),
     };
   }
 
@@ -16934,6 +17038,7 @@ class ScheduledWorkoutData extends DataClass
     int? orderIndex,
     int? occurrenceIndex,
     Value<int?> templateIdOverride = const Value.absent(),
+    Value<int?> startTimeMinutes = const Value.absent(),
   }) => ScheduledWorkoutData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -16952,6 +17057,9 @@ class ScheduledWorkoutData extends DataClass
     templateIdOverride: templateIdOverride.present
         ? templateIdOverride.value
         : this.templateIdOverride,
+    startTimeMinutes: startTimeMinutes.present
+        ? startTimeMinutes.value
+        : this.startTimeMinutes,
   );
   ScheduledWorkoutData copyWithCompanion(ScheduledWorkoutsCompanion data) {
     return ScheduledWorkoutData(
@@ -16978,6 +17086,9 @@ class ScheduledWorkoutData extends DataClass
       templateIdOverride: data.templateIdOverride.present
           ? data.templateIdOverride.value
           : this.templateIdOverride,
+      startTimeMinutes: data.startTimeMinutes.present
+          ? data.startTimeMinutes.value
+          : this.startTimeMinutes,
     );
   }
 
@@ -16996,7 +17107,8 @@ class ScheduledWorkoutData extends DataClass
           ..write('programId: $programId, ')
           ..write('orderIndex: $orderIndex, ')
           ..write('occurrenceIndex: $occurrenceIndex, ')
-          ..write('templateIdOverride: $templateIdOverride')
+          ..write('templateIdOverride: $templateIdOverride, ')
+          ..write('startTimeMinutes: $startTimeMinutes')
           ..write(')'))
         .toString();
   }
@@ -17016,6 +17128,7 @@ class ScheduledWorkoutData extends DataClass
     orderIndex,
     occurrenceIndex,
     templateIdOverride,
+    startTimeMinutes,
   );
   @override
   bool operator ==(Object other) =>
@@ -17033,7 +17146,8 @@ class ScheduledWorkoutData extends DataClass
           other.programId == this.programId &&
           other.orderIndex == this.orderIndex &&
           other.occurrenceIndex == this.occurrenceIndex &&
-          other.templateIdOverride == this.templateIdOverride);
+          other.templateIdOverride == this.templateIdOverride &&
+          other.startTimeMinutes == this.startTimeMinutes);
 }
 
 class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
@@ -17050,6 +17164,7 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
   final Value<int> orderIndex;
   final Value<int> occurrenceIndex;
   final Value<int?> templateIdOverride;
+  final Value<int?> startTimeMinutes;
   const ScheduledWorkoutsCompanion({
     this.syncUuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -17064,6 +17179,7 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
     this.orderIndex = const Value.absent(),
     this.occurrenceIndex = const Value.absent(),
     this.templateIdOverride = const Value.absent(),
+    this.startTimeMinutes = const Value.absent(),
   });
   ScheduledWorkoutsCompanion.insert({
     this.syncUuid = const Value.absent(),
@@ -17079,6 +17195,7 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
     this.orderIndex = const Value.absent(),
     this.occurrenceIndex = const Value.absent(),
     this.templateIdOverride = const Value.absent(),
+    this.startTimeMinutes = const Value.absent(),
   }) : dateIso = Value(dateIso),
        programDayId = Value(programDayId);
   static Insertable<ScheduledWorkoutData> custom({
@@ -17095,6 +17212,7 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
     Expression<int>? orderIndex,
     Expression<int>? occurrenceIndex,
     Expression<int>? templateIdOverride,
+    Expression<int>? startTimeMinutes,
   }) {
     return RawValuesInsertable({
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -17112,6 +17230,7 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
       if (occurrenceIndex != null) 'occurrence_index': occurrenceIndex,
       if (templateIdOverride != null)
         'template_id_override': templateIdOverride,
+      if (startTimeMinutes != null) 'start_time_minutes': startTimeMinutes,
     });
   }
 
@@ -17129,6 +17248,7 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
     Value<int>? orderIndex,
     Value<int>? occurrenceIndex,
     Value<int?>? templateIdOverride,
+    Value<int?>? startTimeMinutes,
   }) {
     return ScheduledWorkoutsCompanion(
       syncUuid: syncUuid ?? this.syncUuid,
@@ -17144,6 +17264,7 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
       orderIndex: orderIndex ?? this.orderIndex,
       occurrenceIndex: occurrenceIndex ?? this.occurrenceIndex,
       templateIdOverride: templateIdOverride ?? this.templateIdOverride,
+      startTimeMinutes: startTimeMinutes ?? this.startTimeMinutes,
     );
   }
 
@@ -17189,6 +17310,9 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
     if (templateIdOverride.present) {
       map['template_id_override'] = Variable<int>(templateIdOverride.value);
     }
+    if (startTimeMinutes.present) {
+      map['start_time_minutes'] = Variable<int>(startTimeMinutes.value);
+    }
     return map;
   }
 
@@ -17207,7 +17331,8 @@ class ScheduledWorkoutsCompanion extends UpdateCompanion<ScheduledWorkoutData> {
           ..write('programId: $programId, ')
           ..write('orderIndex: $orderIndex, ')
           ..write('occurrenceIndex: $occurrenceIndex, ')
-          ..write('templateIdOverride: $templateIdOverride')
+          ..write('templateIdOverride: $templateIdOverride, ')
+          ..write('startTimeMinutes: $startTimeMinutes')
           ..write(')'))
         .toString();
   }
@@ -30363,6 +30488,681 @@ class RepSetObservationsCompanion
   }
 }
 
+class $FastingSchedulesTable extends FastingSchedules
+    with TableInfo<$FastingSchedulesTable, FastingScheduleData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FastingSchedulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _planNameMeta = const VerificationMeta(
+    'planName',
+  );
+  @override
+  late final GeneratedColumn<String> planName = GeneratedColumn<String>(
+    'plan_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _customTargetSecondsMeta =
+      const VerificationMeta('customTargetSeconds');
+  @override
+  late final GeneratedColumn<int> customTargetSeconds = GeneratedColumn<int>(
+    'custom_target_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _daysOfWeekMeta = const VerificationMeta(
+    'daysOfWeek',
+  );
+  @override
+  late final GeneratedColumn<int> daysOfWeek = GeneratedColumn<int>(
+    'days_of_week',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startTimeMinutesMeta = const VerificationMeta(
+    'startTimeMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> startTimeMinutes = GeneratedColumn<int>(
+    'start_time_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _autoStartMeta = const VerificationMeta(
+    'autoStart',
+  );
+  @override
+  late final GeneratedColumn<bool> autoStart = GeneratedColumn<bool>(
+    'auto_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_start" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    planName,
+    customTargetSeconds,
+    daysOfWeek,
+    startTimeMinutes,
+    enabled,
+    autoStart,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'fasting_schedules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FastingScheduleData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('plan_name')) {
+      context.handle(
+        _planNameMeta,
+        planName.isAcceptableOrUnknown(data['plan_name']!, _planNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_planNameMeta);
+    }
+    if (data.containsKey('custom_target_seconds')) {
+      context.handle(
+        _customTargetSecondsMeta,
+        customTargetSeconds.isAcceptableOrUnknown(
+          data['custom_target_seconds']!,
+          _customTargetSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('days_of_week')) {
+      context.handle(
+        _daysOfWeekMeta,
+        daysOfWeek.isAcceptableOrUnknown(
+          data['days_of_week']!,
+          _daysOfWeekMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_daysOfWeekMeta);
+    }
+    if (data.containsKey('start_time_minutes')) {
+      context.handle(
+        _startTimeMinutesMeta,
+        startTimeMinutes.isAcceptableOrUnknown(
+          data['start_time_minutes']!,
+          _startTimeMinutesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_startTimeMinutesMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    }
+    if (data.containsKey('auto_start')) {
+      context.handle(
+        _autoStartMeta,
+        autoStart.isAcceptableOrUnknown(data['auto_start']!, _autoStartMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FastingScheduleData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FastingScheduleData(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      planName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan_name'],
+      )!,
+      customTargetSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}custom_target_seconds'],
+      ),
+      daysOfWeek: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}days_of_week'],
+      )!,
+      startTimeMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_time_minutes'],
+      )!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      autoStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_start'],
+      )!,
+    );
+  }
+
+  @override
+  $FastingSchedulesTable createAlias(String alias) {
+    return $FastingSchedulesTable(attachedDatabase, alias);
+  }
+}
+
+class FastingScheduleData extends DataClass
+    implements Insertable<FastingScheduleData> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final int id;
+  final String planName;
+  final int? customTargetSeconds;
+  final int daysOfWeek;
+  final int startTimeMinutes;
+  final bool enabled;
+  final bool autoStart;
+  const FastingScheduleData({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.planName,
+    this.customTargetSeconds,
+    required this.daysOfWeek,
+    required this.startTimeMinutes,
+    required this.enabled,
+    required this.autoStart,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<int>(id);
+    map['plan_name'] = Variable<String>(planName);
+    if (!nullToAbsent || customTargetSeconds != null) {
+      map['custom_target_seconds'] = Variable<int>(customTargetSeconds);
+    }
+    map['days_of_week'] = Variable<int>(daysOfWeek);
+    map['start_time_minutes'] = Variable<int>(startTimeMinutes);
+    map['enabled'] = Variable<bool>(enabled);
+    map['auto_start'] = Variable<bool>(autoStart);
+    return map;
+  }
+
+  FastingSchedulesCompanion toCompanion(bool nullToAbsent) {
+    return FastingSchedulesCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      planName: Value(planName),
+      customTargetSeconds: customTargetSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customTargetSeconds),
+      daysOfWeek: Value(daysOfWeek),
+      startTimeMinutes: Value(startTimeMinutes),
+      enabled: Value(enabled),
+      autoStart: Value(autoStart),
+    );
+  }
+
+  factory FastingScheduleData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FastingScheduleData(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<int>(json['id']),
+      planName: serializer.fromJson<String>(json['planName']),
+      customTargetSeconds: serializer.fromJson<int?>(
+        json['customTargetSeconds'],
+      ),
+      daysOfWeek: serializer.fromJson<int>(json['daysOfWeek']),
+      startTimeMinutes: serializer.fromJson<int>(json['startTimeMinutes']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      autoStart: serializer.fromJson<bool>(json['autoStart']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<int>(id),
+      'planName': serializer.toJson<String>(planName),
+      'customTargetSeconds': serializer.toJson<int?>(customTargetSeconds),
+      'daysOfWeek': serializer.toJson<int>(daysOfWeek),
+      'startTimeMinutes': serializer.toJson<int>(startTimeMinutes),
+      'enabled': serializer.toJson<bool>(enabled),
+      'autoStart': serializer.toJson<bool>(autoStart),
+    };
+  }
+
+  FastingScheduleData copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    int? id,
+    String? planName,
+    Value<int?> customTargetSeconds = const Value.absent(),
+    int? daysOfWeek,
+    int? startTimeMinutes,
+    bool? enabled,
+    bool? autoStart,
+  }) => FastingScheduleData(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    planName: planName ?? this.planName,
+    customTargetSeconds: customTargetSeconds.present
+        ? customTargetSeconds.value
+        : this.customTargetSeconds,
+    daysOfWeek: daysOfWeek ?? this.daysOfWeek,
+    startTimeMinutes: startTimeMinutes ?? this.startTimeMinutes,
+    enabled: enabled ?? this.enabled,
+    autoStart: autoStart ?? this.autoStart,
+  );
+  FastingScheduleData copyWithCompanion(FastingSchedulesCompanion data) {
+    return FastingScheduleData(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      planName: data.planName.present ? data.planName.value : this.planName,
+      customTargetSeconds: data.customTargetSeconds.present
+          ? data.customTargetSeconds.value
+          : this.customTargetSeconds,
+      daysOfWeek: data.daysOfWeek.present
+          ? data.daysOfWeek.value
+          : this.daysOfWeek,
+      startTimeMinutes: data.startTimeMinutes.present
+          ? data.startTimeMinutes.value
+          : this.startTimeMinutes,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      autoStart: data.autoStart.present ? data.autoStart.value : this.autoStart,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FastingScheduleData(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('planName: $planName, ')
+          ..write('customTargetSeconds: $customTargetSeconds, ')
+          ..write('daysOfWeek: $daysOfWeek, ')
+          ..write('startTimeMinutes: $startTimeMinutes, ')
+          ..write('enabled: $enabled, ')
+          ..write('autoStart: $autoStart')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    planName,
+    customTargetSeconds,
+    daysOfWeek,
+    startTimeMinutes,
+    enabled,
+    autoStart,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FastingScheduleData &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.planName == this.planName &&
+          other.customTargetSeconds == this.customTargetSeconds &&
+          other.daysOfWeek == this.daysOfWeek &&
+          other.startTimeMinutes == this.startTimeMinutes &&
+          other.enabled == this.enabled &&
+          other.autoStart == this.autoStart);
+}
+
+class FastingSchedulesCompanion extends UpdateCompanion<FastingScheduleData> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> id;
+  final Value<String> planName;
+  final Value<int?> customTargetSeconds;
+  final Value<int> daysOfWeek;
+  final Value<int> startTimeMinutes;
+  final Value<bool> enabled;
+  final Value<bool> autoStart;
+  const FastingSchedulesCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.planName = const Value.absent(),
+    this.customTargetSeconds = const Value.absent(),
+    this.daysOfWeek = const Value.absent(),
+    this.startTimeMinutes = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.autoStart = const Value.absent(),
+  });
+  FastingSchedulesCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    required String planName,
+    this.customTargetSeconds = const Value.absent(),
+    required int daysOfWeek,
+    required int startTimeMinutes,
+    this.enabled = const Value.absent(),
+    this.autoStart = const Value.absent(),
+  }) : planName = Value(planName),
+       daysOfWeek = Value(daysOfWeek),
+       startTimeMinutes = Value(startTimeMinutes);
+  static Insertable<FastingScheduleData> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? id,
+    Expression<String>? planName,
+    Expression<int>? customTargetSeconds,
+    Expression<int>? daysOfWeek,
+    Expression<int>? startTimeMinutes,
+    Expression<bool>? enabled,
+    Expression<bool>? autoStart,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (planName != null) 'plan_name': planName,
+      if (customTargetSeconds != null)
+        'custom_target_seconds': customTargetSeconds,
+      if (daysOfWeek != null) 'days_of_week': daysOfWeek,
+      if (startTimeMinutes != null) 'start_time_minutes': startTimeMinutes,
+      if (enabled != null) 'enabled': enabled,
+      if (autoStart != null) 'auto_start': autoStart,
+    });
+  }
+
+  FastingSchedulesCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? id,
+    Value<String>? planName,
+    Value<int?>? customTargetSeconds,
+    Value<int>? daysOfWeek,
+    Value<int>? startTimeMinutes,
+    Value<bool>? enabled,
+    Value<bool>? autoStart,
+  }) {
+    return FastingSchedulesCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      planName: planName ?? this.planName,
+      customTargetSeconds: customTargetSeconds ?? this.customTargetSeconds,
+      daysOfWeek: daysOfWeek ?? this.daysOfWeek,
+      startTimeMinutes: startTimeMinutes ?? this.startTimeMinutes,
+      enabled: enabled ?? this.enabled,
+      autoStart: autoStart ?? this.autoStart,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (planName.present) {
+      map['plan_name'] = Variable<String>(planName.value);
+    }
+    if (customTargetSeconds.present) {
+      map['custom_target_seconds'] = Variable<int>(customTargetSeconds.value);
+    }
+    if (daysOfWeek.present) {
+      map['days_of_week'] = Variable<int>(daysOfWeek.value);
+    }
+    if (startTimeMinutes.present) {
+      map['start_time_minutes'] = Variable<int>(startTimeMinutes.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (autoStart.present) {
+      map['auto_start'] = Variable<bool>(autoStart.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FastingSchedulesCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('planName: $planName, ')
+          ..write('customTargetSeconds: $customTargetSeconds, ')
+          ..write('daysOfWeek: $daysOfWeek, ')
+          ..write('startTimeMinutes: $startTimeMinutes, ')
+          ..write('enabled: $enabled, ')
+          ..write('autoStart: $autoStart')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -30445,6 +31245,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $RepTrackingExercisePrefsTable(this);
   late final $RepSetObservationsTable repSetObservations =
       $RepSetObservationsTable(this);
+  late final $FastingSchedulesTable fastingSchedules = $FastingSchedulesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -30497,6 +31300,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     repTrackingSettings,
     repTrackingExercisePrefs,
     repSetObservations,
+    fastingSchedules,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -41787,6 +42591,7 @@ typedef $$ProgramDaysTableCreateCompanionBuilder =
       Value<String?> slotLabel,
       Value<int?> cycleDayIndex,
       Value<bool> isRest,
+      Value<int?> startTimeMinutes,
     });
 typedef $$ProgramDaysTableUpdateCompanionBuilder =
     ProgramDaysCompanion Function({
@@ -41803,6 +42608,7 @@ typedef $$ProgramDaysTableUpdateCompanionBuilder =
       Value<String?> slotLabel,
       Value<int?> cycleDayIndex,
       Value<bool> isRest,
+      Value<int?> startTimeMinutes,
     });
 
 final class $$ProgramDaysTableReferences
@@ -41963,6 +42769,11 @@ class $$ProgramDaysTableFilterComposer
 
   ColumnFilters<bool> get isRest => $composableBuilder(
     column: $table.isRest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -42127,6 +42938,11 @@ class $$ProgramDaysTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ProgramWeeksTableOrderingComposer get programWeekId {
     final $$ProgramWeeksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -42219,6 +43035,11 @@ class $$ProgramDaysTableAnnotationComposer
 
   GeneratedColumn<bool> get isRest =>
       $composableBuilder(column: $table.isRest, builder: (column) => column);
+
+  GeneratedColumn<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
+    builder: (column) => column,
+  );
 
   $$ProgramWeeksTableAnnotationComposer get programWeekId {
     final $$ProgramWeeksTableAnnotationComposer composer = $composerBuilder(
@@ -42365,6 +43186,7 @@ class $$ProgramDaysTableTableManager
                 Value<String?> slotLabel = const Value.absent(),
                 Value<int?> cycleDayIndex = const Value.absent(),
                 Value<bool> isRest = const Value.absent(),
+                Value<int?> startTimeMinutes = const Value.absent(),
               }) => ProgramDaysCompanion(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -42379,6 +43201,7 @@ class $$ProgramDaysTableTableManager
                 slotLabel: slotLabel,
                 cycleDayIndex: cycleDayIndex,
                 isRest: isRest,
+                startTimeMinutes: startTimeMinutes,
               ),
           createCompanionCallback:
               ({
@@ -42395,6 +43218,7 @@ class $$ProgramDaysTableTableManager
                 Value<String?> slotLabel = const Value.absent(),
                 Value<int?> cycleDayIndex = const Value.absent(),
                 Value<bool> isRest = const Value.absent(),
+                Value<int?> startTimeMinutes = const Value.absent(),
               }) => ProgramDaysCompanion.insert(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -42409,6 +43233,7 @@ class $$ProgramDaysTableTableManager
                 slotLabel: slotLabel,
                 cycleDayIndex: cycleDayIndex,
                 isRest: isRest,
+                startTimeMinutes: startTimeMinutes,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -43804,6 +44629,7 @@ typedef $$ScheduledWorkoutsTableCreateCompanionBuilder =
       Value<int> orderIndex,
       Value<int> occurrenceIndex,
       Value<int?> templateIdOverride,
+      Value<int?> startTimeMinutes,
     });
 typedef $$ScheduledWorkoutsTableUpdateCompanionBuilder =
     ScheduledWorkoutsCompanion Function({
@@ -43820,6 +44646,7 @@ typedef $$ScheduledWorkoutsTableUpdateCompanionBuilder =
       Value<int> orderIndex,
       Value<int> occurrenceIndex,
       Value<int?> templateIdOverride,
+      Value<int?> startTimeMinutes,
     });
 
 final class $$ScheduledWorkoutsTableReferences
@@ -43975,6 +44802,11 @@ class $$ScheduledWorkoutsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ProgramDaysTableFilterComposer get programDayId {
     final $$ProgramDaysTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -44122,6 +44954,11 @@ class $$ScheduledWorkoutsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ProgramDaysTableOrderingComposer get programDayId {
     final $$ProgramDaysTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -44252,6 +45089,11 @@ class $$ScheduledWorkoutsTableAnnotationComposer
 
   GeneratedColumn<int> get occurrenceIndex => $composableBuilder(
     column: $table.occurrenceIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
     builder: (column) => column,
   );
 
@@ -44399,6 +45241,7 @@ class $$ScheduledWorkoutsTableTableManager
                 Value<int> orderIndex = const Value.absent(),
                 Value<int> occurrenceIndex = const Value.absent(),
                 Value<int?> templateIdOverride = const Value.absent(),
+                Value<int?> startTimeMinutes = const Value.absent(),
               }) => ScheduledWorkoutsCompanion(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -44413,6 +45256,7 @@ class $$ScheduledWorkoutsTableTableManager
                 orderIndex: orderIndex,
                 occurrenceIndex: occurrenceIndex,
                 templateIdOverride: templateIdOverride,
+                startTimeMinutes: startTimeMinutes,
               ),
           createCompanionCallback:
               ({
@@ -44429,6 +45273,7 @@ class $$ScheduledWorkoutsTableTableManager
                 Value<int> orderIndex = const Value.absent(),
                 Value<int> occurrenceIndex = const Value.absent(),
                 Value<int?> templateIdOverride = const Value.absent(),
+                Value<int?> startTimeMinutes = const Value.absent(),
               }) => ScheduledWorkoutsCompanion.insert(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -44443,6 +45288,7 @@ class $$ScheduledWorkoutsTableTableManager
                 orderIndex: orderIndex,
                 occurrenceIndex: occurrenceIndex,
                 templateIdOverride: templateIdOverride,
+                startTimeMinutes: startTimeMinutes,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -52935,6 +53781,330 @@ typedef $$RepSetObservationsTableProcessedTableManager =
       RepSetObservationData,
       PrefetchHooks Function()
     >;
+typedef $$FastingSchedulesTableCreateCompanionBuilder =
+    FastingSchedulesCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      required String planName,
+      Value<int?> customTargetSeconds,
+      required int daysOfWeek,
+      required int startTimeMinutes,
+      Value<bool> enabled,
+      Value<bool> autoStart,
+    });
+typedef $$FastingSchedulesTableUpdateCompanionBuilder =
+    FastingSchedulesCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<String> planName,
+      Value<int?> customTargetSeconds,
+      Value<int> daysOfWeek,
+      Value<int> startTimeMinutes,
+      Value<bool> enabled,
+      Value<bool> autoStart,
+    });
+
+class $$FastingSchedulesTableFilterComposer
+    extends Composer<_$AppDatabase, $FastingSchedulesTable> {
+  $$FastingSchedulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get planName => $composableBuilder(
+    column: $table.planName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get customTargetSeconds => $composableBuilder(
+    column: $table.customTargetSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get daysOfWeek => $composableBuilder(
+    column: $table.daysOfWeek,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoStart => $composableBuilder(
+    column: $table.autoStart,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FastingSchedulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FastingSchedulesTable> {
+  $$FastingSchedulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get planName => $composableBuilder(
+    column: $table.planName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get customTargetSeconds => $composableBuilder(
+    column: $table.customTargetSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get daysOfWeek => $composableBuilder(
+    column: $table.daysOfWeek,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoStart => $composableBuilder(
+    column: $table.autoStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FastingSchedulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FastingSchedulesTable> {
+  $$FastingSchedulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get planName =>
+      $composableBuilder(column: $table.planName, builder: (column) => column);
+
+  GeneratedColumn<int> get customTargetSeconds => $composableBuilder(
+    column: $table.customTargetSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get daysOfWeek => $composableBuilder(
+    column: $table.daysOfWeek,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get startTimeMinutes => $composableBuilder(
+    column: $table.startTimeMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoStart =>
+      $composableBuilder(column: $table.autoStart, builder: (column) => column);
+}
+
+class $$FastingSchedulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FastingSchedulesTable,
+          FastingScheduleData,
+          $$FastingSchedulesTableFilterComposer,
+          $$FastingSchedulesTableOrderingComposer,
+          $$FastingSchedulesTableAnnotationComposer,
+          $$FastingSchedulesTableCreateCompanionBuilder,
+          $$FastingSchedulesTableUpdateCompanionBuilder,
+          (
+            FastingScheduleData,
+            BaseReferences<
+              _$AppDatabase,
+              $FastingSchedulesTable,
+              FastingScheduleData
+            >,
+          ),
+          FastingScheduleData,
+          PrefetchHooks Function()
+        > {
+  $$FastingSchedulesTableTableManager(
+    _$AppDatabase db,
+    $FastingSchedulesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FastingSchedulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FastingSchedulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FastingSchedulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<String> planName = const Value.absent(),
+                Value<int?> customTargetSeconds = const Value.absent(),
+                Value<int> daysOfWeek = const Value.absent(),
+                Value<int> startTimeMinutes = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<bool> autoStart = const Value.absent(),
+              }) => FastingSchedulesCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                planName: planName,
+                customTargetSeconds: customTargetSeconds,
+                daysOfWeek: daysOfWeek,
+                startTimeMinutes: startTimeMinutes,
+                enabled: enabled,
+                autoStart: autoStart,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required String planName,
+                Value<int?> customTargetSeconds = const Value.absent(),
+                required int daysOfWeek,
+                required int startTimeMinutes,
+                Value<bool> enabled = const Value.absent(),
+                Value<bool> autoStart = const Value.absent(),
+              }) => FastingSchedulesCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                planName: planName,
+                customTargetSeconds: customTargetSeconds,
+                daysOfWeek: daysOfWeek,
+                startTimeMinutes: startTimeMinutes,
+                enabled: enabled,
+                autoStart: autoStart,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FastingSchedulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FastingSchedulesTable,
+      FastingScheduleData,
+      $$FastingSchedulesTableFilterComposer,
+      $$FastingSchedulesTableOrderingComposer,
+      $$FastingSchedulesTableAnnotationComposer,
+      $$FastingSchedulesTableCreateCompanionBuilder,
+      $$FastingSchedulesTableUpdateCompanionBuilder,
+      (
+        FastingScheduleData,
+        BaseReferences<
+          _$AppDatabase,
+          $FastingSchedulesTable,
+          FastingScheduleData
+        >,
+      ),
+      FastingScheduleData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -53035,4 +54205,6 @@ class $AppDatabaseManager {
       );
   $$RepSetObservationsTableTableManager get repSetObservations =>
       $$RepSetObservationsTableTableManager(_db, _db.repSetObservations);
+  $$FastingSchedulesTableTableManager get fastingSchedules =>
+      $$FastingSchedulesTableTableManager(_db, _db.fastingSchedules);
 }

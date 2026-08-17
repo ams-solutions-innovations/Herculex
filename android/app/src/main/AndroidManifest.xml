@@ -30,6 +30,11 @@
     <uses-permission android:name="android.permission.health.WRITE_WEIGHT" />
     <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
     <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" />
+    <!-- Cycle sync reads period days from Health Connect; without this declaration
+         Health Connect rejects the ENTIRE batched permission request (Samsung Health
+         and Google Health Connect toggles), not just this one type, because
+         HealthDataType.MENSTRUATION_FLOW is requested in HealthService.requestPermissions. -->
+    <uses-permission android:name="android.permission.health.READ_MENSTRUATION" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 

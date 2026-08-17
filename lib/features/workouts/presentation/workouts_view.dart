@@ -5,8 +5,10 @@ import 'package:intl/intl.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../../../ui/hx_top_tabs.dart';
 import '../../../widgets/premium_button.dart';
 import '../../gyms/presentation/gym_picker_sheet.dart';
+import '../../programs/presentation/training_blocks_view.dart';
 import 'active_workout_view.dart';
 import 'templates_view.dart';
 import 'workouts_providers.dart';
@@ -34,15 +36,12 @@ class _WorkoutsLanding extends ConsumerStatefulWidget {
   ConsumerState<_WorkoutsLanding> createState() => _WorkoutsLandingState();
 }
 
-class _WorkoutsLandingState extends ConsumerState<_WorkoutsLanding>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 2, vsync: this);
-
-  @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
-  }
+class _WorkoutsLandingState extends ConsumerState<_WorkoutsLanding> {
+  // Programs lives here as the third segment rather than as its own bottom
+  // tab — contextual navigation belongs at the top of the section it
+  // switches between, not in a second bottom bar.
+  static const _segments = ['Sessions', 'Templates', 'Programs'];
+  int _segment = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -80,28 +79,22 @@ class _WorkoutsLandingState extends ConsumerState<_WorkoutsLanding>
                   ),
                 ),
                 const SizedBox(height: 20),
-                TabBar(
-                  controller: _tabs,
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: AppColors.onSurfaceVariant,
-                  indicatorColor: AppColors.primary,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: 'Recent'),
-                    Tab(text: 'Templates'),
-                  ],
+                HxTopTabs(
+                  labels: _segments,
+                  index: _segment,
+                  onChanged: (i) => setState(() => _segment = i),
                 ),
-                const Divider(height: 1),
+                const SizedBox(height: 12),
               ],
             ),
           ),
           Expanded(
-            child: TabBarView(
-              controller: _tabs,
+            child: IndexedStack(
+              index: _segment,
               children: [
                 _RecentTab(),
                 const TemplatesView(),
+                const TrainingBlocksView(),
               ],
             ),
           ),

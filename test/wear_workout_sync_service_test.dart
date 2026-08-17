@@ -467,7 +467,7 @@ void main() {
     ],
   }) {
     return {
-      if (wireId != null) 'wireId': wireId,
+      'wireId': ?wireId,
       'template': {'catalogExerciseId': catalogExerciseId, 'name': name},
       'sets': sets,
     };
@@ -480,7 +480,7 @@ void main() {
     bool completed = true,
   }) {
     return {
-      if (wireId != null) 'wireId': wireId,
+      'wireId': ?wireId,
       'weight': weight,
       'reps': reps,
       'completed': completed,

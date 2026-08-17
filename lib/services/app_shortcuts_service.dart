@@ -46,12 +46,12 @@ class AppShortcutsService {
     final items = <ShortcutItem>[
       const ShortcutItem(
         type: 'start_empty_workout',
-        localizedTitle: 'Začni prazno vadbo',
+        localizedTitle: 'Start Empty Workout',
         icon: 'launcher_icon',
       ),
       const ShortcutItem(
         type: 'quick_scan_food',
-        localizedTitle: 'Skeniraj hrano',
+        localizedTitle: 'Scan Food',
         icon: 'launcher_icon',
       ),
     ];

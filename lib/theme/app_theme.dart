@@ -1,84 +1,88 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
-/// iOS-inspired theme with Light and Dark mode support.
+import 'tokens/hx_colors.dart';
+import 'tokens/hx_geometry.dart';
+
+/// App theme, built entirely from the [HxColors] token palette.
+///
+/// The palette is also attached as a [ThemeExtension] so widgets can read
+/// tokens from the context (`context.hx`) instead of the global `AppColors`.
 class AppTheme {
   /// Universal pill shape used across buttons and containers.
   static const StadiumBorder _pill = StadiumBorder();
+
+  /// Body/UI face: a humanist grotesque with excellent tabular numerals.
+  static const String fontBody = 'Manrope';
+
+  /// Display face for headlines and large stat numerals — the distinctive
+  /// half of the pairing.
+  static const String fontDisplay = 'SpaceGrotesk';
 
   static ThemeData get lightTheme => _buildTheme(Brightness.light);
   static ThemeData get darkTheme => _buildTheme(Brightness.dark);
 
   static ThemeData _buildTheme(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-
-    final primary = isDark ? const Color(0xFF0A84FF) : const Color(0xFF007AFF);
-    final background = isDark ? const Color(0xFF091322) : const Color(0xFFEBF4FE);
-    final scaffoldBackground = Colors.transparent;
-    final onSurface = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
-    final onSurfaceVariant = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155);
-    final secondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final tertiary = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
-    final surfaceContainer = isDark ? const Color(0xFF161E2E) : const Color(0xFFFFFFFF);
-    final surfaceContainerLowest = isDark ? const Color(0xFF111824) : const Color(0xFFFFFFFF);
-    final surfaceVariant = isDark ? const Color(0xFF202A3C) : const Color(0xFFE8F1FA);
-    final outlineVariant = isDark ? const Color(0xFF2B374E) : const Color(0xFFD6E3F2);
-    final outline = isDark ? const Color(0xFF3B4C69) : const Color(0xFFCBD5E1);
+    final p = HxColors.of(brightness);
+    final isDark = p.isDark;
 
     final scheme = isDark
         ? ColorScheme.dark(
-            primary: primary,
-            onPrimary: Colors.white,
-            secondary: primary,
-            surface: background,
-            onSurface: onSurface,
-            surfaceContainer: surfaceContainer,
-            surfaceContainerHighest: surfaceVariant,
-            surfaceContainerLowest: surfaceContainerLowest,
-            tertiary: tertiary,
-            outline: outline,
-            outlineVariant: outlineVariant,
+            primary: p.primary,
+            onPrimary: p.onPrimary,
+            secondary: p.primary,
+            surface: p.background,
+            onSurface: p.onSurface,
+            surfaceContainer: p.surfaceContainer,
+            surfaceContainerHighest: p.surfaceVariant,
+            surfaceContainerLowest: p.surfaceContainerLowest,
+            tertiary: p.tertiary,
+            outline: p.outline,
+            outlineVariant: p.outlineVariant,
+            error: p.danger,
           )
         : ColorScheme.light(
-            primary: primary,
-            onPrimary: Colors.white,
-            secondary: primary,
-            surface: background,
-            onSurface: onSurface,
-            surfaceContainer: surfaceContainer,
-            surfaceContainerHighest: surfaceVariant,
-            surfaceContainerLowest: surfaceContainerLowest,
-            tertiary: tertiary,
-            outline: outline,
-            outlineVariant: outlineVariant,
+            primary: p.primary,
+            onPrimary: p.onPrimary,
+            secondary: p.primary,
+            surface: p.background,
+            onSurface: p.onSurface,
+            surfaceContainer: p.surfaceContainer,
+            surfaceContainerHighest: p.surfaceVariant,
+            surfaceContainerLowest: p.surfaceContainerLowest,
+            tertiary: p.tertiary,
+            outline: p.outline,
+            outlineVariant: p.outlineVariant,
+            error: p.danger,
           );
 
-    final textTheme = _buildTextTheme(onSurface, onSurfaceVariant, secondary);
+    final textTheme = _buildTextTheme(p);
 
     final base = ThemeData(
       brightness: brightness,
-      scaffoldBackgroundColor: scaffoldBackground,
-      primaryColor: primary,
+      scaffoldBackgroundColor: Colors.transparent,
+      primaryColor: p.primary,
       colorScheme: scheme,
-      fontFamily: 'Inter',
+      fontFamily: fontBody,
       splashFactory: NoSplash.splashFactory, // iOS has no ripple
       highlightColor: Colors.transparent,
+      extensions: <ThemeExtension<dynamic>>[p],
     );
 
     return base.copyWith(
       textTheme: textTheme,
 
       appBarTheme: AppBarTheme(
-        backgroundColor: background,
-        foregroundColor: onSurface,
+        backgroundColor: p.background,
+        foregroundColor: p.onSurface,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 17,
+          fontFamily: fontDisplay,
+          fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: onSurface,
+          color: p.onSurface,
           letterSpacing: -0.2,
         ),
       ),
@@ -86,8 +90,8 @@ class AppTheme {
       // ── Pill-shaped buttons ──
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
+          backgroundColor: p.primary,
+          foregroundColor: p.onPrimary,
           shape: _pill,
           minimumSize: const Size(0, 50),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -97,8 +101,8 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
+          backgroundColor: p.primary,
+          foregroundColor: p.onPrimary,
           elevation: 0,
           shape: _pill,
           minimumSize: const Size(0, 50),
@@ -109,10 +113,10 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: primary,
+          foregroundColor: p.primaryText,
           shape: _pill,
           minimumSize: const Size(0, 50),
-          side: BorderSide(color: outlineVariant),
+          side: BorderSide(color: p.outlineVariant),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: const TextStyle(
             fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.2),
@@ -120,7 +124,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: primary,
+          foregroundColor: p.primaryText,
           shape: _pill,
           textStyle: const TextStyle(
             fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: -0.2),
@@ -129,12 +133,12 @@ class AppTheme {
 
       // ── Pill-shaped chips ──
       chipTheme: ChipThemeData(
-        backgroundColor: surfaceContainer,
-        selectedColor: primary,
-        disabledColor: surfaceContainer,
+        backgroundColor: p.surfaceContainer,
+        selectedColor: p.primary,
+        disabledColor: p.surfaceContainer,
         labelStyle: TextStyle(
-          color: onSurface, fontSize: 14, fontWeight: FontWeight.w500),
-        secondaryLabelStyle: const TextStyle(color: Colors.white),
+          color: p.onSurface, fontSize: 14, fontWeight: FontWeight.w500),
+        secondaryLabelStyle: TextStyle(color: p.onPrimary),
         side: BorderSide.none,
         shape: _pill,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -144,53 +148,51 @@ class AppTheme {
       // ── Inputs: pill text fields ──
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceVariant,
+        fillColor: p.surfaceVariant,
         isDense: true,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        hintStyle: TextStyle(color: secondary),
+        hintStyle: TextStyle(color: p.secondary),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(color: outlineVariant),
+          borderRadius: HxRadius.xlAll,
+          borderSide: BorderSide(color: p.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(color: outlineVariant),
+          borderRadius: HxRadius.xlAll,
+          borderSide: BorderSide(color: p.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(color: primary, width: 1.5),
+          borderRadius: HxRadius.xlAll,
+          borderSide: BorderSide(color: p.primary, width: 1.5),
         ),
       ),
 
       // ── Cards ──
       cardTheme: CardThemeData(
-        color: surfaceContainer,
+        color: p.surfaceContainer,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: HxRadius.lgAll),
         margin: EdgeInsets.zero,
       ),
 
       listTileTheme: ListTileThemeData(
-        iconColor: primary,
-        textColor: onSurface,
+        iconColor: p.primaryText,
+        textColor: p.onSurface,
       ),
 
       switchTheme: SwitchThemeData(
         thumbColor: const WidgetStatePropertyAll(Colors.white),
         trackColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected)
-                ? primary
-                : surfaceVariant),
+            s.contains(WidgetState.selected) ? p.primary : p.surfaceVariant),
         trackOutlineColor:
             const WidgetStatePropertyAll(Colors.transparent),
       ),
 
       sliderTheme: SliderThemeData(
-        activeTrackColor: primary,
-        inactiveTrackColor: surfaceVariant,
+        activeTrackColor: p.primary,
+        inactiveTrackColor: p.surfaceVariant,
         thumbColor: Colors.white,
-        overlayColor: primary.withValues(alpha: 0.2),
+        overlayColor: p.primary.withValues(alpha: 0.2),
       ),
 
       segmentedButtonTheme: SegmentedButtonThemeData(
@@ -198,70 +200,68 @@ class AppTheme {
           shape: const WidgetStatePropertyAll(_pill),
           backgroundColor: WidgetStateProperty.resolveWith((s) =>
               s.contains(WidgetState.selected)
-                  ? primary
-                  : surfaceContainer),
+                  ? p.primary
+                  : p.surfaceContainer),
           foregroundColor: WidgetStateProperty.resolveWith((s) =>
-              s.contains(WidgetState.selected)
-                  ? Colors.white
-                  : onSurface),
+              s.contains(WidgetState.selected) ? p.onPrimary : p.onSurface),
           side: const WidgetStatePropertyAll(BorderSide.none),
         ),
       ),
 
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
+        backgroundColor: p.primary,
+        foregroundColor: p.onPrimary,
         elevation: 0,
-        shape: StadiumBorder(),
+        shape: const StadiumBorder(),
       ),
 
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: surfaceContainerLowest,
-        modalBackgroundColor: surfaceContainerLowest,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        backgroundColor: p.surfaceContainer,
+        modalBackgroundColor: p.surfaceContainer,
+        shape: const RoundedRectangleBorder(
+          borderRadius: HxRadius.sheetTop,
         ),
       ),
 
       dialogTheme: DialogThemeData(
-        backgroundColor: surfaceContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: p.surfaceContainer,
+        shape: RoundedRectangleBorder(borderRadius: HxRadius.lgAll),
         titleTextStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 18,
+          fontFamily: fontDisplay,
+          fontSize: 19,
           fontWeight: FontWeight.w600,
-          color: onSurface,
+          color: p.onSurface,
         ),
         contentTextStyle: TextStyle(
-          fontFamily: 'Inter', fontSize: 15, color: onSurfaceVariant),
+          fontFamily: fontBody, fontSize: 15, color: p.onSurfaceVariant),
       ),
 
       dividerTheme: DividerThemeData(
-        color: outlineVariant,
+        color: p.outlineVariant,
         thickness: 0.5,
         space: 0.5,
       ),
 
-      iconTheme: IconThemeData(color: onSurface),
+      iconTheme: IconThemeData(color: p.onSurface),
 
       tabBarTheme: TabBarThemeData(
-        labelColor: primary,
-        unselectedLabelColor: secondary,
-        indicatorColor: primary,
+        labelColor: p.primaryText,
+        unselectedLabelColor: p.secondary,
+        indicatorColor: p.primary,
         dividerColor: Colors.transparent,
       ),
 
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: surfaceContainerLowest,
-        selectedItemColor: primary,
-        unselectedItemColor: secondary,
+        backgroundColor: p.surfaceContainerLowest,
+        selectedItemColor: p.primaryText,
+        unselectedItemColor: p.secondary,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
       ),
 
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surfaceContainerLowest,
-        indicatorColor: primary.withValues(alpha: 0.18),
+        backgroundColor: p.surfaceContainerLowest,
+        indicatorColor: p.primary.withValues(alpha: 0.18),
         elevation: 0,
         labelTextStyle: const WidgetStatePropertyAll(
           TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
@@ -269,10 +269,9 @@ class AppTheme {
       ),
 
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: surfaceVariant,
-        contentTextStyle: TextStyle(color: onSurface),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: p.surfaceVariant,
+        contentTextStyle: TextStyle(color: p.onSurface),
+        shape: RoundedRectangleBorder(borderRadius: HxRadius.mdAll),
         behavior: SnackBarBehavior.floating,
       ),
 
@@ -285,31 +284,60 @@ class AppTheme {
     );
   }
 
-  static TextTheme _buildTextTheme(Color onSurface, Color onSurfaceVariant, Color secondary) => TextTheme(
+  /// Numerals line up in columns — essential for stat grids, set tables and
+  /// running timers, where proportional digits visibly jitter.
+  static const List<FontFeature> _tabular = [FontFeature.tabularFigures()];
+
+  static TextTheme _buildTextTheme(HxColors p) => TextTheme(
+    // Display + headline carry the distinctive face.
     displayLarge: TextStyle(
-        fontSize: 34, fontWeight: FontWeight.w700, color: onSurface, letterSpacing: -0.6),
+        fontFamily: fontDisplay, fontSize: 34, fontWeight: FontWeight.w700,
+        color: p.onSurface, letterSpacing: -0.6, fontFeatures: _tabular),
     displayMedium: TextStyle(
-        fontSize: 28, fontWeight: FontWeight.w700, color: onSurface, letterSpacing: -0.5),
+        fontFamily: fontDisplay, fontSize: 28, fontWeight: FontWeight.w700,
+        color: p.onSurface, letterSpacing: -0.5, fontFeatures: _tabular),
+    displaySmall: TextStyle(
+        fontFamily: fontDisplay, fontSize: 24, fontWeight: FontWeight.w700,
+        color: p.onSurface, letterSpacing: -0.4, fontFeatures: _tabular),
     headlineLarge: TextStyle(
-        fontSize: 32, fontWeight: FontWeight.w700, color: onSurface),
+        fontFamily: fontDisplay, fontSize: 32, fontWeight: FontWeight.w700,
+        color: p.onSurface, letterSpacing: -0.5, fontFeatures: _tabular),
     headlineMedium: TextStyle(
-        fontSize: 28, fontWeight: FontWeight.w700, color: onSurface),
+        fontFamily: fontDisplay, fontSize: 28, fontWeight: FontWeight.w700,
+        color: p.onSurface, letterSpacing: -0.4, fontFeatures: _tabular),
     headlineSmall: TextStyle(
-        fontSize: 24, fontWeight: FontWeight.w700, color: onSurface),
+        fontFamily: fontDisplay, fontSize: 24, fontWeight: FontWeight.w600,
+        color: p.onSurface, letterSpacing: -0.3, fontFeatures: _tabular),
+
+    // Titles and below stay on the body face for legibility at small sizes.
+    // Every style names its family explicitly: `ThemeData.fontFamily` does not
+    // reach a `textTheme` supplied through copyWith, which is why the app
+    // silently rendered in the platform default before this pass.
     titleLarge: TextStyle(
-        fontSize: 22, fontWeight: FontWeight.w700, color: onSurface, letterSpacing: -0.4),
+        fontFamily: fontBody, fontSize: 22, fontWeight: FontWeight.w700,
+        color: p.onSurface, letterSpacing: -0.4, fontFeatures: _tabular),
     titleMedium: TextStyle(
-        fontSize: 17, fontWeight: FontWeight.w600, color: onSurface, letterSpacing: -0.2),
+        fontFamily: fontBody, fontSize: 17, fontWeight: FontWeight.w600,
+        color: p.onSurface, letterSpacing: -0.2),
     titleSmall: TextStyle(
-        fontSize: 15, fontWeight: FontWeight.w600, color: onSurface, letterSpacing: -0.1),
-    bodyLarge: TextStyle(fontSize: 17, color: onSurface, letterSpacing: -0.2),
-    bodyMedium: TextStyle(fontSize: 15, color: onSurfaceVariant, letterSpacing: -0.1),
-    bodySmall: TextStyle(fontSize: 13, color: secondary),
+        fontFamily: fontBody, fontSize: 15, fontWeight: FontWeight.w600,
+        color: p.onSurface, letterSpacing: -0.1),
+    bodyLarge: TextStyle(
+        fontFamily: fontBody, fontSize: 17, color: p.onSurface,
+        letterSpacing: -0.2),
+    bodyMedium: TextStyle(
+        fontFamily: fontBody, fontSize: 15, color: p.onSurfaceVariant,
+        letterSpacing: -0.1),
+    bodySmall: TextStyle(
+        fontFamily: fontBody, fontSize: 13, color: p.secondary),
     labelLarge: TextStyle(
-        fontSize: 15, fontWeight: FontWeight.w600, color: onSurface),
+        fontFamily: fontBody, fontSize: 15, fontWeight: FontWeight.w600,
+        color: p.onSurface),
     labelMedium: TextStyle(
-        fontSize: 13, fontWeight: FontWeight.w500, color: secondary),
+        fontFamily: fontBody, fontSize: 13, fontWeight: FontWeight.w500,
+        color: p.secondary),
     labelSmall: TextStyle(
-        fontSize: 12, fontWeight: FontWeight.w500, color: secondary),
+        fontFamily: fontBody, fontSize: 12, fontWeight: FontWeight.w500,
+        color: p.secondary),
   );
 }

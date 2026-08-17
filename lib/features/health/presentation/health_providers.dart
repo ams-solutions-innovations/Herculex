@@ -25,12 +25,13 @@ final lastDailyHealthReadProvider = StateProvider<DailyHealthRead?>((ref) {
   return null;
 });
 
+/// Reflects real OS-granted health permission status, keyed by platform
+/// ('apple', 'google', 'samsung'). Starts false for all and is reconciled
+/// against the actual grant via [HealthService.checkHasPermissions] when the
+/// health screens load, since Health Connect / HealthKit authorization state
+/// isn't otherwise persisted locally.
 final healthPermissionStatusProvider = StateProvider<Map<String, bool>>((ref) {
-  return {
-    'apple': false,
-    'google': false,
-    'samsung': true, // Samsung Health integration option enabled by default
-  };
+  return {'apple': false, 'google': false, 'samsung': false};
 });
 
 /// Granular Samsung Health Sync categories toggles

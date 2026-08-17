@@ -132,7 +132,7 @@ class TemplatesRepository {
     if (te == null) return [];
 
     final count = te.targetSets > 0 ? te.targetSets : 3;
-    final defaultReps = te.targetRepsMin ?? 8;
+    final defaultReps = te.targetRepsMin;
     for (var i = 0; i < count; i++) {
       await _db.into(_db.templateSets).insert(
             TemplateSetsCompanion.insert(
@@ -155,8 +155,8 @@ class TemplatesRepository {
     required int templateId,
     required int exerciseId,
     int targetSets = 3,
-    int? targetRepsMin = 8,
-    int? targetRepsMax = 12,
+    int? targetRepsMin,
+    int? targetRepsMax,
     int? targetRestSeconds,
   }) async {
     final existing = await (_db.select(_db.templateExercises)
@@ -174,7 +174,7 @@ class TemplatesRepository {
           ),
         );
 
-    final reps = targetRepsMin ?? 8;
+    final reps = targetRepsMin;
     for (var i = 0; i < targetSets; i++) {
       await _db.into(_db.templateSets).insert(
             TemplateSetsCompanion.insert(
@@ -193,7 +193,7 @@ class TemplatesRepository {
     required int templateExerciseId,
     String setType = 'standard',
     String? setTypeMetaJson,
-    int? targetReps = 8,
+    int? targetReps,
     double? targetWeightKg,
     bool isWarmup = false,
   }) async {
@@ -372,7 +372,7 @@ class TemplatesRepository {
           }
         } else {
           // Fallback if no sets
-          final defaultReps = te.targetRepsMin ?? 8;
+          final defaultReps = te.targetRepsMin ?? 0;
           final setsCount = volumeFactor < 1.0 && te.targetSets > 1
               ? (te.targetSets * volumeFactor).ceil().clamp(1, te.targetSets)
               : te.targetSets;

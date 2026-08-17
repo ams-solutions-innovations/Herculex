@@ -45,7 +45,8 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   }
 
   bool _canAdvance(AuthSession? authSession) => switch (_index) {
-    0 => _goal != null && authSession != null,
+    // TEMP: login skip enabled — was `_goal != null && authSession != null`.
+    0 => _goal != null,
     1 => _activity != null,
     2 => true,
     _ => false,
@@ -53,10 +54,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
 
   Future<void> _next(AuthSession? authSession) async {
     if (_index < 2) {
-      if (_index == 0 && authSession == null) {
-        _showMessage('Create an account or sign in before continuing.');
-        return;
-      }
+      // TEMP: login requirement disabled to allow skipping straight into the app.
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -67,19 +65,8 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   }
 
   Future<void> _complete() async {
-    final authSession = ref.read(authSessionProvider).asData?.value;
-    if (authSession == null) {
-      _showMessage('Sign in is required before finishing onboarding.');
-      if (_index != 0) {
-        _pageController.animateToPage(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
-      return;
-    }
-
+    // TEMP: login requirement disabled — was blocking completion when
+    // authSession was null. Restore the guard to re-enable required login.
     final name = _nameCtrl.text.trim();
     final profile = Profile(
       name: name.isEmpty ? null : name,

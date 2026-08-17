@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../../../theme/system_ui.dart';
 import 'nutrition_providers.dart';
 import 'nutrition_targets_view.dart';
 
@@ -22,19 +23,20 @@ class CalorieMacroGoalsView extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        title: const Text(
+        title: Text(
           'Calorie & Macro Goals',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.onSurface,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios,
+              size: 20, color: AppColors.onSurface),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: overlayStyleFor(context),
       ),
       body: ListView(
         children: [
@@ -168,9 +170,10 @@ class CalorieMacroGoalsView extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceContainer,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'How we calculate goals',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: AppColors.onSurface, fontWeight: FontWeight.bold),
         ),
         content: Text(
           'Calorie targets are calculated using the Mifflin-St Jeor BMR formula '
@@ -204,10 +207,10 @@ class _CalorieRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
               'Calories',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.onSurface, fontSize: 16),
             ),
           ),
           Text(
@@ -246,7 +249,7 @@ class _MacroRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(color: AppColors.onSurface, fontSize: 16),
           ),
           const SizedBox(width: 6),
           Text(
@@ -287,7 +290,7 @@ class _CustomTargetRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: AppColors.onSurface, fontSize: 16),
                 ),
                 Text(
                   '$kcal kcal',
@@ -322,8 +325,8 @@ class _SectionHeader extends StatelessWidget {
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),

@@ -105,7 +105,7 @@ class MonthCalendar extends ConsumerWidget {
         const SizedBox(height: 16),
         _SelectedDayList(
           date: selected,
-          rows: byDate.value?[_iso(selected)] ?? const [],
+          rows: sortedByStartTime(byDate.value?[_iso(selected)] ?? const []),
           onOpenSession: onSelect,
         ),
       ],

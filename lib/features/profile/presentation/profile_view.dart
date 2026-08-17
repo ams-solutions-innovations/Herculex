@@ -7,8 +7,9 @@ import '../../../app/providers.dart';
 import '../../../core/env.dart';
 import '../../../core/units.dart';
 import '../../../data/sync/sync_service.dart';
-import '../../../theme/colors.dart';
+import '../../../theme/tokens/tokens.dart';
 import '../../../theme/theme_provider.dart';
+import '../../../ui/ui.dart';
 import '../../nutrition/domain/macro_targets.dart';
 import '../domain/profile.dart';
 
@@ -178,6 +179,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final name = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => _IdentitySheet(initialName: _nameCtrl.text),
     );
     if (name == null || !mounted) return;
@@ -327,7 +329,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                   Text(
                     isMetric ? 'Metric' : 'Freedom',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.onSurfaceVariant,
+                      color: context.hx.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -364,7 +366,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Samsung Health & Integrations',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/health'),
             ),
@@ -374,7 +376,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Assisted Rep Tracking',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/rep-tracking-consent'),
             ),
@@ -395,7 +397,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Insights',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/insights'),
             ),
@@ -405,7 +407,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Body Measurements',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/measurements'),
             ),
@@ -415,7 +417,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'My Gyms',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/gyms'),
             ),
@@ -425,7 +427,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Micro Workouts',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/micro-workouts'),
             ),
@@ -435,7 +437,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Custom Foods',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/custom-foods'),
             ),
@@ -445,7 +447,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Custom Recipes',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/custom-recipes'),
             ),
@@ -455,7 +457,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Notifications',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => _showComingSoon(context, 'Notifications'),
             ),
@@ -465,7 +467,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Export Data (JSON)',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => _exportData(context),
             ),
@@ -475,7 +477,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'About & Attribution',
               trailing: Icon(
                 Icons.chevron_right,
-                color: AppColors.onSurfaceVariant,
+                color: context.hx.onSurfaceVariant,
               ),
               onTap: () => _showAttribution(context),
             ),
@@ -500,7 +502,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 label: 'Sign in to Supabase',
                 trailing: Icon(
                   Icons.chevron_right,
-                  color: AppColors.primary,
+                  color: context.hx.primary,
                 ),
                 onTap: () => _showAuthSheet(context),
               ),
@@ -512,13 +514,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 trailing: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: context.hx.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'Online',
                     style: TextStyle(
-                      color: AppColors.primary,
+                      color: context.hx.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -531,7 +533,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 label: 'Sign Out',
                 trailing: Icon(
                   Icons.chevron_right,
-                  color: AppColors.onSurfaceVariant,
+                  color: context.hx.onSurfaceVariant,
                 ),
                 onTap: () => _signOut(context),
               ),
@@ -631,10 +633,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
+          color: context.hx.primary.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
-        child: Icon(Icons.fitness_center_rounded, color: AppColors.primary),
+        child: Icon(Icons.fitness_center_rounded, color: context.hx.primary),
       ),
       children: [
         const SizedBox(height: 16),
@@ -663,13 +665,13 @@ class _CalorieEstimateRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
+        color: context.hx.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        border: Border.all(color: context.hx.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
-          Icon(Icons.local_fire_department, size: 20, color: AppColors.primary),
+          Icon(Icons.local_fire_department, size: 20, color: context.hx.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -688,14 +690,14 @@ class _CalorieEstimateRow extends StatelessWidget {
                       ? 'Add age, weight and height to calculate'
                       : 'Calculated from your stats, goal and activity level',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.onSurfaceVariant,
+                    color: context.hx.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
+            icon: Icon(Icons.edit_outlined, size: 20, color: context.hx.primary),
             tooltip: 'Targets & dieting',
             onPressed: () => context.push('/nutrition-targets'),
           ),
@@ -730,10 +732,10 @@ class _AvatarHeader extends StatelessWidget {
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
+                  color: context.hx.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
+                    color: context.hx.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 alignment: Alignment.center,
@@ -741,12 +743,12 @@ class _AvatarHeader extends StatelessWidget {
                     ? Icon(
                         Icons.person_rounded,
                         size: 48,
-                        color: AppColors.primary,
+                        color: context.hx.primary,
                       )
                     : Text(
                         name[0].toUpperCase(),
                         style: theme.textTheme.displayMedium?.copyWith(
-                          color: AppColors.primary,
+                          color: context.hx.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -754,7 +756,7 @@ class _AvatarHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: context.hx.primary,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: theme.colorScheme.surface,
@@ -782,7 +784,7 @@ class _AvatarHeader extends StatelessWidget {
               : 'Set your goals and stats',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.onSurfaceVariant,
+            color: context.hx.onSurfaceVariant,
           ),
         ),
       ],
@@ -814,27 +816,19 @@ class _IdentitySheetState extends State<_IdentitySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
+    return HxSheet(
+      scrollable: false,
+      title: 'Edit profile',
       padding: EdgeInsets.fromLTRB(
-        24,
-        24,
-        24,
-        MediaQuery.viewInsetsOf(context).bottom + 28,
+        HxSpace.x5,
+        0,
+        HxSpace.x5,
+        HxSpace.x5 + MediaQuery.viewInsetsOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(
-            child: Text(
-              'Edit profile',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
           TextField(
             controller: _ctrl,
             autofocus: true,
@@ -852,7 +846,7 @@ class _IdentitySheetState extends State<_IdentitySheet> {
           FilledButton(
             onPressed: () => Navigator.of(context).pop(_ctrl.text.trim()),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: context.hx.primary,
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(50),
               shape: const StadiumBorder(),
@@ -920,7 +914,7 @@ class _SaveButton extends StatelessWidget {
     return FilledButton(
       onPressed: saving ? null : onTap,
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.hx.primary,
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(52),
         shape: const StadiumBorder(),
@@ -955,7 +949,7 @@ class _SectionHeader extends StatelessWidget {
         text,
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: AppColors.onSurfaceVariant,
+          color: context.hx.onSurfaceVariant,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
         ),
@@ -991,7 +985,7 @@ class _StatField extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.onSurfaceVariant,
+            color: context.hx.onSurfaceVariant,
             fontWeight: FontWeight.w600,
           ),
           maxLines: 1,
@@ -1010,9 +1004,9 @@ class _StatField extends StatelessWidget {
           ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.outline, fontSize: 13),
+            hintStyle: TextStyle(color: context.hx.outline, fontSize: 13),
             filled: true,
-            fillColor: AppColors.surfaceContainer,
+            fillColor: context.hx.surfaceContainer,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
@@ -1027,7 +1021,7 @@ class _StatField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(28),
-              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: BorderSide(color: context.hx.primary, width: 1.5),
             ),
           ),
         ),
@@ -1056,19 +1050,19 @@ class _PillToggle extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surfaceContainer,
+          color: selected ? context.hx.primary : context.hx.surfaceContainer,
           borderRadius: BorderRadius.circular(32),
           border: Border.all(
             color: selected
-                ? AppColors.primary
-                : AppColors.outlineVariant.withValues(alpha: 0.5),
+                ? context.hx.primary
+                : context.hx.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? Colors.white : AppColors.onSurfaceVariant,
+              color: selected ? Colors.white : context.hx.onSurfaceVariant,
               fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               fontSize: 14,
             ),
@@ -1115,13 +1109,13 @@ class _ActivityTile extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : AppColors.surfaceContainer,
+              ? context.hx.primary.withValues(alpha: 0.1)
+              : context.hx.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected
-                ? AppColors.primary
-                : AppColors.outlineVariant.withValues(alpha: 0.4),
+                ? context.hx.primary
+                : context.hx.outlineVariant.withValues(alpha: 0.4),
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -1131,13 +1125,13 @@ class _ActivityTile extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary : AppColors.surfaceVariant,
+                color: selected ? context.hx.primary : context.hx.surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 _icons[level]!,
                 size: 20,
-                color: selected ? Colors.white : AppColors.onSurfaceVariant,
+                color: selected ? Colors.white : context.hx.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: 16),
@@ -1149,13 +1143,13 @@ class _ActivityTile extends StatelessWidget {
                     level.label,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: selected ? AppColors.primary : null,
+                      color: selected ? context.hx.primary : null,
                     ),
                   ),
                   Text(
                     _descriptions[level]!,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.onSurfaceVariant,
+                      color: context.hx.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -1165,7 +1159,7 @@ class _ActivityTile extends StatelessWidget {
               selected
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
-              color: selected ? AppColors.primary : AppColors.outline,
+              color: selected ? context.hx.primary : context.hx.outline,
               size: 20,
             ),
           ],
@@ -1185,10 +1179,10 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: context.hx.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          color: context.hx.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
       child: Column(children: children),
@@ -1202,7 +1196,7 @@ class _SettingsDivider extends StatelessWidget {
     return Divider(
       height: 1,
       indent: 56,
-      color: AppColors.outlineVariant.withValues(alpha: 0.4),
+      color: context.hx.outlineVariant.withValues(alpha: 0.4),
     );
   }
 }
@@ -1237,7 +1231,7 @@ class _SettingsTile extends StatelessWidget {
             Icon(
               icon,
               size: 22,
-              color: iconColor ?? AppColors.onSurfaceVariant,
+              color: iconColor ?? context.hx.onSurfaceVariant,
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1312,12 +1306,12 @@ class _ThemePill extends StatelessWidget {
         duration: const Duration(milliseconds: 140),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surfaceContainer,
+          color: selected ? context.hx.primary : context.hx.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected
-                ? AppColors.primary
-                : AppColors.outlineVariant.withValues(alpha: 0.5),
+                ? context.hx.primary
+                : context.hx.outlineVariant.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -1327,7 +1321,7 @@ class _ThemePill extends StatelessWidget {
             Icon(
               icon,
               size: 14,
-              color: selected ? Colors.white : AppColors.secondary,
+              color: selected ? Colors.white : context.hx.secondary,
             ),
             const SizedBox(width: 4),
             Text(
@@ -1335,7 +1329,7 @@ class _ThemePill extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? Colors.white : AppColors.secondary,
+                color: selected ? Colors.white : context.hx.secondary,
               ),
             ),
           ],
@@ -1363,10 +1357,10 @@ class SyncStatusBadge extends ConsumerWidget {
         const SyncState(phase: SyncPhase.disabled);
 
     final Color color = switch (state.phase) {
-      SyncPhase.disabled => AppColors.onSurfaceVariant,
-      SyncPhase.syncing => AppColors.primary,
+      SyncPhase.disabled => context.hx.onSurfaceVariant,
+      SyncPhase.syncing => context.hx.primary,
       SyncPhase.pending => Colors.orangeAccent,
-      SyncPhase.synced => AppColors.primary,
+      SyncPhase.synced => context.hx.primary,
       SyncPhase.error => Colors.redAccent,
     };
 
@@ -1500,42 +1494,27 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
+    return HxSheet(
+      scrollable: false,
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 24,
+        top: 0,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
             Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: context.hx.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.cloud_sync_rounded, color: AppColors.primary, size: 24),
+                  child: Icon(Icons.cloud_sync_rounded, color: context.hx.primary, size: 24),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1551,7 +1530,7 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
                       Text(
                         'Sync your workouts and nutrition across devices',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.onSurfaceVariant,
+                          color: context.hx.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -1591,7 +1570,7 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
             FilledButton(
               onPressed: _busy ? null : _submit,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: context.hx.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
@@ -1630,12 +1609,11 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
                 _isRegister
                     ? 'Already have an account? Sign In'
                     : "Don't have an account? Create one",
-                style: TextStyle(color: AppColors.primary),
+                style: TextStyle(color: context.hx.primary),
               ),
             ),
           ],
         ),
-      ),
     );
   }
 }

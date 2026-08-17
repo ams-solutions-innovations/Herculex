@@ -7,6 +7,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../features/fasting/data/fasting_schedule_action_queue.dart';
+import '../features/fasting/domain/fasting_schedule_payload.dart';
 import '../features/workouts/data/workout_notification_action_queue.dart';
 import '../features/workouts/domain/ongoing_workout_surface_snapshot.dart';
 import '../features/workouts/domain/workout_notification_command.dart';
@@ -15,11 +17,23 @@ import '../features/workouts/domain/workout_notification_command.dart';
 Future<void> workoutNotificationTapBackground(
   NotificationResponse details,
 ) async {
+  DartPluginRegistrant.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+
+  // Fasting-schedule notifications are identified by payload, not actionId
+  // (they have no action buttons — the default tap itself is "start now" or
+  // "open to review", decided by FastingScheduleData.autoStart once the app
+  // is running again) so this check must come before the actionId guard
+  // below, which would otherwise just return on a bare tap.
+  final scheduleId = fastingScheduleIdFromPayload(details.payload);
+  if (scheduleId != null) {
+    await PendingFastingScheduleActionQueue.enqueue(prefs, scheduleId);
+    return;
+  }
+
   final actionId = details.actionId;
   if (actionId == null || actionId.isEmpty) return;
 
-  DartPluginRegistrant.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
   final target = workoutNotificationActionTargetFromPayload(details.payload);
   await PendingWorkoutNotificationActionQueue.enqueue(
     prefs,
@@ -43,6 +57,12 @@ class WorkoutNotificationService {
   static VoidCallback? onNotificationTap;
   static Future<void> Function(String actionId, int? sessionId, int? setId)?
   onNotificationAction;
+
+  /// Foreground tap on a fasting-schedule notification. Whether this starts
+  /// the fast immediately or just opens the Fasting page for review is the
+  /// receiving side's call (`FastingScheduleData.autoStart`) — this service
+  /// only routes the tap, it has no fasting-domain knowledge beyond the id.
+  static Future<void> Function(int scheduleId)? onFastingScheduleTap;
 
   static const actionRepsDown = WorkoutNotificationActionIds.repsDown;
   static const actionRepsUp = WorkoutNotificationActionIds.repsUp;
@@ -72,6 +92,12 @@ class WorkoutNotificationService {
       await _plugin.initialize(
         const InitializationSettings(android: android, iOS: iOS),
         onDidReceiveNotificationResponse: (details) async {
+          final scheduleId = fastingScheduleIdFromPayload(details.payload);
+          if (scheduleId != null) {
+            await onFastingScheduleTap?.call(scheduleId);
+            return;
+          }
+
           final actionId = details.actionId;
           if (actionId != null && actionId.isNotEmpty) {
             final target = workoutNotificationActionTargetFromPayload(
@@ -178,8 +204,16 @@ class WorkoutNotificationService {
   }) async {
     final title = exerciseName.isNotEmpty ? exerciseName : 'Workout';
 
-    final StringBuffer bodyBuf = StringBuffer();
+    // Written into the body explicitly rather than relying solely on
+    // Android's native chronometer widget: `usesChronometer` is Android-only
+    // (iOS has no equivalent, so its notification showed no duration at
+    // all) and its small system-drawn digit is easy to miss or misread as a
+    // wall-clock time rather than an elapsed duration. Computed fresh on
+    // every `_post` call — the 5s ticker keeps it current to within 5s,
+    // matching `live_workout_banner.dart`'s `_formatElapsed`.
+    final StringBuffer bodyBuf = StringBuffer(_formatElapsed(startedAt));
     if (currentSet != null) {
+      bodyBuf.write(' - ');
       bodyBuf.write('Set $currentSet');
       if (totalSets != null && totalSets > 0) {
         bodyBuf.write('/$totalSets');
@@ -206,10 +240,12 @@ class WorkoutNotificationService {
       priority: Priority.low,
       ongoing: true, // cannot be dismissed by swipe
       onlyAlertOnce: true, // no sound/vibration on updates
-      showWhen: true,
-      when: startedAt.millisecondsSinceEpoch,
-      usesChronometer: true,
-      chronometerCountDown: false,
+      // No `when`/`usesChronometer`: the body text above is the single
+      // source of truth for elapsed time. The system chronometer digit was
+      // dropped because it's Android-only (iOS showed nothing) and, once
+      // `showWhen` is on without it, Android instead renders `when` as a
+      // static wall-clock timestamp that looks like a broken duration.
+      showWhen: false,
       icon: '@mipmap/ic_launcher',
       largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       category: AndroidNotificationCategory.workout,
@@ -234,6 +270,16 @@ class WorkoutNotificationService {
         ),
       ),
     );
+  }
+
+  /// "H:MM:SS" once the workout crosses an hour, else "MM:SS" — mirrors
+  /// `live_workout_banner.dart`'s in-app timer so the two never disagree.
+  String _formatElapsed(DateTime startedAt) {
+    final d = DateTime.now().difference(startedAt);
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
   List<AndroidNotificationAction> _androidActionsFor(

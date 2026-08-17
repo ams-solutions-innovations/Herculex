@@ -472,6 +472,28 @@ class FastingSessions extends Table with SyncColumns, SyncTombstone {
   BoolColumn get completed => boolean().withDefault(const Constant(false))();
 }
 
+/// A recurring "notify to start" fasting reminder (v27). [daysOfWeek] is a
+/// bitmask, bit `weekday - 1` per Dart's `DateTime.weekday` (Mon=bit 0 .. Sun
+/// = bit 6). [planName] is a [FastingPlan] enum name; when it's `'custom'`,
+/// [customTargetSeconds] holds the target (otherwise null — the plan enum's
+/// own target applies). [autoStart] starts the session the moment the user
+/// taps the notification, skipping if a fast is already active; when false,
+/// tapping only opens the Fasting page for the user to review and start
+/// manually. True silent background auto-start (no tap at all) isn't
+/// reliable on either platform without a native background-execution
+/// dependency this app doesn't carry, so it's out of scope — see
+/// `fasting_schedule_service.dart`.
+@DataClassName('FastingScheduleData')
+class FastingSchedules extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get planName => text()();
+  IntColumn get customTargetSeconds => integer().nullable()();
+  IntColumn get daysOfWeek => integer()();
+  IntColumn get startTimeMinutes => integer()();
+  BoolColumn get enabled => boolean().withDefault(const Constant(true))();
+  BoolColumn get autoStart => boolean().withDefault(const Constant(false))();
+}
+
 @DataClassName('ProgramData')
 class Programs extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
@@ -564,6 +586,13 @@ class ProgramDays extends Table with SyncColumns, SyncTombstone {
   /// Explicit rest slot inside a cycle. Never materialized to a scheduled
   /// workout; rendered as a rest marker in the builder preview and week board.
   BoolColumn get isRest => boolean().withDefault(const Constant(false))();
+
+  /// Default time of day (minutes since midnight) sessions on this day
+  /// materialize with (v28). Null means no particular time. Copied onto each
+  /// new [ScheduledWorkouts.startTimeMinutes] row at materialization time —
+  /// editing it and re-materializing only reaches future untouched `planned`
+  /// occurrences, same as [templateId].
+  IntColumn get startTimeMinutes => integer().nullable()();
 }
 
 @DataClassName('ProgramDayExerciseData')
@@ -703,6 +732,14 @@ class ScheduledWorkouts extends Table with SyncColumns, SyncTombstone {
     #id,
     onDelete: KeyAction.setNull,
   )();
+
+  /// Time of day (minutes since midnight) this specific occurrence is
+  /// scheduled to start (v28). Initialized from
+  /// [ProgramDays.startTimeMinutes] at materialization, freely editable per
+  /// occurrence afterward — there is no separate "override" column because,
+  /// unlike the template link, nothing in the UI needs to distinguish "this
+  /// session's own time" from "inherited from the day's default".
+  IntColumn get startTimeMinutes => integer().nullable()();
 }
 
 @DataClassName('ExternalEventData')

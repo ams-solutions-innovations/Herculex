@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +26,32 @@ class HealthIntegrationsView extends ConsumerStatefulWidget {
 class _HealthIntegrationsViewState
     extends ConsumerState<HealthIntegrationsView> {
   bool _isSyncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydratePermissionStatus());
+  }
+
+  /// Reconciles the "connected" toggles with the real OS grant. The status
+  /// map is in-memory only, so on every app start it forgets whatever was
+  /// actually authorized in Health Connect / HealthKit previously.
+  Future<void> _hydratePermissionStatus() async {
+    final granted = await ref.read(healthServiceProvider).checkHasPermissions();
+    if (!mounted) return;
+    final current = ref.read(healthPermissionStatusProvider);
+    final updated = {...current};
+    if (Platform.isAndroid) {
+      updated['samsung'] = granted;
+      updated['google'] = granted;
+    } else if (Platform.isIOS) {
+      updated['apple'] = granted;
+    }
+    ref.read(healthPermissionStatusProvider.notifier).state = updated;
+    if (granted) {
+      _syncAllData();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -298,23 +326,31 @@ class _HealthIntegrationsViewState
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        isConnected
-                            ? (lastSync != null
-                                  ? 'Sync ${_formatTime(lastSync)}'
-                                  : 'Povezano')
-                            : 'Ni povezano',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.secondary,
-                          fontSize: 11,
+                      Flexible(
+                        child: Text(
+                          isConnected
+                              ? (lastSync != null
+                                    ? 'Sync ${_formatTime(lastSync)}'
+                                    : 'Povezano')
+                              : 'Ni povezano',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.secondary,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        '· $subtitle',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.tertiary,
-                          fontSize: 10,
+                      Flexible(
+                        child: Text(
+                          '· $subtitle',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.tertiary,
+                            fontSize: 10,
+                          ),
                         ),
                       ),
                     ],

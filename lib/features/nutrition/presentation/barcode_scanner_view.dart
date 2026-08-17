@@ -267,7 +267,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView>
         MobileScanner(
           controller: _controller!,
           onDetect: _onDetect,
-          errorBuilder: (context, error, child) {
+          errorBuilder: (context, error) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),

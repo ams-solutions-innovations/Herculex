@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,17 +15,20 @@ final themeModeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) 
     _ => ThemeMode.system,
   };
   
-  // Set initial brightness based on mode. 
-  // We don't have BuildContext here, so for 'system' we default to dark, 
-  // but it will be overridden in the app if needed.
-  if (initial == ThemeMode.light) {
-    AppColors.brightness = Brightness.light;
-  } else {
-    AppColors.brightness = Brightness.dark;
-  }
+  // `main()` already resolved the brightness (including the platform value for
+  // `system`) before the first frame, so only an explicit mode overrides it.
+  _applyBrightness(initial);
 
   return ThemeNotifier(initial, prefs);
 });
+
+void _applyBrightness(ThemeMode mode) {
+  AppColors.brightness = switch (mode) {
+    ThemeMode.light => Brightness.light,
+    ThemeMode.dark => Brightness.dark,
+    ThemeMode.system => PlatformDispatcher.instance.platformBrightness,
+  };
+}
 
 class ThemeNotifier extends StateNotifier<ThemeMode> {
   ThemeNotifier(super.initial, this._prefs);
@@ -37,10 +42,6 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
       _ => 'system',
     });
     
-    if (mode == ThemeMode.light) {
-      AppColors.brightness = Brightness.light;
-    } else {
-      AppColors.brightness = Brightness.dark;
-    }
+    _applyBrightness(mode);
   }
 }

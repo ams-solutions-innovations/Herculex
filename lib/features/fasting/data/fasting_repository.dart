@@ -213,4 +213,75 @@ class FastingRepository {
 
     return (totalEatingSeconds / count) / 3600.0;
   }
+
+  // ── Auto-schedule (Phase 6) ──
+
+  Stream<List<FastingScheduleData>> watchSchedules() {
+    return (_db.select(_db.fastingSchedules)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.startTimeMinutes),
+          ]))
+        .watch();
+  }
+
+  Future<FastingScheduleData?> schedule(int id) {
+    return (_db.select(
+      _db.fastingSchedules,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<int> createSchedule({
+    required String planName,
+    int? customTargetSeconds,
+    required int daysOfWeek,
+    required int startTimeMinutes,
+    bool enabled = true,
+    bool autoStart = false,
+  }) {
+    return _db
+        .into(_db.fastingSchedules)
+        .insert(
+          FastingSchedulesCompanion.insert(
+            planName: planName,
+            customTargetSeconds: Value(customTargetSeconds),
+            daysOfWeek: daysOfWeek,
+            startTimeMinutes: startTimeMinutes,
+            enabled: Value(enabled),
+            autoStart: Value(autoStart),
+          ),
+        );
+  }
+
+  Future<void> updateSchedule(
+    int id, {
+    required String planName,
+    int? customTargetSeconds,
+    required int daysOfWeek,
+    required int startTimeMinutes,
+    required bool enabled,
+    required bool autoStart,
+  }) {
+    return (_db.update(_db.fastingSchedules)..where((t) => t.id.equals(id)))
+        .write(
+          FastingSchedulesCompanion(
+            planName: Value(planName),
+            customTargetSeconds: Value(customTargetSeconds),
+            daysOfWeek: Value(daysOfWeek),
+            startTimeMinutes: Value(startTimeMinutes),
+            enabled: Value(enabled),
+            autoStart: Value(autoStart),
+          ),
+        );
+  }
+
+  Future<void> setScheduleEnabled(int id, bool enabled) {
+    return (_db.update(_db.fastingSchedules)..where((t) => t.id.equals(id)))
+        .write(FastingSchedulesCompanion(enabled: Value(enabled)));
+  }
+
+  Future<void> deleteSchedule(int id) {
+    return (_db.delete(
+      _db.fastingSchedules,
+    )..where((t) => t.id.equals(id))).go();
+  }
 }

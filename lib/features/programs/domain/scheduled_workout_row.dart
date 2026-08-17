@@ -33,6 +33,20 @@ class ScheduledWorkoutRow {
   String get status => schedule.status;
   int get orderIndex => schedule.orderIndex;
 
+  /// Minutes since midnight this occurrence is scheduled to start, or null
+  /// for "no particular time" (v28).
+  int? get startTimeMinutes => schedule.startTimeMinutes;
+  bool get hasStartTime => startTimeMinutes != null;
+
+  /// "HH:mm", or null when [hasStartTime] is false.
+  String? get startTimeLabel {
+    final minutes = startTimeMinutes;
+    if (minutes == null) return null;
+    final hour = (minutes ~/ 60) % 24;
+    final minute = minutes % 60;
+    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  }
+
   bool get isRestDay => day.isRest;
   bool get isDone => schedule.status == ScheduleStatus.done;
   bool get isInProgress => schedule.status == ScheduleStatus.inProgress;
@@ -68,4 +82,27 @@ class ScheduledWorkoutRow {
       _ => 'Week ${week.weekIndex + 1}',
     };
   }
+}
+
+/// Chronological-first ordering for read-only session lists: timed sessions
+/// by [ScheduledWorkoutRow.startTimeMinutes] ascending, untimed ones after
+/// them, [ScheduledWorkoutRow.orderIndex] breaking ties in both groups.
+///
+/// Deliberately NOT used inside a drag-reorderable list — `orderIndex` is
+/// the authoritative order there (dragging writes it via
+/// `ProgramsRepository.reorderScheduledOnDate`), and a display-only re-sort
+/// would desync a `ReorderableListView`'s `oldIndex`/`newIndex` from what
+/// that write path assumes.
+List<ScheduledWorkoutRow> sortedByStartTime(List<ScheduledWorkoutRow> rows) {
+  final sorted = [...rows];
+  sorted.sort((a, b) {
+    final at = a.startTimeMinutes;
+    final bt = b.startTimeMinutes;
+    if (at == null && bt == null) return a.orderIndex.compareTo(b.orderIndex);
+    if (at == null) return 1;
+    if (bt == null) return -1;
+    if (at != bt) return at.compareTo(bt);
+    return a.orderIndex.compareTo(b.orderIndex);
+  });
+  return sorted;
 }

@@ -2,6 +2,7 @@
 enum DashboardWidgetType {
   fastingTimer('fasting_timer', 'Fasting Timer'),
   macros('macros', 'Nutrition Overview'),
+  trends('trends', 'Trend Charts'),
   todaysPlan('todays_plan', "Today's Plan"),
   miniWorkouts('mini_workouts', 'Mini Workouts Checklist'),
   workoutCalendar('workout_calendar', 'Workout Calendar'),
@@ -56,6 +57,7 @@ class DashboardConfig {
     DashboardWidgetConfig(DashboardWidgetType.quickScan),
     DashboardWidgetConfig(DashboardWidgetType.remainingCalories),
     DashboardWidgetConfig(DashboardWidgetType.macros),
+    DashboardWidgetConfig(DashboardWidgetType.trends),
     DashboardWidgetConfig(DashboardWidgetType.todaysPlan),
     DashboardWidgetConfig(DashboardWidgetType.miniWorkouts),
     DashboardWidgetConfig(DashboardWidgetType.workoutCalendar),

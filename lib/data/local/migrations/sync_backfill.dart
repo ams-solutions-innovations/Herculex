@@ -42,6 +42,7 @@ const List<String> syncedTableNames = [
   'scheduled_workouts',
   'set_accessories',
   'set_bands',
+  'fasting_schedules',
 ];
 
 /// Catalogue tables whose sync trigger must only fire for `is_custom = 1`

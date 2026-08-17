@@ -1,5 +1,14 @@
 # RB-02 — Cloud sync verification
 
+> ⚠️ **Wrong project (corrected 2026-08-15).** Everything below was carried out
+> against `jioesomepkauponjrena`, which is the **SummitSki** project, not
+> Herculex. Herculex's real backend is **`ldzgyzigvbwofbswitrv`**. The findings
+> and defect analysis remain valid — the schema and client code were the same —
+> but the server-side verification tables describe SummitSki's database. The
+> migrations were re-applied to `ldzgyzigvbwofbswitrv` on 2026-08-15; that
+> project has **not** been through the device and round-trip passes recorded
+> here. The test accounts named below exist only in the old project.
+
 Covers `docs/app-audit-report-2026-08-10.md` release blocker #2 ("Cloud sync
 reports success without real cloud sync").
 
@@ -68,7 +77,7 @@ The test **skips itself** unless credentials are present, so plain
 
 ```json
 {
-  "SUPABASE_URL": "https://jioesomepkauponjrena.supabase.co",
+  "SUPABASE_URL": "https://ldzgyzigvbwofbswitrv.supabase.co",
   "SUPABASE_ANON_KEY": "<publishable key>",
   "SUPABASE_TEST_EMAIL": "<throwaway account 1>",
   "SUPABASE_TEST_PASSWORD": "<password>",

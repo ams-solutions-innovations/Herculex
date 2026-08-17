@@ -1,4 +1,7 @@
 enum FastingPlan {
+  // Declared first so it renders first among the intermittent-plan tiles,
+  // which iterate FastingPlan.values in declaration order.
+  quickFast,
   h12,
   h14,
   h16,
@@ -11,9 +14,23 @@ enum FastingPlan {
   custom,
 }
 
+/// A fast started with no real target keeps `targetSeconds` filled with this
+/// sentinel rather than a nullable column — 200h is unreachable through any
+/// preset or the custom-hours slider (capped at 168h), so it's unambiguous.
+/// A migration to a genuinely nullable target is tracked for whenever the
+/// fasting schema is next touched (e.g. the Phase 6 auto-schedule table).
+const kQuickFastSentinelSeconds = 200 * 3600;
+
+/// Whether a session (by its stored target) was started as a Quick Fast —
+/// elapsed-only, no ring, no target-end time.
+bool isQuickFastTarget(int targetSeconds) =>
+    targetSeconds == kQuickFastSentinelSeconds;
+
 extension FastingPlanExtension on FastingPlan {
   String get nameString {
     switch (this) {
+      case FastingPlan.quickFast:
+        return 'Quick Fast';
       case FastingPlan.h12:
         return '12:12';
       case FastingPlan.h14:
@@ -43,6 +60,8 @@ extension FastingPlanExtension on FastingPlan {
 
   int get targetSeconds {
     switch (this) {
+      case FastingPlan.quickFast:
+        return kQuickFastSentinelSeconds;
       case FastingPlan.h12:
         return 12 * 3600;
       case FastingPlan.h14:
@@ -66,6 +85,8 @@ extension FastingPlanExtension on FastingPlan {
 
   String get description {
     switch (this) {
+      case FastingPlan.quickFast:
+        return 'No target — just watch the clock run';
       case FastingPlan.h12:
         return 'Simple fasting for beginners';
       case FastingPlan.h14:

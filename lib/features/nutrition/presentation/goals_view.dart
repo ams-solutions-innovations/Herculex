@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
 import '../../../theme/colors.dart';
+import '../../../theme/system_ui.dart';
 import '../../profile/domain/profile.dart';
 import 'goals_providers.dart';
 
@@ -41,19 +42,20 @@ class GoalsView extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        title: const Text(
+        title: Text(
           'Goals',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.onSurface,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios,
+              size: 20, color: AppColors.onSurface),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: overlayStyleFor(context),
       ),
       body: ListView(
         children: [
@@ -348,7 +350,7 @@ class _GoalValueRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: TextStyle(color: AppColors.onSurface, fontSize: 16),
               ),
             ),
             const SizedBox(width: 12),
@@ -381,7 +383,7 @@ class _GoalNavRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.onSurface, fontSize: 16),
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 3),
@@ -423,7 +425,7 @@ class _GoalToggleRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: AppColors.onSurface, fontSize: 16),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 3),
@@ -460,8 +462,8 @@ class _SectionHeader extends StatelessWidget {
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -523,8 +525,8 @@ class _SimpleWeightSheet extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -539,7 +541,7 @@ class _SimpleWeightSheet extends StatelessWidget {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
               ],
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.onSurface, fontSize: 16),
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: TextStyle(color: AppColors.secondary),
@@ -632,8 +634,8 @@ class _IntGoalSheet extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -644,7 +646,7 @@ class _IntGoalSheet extends StatelessWidget {
               autofocus: true,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.onSurface, fontSize: 16),
               decoration: InputDecoration(
                 hintText: '0',
                 hintStyle: TextStyle(color: AppColors.secondary),
@@ -736,10 +738,10 @@ class _WeeklyGoalSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Weekly Goal',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -761,7 +763,7 @@ class _WeeklyGoalSheet extends StatelessWidget {
                         style: TextStyle(
                           color: value == current
                               ? AppColors.primary
-                              : Colors.white,
+                              : AppColors.onSurface,
                           fontSize: 16,
                         ),
                       ),
@@ -807,10 +809,10 @@ class _ActivityLevelSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Activity Level',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -832,7 +834,7 @@ class _ActivityLevelSheet extends StatelessWidget {
                         style: TextStyle(
                           color: level == current
                               ? AppColors.primary
-                              : Colors.white,
+                              : AppColors.onSurface,
                           fontSize: 16,
                         ),
                       ),

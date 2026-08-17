@@ -37,6 +37,13 @@ class DayColumnCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isToday = _isTodayOn(ref.watch(clockProvider).now());
+    // Once any session on the day has an explicit time, chronological order
+    // IS the meaningful order and manual drag-reorder (which writes
+    // orderIndex) stops making sense — so the list becomes read-only and
+    // time-sorted instead of reorderable. Reordering stays exactly as it was
+    // for every day where no session has a time set.
+    final anyTimed = rows.any((r) => r.hasStartTime);
+    final displayRows = anyTimed ? sortedByStartTime(rows) : rows;
 
     return DragTarget<int>(
       onWillAcceptWithDetails: (details) =>
@@ -79,6 +86,17 @@ class DayColumnCard extends ConsumerWidget {
               const SizedBox(height: 8),
               if (rows.isEmpty)
                 _restRow(theme)
+              else if (anyTimed)
+                // Chronological order is authoritative once any session on
+                // the day has a time — no drag handle, no ReorderableListView.
+                for (var i = 0; i < displayRows.length; i++)
+                  Padding(
+                    key: ValueKey('schedule_${displayRows[i].id}'),
+                    padding: EdgeInsets.only(
+                      bottom: i == displayRows.length - 1 ? 0 : 8,
+                    ),
+                    child: _draggableTile(context, displayRows[i], null),
+                  )
               else
                 ReorderableListView.builder(
                   shrinkWrap: true,
@@ -109,28 +127,10 @@ class DayColumnCard extends ConsumerWidget {
                       // Long-pressing the body drags to another day; the tile's
                       // own handle drives the reorder above. Splitting the two
                       // gestures keeps them from competing.
-                      child: LongPressDraggable<int>(
-                        data: row.id,
-                        onDragStarted: Haptics.medium,
-                        feedback: Material(
-                          color: Colors.transparent,
-                          child: SizedBox(
-                            width: MediaQuery.sizeOf(context).width - 80,
-                            child: Opacity(
-                              opacity: 0.9,
-                              child: SessionTile(row: row, compact: true),
-                            ),
-                          ),
-                        ),
-                        childWhenDragging: Opacity(
-                          opacity: 0.3,
-                          child: SessionTile(row: row, compact: true),
-                        ),
-                        child: SessionTile(
-                          row: row,
-                          dragIndex: rows.length > 1 ? i : null,
-                          onTap: () => onOpenSession(row),
-                        ),
+                      child: _draggableTile(
+                        context,
+                        row,
+                        rows.length > 1 ? i : null,
                       ),
                     );
                   },
@@ -139,6 +139,32 @@ class DayColumnCard extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _draggableTile(BuildContext context, ScheduledWorkoutRow row, int? dragIndex) {
+    return LongPressDraggable<int>(
+      data: row.id,
+      onDragStarted: Haptics.medium,
+      feedback: Material(
+        color: Colors.transparent,
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width - 80,
+          child: Opacity(
+            opacity: 0.9,
+            child: SessionTile(row: row, compact: true),
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: SessionTile(row: row, compact: true),
+      ),
+      child: SessionTile(
+        row: row,
+        dragIndex: dragIndex,
+        onTap: () => onOpenSession(row),
+      ),
     );
   }
 

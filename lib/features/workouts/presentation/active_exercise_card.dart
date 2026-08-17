@@ -282,12 +282,16 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                           );
                         }
                         if (completed) {
-                          final advanced =
-                              widget.onCompletedSet?.call(
-                                workoutExercise.id,
-                                rows[i].setIndex,
-                              ) ??
-                              false;
+                          final allSetsDone = rows
+                              .where((r) => r.id != rows[i].id)
+                              .every((r) => r.isCompleted);
+                          final advanced = allSetsDone
+                              ? (widget.onCompletedSet?.call(
+                                      workoutExercise.id,
+                                      rows[i].setIndex,
+                                    ) ??
+                                    false)
+                              : false;
                           if (!advanced) {
                             final rest =
                                 workoutExercise.targetRestSeconds ??

@@ -5,11 +5,13 @@ import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
 import '../../../theme/colors.dart';
+import '../../../theme/tokens/tokens.dart';
 import '../../../widgets/glass_container.dart';
 import '../../nutrition/domain/daily_totals.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
+import '../../fasting/domain/fasting_plan.dart';
+import '../../fasting/presentation/end_fast_dialog.dart';
 import '../../fasting/presentation/fasting_providers.dart';
-import '../../fasting/presentation/fasting_bottom_sheet.dart';
 import '../../profile/domain/profile.dart';
 import '../domain/dashboard_config.dart';
 import 'dashboard_providers.dart';
@@ -37,34 +39,40 @@ class DashboardView extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                height: 44,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Positioned(
-                      left: 0,
-                      child: _ProfileAvatarButton(name: name),
-                    ),
-                    Center(
-                      child: Text(
-                        "Herculex",
-                        style: theme.textTheme.displayMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
+              // Personal, left-aligned header in the display face — the
+              // identity prototype for the UI rework (P1).
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _greeting(),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.secondary,
+                            letterSpacing: 1.4,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 2),
+                        Text(
+                          name.isEmpty ? "Herculex" : name,
+                          style: theme.textTheme.headlineMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    Positioned(
-                      right: 0,
-                      child: IconButton(
-                        icon: const Icon(Icons.tune, size: 20),
-                        tooltip: 'Customize dashboard',
-                        onPressed: () => _showCustomizeSheet(context, ref),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.tune, size: 20),
+                    tooltip: 'Customize dashboard',
+                    onPressed: () => _showCustomizeSheet(context, ref),
+                  ),
+                  const SizedBox(width: 4),
+                  _ProfileAvatarButton(name: name),
+                ],
               ),
               const SizedBox(height: 24),
               // Config-driven widget list (§18). Each visible slot maps to a
@@ -97,6 +105,8 @@ class DashboardView extends ConsumerWidget {
           targets: ref.watch(effectiveTargetsProvider(_today())).asData?.value ??
               ref.watch(baselineTargetsProvider),
         );
+      case DashboardWidgetType.trends:
+        return const TrendCardsRow();
       case DashboardWidgetType.todaysPlan:
         return const SmartWorkoutLauncherCard();
       case DashboardWidgetType.miniWorkouts:
@@ -137,6 +147,14 @@ class DashboardView extends ConsumerWidget {
     );
   }
 
+  /// Time-of-day greeting above the name in the dashboard header.
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'GOOD MORNING';
+    if (hour < 18) return 'GOOD AFTERNOON';
+    return 'GOOD EVENING';
+  }
+
   /// First name only, for profile avatar initials.
   String _firstName(String? name) {
     final raw = name?.trim() ?? '';
@@ -147,17 +165,23 @@ class DashboardView extends ConsumerWidget {
 
   Widget _buildFastingWidget(ThemeData theme, WidgetRef ref, BuildContext context) {
     final activeAsync = ref.watch(activeFastingSessionProvider);
+    // Domain color-coding (UI-rework P1): fasting reads teal everywhere so the
+    // section is recognisable at a glance.
+    final accent = context.hx.domainFasting;
 
     return activeAsync.when(
       data: (active) {
         if (active != null) {
+          final isQuickFast = isQuickFastTarget(active.targetSeconds);
           final tickerAsync = ref.watch(fastingTimerTickerProvider);
           final elapsed = tickerAsync.valueOrNull ?? Duration.zero;
           final target = Duration(seconds: active.targetSeconds);
           final remaining = target - elapsed;
-          final isOverTarget = remaining.isNegative;
+          final isOverTarget = !isQuickFast && remaining.isNegative;
 
-          final progress = target.inSeconds > 0 ? (elapsed.inSeconds / target.inSeconds).clamp(0.0, 1.0) : 0.0;
+          final progress = isQuickFast || target.inSeconds == 0
+              ? null
+              : (elapsed.inSeconds / target.inSeconds).clamp(0.0, 1.0);
 
           final format = DateFormat('HH:mm');
           final startedStr = format.format(active.startedAt);
@@ -171,7 +195,7 @@ class DashboardView extends ConsumerWidget {
           }
 
           return InkWell(
-            onTap: () => FastingBottomSheet.show(context),
+            onTap: () => context.push('/fasting'),
             borderRadius: BorderRadius.circular(28),
             child: GlassContainer(
               padding: const EdgeInsets.all(32),
@@ -180,12 +204,16 @@ class DashboardView extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.timelapse, color: AppColors.primary, size: 20),
+                      Icon(Icons.timelapse, color: accent, size: 20),
                       const SizedBox(width: 8),
                       Text(
-                        isOverTarget ? "FASTING COMPLETE" : "INTERMITTENT FASTING",
+                        isQuickFast
+                            ? "QUICK FAST"
+                            : isOverTarget
+                                ? "FASTING COMPLETE"
+                                : "INTERMITTENT FASTING",
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.primary,
+                          color: accent,
                           letterSpacing: 1.2,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -204,17 +232,18 @@ class DashboardView extends ConsumerWidget {
                           value: progress,
                           strokeWidth: 8,
                           backgroundColor: AppColors.surfaceVariant,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          valueColor: AlwaysStoppedAnimation<Color>(accent),
                         ),
                       ),
                       Column(
                         children: [
                           Text(
-                            durationString(isOverTarget ? elapsed : remaining),
+                            durationString(
+                                isOverTarget || isQuickFast ? elapsed : remaining),
                             style: theme.textTheme.displayLarge?.copyWith(fontSize: 32, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            isOverTarget ? "ELAPSED" : "REMAINING",
+                            isOverTarget || isQuickFast ? "ELAPSED" : "REMAINING",
                             style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.0),
                           ),
                         ],
@@ -235,19 +264,43 @@ class DashboardView extends ConsumerWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text("TARGET END", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontSize: 10)),
-                          Text(targetEndStr, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(isQuickFast ? "TARGET" : "TARGET END", style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontSize: 10)),
+                          Text(isQuickFast ? "None" : targetEndStr, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ],
-                  )
+                  ),
+                  const SizedBox(height: 20),
+                  // End Fast reachable from the home screen (UI-rework P0).
+                  InkWell(
+                    onTap: () => confirmEndFast(context, ref),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.stop_circle_outlined, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            "END FAST",
+                            style: theme.textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           );
         } else {
           return InkWell(
-            onTap: () => FastingBottomSheet.show(context),
+            onTap: () => context.push('/fasting'),
             borderRadius: BorderRadius.circular(28),
             child: GlassContainer(
               padding: const EdgeInsets.all(28),
@@ -256,12 +309,12 @@ class DashboardView extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.timelapse, color: AppColors.secondary, size: 20),
+                      Icon(Icons.timelapse, color: accent, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         "INTERMITTENT FASTING",
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.secondary,
+                          color: accent,
                           letterSpacing: 1.2,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -281,15 +334,19 @@ class DashboardView extends ConsumerWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "START FASTING",
-                      style: theme.textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                  InkWell(
+                    onTap: () => context.push('/fasting'),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        "START FASTING",
+                        style: theme.textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                      ),
                     ),
                   ),
                 ],

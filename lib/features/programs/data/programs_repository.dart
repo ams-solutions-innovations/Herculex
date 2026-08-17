@@ -90,6 +90,7 @@ class ProgramsRepository {
     /// the day empty for inline exercises.
     Map<int, int?> templateIdsBySlot = const {},
     bool activate = true,
+    int? defaultStartTimeMinutes,
   }) async {
     final programId = await _db.transaction(() async {
       final model = PeriodizationModel.fromId(periodizationModel);
@@ -132,6 +133,7 @@ class ProgramsRepository {
             templateId: templateIdsBySlot[spec.slotIndex],
             cycleDayIndex:
                 plan.mode == ScheduleMode.cycle ? spec.index : null,
+            startTimeMinutes: defaultStartTimeMinutes,
           );
         }
       }
@@ -318,6 +320,7 @@ class ProgramsRepository {
     int? cycleDayIndex,
     bool isRest = false,
     int? orderIndex,
+    int? startTimeMinutes,
   }) async {
     final order =
         orderIndex ??
@@ -331,6 +334,7 @@ class ProgramsRepository {
       cycleDayIndex: cycleDayIndex,
       isRest: isRest,
       orderIndex: order,
+      startTimeMinutes: startTimeMinutes,
     );
   }
 
@@ -343,6 +347,7 @@ class ProgramsRepository {
     int? cycleDayIndex,
     bool isRest = false,
     required int orderIndex,
+    int? startTimeMinutes,
   }) {
     // For cycle programs `cycleDayIndex` is authoritative and `dayOfWeek` is a
     // filler the NOT NULL column demands — see the note on ProgramDays.
@@ -361,6 +366,7 @@ class ProgramsRepository {
             cycleDayIndex: Value(cycleDayIndex),
             isRest: Value(isRest),
             orderIndex: Value(orderIndex),
+            startTimeMinutes: Value(startTimeMinutes),
           ),
         );
   }
@@ -428,6 +434,29 @@ class ProgramsRepository {
     await (_db.update(_db.scheduledWorkouts)
           ..where((t) => t.id.equals(scheduleId)))
         .write(ScheduledWorkoutsCompanion(templateIdOverride: Value(templateId)));
+  }
+
+  /// Sets the day's default start time. Callers that want this to reach
+  /// already-materialized future sessions must follow with
+  /// [rematerializeProgram] — same two-step pattern as
+  /// [setProgramDayTemplate].
+  Future<void> setProgramDayStartTime(
+    int programDayId,
+    int? startTimeMinutes,
+  ) async {
+    await (_db.update(_db.programDays)..where((t) => t.id.equals(programDayId)))
+        .write(ProgramDaysCompanion(startTimeMinutes: Value(startTimeMinutes)));
+  }
+
+  /// Sets this one occurrence's start time, independent of the day's
+  /// default.
+  Future<void> setScheduleStartTime(
+    int scheduleId,
+    int? startTimeMinutes,
+  ) async {
+    await (_db.update(_db.scheduledWorkouts)
+          ..where((t) => t.id.equals(scheduleId)))
+        .write(ScheduledWorkoutsCompanion(startTimeMinutes: Value(startTimeMinutes)));
   }
 
   Future<void> setWeekAdjustment(
@@ -644,6 +673,7 @@ class ProgramsRepository {
                   status: const Value(ScheduleStatus.planned),
                   orderIndex: Value(day.orderIndex),
                   occurrenceIndex: Value(occ.occurrenceIndex),
+                  startTimeMinutes: Value(day.startTimeMinutes),
                 ),
               );
         }

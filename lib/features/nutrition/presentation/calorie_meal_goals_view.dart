@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../../../theme/system_ui.dart';
 import 'goals_providers.dart';
 import 'nutrition_providers.dart';
 
@@ -23,19 +24,20 @@ class CalorieMealGoalsView extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        title: const Text(
+        title: Text(
           'Calorie Goals by Meal',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.onSurface,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios,
+              size: 20, color: AppColors.onSurface),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: overlayStyleFor(context),
       ),
       body: ListView(
         children: [
@@ -70,18 +72,18 @@ class CalorieMealGoalsView extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Total Daily Goal',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(color: AppColors.onSurface, fontSize: 16),
                   ),
                 ),
                 Text(
                   meal.showAsCalories
                       ? _fmtKcal(totalKcal)
                       : '100%',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: AppColors.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -230,7 +232,7 @@ class _ToggleRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.onSurface, fontSize: 16),
             ),
           ),
           Switch(
@@ -258,8 +260,8 @@ class _SectionHeader extends StatelessWidget {
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -377,7 +379,7 @@ class _MealRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.onSurface, fontSize: 16),
             ),
             const SizedBox(width: 8),
             Text(
@@ -453,8 +455,8 @@ class _MealPctSheet extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               '$meal Goal',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -468,7 +470,7 @@ class _MealPctSheet extends StatelessWidget {
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
               ],
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: TextStyle(color: AppColors.onSurface, fontSize: 16),
               decoration: InputDecoration(
                 hintText: '30',
                 hintStyle: TextStyle(color: AppColors.secondary),

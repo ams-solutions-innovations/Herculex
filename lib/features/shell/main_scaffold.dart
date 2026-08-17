@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../services/app_shortcuts_service.dart';
-import '../../widgets/floating_nav_bar.dart';
+import '../../ui/hx_nav_bar.dart';
 import '../../widgets/live_workout_banner.dart';
 import '../dashboard/presentation/dashboard_view.dart';
 import '../nutrition/presentation/nutrition_view.dart';
 import '../profile/presentation/profile_view.dart';
-import '../programs/presentation/training_blocks_view.dart';
 import '../workouts/presentation/workouts_providers.dart';
 import '../workouts/presentation/workouts_view.dart';
+import 'quick_add_menu.dart';
 
-/// The five-tab home shell. Bottom-nav index drives which feature view shows.
-/// Profile is the right-most tab; it stays reachable from the Dashboard
-/// avatar too. Insights is reachable from Profile.
+/// The four-tab home shell. Bottom-nav index drives which feature view
+/// shows; the nav bar's central "+" opens the quick-add menu instead of
+/// selecting a tab. Programs lives inside the Workouts tab as a top segment
+/// (see workouts_view.dart) rather than as a fifth destination — contextual
+/// navigation belongs at the top of a section, not in a second bottom bar.
 class MainScaffold extends ConsumerStatefulWidget {
   const MainScaffold({super.key});
 
@@ -28,11 +30,12 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     DashboardView(),
     NutritionView(),
     WorkoutsView(),
-    TrainingBlocksView(),
     ProfileView(),
   ];
 
   late final PageController _pageController;
+  final _quickAddMenuKey = GlobalKey<QuickAddMenuState>();
+  bool _quickAddOpen = false;
 
   @override
   void initState() {
@@ -106,14 +109,27 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
                 ),
               ),
             ),
-          // FloatingNavBar positioned at the bottom of the screen
+          if (_quickAddOpen)
+            QuickAddMenu(
+              key: _quickAddMenuKey,
+              onClose: () => setState(() => _quickAddOpen = false),
+            ),
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: FloatingNavBar(
+            child: HxNavBar(
               currentIndex: index,
               onTap: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
+              quickAddOpen: _quickAddOpen,
+              onQuickAddTap: () {
+                if (_quickAddOpen) {
+                  // Same reverse animation as tapping the backdrop.
+                  _quickAddMenuKey.currentState?.close();
+                } else {
+                  setState(() => _quickAddOpen = true);
+                }
+              },
             ),
           ),
         ],

@@ -8,12 +8,17 @@ import androidx.lifecycle.lifecycleScope
 import com.ams.herculex.sync.MobileWearSyncManager
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.launch
 
-class MainActivity : FlutterActivity() {
+// The `health` plugin registers its Health Connect permission launcher via
+// registerForActivityResult, which requires a FragmentActivity host to work
+// reliably through the full activity lifecycle. Plain FlutterActivity leaves
+// that launcher unregistered (native log: "Permission launcher not found"),
+// which silently fails every permission request/toggle.
+class MainActivity : FlutterFragmentActivity() {
 
     private val wearChannel = "com.example.herculex/wear"
     private val widgetChannel = "com.ams.herculex/widget"

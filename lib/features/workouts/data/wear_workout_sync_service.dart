@@ -706,8 +706,12 @@ class WearWorkoutSyncService {
             if (target.reps > 0) setHintReps = target.reps;
           }
 
-          final weight = setEntry.weightKg > 0 ? setEntry.weightKg : setHintWeight;
-          final reps = setEntry.reps > 0 ? setEntry.reps : (setHintReps > 0 ? setHintReps : 8);
+          final weight = setEntry.isCompleted
+              ? setEntry.weightKg
+              : (setEntry.weightKg > 0 ? setEntry.weightKg : setHintWeight);
+          final reps = setEntry.isCompleted
+              ? setEntry.reps
+              : (setEntry.reps > 0 ? setEntry.reps : (setHintReps > 0 ? setHintReps : 8));
 
           final setJson = <String, dynamic>{
             'wireId': 'set_${setEntry.id}',

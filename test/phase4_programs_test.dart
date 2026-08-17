@@ -9,6 +9,7 @@ import 'package:herculex/features/programs/domain/exercise_rotation.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/program_csv.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
 
@@ -665,6 +666,146 @@ program,Bad,2,none
       );
       expect(after.singleWhere((r) => r.id == inRange.id).status,
           ScheduleStatus.done);
+    });
+  });
+
+  group('Session start times (Phase 8)', () {
+    late AppDatabase db;
+    late ProgramsRepository repo;
+    final start = DateTime(2026, 6, 1);
+
+    setUp(() async {
+      db = await openTestDatabase();
+      repo = ProgramsRepository(db);
+    });
+
+    tearDown(() => db.close());
+
+    Future<int> makeBlock({
+      int weeks = 1,
+      int? defaultStartTimeMinutes,
+    }) {
+      return repo.createProgramFromSplit(
+        name: 'Block',
+        weeks: weeks,
+        plan: SplitTemplates.generate(type: SplitType.ppl, daysPerWeek: 3),
+        startDate: start,
+        defaultStartTimeMinutes: defaultStartTimeMinutes,
+      );
+    }
+
+    Future<List<ScheduledWorkoutData>> schedulesFor(int programId) =>
+        (db.select(db.scheduledWorkouts)
+              ..where((t) => t.programId.equals(programId))
+              ..orderBy([(t) => OrderingTerm(expression: t.dateIso)]))
+            .get();
+
+    test('materialize copies the day default onto every occurrence', () async {
+      final id = await makeBlock(defaultStartTimeMinutes: 18 * 60);
+      final rows = await schedulesFor(id);
+      expect(rows, isNotEmpty);
+      expect(rows.every((r) => r.startTimeMinutes == 18 * 60), isTrue);
+    });
+
+    test('materialize with no default leaves startTimeMinutes null', () async {
+      final id = await makeBlock();
+      final rows = await schedulesFor(id);
+      expect(rows.every((r) => r.startTimeMinutes == null), isTrue);
+    });
+
+    test('setScheduleStartTime edits one occurrence without touching others',
+        () async {
+      final id = await makeBlock(defaultStartTimeMinutes: 7 * 60);
+      final rows = await schedulesFor(id);
+      final target = rows.first;
+      await repo.setScheduleStartTime(target.id, 20 * 60);
+
+      final after = await schedulesFor(id);
+      expect(
+        after.singleWhere((r) => r.id == target.id).startTimeMinutes,
+        20 * 60,
+      );
+      expect(
+        after
+            .where((r) => r.id != target.id)
+            .every((r) => r.startTimeMinutes == 7 * 60),
+        isTrue,
+      );
+    });
+
+    test('setScheduleStartTime(null) clears the time', () async {
+      final id = await makeBlock(defaultStartTimeMinutes: 7 * 60);
+      final rows = await schedulesFor(id);
+      await repo.setScheduleStartTime(rows.first.id, null);
+      final after = await schedulesFor(id);
+      expect(
+        after.singleWhere((r) => r.id == rows.first.id).startTimeMinutes,
+        isNull,
+      );
+    });
+
+    test(
+        'setProgramDayStartTime + rematerialize applies the new default to '
+        'the regenerated occurrence', () async {
+      final id = await makeBlock();
+      final row = (await schedulesFor(id)).first;
+      expect(row.startTimeMinutes, isNull);
+
+      await repo.setProgramDayStartTime(row.programDayId, 6 * 60);
+      await repo.rematerializeProgram(id, today: start);
+
+      final after = await schedulesFor(id);
+      final regenerated = after.singleWhere(
+        (r) =>
+            r.programDayId == row.programDayId &&
+            r.occurrenceIndex == row.occurrenceIndex,
+      );
+      expect(regenerated.startTimeMinutes, 6 * 60);
+    });
+
+    test(
+        'a touched occurrence keeps its own start time through rematerialize, '
+        'even when the day default changes', () async {
+      final id = await makeBlock(defaultStartTimeMinutes: 7 * 60);
+      final touched = (await schedulesFor(id)).first;
+      await repo.setScheduleStatus(touched.id, ScheduleStatus.done);
+      await repo.setScheduleStartTime(touched.id, 9 * 60);
+
+      await repo.setProgramDayStartTime(touched.programDayId, 18 * 60);
+      await repo.rematerializeProgram(id, today: start);
+
+      final after = await schedulesFor(id);
+      expect(
+        after.singleWhere((r) => r.id == touched.id).startTimeMinutes,
+        9 * 60,
+      );
+    });
+
+    test(
+        'sortedByStartTime orders timed sessions chronologically ahead of '
+        'untimed ones, orderIndex breaking ties', () async {
+      final id = await makeBlock();
+      final raw = await schedulesFor(id);
+      // 3 sessions in week 1 (Mon/Wed/Fri): give the first two distinct
+      // times with the second earlier than the first; leave the third
+      // untimed.
+      await repo.setScheduleStartTime(raw[0].id, 12 * 60);
+      await repo.setScheduleStartTime(raw[1].id, 6 * 60);
+
+      final rows = await repo
+          .watchScheduleRange(
+            fromIso: '2026-06-01',
+            toIso: '2026-06-07',
+            programId: id,
+          )
+          .first;
+      final sorted = sortedByStartTime(rows);
+
+      expect(sorted.map((r) => r.id).toList(), [
+        raw[1].id, // 06:00
+        raw[0].id, // 12:00
+        raw[2].id, // untimed, sorts last
+      ]);
     });
   });
 }
