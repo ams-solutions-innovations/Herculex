@@ -84,4 +84,19 @@
 - Phone→watch workout state travels on two channels that must both be implemented on the watch: DataClient `/herculex/state/active_workout` (durable) and MessageClient `/herculex_active_session_start|update|end` (fast path). A watch build missing `onMessageReceived` **or** the `MESSAGE_RECEIVED` intent-filter drops the fast path entirely and silently.
 - MessageClient paths must start with the manifest's declared `pathPrefix` (`/herculex`) or they are silently undeliverable — no error, no log, the message just never arrives. `WearSyncPaths.kt` constants must stay byte-identical between `android/app` and `android/wear`.
 - Gradle module `build/` directories get accidentally `git add`ed if nobody's watching (`herculex-wear/app/build/`, `android/wear/build/` both were, one containing a build from a previous app package name). `android/*/build/` and `android/build/` are now gitignored — if a build directory shows up in `git status`, gitignore it before committing, don't just move on.
+- Working on external FAT/exFAT/APFS portable drives creates macOS `._*` AppleDouble resource fork sidecars that corrupt Git pack indices and pollute `git status`. Always include `._*` and `.AppleDouble` in `.gitignore` and run `find . -name "._*" -delete` prior to index operations.
+
+## Authentication, Spam Prevention & Rate Limiting Lessons
+
+- **Never rely exclusively on backend validation for registration fields.** Client-side pre-flight validation via `AuthValidator` (RFC 5322 regex for email, 2–30 char whitelisting for display names, 8–72 char length guards for passwords) stops malformed or bloated requests before they touch the network or trigger expensive cryptographic hashing routines on the server.
+- **Enforce a password ceiling (72 characters max).** Bcrypt ignores input beyond 72 bytes. Allowing unbounded password lengths exposes authentication endpoints to algorithmic CPU exhaustion (Denial of Service) during password hashing.
+- **Client-Side Anti-Hammering (Double-Tap Debouncing + Consecutive Failure Lockouts).** Users or automated UI scripts can fire duplicate network requests on button taps. Enforcing an in-flight flag (`_authBusy`) and a sliding-window failure lockout (`AuthRateLimiter` 30s lockout after 5 failures) prevents race conditions, credential brute-forcing, and unnecessary API consumption.
+- **TextField `maxLength` with `counterText: ''`.** Flutter `TextField` displays character counter widgets by default when `maxLength` is specified. Setting `counterText: ''` in `InputDecoration` enforces native OS keyboard-level character limits without altering visual UI styling.
+
+## GDPR Article 9 & App Store Privacy Architecture Lessons
+
+- **Keep high-frequency motion traces and media strictly local.** Full accelerometer/gyroscope raw samples (`rep_motion_samples`) and food/progress photos contain biometric and sensitive lifestyle markers. Storing them exclusively in local SQLite/Drift—never syncing them to Supabase—completely removes cloud GDPR Article 9 special-category compliance overhead and eliminates massive cloud storage bills.
+- **Separate HealthKit/Health Connect aggregation from raw health storage.** Herculex only records computed daily metabolic summaries (burned kcal, step totals) rather than raw medical or biometric telemetry, preserving user privacy while fulfilling personalized macro recommendations.
+- **Never couple separate app properties in privacy documentation.** Projects must maintain clear and distinct privacy boundaries. In-app data governance copy and web-hosted privacy policies must be project-specific and transparent ("loud and clear") without cross-referencing unrelated apps.
+
 
