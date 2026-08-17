@@ -195,7 +195,8 @@
       "Bash(xargs -n1 basename)",
       "Bash(find / -maxdepth 0 2>/dev/null; echo \"---jbr search---\"; find \"/c/Program Files/Android/Android Studio\" -maxdepth 2 -iname \"jbr\" 2>/dev/null)",
       "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./android/gradlew -p android :app:compileDebugKotlin --console=plain -q)",
-      "Bash(find / -iname \"*ui-input*-sources.jar\" 2>/dev/null | grep -i compose | head -5; find ~/.gradle -iname \"RotaryEvent*.kt\" 2>/dev/null | head -5)"
+      "Bash(find / -iname \"*ui-input*-sources.jar\" 2>/dev/null | grep -i compose | head -5; find ~/.gradle -iname \"RotaryEvent*.kt\" 2>/dev/null | head -5)",
+      "Bash(git fetch *)"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",
