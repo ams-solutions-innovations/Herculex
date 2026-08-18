@@ -106,10 +106,10 @@ Plans:
 - [ ] 11-05-PLAN.md — [BLOCKING] db push + live integration suite against the real project (wave 3)
 - [ ] 11-06-PLAN.md — Gateway, private channel service, and the pure ordering machine (wave 4)
 - [ ] 11-07-PLAN.md — The applier: slot mapping, placeholders, replay, and the BUD-06 remove gate (wave 5)
-- [ ] 11-08-PLAN.md — The sender: share policy, scope as control flow, optimistic rollback (wave 5)
-- [ ] 11-09-PLAN.md — Session lifecycle: host, join with auto-start, leave, teardown, Riverpod wiring (wave 6)
-- [ ] 11-10-PLAN.md — UI: share sheet with QR, scan-to-join in the + menu, scope toggle, presence and notices (wave 7)
-- [ ] 11-11-PLAN.md — BUD-02 isolation proof across two devices, and analytics non-interference (wave 8)
+- [ ] 11-08-PLAN.md — The sender: share policy, scope as control flow, optimistic rollback (wave 6)
+- [ ] 11-09-PLAN.md — Session lifecycle: host, join with auto-start, leave, teardown, Riverpod wiring (wave 7)
+- [ ] 11-10-PLAN.md — UI: share sheet with QR, scan-to-join in the + menu, scope toggle, presence and notices (wave 8)
+- [ ] 11-11-PLAN.md — BUD-02 isolation proof across two devices, and analytics non-interference (wave 9)
 
 **Scope fence:** MVP is the live shared session only. VS comparison in history (BUD-07), the persistent friends model (BUD-08) and challenges (BUD-09) are deliberately deferred — they are separate phases that build on this one. Do not add a friends list, a challenge model or history comparison screens in this phase; the QR join token is a session token, not a relationship.
 

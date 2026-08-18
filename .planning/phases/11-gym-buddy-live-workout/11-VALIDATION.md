@@ -41,7 +41,7 @@ updated: 2026-08-18
 
 ## Per-Task Verification Map
 
-39 tasks across 11 plans. Three are human checkpoints using the `<how-to-verify>` /
+37 tasks across 11 plans. Three are human checkpoints using the `<how-to-verify>` /
 `<resume-signal>` idiom rather than an automated command — they are credential-bound or
 supply-chain decisions that cannot be automated, and each is listed in Manual-Only
 Verifications below.
@@ -69,22 +69,22 @@ Verifications below.
 | 11-07-02 | 07 | 5 | BUD-03, BUD-04 | T-11-09, T-11-21 | Never inserts into `exercise_catalog`; unresolvable ref becomes a visible placeholder | unit | `flutter test test/buddy/buddy_apply_test.dart` | ❌ W0 | ⬜ pending |
 | 11-07-03 | 07 | 5 | BUD-06 | T-11-20 | **Gate:** a propagated remove never discards logged sets | unit | `flutter test test/buddy/buddy_apply_test.dart -N "remove never discards logged sets"` | ❌ W0 | ⬜ pending |
 | 11-07-04 | 07 | 5 | BUD-04 | T-11-22 | Cold restart reconstructs from the log; a throw does not advance the cursor | unit | `flutter test test/buddy/buddy_replay_test.dart` | ❌ W0 | ⬜ pending |
-| 11-08-01 | 08 | 5 | BUD-05 | T-11-09 | A custom exercise is forced local with a stated reason | unit | `flutter test test/buddy/buddy_sender_test.dart -N "share policy"` | ❌ W0 | ⬜ pending |
-| 11-08-02 | 08 | 5 | BUD-03 | T-11-24, T-11-25, T-11-26 | **Gate:** scope `mine` produces zero publisher calls; failed append rolls back | unit | `flutter test test/buddy/buddy_sender_test.dart test/buddy/buddy_scope_boundary_test.dart` | ❌ W0 | ⬜ pending |
-| 11-08-03 | 08 | 5 | BUD-03 | T-11-24 | No payload map carries a `scope` key, for any kind | unit | `flutter test test/buddy/buddy_publisher_test.dart` | ⚠️ extend | ⬜ pending |
-| 11-09-01 | 09 | 6 | BUD-01 | T-11-01 | Payload carries only the token; `tryDecode` never throws | unit | `flutter test test/buddy/buddy_join_payload_test.dart` | ❌ W0 | ⬜ pending |
-| 11-09-02 | 09 | 6 | BUD-02, BUD-04 | T-11-28 | Subscribe precedes backfill; own session row otherwise untouched | unit | `flutter test test/buddy/buddy_session_controller_test.dart -N "host"` | ❌ W0 | ⬜ pending |
-| 11-09-03 | 09 | 6 | BUD-01, BUD-02 | T-11-27, T-11-29 | Auto-start creates the joiner's OWN session; one generic failure | unit | `flutter test test/buddy/buddy_session_controller_test.dart -N "join"` | ❌ W0 | ⬜ pending |
-| 11-09-04 | 09 | 6 | BUD-06 | T-11-06, T-11-28 | Leaving is safe; `SyncService.stop()` does not kill the channel | unit | `flutter test test/buddy/buddy_session_controller_test.dart -N "leave"` | ❌ W0 | ⬜ pending |
-| 11-09-05 | 09 | 6 | BUD-04 | T-11-28 | Controller lifetime follows the session, not auth | unit | `flutter analyze lib/features/buddy/ && flutter test test/buddy/` | ❌ W0 | ⬜ pending |
-| 11-10-01 | 10 | 7 | BUD-01 | — | QR dependency is a looked-at supply-chain decision | checkpoint | *human — see Manual-Only* | n/a | ⬜ pending |
-| 11-10-02 | 10 | 7 | BUD-01 | T-11-01 | QR clears on join; token never rendered as text | widget | `flutter analyze lib/features/buddy/presentation/ && flutter test` | ❌ W0 | ⬜ pending |
-| 11-10-03 | 10 | 7 | BUD-01 | T-11-27, T-11-31 | Generic failure in the UI; scanner survives a non-buddy code | widget | `flutter analyze lib/features/buddy/presentation/ lib/features/shell/ && flutter test` | ❌ W0 | ⬜ pending |
-| 11-10-04 | 10 | 7 | BUD-03 | T-11-30 | Sticky defaults; remove defaults to only-me; forced reason shown | widget | `flutter test test/buddy/ && flutter analyze lib/features/buddy/ lib/features/workouts/` | ❌ W0 | ⬜ pending |
-| 11-10-05 | 10 | 7 | BUD-03, BUD-06 | T-11-21 | Placeholder slots and the kept-your-work notice are visible | widget | `flutter analyze lib/features/workouts/ lib/features/buddy/ && flutter test` | ❌ W0 | ⬜ pending |
-| 11-11-01 | 11 | 8 | BUD-02, BUD-06 | T-11-02 | **Proof:** neither device holds the other's set rows | unit (two DBs) | `flutter test test/buddy/buddy_two_device_test.dart` | ❌ W0 | ⬜ pending |
-| 11-11-02 | 11 | 8 | BUD-02 | T-11-32 | Analytics totals identical with and without a buddy session | unit | `flutter test test/buddy/buddy_analytics_isolation_test.dart` | ❌ W0 | ⬜ pending |
-| 11-11-03 | 11 | 8 | BUD-02 | T-11-33 | `buddySessionId` survives push/pull — BUD-07's only dependency | unit | `flutter test test/sync/sync_payload_test.dart -N "buddy_session_id"` | ⚠️ extend | ⬜ pending |
+| 11-08-01 | 08 | 6 | BUD-05 | T-11-09 | A custom exercise is forced local with a stated reason | unit | `flutter test test/buddy/buddy_sender_test.dart -N "share policy"` | ❌ W0 | ⬜ pending |
+| 11-08-02 | 08 | 6 | BUD-03 | T-11-24, T-11-25, T-11-26 | **Gate:** scope `mine` produces zero publisher calls; failed append rolls back | unit | `flutter test test/buddy/buddy_sender_test.dart test/buddy/buddy_scope_boundary_test.dart` | ❌ W0 | ⬜ pending |
+| 11-08-03 | 08 | 6 | BUD-03 | T-11-24 | No payload map carries a `scope` key, for any kind | unit | `flutter test test/buddy/buddy_publisher_test.dart` | ⚠️ extend | ⬜ pending |
+| 11-09-01 | 09 | 7 | BUD-01 | T-11-01 | Payload carries only the token; `tryDecode` never throws | unit | `flutter test test/buddy/buddy_join_payload_test.dart` | ❌ W0 | ⬜ pending |
+| 11-09-02 | 09 | 7 | BUD-02, BUD-04 | T-11-28 | Subscribe precedes backfill; own session row otherwise untouched | unit | `flutter test test/buddy/buddy_session_controller_test.dart -N "host"` | ❌ W0 | ⬜ pending |
+| 11-09-03 | 09 | 7 | BUD-01, BUD-02 | T-11-27, T-11-29 | Auto-start creates the joiner's OWN session; one generic failure | unit | `flutter test test/buddy/buddy_session_controller_test.dart -N "join"` | ❌ W0 | ⬜ pending |
+| 11-09-04 | 09 | 7 | BUD-06 | T-11-06, T-11-28 | Leaving is safe; `SyncService.stop()` does not kill the channel | unit | `flutter test test/buddy/buddy_session_controller_test.dart -N "leave"` | ❌ W0 | ⬜ pending |
+| 11-09-05 | 09 | 7 | BUD-04 | T-11-28 | Controller lifetime follows the session, not auth | unit | `flutter analyze lib/features/buddy/ && flutter test test/buddy/` | ❌ W0 | ⬜ pending |
+| 11-10-01 | 10 | 8 | BUD-01 | — | QR dependency is a looked-at supply-chain decision | checkpoint | *human — see Manual-Only* | n/a | ⬜ pending |
+| 11-10-02 | 10 | 8 | BUD-01 | T-11-01 | QR clears on join; token never rendered as text | widget | `flutter analyze lib/features/buddy/presentation/ && flutter test` | ❌ W0 | ⬜ pending |
+| 11-10-03 | 10 | 8 | BUD-01 | T-11-27, T-11-31 | Generic failure in the UI; scanner survives a non-buddy code | widget | `flutter analyze lib/features/buddy/presentation/ lib/features/shell/ && flutter test` | ❌ W0 | ⬜ pending |
+| 11-10-04 | 10 | 8 | BUD-03 | T-11-30 | Sticky defaults; remove defaults to only-me; forced reason shown | widget | `flutter test test/buddy/ && flutter analyze lib/features/buddy/ lib/features/workouts/` | ❌ W0 | ⬜ pending |
+| 11-10-05 | 10 | 8 | BUD-03, BUD-06 | T-11-21 | Placeholder slots and the kept-your-work notice are visible | widget | `flutter analyze lib/features/workouts/ lib/features/buddy/ && flutter test` | ❌ W0 | ⬜ pending |
+| 11-11-01 | 11 | 9 | BUD-02, BUD-06 | T-11-02 | **Proof:** neither device holds the other's set rows | unit (two DBs) | `flutter test test/buddy/buddy_two_device_test.dart` | ❌ W0 | ⬜ pending |
+| 11-11-02 | 11 | 9 | BUD-02 | T-11-32 | Analytics totals identical with and without a buddy session | unit | `flutter test test/buddy/buddy_analytics_isolation_test.dart` | ❌ W0 | ⬜ pending |
+| 11-11-03 | 11 | 9 | BUD-02 | T-11-33 | `buddySessionId` survives push/pull — BUD-07's only dependency | unit | `flutter test test/sync/sync_payload_test.dart -N "buddy_session_id"` | ⚠️ extend | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -142,7 +142,7 @@ deliberately introduced violation before it counts as passing — the precedent 
 
 ## Validation Sign-Off
 
-- [x] All tasks have `<automated>` verify, a `<how-to-verify>` checkpoint, or Wave 0 dependencies — 36 of 39 automated, 3 checkpoints listed above
+- [x] All tasks have `<automated>` verify, a `<how-to-verify>` checkpoint, or Wave 0 dependencies — 34 of 37 automated, 3 checkpoints listed above
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify (each checkpoint is followed immediately by an automated task)
 - [x] Wave 0 covers all MISSING references
 - [ ] The three structural gates are each verified to fail on an introduced violation — *proven during execution, not planning*
