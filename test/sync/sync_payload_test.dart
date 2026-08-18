@@ -478,4 +478,50 @@ void main() {
       },
     );
   });
+
+  group('buddy_session_id', () {
+    // Phase 11 Gym Buddy (BUD-02/BUD-07): `buddy_session_id` is a plain
+    // nullable text column on the already-synced `workout_sessions` table,
+    // with no `SyncTableSpec` entry of its own. This is the concrete check
+    // on research assumption A8 — `_buildRemotePayload`'s generic
+    // pass-through carries it without any FK/rename/dateTime handling — and
+    // it is BUD-07's only dependency on this phase.
+    test('buddy_session_id', () async {
+      const buddySessionId = 'buddy-session-uuid-1';
+
+      await sync.start(userId);
+      await db
+          .into(db.workoutSessions)
+          .insert(
+            WorkoutSessionsCompanion.insert(
+              startedAt: DateTime(2026, 8, 18),
+              buddySessionId: const Value(buddySessionId),
+            ),
+          );
+      await sync.pushOnce();
+
+      final row = pushed('workout_sessions');
+      expect(row['buddy_session_id'], buddySessionId);
+
+      // Pull onto a second device, same account, same fake cloud.
+      final dbB = await openTestDatabase();
+      final syncB = SyncService(db: dbB, backend: backend);
+      addTearDown(() async {
+        await syncB.dispose();
+        await dbB.close();
+      });
+      await syncB.start(userId);
+
+      final onB = await dbB
+          .customSelect(
+            'SELECT buddy_session_id FROM workout_sessions WHERE '
+            'sync_uuid = ?',
+            variables: [
+              Variable(await uuidOf('workout_sessions', 1)),
+            ],
+          )
+          .getSingle();
+      expect(onB.data['buddy_session_id'], buddySessionId);
+    });
+  });
 }

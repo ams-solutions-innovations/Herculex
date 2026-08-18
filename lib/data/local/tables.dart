@@ -169,6 +169,12 @@ class WorkoutSessions extends Table with SyncColumns, SyncTombstone {
   /// its end — unlike the local autoincrement [id], which was never sent on
   /// session end and offered nothing for the watch side to compare against.
   TextColumn get sessionUuid => text().nullable()();
+
+  /// Gym Buddy live-session identity (v29). Nullable and null for every solo
+  /// workout; set for the duration of a buddy session so BUD-07 can compute
+  /// a VS comparison later. This is a synced column on an otherwise-synced
+  /// table, unlike the two buddy mirror tables below.
+  TextColumn get buddySessionId => text().nullable()();
 }
 
 @DataClassName('WorkoutExerciseData')
@@ -1085,4 +1091,73 @@ class RepSetObservations extends Table {
 
   /// The derived feature vector; its schema is owned by 10-02.
   TextColumn get featuresJson => text()();
+}
+
+// ── Gym Buddy live workout (v29) ───────────────────────────────────────────
+//
+// The two tables below are **local-only by design** (BUD-02/BUD-04, phase 11
+// CONTEXT). Neither mixes in [SyncColumns] or [SyncTombstone], and neither
+// appears in `syncedTableNames` (`lib/data/local/migrations/sync_backfill.dart`)
+// or in `syncTableSpecs` (`lib/data/sync/sync_table_specs.dart`) — the
+// authoritative rows live in Postgres and arrive over the realtime buddy
+// channel, and pushing them through the outbox would create a second
+// conflicting delivery path for the same rows. `test/buddy/buddy_local_only_test.dart`
+// asserts this positively against `sqlite_master` rather than by source grep.
+
+/// Local mirror of one Gym Buddy live session, one row per device per
+/// session. Not synced: the server-assigned [buddySessionId] plus
+/// [WorkoutSessions.buddySessionId] are what let BUD-07 compute a VS
+/// comparison after the fact.
+@DataClassName('BuddySessionsLocalData')
+class BuddySessionsLocal extends Table {
+  TextColumn get buddySessionId => text()(); // uuid, server-assigned
+  IntColumn get workoutSessionId => integer()
+      .references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
+  TextColumn get role => text()(); // 'host' | 'guest'
+  TextColumn get partnerDisplayName => text().nullable()();
+  TextColumn get partnerAvatarUrl => text().nullable()();
+  IntColumn get lastSeenSeq => integer().withDefault(const Constant(0))();
+  DateTimeColumn get joinedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {buddySessionId};
+}
+
+/// Local mirror of the shared choreography for one Gym Buddy session, one
+/// row per slot per device. Not synced — see the section comment above.
+///
+/// Invariant, asserted in 11-07's tests: `workoutExerciseId != null` XOR
+/// (`unresolvedUuid != null` OR `unresolvedSlug != null`). A slot is either
+/// materialised locally or a placeholder — never both, never neither.
+@DataClassName('BuddyChoreographySlotData')
+class BuddyChoreographySlots extends Table {
+  TextColumn get buddySessionId => text()();
+  TextColumn get slotId => text()(); // uuid, minted by whoever added the slot
+
+  // Nullable: a slot whose exerciseRef this device cannot resolve is a
+  // visible PLACEHOLDER with no local WorkoutExercises row (research
+  // Pitfall 8). Making this non-null would make the placeholder
+  // unrepresentable and force the silent-drop failure mode the pitfall
+  // exists to prevent.
+  IntColumn get workoutExerciseId => integer().nullable().references(
+    WorkoutExercises,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+
+  // The unresolved reference is retained so the slot can be resolved later
+  // (partner rebuilds, catalogue updates) and so replace can target it.
+  TextColumn get unresolvedUuid => text().nullable()();
+  TextColumn get unresolvedSlug => text().nullable()();
+  TextColumn get placeholderLabel => text().nullable()();
+
+  // The SHARED choreography position. Distinct from
+  // WorkoutExercises.orderIndex, which only orders rows that exist locally —
+  // a placeholder has none, but must still hold its place in the shared
+  // ordering.
+  IntColumn get orderIndex => integer()();
+
+  @override
+  Set<Column> get primaryKey => {buddySessionId, slotId};
 }
