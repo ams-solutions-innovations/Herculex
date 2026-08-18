@@ -96,13 +96,13 @@ Plans:
 
 **Success:** Two phones running a shared session see the same exercise list within a second of any change; a change made with scope "only me" provably does not appear on the partner's device while "both" does; each participant's `WorkoutSessions` row is owned and synced by them alone, and a test proves no partner-owned set row is ever written into the other's tables or counted in their analytics; killing and reopening the app on one phone restores the shared exercise list from the durable event log rather than an empty session; and a static test proves `0003_sync_rls.sql`'s owner-only policies are unmodified, with cross-user reads confined to the new buddy tables.
 
-**Plans:** 0/11 plans executed
+**Plans:** 4/11 plans executed
 
 Plans:
-- [ ] 11-01-PLAN.md — Supabase CLI install, project link, migration workflow doc (wave 1)
-- [ ] 11-02-PLAN.md — Wire contract, scope enum on the far side of the boundary, publisher seam, the two structural gates (wave 1)
-- [ ] 11-03-PLAN.md — Drift v29: buddy mirror tables (local-only) and WorkoutSessions.buddySessionId (wave 2)
-- [ ] 11-04-PLAN.md — Supabase 0011: buddy tables, plpgsql participation helper, three RPCs, broadcast-from-DB trigger (wave 2)
+- [x] 11-01-PLAN.md — Supabase CLI install, project link, migration workflow doc (wave 1)
+- [x] 11-02-PLAN.md — Wire contract, scope enum on the far side of the boundary, publisher seam, the two structural gates (wave 1)
+- [x] 11-03-PLAN.md — Drift v29: buddy mirror tables (local-only) and WorkoutSessions.buddySessionId (wave 2)
+- [x] 11-04-PLAN.md — Supabase 0011: buddy tables, plpgsql participation helper, three RPCs, broadcast-from-DB trigger (wave 2)
 - [ ] 11-05-PLAN.md — [BLOCKING] db push + live integration suite against the real project (wave 3)
 - [ ] 11-06-PLAN.md — Gateway, private channel service, and the pure ordering machine (wave 4)
 - [ ] 11-07-PLAN.md — The applier: slot mapping, placeholders, replay, and the BUD-06 remove gate (wave 5)
