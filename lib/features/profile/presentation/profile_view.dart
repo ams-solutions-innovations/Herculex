@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/auth_validator.dart';
 import '../../../core/env.dart';
 import '../../../core/units.dart';
 import '../../../data/sync/sync_service.dart';
@@ -1431,6 +1432,7 @@ class _AuthSheet extends ConsumerStatefulWidget {
 class _AuthSheetState extends ConsumerState<_AuthSheet> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _rateLimiter = AuthRateLimiter();
   bool _busy = false;
   bool _isRegister = false;
   String? _errorMessage;
@@ -1443,10 +1445,24 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
   }
 
   Future<void> _submit() async {
+    final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
+    if (!allowed) {
+      setState(() => _errorMessage = 'Too many failed attempts. Please wait $secondsRemaining seconds.');
+      return;
+    }
+
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Please enter both email and password.');
+
+    final emailError = AuthValidator.validateEmail(email);
+    if (emailError != null) {
+      setState(() => _errorMessage = emailError);
+      return;
+    }
+
+    final passwordError = AuthValidator.validatePassword(password, isRegistration: _isRegister);
+    if (passwordError != null) {
+      setState(() => _errorMessage = passwordError);
       return;
     }
 
@@ -1462,11 +1478,13 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
       } else {
         await repo.loginWithEmail(email: email, password: password);
       }
+      _rateLimiter.recordSuccess();
       if (mounted) Navigator.pop(context);
     } catch (e) {
+      _rateLimiter.recordFailure();
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('AuthException: ', '');
           _busy = false;
         });
       }
@@ -1480,11 +1498,12 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
     });
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
+      _rateLimiter.recordSuccess();
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('AuthException: ', '');
           _busy = false;
         });
       }
@@ -1522,7 +1541,7 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isRegister ? 'Create Supabase Account' : 'Sign in to Supabase',
+                        _isRegister ? 'Create Herculex Account' : 'Sign in to Herculex',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -1543,8 +1562,10 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
               controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
+              maxLength: AuthValidator.maxEmailLength,
               decoration: InputDecoration(
                 labelText: 'Email',
+                counterText: '',
                 prefixIcon: const Icon(Icons.email_outlined),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
@@ -1553,8 +1574,10 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
             TextField(
               controller: _passwordCtrl,
               obscureText: true,
+              maxLength: AuthValidator.maxPasswordLength,
               decoration: InputDecoration(
                 labelText: 'Password',
+                counterText: '',
                 prefixIcon: const Icon(Icons.lock_outline),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),

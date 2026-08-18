@@ -16,7 +16,7 @@ class DashboardPill extends StatelessWidget {
   final double radius;
   final EdgeInsets padding;
 
-  const DashboardPill({
+  const DashboardPill({super.key, 
     required this.child,
     this.onTap,
     this.radius = 999,

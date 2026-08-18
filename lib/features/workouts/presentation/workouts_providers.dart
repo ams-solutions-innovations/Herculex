@@ -34,7 +34,7 @@ final activeSessionProvider = StreamProvider<WorkoutSessionData?>((ref) {
 });
 
 /// Tracks original endedAt timestamps when editing a completed workout session.
-/// Map<sessionId, originalEndedAt>
+/// Map[sessionId, originalEndedAt]
 final editingSessionOriginalEndedAtProvider = StateProvider<Map<int, DateTime>>(
   (_) => {},
 );

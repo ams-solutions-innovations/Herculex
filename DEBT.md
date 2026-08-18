@@ -1,12 +1,20 @@
 # Technical Debt
 
-Last updated: 2026-08-13
+Last updated: 2026-08-17
 
 Known shortcuts, deliberate non-fixes, and cleanup owed. Not blockers — the
 app works with these in place — but worth knowing before building on top of
 them.
 
 ---
+
+## Auth & Security
+
+- **Email verification is deferred to v2.** Supabase Auth currently creates active sessions upon signup without requiring an email confirmation round trip. Email verification workflow is planned for v2.
+- **Leaked-password protection (HaveIBeenPwned)** is a Supabase feature gated
+  on Pro plans and above. The setting cannot be toggled on the free tier. When
+  the project is upgraded to Pro, toggle on in Authentication -> Password Security.
+- **External Privacy Policy Web Hosting**: Privacy Policy and Terms of Service documents are finalized in `docs/` for in-app transparency; they must be deployed to the AMS Solutions Studio website (`amssolutions.studio/herculex/privacy`) prior to App Store Connect submission. Note: Tremble project is strictly separate and untouched.
 
 ## Sync layer
 
@@ -16,7 +24,7 @@ them.
   stay in the local Drift database and are visible to whoever signs in next
   on that device. Full per-user isolation (wipe or partition local data on
   switch) is a real change to app startup and the database lifecycle, not
-  a quick fix. Documented in `docs/rb02-sync-verification.md`.
+  a quick fix. Documented in `docs/rb02-sync-verification.md` and `docs/DATA_TRUTH_TABLE.md`.
 - **The 90-day full-reconcile fallback (`_fullReconcile`) has only run in
   tests, never against the real backend.** Correct by inspection, but
   impractical to test honestly without either waiting out the retention
@@ -27,12 +35,6 @@ them.
   created_at = excluded.created_at`). Self-heals through the normal retry
   path — the child's FK violation is just a push failure that clears on the
   next cycle — but it's a known soft spot, not a proven-impossible case.
-
-## Auth & Security
-
-- **Leaked-password protection (HaveIBeenPwned)** is a Supabase feature gated
-  on Pro plans and above. The setting cannot be toggled on the free tier. When
-  the project is upgraded to Pro, toggle on in Authentication -> Password Security.
 
 ## Housekeeping
 
@@ -45,3 +47,4 @@ them.
 - **`.secrets/live_sync.json`** holds both accounts' credentials in plain
   text, gitignored. Fine for a local dev machine; revisit if this ever needs
   to run in CI.
+

@@ -220,6 +220,7 @@ class _FixtureCaptureScreenState extends ConsumerState<_FixtureCaptureScreen> {
     // Belt-and-braces: a capture left running when this screen is popped
     // must never keep observing after the screen is gone.
     if (widget.spec.source == 'wrist') {
+      // ignore: avoid_ref_inside_state_dispose
       ref.read(repCaptureServiceProvider).debugRawTraceObserver = null;
     }
     _phoneEndSub?.cancel();
