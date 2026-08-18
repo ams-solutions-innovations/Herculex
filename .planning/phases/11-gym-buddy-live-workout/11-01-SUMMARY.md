@@ -118,6 +118,13 @@ None for this plan — the CLI is installed and linked. Future work in this phas
 - The repo is linked to the correct project and migration history is confirmed in sync, so `0011_buddy_sessions.sql` (built in plan 11-03/11-04) can be pushed with `npx supabase db push --yes` in plan 11-05 without any further linking ceremony, modulo re-running `supabase link` on whatever machine/session actually performs that push (link state is per-machine, not committed).
 - No blockers for downstream plans in this phase.
 
+## Self-Check: PASSED
+
+- FOUND: `docs/supabase-migrations.md`
+- FOUND: `supabase/config.toml` contains `project_id = "ldzgyzigvbwofbswitrv"`
+- FOUND: commit `035c99c` (feat: link repo to Herculex Supabase project)
+- FOUND: commit `8bae166` (docs: add docs/supabase-migrations.md workflow)
+
 ---
 *Phase: 11-gym-buddy-live-workout*
 *Completed: 2026-08-18*
