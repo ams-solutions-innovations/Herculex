@@ -182,3 +182,287 @@ revoke insert, update, delete on public.buddy_session_events from anon, authenti
 -- policy is deny-all for every ordinary role — only the table owner and
 -- SECURITY DEFINER routines that run as the owner can ever see a row here.
 revoke all on public.buddy_join_tokens from anon, authenticated;
+
+-- ── Client RPCs ────────────────────────────────────────────────────────
+--
+-- All five functions in this section are SECURITY DEFINER with an empty,
+-- pinned search_path and fully qualified names throughout their bodies —
+-- the same rule 0005_sync_tombstones.sql states for
+-- record_sync_tombstone(): a definer function with a mutable search_path
+-- is a privilege-escalation vector, not just a lint.
+
+create function public.buddy_create_session(
+  p_workout_session_uuid uuid,
+  p_display_name         text,
+  p_avatar_url            text
+)
+returns table (buddy_session_id uuid, join_token text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid     uuid := (select auth.uid());
+  v_session uuid;
+  v_token   text;
+begin
+  if v_uid is null then
+    raise exception 'not authenticated' using errcode = '42501';
+  end if;
+
+  -- gen_random_uuid() is core Postgres (13+) and CSPRNG-backed: ~122 bits
+  -- of entropy, no pgcrypto dependency.
+  v_token := gen_random_uuid()::text;
+
+  insert into public.buddy_sessions (created_by)
+  values (v_uid)
+  returning id into v_session;
+
+  insert into public.buddy_participants
+    (buddy_session_id, user_id, workout_session_uuid, display_name, avatar_url)
+  values (v_session, v_uid, p_workout_session_uuid, p_display_name, p_avatar_url);
+
+  -- Token TTL: 10 minutes, a single named literal here — tune only in this
+  -- one place.
+  insert into public.buddy_join_tokens
+    (token_hash, buddy_session_id, created_by, expires_at)
+  values (
+    sha256(convert_to(v_token, 'UTF8')),
+    v_session,
+    v_uid,
+    now() + interval '10 minutes'
+  );
+
+  return query select v_session, v_token;
+end;
+$$;
+
+create function public.buddy_join_session(
+  p_token                text,
+  p_workout_session_uuid uuid,
+  p_display_name         text,
+  p_avatar_url            text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_tok public.buddy_join_tokens;
+begin
+  if v_uid is null then
+    raise exception 'invalid or expired join code' using errcode = '42501';
+  end if;
+
+  -- `for update` makes check-then-consume atomic: two simultaneous scans
+  -- of the same QR code cannot both succeed.
+  select * into v_tok
+  from public.buddy_join_tokens
+  where token_hash = sha256(convert_to(p_token, 'UTF8'))
+  for update;
+
+  -- One combined gate, one message. Distinguishing "not found" from
+  -- "expired" from "already consumed" from "session ended" from
+  -- "session full" is an existence oracle — a later refactor must not
+  -- split this into per-cause messages.
+  if v_tok.token_hash is null
+     or v_tok.expires_at <= now()
+     or v_tok.consumed_at is not null
+     or v_tok.created_by = v_uid
+     or exists (
+          select 1 from public.buddy_sessions
+          where id = v_tok.buddy_session_id and ended_at is not null
+        )
+     or (
+          select count(*) from public.buddy_participants
+          where buddy_session_id = v_tok.buddy_session_id and left_at is null
+        ) >= 2
+  then
+    raise exception 'invalid or expired join code' using errcode = '42501';
+  end if;
+
+  update public.buddy_join_tokens
+  set consumed_at = now(), consumed_by = v_uid
+  where token_hash = v_tok.token_hash;
+
+  insert into public.buddy_participants
+    (buddy_session_id, user_id, workout_session_uuid, display_name, avatar_url)
+  values (v_tok.buddy_session_id, v_uid, p_workout_session_uuid, p_display_name, p_avatar_url);
+
+  return v_tok.buddy_session_id;
+end;
+$$;
+
+create function public.buddy_append_event(
+  p_buddy_session_id uuid,
+  p_kind              text,
+  p_payload           jsonb
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_seq bigint;
+begin
+  if v_uid is null then
+    raise exception 'not authenticated' using errcode = '42501';
+  end if;
+
+  -- Participation is re-checked on every append, independently of
+  -- whatever the Realtime authorization cache currently believes: a
+  -- departed participant (left_at set) or an ended session (ended_at set)
+  -- can never write here even while their websocket connection is still
+  -- open.
+  if not exists (
+    select 1
+    from public.buddy_participants p
+    join public.buddy_sessions s on s.id = p.buddy_session_id
+    where p.buddy_session_id = p_buddy_session_id
+      and p.user_id = v_uid
+      and p.left_at is null
+      and s.ended_at is null
+  ) then
+    raise exception 'not a participant' using errcode = '42501';
+  end if;
+
+  -- Per-session counter under a row lock, held to commit: the second
+  -- writer cannot obtain a number until the first is visible, so this is
+  -- gapless and commit-ordered. Trivial contention at the two writers
+  -- this table ever has.
+  select next_seq into v_seq
+  from public.buddy_sessions
+  where id = p_buddy_session_id
+  for update;
+
+  insert into public.buddy_session_events
+    (buddy_session_id, seq, actor_user_id, kind, payload)
+  values (p_buddy_session_id, v_seq, v_uid, p_kind, p_payload);
+
+  update public.buddy_sessions set next_seq = v_seq + 1 where id = p_buddy_session_id;
+
+  return v_seq;
+end;
+$$;
+
+-- Broadcast is derived from the durable row by this trigger, never sent
+-- alongside it by the client — so "the log is the source of truth" is
+-- structural rather than a convention a refactor could break.
+create function public.buddy_broadcast_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform realtime.send(
+    jsonb_build_object(
+      'seq',     new.seq,
+      'kind',    new.kind,
+      'actor',   new.actor_user_id,
+      'payload', new.payload
+    ),
+    'buddy_event',
+    'buddy:' || new.buddy_session_id::text,
+    true
+  );
+  return null;
+end;
+$$;
+
+-- Trigger-only, matching the revoke pattern at
+-- 0005_sync_tombstones.sql:69 for public.record_sync_tombstone(): a
+-- security-definer function with no legitimate direct-call use case has no
+-- business being reachable through the exposed PostgREST RPC surface.
+revoke execute on function public.buddy_broadcast_event() from public, anon, authenticated;
+
+create trigger t_buddy_broadcast_event after insert on public.buddy_session_events
+  for each row execute function public.buddy_broadcast_event();
+
+grant execute on function public.buddy_create_session(uuid, text, text) to authenticated;
+grant execute on function public.buddy_join_session(text, uuid, text, text) to authenticated;
+grant execute on function public.buddy_append_event(uuid, text, jsonb) to authenticated;
+
+-- ── RLS on realtime.messages ──────────────────────────────────────────
+--
+-- RLS is already enabled by default on realtime.messages; no
+-- `alter table realtime.messages enable row level security` is issued
+-- here.
+
+-- Receiving broadcast on a buddy topic. Joins against the generated
+-- `topic` column on buddy_sessions instead of parsing realtime.topic()
+-- with a substring and a uuid cast — a client can request any topic
+-- string it likes, and a parse of a hostile string must never be able to
+-- throw.
+create policy buddy_can_receive_broadcast
+  on realtime.messages for select
+  to authenticated
+  using (
+    realtime.messages.extension = 'broadcast'
+    and exists (
+      select 1
+      from public.buddy_sessions s
+      where s.topic = (select realtime.topic())
+        and public.is_buddy_participant(s.id)
+    )
+  );
+
+-- The only INSERT clients ever need on realtime.messages: presence
+-- check-ins. Choreography broadcast always originates from
+-- t_buddy_broadcast_event above, never from a client — this is the
+-- tightest surface available here, and a direct BUD-05 win.
+create policy buddy_can_send_presence
+  on realtime.messages for insert
+  to authenticated
+  with check (
+    realtime.messages.extension = 'presence'
+    and exists (
+      select 1
+      from public.buddy_sessions s
+      where s.topic = (select realtime.topic())
+        and public.is_buddy_participant(s.id)
+    )
+  );
+
+-- The one additive change to an existing synced table. This is a column
+-- addition only — it names no policy and alters no policy, so every
+-- frozen policy stays exactly as 0003 created it.
+alter table public.workout_sessions add column if not exists buddy_session_id uuid;
+
+-- Deliberately not added to the realtime publication that drives
+-- postgres_changes delivery. These four tables are consumed exclusively
+-- via the broadcast trigger above; adding them there as well would open a
+-- second, unauthorised delivery path for the same rows.
+
+-- ── Token cleanup ──────────────────────────────────────────────────────
+--
+-- Same daily-retention idiom as 0006_sync_tombstone_retention.sql. Unlike
+-- that migration, the pg_cron install here is guarded: this file must not
+-- fail to apply just because some future or alternate target project
+-- lacks the extension. If it is missing, cleanup silently degrades to
+-- "expired join tokens accumulate until a later migration schedules a
+-- job" — harmless, since every read path to this table is already
+-- deny-all.
+do $$
+begin
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    raise notice 'pg_cron unavailable — buddy_join_tokens cleanup job not scheduled (%).', sqlerrm;
+  end;
+
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.schedule(
+      'buddy_join_tokens_gc',
+      '23 3 * * *',
+      $cron$delete from public.buddy_join_tokens where expires_at < now() - interval '1 day'$cron$
+    );
+  else
+    raise notice 'pg_cron extension not present — buddy_join_tokens rows will accumulate until a future migration schedules cleanup.';
+  end if;
+end;
+$$;
