@@ -1,2 +1,12 @@
+# A string used to distinguish different Supabase projects on the same host
+# (the CLI's own default is the working-directory name). Set to the real
+# Herculex project ref so it doubles as a human-visible marker of which
+# remote project this repo targets. This field does NOT perform the actual
+# `supabase link` — that state lives in the gitignored `supabase/.temp/`
+# directory and is (re)established per machine by running
+# `supabase link --project-ref ldzgyzigvbwofbswitrv`. See
+# docs/supabase-migrations.md.
+project_id = "ldzgyzigvbwofbswitrv"
+
 [functions.gemini-analyze]
 verify_jwt = true

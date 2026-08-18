@@ -1,5 +1,11 @@
 # RB-02 — Cloud sync verification
 
+> **How migrations reach the server is now documented in
+> [`docs/supabase-migrations.md`](supabase-migrations.md)** — the Supabase
+> CLI is installed and linked, and `supabase db push` replaces the
+> undocumented "applied via the Supabase MCP tools" mechanism referenced
+> below.
+
 > ⚠️ **Wrong project (corrected 2026-08-15).** Everything below was carried out
 > against `jioesomepkauponjrena`, which is the **SummitSki** project, not
 > Herculex. Herculex's real backend is **`ldzgyzigvbwofbswitrv`**. The findings
