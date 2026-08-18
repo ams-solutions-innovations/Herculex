@@ -3511,6 +3511,17 @@ class $WorkoutSessionsTable extends WorkoutSessions
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _buddySessionIdMeta = const VerificationMeta(
+    'buddySessionId',
+  );
+  @override
+  late final GeneratedColumn<String> buddySessionId = GeneratedColumn<String>(
+    'buddy_session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     syncUuid,
@@ -3526,6 +3537,7 @@ class $WorkoutSessionsTable extends WorkoutSessions
     gymId,
     microWorkoutId,
     sessionUuid,
+    buddySessionId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3622,6 +3634,15 @@ class $WorkoutSessionsTable extends WorkoutSessions
         ),
       );
     }
+    if (data.containsKey('buddy_session_id')) {
+      context.handle(
+        _buddySessionIdMeta,
+        buddySessionId.isAcceptableOrUnknown(
+          data['buddy_session_id']!,
+          _buddySessionIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3683,6 +3704,10 @@ class $WorkoutSessionsTable extends WorkoutSessions
         DriftSqlType.string,
         data['${effectivePrefix}session_uuid'],
       ),
+      buddySessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}buddy_session_id'],
+      ),
     );
   }
 
@@ -3719,6 +3744,12 @@ class WorkoutSessionData extends DataClass
   /// its end — unlike the local autoincrement [id], which was never sent on
   /// session end and offered nothing for the watch side to compare against.
   final String? sessionUuid;
+
+  /// Gym Buddy live-session identity (v29). Nullable and null for every solo
+  /// workout; set for the duration of a buddy session so BUD-07 can compute
+  /// a VS comparison later. This is a synced column on an otherwise-synced
+  /// table, unlike the two buddy mirror tables below.
+  final String? buddySessionId;
   const WorkoutSessionData({
     this.syncUuid,
     this.updatedAt,
@@ -3733,6 +3764,7 @@ class WorkoutSessionData extends DataClass
     this.gymId,
     this.microWorkoutId,
     this.sessionUuid,
+    this.buddySessionId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3772,6 +3804,9 @@ class WorkoutSessionData extends DataClass
     if (!nullToAbsent || sessionUuid != null) {
       map['session_uuid'] = Variable<String>(sessionUuid);
     }
+    if (!nullToAbsent || buddySessionId != null) {
+      map['buddy_session_id'] = Variable<String>(buddySessionId);
+    }
     return map;
   }
 
@@ -3810,6 +3845,9 @@ class WorkoutSessionData extends DataClass
       sessionUuid: sessionUuid == null && nullToAbsent
           ? const Value.absent()
           : Value(sessionUuid),
+      buddySessionId: buddySessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(buddySessionId),
     );
   }
 
@@ -3832,6 +3870,7 @@ class WorkoutSessionData extends DataClass
       gymId: serializer.fromJson<int?>(json['gymId']),
       microWorkoutId: serializer.fromJson<int?>(json['microWorkoutId']),
       sessionUuid: serializer.fromJson<String?>(json['sessionUuid']),
+      buddySessionId: serializer.fromJson<String?>(json['buddySessionId']),
     );
   }
   @override
@@ -3851,6 +3890,7 @@ class WorkoutSessionData extends DataClass
       'gymId': serializer.toJson<int?>(gymId),
       'microWorkoutId': serializer.toJson<int?>(microWorkoutId),
       'sessionUuid': serializer.toJson<String?>(sessionUuid),
+      'buddySessionId': serializer.toJson<String?>(buddySessionId),
     };
   }
 
@@ -3868,6 +3908,7 @@ class WorkoutSessionData extends DataClass
     Value<int?> gymId = const Value.absent(),
     Value<int?> microWorkoutId = const Value.absent(),
     Value<String?> sessionUuid = const Value.absent(),
+    Value<String?> buddySessionId = const Value.absent(),
   }) => WorkoutSessionData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -3884,6 +3925,9 @@ class WorkoutSessionData extends DataClass
         ? microWorkoutId.value
         : this.microWorkoutId,
     sessionUuid: sessionUuid.present ? sessionUuid.value : this.sessionUuid,
+    buddySessionId: buddySessionId.present
+        ? buddySessionId.value
+        : this.buddySessionId,
   );
   WorkoutSessionData copyWithCompanion(WorkoutSessionsCompanion data) {
     return WorkoutSessionData(
@@ -3906,6 +3950,9 @@ class WorkoutSessionData extends DataClass
       sessionUuid: data.sessionUuid.present
           ? data.sessionUuid.value
           : this.sessionUuid,
+      buddySessionId: data.buddySessionId.present
+          ? data.buddySessionId.value
+          : this.buddySessionId,
     );
   }
 
@@ -3924,7 +3971,8 @@ class WorkoutSessionData extends DataClass
           ..write('sessionRpe: $sessionRpe, ')
           ..write('gymId: $gymId, ')
           ..write('microWorkoutId: $microWorkoutId, ')
-          ..write('sessionUuid: $sessionUuid')
+          ..write('sessionUuid: $sessionUuid, ')
+          ..write('buddySessionId: $buddySessionId')
           ..write(')'))
         .toString();
   }
@@ -3944,6 +3992,7 @@ class WorkoutSessionData extends DataClass
     gymId,
     microWorkoutId,
     sessionUuid,
+    buddySessionId,
   );
   @override
   bool operator ==(Object other) =>
@@ -3961,7 +4010,8 @@ class WorkoutSessionData extends DataClass
           other.sessionRpe == this.sessionRpe &&
           other.gymId == this.gymId &&
           other.microWorkoutId == this.microWorkoutId &&
-          other.sessionUuid == this.sessionUuid);
+          other.sessionUuid == this.sessionUuid &&
+          other.buddySessionId == this.buddySessionId);
 }
 
 class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
@@ -3978,6 +4028,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
   final Value<int?> gymId;
   final Value<int?> microWorkoutId;
   final Value<String?> sessionUuid;
+  final Value<String?> buddySessionId;
   const WorkoutSessionsCompanion({
     this.syncUuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -3992,6 +4043,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     this.gymId = const Value.absent(),
     this.microWorkoutId = const Value.absent(),
     this.sessionUuid = const Value.absent(),
+    this.buddySessionId = const Value.absent(),
   });
   WorkoutSessionsCompanion.insert({
     this.syncUuid = const Value.absent(),
@@ -4007,6 +4059,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     this.gymId = const Value.absent(),
     this.microWorkoutId = const Value.absent(),
     this.sessionUuid = const Value.absent(),
+    this.buddySessionId = const Value.absent(),
   }) : startedAt = Value(startedAt);
   static Insertable<WorkoutSessionData> custom({
     Expression<String>? syncUuid,
@@ -4022,6 +4075,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     Expression<int>? gymId,
     Expression<int>? microWorkoutId,
     Expression<String>? sessionUuid,
+    Expression<String>? buddySessionId,
   }) {
     return RawValuesInsertable({
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -4037,6 +4091,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
       if (gymId != null) 'gym_id': gymId,
       if (microWorkoutId != null) 'micro_workout_id': microWorkoutId,
       if (sessionUuid != null) 'session_uuid': sessionUuid,
+      if (buddySessionId != null) 'buddy_session_id': buddySessionId,
     });
   }
 
@@ -4054,6 +4109,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     Value<int?>? gymId,
     Value<int?>? microWorkoutId,
     Value<String?>? sessionUuid,
+    Value<String?>? buddySessionId,
   }) {
     return WorkoutSessionsCompanion(
       syncUuid: syncUuid ?? this.syncUuid,
@@ -4069,6 +4125,7 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
       gymId: gymId ?? this.gymId,
       microWorkoutId: microWorkoutId ?? this.microWorkoutId,
       sessionUuid: sessionUuid ?? this.sessionUuid,
+      buddySessionId: buddySessionId ?? this.buddySessionId,
     );
   }
 
@@ -4114,6 +4171,9 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
     if (sessionUuid.present) {
       map['session_uuid'] = Variable<String>(sessionUuid.value);
     }
+    if (buddySessionId.present) {
+      map['buddy_session_id'] = Variable<String>(buddySessionId.value);
+    }
     return map;
   }
 
@@ -4132,7 +4192,8 @@ class WorkoutSessionsCompanion extends UpdateCompanion<WorkoutSessionData> {
           ..write('sessionRpe: $sessionRpe, ')
           ..write('gymId: $gymId, ')
           ..write('microWorkoutId: $microWorkoutId, ')
-          ..write('sessionUuid: $sessionUuid')
+          ..write('sessionUuid: $sessionUuid, ')
+          ..write('buddySessionId: $buddySessionId')
           ..write(')'))
         .toString();
   }
@@ -31163,6 +31224,1075 @@ class FastingSchedulesCompanion extends UpdateCompanion<FastingScheduleData> {
   }
 }
 
+class $BuddySessionsLocalTable extends BuddySessionsLocal
+    with TableInfo<$BuddySessionsLocalTable, BuddySessionsLocalData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BuddySessionsLocalTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _buddySessionIdMeta = const VerificationMeta(
+    'buddySessionId',
+  );
+  @override
+  late final GeneratedColumn<String> buddySessionId = GeneratedColumn<String>(
+    'buddy_session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workoutSessionIdMeta = const VerificationMeta(
+    'workoutSessionId',
+  );
+  @override
+  late final GeneratedColumn<int> workoutSessionId = GeneratedColumn<int>(
+    'workout_session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES workout_sessions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _partnerDisplayNameMeta =
+      const VerificationMeta('partnerDisplayName');
+  @override
+  late final GeneratedColumn<String> partnerDisplayName =
+      GeneratedColumn<String>(
+        'partner_display_name',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _partnerAvatarUrlMeta = const VerificationMeta(
+    'partnerAvatarUrl',
+  );
+  @override
+  late final GeneratedColumn<String> partnerAvatarUrl = GeneratedColumn<String>(
+    'partner_avatar_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSeenSeqMeta = const VerificationMeta(
+    'lastSeenSeq',
+  );
+  @override
+  late final GeneratedColumn<int> lastSeenSeq = GeneratedColumn<int>(
+    'last_seen_seq',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _joinedAtMeta = const VerificationMeta(
+    'joinedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> joinedAt = GeneratedColumn<DateTime>(
+    'joined_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endedAtMeta = const VerificationMeta(
+    'endedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endedAt = GeneratedColumn<DateTime>(
+    'ended_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    buddySessionId,
+    workoutSessionId,
+    role,
+    partnerDisplayName,
+    partnerAvatarUrl,
+    lastSeenSeq,
+    joinedAt,
+    endedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'buddy_sessions_local';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BuddySessionsLocalData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('buddy_session_id')) {
+      context.handle(
+        _buddySessionIdMeta,
+        buddySessionId.isAcceptableOrUnknown(
+          data['buddy_session_id']!,
+          _buddySessionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_buddySessionIdMeta);
+    }
+    if (data.containsKey('workout_session_id')) {
+      context.handle(
+        _workoutSessionIdMeta,
+        workoutSessionId.isAcceptableOrUnknown(
+          data['workout_session_id']!,
+          _workoutSessionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_workoutSessionIdMeta);
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('partner_display_name')) {
+      context.handle(
+        _partnerDisplayNameMeta,
+        partnerDisplayName.isAcceptableOrUnknown(
+          data['partner_display_name']!,
+          _partnerDisplayNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('partner_avatar_url')) {
+      context.handle(
+        _partnerAvatarUrlMeta,
+        partnerAvatarUrl.isAcceptableOrUnknown(
+          data['partner_avatar_url']!,
+          _partnerAvatarUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_seen_seq')) {
+      context.handle(
+        _lastSeenSeqMeta,
+        lastSeenSeq.isAcceptableOrUnknown(
+          data['last_seen_seq']!,
+          _lastSeenSeqMeta,
+        ),
+      );
+    }
+    if (data.containsKey('joined_at')) {
+      context.handle(
+        _joinedAtMeta,
+        joinedAt.isAcceptableOrUnknown(data['joined_at']!, _joinedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_joinedAtMeta);
+    }
+    if (data.containsKey('ended_at')) {
+      context.handle(
+        _endedAtMeta,
+        endedAt.isAcceptableOrUnknown(data['ended_at']!, _endedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {buddySessionId};
+  @override
+  BuddySessionsLocalData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BuddySessionsLocalData(
+      buddySessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}buddy_session_id'],
+      )!,
+      workoutSessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}workout_session_id'],
+      )!,
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      partnerDisplayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}partner_display_name'],
+      ),
+      partnerAvatarUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}partner_avatar_url'],
+      ),
+      lastSeenSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_seen_seq'],
+      )!,
+      joinedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}joined_at'],
+      )!,
+      endedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ended_at'],
+      ),
+    );
+  }
+
+  @override
+  $BuddySessionsLocalTable createAlias(String alias) {
+    return $BuddySessionsLocalTable(attachedDatabase, alias);
+  }
+}
+
+class BuddySessionsLocalData extends DataClass
+    implements Insertable<BuddySessionsLocalData> {
+  final String buddySessionId;
+  final int workoutSessionId;
+  final String role;
+  final String? partnerDisplayName;
+  final String? partnerAvatarUrl;
+  final int lastSeenSeq;
+  final DateTime joinedAt;
+  final DateTime? endedAt;
+  const BuddySessionsLocalData({
+    required this.buddySessionId,
+    required this.workoutSessionId,
+    required this.role,
+    this.partnerDisplayName,
+    this.partnerAvatarUrl,
+    required this.lastSeenSeq,
+    required this.joinedAt,
+    this.endedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['buddy_session_id'] = Variable<String>(buddySessionId);
+    map['workout_session_id'] = Variable<int>(workoutSessionId);
+    map['role'] = Variable<String>(role);
+    if (!nullToAbsent || partnerDisplayName != null) {
+      map['partner_display_name'] = Variable<String>(partnerDisplayName);
+    }
+    if (!nullToAbsent || partnerAvatarUrl != null) {
+      map['partner_avatar_url'] = Variable<String>(partnerAvatarUrl);
+    }
+    map['last_seen_seq'] = Variable<int>(lastSeenSeq);
+    map['joined_at'] = Variable<DateTime>(joinedAt);
+    if (!nullToAbsent || endedAt != null) {
+      map['ended_at'] = Variable<DateTime>(endedAt);
+    }
+    return map;
+  }
+
+  BuddySessionsLocalCompanion toCompanion(bool nullToAbsent) {
+    return BuddySessionsLocalCompanion(
+      buddySessionId: Value(buddySessionId),
+      workoutSessionId: Value(workoutSessionId),
+      role: Value(role),
+      partnerDisplayName: partnerDisplayName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(partnerDisplayName),
+      partnerAvatarUrl: partnerAvatarUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(partnerAvatarUrl),
+      lastSeenSeq: Value(lastSeenSeq),
+      joinedAt: Value(joinedAt),
+      endedAt: endedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endedAt),
+    );
+  }
+
+  factory BuddySessionsLocalData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BuddySessionsLocalData(
+      buddySessionId: serializer.fromJson<String>(json['buddySessionId']),
+      workoutSessionId: serializer.fromJson<int>(json['workoutSessionId']),
+      role: serializer.fromJson<String>(json['role']),
+      partnerDisplayName: serializer.fromJson<String?>(
+        json['partnerDisplayName'],
+      ),
+      partnerAvatarUrl: serializer.fromJson<String?>(json['partnerAvatarUrl']),
+      lastSeenSeq: serializer.fromJson<int>(json['lastSeenSeq']),
+      joinedAt: serializer.fromJson<DateTime>(json['joinedAt']),
+      endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'buddySessionId': serializer.toJson<String>(buddySessionId),
+      'workoutSessionId': serializer.toJson<int>(workoutSessionId),
+      'role': serializer.toJson<String>(role),
+      'partnerDisplayName': serializer.toJson<String?>(partnerDisplayName),
+      'partnerAvatarUrl': serializer.toJson<String?>(partnerAvatarUrl),
+      'lastSeenSeq': serializer.toJson<int>(lastSeenSeq),
+      'joinedAt': serializer.toJson<DateTime>(joinedAt),
+      'endedAt': serializer.toJson<DateTime?>(endedAt),
+    };
+  }
+
+  BuddySessionsLocalData copyWith({
+    String? buddySessionId,
+    int? workoutSessionId,
+    String? role,
+    Value<String?> partnerDisplayName = const Value.absent(),
+    Value<String?> partnerAvatarUrl = const Value.absent(),
+    int? lastSeenSeq,
+    DateTime? joinedAt,
+    Value<DateTime?> endedAt = const Value.absent(),
+  }) => BuddySessionsLocalData(
+    buddySessionId: buddySessionId ?? this.buddySessionId,
+    workoutSessionId: workoutSessionId ?? this.workoutSessionId,
+    role: role ?? this.role,
+    partnerDisplayName: partnerDisplayName.present
+        ? partnerDisplayName.value
+        : this.partnerDisplayName,
+    partnerAvatarUrl: partnerAvatarUrl.present
+        ? partnerAvatarUrl.value
+        : this.partnerAvatarUrl,
+    lastSeenSeq: lastSeenSeq ?? this.lastSeenSeq,
+    joinedAt: joinedAt ?? this.joinedAt,
+    endedAt: endedAt.present ? endedAt.value : this.endedAt,
+  );
+  BuddySessionsLocalData copyWithCompanion(BuddySessionsLocalCompanion data) {
+    return BuddySessionsLocalData(
+      buddySessionId: data.buddySessionId.present
+          ? data.buddySessionId.value
+          : this.buddySessionId,
+      workoutSessionId: data.workoutSessionId.present
+          ? data.workoutSessionId.value
+          : this.workoutSessionId,
+      role: data.role.present ? data.role.value : this.role,
+      partnerDisplayName: data.partnerDisplayName.present
+          ? data.partnerDisplayName.value
+          : this.partnerDisplayName,
+      partnerAvatarUrl: data.partnerAvatarUrl.present
+          ? data.partnerAvatarUrl.value
+          : this.partnerAvatarUrl,
+      lastSeenSeq: data.lastSeenSeq.present
+          ? data.lastSeenSeq.value
+          : this.lastSeenSeq,
+      joinedAt: data.joinedAt.present ? data.joinedAt.value : this.joinedAt,
+      endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BuddySessionsLocalData(')
+          ..write('buddySessionId: $buddySessionId, ')
+          ..write('workoutSessionId: $workoutSessionId, ')
+          ..write('role: $role, ')
+          ..write('partnerDisplayName: $partnerDisplayName, ')
+          ..write('partnerAvatarUrl: $partnerAvatarUrl, ')
+          ..write('lastSeenSeq: $lastSeenSeq, ')
+          ..write('joinedAt: $joinedAt, ')
+          ..write('endedAt: $endedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    buddySessionId,
+    workoutSessionId,
+    role,
+    partnerDisplayName,
+    partnerAvatarUrl,
+    lastSeenSeq,
+    joinedAt,
+    endedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BuddySessionsLocalData &&
+          other.buddySessionId == this.buddySessionId &&
+          other.workoutSessionId == this.workoutSessionId &&
+          other.role == this.role &&
+          other.partnerDisplayName == this.partnerDisplayName &&
+          other.partnerAvatarUrl == this.partnerAvatarUrl &&
+          other.lastSeenSeq == this.lastSeenSeq &&
+          other.joinedAt == this.joinedAt &&
+          other.endedAt == this.endedAt);
+}
+
+class BuddySessionsLocalCompanion
+    extends UpdateCompanion<BuddySessionsLocalData> {
+  final Value<String> buddySessionId;
+  final Value<int> workoutSessionId;
+  final Value<String> role;
+  final Value<String?> partnerDisplayName;
+  final Value<String?> partnerAvatarUrl;
+  final Value<int> lastSeenSeq;
+  final Value<DateTime> joinedAt;
+  final Value<DateTime?> endedAt;
+  final Value<int> rowid;
+  const BuddySessionsLocalCompanion({
+    this.buddySessionId = const Value.absent(),
+    this.workoutSessionId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.partnerDisplayName = const Value.absent(),
+    this.partnerAvatarUrl = const Value.absent(),
+    this.lastSeenSeq = const Value.absent(),
+    this.joinedAt = const Value.absent(),
+    this.endedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BuddySessionsLocalCompanion.insert({
+    required String buddySessionId,
+    required int workoutSessionId,
+    required String role,
+    this.partnerDisplayName = const Value.absent(),
+    this.partnerAvatarUrl = const Value.absent(),
+    this.lastSeenSeq = const Value.absent(),
+    required DateTime joinedAt,
+    this.endedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : buddySessionId = Value(buddySessionId),
+       workoutSessionId = Value(workoutSessionId),
+       role = Value(role),
+       joinedAt = Value(joinedAt);
+  static Insertable<BuddySessionsLocalData> custom({
+    Expression<String>? buddySessionId,
+    Expression<int>? workoutSessionId,
+    Expression<String>? role,
+    Expression<String>? partnerDisplayName,
+    Expression<String>? partnerAvatarUrl,
+    Expression<int>? lastSeenSeq,
+    Expression<DateTime>? joinedAt,
+    Expression<DateTime>? endedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (buddySessionId != null) 'buddy_session_id': buddySessionId,
+      if (workoutSessionId != null) 'workout_session_id': workoutSessionId,
+      if (role != null) 'role': role,
+      if (partnerDisplayName != null)
+        'partner_display_name': partnerDisplayName,
+      if (partnerAvatarUrl != null) 'partner_avatar_url': partnerAvatarUrl,
+      if (lastSeenSeq != null) 'last_seen_seq': lastSeenSeq,
+      if (joinedAt != null) 'joined_at': joinedAt,
+      if (endedAt != null) 'ended_at': endedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BuddySessionsLocalCompanion copyWith({
+    Value<String>? buddySessionId,
+    Value<int>? workoutSessionId,
+    Value<String>? role,
+    Value<String?>? partnerDisplayName,
+    Value<String?>? partnerAvatarUrl,
+    Value<int>? lastSeenSeq,
+    Value<DateTime>? joinedAt,
+    Value<DateTime?>? endedAt,
+    Value<int>? rowid,
+  }) {
+    return BuddySessionsLocalCompanion(
+      buddySessionId: buddySessionId ?? this.buddySessionId,
+      workoutSessionId: workoutSessionId ?? this.workoutSessionId,
+      role: role ?? this.role,
+      partnerDisplayName: partnerDisplayName ?? this.partnerDisplayName,
+      partnerAvatarUrl: partnerAvatarUrl ?? this.partnerAvatarUrl,
+      lastSeenSeq: lastSeenSeq ?? this.lastSeenSeq,
+      joinedAt: joinedAt ?? this.joinedAt,
+      endedAt: endedAt ?? this.endedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (buddySessionId.present) {
+      map['buddy_session_id'] = Variable<String>(buddySessionId.value);
+    }
+    if (workoutSessionId.present) {
+      map['workout_session_id'] = Variable<int>(workoutSessionId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (partnerDisplayName.present) {
+      map['partner_display_name'] = Variable<String>(partnerDisplayName.value);
+    }
+    if (partnerAvatarUrl.present) {
+      map['partner_avatar_url'] = Variable<String>(partnerAvatarUrl.value);
+    }
+    if (lastSeenSeq.present) {
+      map['last_seen_seq'] = Variable<int>(lastSeenSeq.value);
+    }
+    if (joinedAt.present) {
+      map['joined_at'] = Variable<DateTime>(joinedAt.value);
+    }
+    if (endedAt.present) {
+      map['ended_at'] = Variable<DateTime>(endedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BuddySessionsLocalCompanion(')
+          ..write('buddySessionId: $buddySessionId, ')
+          ..write('workoutSessionId: $workoutSessionId, ')
+          ..write('role: $role, ')
+          ..write('partnerDisplayName: $partnerDisplayName, ')
+          ..write('partnerAvatarUrl: $partnerAvatarUrl, ')
+          ..write('lastSeenSeq: $lastSeenSeq, ')
+          ..write('joinedAt: $joinedAt, ')
+          ..write('endedAt: $endedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BuddyChoreographySlotsTable extends BuddyChoreographySlots
+    with TableInfo<$BuddyChoreographySlotsTable, BuddyChoreographySlotData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BuddyChoreographySlotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _buddySessionIdMeta = const VerificationMeta(
+    'buddySessionId',
+  );
+  @override
+  late final GeneratedColumn<String> buddySessionId = GeneratedColumn<String>(
+    'buddy_session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _slotIdMeta = const VerificationMeta('slotId');
+  @override
+  late final GeneratedColumn<String> slotId = GeneratedColumn<String>(
+    'slot_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workoutExerciseIdMeta = const VerificationMeta(
+    'workoutExerciseId',
+  );
+  @override
+  late final GeneratedColumn<int> workoutExerciseId = GeneratedColumn<int>(
+    'workout_exercise_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES workout_exercises (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _unresolvedUuidMeta = const VerificationMeta(
+    'unresolvedUuid',
+  );
+  @override
+  late final GeneratedColumn<String> unresolvedUuid = GeneratedColumn<String>(
+    'unresolved_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _unresolvedSlugMeta = const VerificationMeta(
+    'unresolvedSlug',
+  );
+  @override
+  late final GeneratedColumn<String> unresolvedSlug = GeneratedColumn<String>(
+    'unresolved_slug',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _placeholderLabelMeta = const VerificationMeta(
+    'placeholderLabel',
+  );
+  @override
+  late final GeneratedColumn<String> placeholderLabel = GeneratedColumn<String>(
+    'placeholder_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _orderIndexMeta = const VerificationMeta(
+    'orderIndex',
+  );
+  @override
+  late final GeneratedColumn<int> orderIndex = GeneratedColumn<int>(
+    'order_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    buddySessionId,
+    slotId,
+    workoutExerciseId,
+    unresolvedUuid,
+    unresolvedSlug,
+    placeholderLabel,
+    orderIndex,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'buddy_choreography_slots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BuddyChoreographySlotData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('buddy_session_id')) {
+      context.handle(
+        _buddySessionIdMeta,
+        buddySessionId.isAcceptableOrUnknown(
+          data['buddy_session_id']!,
+          _buddySessionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_buddySessionIdMeta);
+    }
+    if (data.containsKey('slot_id')) {
+      context.handle(
+        _slotIdMeta,
+        slotId.isAcceptableOrUnknown(data['slot_id']!, _slotIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slotIdMeta);
+    }
+    if (data.containsKey('workout_exercise_id')) {
+      context.handle(
+        _workoutExerciseIdMeta,
+        workoutExerciseId.isAcceptableOrUnknown(
+          data['workout_exercise_id']!,
+          _workoutExerciseIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('unresolved_uuid')) {
+      context.handle(
+        _unresolvedUuidMeta,
+        unresolvedUuid.isAcceptableOrUnknown(
+          data['unresolved_uuid']!,
+          _unresolvedUuidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('unresolved_slug')) {
+      context.handle(
+        _unresolvedSlugMeta,
+        unresolvedSlug.isAcceptableOrUnknown(
+          data['unresolved_slug']!,
+          _unresolvedSlugMeta,
+        ),
+      );
+    }
+    if (data.containsKey('placeholder_label')) {
+      context.handle(
+        _placeholderLabelMeta,
+        placeholderLabel.isAcceptableOrUnknown(
+          data['placeholder_label']!,
+          _placeholderLabelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('order_index')) {
+      context.handle(
+        _orderIndexMeta,
+        orderIndex.isAcceptableOrUnknown(data['order_index']!, _orderIndexMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderIndexMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {buddySessionId, slotId};
+  @override
+  BuddyChoreographySlotData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BuddyChoreographySlotData(
+      buddySessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}buddy_session_id'],
+      )!,
+      slotId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slot_id'],
+      )!,
+      workoutExerciseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}workout_exercise_id'],
+      ),
+      unresolvedUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unresolved_uuid'],
+      ),
+      unresolvedSlug: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unresolved_slug'],
+      ),
+      placeholderLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}placeholder_label'],
+      ),
+      orderIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}order_index'],
+      )!,
+    );
+  }
+
+  @override
+  $BuddyChoreographySlotsTable createAlias(String alias) {
+    return $BuddyChoreographySlotsTable(attachedDatabase, alias);
+  }
+}
+
+class BuddyChoreographySlotData extends DataClass
+    implements Insertable<BuddyChoreographySlotData> {
+  final String buddySessionId;
+  final String slotId;
+  final int? workoutExerciseId;
+  final String? unresolvedUuid;
+  final String? unresolvedSlug;
+  final String? placeholderLabel;
+  final int orderIndex;
+  const BuddyChoreographySlotData({
+    required this.buddySessionId,
+    required this.slotId,
+    this.workoutExerciseId,
+    this.unresolvedUuid,
+    this.unresolvedSlug,
+    this.placeholderLabel,
+    required this.orderIndex,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['buddy_session_id'] = Variable<String>(buddySessionId);
+    map['slot_id'] = Variable<String>(slotId);
+    if (!nullToAbsent || workoutExerciseId != null) {
+      map['workout_exercise_id'] = Variable<int>(workoutExerciseId);
+    }
+    if (!nullToAbsent || unresolvedUuid != null) {
+      map['unresolved_uuid'] = Variable<String>(unresolvedUuid);
+    }
+    if (!nullToAbsent || unresolvedSlug != null) {
+      map['unresolved_slug'] = Variable<String>(unresolvedSlug);
+    }
+    if (!nullToAbsent || placeholderLabel != null) {
+      map['placeholder_label'] = Variable<String>(placeholderLabel);
+    }
+    map['order_index'] = Variable<int>(orderIndex);
+    return map;
+  }
+
+  BuddyChoreographySlotsCompanion toCompanion(bool nullToAbsent) {
+    return BuddyChoreographySlotsCompanion(
+      buddySessionId: Value(buddySessionId),
+      slotId: Value(slotId),
+      workoutExerciseId: workoutExerciseId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(workoutExerciseId),
+      unresolvedUuid: unresolvedUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unresolvedUuid),
+      unresolvedSlug: unresolvedSlug == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unresolvedSlug),
+      placeholderLabel: placeholderLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(placeholderLabel),
+      orderIndex: Value(orderIndex),
+    );
+  }
+
+  factory BuddyChoreographySlotData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BuddyChoreographySlotData(
+      buddySessionId: serializer.fromJson<String>(json['buddySessionId']),
+      slotId: serializer.fromJson<String>(json['slotId']),
+      workoutExerciseId: serializer.fromJson<int?>(json['workoutExerciseId']),
+      unresolvedUuid: serializer.fromJson<String?>(json['unresolvedUuid']),
+      unresolvedSlug: serializer.fromJson<String?>(json['unresolvedSlug']),
+      placeholderLabel: serializer.fromJson<String?>(json['placeholderLabel']),
+      orderIndex: serializer.fromJson<int>(json['orderIndex']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'buddySessionId': serializer.toJson<String>(buddySessionId),
+      'slotId': serializer.toJson<String>(slotId),
+      'workoutExerciseId': serializer.toJson<int?>(workoutExerciseId),
+      'unresolvedUuid': serializer.toJson<String?>(unresolvedUuid),
+      'unresolvedSlug': serializer.toJson<String?>(unresolvedSlug),
+      'placeholderLabel': serializer.toJson<String?>(placeholderLabel),
+      'orderIndex': serializer.toJson<int>(orderIndex),
+    };
+  }
+
+  BuddyChoreographySlotData copyWith({
+    String? buddySessionId,
+    String? slotId,
+    Value<int?> workoutExerciseId = const Value.absent(),
+    Value<String?> unresolvedUuid = const Value.absent(),
+    Value<String?> unresolvedSlug = const Value.absent(),
+    Value<String?> placeholderLabel = const Value.absent(),
+    int? orderIndex,
+  }) => BuddyChoreographySlotData(
+    buddySessionId: buddySessionId ?? this.buddySessionId,
+    slotId: slotId ?? this.slotId,
+    workoutExerciseId: workoutExerciseId.present
+        ? workoutExerciseId.value
+        : this.workoutExerciseId,
+    unresolvedUuid: unresolvedUuid.present
+        ? unresolvedUuid.value
+        : this.unresolvedUuid,
+    unresolvedSlug: unresolvedSlug.present
+        ? unresolvedSlug.value
+        : this.unresolvedSlug,
+    placeholderLabel: placeholderLabel.present
+        ? placeholderLabel.value
+        : this.placeholderLabel,
+    orderIndex: orderIndex ?? this.orderIndex,
+  );
+  BuddyChoreographySlotData copyWithCompanion(
+    BuddyChoreographySlotsCompanion data,
+  ) {
+    return BuddyChoreographySlotData(
+      buddySessionId: data.buddySessionId.present
+          ? data.buddySessionId.value
+          : this.buddySessionId,
+      slotId: data.slotId.present ? data.slotId.value : this.slotId,
+      workoutExerciseId: data.workoutExerciseId.present
+          ? data.workoutExerciseId.value
+          : this.workoutExerciseId,
+      unresolvedUuid: data.unresolvedUuid.present
+          ? data.unresolvedUuid.value
+          : this.unresolvedUuid,
+      unresolvedSlug: data.unresolvedSlug.present
+          ? data.unresolvedSlug.value
+          : this.unresolvedSlug,
+      placeholderLabel: data.placeholderLabel.present
+          ? data.placeholderLabel.value
+          : this.placeholderLabel,
+      orderIndex: data.orderIndex.present
+          ? data.orderIndex.value
+          : this.orderIndex,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BuddyChoreographySlotData(')
+          ..write('buddySessionId: $buddySessionId, ')
+          ..write('slotId: $slotId, ')
+          ..write('workoutExerciseId: $workoutExerciseId, ')
+          ..write('unresolvedUuid: $unresolvedUuid, ')
+          ..write('unresolvedSlug: $unresolvedSlug, ')
+          ..write('placeholderLabel: $placeholderLabel, ')
+          ..write('orderIndex: $orderIndex')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    buddySessionId,
+    slotId,
+    workoutExerciseId,
+    unresolvedUuid,
+    unresolvedSlug,
+    placeholderLabel,
+    orderIndex,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BuddyChoreographySlotData &&
+          other.buddySessionId == this.buddySessionId &&
+          other.slotId == this.slotId &&
+          other.workoutExerciseId == this.workoutExerciseId &&
+          other.unresolvedUuid == this.unresolvedUuid &&
+          other.unresolvedSlug == this.unresolvedSlug &&
+          other.placeholderLabel == this.placeholderLabel &&
+          other.orderIndex == this.orderIndex);
+}
+
+class BuddyChoreographySlotsCompanion
+    extends UpdateCompanion<BuddyChoreographySlotData> {
+  final Value<String> buddySessionId;
+  final Value<String> slotId;
+  final Value<int?> workoutExerciseId;
+  final Value<String?> unresolvedUuid;
+  final Value<String?> unresolvedSlug;
+  final Value<String?> placeholderLabel;
+  final Value<int> orderIndex;
+  final Value<int> rowid;
+  const BuddyChoreographySlotsCompanion({
+    this.buddySessionId = const Value.absent(),
+    this.slotId = const Value.absent(),
+    this.workoutExerciseId = const Value.absent(),
+    this.unresolvedUuid = const Value.absent(),
+    this.unresolvedSlug = const Value.absent(),
+    this.placeholderLabel = const Value.absent(),
+    this.orderIndex = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BuddyChoreographySlotsCompanion.insert({
+    required String buddySessionId,
+    required String slotId,
+    this.workoutExerciseId = const Value.absent(),
+    this.unresolvedUuid = const Value.absent(),
+    this.unresolvedSlug = const Value.absent(),
+    this.placeholderLabel = const Value.absent(),
+    required int orderIndex,
+    this.rowid = const Value.absent(),
+  }) : buddySessionId = Value(buddySessionId),
+       slotId = Value(slotId),
+       orderIndex = Value(orderIndex);
+  static Insertable<BuddyChoreographySlotData> custom({
+    Expression<String>? buddySessionId,
+    Expression<String>? slotId,
+    Expression<int>? workoutExerciseId,
+    Expression<String>? unresolvedUuid,
+    Expression<String>? unresolvedSlug,
+    Expression<String>? placeholderLabel,
+    Expression<int>? orderIndex,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (buddySessionId != null) 'buddy_session_id': buddySessionId,
+      if (slotId != null) 'slot_id': slotId,
+      if (workoutExerciseId != null) 'workout_exercise_id': workoutExerciseId,
+      if (unresolvedUuid != null) 'unresolved_uuid': unresolvedUuid,
+      if (unresolvedSlug != null) 'unresolved_slug': unresolvedSlug,
+      if (placeholderLabel != null) 'placeholder_label': placeholderLabel,
+      if (orderIndex != null) 'order_index': orderIndex,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BuddyChoreographySlotsCompanion copyWith({
+    Value<String>? buddySessionId,
+    Value<String>? slotId,
+    Value<int?>? workoutExerciseId,
+    Value<String?>? unresolvedUuid,
+    Value<String?>? unresolvedSlug,
+    Value<String?>? placeholderLabel,
+    Value<int>? orderIndex,
+    Value<int>? rowid,
+  }) {
+    return BuddyChoreographySlotsCompanion(
+      buddySessionId: buddySessionId ?? this.buddySessionId,
+      slotId: slotId ?? this.slotId,
+      workoutExerciseId: workoutExerciseId ?? this.workoutExerciseId,
+      unresolvedUuid: unresolvedUuid ?? this.unresolvedUuid,
+      unresolvedSlug: unresolvedSlug ?? this.unresolvedSlug,
+      placeholderLabel: placeholderLabel ?? this.placeholderLabel,
+      orderIndex: orderIndex ?? this.orderIndex,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (buddySessionId.present) {
+      map['buddy_session_id'] = Variable<String>(buddySessionId.value);
+    }
+    if (slotId.present) {
+      map['slot_id'] = Variable<String>(slotId.value);
+    }
+    if (workoutExerciseId.present) {
+      map['workout_exercise_id'] = Variable<int>(workoutExerciseId.value);
+    }
+    if (unresolvedUuid.present) {
+      map['unresolved_uuid'] = Variable<String>(unresolvedUuid.value);
+    }
+    if (unresolvedSlug.present) {
+      map['unresolved_slug'] = Variable<String>(unresolvedSlug.value);
+    }
+    if (placeholderLabel.present) {
+      map['placeholder_label'] = Variable<String>(placeholderLabel.value);
+    }
+    if (orderIndex.present) {
+      map['order_index'] = Variable<int>(orderIndex.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BuddyChoreographySlotsCompanion(')
+          ..write('buddySessionId: $buddySessionId, ')
+          ..write('slotId: $slotId, ')
+          ..write('workoutExerciseId: $workoutExerciseId, ')
+          ..write('unresolvedUuid: $unresolvedUuid, ')
+          ..write('unresolvedSlug: $unresolvedSlug, ')
+          ..write('placeholderLabel: $placeholderLabel, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -31248,6 +32378,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FastingSchedulesTable fastingSchedules = $FastingSchedulesTable(
     this,
   );
+  late final $BuddySessionsLocalTable buddySessionsLocal =
+      $BuddySessionsLocalTable(this);
+  late final $BuddyChoreographySlotsTable buddyChoreographySlots =
+      $BuddyChoreographySlotsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -31301,6 +32435,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     repTrackingExercisePrefs,
     repSetObservations,
     fastingSchedules,
+    buddySessionsLocal,
+    buddyChoreographySlots,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -31485,6 +32621,22 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('food_micros', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'workout_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('buddy_sessions_local', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'workout_exercises',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('buddy_choreography_slots', kind: UpdateKind.delete),
+      ],
     ),
   ]);
 }
@@ -34697,6 +35849,7 @@ typedef $$WorkoutSessionsTableCreateCompanionBuilder =
       Value<int?> gymId,
       Value<int?> microWorkoutId,
       Value<String?> sessionUuid,
+      Value<String?> buddySessionId,
     });
 typedef $$WorkoutSessionsTableUpdateCompanionBuilder =
     WorkoutSessionsCompanion Function({
@@ -34713,6 +35866,7 @@ typedef $$WorkoutSessionsTableUpdateCompanionBuilder =
       Value<int?> gymId,
       Value<int?> microWorkoutId,
       Value<String?> sessionUuid,
+      Value<String?> buddySessionId,
     });
 
 final class $$WorkoutSessionsTableReferences
@@ -34820,6 +35974,33 @@ final class $$WorkoutSessionsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    $BuddySessionsLocalTable,
+    List<BuddySessionsLocalData>
+  >
+  _buddySessionsLocalRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.buddySessionsLocal,
+        aliasName: $_aliasNameGenerator(
+          db.workoutSessions.id,
+          db.buddySessionsLocal.workoutSessionId,
+        ),
+      );
+
+  $$BuddySessionsLocalTableProcessedTableManager get buddySessionsLocalRefs {
+    final manager = $$BuddySessionsLocalTableTableManager(
+      $_db,
+      $_db.buddySessionsLocal,
+    ).filter((f) => f.workoutSessionId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _buddySessionsLocalRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$WorkoutSessionsTableFilterComposer
@@ -34883,6 +36064,11 @@ class $$WorkoutSessionsTableFilterComposer
 
   ColumnFilters<String> get sessionUuid => $composableBuilder(
     column: $table.sessionUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -34981,6 +36167,31 @@ class $$WorkoutSessionsTableFilterComposer
     );
     return f(composer);
   }
+
+  Expression<bool> buddySessionsLocalRefs(
+    Expression<bool> Function($$BuddySessionsLocalTableFilterComposer f) f,
+  ) {
+    final $$BuddySessionsLocalTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.buddySessionsLocal,
+      getReferencedColumn: (t) => t.workoutSessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuddySessionsLocalTableFilterComposer(
+            $db: $db,
+            $table: $db.buddySessionsLocal,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$WorkoutSessionsTableOrderingComposer
@@ -35044,6 +36255,11 @@ class $$WorkoutSessionsTableOrderingComposer
 
   ColumnOrderings<String> get sessionUuid => $composableBuilder(
     column: $table.sessionUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -35137,6 +36353,11 @@ class $$WorkoutSessionsTableAnnotationComposer
 
   GeneratedColumn<String> get sessionUuid => $composableBuilder(
     column: $table.sessionUuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
     builder: (column) => column,
   );
 
@@ -35236,6 +36457,32 @@ class $$WorkoutSessionsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> buddySessionsLocalRefs<T extends Object>(
+    Expression<T> Function($$BuddySessionsLocalTableAnnotationComposer a) f,
+  ) {
+    final $$BuddySessionsLocalTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.buddySessionsLocal,
+          getReferencedColumn: (t) => t.workoutSessionId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$BuddySessionsLocalTableAnnotationComposer(
+                $db: $db,
+                $table: $db.buddySessionsLocal,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$WorkoutSessionsTableTableManager
@@ -35256,6 +36503,7 @@ class $$WorkoutSessionsTableTableManager
             bool microWorkoutId,
             bool workoutExercisesRefs,
             bool scheduledWorkoutsRefs,
+            bool buddySessionsLocalRefs,
           })
         > {
   $$WorkoutSessionsTableTableManager(
@@ -35286,6 +36534,7 @@ class $$WorkoutSessionsTableTableManager
                 Value<int?> gymId = const Value.absent(),
                 Value<int?> microWorkoutId = const Value.absent(),
                 Value<String?> sessionUuid = const Value.absent(),
+                Value<String?> buddySessionId = const Value.absent(),
               }) => WorkoutSessionsCompanion(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -35300,6 +36549,7 @@ class $$WorkoutSessionsTableTableManager
                 gymId: gymId,
                 microWorkoutId: microWorkoutId,
                 sessionUuid: sessionUuid,
+                buddySessionId: buddySessionId,
               ),
           createCompanionCallback:
               ({
@@ -35316,6 +36566,7 @@ class $$WorkoutSessionsTableTableManager
                 Value<int?> gymId = const Value.absent(),
                 Value<int?> microWorkoutId = const Value.absent(),
                 Value<String?> sessionUuid = const Value.absent(),
+                Value<String?> buddySessionId = const Value.absent(),
               }) => WorkoutSessionsCompanion.insert(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -35330,6 +36581,7 @@ class $$WorkoutSessionsTableTableManager
                 gymId: gymId,
                 microWorkoutId: microWorkoutId,
                 sessionUuid: sessionUuid,
+                buddySessionId: buddySessionId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -35345,12 +36597,14 @@ class $$WorkoutSessionsTableTableManager
                 microWorkoutId = false,
                 workoutExercisesRefs = false,
                 scheduledWorkoutsRefs = false,
+                buddySessionsLocalRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (workoutExercisesRefs) db.workoutExercises,
                     if (scheduledWorkoutsRefs) db.scheduledWorkouts,
+                    if (buddySessionsLocalRefs) db.buddySessionsLocal,
                   ],
                   addJoins:
                       <
@@ -35445,6 +36699,27 @@ class $$WorkoutSessionsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (buddySessionsLocalRefs)
+                        await $_getPrefetchedData<
+                          WorkoutSessionData,
+                          $WorkoutSessionsTable,
+                          BuddySessionsLocalData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkoutSessionsTableReferences
+                              ._buddySessionsLocalRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkoutSessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).buddySessionsLocalRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.workoutSessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -35470,6 +36745,7 @@ typedef $$WorkoutSessionsTableProcessedTableManager =
         bool microWorkoutId,
         bool workoutExercisesRefs,
         bool scheduledWorkoutsRefs,
+        bool buddySessionsLocalRefs,
       })
     >;
 typedef $$WorkoutExercisesTableCreateCompanionBuilder =
@@ -35576,6 +36852,34 @@ final class $$WorkoutExercisesTableReferences
     ).filter((f) => f.workoutExerciseId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_setEntriesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $BuddyChoreographySlotsTable,
+    List<BuddyChoreographySlotData>
+  >
+  _buddyChoreographySlotsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.buddyChoreographySlots,
+        aliasName: $_aliasNameGenerator(
+          db.workoutExercises.id,
+          db.buddyChoreographySlots.workoutExerciseId,
+        ),
+      );
+
+  $$BuddyChoreographySlotsTableProcessedTableManager
+  get buddyChoreographySlotsRefs {
+    final manager = $$BuddyChoreographySlotsTableTableManager(
+      $_db,
+      $_db.buddyChoreographySlots,
+    ).filter((f) => f.workoutExerciseId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _buddyChoreographySlotsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -35709,6 +37013,32 @@ class $$WorkoutExercisesTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> buddyChoreographySlotsRefs(
+    Expression<bool> Function($$BuddyChoreographySlotsTableFilterComposer f) f,
+  ) {
+    final $$BuddyChoreographySlotsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.buddyChoreographySlots,
+          getReferencedColumn: (t) => t.workoutExerciseId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$BuddyChoreographySlotsTableFilterComposer(
+                $db: $db,
+                $table: $db.buddyChoreographySlots,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 }
@@ -35938,6 +37268,32 @@ class $$WorkoutExercisesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> buddyChoreographySlotsRefs<T extends Object>(
+    Expression<T> Function($$BuddyChoreographySlotsTableAnnotationComposer a) f,
+  ) {
+    final $$BuddyChoreographySlotsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.buddyChoreographySlots,
+          getReferencedColumn: (t) => t.workoutExerciseId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$BuddyChoreographySlotsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.buddyChoreographySlots,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$WorkoutExercisesTableTableManager
@@ -35957,6 +37313,7 @@ class $$WorkoutExercisesTableTableManager
             bool sessionId,
             bool exerciseId,
             bool setEntriesRefs,
+            bool buddyChoreographySlotsRefs,
           })
         > {
   $$WorkoutExercisesTableTableManager(
@@ -36041,10 +37398,14 @@ class $$WorkoutExercisesTableTableManager
                 sessionId = false,
                 exerciseId = false,
                 setEntriesRefs = false,
+                buddyChoreographySlotsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
-                  explicitlyWatchedTables: [if (setEntriesRefs) db.setEntries],
+                  explicitlyWatchedTables: [
+                    if (setEntriesRefs) db.setEntries,
+                    if (buddyChoreographySlotsRefs) db.buddyChoreographySlots,
+                  ],
                   addJoins:
                       <
                         T extends TableManagerState<
@@ -36117,6 +37478,27 @@ class $$WorkoutExercisesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (buddyChoreographySlotsRefs)
+                        await $_getPrefetchedData<
+                          WorkoutExerciseData,
+                          $WorkoutExercisesTable,
+                          BuddyChoreographySlotData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkoutExercisesTableReferences
+                              ._buddyChoreographySlotsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkoutExercisesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).buddyChoreographySlotsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.workoutExerciseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -36141,6 +37523,7 @@ typedef $$WorkoutExercisesTableProcessedTableManager =
         bool sessionId,
         bool exerciseId,
         bool setEntriesRefs,
+        bool buddyChoreographySlotsRefs,
       })
     >;
 typedef $$SetEntriesTableCreateCompanionBuilder =
@@ -54105,6 +55488,801 @@ typedef $$FastingSchedulesTableProcessedTableManager =
       FastingScheduleData,
       PrefetchHooks Function()
     >;
+typedef $$BuddySessionsLocalTableCreateCompanionBuilder =
+    BuddySessionsLocalCompanion Function({
+      required String buddySessionId,
+      required int workoutSessionId,
+      required String role,
+      Value<String?> partnerDisplayName,
+      Value<String?> partnerAvatarUrl,
+      Value<int> lastSeenSeq,
+      required DateTime joinedAt,
+      Value<DateTime?> endedAt,
+      Value<int> rowid,
+    });
+typedef $$BuddySessionsLocalTableUpdateCompanionBuilder =
+    BuddySessionsLocalCompanion Function({
+      Value<String> buddySessionId,
+      Value<int> workoutSessionId,
+      Value<String> role,
+      Value<String?> partnerDisplayName,
+      Value<String?> partnerAvatarUrl,
+      Value<int> lastSeenSeq,
+      Value<DateTime> joinedAt,
+      Value<DateTime?> endedAt,
+      Value<int> rowid,
+    });
+
+final class $$BuddySessionsLocalTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $BuddySessionsLocalTable,
+          BuddySessionsLocalData
+        > {
+  $$BuddySessionsLocalTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WorkoutSessionsTable _workoutSessionIdTable(_$AppDatabase db) =>
+      db.workoutSessions.createAlias(
+        $_aliasNameGenerator(
+          db.buddySessionsLocal.workoutSessionId,
+          db.workoutSessions.id,
+        ),
+      );
+
+  $$WorkoutSessionsTableProcessedTableManager get workoutSessionId {
+    final $_column = $_itemColumn<int>('workout_session_id')!;
+
+    final manager = $$WorkoutSessionsTableTableManager(
+      $_db,
+      $_db.workoutSessions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_workoutSessionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$BuddySessionsLocalTableFilterComposer
+    extends Composer<_$AppDatabase, $BuddySessionsLocalTable> {
+  $$BuddySessionsLocalTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get partnerDisplayName => $composableBuilder(
+    column: $table.partnerDisplayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get partnerAvatarUrl => $composableBuilder(
+    column: $table.partnerAvatarUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSeenSeq => $composableBuilder(
+    column: $table.lastSeenSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get joinedAt => $composableBuilder(
+    column: $table.joinedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkoutSessionsTableFilterComposer get workoutSessionId {
+    final $$WorkoutSessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workoutSessionId,
+      referencedTable: $db.workoutSessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutSessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.workoutSessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuddySessionsLocalTableOrderingComposer
+    extends Composer<_$AppDatabase, $BuddySessionsLocalTable> {
+  $$BuddySessionsLocalTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get partnerDisplayName => $composableBuilder(
+    column: $table.partnerDisplayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get partnerAvatarUrl => $composableBuilder(
+    column: $table.partnerAvatarUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSeenSeq => $composableBuilder(
+    column: $table.lastSeenSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get joinedAt => $composableBuilder(
+    column: $table.joinedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkoutSessionsTableOrderingComposer get workoutSessionId {
+    final $$WorkoutSessionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workoutSessionId,
+      referencedTable: $db.workoutSessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutSessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.workoutSessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuddySessionsLocalTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BuddySessionsLocalTable> {
+  $$BuddySessionsLocalTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get partnerDisplayName => $composableBuilder(
+    column: $table.partnerDisplayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get partnerAvatarUrl => $composableBuilder(
+    column: $table.partnerAvatarUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastSeenSeq => $composableBuilder(
+    column: $table.lastSeenSeq,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get joinedAt =>
+      $composableBuilder(column: $table.joinedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endedAt =>
+      $composableBuilder(column: $table.endedAt, builder: (column) => column);
+
+  $$WorkoutSessionsTableAnnotationComposer get workoutSessionId {
+    final $$WorkoutSessionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workoutSessionId,
+      referencedTable: $db.workoutSessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutSessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workoutSessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuddySessionsLocalTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BuddySessionsLocalTable,
+          BuddySessionsLocalData,
+          $$BuddySessionsLocalTableFilterComposer,
+          $$BuddySessionsLocalTableOrderingComposer,
+          $$BuddySessionsLocalTableAnnotationComposer,
+          $$BuddySessionsLocalTableCreateCompanionBuilder,
+          $$BuddySessionsLocalTableUpdateCompanionBuilder,
+          (BuddySessionsLocalData, $$BuddySessionsLocalTableReferences),
+          BuddySessionsLocalData,
+          PrefetchHooks Function({bool workoutSessionId})
+        > {
+  $$BuddySessionsLocalTableTableManager(
+    _$AppDatabase db,
+    $BuddySessionsLocalTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BuddySessionsLocalTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BuddySessionsLocalTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BuddySessionsLocalTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> buddySessionId = const Value.absent(),
+                Value<int> workoutSessionId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<String?> partnerDisplayName = const Value.absent(),
+                Value<String?> partnerAvatarUrl = const Value.absent(),
+                Value<int> lastSeenSeq = const Value.absent(),
+                Value<DateTime> joinedAt = const Value.absent(),
+                Value<DateTime?> endedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BuddySessionsLocalCompanion(
+                buddySessionId: buddySessionId,
+                workoutSessionId: workoutSessionId,
+                role: role,
+                partnerDisplayName: partnerDisplayName,
+                partnerAvatarUrl: partnerAvatarUrl,
+                lastSeenSeq: lastSeenSeq,
+                joinedAt: joinedAt,
+                endedAt: endedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String buddySessionId,
+                required int workoutSessionId,
+                required String role,
+                Value<String?> partnerDisplayName = const Value.absent(),
+                Value<String?> partnerAvatarUrl = const Value.absent(),
+                Value<int> lastSeenSeq = const Value.absent(),
+                required DateTime joinedAt,
+                Value<DateTime?> endedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BuddySessionsLocalCompanion.insert(
+                buddySessionId: buddySessionId,
+                workoutSessionId: workoutSessionId,
+                role: role,
+                partnerDisplayName: partnerDisplayName,
+                partnerAvatarUrl: partnerAvatarUrl,
+                lastSeenSeq: lastSeenSeq,
+                joinedAt: joinedAt,
+                endedAt: endedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BuddySessionsLocalTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({workoutSessionId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (workoutSessionId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.workoutSessionId,
+                                referencedTable:
+                                    $$BuddySessionsLocalTableReferences
+                                        ._workoutSessionIdTable(db),
+                                referencedColumn:
+                                    $$BuddySessionsLocalTableReferences
+                                        ._workoutSessionIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BuddySessionsLocalTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BuddySessionsLocalTable,
+      BuddySessionsLocalData,
+      $$BuddySessionsLocalTableFilterComposer,
+      $$BuddySessionsLocalTableOrderingComposer,
+      $$BuddySessionsLocalTableAnnotationComposer,
+      $$BuddySessionsLocalTableCreateCompanionBuilder,
+      $$BuddySessionsLocalTableUpdateCompanionBuilder,
+      (BuddySessionsLocalData, $$BuddySessionsLocalTableReferences),
+      BuddySessionsLocalData,
+      PrefetchHooks Function({bool workoutSessionId})
+    >;
+typedef $$BuddyChoreographySlotsTableCreateCompanionBuilder =
+    BuddyChoreographySlotsCompanion Function({
+      required String buddySessionId,
+      required String slotId,
+      Value<int?> workoutExerciseId,
+      Value<String?> unresolvedUuid,
+      Value<String?> unresolvedSlug,
+      Value<String?> placeholderLabel,
+      required int orderIndex,
+      Value<int> rowid,
+    });
+typedef $$BuddyChoreographySlotsTableUpdateCompanionBuilder =
+    BuddyChoreographySlotsCompanion Function({
+      Value<String> buddySessionId,
+      Value<String> slotId,
+      Value<int?> workoutExerciseId,
+      Value<String?> unresolvedUuid,
+      Value<String?> unresolvedSlug,
+      Value<String?> placeholderLabel,
+      Value<int> orderIndex,
+      Value<int> rowid,
+    });
+
+final class $$BuddyChoreographySlotsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $BuddyChoreographySlotsTable,
+          BuddyChoreographySlotData
+        > {
+  $$BuddyChoreographySlotsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WorkoutExercisesTable _workoutExerciseIdTable(_$AppDatabase db) =>
+      db.workoutExercises.createAlias(
+        $_aliasNameGenerator(
+          db.buddyChoreographySlots.workoutExerciseId,
+          db.workoutExercises.id,
+        ),
+      );
+
+  $$WorkoutExercisesTableProcessedTableManager? get workoutExerciseId {
+    final $_column = $_itemColumn<int>('workout_exercise_id');
+    if ($_column == null) return null;
+    final manager = $$WorkoutExercisesTableTableManager(
+      $_db,
+      $_db.workoutExercises,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_workoutExerciseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$BuddyChoreographySlotsTableFilterComposer
+    extends Composer<_$AppDatabase, $BuddyChoreographySlotsTable> {
+  $$BuddyChoreographySlotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get slotId => $composableBuilder(
+    column: $table.slotId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unresolvedUuid => $composableBuilder(
+    column: $table.unresolvedUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unresolvedSlug => $composableBuilder(
+    column: $table.unresolvedSlug,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get placeholderLabel => $composableBuilder(
+    column: $table.placeholderLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkoutExercisesTableFilterComposer get workoutExerciseId {
+    final $$WorkoutExercisesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workoutExerciseId,
+      referencedTable: $db.workoutExercises,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutExercisesTableFilterComposer(
+            $db: $db,
+            $table: $db.workoutExercises,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuddyChoreographySlotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BuddyChoreographySlotsTable> {
+  $$BuddyChoreographySlotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get slotId => $composableBuilder(
+    column: $table.slotId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unresolvedUuid => $composableBuilder(
+    column: $table.unresolvedUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unresolvedSlug => $composableBuilder(
+    column: $table.unresolvedSlug,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get placeholderLabel => $composableBuilder(
+    column: $table.placeholderLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkoutExercisesTableOrderingComposer get workoutExerciseId {
+    final $$WorkoutExercisesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workoutExerciseId,
+      referencedTable: $db.workoutExercises,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutExercisesTableOrderingComposer(
+            $db: $db,
+            $table: $db.workoutExercises,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuddyChoreographySlotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BuddyChoreographySlotsTable> {
+  $$BuddyChoreographySlotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get buddySessionId => $composableBuilder(
+    column: $table.buddySessionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get slotId =>
+      $composableBuilder(column: $table.slotId, builder: (column) => column);
+
+  GeneratedColumn<String> get unresolvedUuid => $composableBuilder(
+    column: $table.unresolvedUuid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get unresolvedSlug => $composableBuilder(
+    column: $table.unresolvedSlug,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get placeholderLabel => $composableBuilder(
+    column: $table.placeholderLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => column,
+  );
+
+  $$WorkoutExercisesTableAnnotationComposer get workoutExerciseId {
+    final $$WorkoutExercisesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.workoutExerciseId,
+      referencedTable: $db.workoutExercises,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutExercisesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workoutExercises,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuddyChoreographySlotsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BuddyChoreographySlotsTable,
+          BuddyChoreographySlotData,
+          $$BuddyChoreographySlotsTableFilterComposer,
+          $$BuddyChoreographySlotsTableOrderingComposer,
+          $$BuddyChoreographySlotsTableAnnotationComposer,
+          $$BuddyChoreographySlotsTableCreateCompanionBuilder,
+          $$BuddyChoreographySlotsTableUpdateCompanionBuilder,
+          (BuddyChoreographySlotData, $$BuddyChoreographySlotsTableReferences),
+          BuddyChoreographySlotData,
+          PrefetchHooks Function({bool workoutExerciseId})
+        > {
+  $$BuddyChoreographySlotsTableTableManager(
+    _$AppDatabase db,
+    $BuddyChoreographySlotsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BuddyChoreographySlotsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$BuddyChoreographySlotsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$BuddyChoreographySlotsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> buddySessionId = const Value.absent(),
+                Value<String> slotId = const Value.absent(),
+                Value<int?> workoutExerciseId = const Value.absent(),
+                Value<String?> unresolvedUuid = const Value.absent(),
+                Value<String?> unresolvedSlug = const Value.absent(),
+                Value<String?> placeholderLabel = const Value.absent(),
+                Value<int> orderIndex = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BuddyChoreographySlotsCompanion(
+                buddySessionId: buddySessionId,
+                slotId: slotId,
+                workoutExerciseId: workoutExerciseId,
+                unresolvedUuid: unresolvedUuid,
+                unresolvedSlug: unresolvedSlug,
+                placeholderLabel: placeholderLabel,
+                orderIndex: orderIndex,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String buddySessionId,
+                required String slotId,
+                Value<int?> workoutExerciseId = const Value.absent(),
+                Value<String?> unresolvedUuid = const Value.absent(),
+                Value<String?> unresolvedSlug = const Value.absent(),
+                Value<String?> placeholderLabel = const Value.absent(),
+                required int orderIndex,
+                Value<int> rowid = const Value.absent(),
+              }) => BuddyChoreographySlotsCompanion.insert(
+                buddySessionId: buddySessionId,
+                slotId: slotId,
+                workoutExerciseId: workoutExerciseId,
+                unresolvedUuid: unresolvedUuid,
+                unresolvedSlug: unresolvedSlug,
+                placeholderLabel: placeholderLabel,
+                orderIndex: orderIndex,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BuddyChoreographySlotsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({workoutExerciseId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (workoutExerciseId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.workoutExerciseId,
+                                referencedTable:
+                                    $$BuddyChoreographySlotsTableReferences
+                                        ._workoutExerciseIdTable(db),
+                                referencedColumn:
+                                    $$BuddyChoreographySlotsTableReferences
+                                        ._workoutExerciseIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BuddyChoreographySlotsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BuddyChoreographySlotsTable,
+      BuddyChoreographySlotData,
+      $$BuddyChoreographySlotsTableFilterComposer,
+      $$BuddyChoreographySlotsTableOrderingComposer,
+      $$BuddyChoreographySlotsTableAnnotationComposer,
+      $$BuddyChoreographySlotsTableCreateCompanionBuilder,
+      $$BuddyChoreographySlotsTableUpdateCompanionBuilder,
+      (BuddyChoreographySlotData, $$BuddyChoreographySlotsTableReferences),
+      BuddyChoreographySlotData,
+      PrefetchHooks Function({bool workoutExerciseId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -54207,4 +56385,11 @@ class $AppDatabaseManager {
       $$RepSetObservationsTableTableManager(_db, _db.repSetObservations);
   $$FastingSchedulesTableTableManager get fastingSchedules =>
       $$FastingSchedulesTableTableManager(_db, _db.fastingSchedules);
+  $$BuddySessionsLocalTableTableManager get buddySessionsLocal =>
+      $$BuddySessionsLocalTableTableManager(_db, _db.buddySessionsLocal);
+  $$BuddyChoreographySlotsTableTableManager get buddyChoreographySlots =>
+      $$BuddyChoreographySlotsTableTableManager(
+        _db,
+        _db.buddyChoreographySlots,
+      );
 }

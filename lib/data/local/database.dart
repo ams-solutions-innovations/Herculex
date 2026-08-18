@@ -69,6 +69,10 @@ part 'database.g.dart';
     RepTrackingExercisePrefs,
     RepSetObservations,
     FastingSchedules,
+    // Gym Buddy (v29). Local-only: never added to syncedTableNames or
+    // syncTableSpecs.
+    BuddySessionsLocal,
+    BuddyChoreographySlots,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -78,7 +82,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 28;
+  int get schemaVersion => 29;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -707,6 +711,35 @@ class AppDatabase extends _$AppDatabase {
 
         await tryAddColumn(programDays, programDays.startTimeMinutes);
         await tryAddColumn(scheduledWorkouts, scheduledWorkouts.startTimeMinutes);
+      }
+      if (from < 29) {
+        // Gym Buddy (Phase 11). Two local-only tables — no sync columns, no
+        // outbox trigger, no entry in syncedTableNames. Same idiom as the
+        // v26 assisted-rep-tracking block above.
+        await m.createTable(buddySessionsLocal);
+        await m.createTable(buddyChoreographySlots);
+      }
+      if (from < 29 && to >= 29) {
+        // Gym Buddy (Phase 11): WorkoutSessions gains a single nullable
+        // synced column, buddySessionId. Same ordinary ALTER TABLE ADD
+        // COLUMN shape as the v28 block above, and needs the same `to >=`
+        // half of the guard for the same reason spelled out in the v28
+        // comment: SchemaVerifier.migrateAndValidate fakes intermediate
+        // target versions, and addColumn has no IF NOT EXISTS. This block
+        // has its own local tryAddColumn closure because the v28 one above
+        // is scoped inside its own block.
+        Future<void> tryAddColumn(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          try {
+            await m.addColumn(table, column);
+          } catch (_) {
+            // Column already exists on this fixture; see comment above.
+          }
+        }
+
+        await tryAddColumn(workoutSessions, workoutSessions.buddySessionId);
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
