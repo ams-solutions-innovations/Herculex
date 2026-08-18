@@ -1,6 +1,6 @@
 // RB-04 Phase 4: schema tooling. Verifies the hand-written `tables.dart`
 // declarations (as materialized by `AppDatabase`) match the schema drift_dev
-// dumped to `drift_schemas/drift_schema_v28.json`. `schema dump` only
+// dumped to `drift_schemas/drift_schema_v29.json`. `schema dump` only
 // captures the *current* version — there is no retroactive v1-v22 snapshot —
 // so this only proves "the code matches what was dumped", not a full
 // migration-chain replay. Re-run `dart run drift_dev schema dump
@@ -17,10 +17,10 @@ import 'support/test_database.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('current schema matches the v28 drift_schemas snapshot', () async {
+  test('current schema matches the v29 drift_schemas snapshot', () async {
     final db = await openTestDatabase();
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 28);
+    await verifier.migrateAndValidate(db, 29);
   });
 
   // With two dumped snapshots (v23, v24) now on disk, startAt(23) has real
@@ -31,7 +31,7 @@ void main() {
     final connection = await verifier.startAt(23);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 28);
+    await verifier.migrateAndValidate(db, 29);
   });
 
   // Phase 10 sync (v25) touches every synced table at once — this is the
@@ -41,7 +41,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 28);
+    await verifier.migrateAndValidate(db, 29);
   });
 
   // Phase 10 assisted rep tracking (v26) adds three local-only tables. Same
@@ -50,7 +50,7 @@ void main() {
     final connection = await verifier.startAt(25);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 28);
+    await verifier.migrateAndValidate(db, 29);
   });
 
   // UI rework Phase 6 (v27) adds the fasting_schedules table. Same
@@ -59,7 +59,7 @@ void main() {
     final connection = await verifier.startAt(26);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 28);
+    await verifier.migrateAndValidate(db, 29);
   });
 
   // UI rework Phase 8 (v28) adds start_time_minutes to program_days and
@@ -69,6 +69,16 @@ void main() {
     final connection = await verifier.startAt(27);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 28);
+    await verifier.migrateAndValidate(db, 29);
+  });
+
+  // Phase 11 Gym Buddy (v29) adds two local-only buddy mirror tables plus
+  // workout_sessions.buddy_session_id. Same generated-fixture replay, one
+  // step narrower still.
+  test('upgrades cleanly from a generated v28 fixture', () async {
+    final connection = await verifier.startAt(28);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 29);
   });
 }
