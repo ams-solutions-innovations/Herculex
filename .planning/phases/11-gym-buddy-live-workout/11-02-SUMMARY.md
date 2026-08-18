@@ -137,6 +137,11 @@ None - no external service configuration required. This plan is pure-Dart domain
 - BUD-06 (the remove gate) remains open, as planned — it ships with the applier in 11-07.
 - The 25 pre-existing migration-fixture failures logged in `deferred-items.md` are worth a dedicated look before a phase that touches migrations, but do not block 11-02 or subsequent buddy-feature plans.
 
+## Self-Check: PASSED
+
+- All 10 created/tracked files confirmed present via `git ls-files` (8 plan artifacts + deferred-items.md + this SUMMARY.md).
+- All 4 commits confirmed in `git log --oneline` (`a8bcf62`, `f5c4498`, `8384972`, `c19095f`).
+
 ---
 *Phase: 11-gym-buddy-live-workout*
 *Completed: 2026-08-18*
