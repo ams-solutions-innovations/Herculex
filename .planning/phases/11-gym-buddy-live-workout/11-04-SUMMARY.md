@@ -117,3 +117,13 @@ None - no external service configuration required. (Applying this migration to t
 ---
 *Phase: 11-gym-buddy-live-workout*
 *Completed: 2026-08-18*
+
+## Self-Check: PASSED
+
+- FOUND: `supabase/migrations/0011_buddy_sessions.sql`
+- FOUND: `.planning/phases/11-gym-buddy-live-workout/11-04-SUMMARY.md`
+- FOUND: `.planning/phases/11-gym-buddy-live-workout/deferred-items.md`
+- FOUND commit `fc9be26` (Task 1)
+- FOUND commit `237395a` (Task 2)
+- FOUND commit `0285e81` (Task 3)
+- FOUND commit `c4c4354` (SUMMARY.md)
