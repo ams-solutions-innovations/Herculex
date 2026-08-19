@@ -10,6 +10,7 @@ import '../../../theme/haptics.dart';
 import '../domain/barcode_utils.dart';
 import '../domain/meal.dart';
 import '../domain/meal_slots.dart';
+import 'barcode_resolution_flow.dart';
 import 'barcode_scanner_view.dart';
 import 'custom_food_form_sheet.dart';
 import 'gemini_photo_analysis_dialog.dart';
@@ -127,10 +128,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
     if (!mounted) return;
     Navigator.of(context).pop();
     if (food == null) {
-      final created = await CustomFoodFormSheet.show(
-        context,
-        initialBarcode: code,
-      );
+      final created = await resolveUnknownBarcode(context, ref, code);
       if (created != null) _logFood(created);
     } else {
       _logFood(food);

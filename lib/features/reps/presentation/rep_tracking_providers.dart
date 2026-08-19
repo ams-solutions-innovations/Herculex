@@ -21,6 +21,12 @@ final repTrackingSettingsProvider = FutureProvider<RepTrackingSettingData?>((
 
 /// Whether tracking may run for one catalogue slug. False whenever consent is
 /// absent, regardless of the per-exercise preference.
+/// The single global switch. Null settings row ⇒ off.
+final repAutoCountEnabledProvider = FutureProvider<bool>((ref) async {
+  final settings = await ref.watch(repTrackingSettingsProvider.future);
+  return settings?.autoCountEnabled ?? false;
+});
+
 final repTrackingEnabledForProvider = FutureProvider.family<bool, String>((
   ref,
   slug,

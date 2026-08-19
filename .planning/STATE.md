@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-08-18T12:03:33.783Z"
+last_updated: "2026-08-19T00:00:00.000Z"
 progress:
   total_phases: 9
   completed_phases: 7
@@ -19,7 +19,7 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-07-30)
 
 **Core value:** Fast, trustworthy local food logging.
-**Current focus:** Phase 11 — gym-buddy-live-workout
+**Current focus:** Phase 12 complete; Phase 13 — hercul-coaching-engine next
 
 ## Progress
 
@@ -113,3 +113,16 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - Deviation: the plan's `<interfaces>` sketch for `RepCaptureService` predated 10-04's real additions (`buildPhoneSuggestion`/`activeCaptureIdFor`) — read the actual current file before editing, as instructed, and Task 3's edit is purely additive. Also: `RepMovement` has no `ringDip` value (only `{pullUp, dip}`); `ring-dips` fixtures use `RepMovement.dip`, matching `rep_tracking_eligibility.dart`'s real mapping rather than the plan's interface sketch.
 - **This plan does not close REP-06.** It produces app-local files only; the developer still has to physically perform pull-ups/dips wearing the watch across upcoming workouts, use this screen to capture and label each one, export via the share sheet, and commit the files under `test/fixtures/motion/` by hand. 10-02 Task 5's automated fixture-count/provenance check remains the actual gate that closes REP-06.
 - Next implementation focus: the developer records the real fixture corpus using this tool across upcoming workouts, then commits the exported files so 10-02 Task 5's checkpoint and Task 6's accuracy suite can run.
+
+## Session update — 2026-08-19 (Phase 12 plan 12-05)
+
+- Plan 12-05 executed, closing **EXR-05** and with it all of Phase 12 (5/5 plans). 12-03 had built the `LoggingMetric` registry and 12-04 the three nullable `set_entries` columns; neither was read by anything, so a Plank still recorded kilos × reps. This plan connects them.
+- `ActiveExerciseCard` resolves `LoggingMetric.fromId(exercise.loggingMetric)` once and hands it to both `_HeaderRow` and `_SetRow`, which each iterate `metric.fields` — the header labels and the inputs come from the same list and cannot disagree, which is the property the widget tests assert against. A Plank renders TIME · RPE, a Sled Push KG · M · RPE, an Air Bike TIME · KCAL · RPE; `weight_reps` is byte-unchanged.
+- Field-specific affordances stayed on their own field, not on a column position: plate calculator on weight, `_repsEditedByUser` on reps, and the rep-tracker prefill additionally gated on `metric.isRepBased` so a detection can never reach a hold or a carry.
+- `updateSet` carries the three columns through the existing `bodyweightKg`/`chainsKg` absent-vs-null-vs-clear idiom, and `_commit` sends null for any undeclared field — so a Plank never overwrites a weight and re-classifying a metric never blanks logged data. 0013's nullability is what keeps "does not apply" distinct from "logged, and it was zero".
+- **The exclusion is decided by the metric, never by the stored zeros.** `ResolvedSet.tonnageKg` returns 0 and a new `countedReps` returns 0 when `!metric.isRepBased`; `weeklyTonnage` gained an `exerciseCatalog` join purely to read `loggingMetric`; `topOneRms` skips anything not both rep-based and loaded. The gate is `isRepBased`, **not** `isLoaded` — gating on load would have deleted every bodyweight athlete's volume history, pinned by a pull-up test that must still produce 640 kg. `session_summary`/`weekly_muscle_volume`/recovery/CNS needed no change because 09-02 had already consolidated them onto `rs.tonnageKg`.
+- New `DistanceFormat` in `core/units.dart` on the same single `MeasurementUnit` — no second unit preference. Metres stored, `m`/`yd` typed, `km`/`mi` only in rendered summaries.
+- Deviation: the plan said `exercise_details_view.dart` stays as is, but with non-rep metrics now loggable its 1RM trend card and per-variant line render fabricated numbers for them; both are gated. Also fixed a pre-existing bug found in the rewrite — `dynamic_workout_view.dart`'s private `_fmtWeight` appended a hardcoded `kg` and never converted, so the big readout showed kilograms to imperial users.
+- 17 new tests across `test/logging_metric_ui_test.dart` and `test/set_metric_tonnage_test.dart`. Full suite: **873 passed, 4 skipped, 0 failed**; `flutter analyze lib/` shows only the six pre-existing deprecation infos, none in a touched file.
+- Note: Phase 12's work is still uncommitted along with the rest of the working tree (117 changed paths, unchanged since the 11-05 handoff commit).
+- Next implementation focus: 11-05 (live Supabase migration push, still blocked per `11-05-HANDOFF.md`) or Phase 13 (Hercul coaching engine).

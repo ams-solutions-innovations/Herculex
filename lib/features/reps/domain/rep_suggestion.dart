@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'rep_features.dart';
 import 'rep_movement.dart';
+import 'rep_tracking_profile.dart';
 
 /// The single state every rep-tracking surface renders from (10-CONTEXT
 /// "Confidence and fallback states"). Exactly five values — no more, no
@@ -63,6 +64,16 @@ class RepSuggestion {
   /// `'linear_acceleration'` | `'accelerometer'`.
   final String sensorType;
 
+  /// Which derived channel this set was actually counted on, or null when the
+  /// set was not measurable at all.
+  ///
+  /// Recorded because it is part of the calibration key, not a diagnostic: a
+  /// profile learned from sets counted on [RepChannel.tilt] says nothing about
+  /// a set counted on [RepChannel.dyn]. The two carry different units and
+  /// different amounts of information about effort, so mixing them would train
+  /// the RPE model on two unrelated feature distributions.
+  final RepChannel? channel;
+
   /// AUTHORITATIVE — always `RepDetectionResult.repCount`. Never adjusted by
   /// any function of [provisionalCount].
   final int proposedReps;
@@ -104,6 +115,7 @@ class RepSuggestion {
     required this.source,
     this.placement,
     required this.sensorType,
+    this.channel,
     required this.proposedReps,
     this.provisionalCount,
     required this.provisionalDisagrees,
@@ -121,6 +133,31 @@ class RepSuggestion {
               stateReason != null,
           'stateReason must be non-null whenever state is manual or countOnly',
         );
+
+  /// Whether this suggestion is trustworthy enough to fill the reps field
+  /// directly instead of asking the user to review it.
+  ///
+  /// Three independent conditions, all required:
+  ///
+  ///  * [state] is [TrackerState.tracking] — [TrackerState.countOnly] means
+  ///    the exercise's range of motion is too short to be confident about at
+  ///    all (a shrug, a calf raise), and [TrackerState.manual] means nothing
+  ///    was measured.
+  ///  * [confidenceBand] is not [ConfidenceBand.low]. The band is already
+  ///    lowered one step per independent reason to doubt the capture — a
+  ///    dropped batch, a disagreeing wrist count, a capture that ended early
+  ///    — so anything that reached here has none of those.
+  ///  * [proposedReps] is positive. A confident zero is still a zero, and
+  ///    silently filling a set with it would be worse than saying nothing.
+  ///
+  /// This lives here rather than in the widget that acts on it because it
+  /// decides whether a number reaches the user without review, which is the
+  /// kind of rule that should be readable next to the confidence model it
+  /// depends on — and testable without pumping a card.
+  bool get isConfidentEnoughToPrefill =>
+      state == TrackerState.tracking &&
+      confidenceBand != ConfidenceBand.low &&
+      proposedReps > 0;
 
   /// Derived: `RepFeatures.fromJson(featuresJson)`. Null both when nothing
   /// was captured and when the stored vector's `v` key does not match the

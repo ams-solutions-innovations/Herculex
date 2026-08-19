@@ -22,11 +22,38 @@ Usage:
     python tool/catalog_cleanup.py --write    # rewrite exercises.json
 """
 
+import ast
+import collections
 import json
 import sys
 from collections import OrderedDict
 
 CATALOG = "assets/data/exercises.json"
+
+
+def _assert_no_duplicate_keys():
+    """Fails loudly if a correction table lists the same slug twice.
+
+    Python keeps only the last binding for a repeated dict key, so a second
+    entry for a slug silently discards the first one's overrides. That is
+    invisible in the run report — the row still looks corrected, because the
+    surviving entry reports its own change — and only surfaces after a rebuild
+    from the xlsx, when the dropped fix no longer re-applies.
+    """
+    tree = ast.parse(open(__file__, encoding="utf-8").read())
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        name = getattr(node.targets[0], "id", "")
+        if name not in ("FIELD_FIXES", "RENAMES"):
+            continue
+        keys = [k.value for k in node.value.keys]
+        dupes = [k for k, n in collections.Counter(keys).items() if n > 1]
+        if dupes:
+            raise SystemExit(
+                f"{name} lists these slugs more than once, so the earlier "
+                f"overrides are being dropped: {', '.join(sorted(dupes))}"
+            )
 
 
 # ── Equipment fixes ─────────────────────────────────────────────────────────
@@ -53,8 +80,13 @@ FIELD_FIXES = {
     "hammer-curl": {"equipment": "Dumbbell", "modality": "dumbbell"},
     # Loaded by a band, not a cable stack; the "pushdown" keyword won.
     "band-triceps-pushdown": {"equipment": "Band", "modality": "band"},
-    # You are holding a dumbbell. Bodyweight would hide the load field.
-    "dumbbell-glute-bridge": {"equipment": "Dumbbell", "modality": "dumbbell"},
+    # You are holding a dumbbell. Bodyweight would hide the load field — and so
+    # did the `time` metric, which is why the load also had to change here.
+    "dumbbell-glute-bridge": {
+        "equipment": "Dumbbell",
+        "modality": "dumbbell",
+        "loggingMetric": "weight_reps",
+    },
 
     # ── names with no equipment word: derived as "other", actually bodyweight
     "curtsy-lunge": _bw(),
@@ -78,8 +110,18 @@ FIELD_FIXES = {
     "lying-lateral-raise": {"equipment": "Dumbbell", "modality": "dumbbell"},
     "lu-raise": {"equipment": "Dumbbell", "modality": "dumbbell"},
     "ytwli-raises": {"equipment": "Dumbbell", "modality": "dumbbell"},
-    "suitcase-carry": {"equipment": "Dumbbell", "modality": "dumbbell"},
-    "waiter-s-carry": {"equipment": "Kettlebell", "modality": "kettlebell"},
+    # Carries are scored over a set distance, not a duration — see the carry
+    # block below for the rest of the family.
+    "suitcase-carry": {
+        "equipment": "Dumbbell",
+        "modality": "dumbbell",
+        "loggingMetric": "weight_distance",
+    },
+    "waiter-s-carry": {
+        "equipment": "Kettlebell",
+        "modality": "kettlebell",
+        "loggingMetric": "weight_distance",
+    },
     "face-pull": {"equipment": "Cable", "modality": "cable"},
     # A seated calf raise is its own plate-loaded machine.
     "seated-calf-raise": {"equipment": "Machine", "modality": "machine_plate"},
@@ -105,6 +147,49 @@ FIELD_FIXES = {
     "roman-chair-reverse-crunch": _bw(),
     "ab-crunch-bench-angled": _bw(),
     "semi-recumbent-ab-bench-crunch": _bw(),
+
+    # ── Movement pattern drift ──────────────────────────────────────────────
+    # The two trap bar handle heights were derived as different patterns, so
+    # the low-handle row clustered with squats while the high-handle row sat
+    # with the deadlifts. Handle height changes the hip/knee balance, not the
+    # movement: both are a deadlift.
+    "trap-bar-deadlift-low-handles": {"movementPattern": "hinge"},
+
+    # ── Logging metric corrections ──────────────────────────────────────────
+    # Carries are scored over a set distance ("20 m farmer's walk"), not a
+    # duration. `weight_time` also loses the number the lifter actually cares
+    # about, and left Sled Push as the only `weight_distance` row in the
+    # catalog while Sled Drag — the same apparatus — was timed.
+    # (Suitcase Carry and Waiter's Carry are corrected in the equipment block
+    # above, where they already had an entry.)
+    "farmers-walk": {"loggingMetric": "weight_distance"},
+    "dumbbell-farmers-walk": {"loggingMetric": "weight_distance"},
+    "yoke-walk": {"loggingMetric": "weight_distance"},
+    "trap-bar-carry": {"loggingMetric": "weight_distance"},
+    "sled-drag": {"loggingMetric": "weight_distance"},
+
+    # A glute bridge is a rep exercise, not a hold.
+    "glute-bridge": {"loggingMetric": "reps"},
+
+    # Walking lunges are counted in steps. Barbell Walking Lunge was already
+    # `weight_reps`; these two were the outliers.
+    "safety-bar-walking-lunge": {"loggingMetric": "weight_reps"},
+    "dumbbell-walking-lunge": {"loggingMetric": "weight_reps"},
+    # A death march is walking with a dumbbell in each hand, hinging between
+    # steps — its own alias is "Walking KB March". It was derived as bodyweight
+    # because the name carries no equipment word, which then forced the metric
+    # to a timed hold and left the load nowhere to go.
+    "death-march": {
+        "equipment": "Dumbbell",
+        "modality": "dumbbell",
+        "loggingMetric": "weight_reps",
+    },
+
+    # It is a push-up. The hold variant is a separate movement.
+    "pseudo-planche-push-up": {"loggingMetric": "reps"},
+
+    # Skipping is timed, but double-unders are counted — both matter.
+    "jump-rope": {"loggingMetric": "reps_time"},
 }
 
 # Deliberately left as `other`: sled/yoke work, neck harnesses, plate raises and
@@ -122,6 +207,16 @@ RENAMES = {
     "swiss-bar-skull-crusher": ("Swiss Bar Skullcrusher", []),
     # "(DB)" is the only place the catalog abbreviates the equipment.
     "front-raise-db": ("Dumbbell Front Raise", ["Front Raise"]),
+    # Name unchanged; these only add aliases. A "Prowler Push" is a sled push —
+    # Prowler is a brand of sled — so it earns an alias, not the second row it
+    # would otherwise have become when CrossFit coverage was added.
+    "sled-push": ("Sled Push", ["Prowler Push", "Prowler Sprint"]),
+    "push-press": ("Push Press", ["Barbell Push Press"]),
+    "toes-to-bar": ("Toes to Bar", ["T2B", "Toes-to-Bar"]),
+    "ghd-sit-up": ("GHD Sit-Up", ["GHD Situp"]),
+    "kipping-muscle-up": ("Kipping Muscle-Up", ["Ring Kipping Muscle-Up"]),
+    "handstand-push-up": ("Handstand Push-Up", ["HSPU", "Strict HSPU"]),
+    "burpee": ("Burpee", ["Burpees"]),
 }
 
 
@@ -330,6 +425,510 @@ ADDITIONS = [
 ]
 
 
+# ── Conditioning, Olympic and mobility coverage ─────────────────────────────
+# The source spreadsheet was a hypertrophy/powerlifting document, so three of
+# the catalog's seven declared categories were effectively empty: `cardio` held
+# three rows (a jump rope and two treadmill speeds), `crossfit` held one (the
+# sled push), and `mobility` held none at all despite being offered in the
+# picker, the custom-exercise builder and the Supabase default.
+#
+# Category choice: the Olympic lifts are filed under `crossfit` rather than
+# `strength`. The catalog already reserves `powerlifting` for the three
+# competition lifts, so `crossfit` is the sibling bucket where a user of this
+# app looks for a clean or a snatch — and leaving them under `strength` buried
+# them among 245 rows. Aliases carry the alternative vocabulary either way.
+def _cardio(slug, name, aka, primary, primaries, secondaries, equipment,
+            metric, cns, recovery, rest=90):
+    return _row(
+        slug=slug, name=name, aka=aka, bodyPart="Full Body", category="cardio",
+        movementPattern="other", movementPatternRaw="Cardio", modality="other",
+        equipment=equipment, primaryMuscle=primary, primaryMuscles=primaries,
+        secondaryMuscles=secondaries, stabilizers=["Core"], cnsScore=cns,
+        recoveryImpact=recovery, loggingMetric=metric,
+        defaultRestSeconds=rest,
+    )
+
+
+ADDITIONS += [
+    # ── Cardio: machines ────────────────────────────────────────────────────
+    _cardio(
+        "rowing-erg", "Rowing Erg",
+        ["Concept2 Rower", "Row Erg", "Indoor Rower", "Erg", "Rowing Machine"],
+        "Back", ["Lats", "Quads"], ["Glutes", "Hamstrings", "Biceps"],
+        "Rower", "time_distance", 5, 3,
+    ),
+    _cardio(
+        "air-bike", "Air Bike",
+        ["Assault Bike", "Echo Bike", "Fan Bike", "Airdyne"],
+        "Quads", ["Quads", "Hamstrings"], ["Front Delts", "Lats", "Calves"],
+        "Air Bike", "time_calories", 5, 3,
+    ),
+    _cardio(
+        "ski-erg", "Ski Erg", ["SkiErg", "Concept2 SkiErg"],
+        "Back", ["Lats", "Triceps"], ["Abs", "Rear Delts"],
+        "Ski Erg", "time_distance", 4, 3,
+    ),
+    _cardio(
+        "stationary-bike", "Stationary Bike",
+        ["Exercise Bike", "Spin Bike", "Upright Bike", "Cycling Machine"],
+        "Quads", ["Quads"], ["Glutes", "Hamstrings", "Calves"],
+        "Stationary Bike", "time_distance", 3, 2,
+    ),
+    _cardio(
+        "elliptical", "Elliptical", ["Cross Trainer", "Elliptical Trainer"],
+        "Quads", ["Quads", "Glutes"], ["Hamstrings", "Calves"],
+        "Elliptical", "time_distance", 3, 2,
+    ),
+    _cardio(
+        "stair-climber", "Stair Climber",
+        ["StairMaster", "Stepmill", "Stair Machine"],
+        "Glutes", ["Glutes", "Quads"], ["Hamstrings", "Calves"],
+        "Stair Climber", "time", 4, 3,
+    ),
+    _cardio(
+        "incline-treadmill-walk", "Incline Treadmill Walk",
+        ["Incline Walk", "12-3-30"],
+        "Glutes", ["Glutes", "Calves"], ["Quads", "Hamstrings"],
+        "Treadmill", "time_distance", 2, 1, rest=60,
+    ),
+    # ── Cardio: outdoor and field ───────────────────────────────────────────
+    _cardio(
+        "outdoor-run", "Outdoor Run", ["Running", "Road Run", "Trail Run"],
+        "Quads", ["Quads", "Hamstrings"], ["Glutes", "Calves"],
+        "Other", "time_distance", 5, 4,
+    ),
+    _cardio(
+        "outdoor-cycling", "Outdoor Cycling",
+        ["Road Cycling", "Bike Ride", "Cycling"],
+        "Quads", ["Quads"], ["Glutes", "Hamstrings", "Calves"],
+        "Other", "time_distance", 3, 2,
+    ),
+    _cardio(
+        "swimming", "Swimming", ["Swim", "Lap Swimming"],
+        "Back", ["Lats"], ["Front Delts", "Triceps", "Core"],
+        "Other", "time_distance", 4, 3,
+    ),
+    _cardio(
+        "sprint", "Sprint", ["Sprints", "Track Sprint", "Flat Sprint"],
+        "Hamstrings", ["Hamstrings", "Glutes"], ["Quads", "Calves"],
+        "Other", "distance", 8, 4, rest=180,
+    ),
+    _cardio(
+        "hill-sprint", "Hill Sprint", ["Hill Sprints", "Incline Sprint"],
+        "Glutes", ["Glutes", "Quads"], ["Hamstrings", "Calves"],
+        "Other", "distance", 8, 4, rest=180,
+    ),
+    _cardio(
+        "shuttle-run", "Shuttle Run", ["Suicides", "Beep Test", "Line Drill"],
+        "Quads", ["Quads", "Hamstrings"], ["Glutes", "Calves", "Adductors"],
+        "Other", "time", 6, 3, rest=120,
+    ),
+    _cardio(
+        "battle-ropes", "Battle Ropes", ["Battle Rope Waves", "Rope Waves"],
+        "Shoulders", ["Front Delts", "Side Delts"], ["Lats", "Abs", "Forearms"],
+        "Battle Ropes", "time", 4, 2, rest=60,
+    ),
+    _cardio(
+        "double-unders", "Double Unders", ["Double Under", "DU", "Skipping"],
+        "Calves", ["Calves"], ["Quads", "Forearms"],
+        "Jump Rope", "reps_time", 4, 2, rest=60,
+    ),
+
+    # ── Olympic lifts ───────────────────────────────────────────────────────
+    _row(
+        slug="power-clean", name="Power Clean", aka=["Clean (Power)"],
+        bodyPart="Full Body", category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension", modality="barbell",
+        equipment="Barbell", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes", "Hamstrings"],
+        secondaryMuscles=["Traps", "Quads", "Erectors"],
+        stabilizers=["Forearms", "Abs"], cnsScore=9, recoveryImpact=5,
+        defaultRestSeconds=180,
+        similar=["Hang Power Clean", "Squat Clean", "Clean & Jerk",
+                 "Power Snatch"],
+    ),
+    _row(
+        slug="hang-power-clean", name="Hang Power Clean",
+        aka=["Hang Clean"], bodyPart="Full Body", category="crossfit",
+        movementPattern="hinge", movementPatternRaw="Explosive Hip Extension",
+        modality="barbell", equipment="Barbell", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes", "Hamstrings"],
+        secondaryMuscles=["Traps", "Quads"], stabilizers=["Forearms", "Abs"],
+        cnsScore=8, recoveryImpact=4, defaultRestSeconds=180,
+        similar=["Power Clean", "Squat Clean"],
+    ),
+    _row(
+        slug="squat-clean", name="Squat Clean", aka=["Full Clean", "Clean"],
+        bodyPart="Full Body", category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension", modality="barbell",
+        equipment="Barbell", primaryMuscle="Quads",
+        primaryMuscles=["Quads", "Glutes"],
+        secondaryMuscles=["Hamstrings", "Traps", "Erectors"],
+        stabilizers=["Forearms", "Abs"], cnsScore=9, recoveryImpact=5,
+        defaultRestSeconds=240,
+        similar=["Power Clean", "Clean & Jerk", "Front Squat"],
+    ),
+    _row(
+        slug="clean-and-jerk", name="Clean & Jerk", aka=["C&J", "Clean Jerk"],
+        bodyPart="Full Body", category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension + Overhead",
+        modality="barbell", equipment="Barbell", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes", "Quads"],
+        secondaryMuscles=["Front Delts", "Traps", "Triceps"],
+        stabilizers=["Abs", "Erectors"], cnsScore=10, recoveryImpact=5,
+        defaultRestSeconds=300,
+        similar=["Squat Clean", "Push Jerk", "Split Jerk"],
+    ),
+    _row(
+        slug="power-snatch", name="Power Snatch", aka=["Snatch (Power)"],
+        bodyPart="Full Body", category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension", modality="barbell",
+        equipment="Barbell", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes", "Hamstrings"],
+        secondaryMuscles=["Traps", "Side Delts", "Quads"],
+        stabilizers=["Abs", "Forearms"], cnsScore=9, recoveryImpact=5,
+        defaultRestSeconds=180,
+        similar=["Squat Snatch", "Hang Snatch", "Power Clean"],
+    ),
+    _row(
+        slug="hang-snatch", name="Hang Snatch", aka=["Hang Power Snatch"],
+        bodyPart="Full Body", category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension", modality="barbell",
+        equipment="Barbell", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes", "Hamstrings"],
+        secondaryMuscles=["Traps", "Side Delts"],
+        stabilizers=["Abs", "Forearms"], cnsScore=8, recoveryImpact=4,
+        defaultRestSeconds=180, similar=["Power Snatch", "Squat Snatch"],
+    ),
+    _row(
+        slug="squat-snatch", name="Squat Snatch", aka=["Full Snatch", "Snatch"],
+        bodyPart="Full Body", category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension", modality="barbell",
+        equipment="Barbell", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes", "Quads"],
+        secondaryMuscles=["Traps", "Side Delts", "Hamstrings"],
+        stabilizers=["Abs", "Forearms"], cnsScore=10, recoveryImpact=5,
+        defaultRestSeconds=240,
+        similar=["Power Snatch", "Overhead Squat", "Snatch Grip Deadlift"],
+    ),
+    _row(
+        slug="muscle-snatch", name="Muscle Snatch", aka=[],
+        bodyPart="Shoulders", category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension", modality="barbell",
+        equipment="Barbell", primaryMuscle="Shoulders",
+        primaryMuscles=["Side Delts", "Traps"],
+        secondaryMuscles=["Glutes", "Hamstrings"], stabilizers=["Abs"],
+        cnsScore=7, recoveryImpact=3, defaultRestSeconds=150,
+        similar=["Power Snatch", "High Pull"],
+    ),
+    _row(
+        slug="overhead-squat", name="Overhead Squat", aka=["OHS"],
+        bodyPart="Lower Body", category="crossfit", movementPattern="squat",
+        movementPatternRaw="Knee Dominant (Overhead)", modality="barbell",
+        equipment="Barbell", primaryMuscle="Quads",
+        primaryMuscles=["Quads", "Glutes"],
+        secondaryMuscles=["Side Delts", "Traps", "Erectors"],
+        stabilizers=["Abs", "Obliques"], cnsScore=8, recoveryImpact=4,
+        defaultRestSeconds=180,
+        similar=["Squat Snatch", "Front Squat", "Barbell Back Squat"],
+    ),
+    _row(
+        slug="push-jerk", name="Push Jerk", aka=["Power Jerk"],
+        bodyPart="Shoulders", category="crossfit",
+        movementPattern="vertical_push",
+        movementPatternRaw="Vertical Push (Explosive)", modality="barbell",
+        equipment="Barbell", primaryMuscle="Shoulders",
+        primaryMuscles=["Front Delts"],
+        secondaryMuscles=["Triceps", "Traps", "Quads"], stabilizers=["Abs"],
+        cnsScore=8, recoveryImpact=4, defaultRestSeconds=240,
+        similar=["Push Press", "Split Jerk", "Overhead Press"],
+    ),
+    _row(
+        slug="split-jerk", name="Split Jerk", aka=["Jerk"],
+        bodyPart="Shoulders", category="crossfit",
+        movementPattern="vertical_push",
+        movementPatternRaw="Vertical Push (Explosive)", modality="barbell",
+        equipment="Barbell", primaryMuscle="Shoulders",
+        primaryMuscles=["Front Delts"],
+        secondaryMuscles=["Triceps", "Traps", "Quads", "Glutes"],
+        stabilizers=["Abs", "Adductors"], cnsScore=9, recoveryImpact=4,
+        defaultRestSeconds=240, similar=["Push Jerk", "Clean & Jerk"],
+    ),
+    _row(
+        slug="thruster", name="Thruster", aka=["Barbell Thruster"],
+        bodyPart="Full Body", category="crossfit",
+        movementPattern="vertical_push",
+        movementPatternRaw="Front Squat to Overhead Press", modality="barbell",
+        equipment="Barbell", primaryMuscle="Shoulders",
+        primaryMuscles=["Front Delts", "Quads"],
+        secondaryMuscles=["Glutes", "Triceps"], stabilizers=["Abs"],
+        cnsScore=8, recoveryImpact=4, defaultRestSeconds=180,
+        similar=["Front Squat", "Push Press", "Wall Ball"],
+    ),
+
+    # ── CrossFit gymnastics ─────────────────────────────────────────────────
+    _row(
+        slug="bar-muscle-up", name="Bar Muscle-Up", aka=["BMU"],
+        bodyPart="Back", category="crossfit", movementPattern="vertical_pull",
+        movementPatternRaw="Vertical Pull to Push", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Back",
+        primaryMuscles=["Lats"], secondaryMuscles=["Chest", "Triceps", "Biceps"],
+        stabilizers=["Abs", "Forearms"], cnsScore=7, recoveryImpact=3,
+        loggingMetric="reps", supportsWeightedBodyweight=True,
+        defaultRestSeconds=180,
+        similar=["Kipping Muscle-Up", "Strict Muscle-Up", "Chest-to-Bar Pull-Up"],
+    ),
+    _row(
+        slug="chest-to-bar-pull-up", name="Chest-to-Bar Pull-Up",
+        aka=["C2B", "Chest to Bar"], bodyPart="Back", category="crossfit",
+        movementPattern="vertical_pull", movementPatternRaw="Vertical Pull",
+        modality="bodyweight", equipment="Bodyweight", primaryMuscle="Back",
+        primaryMuscles=["Lats"], secondaryMuscles=["Biceps", "Rhomboids"],
+        stabilizers=["Abs", "Forearms"], cnsScore=5, recoveryImpact=2,
+        loggingMetric="reps", supportsWeightedBodyweight=True,
+        defaultRestSeconds=150,
+        similar=["Kipping Pull-Up", "Pull-Up", "Bar Muscle-Up"],
+    ),
+    _row(
+        slug="kipping-pull-up", name="Kipping Pull-Up", aka=["Kip Pull-Up"],
+        bodyPart="Back", category="crossfit", movementPattern="vertical_pull",
+        movementPatternRaw="Vertical Pull (Kipping)", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Back", primaryMuscles=["Lats"],
+        secondaryMuscles=["Biceps", "Abs"], stabilizers=["Forearms"],
+        cnsScore=4, recoveryImpact=2, loggingMetric="reps",
+        supportsWeightedBodyweight=True, defaultRestSeconds=120,
+        similar=["Butterfly Pull-Up", "Pull-Up", "Chest-to-Bar Pull-Up"],
+    ),
+    _row(
+        slug="butterfly-pull-up", name="Butterfly Pull-Up", aka=["Butterfly"],
+        bodyPart="Back", category="crossfit", movementPattern="vertical_pull",
+        movementPatternRaw="Vertical Pull (Kipping)", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Back", primaryMuscles=["Lats"],
+        secondaryMuscles=["Biceps", "Abs"], stabilizers=["Forearms"],
+        cnsScore=4, recoveryImpact=2, loggingMetric="reps",
+        supportsWeightedBodyweight=True, defaultRestSeconds=120,
+        similar=["Kipping Pull-Up", "Chest-to-Bar Pull-Up"],
+    ),
+    _row(
+        slug="rope-climb", name="Rope Climb", aka=["Legless Rope Climb"],
+        bodyPart="Back", category="crossfit", movementPattern="vertical_pull",
+        movementPatternRaw="Vertical Pull (Climbing)", modality="other",
+        equipment="Climbing Rope", primaryMuscle="Back",
+        primaryMuscles=["Lats", "Forearms"],
+        secondaryMuscles=["Biceps", "Abs"], stabilizers=["Hip Flexors"],
+        cnsScore=6, recoveryImpact=3, loggingMetric="reps",
+        defaultRestSeconds=180, similar=["Pull-Up", "Towel Pull-Up"],
+    ),
+    _row(
+        slug="wall-walk", name="Wall Walk", aka=["Wall Climb"],
+        bodyPart="Shoulders", category="crossfit",
+        movementPattern="vertical_push",
+        movementPatternRaw="Vertical Push (Inverted)", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Shoulders",
+        primaryMuscles=["Front Delts"], secondaryMuscles=["Triceps", "Abs"],
+        stabilizers=["Serratus"], cnsScore=5, recoveryImpact=2,
+        loggingMetric="reps", defaultRestSeconds=120,
+        similar=["Handstand Push-Up", "Handstand Walk"],
+    ),
+    _row(
+        slug="handstand-walk", name="Handstand Walk", aka=["HS Walk"],
+        bodyPart="Shoulders", category="crossfit",
+        movementPattern="vertical_push",
+        movementPatternRaw="Vertical Push (Inverted)", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Shoulders",
+        primaryMuscles=["Front Delts", "Side Delts"],
+        secondaryMuscles=["Triceps", "Traps"], stabilizers=["Abs", "Serratus"],
+        cnsScore=6, recoveryImpact=2, loggingMetric="distance",
+        defaultRestSeconds=120, similar=["Wall Walk", "Handstand Push-Up"],
+    ),
+
+    # ── CrossFit conditioning ───────────────────────────────────────────────
+    _row(
+        slug="wall-ball", name="Wall Ball", aka=["Wall Ball Shot", "WBS"],
+        bodyPart="Full Body", category="crossfit", movementPattern="squat",
+        movementPatternRaw="Squat to Throw", modality="other",
+        equipment="Medicine Ball", primaryMuscle="Quads",
+        primaryMuscles=["Quads", "Front Delts"],
+        secondaryMuscles=["Glutes", "Triceps"], stabilizers=["Abs"],
+        cnsScore=5, recoveryImpact=3, defaultRestSeconds=90,
+        similar=["Thruster", "Front Squat", "Ball Slam"],
+    ),
+    _row(
+        slug="ball-slam", name="Ball Slam", aka=["Medicine Ball Slam", "Slam Ball"],
+        bodyPart="Core & Abs", category="crossfit", movementPattern="core",
+        movementPatternRaw="Explosive Trunk Flexion", modality="other",
+        equipment="Medicine Ball", primaryMuscle="Abs",
+        primaryMuscles=["Abs"], secondaryMuscles=["Lats", "Front Delts"],
+        stabilizers=["Obliques"], cnsScore=4, recoveryImpact=2,
+        defaultRestSeconds=60, similar=["Wall Ball", "Cable Woodchopper"],
+    ),
+    _row(
+        slug="box-jump-over", name="Box Jump Over", aka=["BJO"],
+        bodyPart="Lower Body", category="crossfit", movementPattern="squat",
+        movementPatternRaw="Explosive Knee Dominant", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Quads",
+        primaryMuscles=["Quads"], secondaryMuscles=["Glutes", "Calves"],
+        stabilizers=["Abs"], cnsScore=6, recoveryImpact=3,
+        loggingMetric="reps", defaultRestSeconds=120,
+        similar=["Box Jump", "Burpee Box Jump Over"],
+    ),
+    _row(
+        slug="burpee-box-jump-over", name="Burpee Box Jump Over",
+        aka=["BBJO"], bodyPart="Full Body", category="crossfit",
+        movementPattern="other", movementPatternRaw="Full Body Conditioning",
+        modality="bodyweight", equipment="Bodyweight", primaryMuscle="Quads",
+        primaryMuscles=["Quads", "Chest"],
+        secondaryMuscles=["Glutes", "Triceps", "Calves"],
+        stabilizers=["Abs"], cnsScore=6, recoveryImpact=3,
+        loggingMetric="reps", defaultRestSeconds=120,
+        similar=["Burpee", "Box Jump Over"],
+    ),
+    _row(
+        slug="devils-press", name="Devil's Press", aka=["Devil Press"],
+        bodyPart="Full Body", category="crossfit", movementPattern="other",
+        movementPatternRaw="Burpee to Overhead", modality="dumbbell",
+        equipment="Dumbbell", primaryMuscle="Shoulders",
+        primaryMuscles=["Front Delts", "Glutes"],
+        secondaryMuscles=["Chest", "Hamstrings", "Triceps"],
+        stabilizers=["Abs"], cnsScore=7, recoveryImpact=4,
+        defaultRestSeconds=150, similar=["Man Maker", "Dumbbell Snatch",
+                                         "Burpee"],
+    ),
+    _row(
+        slug="dumbbell-snatch", name="Dumbbell Snatch",
+        aka=["DB Snatch", "Single-Arm Dumbbell Snatch"], bodyPart="Full Body",
+        category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension", modality="dumbbell",
+        equipment="Dumbbell", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes", "Hamstrings"],
+        secondaryMuscles=["Side Delts", "Traps"], stabilizers=["Abs", "Obliques"],
+        cnsScore=7, recoveryImpact=3, defaultRestSeconds=120,
+        similar=["Power Snatch", "Devil's Press", "Kettlebell Swing"],
+    ),
+    _row(
+        slug="man-maker", name="Man Maker", aka=["Manmaker"],
+        bodyPart="Full Body", category="crossfit", movementPattern="other",
+        movementPatternRaw="Full Body Complex", modality="dumbbell",
+        equipment="Dumbbell", primaryMuscle="Shoulders",
+        primaryMuscles=["Front Delts", "Chest"],
+        secondaryMuscles=["Lats", "Quads", "Triceps"], stabilizers=["Abs"],
+        cnsScore=7, recoveryImpact=4, defaultRestSeconds=180,
+        similar=["Devil's Press", "Burpee"],
+    ),
+    _row(
+        slug="sandbag-clean", name="Sandbag Clean",
+        aka=["Sandbag Clean to Shoulder", "Bag Clean"], bodyPart="Full Body",
+        category="crossfit", movementPattern="hinge",
+        movementPatternRaw="Explosive Hip Extension", modality="other",
+        equipment="Sandbag", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes", "Hamstrings"],
+        secondaryMuscles=["Erectors", "Traps", "Biceps"],
+        stabilizers=["Abs", "Forearms"], cnsScore=7, recoveryImpact=4,
+        defaultRestSeconds=180, similar=["Power Clean", "Atlas Stone Lift"],
+    ),
+    _row(
+        slug="sled-rope-pull", name="Sled Rope Pull",
+        aka=["Sled Pull", "Rope Sled Pull", "Hand-Over-Hand Sled Pull"],
+        bodyPart="Back", category="crossfit", movementPattern="carry",
+        movementPatternRaw="Horizontal Pull (Loaded)", modality="other",
+        equipment="Sled/Yoke", primaryMuscle="Back",
+        primaryMuscles=["Lats", "Biceps"],
+        secondaryMuscles=["Rhomboids", "Rear Delts", "Forearms"],
+        stabilizers=["Abs", "Erectors"], cnsScore=5, recoveryImpact=3,
+        loggingMetric="weight_distance", defaultRestSeconds=120,
+        similar=["Sled Drag", "Sled Push", "Barbell Row"],
+    ),
+
+    # ── Mobility ────────────────────────────────────────────────────────────
+    _row(
+        slug="90-90-hip-switch", name="90-90 Hip Switch",
+        aka=["90/90 Hip Switch", "90 90 Hip Rotation"], bodyPart="Lower Body",
+        category="mobility", movementPattern="other",
+        movementPatternRaw="Hip Rotation", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Glutes",
+        primaryMuscles=["Glutes"], secondaryMuscles=["Adductors", "Hip Flexors"],
+        stabilizers=["Abs"], cnsScore=1, recoveryImpact=1,
+        loggingMetric="reps", defaultRestSeconds=45,
+        similar=["Cossack Squat", "Couch Stretch"],
+    ),
+    _row(
+        slug="couch-stretch", name="Couch Stretch",
+        aka=["Quad and Hip Flexor Stretch"], bodyPart="Lower Body",
+        category="mobility", movementPattern="other",
+        movementPatternRaw="Hip Flexor Stretch", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Quads",
+        primaryMuscles=["Hip Flexors", "Quads"], secondaryMuscles=[],
+        stabilizers=["Abs"], cnsScore=1, recoveryImpact=1,
+        loggingMetric="time", defaultRestSeconds=30,
+        similar=["90-90 Hip Switch", "ATG Split Squat"],
+    ),
+    _row(
+        slug="thoracic-extension", name="Thoracic Extension",
+        aka=["Foam Roller Thoracic Opener", "T-Spine Extension"],
+        bodyPart="Back", category="mobility", movementPattern="other",
+        movementPatternRaw="Thoracic Mobility", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Back",
+        primaryMuscles=["Erectors"], secondaryMuscles=["Rhomboids"],
+        stabilizers=["Abs"], cnsScore=1, recoveryImpact=1,
+        loggingMetric="time", defaultRestSeconds=30,
+        similar=["Wall Slide", "Band Shoulder Dislocate"],
+    ),
+    _row(
+        slug="atg-split-squat", name="ATG Split Squat",
+        aka=["Ass-to-Grass Split Squat", "Deep Split Squat"],
+        bodyPart="Lower Body", category="mobility", movementPattern="lunge",
+        movementPatternRaw="Knee Dominant (Deep Range)", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Quads",
+        primaryMuscles=["Quads"], secondaryMuscles=["Glutes", "Hip Flexors"],
+        stabilizers=["Abs"], cnsScore=2, recoveryImpact=1,
+        loggingMetric="reps", supportsWeightedBodyweight=True,
+        defaultRestSeconds=60,
+        similar=["Bulgarian Split Squat", "Couch Stretch"],
+    ),
+    _row(
+        slug="jefferson-curl", name="Jefferson Curl", aka=["Jefferson Roll"],
+        bodyPart="Back", category="mobility", movementPattern="hinge",
+        movementPatternRaw="Spinal Flexion (Loaded)", modality="dumbbell",
+        equipment="Dumbbell", primaryMuscle="Hamstrings",
+        primaryMuscles=["Hamstrings", "Erectors"], secondaryMuscles=["Glutes"],
+        stabilizers=["Abs"], cnsScore=2, recoveryImpact=2,
+        defaultRestSeconds=60, similar=["Romanian Deadlift", "Good Morning"],
+    ),
+    _row(
+        slug="deep-squat-hold", name="Deep Squat Hold",
+        aka=["Third World Squat", "Malasana"], bodyPart="Lower Body",
+        category="mobility", movementPattern="squat",
+        movementPatternRaw="Knee Dominant (Isometric)", modality="bodyweight",
+        equipment="Bodyweight", primaryMuscle="Adductors",
+        primaryMuscles=["Adductors", "Glutes"], secondaryMuscles=["Quads"],
+        stabilizers=["Abs", "Tibialis"], cnsScore=1, recoveryImpact=1,
+        loggingMetric="time", defaultRestSeconds=45,
+        similar=["Cossack Squat", "Couch Stretch"],
+    ),
+    _row(
+        slug="band-shoulder-dislocate", name="Band Shoulder Dislocate",
+        aka=["Shoulder Dislocates", "Band Pass-Through"], bodyPart="Shoulders",
+        category="mobility", movementPattern="other",
+        movementPatternRaw="Shoulder Mobility", modality="band",
+        equipment="Band", primaryMuscle="Shoulders",
+        primaryMuscles=["Front Delts", "Rear Delts"], secondaryMuscles=["Traps"],
+        stabilizers=["Serratus"], cnsScore=1, recoveryImpact=1,
+        loggingMetric="reps", defaultRestSeconds=30,
+        similar=["Wall Slide", "Thoracic Extension"],
+    ),
+    _row(
+        slug="wall-slide", name="Wall Slide", aka=["Wall Angel"],
+        bodyPart="Shoulders", category="mobility",
+        movementPattern="vertical_push", movementPatternRaw="Scapular Mobility",
+        modality="bodyweight", equipment="Bodyweight",
+        primaryMuscle="Shoulders", primaryMuscles=["Traps", "Rear Delts"],
+        secondaryMuscles=["Serratus"], stabilizers=["Abs"], cnsScore=1,
+        recoveryImpact=1, loggingMetric="reps", defaultRestSeconds=30,
+        similar=["Band Shoulder Dislocate", "Thoracic Extension"],
+    ),
+]
+
+
 def apply(catalog):
     """Returns (catalog, report). Idempotent."""
     by_slug = OrderedDict((r["slug"], r) for r in catalog)
@@ -438,6 +1037,7 @@ def _add_aliases(row, aliases):
 
 
 def main():
+    _assert_no_duplicate_keys()
     write = "--write" in sys.argv
     with open(CATALOG, encoding="utf-8") as f:
         catalog = json.load(f)

@@ -18,6 +18,7 @@ import 'package:herculex/features/reps/presentation/rep_review_sheet.dart';
 import 'package:herculex/features/reps/presentation/rep_tracker_panel.dart';
 import 'package:herculex/features/reps/presentation/rep_tracking_providers.dart';
 
+import 'support/rep_profiles.dart';
 import 'support/test_database.dart';
 
 /// Deterministic synthetic trace generator, scoped to this test file (there
@@ -114,15 +115,19 @@ String _captureEndJson({
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  loadRepProfilesForTest();
 
   late AppDatabase db;
   late RepTrackingRepository repo;
   late RepCaptureService captureService;
   late PhoneMotionSource phoneSource;
 
+  /// Consent, then the single global switch. Per-exercise state is no longer
+  /// what enables anything — a missing pref row means "follow the global
+  /// switch", so this is all that is needed.
   Future<void> grantAndEnable(String slug) async {
     await repo.grantConsent(version: 1);
-    await repo.setExerciseEnabled(slug, true);
+    await repo.setAutoCountEnabled(true);
   }
 
   Widget wrap(Widget child, {List<Override> extraOverrides = const []}) {
@@ -172,7 +177,7 @@ void main() {
       expect(find.byType(RepTrackerPanel), findsOneWidget);
       final size = tester.getSize(find.byType(RepTrackerPanel));
       expect(size, Size.zero);
-      expect(find.text('Start tracking'), findsNothing);
+      expect(find.text('Start'), findsNothing);
     });
 
     testWidgets('ready renders a start control and no count', (tester) async {
@@ -190,7 +195,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Start tracking'), findsOneWidget);
+      expect(find.text('Start'), findsOneWidget);
       expect(find.textContaining('reps proposed'), findsNothing);
       expect(find.textContaining('Tracking'), findsNothing);
     });
@@ -220,7 +225,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Start tracking'));
+      await tester.tap(find.text('Start'));
       await tester.pump();
 
       captureService.handleCaptureStart(
@@ -263,7 +268,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Start tracking'));
+      await tester.tap(find.text('Start'));
       await tester.pump();
 
       // A capture_end for a captureId this service never saw a start for
@@ -296,7 +301,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Start tracking'), findsOneWidget);
+      expect(find.text('Start'), findsOneWidget);
 
       await repo.revokeConsent();
       // Force the FutureProvider to re-fetch rather than serve its cached
@@ -311,7 +316,7 @@ void main() {
 
       final size = tester.getSize(find.byType(RepTrackerPanel));
       expect(size, Size.zero);
-      expect(find.text('Start tracking'), findsNothing);
+      expect(find.text('Start'), findsNothing);
     });
   });
 
@@ -327,7 +332,7 @@ void main() {
         RepSuggestion(
           captureId: 'cap-review',
           exerciseSlug: 'pull-up',
-          movement: RepMovement.pullUp,
+          movement: RepMovement.verticalPull,
           source: 'wrist',
           placement: null,
           sensorType: MotionSensorType.linearAcceleration,

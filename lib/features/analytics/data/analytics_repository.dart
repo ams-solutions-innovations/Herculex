@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../data/local/database.dart';
+import '../../workouts/domain/logging_metric.dart';
 import '../../workouts/domain/one_rep_max.dart';
 
 class WeeklyTonnage {
@@ -27,6 +28,10 @@ class AnalyticsRepository {
   AnalyticsRepository(this._db);
 
   /// Total kg moved (weight × reps), grouped by ISO week, last [weeks] weeks.
+  ///
+  /// Only rep-based exercises contribute (EXR-05): a sled push is real work but
+  /// it is not tonnage, and a plank has no reps to multiply by. The catalogue
+  /// join exists solely to read `loggingMetric` for that decision.
   Future<List<WeeklyTonnage>> weeklyTonnage({int weeks = 12}) async {
     final now = DateTime.now();
     final startOfThisWeek = _weekStart(now);
@@ -41,13 +46,18 @@ class AnalyticsRepository {
         _db.workoutSessions,
         _db.workoutSessions.id.equalsExp(_db.workoutExercises.sessionId),
       ),
+      innerJoin(
+        _db.exerciseCatalog,
+        _db.exerciseCatalog.id.equalsExp(_db.workoutExercises.exerciseId),
+      ),
     ])
           ..where(_db.setEntries.isCompleted.equals(true) &
               _db.setEntries.isWarmup.equals(false) &
               _db.workoutSessions.startedAt.isBiggerOrEqualValue(from) &
               _db.setEntries.deletedAt.isNull() &
               _db.workoutExercises.deletedAt.isNull() &
-              _db.workoutSessions.deletedAt.isNull()))
+              _db.workoutSessions.deletedAt.isNull() &
+              _db.exerciseCatalog.deletedAt.isNull()))
         .get();
 
     final buckets = <DateTime, double>{
@@ -56,6 +66,8 @@ class AnalyticsRepository {
     };
 
     for (final r in rows) {
+      final exercise = r.readTable(_db.exerciseCatalog);
+      if (!LoggingMetric.fromId(exercise.loggingMetric).isRepBased) continue;
       final set = r.readTable(_db.setEntries);
       final session = r.readTable(_db.workoutSessions);
       final ws = _weekStart(session.startedAt);
@@ -89,6 +101,11 @@ class AnalyticsRepository {
     for (final r in rows) {
       final set = r.readTable(_db.setEntries);
       final ex = r.readTable(_db.exerciseCatalog);
+      // A 1RM is a weight for a rep. An exercise measured in seconds, metres
+      // or calories has no such number, and estimating one from the NOT NULL
+      // zeros it stores would be a fabrication (EXR-05).
+      final metric = LoggingMetric.fromId(ex.loggingMetric);
+      if (!metric.isRepBased || !metric.isLoaded) continue;
       final est = OneRepMax.estimate(weightKg: set.weightKg, reps: set.reps);
       if (est == null) continue;
       final existing = best[ex.id];

@@ -2,8 +2,11 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/units.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../domain/logging_metric.dart';
+import '../domain/set_metric_format.dart';
 import 'equipment_variant_sheet.dart';
 
 import 'rest_timer_controller.dart';
@@ -142,7 +145,14 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                       const SizedBox(height: 24),
                       if (nextSet != null) ...[
                         Text(
-                          '${_fmtWeight(nextSet.weightKg)} kg × ${nextSet.reps}',
+                          SetMetricFormat.summariseSet(
+                            nextSet,
+                            metric: LoggingMetric.fromId(
+                              exercise.loggingMetric,
+                            ),
+                            weight: ref.watch(weightFormatProvider),
+                            distance: ref.watch(distanceFormatProvider),
+                          ),
                           style: theme.textTheme.displayMedium?.copyWith(
                             fontSize: 44,
                             color: AppColors.primary,
@@ -253,8 +263,6 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
   String _fmtSeconds(int s) =>
       '${(s ~/ 60).toString().padLeft(1, '0')}:${(s % 60).toString().padLeft(2, '0')}';
 
-  String _fmtWeight(double v) =>
-      v.truncateToDouble() == v ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 }
 
 class _DynamicSetAccessoryPills extends ConsumerWidget {

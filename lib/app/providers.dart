@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../core/env.dart';
 import '../data/local/database.dart';
+import '../features/auth/data/account_deletion_service.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/local_auth_repository.dart';
 import '../features/auth/data/supabase_auth_service.dart';
@@ -95,6 +96,17 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   );
   ref.onDispose(repo.dispose);
   return repo;
+});
+
+/// Owns the whole "delete my account" flow — remote account, local database
+/// and preferences. Kept separate from [authRepositoryProvider] so the auth
+/// layer stays free of Drift and `SharedPreferences` dependencies.
+final accountDeletionServiceProvider = Provider<AccountDeletionService>((ref) {
+  return AccountDeletionService(
+    authRepository: ref.watch(authRepositoryProvider),
+    database: ref.watch(appDatabaseProvider),
+    preferences: ref.watch(sharedPreferencesProvider),
+  );
 });
 
 final authSessionProvider = StreamProvider<AuthSession?>((ref) {

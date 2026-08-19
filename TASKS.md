@@ -17,6 +17,11 @@ items live in `BLOCKERS.md`, not here.
   - `docs/PRIVACY_POLICY.md` (GDPR & App Store Guideline 5.1.1 compliant)
   - `docs/TERMS_OF_SERVICE.md` (Health & medical liability disclaimers)
   - `docs/GDPR_ARTICLE_9_COMPLIANCE.md` (Legal & technical protection memo)
+- [x] **In-app Account Deletion (App Store 5.1.1(v) / GDPR Art. 17)**: `delete-account`
+      Edge Function (deployed, `verify_jwt = true`), `AccountDeletionService`,
+      `wipeAllLocalUserData`, and the Profile → Account → Delete Account entry.
+      Deletion order is remote-first so a failure leaves the device intact.
+      `docs/DATA_TRUTH_TABLE.md` documents what each store gives up.
 - [ ] **Deploy Privacy Policy & ToS to AMS Solutions Studio Website**: Publish static pages on `amssolutions.studio/herculex/privacy` and `amssolutions.studio/herculex/terms` for App Store Connect submission (strictly separate from Tremble).
 - [ ] **App Store Connect Setup & Metadata**: Prepare screenshots, app description, and provide test account credentials.
 

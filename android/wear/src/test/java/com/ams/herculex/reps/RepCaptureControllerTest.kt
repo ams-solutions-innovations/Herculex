@@ -26,9 +26,12 @@ class RepCaptureControllerTest {
             private set
         var unregisterCount = 0
             private set
-        var onSample: ((Long, Float, Float, Float) -> Unit)? = null
+        var onSample: ((RepSample) -> Unit)? = null
 
-        override fun registerListener(onSample: (Long, Float, Float, Float) -> Unit): String? {
+        override fun registerListener(
+            rate: CaptureRate,
+            onSample: (RepSample) -> Unit,
+        ): String? {
             if (availableSensor == null) return null
             registerCount += 1
             this.onSample = onSample
@@ -78,7 +81,7 @@ class RepCaptureControllerTest {
     ) {
         var t = startTMs
         repeat(count) {
-            gateway.onSample?.invoke(t, 0f, 0f, 5f)
+            gateway.onSample?.invoke(RepSample(t, 0f, 0f, 5f))
             t += 20L
             clock.advance(20L)
         }

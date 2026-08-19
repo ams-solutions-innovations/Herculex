@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/reps/data/rep_tracking_repository.dart';
 
+import 'support/rep_profiles.dart';
 import 'support/test_database.dart';
 
 void main() {
+  loadRepProfilesForTest();
   late AppDatabase db;
   late RepTrackingRepository repo;
 
@@ -69,14 +71,79 @@ void main() {
       },
     );
 
-    test('isEnabledFor is true only once consent and the pref agree', () async {
+    test('consent alone does not enable anything', () async {
       await repo.grantConsent(version: 1);
       expect(await repo.isEnabledFor('pull-up'), isFalse);
+      expect(await repo.isEnabledFor('barbell-bench-press'), isFalse);
+    });
 
-      await repo.setExerciseEnabled('pull-up', true);
+    test('the global switch enables every measurable exercise at once', () async {
+      // The point of the rework. One decision, not one per exercise — and
+      // notice bench press comes on too, which the seven-slug model could
+      // never have offered.
+      await repo.grantConsent(version: 1);
+      await repo.setAutoCountEnabled(true);
+
+      expect(await repo.isEnabledFor('pull-up'), isTrue);
+      expect(await repo.isEnabledFor('barbell-bench-press'), isTrue);
+      expect(await repo.isEnabledFor('dumbbell-curl'), isTrue);
+    });
+
+    test('an unmeasurable exercise stays off however the switches are set', () async {
+      await repo.grantConsent(version: 1);
+      await repo.setAutoCountEnabled(true);
+
+      expect(await repo.isEnabledFor('seated-leg-curl'), isFalse);
+      expect(await repo.isEnabledFor('machine-neck-curl'), isFalse);
+    });
+
+    test('the per-exercise control can only ever exclude', () async {
+      await repo.grantConsent(version: 1);
+      await repo.setAutoCountEnabled(true);
       expect(await repo.isEnabledFor('pull-up'), isTrue);
 
       await repo.setExerciseEnabled('pull-up', false);
+      expect(await repo.isEnabledFor('pull-up'), isFalse);
+      expect(
+        await repo.isEnabledFor('barbell-bench-press'),
+        isTrue,
+        reason: 'excluding one exercise must not touch the others',
+      );
+
+      await repo.setExerciseEnabled('pull-up', true);
+      expect(await repo.isEnabledFor('pull-up'), isTrue);
+    });
+
+    test('an override cannot switch anything on by itself', () async {
+      await repo.grantConsent(version: 1);
+      await repo.setExerciseEnabled('pull-up', true);
+
+      expect(
+        await repo.isEnabledFor('pull-up'),
+        isFalse,
+        reason: 'the global switch is still off',
+      );
+    });
+
+    test('the global switch is refused until consent is granted', () async {
+      // Consent is a decision about data handling; this is a decision about a
+      // feature. Storing the second before the first would let the consent
+      // screen's own grant button silently start sensing.
+      expect(() => repo.setAutoCountEnabled(true), throwsStateError);
+    });
+
+    test('revoking consent clears the global switch too', () async {
+      await repo.grantConsent(version: 1);
+      await repo.setAutoCountEnabled(true);
+
+      await repo.revokeConsent();
+      await repo.grantConsent(version: 1);
+
+      expect(
+        (await repo.settings())!.autoCountEnabled,
+        isFalse,
+        reason: 're-granting consent must not resume sensing on its own',
+      );
       expect(await repo.isEnabledFor('pull-up'), isFalse);
     });
 
@@ -92,15 +159,29 @@ void main() {
   });
 
   group('setExerciseEnabled eligibility guard', () {
-    test('throws for an excluded slug', () async {
+    test('throws for an exercise no sensor site can measure', () async {
+      // These are not "not yet supported" — they are permanently
+      // unmeasurable. A seated leg curl straps the femur down and moves only
+      // the shin, and a neck curl moves the head; neither the watch nor a
+      // pocketed phone rides the segment that travels.
+      //
+      // Note what is *no longer* here: bench-dip and band-assisted-dip used
+      // to throw, because eligibility was a closed seven-slug list. Both are
+      // hands-anchored bodyweight work and are now measurable from a pocket,
+      // so refusing them would be refusing something that works.
       await repo.grantConsent(version: 1);
       expect(
-        () => repo.setExerciseEnabled('bench-dip', true),
+        () => repo.setExerciseEnabled('seated-leg-curl', true),
         throwsArgumentError,
       );
       expect(
-        () => repo.setExerciseEnabled('band-assisted-dip', true),
+        () => repo.setExerciseEnabled('machine-neck-curl', true),
         throwsArgumentError,
+      );
+      expect(
+        () => repo.setExerciseEnabled('plank', true),
+        throwsArgumentError,
+        reason: 'not rep-based at all',
       );
       expect(await db.select(db.repTrackingExercisePrefs).get(), isEmpty);
     });

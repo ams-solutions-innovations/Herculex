@@ -17,6 +17,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'core/env.dart';
 import 'features/auth/data/secure_auth_storage.dart';
 import 'features/nutrition/data/wear_sync_service.dart';
+import 'features/reps/data/rep_profile_loader.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,14 @@ Future<void> main() async {
     tz.setLocalLocation(tz.getLocation(deviceTz.identifier));
   } catch (_) {}
   WearSyncService.initialize();
+
+  // Assisted rep tracking reads its per-exercise capability profiles from an
+  // asset into an in-memory registry, so this has to run on every launch —
+  // unlike the exercise catalogue, which is imported into the database on
+  // install and migration only. Until it completes, every exercise reports as
+  // unsupported and no tracking surfaces anywhere; the load is best-effort and
+  // never blocks startup on failure.
+  await RepProfileLoader.load();
 
   // Guarded so tests and credential-less dev builds still run — the app is
   // local-first and stays fully usable without a backend.

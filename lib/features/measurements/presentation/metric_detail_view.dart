@@ -8,6 +8,8 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 
+import 'body_fat_ai_dialog.dart';
+
 final _metricHistoryProvider =
     StreamProvider.family<List<BodyMeasurementData>, String>((ref, metric) {
   return ref.watch(measurementsRepositoryProvider).watchMetric(metric);
@@ -20,6 +22,7 @@ class MetricDetailView extends ConsumerStatefulWidget {
 
   static const labels = <String, String>{
     'bodyweight': 'Bodyweight',
+    'body_fat': 'Body Fat',
     'neck': 'Neck',
     'chest': 'Chest',
     'arms_l': 'Arm (L)',
@@ -41,7 +44,9 @@ class MetricDetailView extends ConsumerStatefulWidget {
 
 class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
   String get _label => MetricDetailView.getLabel(widget.metric);
-  String get _unit => widget.metric == 'bodyweight' ? 'kg' : 'cm';
+  String get _unit => widget.metric == 'bodyweight'
+      ? 'kg'
+      : (widget.metric == 'body_fat' ? '%' : 'cm');
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +57,17 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
       appBar: AppBar(
         title: Text(_label),
         centerTitle: true,
+        actions: [
+          if (widget.metric == 'body_fat')
+            IconButton(
+              icon: Icon(Icons.auto_awesome, color: AppColors.primary),
+              tooltip: 'Gemini AI Ocena',
+              onPressed: () {
+                Haptics.selection();
+                BodyFatAiDialog.show(context);
+              },
+            ),
+        ],
       ),
       body: historyAsync.when(
         data: (rows) {
@@ -132,7 +148,8 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                                 : Icons.trending_down,
                             accentColor: diffTotal == 0
                                 ? AppColors.secondary
-                                : (widget.metric == 'bodyweight'
+                                : ((widget.metric == 'bodyweight' ||
+                                        widget.metric == 'body_fat')
                                     ? (diffTotal < 0
                                         ? Colors.green
                                         : Colors.orange)
@@ -380,24 +397,68 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
   }
 
   Widget _bottomLogButton(BuildContext context) {
+    final isBodyFat = widget.metric == 'body_fat';
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: FilledButton.icon(
-            onPressed: () => _logEntry(context),
-            icon: const Icon(Icons.add),
-            label: Text('Log $_label'),
-            style: FilledButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+        child: isBodyFat
+            ? Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Haptics.selection();
+                          BodyFatAiDialog.show(context);
+                        },
+                        icon: const Icon(Icons.auto_awesome, size: 18),
+                        label: const Text('AI Ocena'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: FilledButton.icon(
+                        onPressed: () => _logEntry(context),
+                        icon: const Icon(Icons.add),
+                        label: Text('Ročni vnos'),
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton.icon(
+                  onPressed: () => _logEntry(context),
+                  icon: const Icon(Icons.add),
+                  label: Text('Log $_label'),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }

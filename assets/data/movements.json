@@ -78,6 +78,14 @@
     "canonicalExerciseSlug": "dumbbell-curl"
   },
   {
+    "slug": "deadlift-hinge",
+    "label": "Deadlift",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "conventional-deadlift"
+  },
+  {
     "slug": "decline-press-horizontal-push",
     "label": "Decline Press",
     "allowedEquipment": [
@@ -125,6 +133,7 @@
     "label": "Fly",
     "allowedEquipment": [
       "dumbbell",
+      "cable",
       "bodyweight"
     ],
     "canonicalExerciseSlug": "dumbbell-fly"
@@ -223,14 +232,6 @@
       "smith"
     ],
     "canonicalExerciseSlug": "barbell-inverted-row"
-  },
-  {
-    "slug": "inverted-row-feet-elevated-horizontal-pull",
-    "label": "Inverted Row Feet Elevated",
-    "allowedEquipment": [
-      "bodyweight"
-    ],
-    "canonicalExerciseSlug": "barbell-inverted-row-feet-elevated"
   },
   {
     "slug": "jm-press-isolation",
@@ -350,28 +351,12 @@
     "canonicalExerciseSlug": "barbell-bench-press"
   },
   {
-    "slug": "pull-up-neutral-grip-vertical-pull",
-    "label": "Pull Up Neutral Grip",
+    "slug": "pull-up-vertical-pull",
+    "label": "Pull Up",
     "allowedEquipment": [
       "bodyweight"
     ],
-    "canonicalExerciseSlug": "pull-up-neutral-grip"
-  },
-  {
-    "slug": "pull-up-super-wide-vertical-pull",
-    "label": "Pull Up Super Wide",
-    "allowedEquipment": [
-      "bodyweight"
-    ],
-    "canonicalExerciseSlug": "pull-up-super-wide"
-  },
-  {
-    "slug": "pull-up-wide-grip-vertical-pull",
-    "label": "Pull Up Wide Grip",
-    "allowedEquipment": [
-      "bodyweight"
-    ],
-    "canonicalExerciseSlug": "pull-up-wide-grip"
+    "canonicalExerciseSlug": "pull-up"
   },
   {
     "slug": "pullover-vertical-pull",
@@ -393,12 +378,20 @@
     "canonicalExerciseSlug": "push-press"
   },
   {
-    "slug": "push-up-knee-horizontal-push",
-    "label": "Push Up Knee",
+    "slug": "push-up-horizontal-push",
+    "label": "Push Up",
     "allowedEquipment": [
       "bodyweight"
     ],
-    "canonicalExerciseSlug": "ring-push-up-knees"
+    "canonicalExerciseSlug": "standard-push-up"
+  },
+  {
+    "slug": "rack-pull-hinge",
+    "label": "Rack Pull",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "rack-pull-mid-thigh"
   },
   {
     "slug": "rear-delt-fly-horizontal-pull",
@@ -449,7 +442,8 @@
     "slug": "row-horizontal-pull",
     "label": "Row",
     "allowedEquipment": [
-      "barbell"
+      "barbell",
+      "bodyweight"
     ],
     "canonicalExerciseSlug": "barbell-row"
   },
@@ -460,6 +454,14 @@
       "barbell"
     ],
     "canonicalExerciseSlug": "seal-row"
+  },
+  {
+    "slug": "seated-row-horizontal-pull",
+    "label": "Seated Row",
+    "allowedEquipment": [
+      "cable"
+    ],
+    "canonicalExerciseSlug": "seated-cable-row-rope"
   },
   {
     "slug": "shrug-isolation",
@@ -524,7 +526,7 @@
       "cable",
       "band"
     ],
-    "canonicalExerciseSlug": "tricep-pushdown-ez-bar"
+    "canonicalExerciseSlug": "tricep-pushdown-rope"
   },
   {
     "slug": "upright-row-vertical-pull",
@@ -533,7 +535,7 @@
       "barbell",
       "dumbbell"
     ],
-    "canonicalExerciseSlug": "upright-row-barbell"
+    "canonicalExerciseSlug": "upright-row-ez-bar"
   },
   {
     "slug": "walking-lunge-lunge",

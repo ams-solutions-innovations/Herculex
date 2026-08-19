@@ -10,6 +10,7 @@ library;
 import 'dart:convert';
 
 import '../../../data/local/database.dart';
+import 'logging_metric.dart';
 
 const _labels = <String, String>{
   'barbell': 'Barbell',
@@ -36,22 +37,26 @@ bool isKnownEquipmentVariant(String variant) => _labels.containsKey(variant);
 /// Leg Curl exists on exactly one machine.
 List<String> equipmentVariantsFor(ExerciseCatalogData exercise) {
   final base = exercise.modality;
-  if (exercise.loggingMetric != 'weight_reps' &&
-      exercise.loggingMetric != 'reps') {
-    return [base]; // time/distance work: no equipment swap.
-  }
   // The movement layer knows which equipment this movement is actually
   // performed with, derived from the catalog rows that share it. Guessing a
   // generic free-weight family instead is what offered a Smith Machine
   // option on a selectorized hamstring curl.
+  //
+  // This is checked before the metric, because an authored list is a fact
+  // about the movement regardless of how it is scored: a Farmer's Walk is
+  // genuinely carried on either handles or dumbbells, and the previous
+  // metric-first guard suppressed that swap purely because carries are not
+  // measured in reps.
   final allowed = decodeAllowedEquipment(exercise.allowedEquipment);
   if (allowed.isNotEmpty) {
     return [base, ...allowed.where((m) => m != base)];
   }
-  if (base == 'bodyweight') {
+  if (base == 'bodyweight' &&
+      LoggingMetric.fromId(exercise.loggingMetric).isRepBased) {
     // Bodyweight movements can be loaded via band assistance or stay pure;
     // added weight is handled by the weighted-bodyweight field, not a
-    // variant switch.
+    // variant switch. Timed holds are excluded — there is no such thing as a
+    // band-assisted plank, and the movement layer has no list to correct it.
     return ['bodyweight', 'band'];
   }
   // No movement: the catalog row already encodes its equipment.

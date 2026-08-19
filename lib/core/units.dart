@@ -14,11 +14,15 @@ class Units {
 
   static const kgPerLb = 0.45359237;
   static const cmPerInch = 2.54;
+  static const mPerYard = 0.9144;
+  static const yardsPerMile = 1760.0;
 
   static double kgToLb(double kg) => kg / kgPerLb;
   static double lbToKg(double lb) => lb * kgPerLb;
   static double cmToInch(double cm) => cm / cmPerInch;
   static double inchToCm(double inch) => inch * cmPerInch;
+  static double mToYard(double m) => m / mPerYard;
+  static double yardToM(double yd) => yd * mPerYard;
 }
 
 /// The user's measurement system, shared app-wide.
@@ -101,6 +105,57 @@ class WeightFormat {
 
 final weightFormatProvider = Provider<WeightFormat>((ref) {
   return WeightFormat(ref.watch(unitsProvider));
+});
+
+/// Distance helpers for the non-rep logging metrics (EXR-05).
+///
+/// Distances are *stored* in metres for the same reason weights are stored in
+/// kilograms — engines and the sync payload never convert. This is the only
+/// place a sled push in yards becomes a sled push in metres.
+///
+/// There is deliberately no separate distance-unit preference: the single
+/// [MeasurementUnit] the profile already owns governs weight, height and this.
+class DistanceFormat {
+  final MeasurementUnit unit;
+  const DistanceFormat(this.unit);
+
+  bool get isMetric => unit == MeasurementUnit.metric;
+
+  /// Short unit label for the input field: `m` or `yd`. Never `km`/`mi` — the
+  /// field is always in the base unit so a 20 m sled push and a 5 km run are
+  /// typed the same way.
+  String get suffix => isMetric ? 'm' : 'yd';
+
+  double toDisplay(double metres) => isMetric ? metres : Units.mToYard(metres);
+
+  double toM(double displayValue) =>
+      isMetric ? displayValue : Units.yardToM(displayValue);
+
+  /// Just the number, for fields and tight layouts.
+  String formatValue(double metres, {int decimals = 1}) {
+    final v = double.parse(toDisplay(metres).toStringAsFixed(decimals));
+    return v.truncateToDouble() == v
+        ? v.toStringAsFixed(0)
+        : v.toStringAsFixed(decimals);
+  }
+
+  /// `20 m` / `5.4 km` / `22 yd` / `3.1 mi`. Promotes to the large unit once
+  /// there is a whole one of it, so a treadmill run does not read as `5400 m`.
+  String format(double metres) {
+    if (isMetric) {
+      return metres >= 1000
+          ? '${(metres / 1000).toStringAsFixed(2)} km'
+          : '${formatValue(metres, decimals: 0)} m';
+    }
+    final yd = Units.mToYard(metres);
+    return yd >= Units.yardsPerMile
+        ? '${(yd / Units.yardsPerMile).toStringAsFixed(2)} mi'
+        : '${yd.round()} yd';
+  }
+}
+
+final distanceFormatProvider = Provider<DistanceFormat>((ref) {
+  return DistanceFormat(ref.watch(unitsProvider));
 });
 
 /// Height helpers, used by the profile form.

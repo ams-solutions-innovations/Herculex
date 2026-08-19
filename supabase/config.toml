@@ -10,3 +10,11 @@ project_id = "ldzgyzigvbwofbswitrv"
 
 [functions.gemini-analyze]
 verify_jwt = true
+
+[functions.product-catalogue-publish]
+verify_jwt = true
+
+# Never false: the function derives the account to delete from the verified
+# JWT alone, so an unverified caller could delete an arbitrary user.
+[functions.delete-account]
+verify_jwt = true

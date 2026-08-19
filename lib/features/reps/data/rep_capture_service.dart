@@ -8,6 +8,7 @@ import '../domain/rep_features.dart';
 import '../domain/rep_movement.dart';
 import '../domain/rep_suggestion.dart';
 import '../domain/rep_tracking_eligibility.dart';
+import '../domain/rep_tracking_profile.dart';
 
 /// One `/herculex/reps/samples` batch, ordered by [seq] before assembly.
 class _Batch {
@@ -55,20 +56,27 @@ class _CaptureState {
 /// rather than a comment: it is 0 for any `captureId` not currently mid
 /// -detection, whether because nothing arrived, detection finished, or
 /// detection threw.
+/// The detection seam: a trace and the exercise's capability profile in, a
+/// count and the channel it was counted on out.
+///
+/// Keyed on the profile rather than on a bare movement because the profile is
+/// what carries the per-channel amplitude floors — the service must not be in
+/// the business of assembling detector configs, or it becomes a second place
+/// where a tilt amplitude can be compared against a m/s² threshold.
+typedef RepDetectFn = (RepDetectionResult, RepChannel?) Function(
+  MotionTrace trace,
+  RepTrackingProfile profile,
+);
+
 class RepCaptureService {
-  RepCaptureService({
-    RepDetectionResult Function(MotionTrace trace, {RepDetectorConfig config})?
-        detect,
-  }) : _detect = detect ?? RepDetector.detect {
+  RepCaptureService({RepDetectFn? detect})
+      : _detect = detect ?? RepDetector.detectForProfile {
     WearSyncService.onWatchRepCaptureStart = _handleCaptureStart;
     WearSyncService.onWatchRepSamples = _handleSamples;
     WearSyncService.onWatchRepCaptureEnd = _handleCaptureEnd;
   }
 
-  final RepDetectionResult Function(
-    MotionTrace trace, {
-    RepDetectorConfig config,
-  }) _detect;
+  final RepDetectFn _detect;
 
   final Map<String, _CaptureState> _captures = {};
 
@@ -142,13 +150,15 @@ class RepCaptureService {
     required String placement,
     required String stoppedReason,
   }) {
-    final movement = movementFor(exerciseSlug);
-    if (movement == null || trace.samples.isEmpty) {
+    final profile = profileFor(exerciseSlug);
+    final movement = profile?.family;
+    if (profile == null || movement == null || trace.samples.isEmpty) {
       return RepSuggestion(
         captureId: captureId,
         exerciseSlug: exerciseSlug,
-        movement: movement ?? RepMovement.pullUp,
+        movement: movement ?? RepMovement.verticalPull,
         source: 'phone',
+        channel: null,
         placement: placement,
         sensorType: trace.sensorType,
         proposedReps: 0,
@@ -166,8 +176,33 @@ class RepCaptureService {
       );
     }
 
-    final result =
-        _detect(trace, config: RepDetectorConfig.forMovement(movement));
+    final (result, channel) = _detect(trace, profile);
+    if (channel == null) {
+      // No candidate channel showed any repeating structure. That is a set we
+      // could not measure, not a set of zero reps — see the same distinction
+      // on the wrist path below.
+      return RepSuggestion(
+        captureId: captureId,
+        exerciseSlug: exerciseSlug,
+        movement: movement,
+        source: 'phone',
+        placement: placement,
+        sensorType: trace.sensorType,
+        channel: null,
+        proposedReps: 0,
+        provisionalCount: null,
+        provisionalDisagrees: false,
+        setConfidence: 0,
+        confidenceBand: ConfidenceBand.low,
+        missedRepSuspected: false,
+        missedBatches: 0,
+        sampleCount: trace.samples.length,
+        coverageRatio: 0,
+        featuresJson: null,
+        state: TrackerState.manual,
+        stateReason: 'no repeating motion detected — count not verified',
+      );
+    }
     var band = RepSuggestion.bandFor(result.setConfidence);
     // A cap-truncated (or otherwise non-'user'-ended) capture is incomplete,
     // the same treatment 10-03b's notes give a non-'user' stoppedReason on
@@ -189,6 +224,7 @@ class RepCaptureService {
       source: 'phone',
       placement: placement,
       sensorType: trace.sensorType,
+      channel: channel,
       proposedReps: result.repCount,
       provisionalCount: null,
       provisionalDisagrees: false,
@@ -259,6 +295,13 @@ class RepCaptureService {
     if (capture == null) return;
 
     final rawSamples = payload['samples'] as List<dynamic>? ?? const [];
+    // The three linear axes default to 0 when absent because the watch always
+    // sends them — a missing one is a malformed payload, not a missing
+    // channel. The gravity and gyroscope axes stay null when absent, because
+    // the watch omits them when it has no such sensor, and zero would read as
+    // "perfectly level" / "not rotating" rather than "not measured".
+    double? optional(Map<String, dynamic> raw, String key) =>
+        (raw[key] as num?)?.toDouble();
     final samples = <MotionSample>[
       for (final raw in rawSamples)
         if (raw is Map<String, dynamic>)
@@ -267,6 +310,12 @@ class RepCaptureService {
             ((raw['x'] as num?) ?? 0).toDouble(),
             ((raw['y'] as num?) ?? 0).toDouble(),
             ((raw['z'] as num?) ?? 0).toDouble(),
+            gx: optional(raw, 'gx'),
+            gy: optional(raw, 'gy'),
+            gz: optional(raw, 'gz'),
+            rx: optional(raw, 'rx'),
+            ry: optional(raw, 'ry'),
+            rz: optional(raw, 'rz'),
           ),
     ];
     capture.batchesBySeq[seq] = _Batch(seq, samples);
@@ -303,8 +352,9 @@ class RepCaptureService {
       return;
     }
 
-    final movement = movementFor(capture.exerciseSlug);
-    if (movement == null) {
+    final profile = profileFor(capture.exerciseSlug);
+    final movement = profile?.family;
+    if (profile == null || movement == null) {
       _captures.remove(captureId);
       _emitManual('unrecognised exercise for rep tracking — count not verified');
       return;
@@ -326,7 +376,11 @@ class RepCaptureService {
 
       // The single authoritative call. proposedReps is its output,
       // unconditionally — see the class doc and T-10-12.
-      final result = _detect(trace, config: RepDetectorConfig.forMovement(movement));
+      final (result, channel) = _detect(trace, profile);
+      if (channel == null) {
+        _emitManual('no repeating motion detected — count not verified');
+        return;
+      }
 
       final provisionalDisagrees = provisionalCount != null &&
           (provisionalCount - result.repCount).abs() > 1;
@@ -356,6 +410,7 @@ class RepCaptureService {
         source: 'wrist',
         placement: null,
         sensorType: capture.sensorType,
+        channel: channel,
         proposedReps: result.repCount,
         provisionalCount: provisionalCount,
         provisionalDisagrees: provisionalDisagrees,

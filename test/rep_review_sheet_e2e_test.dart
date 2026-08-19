@@ -12,6 +12,7 @@ import 'package:herculex/features/reps/domain/rep_suggestion.dart';
 import 'package:herculex/features/reps/presentation/rep_review_sheet.dart';
 import 'package:herculex/features/reps/presentation/rep_tracking_providers.dart';
 
+import 'support/rep_profiles.dart';
 import 'support/test_database.dart';
 
 /// The REP-06 clause that lands outside 10-02: driving one recorded fixture
@@ -141,6 +142,7 @@ Future<RepSuggestion> _captureWrist(
 }
 
 void main() {
+  loadRepProfilesForTest();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late AppDatabase db;

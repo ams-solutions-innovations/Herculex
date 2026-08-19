@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../../data/local/database.dart';
 import '../domain/rep_calibration.dart';
 import '../domain/rep_tracking_eligibility.dart';
+import '../domain/rep_tracking_profile.dart';
 
 /// The single read/write surface for assisted rep tracking's local-only
 /// state: global consent, per-exercise opt-in, and the confirmed-set
@@ -83,7 +84,15 @@ class RepTrackingRepository {
   Future<void> revokeConsent() async {
     await _db.transaction(() async {
       await _db.update(_db.repTrackingSettings).write(
-        const RepTrackingSettingsCompanion(consentGrantedAt: Value(null)),
+        // The global switch is cleared alongside consent, not left standing.
+        // Leaving it set would mean a later re-grant silently resumed
+        // sensing — the user would tap "I agree" on a data-handling screen
+        // and the accelerometer would start, with no second decision in
+        // between and nothing on screen saying so.
+        const RepTrackingSettingsCompanion(
+          consentGrantedAt: Value(null),
+          autoCountEnabled: Value(false),
+        ),
       );
       await _db.delete(_db.repTrackingExercisePrefs).go();
       await _db.delete(_db.repSetObservations).go();
@@ -131,6 +140,11 @@ class RepTrackingRepository {
   /// Throws [ArgumentError] for an ineligible slug rather than writing a row
   /// that nothing will ever read — a silent no-op here would look like a
   /// working opt-in in the UI.
+  /// Records a per-exercise **override**.
+  ///
+  /// `false` means "never track this one, even though it is measurable and
+  /// the global switch is on". `true` clears the override back to following
+  /// the global switch — it does not, on its own, turn anything on.
   Future<void> setExerciseEnabled(String slug, bool enabled) async {
     if (!isEligible(slug)) {
       throw ArgumentError.value(
@@ -161,22 +175,63 @@ class RepTrackingRepository {
         );
   }
 
+  /// Turns the single global switch on or off.
+  ///
+  /// Refuses while consent is outstanding rather than storing an intent that
+  /// would take effect the moment consent was granted. Consent is a decision
+  /// about data handling and this is a decision about a feature; letting the
+  /// second be made before the first would mean the consent screen's own
+  /// "grant" button silently enabling sensing the user configured earlier and
+  /// may not remember.
+  Future<void> setAutoCountEnabled(bool enabled) async {
+    final existing = await settings();
+    if (existing?.consentGrantedAt == null) {
+      throw StateError('consent must be granted before enabling rep counting');
+    }
+    await (_db.update(_db.repTrackingSettings)
+          ..where((t) => t.id.equals(existing!.id)))
+        .write(RepTrackingSettingsCompanion(autoCountEnabled: Value(enabled)));
+  }
+
   /// Whether tracking may run for [slug] right now.
   ///
-  /// Consent is checked **first and short-circuits** (T-10-03): a pref row
-  /// left over from before a revoke, or written by a future bug, can never
-  /// re-enable tracking on its own.
+  /// Four gates, in this order, and the order is the point:
+  ///
+  ///  1. **Consent** short-circuits everything (T-10-03). A pref row left over
+  ///     from before a revoke, or written by a future bug, can never
+  ///     re-enable tracking on its own.
+  ///  2. **The global switch.** Off by default, and the only thing the user
+  ///     turns on.
+  ///  3. **Capability.** Whether the exercise is measurable at all is a fact
+  ///     about where the sensors sit, not a preference — a seated leg curl
+  ///     moves neither the wrist nor the thigh and no setting can change that.
+  ///  4. **The per-exercise override**, which can only ever say *no*.
+  ///
+  /// Note the default on the last gate: a **missing** pref row now means
+  /// "follow the global switch", where before v30 it meant "off". That is
+  /// safe because gate 2 defaults to off — nothing starts tracking until the
+  /// user flips one switch, and then everything measurable does.
   Future<bool> isEnabledFor(String slug) async {
     final s = await settings();
     if (s?.consentGrantedAt == null) return false;
+    if (!(s?.autoCountEnabled ?? false)) return false;
     if (!isEligible(slug)) return false;
     final pref =
         await (_db.select(_db.repTrackingExercisePrefs)
               ..where((t) => t.exerciseSlug.equals(slug))
               ..limit(1))
             .getSingleOrNull();
-    return pref?.enabled ?? false;
+    return pref?.enabled ?? true;
   }
+
+  /// The sensor site [slug] needs, or null when it is not measurable.
+  ///
+  /// Derived from the exercise, never from a stored preference. A pull-up
+  /// needs the phone in a pocket because the hands are anchored and the wrist
+  /// genuinely cannot see the rep; a bench press is sensed at the wrist. That
+  /// is not a choice to offer the user, and offering it only invites a wrong
+  /// answer that presents as the tracker being broken.
+  SensorSite? siteFor(String slug) => sensorSiteFor(slug);
 
   /// The stored preference row for [slug], or null when the user has never
   /// touched it.

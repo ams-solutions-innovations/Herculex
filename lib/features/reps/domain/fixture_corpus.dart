@@ -46,7 +46,7 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'pullup_wrist_clean_8reps',
     purpose: 'baseline accuracy',
-    movement: RepMovement.pullUp,
+    movement: RepMovement.verticalPull,
     source: 'wrist',
     placement: null,
     targetRepCount: 8,
@@ -54,7 +54,7 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'pullup_wrist_grinder_5reps',
     purpose: 'slowing final reps, uneven cadence',
-    movement: RepMovement.pullUp,
+    movement: RepMovement.verticalPull,
     source: 'wrist',
     placement: null,
     targetRepCount: 5,
@@ -62,7 +62,7 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'pullup_wrist_kipping_10reps',
     purpose: 'high-amplitude noise between reps',
-    movement: RepMovement.pullUp,
+    movement: RepMovement.verticalPull,
     source: 'wrist',
     placement: null,
     targetRepCount: 10,
@@ -70,7 +70,7 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'pullup_wrist_interrupted_6reps',
     purpose: 'capture cut mid-set',
-    movement: RepMovement.pullUp,
+    movement: RepMovement.verticalPull,
     source: 'wrist',
     placement: null,
     targetRepCount: 6,
@@ -78,7 +78,7 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'dip_wrist_clean_12reps',
     purpose: 'baseline, faster cadence than pull-ups',
-    movement: RepMovement.dip,
+    movement: RepMovement.bodyweightPush,
     source: 'wrist',
     placement: null,
     targetRepCount: 12,
@@ -86,7 +86,7 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'dip_wrist_partial_rom_10reps',
     purpose: 'amplitude gate under shrinking ROM',
-    movement: RepMovement.dip,
+    movement: RepMovement.bodyweightPush,
     source: 'wrist',
     placement: null,
     targetRepCount: 10,
@@ -94,9 +94,9 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'ringdip_wrist_8reps',
     purpose: 'the least stable eligible movement',
-    // ring-dips maps to RepMovement.dip (rep_tracking_eligibility.dart) —
+    // ring-dips maps to RepMovement.bodyweightPush (rep_tracking_eligibility.dart) —
     // there is no separate RepMovement.ringDip in the single-source enum.
-    movement: RepMovement.dip,
+    movement: RepMovement.bodyweightPush,
     source: 'wrist',
     placement: null,
     targetRepCount: 8,
@@ -104,7 +104,7 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'pullup_phone_pocket_8reps',
     purpose: 'phone source, pocket placement',
-    movement: RepMovement.pullUp,
+    movement: RepMovement.verticalPull,
     source: 'phone',
     placement: 'pocket_front',
     targetRepCount: 8,
@@ -112,7 +112,7 @@ const List<FixtureSpec> requiredFixtures = [
   FixtureSpec(
     name: 'pullup_phone_armband_8reps',
     purpose: 'phone source, armband placement — the placement-change axis of REP-06',
-    movement: RepMovement.pullUp,
+    movement: RepMovement.verticalPull,
     source: 'phone',
     placement: 'armband',
     targetRepCount: 8,

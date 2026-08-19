@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
 
 import 'support/test_database.dart';
 
@@ -90,6 +91,77 @@ void main() {
         .where((m) => !known.contains(m))
         .toSet();
     expect(unknown, isEmpty);
+  });
+
+  test('logging metrics are drawn from the LoggingMetric registry', () {
+    // The vocabulary used to live in three unlinked places — a table comment,
+    // a const list in the custom-exercise builder, and the Python derivation —
+    // and drifted: `weight_distance` shipped on Sled Push while never being
+    // declared, and `distance` was declared but unused. The registry is now
+    // the only definition; this keeps the asset honest against it.
+    final unknown = <String, String>{};
+    for (final row in rows) {
+      final metric = row['loggingMetric'] as String?;
+      if (metric == null || !LoggingMetric.ids.contains(metric)) {
+        unknown[row['name'] as String] = '$metric';
+      }
+    }
+    expect(unknown, isEmpty, reason: 'unknown loggingMetric values: $unknown');
+  });
+
+  test('every declared category has exercises in it', () {
+    // The picker, the custom-exercise builder and the Supabase default all
+    // offer these seven. Three of them used to be effectively empty — the
+    // source spreadsheet was a hypertrophy/powerlifting document, so `cardio`
+    // held three rows, `crossfit` one, and `mobility` none at all while still
+    // being a filter chip the user could tap into a blank list.
+    const declared = {
+      'strength',
+      'hypertrophy',
+      'powerlifting',
+      'calisthenics',
+      'crossfit',
+      'cardio',
+      'mobility',
+    };
+    final counts = <String, int>{for (final c in declared) c: 0};
+    for (final row in rows) {
+      final category = row['category'] as String;
+      expect(
+        declared,
+        contains(category),
+        reason: '${row['name']} has undeclared category "$category"',
+      );
+      counts[category] = counts[category]! + 1;
+    }
+    final empty = [
+      for (final e in counts.entries)
+        if (e.value == 0) e.key,
+    ];
+    expect(empty, isEmpty, reason: 'categories with no exercises: $empty');
+  });
+
+  test('every movement group has one movementSlug across its members', () {
+    // The picker collapses on movementSlug, so a family where only some rows
+    // carry the slug shows the rest as separate top-level exercises — which is
+    // how six Lat Pulldown grips and five Tricep Pushdowns each occupied their
+    // own row in the list.
+    final byMovement = <String, Set<String>>{};
+    for (final row in rows) {
+      final slug = row['movementSlug'] as String?;
+      if (slug == null) continue;
+      byMovement
+          .putIfAbsent(slug, () => <String>{})
+          .add(row['movementPattern'] as String? ?? 'other');
+    }
+    // A movement is one pattern by construction (it is part of the cluster
+    // key); a split here means the asset was hand-edited out of step with
+    // tool/derive_movements.py.
+    final split = {
+      for (final e in byMovement.entries)
+        if (e.value.length > 1) e.key: e.value,
+    };
+    expect(split, isEmpty, reason: 'movements spanning several patterns: $split');
   });
 
   test('the importer lands every slug in the database, uniquely', () async {

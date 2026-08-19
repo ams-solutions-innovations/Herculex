@@ -32,12 +32,15 @@ import androidx.compose.runtime.setValue
 @Composable
 fun Modifier.attachRotaryScroll(
     state: ScalingLazyListState,
-    focusRequester: FocusRequester = remember { FocusRequester() }
+    focusRequester: FocusRequester = remember { FocusRequester() },
+    isFocused: Boolean = true,
 ): Modifier {
-    LaunchedEffect(Unit) {
-        repeat(15) {
-            delay(100)
-            try { focusRequester.requestFocus() } catch (_: Exception) {}
+    LaunchedEffect(isFocused) {
+        if (isFocused) {
+            repeat(15) {
+                delay(100)
+                try { focusRequester.requestFocus() } catch (_: Exception) {}
+            }
         }
     }
     return this.rotaryWithScroll(scrollableState = state, focusRequester = focusRequester)
@@ -71,9 +74,10 @@ fun Modifier.attachWorkoutSetPickerRotary(
     repsOptionsCount: Int,
     rotaryTarget: RotaryTarget,
     focusRequester: FocusRequester,
+    isFocused: Boolean = true,
 ): Modifier = attachRoutedPickerRotary(
     focusRequester = focusRequester,
-    isFocused = true,
+    isFocused = isFocused,
     onStep = { steps ->
         val pickerState = if (rotaryTarget == RotaryTarget.WEIGHT) weightState else repsState
         val maxOptions = if (rotaryTarget == RotaryTarget.WEIGHT) weightOptionsCount else repsOptionsCount

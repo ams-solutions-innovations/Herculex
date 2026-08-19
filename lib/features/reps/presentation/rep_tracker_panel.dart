@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/colors.dart';
 import '../data/phone_motion_source.dart';
 import '../domain/rep_suggestion.dart';
+import '../domain/rep_tracking_eligibility.dart';
+import '../domain/rep_tracking_profile.dart';
 import 'rep_tracking_providers.dart';
 
 /// The in-set surface rendered inside the active set card, for one eligible
@@ -138,15 +140,22 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
     super.dispose();
   }
 
+  /// Where this exercise has to be sensed from.
+  ///
+  /// Read from the capability profile, never from a stored preference. A
+  /// pull-up needs the pocket because the hands are anchored to a bar and the
+  /// wrist genuinely does not travel; a bench press is sensed at the wrist.
+  /// Offering that as a setting only invites a wrong answer, which then
+  /// presents to the user as the tracker being broken.
+  SensorSite? get _site => sensorSiteFor(widget.exerciseSlug);
+
   Future<void> _onStartTap() async {
     setState(() {
       _armed = true;
       _captureState = TrackerState.tracking;
       _reason = null;
     });
-    final settings = await ref.read(repTrackingRepositoryProvider).settings();
-    final source = settings?.defaultSource ?? 'wrist';
-    if (source == 'phone') {
+    if (_site == SensorSite.pocket) {
       final refusal = await ref.read(phoneMotionSourceProvider).start();
       if (refusal != null && mounted) {
         setState(() {
@@ -162,8 +171,7 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
   }
 
   Future<void> _onStopTap() async {
-    final settings = await ref.read(repTrackingRepositoryProvider).settings();
-    if (settings?.defaultSource == 'phone') {
+    if (_site == SensorSite.pocket) {
       ref.read(phoneMotionSourceProvider).stop();
     } else {
       final captureId =
@@ -193,13 +201,19 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Assisted rep tracking is ready for this set.',
+                  _site == SensorSite.pocket
+                      // Said before the set, not after it produced nothing.
+                      // There is no threshold that recovers a pull-up from
+                      // the wrist — the hand is locked to the bar — so the
+                      // only useful moment to mention the pocket is now.
+                      ? 'Put your phone in a pocket to count this one.'
+                      : 'Rep counting is ready for this set.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
               TextButton(
                 onPressed: _onStartTap,
-                child: const Text('Start tracking'),
+                child: const Text('Start'),
               ),
             ],
           ),

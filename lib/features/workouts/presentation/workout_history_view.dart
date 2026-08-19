@@ -8,6 +8,8 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../app/providers.dart';
 import '../../../core/units.dart';
+import '../domain/logging_metric.dart';
+import '../domain/set_metric_format.dart';
 import 'duration_picker_dialog.dart';
 import 'workouts_providers.dart';
 
@@ -165,7 +167,11 @@ class WorkoutHistoryView extends ConsumerWidget {
                       (e) => e.id == we.exerciseId,
                       orElse: () => _placeholder(we.exerciseId),
                     );
-                    return _ExerciseBlock(workoutExercise: we, exerciseName: exercise?.name ?? '');
+                    return _ExerciseBlock(
+                      workoutExercise: we,
+                      exerciseName: exercise?.name ?? '',
+                      metric: LoggingMetric.fromId(exercise?.loggingMetric),
+                    );
                   },
                 ),
               ),
@@ -210,7 +216,15 @@ class _ExerciseBlock extends ConsumerWidget {
   final WorkoutExerciseData workoutExercise;
   final String exerciseName;
 
-  const _ExerciseBlock({required this.workoutExercise, required this.exerciseName});
+  /// What this exercise is measured in — a logged plank reads as `2:00` here,
+  /// not as `0 kg × 0` (EXR-05).
+  final LoggingMetric metric;
+
+  const _ExerciseBlock({
+    required this.workoutExercise,
+    required this.exerciseName,
+    required this.metric,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -246,7 +260,12 @@ class _ExerciseBlock extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text('${ref.watch(weightFormatProvider).format(rows[i].weightKg)} × ${rows[i].reps}'),
+                        Text(SetMetricFormat.summariseSet(
+                          rows[i],
+                          metric: metric,
+                          weight: ref.watch(weightFormatProvider),
+                          distance: ref.watch(distanceFormatProvider),
+                        )),
                         if (rows[i].rpeX10 != null) ...[
                           const SizedBox(width: 12),
                           Text(

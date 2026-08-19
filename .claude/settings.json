@@ -196,11 +196,18 @@
       "Bash(find / -maxdepth 0 2>/dev/null; echo \"---jbr search---\"; find \"/c/Program Files/Android/Android Studio\" -maxdepth 2 -iname \"jbr\" 2>/dev/null)",
       "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./android/gradlew -p android :app:compileDebugKotlin --console=plain -q)",
       "Bash(find / -iname \"*ui-input*-sources.jar\" 2>/dev/null | grep -i compose | head -5; find ~/.gradle -iname \"RotaryEvent*.kt\" 2>/dev/null | head -5)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(cd \"c:/Users/marti/AMS d.o.o/Herculex\" && sed -n '/^<tasks>/,/^<\\\\/tasks>/p' .planning/phases/11-gym-buddy-live-workout/11-06-PLAN.md | head -70)",
+      "Bash(python tool/derive_movements.py)",
+      "Bash(python \"C:/Users/marti/AppData/Local/Temp/claude/c--Users-marti-AMS-d-o-o-Herculex/969c4c05-f3ae-484d-bb11-2661017b3658/scratchpad/diag_clusters.py\")",
+      "Bash(python tool/derive_rep_profiles.py --write)",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew :wear:compileDebugKotlin :wear:testDebugUnitTest --console=plain)",
+      "Bash(rm -f \"$\\(pwd\\)/../../../tmp/failures.txt\")"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",
-      "C:\\Users\\marti\\.claude\\get-shit-done\\workflows"
+      "C:\\Users\\marti\\.claude\\get-shit-done\\workflows",
+      "c:\\Users\\marti\\AMS d.o.o\\Herculex\\.planning\\phases\\11-gym-buddy-live-workout"
     ]
   }
 }

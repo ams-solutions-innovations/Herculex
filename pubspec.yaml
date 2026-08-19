@@ -79,12 +79,16 @@ dev_dependencies:
   drift_dev: ^2.21.0
   flutter_launcher_icons: ^0.14.4
   image: ^4.8.0
+  # Used by test/buddy/rls_frozen_test.dart to hash-pin 0003_sync_rls.sql.
+  crypto: ^3.0.7
 
 flutter:
   uses-material-design: true
   assets:
     - assets/data/exercises.json
     - assets/data/movements.json
+    - assets/data/rep_tracking_profiles.json
+    - assets/data/hercul_rules.json
     - assets/data/food_database_eu.v1.json
     - assets/images/
     - assets/images/exercises/

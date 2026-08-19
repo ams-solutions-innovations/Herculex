@@ -116,4 +116,72 @@ class _FakeGeminiBackend implements GeminiBackend {
     lastMimeType = mimeType;
     return 'Unknown';
   }
+
+  @override
+  Future<Map<String, dynamic>> analyzeBarcodeProduct({
+    required List<int> imageBytes,
+    required String mimeType,
+    required String barcode,
+    String? userNote,
+  }) async {
+    lastKind = 'barcode_product';
+    lastMimeType = mimeType;
+    lastUserNote = userNote;
+    return {
+      'name': 'Test Barcode Product',
+      'brand': 'Test Brand',
+      'servingGrams': 100,
+      'kcalPer100g': 250,
+      'proteinPer100g': 15,
+      'carbsPer100g': 30,
+      'fatPer100g': 8,
+      'fiberPer100g': 4,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> estimateBodyFat({
+    required List<Map<String, dynamic>> images,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  }) async {
+    lastKind = 'body_fat_estimate';
+    return {
+      'estimatedBfPercent': 14.5,
+      'bfRangeMin': 13.0,
+      'bfRangeMax': 16.0,
+      'confidence': 0.9,
+      'explanation': 'Good muscle definition.',
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeDreamPhysique({
+    required List<Map<String, dynamic>> currentImages,
+    required List<int> targetImageBytes,
+    required String targetImageMimeType,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  }) async {
+    lastKind = 'dream_physique';
+    return {
+      'estimatedMonths': 6,
+      'timeframeRange': '5 - 7 mesecev',
+      'weightChangeKg': -2.0,
+      'leanMuscleGainKg': 3.0,
+      'fatLossKg': 5.0,
+      'targetBfPercent': 11.0,
+      'currentEstimatedBf': 17.0,
+      'musclePriorities': [
+        {
+          'group': 'Upper Chest',
+          'priority': 'high',
+          'focus': 'Incline press',
+        }
+      ],
+      'nutritionStrategy': 'High protein deficit.',
+      'trainingAdvice': 'PPL split.',
+      'overallAssessment': 'Achievable goal.',
+    };
+  }
 }

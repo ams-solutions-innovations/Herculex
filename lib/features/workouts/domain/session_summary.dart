@@ -59,7 +59,7 @@ class SessionSummary {
     final muscleSets = <String, int>{};
 
     for (final rs in sets) {
-      reps += rs.set.reps;
+      reps += rs.countedReps;
       tonnage += rs.tonnageKg;
       exerciseIds.add(rs.exercise.id);
 

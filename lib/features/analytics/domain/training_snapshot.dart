@@ -1,5 +1,6 @@
 import '../../../data/local/database.dart';
 import '../../workouts/domain/effective_load.dart';
+import '../../workouts/domain/logging_metric.dart';
 import '../../workouts/domain/set_type.dart';
 
 /// One completed working set with everything the engines need resolved:
@@ -40,8 +41,27 @@ class ResolvedSet {
           bands: bands,
         );
 
-  double get tonnageKg => EffectiveLoad.tonnageKg(
-      effectiveKg: effectiveKg, reps: set.reps, setType: setType);
+  /// What this exercise is measured in (EXR-05).
+  LoggingMetric get metric => LoggingMetric.fromId(exercise.loggingMetric);
+
+  /// Tonnage of this set, or zero when reps are not the unit of work.
+  ///
+  /// A sled push and a plank both store `reps = 0`, so the arithmetic would
+  /// come out at zero anyway — but the exclusion is deliberately decided by
+  /// the metric rather than by the stored numbers, because the numbers are a
+  /// NOT NULL placeholder and the metric is the fact. A timed loaded carry
+  /// that someone logs a rep count into must still not become tonnage.
+  ///
+  /// The gate is [LoggingMetric.isRepBased], not `isLoaded`: a bodyweight
+  /// pull-up is rep work whose effective load is the athlete's own mass, and
+  /// it keeps counting exactly as it did before this phase.
+  double get tonnageKg => metric.isRepBased
+      ? EffectiveLoad.tonnageKg(
+          effectiveKg: effectiveKg, reps: set.reps, setType: setType)
+      : 0.0;
+
+  /// Reps this set contributes to a rep total, or zero for non-rep work.
+  int get countedReps => metric.isRepBased ? set.reps : 0;
 
   String get equipmentVariant =>
       workoutExercise.equipmentVariant ?? exercise.modality;

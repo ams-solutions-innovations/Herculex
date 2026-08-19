@@ -12,6 +12,7 @@ import 'package:herculex/features/reps/domain/motion_sample.dart';
 import 'package:herculex/features/reps/domain/rep_detector.dart';
 import 'package:herculex/features/reps/domain/rep_suggestion.dart';
 
+import 'support/rep_profiles.dart';
 import 'support/test_database.dart';
 
 /// Deterministic synthetic trace generator, scoped to this test file (there
@@ -147,6 +148,7 @@ void main() {
   late final int detectedCount;
 
   setUpAll(() {
+    loadRepProfilesForTest();
     final result = RepDetector.detect(
       MotionTrace(samples: trace, sensorType: MotionSensorType.linearAcceleration),
       config: const RepDetectorConfig.pullUp(),
@@ -218,8 +220,7 @@ void main() {
 
     test('rawBufferSampleCount is 0 after detection throws', () async {
       final service = RepCaptureService(
-        detect: (trace, {config = const RepDetectorConfig.pullUp()}) =>
-            throw StateError('synthetic detector failure'),
+        detect: (trace, profile) => throw StateError('synthetic detector failure'),
       );
       addTearDown(service.dispose);
 

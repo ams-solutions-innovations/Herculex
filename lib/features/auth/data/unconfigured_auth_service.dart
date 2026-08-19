@@ -52,4 +52,10 @@ class UnconfiguredAuthService implements AuthProviderService {
   /// paths that must not throw (e.g. clearing local state).
   @override
   Future<void> signOut() async {}
+
+  /// There is no remote account to delete in a credential-less build, and the
+  /// caller still needs to wipe the device — so this is a no-op rather than an
+  /// error, on the same reasoning as [signOut] above.
+  @override
+  Future<void> deleteAccount() async {}
 }

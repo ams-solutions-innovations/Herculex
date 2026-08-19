@@ -12,7 +12,7 @@ import 'package:herculex/data/local/database.dart';
 
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v25.dart' as v25;
-import 'generated_migrations/schema_v26.dart' as v26;
+import 'generated_migrations/schema_v31.dart' as v31;
 
 /// The three tables the v26 step creates. Local-only by design (REP-04).
 const _repTables = <String>{
@@ -30,9 +30,29 @@ void main() {
     () async {
       await verifier.testWithDataIntegrity(
         oldVersion: 25,
-        newVersion: 26,
+        // Validated against the *current* schema rather than against v26,
+        // even though the v26 step is what this test is about. This pair of
+        // lines moves with every `schemaVersion` bump, exactly like
+        // `migration_test.dart`'s `migrateAndValidate` targets.
+        //
+        // `Migrator.createTable` always materializes a table from its
+        // present-day Dart definition, not from its shape at the version
+        // whose block calls it — so the moment a later version adds a column
+        // to a table the v26 block creates (v30 did, with
+        // `rep_tracking_settings.auto_count_enabled`), replaying 25 -> 26
+        // produces a table that legitimately does not match the dumped v26
+        // snapshot. That is drift working as designed and the app is correct
+        // either way: the v30 block's `tryAddColumn` swallows the
+        // already-exists case precisely for this reason.
+        //
+        // Every assertion below is about the v26 step and survives the
+        // retarget: the three tables are created, they start empty, and the
+        // pre-existing `gyms` row is untouched. The same trap is waiting for
+        // `schema_v27_test.dart` the day anything adds a column to
+        // `fasting_schedules`.
+        newVersion: 31,
         createOld: v25.DatabaseAtV25.new,
-        createNew: v26.DatabaseAtV26.new,
+        createNew: v31.DatabaseAtV31.new,
         openTestedDatabase: AppDatabase.forTesting,
         createItems: (batch, oldDb) {
           // `gyms` is untouched by v26; it is the canary proving the

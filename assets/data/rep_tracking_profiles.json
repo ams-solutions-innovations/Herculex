@@ -1,0 +1,6155 @@
+[
+  {
+    "slug": "conventional-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "sumo-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "trap-bar-deadlift-low-handles",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "trap-bar-deadlift-high-handles",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "snatch-grip-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "deficit-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "suitcase-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "jefferson-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "good-morning",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "dumbbell-good-morning",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "seated-good-morning",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "kettlebell-swing",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "barbell-back-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "front-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "dumbbell-front-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "zercher-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "steinborn-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "box-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "landmine-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "pendulum-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "v-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "belt-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "hack-squat-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "smith-machine-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "single-leg-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "45-degree-leg-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "bulgarian-split-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "dumbbell-bulgarian-split-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "pistol-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "arms counterbalance forward, wrist travels"
+  },
+  {
+    "slug": "shrimp-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "arms counterbalance forward, wrist travels"
+  },
+  {
+    "slug": "cossack-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "curtsy-lunge",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "lateral-lunge",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "patrick-step-up",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "dumbbell-step-up",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "depth-jump",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "arm swing gives the wrist a full-amplitude cycle"
+  },
+  {
+    "slug": "box-jump",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "arm swing gives the wrist a full-amplitude cycle"
+  },
+  {
+    "slug": "sissy-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "torso rotates with the hands on the frame"
+  },
+  {
+    "slug": "leg-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "leg-extension",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "femur fixed, only the shin travels"
+  },
+  {
+    "slug": "romanian-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "dumbbell-romanian-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "single-leg-dumbbell-rdl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "45-degree-hyperextension",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "hands ride the rotating torso"
+  },
+  {
+    "slug": "reverse-hyperextension",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "hips travel, hands ride the fixed pad"
+  },
+  {
+    "slug": "nordic-hamstring-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands ride the rotating torso"
+  },
+  {
+    "slug": "glute-ham-raise-ghr",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "hands ride the rotating torso"
+  },
+  {
+    "slug": "lying-leg-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "femur fixed, only the shin travels"
+  },
+  {
+    "slug": "seated-leg-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "femur fixed, only the shin travels"
+  },
+  {
+    "slug": "standing-single-leg-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "femur fixed, only the shin travels"
+  },
+  {
+    "slug": "barbell-hip-thrust",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "hip-thrust-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "smith-machine-hip-thrust",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "dumbbell-hip-thrust",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "single-leg-hip-thrust",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "banded-hip-thrust",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "bodyweight-hip-thrust",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "short hip travel, hands unloaded"
+  },
+  {
+    "slug": "cable-hip-thrust",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "b-stance-hip-thrust",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "frog-pump",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "short hip travel, hands unloaded"
+  },
+  {
+    "slug": "glute-bridge",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "short hip travel, hands unloaded"
+  },
+  {
+    "slug": "machine-glute-kickback",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "single-leg hip extension, hands on the frame"
+  },
+  {
+    "slug": "cable-pull-through",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "machine-abductor",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "hip rotation about a vertical axis; gravity unchanged"
+  },
+  {
+    "slug": "machine-adductor",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "hip rotation about a vertical axis; gravity unchanged"
+  },
+  {
+    "slug": "standing-cable-hip-abduction",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "lying-cable-hip-adduction",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "hip rotation about a vertical axis; gravity unchanged"
+  },
+  {
+    "slug": "copenhagen-adductor-plank",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "standing-calf-raise",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "~12 cm whole-body travel"
+  },
+  {
+    "slug": "single-leg-standing-calf-raise",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "~12 cm whole-body travel"
+  },
+  {
+    "slug": "seated-calf-raise",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "ankle-only travel with the femur horizontal"
+  },
+  {
+    "slug": "donkey-calf-raise",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "~12 cm whole-body travel"
+  },
+  {
+    "slug": "tibialis-raise",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "ankle-only travel, hands unloaded"
+  },
+  {
+    "slug": "death-march",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "sled-push",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "sled-drag",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "safety-bar-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "safety-bar-good-morning",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "safety-bar-low-box-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "duffalo-bar-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "cambered-bar-good-morning",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "trap-bar-jump-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "axle-bar-deadlift",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "safety-bar-walking-lunge",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "cambered-bar-box-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "safety-bar-calf-raise",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "~12 cm whole-body travel"
+  },
+  {
+    "slug": "dumbbell-lunge",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "dumbbell-reverse-lunge",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "dumbbell-walking-lunge",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "dumbbell-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "dumbbell-glute-bridge",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "short hip travel"
+  },
+  {
+    "slug": "rack-pull-below-knee",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "partial ROM off the pins"
+  },
+  {
+    "slug": "rack-pull-above-knee",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "partial ROM off the pins"
+  },
+  {
+    "slug": "rack-pull-mid-thigh",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "partial ROM off the pins"
+  },
+  {
+    "slug": "block-pull",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "partial ROM off the blocks"
+  },
+  {
+    "slug": "barbell-bench-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "close-grip-bench-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "reverse-grip-bench-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "incline-barbell-bench",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "decline-barbell-bench",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "floor-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "dumbbell-floor-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "neutral-grip-dumbbell-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "guillotine-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "dumbbell-bench-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "incline-dumbbell-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "decline-dumbbell-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "dumbbell-fly",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-fly-high-to-low",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-fly-low-to-high",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "smith-machine-bench",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "machine-incline-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "iso-lateral-chest-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "seated-chest-press-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "plate-loaded-converging-chest-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "chest-dips",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "band-assisted-dip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "seated-dip-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "standard-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "incline-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "decline-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "diamond-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "pseudo-planche-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "clap-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "archer-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "tiger-bend-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-push-up-feet-elevated",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-push-up-knees",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "trx-push-up-feet-strapped",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "trx-push-up-knees",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-flye",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "ring-dips",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-archer-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-support-hold",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "trx-spiderman-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "trx-hanging-dip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "svend-press",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "isometric (Isometric + Horizontal Adduction)"
+  },
+  {
+    "slug": "cable-crossover",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "pec-deck-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cambered-bar-bench-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "swiss-bar-bench-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "swiss-bar-incline-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "swiss-bar-floor-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "duffalo-bar-bench-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 25.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=horizontal_push"
+  },
+  {
+    "slug": "swiss-bar-decline-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "pull-up-wide-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "pull-up-super-wide",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "pull-up-neutral-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "chin-up-supinated",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "behind-the-neck-pull-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "typewriter-pull-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "towel-pull-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "commando-pull-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "negative-pull-up",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "eccentric only, no concentric cycle"
+  },
+  {
+    "slug": "scapular-pull-up",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "scapular travel only, no closed cycle"
+  },
+  {
+    "slug": "lat-pulldown-wide-grip",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "lat-pulldown-super-wide",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "lat-pulldown-v-bar",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "lat-pulldown-reverse",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "lat-pulldown-rope",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "single-arm-pulldown",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "behind-neck-pulldown",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "seated; hands travel, body does not"
+  },
+  {
+    "slug": "machine-high-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "machine-mid-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "machine-low-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "seated-low-row-machine-chest-supported",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "seated-cable-row-v-bar",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "seated-cable-row-wide",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "seated-cable-row-rope",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "seated-cable-row-neutral-single",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "barbell-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "kroc-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "two-arm-dumbbell-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "single-arm-dumbbell-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "dumbbell-incline-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "pendlay-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "yates-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "meadows-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "seal-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "t-bar-row-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "pullover-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "straight-arm-pulldown",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "shoulder extension arc at the wrist"
+  },
+  {
+    "slug": "arc-row-ring",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "dumbbell-pullover",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "cable-pullover",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "swiss-bar-bent-over-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "swiss-bar-seal-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "swiss-bar-lat-pulldown",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "axle-bar-bent-over-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "swiss-bar-rack-pull",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "partial ROM off the pins"
+  },
+  {
+    "slug": "assisted-pull-up-machine-wide-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "assisted-pull-up-machine-super-wide",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "assisted-pull-up-machine-neutral-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "assisted-chin-up-machine-supinated",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "assisted-chin-up-dip-combo-machine",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "machine-assisted, still hands-anchored"
+  },
+  {
+    "slug": "band-assisted-pull-up-wide-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "band-assisted-pull-up-neutral-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "band-assisted-chin-up-supinated",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "barbell-inverted-row",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "barbell-inverted-row-feet-elevated",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "barbell-inverted-row-underhand-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "barbell-inverted-row-wide-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "smith-machine-inverted-row",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored on a fixed bar, body travels"
+  },
+  {
+    "slug": "suspension-trainer-inverted-row",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-row-feet-on-floor",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-row-feet-elevated",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-row-feet-on-floor-wide-grip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "trx-inverted-row",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "trx-inverted-row-feet-elevated",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "trx-reaching-row",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 700,
+    "maxPeriodMs": 7000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-front-lever",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "ring-back-lever",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "ring-muscle-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "ring-l-sit-pull-up",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "ring-bulgarian-split-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "ring-bicep-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "ring-triceps-extension",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "trx-bicep-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "trx-triceps-extension",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "overhead-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "push-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "dumbbell-push-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "dumbbell-overhead-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "behind-the-neck-ohp",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "bradford-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "smith-machine-ohp",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "arnold-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "machine-shoulder-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "seated-lateral-raise-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "handstand-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "dumbbell-lateral-raise",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "lying-lateral-raise",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-lateral-raise",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "machine-lateral-raise",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "lu-raise",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "front-raise-db",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-front-raise",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "plate-front-raise",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "reverse-pec-deck",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "dumbbell-rear-delt-fly",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "cable-rear-delt-fly",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "face-pull",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "cuban-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "scarecrow",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "ytwli-raises",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "shoulderRaise",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 50.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "upright-row-barbell",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "upright-row-ez-bar",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "upright-row-wide-grip",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "swiss-bar-upright-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "dumbbell-upright-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=vertical_pull"
+  },
+  {
+    "slug": "overhead-shrug",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "~10 cm hand travel, no forearm rotation"
+  },
+  {
+    "slug": "behind-back-barbell-shrug",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "~10 cm hand travel, no forearm rotation"
+  },
+  {
+    "slug": "dumbbell-shrug",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "~10 cm hand travel, no forearm rotation"
+  },
+  {
+    "slug": "barbell-shrug",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "~10 cm hand travel, no forearm rotation"
+  },
+  {
+    "slug": "waiter-s-carry",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "around-the-world-plate",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "dumbbell-around-the-world",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "swiss-bar-overhead-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "safety-bar-overhead-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "axle-bar-overhead-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "barbell-bicep-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cheat-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "concentration-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "bayesian-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "ez-bar-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "reverse-barbell-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "reverse-ez-bar-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "dumbbell-reverse-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "zottman-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "dumbbell-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "hammer-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "drag-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "machine-preacher-curl-seated",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "dumbbell-preacher-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "seated-biceps-curl-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-bicep-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "single-arm-cable-bicep-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "pelican-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "incline-dumbbell-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "wrist-curl-barbell",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "watch sits proximal to the moving joint"
+  },
+  {
+    "slug": "dumbbell-wrist-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "watch sits proximal to the moving joint"
+  },
+  {
+    "slug": "reverse-wrist-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "watch sits proximal to the moving joint"
+  },
+  {
+    "slug": "dumbbell-reverse-wrist-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "watch sits proximal to the moving joint"
+  },
+  {
+    "slug": "behind-the-back-wrist-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "watch sits proximal to the moving joint"
+  },
+  {
+    "slug": "wrist-roller",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "watch sits proximal to the moving joint"
+  },
+  {
+    "slug": "tricep-pushdown-rope",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "tricep-pushdown-straight-bar",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "tricep-pushdown-v-bar",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "tricep-pushdown-ez-bar",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "tricep-pushdown-reverse-grip",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "single-arm-cable-tricep-pushdown",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "machine-tricep-extension",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "seated-triceps-extension-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-lying-triceps-extension",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "skullcrusher",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "dumbbell-skullcrusher",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "single-arm-dumbbell-skullcrusher",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "tate-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "jm-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "overhead-cable-tricep",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "single-arm-cable-french-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "overhead-dumbbell-tricep",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "single-arm-overhead-dumbbell-tricep",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-cross-body-triceps-extension",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-tricep-kickback",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "single-arm-cable-tricep-kickback",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "dumbbell-tricep-kickback",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "close-grip-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored on the floor, body travels"
+  },
+  {
+    "slug": "bench-dip",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored on the bench, hips travel"
+  },
+  {
+    "slug": "band-triceps-pushdown",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "swiss-bar-skull-crusher",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "swiss-bar-bicep-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "axle-bar-bicep-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "swiss-bar-jm-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowExtension",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 40.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "ab-crunch-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "total-core-trainer-crunch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "semi-recumbent-ab-bench-crunch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "roman-chair-reverse-crunch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "rotary-torso-machine",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "cable-woodchopper",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "cable-crunch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "reverse-crunch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "decline-crunch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "ab-crunch-bench-angled",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "hanging-leg-raise",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands on the bar, hips and legs swing"
+  },
+  {
+    "slug": "toes-to-bar",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands on the bar, hips and legs swing"
+  },
+  {
+    "slug": "toes-to-rings",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands on the bar, hips and legs swing"
+  },
+  {
+    "slug": "windshield-wiper",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands on the bar, hips and legs swing"
+  },
+  {
+    "slug": "ab-wheel-rollout",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "plank",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "side-plank",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "reverse-plank",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "dead-bug",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "anti-extension hold, no closed cycle"
+  },
+  {
+    "slug": "pallof-press",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "anti-rotation hold, no closed cycle"
+  },
+  {
+    "slug": "dragon-flag",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "l-sit-floor",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "v-up",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "trx-plank",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "trx-mountain-climber",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "trx-burpee",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "arm swing gives the wrist a full-amplitude cycle"
+  },
+  {
+    "slug": "trx-power-pull",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "suspended-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "trx-assisted-pistol-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "hands on straps that travel with the body"
+  },
+  {
+    "slug": "trx-squat-to-y-raise",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=other"
+  },
+  {
+    "slug": "trx-hanging-leg-raise",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands on the bar, hips and legs swing"
+  },
+  {
+    "slug": "ring-l-sit",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "ring-hanging-knee-raise",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands on the bar, hips and legs swing"
+  },
+  {
+    "slug": "dumbbell-side-bend",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "dumbbell-russian-twist",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "ghd-russian-twist",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands ride the rotating torso"
+  },
+  {
+    "slug": "ghd-sit-up",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands ride the rotating torso"
+  },
+  {
+    "slug": "oblique-extension-machine",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "trunk lateral flexion, neither site travels"
+  },
+  {
+    "slug": "swiss-bar-ab-rollout",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "machine-4-way-neck",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "machine-neck-extension",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "machine-neck-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "neck-harness-extension",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "neck-harness-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "machine-neck-side-flexion",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "machine-neck-rotation",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "plate-loaded-neck-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "plate-loaded-neck-extension",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "band-neck-flexion",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "band-neck-extension",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "band-neck-side-flexion",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "neck-self-resisted-flexion",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "neck-self-resisted-extension",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "neck-self-resisted-side-flexion",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "supine-neck-bridge-wrestling",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "front-neck-bridge-wrestling",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "prone-neck-shrug-floor",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "supine-neck-shrug-floor",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "hollow-body-hold",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "arch-hold",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "pike-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "dolphin-push-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "jump-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "broad-jump",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "arm swing gives the wrist a full-amplitude cycle"
+  },
+  {
+    "slug": "strict-muscle-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "kipping-muscle-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "hefesto",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "full-planche",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "back-lever",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "front-lever",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "human-flag",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "farmers-walk",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "dumbbell-farmers-walk",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "trap-bar-carry",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "suitcase-carry",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "yoke-walk",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "pull-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "lat-pulldown",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPullDown",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "seated; hands travel, body does not"
+  },
+  {
+    "slug": "goblet-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "ez-bar-preacher-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "spider-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-hammer-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "landmine-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "landmine-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "barbell-reverse-lunge",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "barbell-walking-lunge",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "barbell-step-up",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "calf-press",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "ankle-only travel inside a fixed sled"
+  },
+  {
+    "slug": "cable-glute-kickback",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "single-leg hip extension, hands on the frame"
+  },
+  {
+    "slug": "burpee",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "arm swing gives the wrist a full-amplitude cycle"
+  },
+  {
+    "slug": "jump-rope",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "wrist rotation only, very fast cadence"
+  },
+  {
+    "slug": "treadmill-running",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "treadmill-walking",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "rowing-erg",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "air-bike",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_calories)"
+  },
+  {
+    "slug": "ski-erg",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "stationary-bike",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "elliptical",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "stair-climber",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "incline-treadmill-walk",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "outdoor-run",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "outdoor-cycling",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "swimming",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time_distance)"
+  },
+  {
+    "slug": "sprint",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=distance)"
+  },
+  {
+    "slug": "hill-sprint",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=distance)"
+  },
+  {
+    "slug": "shuttle-run",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "battle-ropes",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "double-unders",
+    "tier": "countOnly",
+    "site": "wrist",
+    "family": "smallRom",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 10.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "wrist rotation only, very fast cadence"
+  },
+  {
+    "slug": "power-clean",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "hang-power-clean",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "squat-clean",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "clean-and-jerk",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "power-snatch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "hang-snatch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "squat-snatch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "muscle-snatch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "overhead-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "push-jerk",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "split-jerk",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "thruster",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "verticalPush",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 35.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=vertical_push"
+  },
+  {
+    "slug": "bar-muscle-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "chest-to-bar-pull-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "kipping-pull-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "butterfly-pull-up",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "rope-climb",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "verticalPull",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "wall-walk",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "handstand-walk",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=distance)"
+  },
+  {
+    "slug": "wall-ball",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=squat"
+  },
+  {
+    "slug": "ball-slam",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "coreFlexion",
+    "channels": [
+      "tilt"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=core"
+  },
+  {
+    "slug": "box-jump-over",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "arm swing gives the wrist a full-amplitude cycle"
+  },
+  {
+    "slug": "burpee-box-jump-over",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "arm swing gives the wrist a full-amplitude cycle"
+  },
+  {
+    "slug": "devils-press",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=other"
+  },
+  {
+    "slug": "dumbbell-snatch",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "man-maker",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "squat",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 15.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=other"
+  },
+  {
+    "slug": "sandbag-clean",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "hinge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 1000,
+    "maxPeriodMs": 10000,
+    "reason": "derived from pattern=hinge"
+  },
+  {
+    "slug": "sled-rope-pull",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=weight_distance)"
+  },
+  {
+    "slug": "90-90-hip-switch",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "mobility drill, no repeatable cycle shape"
+  },
+  {
+    "slug": "couch-stretch",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "thoracic-extension",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "atg-split-squat",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "lunge",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 20.0,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=lunge"
+  },
+  {
+    "slug": "jefferson-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "segmental spinal flexion, no discrete cycle"
+  },
+  {
+    "slug": "deep-squat-hold",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "not rep-based (loggingMetric=time)"
+  },
+  {
+    "slug": "band-shoulder-dislocate",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "mobility drill, no repeatable cycle shape"
+  },
+  {
+    "slug": "wall-slide",
+    "tier": "pocketOnly",
+    "site": "pocket",
+    "family": "bodyweightPush",
+    "channels": [
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": null,
+    "minCycleAmplitudeMs2": 2.0,
+    "minPeriodMs": 600,
+    "maxPeriodMs": 6000,
+    "reason": "hands anchored; the body travels, the wrist does not"
+  }
+]

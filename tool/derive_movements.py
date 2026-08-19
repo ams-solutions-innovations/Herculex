@@ -41,6 +41,38 @@ EQUIPMENT_TOKENS = [
 # "Chest Dips" land in one movement.
 LOAD_TOKENS = ["weighted", "assisted", "bodyweight"]
 
+# Words that say "this is the plain version", which is the one thing a movement
+# name never needs to say. Left in, they excluded the plain row from its own
+# family: "Standard Push-Up" clustered as `standard push up` while every ring
+# and TRX push-up clustered as `push up`, so the group's bare "Push Up" alias
+# went to a Ring Push-Up and searching "push up" returned the rings first.
+PLAINNESS_TOKENS = ["standard", "conventional", "regular", "classic"]
+
+# Parenthetical qualifiers that pick a *grip, attachment or start position* on a
+# movement the lifter is already doing on one machine. Six Lat Pulldown rows,
+# five Tricep Pushdowns and four Seated Cable Rows are all Cable — they are not
+# equipment variants, so `allowedEquipment` never collapsed them and the picker
+# listed each grip as a top-level exercise.
+#
+# Matched as whole parenthetical content, not substrings, so a meaningful
+# qualifier is never mistaken for a grip: "Hack Squat (Machine)" names the
+# equipment, "L-Sit (floor)" names the apparatus, and "Chin-Up (Supinated)" is
+# the only grip a chin-up has. Those keep their own rows.
+VARIANT_QUALIFIERS = {
+    # grip width
+    "wide grip", "wide", "super wide", "narrow grip", "narrow", "close grip",
+    "neutral grip", "neutral single", "underhand grip", "overhand grip",
+    "reverse grip", "reverse",
+    # cable / pulldown attachments
+    "rope", "v-bar", "straight bar", "ez bar", "d-handle",
+    # bar height / range
+    "below knee", "above knee", "mid-thigh", "low handles", "high handles",
+    "high to low", "low to high",
+    # foot / body position
+    "feet elevated", "feet on floor", "feet on floor, wide grip",
+    "feet strapped", "knees",
+}
+
 # Synonyms collapsed so naming drift does not split a movement. "Bicep Curl"
 # and "Curl" were separate families purely because of the extra word.
 # Tie-break for equally plain names: which equipment a lifter pictures when they
@@ -90,12 +122,34 @@ NAME_SYNONYMS = [
 ]
 
 
+def strip_variant_qualifier(name):
+    """Drops a parenthetical that only names a grip, attachment or position."""
+    def repl(match):
+        inner = match.group(1).strip().lower()
+        return "" if inner in VARIANT_QUALIFIERS else match.group(0)
+
+    return re.sub(r"\(([^)]*)\)", repl, name).strip()
+
+
+def _spaced(name):
+    """Lowercased, space-padded, punctuation-flattened name for token tests."""
+    n = " " + strip_variant_qualifier(name).lower() + " "
+    return n.replace("(", " ").replace(")", " ").replace("-", " ")
+
+
+def names_equipment(name):
+    """True when the name states the apparatus it is performed on."""
+    n = _spaced(name)
+    return any(
+        " " + t.replace("-", " ") + " " in n for t in EQUIPMENT_TOKENS
+    )
+
+
 def normalize(name):
-    n = " " + name.lower() + " "
-    n = n.replace("(", " ").replace(")", " ").replace("-", " ")
+    n = _spaced(name)
     for token in EQUIPMENT_TOKENS:
         n = n.replace(" " + token.replace("-", " ") + " ", " ")
-    for token in LOAD_TOKENS:
+    for token in LOAD_TOKENS + PLAINNESS_TOKENS:
         n = n.replace(" " + token + " ", " ")
     n = re.sub(r"\s+", " ", n).strip()
     for pattern, replacement in NAME_SYNONYMS:
@@ -159,6 +213,12 @@ def main():
             qualified = any(
                 t in name for t in LOAD_TOKENS + ["band", "banded", "assisted"]
             )
+            # A member whose name states its apparatus is a variant of the
+            # movement; one whose name does not is the movement itself. Without
+            # this, "Ring Push-Up" and "Standard Push-Up" tied on every other
+            # component and the bare "push up" alias went to whichever sorted
+            # first alphabetically — so searching "push up" returned the rings.
+            equipped = names_equipment(m["name"])
             specialty = any(
                 t in name
                 for t in ("swiss", "axle", "safety", "cambered", "duffalo",
@@ -166,6 +226,7 @@ def main():
             )
             return (
                 qualified,
+                equipped,
                 specialty,
                 len(m["name"].split()),
                 MODALITY_RANK.get(m["modality"], len(MODALITY_RANK)),

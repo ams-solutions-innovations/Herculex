@@ -7,17 +7,33 @@ provisioning, platform packaging, and store submission.
 ## 1. Backend provisioning (Supabase)
 
 ### Database migrations
-Ensure all migrations (`0001` through `0007`+) in `supabase/migrations/` are applied to the production Supabase project:
+Ensure every migration in `supabase/migrations/` (`0001` through `0013` as of
+2026-08-19) is applied to the production Supabase project. The full workflow —
+install, auth, link, inspect, apply — is in `docs/supabase-migrations.md`; the
+short version is:
 ```bash
+npx supabase migration list   # confirm local == remote first
 npx supabase db push
 ```
 
 ### Edge Functions & Secrets
-Deploy the `gemini-analyze` edge function and set the server-side Gemini API key:
+Set the server-side Gemini API key and deploy all three functions. `SUPABASE_URL`
+and `SUPABASE_SERVICE_ROLE_KEY` are injected by the platform and must NOT be set
+by hand:
 ```bash
 npx supabase secrets set GEMINI_API_KEY="<your-gemini-api-key>"
-npx supabase functions deploy gemini-analyze
+npx supabase functions deploy gemini-analyze --use-api
+npx supabase functions deploy product-catalogue-publish --use-api
+npx supabase functions deploy delete-account --use-api
 ```
+
+`--use-api` bundles server-side. Without it the CLI bundles in Docker, and on a
+machine with no Docker daemon running the deploy fails with an opaque
+`EFTYPE: inappropriate file type or format, uv_spawn` rather than saying so.
+
+`delete-account` is not optional: without it the in-app "Delete Account" button
+fails, and an app that offers account creation but no working deletion is
+rejected under App Store Guideline 5.1.1(v).
 
 ### Build-time compile arguments
 Production builds require the Supabase URL and anonymous key (plus optional OAuth client IDs for Google Sign-In) passed at compile time via `--dart-define` or `--dart-define-from-file`:

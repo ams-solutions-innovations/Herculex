@@ -82,7 +82,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 31;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -741,6 +741,71 @@ class AppDatabase extends _$AppDatabase {
 
         await tryAddColumn(workoutSessions, workoutSessions.buddySessionId);
       }
+      if (from < 30 && to >= 30) {
+        // Assisted rep tracking gains its single global switch. Per-exercise
+        // opt-in is replaced by capability profiles derived from the
+        // catalogue, so what the user configures is one setting rather than
+        // one decision per exercise.
+        //
+        // Local-only table, so no sync columns, no tombstone and no outbox
+        // trigger — the same idiom as the v26 block that created it.
+        //
+        // Needs the `to >=` half of the guard for the reason spelled out in
+        // the v28 and v29 comments above: SchemaVerifier.migrateAndValidate
+        // fakes intermediate target versions and addColumn has no
+        // IF NOT EXISTS.
+        //
+        // NOTE ON VERSION ALLOCATION: this took the next free number rather
+        // than skipping one for GSD 12-04, which was then unlanded and also
+        // wanted a version. Leaving a hole would have been the dangerous
+        // option — a user who upgraded to 31 before 12-04 landed would then
+        // have `from = 31` and would never run its `from < 30` step at all.
+        // 12-04 duly took v31; see the block below.
+        Future<void> tryAddColumn(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          try {
+            await m.addColumn(table, column);
+          } catch (_) {
+            // Column already exists on this fixture; see comment above.
+          }
+        }
+
+        await tryAddColumn(
+          repTrackingSettings,
+          repTrackingSettings.autoCountEnabled,
+        );
+      }
+      if (from < 31 && to >= 31) {
+        // GSD 12-04 (EXR-05): a set is stored in the unit its exercise is
+        // actually measured in. Three nullable columns on `set_entries`, no
+        // backfill — null is the correct value for every existing row, all of
+        // which were logged as weight x reps.
+        //
+        // Synced. `SyncService` derives the push/pull payload generically from
+        // whatever local columns exist beyond the registered FK/localOnly/
+        // dateTime ones, so `sync_table_specs.dart` needs no change; the
+        // remote side is `supabase/migrations/0013_set_entry_metrics.sql`.
+        //
+        // Needs the `to >=` half of the guard for the reason spelled out in
+        // the v28-v30 comments above: SchemaVerifier.migrateAndValidate fakes
+        // intermediate target versions and addColumn has no IF NOT EXISTS.
+        Future<void> tryAddColumn(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          try {
+            await m.addColumn(table, column);
+          } catch (_) {
+            // Column already exists on this fixture; see comment above.
+          }
+        }
+
+        await tryAddColumn(setEntries, setEntries.durationSeconds);
+        await tryAddColumn(setEntries, setEntries.distanceM);
+        await tryAddColumn(setEntries, setEntries.calories);
+      }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
     // issued. It cannot live in onCreate/onUpgrade — those run inside a
@@ -757,7 +822,23 @@ class AppDatabase extends _$AppDatabase {
       // The exercise catalogue is an app asset, not a schema concern. Refresh
       // it on every open so catalogue-only releases (e.g. cardio entries)
       // become visible on existing installs without a database migration.
-      await ExerciseImporter.runFromAsset(this);
+      //
+      // Guarded by the table's existence for the same reason
+      // `installSyncTriggers` guards on `pending_sync_ops`: the hand-rolled
+      // schema-version fixtures stamp down only the handful of tables the
+      // migration under test touches, and this runs on every open rather
+      // than only on the migration path that created the table. Skipping the
+      // refresh is correct there — there is no catalogue to refresh — while
+      // an unguarded import turns "this fixture is narrow" into "the database
+      // cannot be opened". The check is deliberately specific rather than a
+      // blanket try/catch, so a genuinely broken importer still surfaces.
+      final catalogueExists = await customSelect(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+        "AND name = 'exercise_catalog'",
+      ).getSingleOrNull();
+      if (catalogueExists != null) {
+        await ExerciseImporter.runFromAsset(this);
+      }
     },
   );
 }

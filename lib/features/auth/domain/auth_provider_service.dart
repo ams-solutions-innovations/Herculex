@@ -38,4 +38,13 @@ abstract interface class AuthProviderService {
   Future<void> sendPasswordReset(String email);
 
   Future<void> signOut();
+
+  /// Permanently deletes the signed-in account and every row the backend
+  /// holds for it, then signs out.
+  ///
+  /// Required by App Store Guideline 5.1.1(v) and GDPR Article 17. Only the
+  /// *server* side is this method's business — wiping the device is the
+  /// caller's job, because a credential-less build has an account to wipe
+  /// locally but none to delete remotely.
+  Future<void> deleteAccount();
 }

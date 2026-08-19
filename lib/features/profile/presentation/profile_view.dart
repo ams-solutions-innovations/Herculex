@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -313,6 +315,8 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         // App-calculated daily calories for the current draft, with a shortcut
         // into Targets & Dieting for overriding it (§5).
         _CalorieEstimateRow(targets: MacroTargets.fromProfile(_draft())),
+        const SizedBox(height: 10),
+        const _DreamPhysiqueCard(),
 
         const SizedBox(height: 28),
 
@@ -539,6 +543,18 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 onTap: () => _signOut(context),
               ),
               _SettingsDivider(),
+              // App Store Guideline 5.1.1(v) and GDPR Article 17: an account
+              // created in the app must be deletable from inside the app.
+              // Distinct from "Clear All Data" below, which never touches the
+              // cloud — this deletes the account itself.
+              _SettingsTile(
+                icon: Icons.person_remove_rounded,
+                label: 'Delete Account',
+                iconColor: Colors.red.shade900,
+                labelColor: Colors.red.shade900,
+                onTap: () => _deleteAccount(context),
+              ),
+              _SettingsDivider(),
             ],
             _SettingsTile(
               icon: Icons.delete_forever_rounded,
@@ -551,6 +567,74 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         ),
       ],
     );
+  }
+
+  Future<void> _deleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete account?'),
+        content: const Text(
+          'Your Herculex account and everything stored in the cloud for it — '
+          'workouts, nutrition logs, measurements, cycle records — are deleted '
+          'permanently, and this device is wiped too.\n\n'
+          'This cannot be undone and the data cannot be recovered.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              shape: const StadiumBorder(),
+            ),
+            child: const Text('Delete account'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    // The remote call is a network round trip that ends in an irreversible
+    // deletion, so the screen is blocked rather than left tappable — a second
+    // tap would hit an account that is already gone.
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    String? error;
+    try {
+      await ref.read(accountDeletionServiceProvider).deleteAccountAndWipeDevice();
+    } catch (e) {
+      error = e is Exception ? e.toString().replaceFirst('Exception: ', '') : '$e';
+    }
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop(); // the spinner
+
+    if (error != null) {
+      // Nothing was deleted — `AccountDeletionService` only wipes the device
+      // after the backend confirms — so this is safe to retry.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red.shade700,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+        ),
+      );
+    }
+    // On success the cleared profile drops the router back to onboarding,
+    // exactly as `_clearData` does.
   }
 
   Future<void> _showAuthSheet(BuildContext context) async {
@@ -703,6 +787,97 @@ class _CalorieEstimateRow extends StatelessWidget {
             onPressed: () => context.push('/nutrition-targets'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DreamPhysiqueCard extends StatelessWidget {
+  const _DreamPhysiqueCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            context.hx.primary.withValues(alpha: 0.12),
+            context.hx.surfaceContainer,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.hx.primary.withValues(alpha: 0.3)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            context.push('/dream-physique');
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: context.hx.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.auto_awesome, size: 22, color: context.hx.primary),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Dream Physique AI',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: context.hx.primary,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'AI',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Primerjava s ciljno postavo, ocena mesecev, mišic & BF%',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: context.hx.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: context.hx.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

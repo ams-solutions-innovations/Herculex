@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/barcode_utils.dart';
+import 'barcode_resolution_flow.dart';
 import 'barcode_scanner_view.dart';
-import 'custom_food_form_sheet.dart';
 import 'log_entry_sheet.dart';
 import 'nutrition_providers.dart';
 
@@ -31,8 +31,7 @@ Future<void> scanAndLogFood(BuildContext context, WidgetRef ref) async {
 
   final today = DateUtils.dateOnly(DateTime.now());
   if (food == null) {
-    final created =
-        await CustomFoodFormSheet.show(context, initialBarcode: code);
+    final created = await resolveUnknownBarcode(context, ref, code);
     if (created != null && context.mounted) {
       await LogEntrySheet.forFood(
         context,

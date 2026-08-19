@@ -5157,6 +5157,39 @@ class $SetEntriesTable extends SetEntries
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _durationSecondsMeta = const VerificationMeta(
+    'durationSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> durationSeconds = GeneratedColumn<int>(
+    'duration_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _distanceMMeta = const VerificationMeta(
+    'distanceM',
+  );
+  @override
+  late final GeneratedColumn<double> distanceM = GeneratedColumn<double>(
+    'distance_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _caloriesMeta = const VerificationMeta(
+    'calories',
+  );
+  @override
+  late final GeneratedColumn<int> calories = GeneratedColumn<int>(
+    'calories',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     syncUuid,
@@ -5176,6 +5209,9 @@ class $SetEntriesTable extends SetEntries
     setTypeMetaJson,
     bodyweightKg,
     chainsKg,
+    durationSeconds,
+    distanceM,
+    calories,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5311,6 +5347,27 @@ class $SetEntriesTable extends SetEntries
         chainsKg.isAcceptableOrUnknown(data['chains_kg']!, _chainsKgMeta),
       );
     }
+    if (data.containsKey('duration_seconds')) {
+      context.handle(
+        _durationSecondsMeta,
+        durationSeconds.isAcceptableOrUnknown(
+          data['duration_seconds']!,
+          _durationSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('distance_m')) {
+      context.handle(
+        _distanceMMeta,
+        distanceM.isAcceptableOrUnknown(data['distance_m']!, _distanceMMeta),
+      );
+    }
+    if (data.containsKey('calories')) {
+      context.handle(
+        _caloriesMeta,
+        calories.isAcceptableOrUnknown(data['calories']!, _caloriesMeta),
+      );
+    }
     return context;
   }
 
@@ -5388,6 +5445,18 @@ class $SetEntriesTable extends SetEntries
         DriftSqlType.double,
         data['${effectivePrefix}chains_kg'],
       ),
+      durationSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_seconds'],
+      ),
+      distanceM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_m'],
+      ),
+      calories: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}calories'],
+      ),
     );
   }
 
@@ -5426,6 +5495,17 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
 
   /// Average chain contribution over the ROM, already halved (kg at lockout/2).
   final double? chainsKg;
+
+  /// Work duration in seconds — a hold, a carry, or a cardio interval.
+  final int? durationSeconds;
+
+  /// Distance covered, in metres. Metres rather than the user's display unit:
+  /// the same rule the rest of the schema follows for kilograms.
+  final double? distanceM;
+
+  /// Calories as reported by an erg or bike console. Not an estimate the app
+  /// computes — it is a number the machine displayed and the user copied.
+  final int? calories;
   const SetEntryData({
     this.syncUuid,
     this.updatedAt,
@@ -5444,6 +5524,9 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
     this.setTypeMetaJson,
     this.bodyweightKg,
     this.chainsKg,
+    this.durationSeconds,
+    this.distanceM,
+    this.calories,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5482,6 +5565,15 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
     }
     if (!nullToAbsent || chainsKg != null) {
       map['chains_kg'] = Variable<double>(chainsKg);
+    }
+    if (!nullToAbsent || durationSeconds != null) {
+      map['duration_seconds'] = Variable<int>(durationSeconds);
+    }
+    if (!nullToAbsent || distanceM != null) {
+      map['distance_m'] = Variable<double>(distanceM);
+    }
+    if (!nullToAbsent || calories != null) {
+      map['calories'] = Variable<int>(calories);
     }
     return map;
   }
@@ -5523,6 +5615,15 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
       chainsKg: chainsKg == null && nullToAbsent
           ? const Value.absent()
           : Value(chainsKg),
+      durationSeconds: durationSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationSeconds),
+      distanceM: distanceM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distanceM),
+      calories: calories == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calories),
     );
   }
 
@@ -5549,6 +5650,9 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
       setTypeMetaJson: serializer.fromJson<String?>(json['setTypeMetaJson']),
       bodyweightKg: serializer.fromJson<double?>(json['bodyweightKg']),
       chainsKg: serializer.fromJson<double?>(json['chainsKg']),
+      durationSeconds: serializer.fromJson<int?>(json['durationSeconds']),
+      distanceM: serializer.fromJson<double?>(json['distanceM']),
+      calories: serializer.fromJson<int?>(json['calories']),
     );
   }
   @override
@@ -5572,6 +5676,9 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
       'setTypeMetaJson': serializer.toJson<String?>(setTypeMetaJson),
       'bodyweightKg': serializer.toJson<double?>(bodyweightKg),
       'chainsKg': serializer.toJson<double?>(chainsKg),
+      'durationSeconds': serializer.toJson<int?>(durationSeconds),
+      'distanceM': serializer.toJson<double?>(distanceM),
+      'calories': serializer.toJson<int?>(calories),
     };
   }
 
@@ -5593,6 +5700,9 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
     Value<String?> setTypeMetaJson = const Value.absent(),
     Value<double?> bodyweightKg = const Value.absent(),
     Value<double?> chainsKg = const Value.absent(),
+    Value<int?> durationSeconds = const Value.absent(),
+    Value<double?> distanceM = const Value.absent(),
+    Value<int?> calories = const Value.absent(),
   }) => SetEntryData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -5613,6 +5723,11 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
         : this.setTypeMetaJson,
     bodyweightKg: bodyweightKg.present ? bodyweightKg.value : this.bodyweightKg,
     chainsKg: chainsKg.present ? chainsKg.value : this.chainsKg,
+    durationSeconds: durationSeconds.present
+        ? durationSeconds.value
+        : this.durationSeconds,
+    distanceM: distanceM.present ? distanceM.value : this.distanceM,
+    calories: calories.present ? calories.value : this.calories,
   );
   SetEntryData copyWithCompanion(SetEntriesCompanion data) {
     return SetEntryData(
@@ -5643,6 +5758,11 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
           ? data.bodyweightKg.value
           : this.bodyweightKg,
       chainsKg: data.chainsKg.present ? data.chainsKg.value : this.chainsKg,
+      durationSeconds: data.durationSeconds.present
+          ? data.durationSeconds.value
+          : this.durationSeconds,
+      distanceM: data.distanceM.present ? data.distanceM.value : this.distanceM,
+      calories: data.calories.present ? data.calories.value : this.calories,
     );
   }
 
@@ -5665,7 +5785,10 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
           ..write('setType: $setType, ')
           ..write('setTypeMetaJson: $setTypeMetaJson, ')
           ..write('bodyweightKg: $bodyweightKg, ')
-          ..write('chainsKg: $chainsKg')
+          ..write('chainsKg: $chainsKg, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('distanceM: $distanceM, ')
+          ..write('calories: $calories')
           ..write(')'))
         .toString();
   }
@@ -5689,6 +5812,9 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
     setTypeMetaJson,
     bodyweightKg,
     chainsKg,
+    durationSeconds,
+    distanceM,
+    calories,
   );
   @override
   bool operator ==(Object other) =>
@@ -5710,7 +5836,10 @@ class SetEntryData extends DataClass implements Insertable<SetEntryData> {
           other.setType == this.setType &&
           other.setTypeMetaJson == this.setTypeMetaJson &&
           other.bodyweightKg == this.bodyweightKg &&
-          other.chainsKg == this.chainsKg);
+          other.chainsKg == this.chainsKg &&
+          other.durationSeconds == this.durationSeconds &&
+          other.distanceM == this.distanceM &&
+          other.calories == this.calories);
 }
 
 class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
@@ -5731,6 +5860,9 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
   final Value<String?> setTypeMetaJson;
   final Value<double?> bodyweightKg;
   final Value<double?> chainsKg;
+  final Value<int?> durationSeconds;
+  final Value<double?> distanceM;
+  final Value<int?> calories;
   const SetEntriesCompanion({
     this.syncUuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -5749,6 +5881,9 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
     this.setTypeMetaJson = const Value.absent(),
     this.bodyweightKg = const Value.absent(),
     this.chainsKg = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.distanceM = const Value.absent(),
+    this.calories = const Value.absent(),
   });
   SetEntriesCompanion.insert({
     this.syncUuid = const Value.absent(),
@@ -5768,6 +5903,9 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
     this.setTypeMetaJson = const Value.absent(),
     this.bodyweightKg = const Value.absent(),
     this.chainsKg = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.distanceM = const Value.absent(),
+    this.calories = const Value.absent(),
   }) : workoutExerciseId = Value(workoutExerciseId),
        setIndex = Value(setIndex),
        weightKg = Value(weightKg),
@@ -5790,6 +5928,9 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
     Expression<String>? setTypeMetaJson,
     Expression<double>? bodyweightKg,
     Expression<double>? chainsKg,
+    Expression<int>? durationSeconds,
+    Expression<double>? distanceM,
+    Expression<int>? calories,
   }) {
     return RawValuesInsertable({
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -5809,6 +5950,9 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
       if (setTypeMetaJson != null) 'set_type_meta_json': setTypeMetaJson,
       if (bodyweightKg != null) 'bodyweight_kg': bodyweightKg,
       if (chainsKg != null) 'chains_kg': chainsKg,
+      if (durationSeconds != null) 'duration_seconds': durationSeconds,
+      if (distanceM != null) 'distance_m': distanceM,
+      if (calories != null) 'calories': calories,
     });
   }
 
@@ -5830,6 +5974,9 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
     Value<String?>? setTypeMetaJson,
     Value<double?>? bodyweightKg,
     Value<double?>? chainsKg,
+    Value<int?>? durationSeconds,
+    Value<double?>? distanceM,
+    Value<int?>? calories,
   }) {
     return SetEntriesCompanion(
       syncUuid: syncUuid ?? this.syncUuid,
@@ -5849,6 +5996,9 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
       setTypeMetaJson: setTypeMetaJson ?? this.setTypeMetaJson,
       bodyweightKg: bodyweightKg ?? this.bodyweightKg,
       chainsKg: chainsKg ?? this.chainsKg,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      distanceM: distanceM ?? this.distanceM,
+      calories: calories ?? this.calories,
     );
   }
 
@@ -5906,6 +6056,15 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
     if (chainsKg.present) {
       map['chains_kg'] = Variable<double>(chainsKg.value);
     }
+    if (durationSeconds.present) {
+      map['duration_seconds'] = Variable<int>(durationSeconds.value);
+    }
+    if (distanceM.present) {
+      map['distance_m'] = Variable<double>(distanceM.value);
+    }
+    if (calories.present) {
+      map['calories'] = Variable<int>(calories.value);
+    }
     return map;
   }
 
@@ -5928,7 +6087,10 @@ class SetEntriesCompanion extends UpdateCompanion<SetEntryData> {
           ..write('setType: $setType, ')
           ..write('setTypeMetaJson: $setTypeMetaJson, ')
           ..write('bodyweightKg: $bodyweightKg, ')
-          ..write('chainsKg: $chainsKg')
+          ..write('chainsKg: $chainsKg, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('distanceM: $distanceM, ')
+          ..write('calories: $calories')
           ..write(')'))
         .toString();
   }
@@ -28939,6 +29101,21 @@ class $RepTrackingSettingsTable extends RepTrackingSettings
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _autoCountEnabledMeta = const VerificationMeta(
+    'autoCountEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> autoCountEnabled = GeneratedColumn<bool>(
+    'auto_count_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_count_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -28947,6 +29124,7 @@ class $RepTrackingSettingsTable extends RepTrackingSettings
     defaultSource,
     phonePlacement,
     hapticsEnabled,
+    autoCountEnabled,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -29008,6 +29186,15 @@ class $RepTrackingSettingsTable extends RepTrackingSettings
         ),
       );
     }
+    if (data.containsKey('auto_count_enabled')) {
+      context.handle(
+        _autoCountEnabledMeta,
+        autoCountEnabled.isAcceptableOrUnknown(
+          data['auto_count_enabled']!,
+          _autoCountEnabledMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -29041,6 +29228,10 @@ class $RepTrackingSettingsTable extends RepTrackingSettings
         DriftSqlType.bool,
         data['${effectivePrefix}haptics_enabled'],
       )!,
+      autoCountEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_count_enabled'],
+      )!,
     );
   }
 
@@ -29068,6 +29259,19 @@ class RepTrackingSettingData extends DataClass
   /// is usable (REP-02).
   final String? phonePlacement;
   final bool hapticsEnabled;
+
+  /// The single global switch (v30).
+  ///
+  /// Replaces per-exercise opt-in as the thing that turns tracking on.
+  /// Eligibility is now a property of the exercise — derived from
+  /// `assets/data/rep_tracking_profiles.json`, which covers the whole
+  /// catalogue — so asking the user to opt in exercise by exercise was asking
+  /// them to re-derive physics the app already knows.
+  ///
+  /// Defaults to false, and consent still gates it: this switch is only
+  /// reachable once the consent screen has been completed, and turning it on
+  /// can never bypass `consentGrantedAt`.
+  final bool autoCountEnabled;
   const RepTrackingSettingData({
     required this.id,
     this.consentGrantedAt,
@@ -29075,6 +29279,7 @@ class RepTrackingSettingData extends DataClass
     this.defaultSource,
     this.phonePlacement,
     required this.hapticsEnabled,
+    required this.autoCountEnabled,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -29091,6 +29296,7 @@ class RepTrackingSettingData extends DataClass
       map['phone_placement'] = Variable<String>(phonePlacement);
     }
     map['haptics_enabled'] = Variable<bool>(hapticsEnabled);
+    map['auto_count_enabled'] = Variable<bool>(autoCountEnabled);
     return map;
   }
 
@@ -29108,6 +29314,7 @@ class RepTrackingSettingData extends DataClass
           ? const Value.absent()
           : Value(phonePlacement),
       hapticsEnabled: Value(hapticsEnabled),
+      autoCountEnabled: Value(autoCountEnabled),
     );
   }
 
@@ -29125,6 +29332,7 @@ class RepTrackingSettingData extends DataClass
       defaultSource: serializer.fromJson<String?>(json['defaultSource']),
       phonePlacement: serializer.fromJson<String?>(json['phonePlacement']),
       hapticsEnabled: serializer.fromJson<bool>(json['hapticsEnabled']),
+      autoCountEnabled: serializer.fromJson<bool>(json['autoCountEnabled']),
     );
   }
   @override
@@ -29137,6 +29345,7 @@ class RepTrackingSettingData extends DataClass
       'defaultSource': serializer.toJson<String?>(defaultSource),
       'phonePlacement': serializer.toJson<String?>(phonePlacement),
       'hapticsEnabled': serializer.toJson<bool>(hapticsEnabled),
+      'autoCountEnabled': serializer.toJson<bool>(autoCountEnabled),
     };
   }
 
@@ -29147,6 +29356,7 @@ class RepTrackingSettingData extends DataClass
     Value<String?> defaultSource = const Value.absent(),
     Value<String?> phonePlacement = const Value.absent(),
     bool? hapticsEnabled,
+    bool? autoCountEnabled,
   }) => RepTrackingSettingData(
     id: id ?? this.id,
     consentGrantedAt: consentGrantedAt.present
@@ -29160,6 +29370,7 @@ class RepTrackingSettingData extends DataClass
         ? phonePlacement.value
         : this.phonePlacement,
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+    autoCountEnabled: autoCountEnabled ?? this.autoCountEnabled,
   );
   RepTrackingSettingData copyWithCompanion(RepTrackingSettingsCompanion data) {
     return RepTrackingSettingData(
@@ -29179,6 +29390,9 @@ class RepTrackingSettingData extends DataClass
       hapticsEnabled: data.hapticsEnabled.present
           ? data.hapticsEnabled.value
           : this.hapticsEnabled,
+      autoCountEnabled: data.autoCountEnabled.present
+          ? data.autoCountEnabled.value
+          : this.autoCountEnabled,
     );
   }
 
@@ -29190,7 +29404,8 @@ class RepTrackingSettingData extends DataClass
           ..write('consentVersion: $consentVersion, ')
           ..write('defaultSource: $defaultSource, ')
           ..write('phonePlacement: $phonePlacement, ')
-          ..write('hapticsEnabled: $hapticsEnabled')
+          ..write('hapticsEnabled: $hapticsEnabled, ')
+          ..write('autoCountEnabled: $autoCountEnabled')
           ..write(')'))
         .toString();
   }
@@ -29203,6 +29418,7 @@ class RepTrackingSettingData extends DataClass
     defaultSource,
     phonePlacement,
     hapticsEnabled,
+    autoCountEnabled,
   );
   @override
   bool operator ==(Object other) =>
@@ -29213,7 +29429,8 @@ class RepTrackingSettingData extends DataClass
           other.consentVersion == this.consentVersion &&
           other.defaultSource == this.defaultSource &&
           other.phonePlacement == this.phonePlacement &&
-          other.hapticsEnabled == this.hapticsEnabled);
+          other.hapticsEnabled == this.hapticsEnabled &&
+          other.autoCountEnabled == this.autoCountEnabled);
 }
 
 class RepTrackingSettingsCompanion
@@ -29224,6 +29441,7 @@ class RepTrackingSettingsCompanion
   final Value<String?> defaultSource;
   final Value<String?> phonePlacement;
   final Value<bool> hapticsEnabled;
+  final Value<bool> autoCountEnabled;
   const RepTrackingSettingsCompanion({
     this.id = const Value.absent(),
     this.consentGrantedAt = const Value.absent(),
@@ -29231,6 +29449,7 @@ class RepTrackingSettingsCompanion
     this.defaultSource = const Value.absent(),
     this.phonePlacement = const Value.absent(),
     this.hapticsEnabled = const Value.absent(),
+    this.autoCountEnabled = const Value.absent(),
   });
   RepTrackingSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -29239,6 +29458,7 @@ class RepTrackingSettingsCompanion
     this.defaultSource = const Value.absent(),
     this.phonePlacement = const Value.absent(),
     this.hapticsEnabled = const Value.absent(),
+    this.autoCountEnabled = const Value.absent(),
   });
   static Insertable<RepTrackingSettingData> custom({
     Expression<int>? id,
@@ -29247,6 +29467,7 @@ class RepTrackingSettingsCompanion
     Expression<String>? defaultSource,
     Expression<String>? phonePlacement,
     Expression<bool>? hapticsEnabled,
+    Expression<bool>? autoCountEnabled,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -29255,6 +29476,7 @@ class RepTrackingSettingsCompanion
       if (defaultSource != null) 'default_source': defaultSource,
       if (phonePlacement != null) 'phone_placement': phonePlacement,
       if (hapticsEnabled != null) 'haptics_enabled': hapticsEnabled,
+      if (autoCountEnabled != null) 'auto_count_enabled': autoCountEnabled,
     });
   }
 
@@ -29265,6 +29487,7 @@ class RepTrackingSettingsCompanion
     Value<String?>? defaultSource,
     Value<String?>? phonePlacement,
     Value<bool>? hapticsEnabled,
+    Value<bool>? autoCountEnabled,
   }) {
     return RepTrackingSettingsCompanion(
       id: id ?? this.id,
@@ -29273,6 +29496,7 @@ class RepTrackingSettingsCompanion
       defaultSource: defaultSource ?? this.defaultSource,
       phonePlacement: phonePlacement ?? this.phonePlacement,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+      autoCountEnabled: autoCountEnabled ?? this.autoCountEnabled,
     );
   }
 
@@ -29297,6 +29521,9 @@ class RepTrackingSettingsCompanion
     if (hapticsEnabled.present) {
       map['haptics_enabled'] = Variable<bool>(hapticsEnabled.value);
     }
+    if (autoCountEnabled.present) {
+      map['auto_count_enabled'] = Variable<bool>(autoCountEnabled.value);
+    }
     return map;
   }
 
@@ -29308,7 +29535,8 @@ class RepTrackingSettingsCompanion
           ..write('consentVersion: $consentVersion, ')
           ..write('defaultSource: $defaultSource, ')
           ..write('phonePlacement: $phonePlacement, ')
-          ..write('hapticsEnabled: $hapticsEnabled')
+          ..write('hapticsEnabled: $hapticsEnabled, ')
+          ..write('autoCountEnabled: $autoCountEnabled')
           ..write(')'))
         .toString();
   }
@@ -37545,6 +37773,9 @@ typedef $$SetEntriesTableCreateCompanionBuilder =
       Value<String?> setTypeMetaJson,
       Value<double?> bodyweightKg,
       Value<double?> chainsKg,
+      Value<int?> durationSeconds,
+      Value<double?> distanceM,
+      Value<int?> calories,
     });
 typedef $$SetEntriesTableUpdateCompanionBuilder =
     SetEntriesCompanion Function({
@@ -37565,6 +37796,9 @@ typedef $$SetEntriesTableUpdateCompanionBuilder =
       Value<String?> setTypeMetaJson,
       Value<double?> bodyweightKg,
       Value<double?> chainsKg,
+      Value<int?> durationSeconds,
+      Value<double?> distanceM,
+      Value<int?> calories,
     });
 
 final class $$SetEntriesTableReferences
@@ -37719,6 +37953,21 @@ class $$SetEntriesTableFilterComposer
 
   ColumnFilters<double> get chainsKg => $composableBuilder(
     column: $table.chainsKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get distanceM => $composableBuilder(
+    column: $table.distanceM,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get calories => $composableBuilder(
+    column: $table.calories,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -37885,6 +38134,21 @@ class $$SetEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get distanceM => $composableBuilder(
+    column: $table.distanceM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get calories => $composableBuilder(
+    column: $table.calories,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$WorkoutExercisesTableOrderingComposer get workoutExerciseId {
     final $$WorkoutExercisesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -37973,6 +38237,17 @@ class $$SetEntriesTableAnnotationComposer
 
   GeneratedColumn<double> get chainsKg =>
       $composableBuilder(column: $table.chainsKg, builder: (column) => column);
+
+  GeneratedColumn<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get distanceM =>
+      $composableBuilder(column: $table.distanceM, builder: (column) => column);
+
+  GeneratedColumn<int> get calories =>
+      $composableBuilder(column: $table.calories, builder: (column) => column);
 
   $$WorkoutExercisesTableAnnotationComposer get workoutExerciseId {
     final $$WorkoutExercisesTableAnnotationComposer composer = $composerBuilder(
@@ -38097,6 +38372,9 @@ class $$SetEntriesTableTableManager
                 Value<String?> setTypeMetaJson = const Value.absent(),
                 Value<double?> bodyweightKg = const Value.absent(),
                 Value<double?> chainsKg = const Value.absent(),
+                Value<int?> durationSeconds = const Value.absent(),
+                Value<double?> distanceM = const Value.absent(),
+                Value<int?> calories = const Value.absent(),
               }) => SetEntriesCompanion(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -38115,6 +38393,9 @@ class $$SetEntriesTableTableManager
                 setTypeMetaJson: setTypeMetaJson,
                 bodyweightKg: bodyweightKg,
                 chainsKg: chainsKg,
+                durationSeconds: durationSeconds,
+                distanceM: distanceM,
+                calories: calories,
               ),
           createCompanionCallback:
               ({
@@ -38135,6 +38416,9 @@ class $$SetEntriesTableTableManager
                 Value<String?> setTypeMetaJson = const Value.absent(),
                 Value<double?> bodyweightKg = const Value.absent(),
                 Value<double?> chainsKg = const Value.absent(),
+                Value<int?> durationSeconds = const Value.absent(),
+                Value<double?> distanceM = const Value.absent(),
+                Value<int?> calories = const Value.absent(),
               }) => SetEntriesCompanion.insert(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -38153,6 +38437,9 @@ class $$SetEntriesTableTableManager
                 setTypeMetaJson: setTypeMetaJson,
                 bodyweightKg: bodyweightKg,
                 chainsKg: chainsKg,
+                durationSeconds: durationSeconds,
+                distanceM: distanceM,
+                calories: calories,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -54318,6 +54605,7 @@ typedef $$RepTrackingSettingsTableCreateCompanionBuilder =
       Value<String?> defaultSource,
       Value<String?> phonePlacement,
       Value<bool> hapticsEnabled,
+      Value<bool> autoCountEnabled,
     });
 typedef $$RepTrackingSettingsTableUpdateCompanionBuilder =
     RepTrackingSettingsCompanion Function({
@@ -54327,6 +54615,7 @@ typedef $$RepTrackingSettingsTableUpdateCompanionBuilder =
       Value<String?> defaultSource,
       Value<String?> phonePlacement,
       Value<bool> hapticsEnabled,
+      Value<bool> autoCountEnabled,
     });
 
 class $$RepTrackingSettingsTableFilterComposer
@@ -54365,6 +54654,11 @@ class $$RepTrackingSettingsTableFilterComposer
 
   ColumnFilters<bool> get hapticsEnabled => $composableBuilder(
     column: $table.hapticsEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoCountEnabled => $composableBuilder(
+    column: $table.autoCountEnabled,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -54407,6 +54701,11 @@ class $$RepTrackingSettingsTableOrderingComposer
     column: $table.hapticsEnabled,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get autoCountEnabled => $composableBuilder(
+    column: $table.autoCountEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RepTrackingSettingsTableAnnotationComposer
@@ -54443,6 +54742,11 @@ class $$RepTrackingSettingsTableAnnotationComposer
 
   GeneratedColumn<bool> get hapticsEnabled => $composableBuilder(
     column: $table.hapticsEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get autoCountEnabled => $composableBuilder(
+    column: $table.autoCountEnabled,
     builder: (column) => column,
   );
 }
@@ -54496,6 +54800,7 @@ class $$RepTrackingSettingsTableTableManager
                 Value<String?> defaultSource = const Value.absent(),
                 Value<String?> phonePlacement = const Value.absent(),
                 Value<bool> hapticsEnabled = const Value.absent(),
+                Value<bool> autoCountEnabled = const Value.absent(),
               }) => RepTrackingSettingsCompanion(
                 id: id,
                 consentGrantedAt: consentGrantedAt,
@@ -54503,6 +54808,7 @@ class $$RepTrackingSettingsTableTableManager
                 defaultSource: defaultSource,
                 phonePlacement: phonePlacement,
                 hapticsEnabled: hapticsEnabled,
+                autoCountEnabled: autoCountEnabled,
               ),
           createCompanionCallback:
               ({
@@ -54512,6 +54818,7 @@ class $$RepTrackingSettingsTableTableManager
                 Value<String?> defaultSource = const Value.absent(),
                 Value<String?> phonePlacement = const Value.absent(),
                 Value<bool> hapticsEnabled = const Value.absent(),
+                Value<bool> autoCountEnabled = const Value.absent(),
               }) => RepTrackingSettingsCompanion.insert(
                 id: id,
                 consentGrantedAt: consentGrantedAt,
@@ -54519,6 +54826,7 @@ class $$RepTrackingSettingsTableTableManager
                 defaultSource: defaultSource,
                 phonePlacement: phonePlacement,
                 hapticsEnabled: hapticsEnabled,
+                autoCountEnabled: autoCountEnabled,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

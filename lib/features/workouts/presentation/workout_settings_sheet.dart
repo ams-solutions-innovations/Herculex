@@ -6,6 +6,7 @@ import '../../../app/providers.dart';
 import '../../../core/units.dart';
 import '../../../features/profile/domain/profile.dart';
 import '../../../theme/colors.dart';
+import '../../reps/presentation/rep_auto_count_tile.dart';
 import '../data/workout_quick_action_settings.dart';
 import 'plate_calculator_sheet.dart';
 import 'rest_timer_controller.dart';
@@ -222,6 +223,12 @@ class WorkoutSettingsSheet extends ConsumerWidget {
             onTap: () =>
                 _pickQuickLoadStep(context, ref, quickLoadStepKg, weightFormat),
           ),
+          Divider(height: 1, color: AppColors.outlineVariant),
+
+          // ── Assisted rep counting ─────────────────────────────────────
+          _SectionHeader(label: 'REP COUNTING'),
+          const RepAutoCountTile(),
+
           Divider(height: 1, color: AppColors.outlineVariant),
 
           // ── Keep Awake ────────────────────────────────────────────────

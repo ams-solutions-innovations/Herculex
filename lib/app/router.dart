@@ -28,6 +28,7 @@ import '../features/programs/presentation/rotation_pools_view.dart';
 import '../features/profile/domain/profile.dart';
 import '../features/profile/presentation/custom_foods_view.dart';
 import '../features/profile/presentation/custom_recipes_view.dart';
+import '../features/profile/presentation/dream_physique_view.dart';
 import '../features/profile/presentation/profile_view.dart';
 import '../features/reps/presentation/rep_tracking_consent_view.dart';
 import '../features/shell/main_scaffold.dart';
@@ -139,6 +140,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             const HealthPlatformDetailView(platform: HealthPlatform.google),
       ),
       GoRoute(path: '/profile', builder: (_, _) => const ProfileView()),
+      GoRoute(
+        path: '/dream-physique',
+        builder: (_, _) => const DreamPhysiqueView(),
+      ),
       GoRoute(
         path: '/custom-foods',
         builder: (_, _) => const CustomFoodsView(),

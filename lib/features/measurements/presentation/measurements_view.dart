@@ -12,6 +12,8 @@ import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../data/measurements_repository.dart';
 
+import 'body_fat_ai_dialog.dart';
+
 final _allMeasurementsProvider =
     StreamProvider<List<BodyMeasurementData>>((ref) {
   return ref.watch(measurementsRepositoryProvider).watchAll();
@@ -34,6 +36,7 @@ class MeasurementsView extends ConsumerStatefulWidget {
 class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
   static const _labels = <String, String>{
     'bodyweight': 'Bodyweight',
+    'body_fat': 'Body Fat',
     'neck': 'Neck',
     'chest': 'Chest',
     'arms_l': 'Arm (L)',
@@ -51,6 +54,8 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
     switch (metric) {
       case 'bodyweight':
         return Icons.monitor_weight_outlined;
+      case 'body_fat':
+        return Icons.pie_chart_outline_rounded;
       case 'chest':
         return Icons.fitness_center_outlined;
       case 'waist':
@@ -78,6 +83,16 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Measurements'),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.auto_awesome, color: AppColors.primary),
+              tooltip: 'Gemini AI Body Fat Estimate',
+              onPressed: () {
+                Haptics.selection();
+                BodyFatAiDialog.show(context);
+              },
+            ),
+          ],
           bottom: const TabBar(
             tabs: [Tab(text: 'Metrics'), Tab(text: 'Photos')],
           ),
@@ -101,7 +116,9 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
                     final metricKey =
                         MeasurementsRepository.builtInMetrics[index];
                     final label = _labels[metricKey] ?? metricKey;
-                    final unit = metricKey == 'bodyweight' ? 'kg' : 'cm';
+                    final unit = metricKey == 'bodyweight'
+                        ? 'kg'
+                        : (metricKey == 'body_fat' ? '%' : 'cm');
                     final rows = grouped[metricKey] ?? [];
 
                     final latest = rows.isNotEmpty ? rows.last : null;
@@ -123,6 +140,12 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
                         Haptics.selection();
                         context.push('/measurements/$metricKey');
                       },
+                      onAiTap: metricKey == 'body_fat'
+                          ? () {
+                              Haptics.selection();
+                              BodyFatAiDialog.show(context);
+                            }
+                          : null,
                     );
                   },
                 );
@@ -199,6 +222,7 @@ class _MetricStackedCard extends StatelessWidget {
   final BodyMeasurementData? latest;
   final double? diff;
   final VoidCallback onTap;
+  final VoidCallback? onAiTap;
 
   const _MetricStackedCard({
     required this.metricKey,
@@ -208,6 +232,7 @@ class _MetricStackedCard extends StatelessWidget {
     required this.latest,
     required this.diff,
     required this.onTap,
+    this.onAiTap,
   });
 
   @override
@@ -222,6 +247,11 @@ class _MetricStackedCard extends StatelessWidget {
           : latest!.dateIso;
       valueSubtitle = '${latest!.value.toStringAsFixed(1)} $unit • $formattedDate';
     }
+
+    final isFatOrWeight = metricKey == 'bodyweight' || metricKey == 'body_fat';
+    final diffColor = isFatOrWeight
+        ? (diff != null && diff! <= 0 ? Colors.green : Colors.orange)
+        : (diff != null && diff! >= 0 ? Colors.green : Colors.blue);
 
     return Container(
       decoration: BoxDecoration(
@@ -261,12 +291,43 @@ class _MetricStackedCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        label,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            label,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                          if (metricKey == 'body_fat') ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.auto_awesome,
+                                      size: 10, color: AppColors.primary),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    'AI',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -284,6 +345,16 @@ class _MetricStackedCard extends StatelessWidget {
                   ),
                 ),
 
+                // AI button if body_fat
+                if (onAiTap != null) ...[
+                  IconButton(
+                    icon: const Icon(Icons.auto_awesome, size: 20),
+                    color: AppColors.primary,
+                    tooltip: 'AI Estimate',
+                    onPressed: onAiTap,
+                  ),
+                ],
+
                 // Trend badge if change exists
                 if (diff != null) ...[
                   Container(
@@ -292,19 +363,14 @@ class _MetricStackedCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: (metricKey == 'bodyweight'
-                              ? (diff! < 0 ? Colors.green : Colors.orange)
-                              : (diff! > 0 ? Colors.green : Colors.blue))
-                          .withValues(alpha: 0.12),
+                      color: diffColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${diff! >= 0 ? '+' : ''}${diff!.toStringAsFixed(1)} $unit',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: metricKey == 'bodyweight'
-                            ? (diff! < 0 ? Colors.green : Colors.orange)
-                            : (diff! > 0 ? Colors.green : Colors.blue),
+                        color: diffColor,
                       ),
                     ),
                   ),

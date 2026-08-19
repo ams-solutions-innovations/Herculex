@@ -1,7 +1,10 @@
 import 'dart:math';
 
+import 'channel_extractor.dart';
+import 'channel_selector.dart';
 import 'motion_sample.dart';
 import 'rep_movement.dart';
+import 'rep_tracking_profile.dart';
 
 /// Output of one detector run over one set's samples.
 class RepDetectionResult {
@@ -148,10 +151,77 @@ class RepDetectorConfig {
   const RepDetectorConfig.dip()
       : this(minPeriodMs: 600, maxPeriodMs: 6000, minCycleAmplitude: 2.0);
 
-  factory RepDetectorConfig.forMovement(RepMovement m) => switch (m) {
-        RepMovement.pullUp => const RepDetectorConfig.pullUp(),
-        RepMovement.dip => const RepDetectorConfig.dip(),
-      };
+  /// Thresholds taken straight from the exercise's capability profile.
+  ///
+  /// **This is the preferred constructor.** The profiles asset is the single
+  /// source of truth for per-exercise thresholds, so a tuning pass edits
+  /// `tool/derive_rep_profiles.py` and regenerates, rather than editing Dart.
+  ///
+  /// [channel] selects which amplitude floor applies, because the floors are
+  /// not in the same units — degrees of gravity-vector rotation for
+  /// [RepChannel.tilt] and [RepChannel.rot], m/s² for [RepChannel.dyn].
+  /// Comparing a tilt amplitude against a m/s² floor is the specific mistake
+  /// that made a 3-second curl count as zero reps.
+  factory RepDetectorConfig.forProfile(
+    RepTrackingProfile profile, {
+    RepChannel channel = RepChannel.dyn,
+  }) {
+    final fallback = _defaults[profile.family] ?? const RepDetectorConfig();
+    final amplitude = switch (channel) {
+      RepChannel.dyn => profile.minCycleAmplitudeMs2,
+      RepChannel.tilt || RepChannel.rot => profile.minCycleAmplitudeDeg,
+    };
+    return fallback.copyWith(
+      minCycleAmplitude: amplitude,
+      minPeriodMs: profile.minPeriodMs,
+      maxPeriodMs: profile.maxPeriodMs,
+    );
+  }
+
+  /// Per-family defaults, used when no profile is available — the fixture
+  /// corpus and any pure-detector test drive the engine from a bare
+  /// [RepMovement].
+  ///
+  /// `test/rep_tracking_profiles_test.dart` asserts these agree with the asset
+  /// for every family, so the two cannot drift apart unnoticed.
+  factory RepDetectorConfig.forMovement(RepMovement m) =>
+      _defaults[m] ?? const RepDetectorConfig();
+
+  static const Map<RepMovement, RepDetectorConfig> _defaults = {
+    // Hands anchored, sensed at the hip: the `dyn` channel in m/s².
+    RepMovement.verticalPull: RepDetectorConfig.pullUp(),
+    RepMovement.bodyweightPush: RepDetectorConfig.dip(),
+    RepMovement.bodyweightPull:
+        RepDetectorConfig(minPeriodMs: 700, maxPeriodMs: 7000, minCycleAmplitude: 2.0),
+
+    // Hands travel, sensed at the wrist. The amplitude here is a *tilt* floor
+    // in degrees wherever the tilt channel wins, which is why these numbers
+    // are an order of magnitude larger than the m/s² ones above.
+    RepMovement.horizontalPush:
+        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 25),
+    RepMovement.verticalPush:
+        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 35),
+    RepMovement.horizontalPull:
+        RepDetectorConfig(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 30),
+    RepMovement.verticalPullDown:
+        RepDetectorConfig(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 35),
+    RepMovement.elbowFlexion:
+        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 45),
+    RepMovement.elbowExtension:
+        RepDetectorConfig(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 40),
+    RepMovement.shoulderRaise:
+        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 50),
+    RepMovement.squat:
+        RepDetectorConfig(minPeriodMs: 1000, maxPeriodMs: 10000, minCycleAmplitude: 15),
+    RepMovement.hinge:
+        RepDetectorConfig(minPeriodMs: 1000, maxPeriodMs: 10000, minCycleAmplitude: 30),
+    RepMovement.lunge:
+        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 20),
+    RepMovement.coreFlexion:
+        RepDetectorConfig(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 30),
+    RepMovement.smallRom:
+        RepDetectorConfig(minPeriodMs: 600, maxPeriodMs: 6000, minCycleAmplitude: 10),
+  };
 
   RepDetectorConfig copyWith({
     int? resampleHz,
@@ -221,17 +291,103 @@ class RepDetector {
       return RepDetectionResult.empty;
     }
 
-    final n = t.samples.length;
-    final stepMs = 1000.0 / config.resampleHz;
-    int win(int ms) => max(1, (ms / stepMs).round());
-
     // (a) Magnitude, plus gravity removal for raw-accelerometer traces. The
     // two sensor types are not interchangeable; a raw trace sits on a ~9.81
     // pedestal that would swamp every excursion we care about.
     var signal = t.magnitudes();
     if (t.needsGravityRemoval) {
-      signal = _subtract(signal, _centredMovingAverage(signal, win(config.gravityWindowMs)));
+      final stepMs = 1000.0 / config.resampleHz;
+      signal = _subtract(
+        signal,
+        _centredMovingAverage(
+          signal,
+          max(1, (config.gravityWindowMs / stepMs).round()),
+        ),
+      );
     }
+
+    return detectOnChannel(signal, config: config);
+  }
+
+  /// Counts cycles on an already-derived, already-resampled signal.
+  ///
+  /// Everything that makes the pipeline trustworthy lives from here down —
+  /// centred smoothing, the trailing detrend, the adaptive threshold, the
+  /// closed trough-peak-trough cycle, the symmetric amplitude gate, the
+  /// refractory window and the confidence model. None of it cares what the
+  /// signal *is*, only that it is a one-dimensional series sampled on a fixed
+  /// grid, which is why widening from "magnitude of linear acceleration" to
+  /// "whichever channel carried this set" is a change of input rather than a
+  /// change of algorithm.
+  ///
+  /// [values] must already be on the `config.resampleHz` grid and must be in
+  /// the same units as [RepDetectorConfig.minCycleAmplitude] — degrees for the
+  /// angular channels, m/s² for the dynamic one. Mixing those two is the
+  /// mistake that made a slow curl count as zero, so callers should build the
+  /// config with `RepDetectorConfig.forProfile(profile, channel: ...)` rather
+  /// than assembling it by hand.
+  /// Counts on whichever channel actually carried this set.
+  ///
+  /// The full pipeline for a profiled exercise: extract every channel the
+  /// trace supports, narrow to the ones the exercise's profile allows, pick
+  /// the most periodic of those, and count on it with the amplitude floor that
+  /// matches its units.
+  ///
+  /// Returns `(result, channel)`. A null channel means no candidate showed any
+  /// repeating structure — the set was not measurable, and the caller must
+  /// surface the manual state with a reason rather than proposing the zero
+  /// count that comes back alongside it.
+  static (RepDetectionResult, RepChannel?) detectForProfile(
+    MotionTrace trace,
+    RepTrackingProfile profile,
+  ) {
+    final family = profile.family;
+    if (family == null) return (RepDetectionResult.empty, null);
+
+    final base = RepDetectorConfig.forMovement(family);
+    final resampled = trace.resampled(hz: base.resampleHz);
+    if (resampled.samples.length < 3 || resampled.durationMs <= 0) {
+      return (RepDetectionResult.empty, null);
+    }
+
+    final allowed = ChannelSelector.allowedBy(
+      profile,
+      ChannelExtractor.extract(resampled),
+    );
+    final winner = ChannelSelector.select(
+      allowed,
+      sampleRateHz: base.resampleHz,
+      minPeriodMs: profile.minPeriodMs ?? base.minPeriodMs,
+      maxPeriodMs: profile.maxPeriodMs ?? base.maxPeriodMs,
+    );
+    if (winner == null) return (RepDetectionResult.empty, null);
+
+    final channel = winner.channel.channel;
+    final result = detectOnChannel(
+      winner.channel.values,
+      config: RepDetectorConfig.forProfile(profile, channel: channel),
+      timestampsMs: [for (final s in resampled.samples) s.tMs],
+    );
+    return (result, channel);
+  }
+
+  static RepDetectionResult detectOnChannel(
+    List<double> values, {
+    RepDetectorConfig config = const RepDetectorConfig.pullUp(),
+    List<int>? timestampsMs,
+  }) {
+    final n = values.length;
+    if (n < 3) return RepDetectionResult.empty;
+
+    final stepMs = 1000.0 / config.resampleHz;
+    int win(int ms) => max(1, (ms / stepMs).round());
+
+    // Timestamps are implied by the grid unless the caller supplies real ones
+    // — the resample step is fixed, so index * stepMs is exact.
+    final times = timestampsMs ??
+        [for (var i = 0; i < n; i++) (i * stepMs).round()];
+
+    var signal = values;
 
     // (b) Smooth. Centred, so peak timing is not shifted.
     signal = _centredMovingAverage(signal, config.smoothingTaps);
@@ -285,7 +441,7 @@ class RepDetector {
       // Symmetric: the weaker of the two excursions is the cycle amplitude, so
       // a big rise followed by a drift-out cannot pass as a rep.
       candAmp.add(min(rise, fall));
-      candPeriod.add(t.samples[post].tMs - t.samples[pre].tMs);
+      candPeriod.add(times[post] - times[pre]);
     }
 
     // Bootstrap the running median from the leading *supra-threshold*
@@ -324,7 +480,7 @@ class RepDetector {
 
       acceptedAmp.add(candAmp[k]);
       acceptedPeriod.add(candPeriod[k]);
-      acceptedPeakTMs.add(t.samples[peaks[k]].tMs);
+      acceptedPeakTMs.add(times[peaks[k]]);
     }
 
     if (acceptedAmp.isEmpty) return RepDetectionResult.empty;

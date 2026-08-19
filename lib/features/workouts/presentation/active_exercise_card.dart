@@ -14,12 +14,15 @@ import '../../../theme/haptics.dart';
 import '../../profile/domain/profile.dart';
 import '../../reps/domain/rep_suggestion.dart';
 import '../../reps/domain/rep_tracking_eligibility.dart';
+import '../../reps/domain/rep_tracking_profile.dart';
 import '../../reps/presentation/rep_review_sheet.dart';
 import '../../reps/presentation/rep_tracker_panel.dart';
 import '../../reps/presentation/rep_tracking_providers.dart';
 import '../data/workouts_repository.dart';
 import '../domain/drop_set_rounding.dart';
+import '../domain/logging_metric.dart';
 import '../domain/progression_engine.dart';
+import '../domain/set_metric_format.dart';
 import '../domain/set_type.dart';
 import 'accessory_tray_sheet.dart';
 import 'down_set_config_sheet.dart';
@@ -81,7 +84,12 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     final lastPerformance = ref.watch(lastPerformanceProvider(exercise.id));
     final repo = ref.watch(workoutsRepositoryProvider);
     final weightFmt = ref.watch(weightFormatProvider);
+    final distanceFmt = ref.watch(distanceFormatProvider);
     final hintMode = ref.watch(performanceHintModeProvider);
+    // What this exercise is measured in. Everything the card renders for a set
+    // — the column headers, the inputs, the last-time hint — is derived from
+    // this one value (EXR-05).
+    final metric = LoggingMetric.fromId(exercise.loggingMetric);
     final isBodyweight = exercise.modality == 'bodyweight';
     final totalReps = isBodyweight
         ? (sets.asData?.value ?? const <SetEntryData>[])
@@ -144,7 +152,13 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               if (allLastSets.isEmpty) return const SizedBox.shrink();
 
               final currentRows = sets.asData?.value ?? const <SetEntryData>[];
-              final lastText = _formatLast(currentRows, allLastSets, weightFmt);
+              final lastText = _formatLast(
+                currentRows,
+                allLastSets,
+                weightFmt,
+                distanceFmt,
+                metric,
+              );
               if (hintMode == PerformanceHintMode.last && lastText.isEmpty) {
                 return const SizedBox.shrink();
               }
@@ -183,7 +197,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               ),
             ),
           const SizedBox(height: 8),
-          _HeaderRow(theme: theme),
+          _HeaderRow(theme: theme, metric: metric),
           sets.when(
             data: (rows) {
               final allLastSets =
@@ -221,6 +235,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                     _SetRow(
                       index: i + 1,
                       set: rows[i],
+                      metric: metric,
                       downSetOrdinal: downSetOrdinals[i],
                       priorSet: _findPriorSet(rows[i], i, rows, allLastSets),
                       microLabelText: _microLabelFor(
@@ -231,17 +246,22 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         i,
                         hintMode,
                         weightFmt,
+                        distanceFmt,
+                        metric,
                       ),
                       weightFocusNode: i == 0 ? widget.firstSetFocusNode : null,
                       cardKey: _cardKey,
-                      onUpdate: (weight, reps, rpeX10, clearRpe) =>
-                          repo.updateSet(
-                            setId: rows[i].id,
-                            weightKg: weight,
-                            reps: reps,
-                            rpeX10: rpeX10,
-                            clearRpe: clearRpe,
-                          ),
+                      prefillReps: _confidentReps(rows[i].id),
+                      onUpdate: (values) => repo.updateSet(
+                        setId: rows[i].id,
+                        weightKg: values.weightKg,
+                        reps: values.reps,
+                        durationSeconds: values.durationSeconds,
+                        distanceM: values.distanceM,
+                        calories: values.calories,
+                        rpeX10: values.rpeX10,
+                        clearRpe: values.clearRpe,
+                      ),
                       onComplete: (completed) async {
                         // A pending suggestion for this exact set entry means
                         // the tracker proposed a count for it — the review
@@ -249,9 +269,21 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         // into a write, and only after the user's own Save
                         // tap (REP-03). Dismissing it leaves the set and the
                         // observation table both untouched.
-                        final suggestion = completed
-                            ? _pendingSuggestions[rows[i].id]
+                        // A confident count has already prefilled the reps
+                        // field, so completing the set writes what the user
+                        // can see and has had the chance to change. Only an
+                        // uncertain detection needs the sheet, which is where
+                        // the confidence band and the reason for it live.
+                        final pending = _pendingSuggestions[rows[i].id];
+                        final suggestion =
+                            completed && pending != null && !pending.isConfidentEnoughToPrefill
+                            ? pending
                             : null;
+                        if (completed && pending != null && suggestion == null) {
+                          setState(
+                            () => _pendingSuggestions.remove(rows[i].id),
+                          );
+                        }
                         var saved = suggestion == null;
                         if (suggestion != null) {
                           if (!context.mounted) return;
@@ -453,6 +485,11 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         .read(measurementsRepositoryProvider)
                         .latestBodyweightKg();
                   }
+                  // Non-rep fields carry forward the same way weight and reps
+                  // do — a second sled push starts at the first one's load and
+                  // distance. They stay null when the metric does not use them,
+                  // so an ordinary set never gains a stray zero duration.
+                  final seed = prev ?? priorFirst;
                   final newSetId = await repo.addSet(
                     workoutExerciseId: workoutExercise.id,
                     weightKg: nextWeight,
@@ -463,6 +500,15 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                     setTypeMetaJson: prev?.setTypeMetaJson,
                     bodyweightKg: bodyweight,
                     chainsKg: prev?.chainsKg,
+                    durationSeconds: metric.has(SetField.duration)
+                        ? seed?.durationSeconds
+                        : null,
+                    distanceM: metric.has(SetField.distance)
+                        ? seed?.distanceM
+                        : null,
+                    calories: metric.has(SetField.calories)
+                        ? seed?.calories
+                        : null,
                   );
                   // Carry the accessory selection forward (§26) so belt/sleeves
                   // don't need re-tapping every set.
@@ -488,6 +534,15 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
 
   /// The set entry `RepTrackerPanel` tracks for this exercise card: the
   /// next incomplete set, or null once every set is done.
+  /// The detected count to prefill [setId] with, or null.
+  ///
+  /// The confidence rule itself is [RepSuggestion.isConfidentEnoughToPrefill],
+  /// next to the confidence model it depends on.
+  int? _confidentReps(int setId) {
+    final s = _pendingSuggestions[setId];
+    return s != null && s.isConfidentEnoughToPrefill ? s.proposedReps : null;
+  }
+
   int? _trackedSetId(List<SetEntryData> rows) {
     final i = rows.indexWhere((r) => !r.isCompleted);
     return i < 0 ? null : rows[i].id;
@@ -561,6 +616,12 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     WidgetRef ref,
     List<SetEntryData> lastSets,
   ) {
+    // ProgressionEngine reasons in kilograms for reps. There is no such
+    // target for a plank or a sled push, and inventing one from their stored
+    // zeros would read as a suggestion to lift nothing (EXR-05).
+    if (!LoggingMetric.fromId(widget.exercise.loggingMetric).isRepBased) {
+      return const SizedBox.shrink();
+    }
     final workingSets = lastSets.where((s) => !s.isWarmup).toList();
     if (workingSets.isEmpty) {
       return const SizedBox.shrink();
@@ -603,6 +664,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     int i,
     PerformanceHintMode hintMode,
     WeightFormat weightFmt,
+    DistanceFormat distanceFmt,
+    LoggingMetric metric,
   ) {
     if (downSetOrdinals[i] > 0) {
       if (downSetOrdinals[i] != 1) return null;
@@ -615,8 +678,16 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     }
     final prior = _findPriorSet(rows[i], i, rows, allLastSets);
     if (prior == null) return null;
-    if (hintMode == PerformanceHintMode.last) {
-      return 'Last: ${weightFmt.format(prior.weightKg)} × ${prior.reps}';
+    final priorLabel = SetMetricFormat.summariseSet(
+      prior,
+      metric: metric,
+      weight: weightFmt,
+      distance: distanceFmt,
+    );
+    // Non-rep work has no progression target, so it always shows what was
+    // done last time regardless of the hint mode.
+    if (hintMode == PerformanceHintMode.last || !metric.isRepBased) {
+      return 'Last: $priorLabel';
     }
     if (prior.isWarmup) return null;
     final settings = _progressionGoal(ref);
@@ -636,6 +707,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     List<SetEntryData> currentRows,
     List<SetEntryData> allLastSets,
     WeightFormat fmt,
+    DistanceFormat distanceFmt,
+    LoggingMetric metric,
   ) {
     if (allLastSets.isEmpty) return '';
 
@@ -666,7 +739,13 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     final rpe = prior.rpeX10 != null
         ? ' @${(prior.rpeX10! / 10).toStringAsFixed(1)}'
         : '';
-    return '${fmt.format(prior.weightKg)} × ${prior.reps}$rpe';
+    final summary = SetMetricFormat.summariseSet(
+      prior,
+      metric: metric,
+      weight: fmt,
+      distance: distanceFmt,
+    );
+    return '$summary$rpe';
   }
 
   String _lastLabel(LastPerformanceSnapshot? snapshot) {
@@ -913,7 +992,13 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
 
 class _HeaderRow extends ConsumerWidget {
   final ThemeData theme;
-  const _HeaderRow({required this.theme});
+
+  /// What this exercise is measured in. The header labels exactly the columns
+  /// [_SetRow] renders, both derived from `metric.fields` so they cannot
+  /// disagree (EXR-05).
+  final LoggingMetric metric;
+
+  const _HeaderRow({required this.theme, required this.metric});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -921,8 +1006,10 @@ class _HeaderRow extends ConsumerWidget {
       color: AppColors.secondary,
       letterSpacing: 0.8,
     );
-    // The weight column is labelled with whatever unit the fields expect.
-    final unit = ref.watch(weightFormatProvider).suffix.toUpperCase();
+    // Weight and distance columns are labelled with whatever unit the fields
+    // expect; reps, time and calories are unit-system independent.
+    final weightFmt = ref.watch(weightFormatProvider);
+    final distanceFmt = ref.watch(distanceFormatProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
       child: Row(
@@ -931,16 +1018,21 @@ class _HeaderRow extends ConsumerWidget {
             width: 28,
             child: Center(child: Text('SET', style: s)),
           ),
-          const SizedBox(width: 4),
-          Expanded(
-            flex: 2,
-            child: Text(unit, style: s, textAlign: TextAlign.center),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            flex: 2,
-            child: Text('REPS', style: s, textAlign: TextAlign.center),
-          ),
+          for (final field in metric.fields) ...[
+            const SizedBox(width: 4),
+            Expanded(
+              flex: 2,
+              child: Text(
+                SetMetricFormat.fieldLabel(
+                  field,
+                  weight: weightFmt,
+                  distance: distanceFmt,
+                ),
+                style: s,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
           const SizedBox(width: 4),
           Expanded(
             flex: 2,
@@ -953,21 +1045,52 @@ class _HeaderRow extends ConsumerWidget {
   }
 }
 
+/// Everything one set row can hold, in the units the repository stores.
+///
+/// A field is null when the exercise's [LoggingMetric] does not declare it, or
+/// when the user has not typed anything into it yet — the row never invents a
+/// zero for a measurement that was not taken (EXR-05).
+class SetFieldValues {
+  final double? weightKg;
+  final int? reps;
+  final int? durationSeconds;
+  final double? distanceM;
+  final int? calories;
+  final int? rpeX10;
+  final bool clearRpe;
+
+  const SetFieldValues({
+    this.weightKg,
+    this.reps,
+    this.durationSeconds,
+    this.distanceM,
+    this.calories,
+    this.rpeX10,
+    this.clearRpe = false,
+  });
+}
+
 class _SetRow extends ConsumerStatefulWidget {
   final int index;
   final SetEntryData set;
+
+  /// What this exercise is measured in — decides which inputs exist at all.
+  final LoggingMetric metric;
   final int downSetOrdinal;
   final SetEntryData? priorSet;
   final String? microLabelText;
   final FocusNode? weightFocusNode;
   final GlobalKey? cardKey;
-  final Future<void> Function(
-    double? weight,
-    int? reps,
-    int? rpeX10,
-    bool clearRpe,
-  )
-  onUpdate;
+
+  /// A confidently detected rep count for this set, or null.
+  ///
+  /// Prefills the reps field and **nothing else** — it is not written to the
+  /// database, the set is not completed, and the user's own Save is still the
+  /// only thing that turns this into a stored value (REP-03). A less
+  /// confident detection does not come through here at all; it opens the
+  /// review sheet instead, where the confidence and the reason are shown.
+  final int? prefillReps;
+  final Future<void> Function(SetFieldValues values) onUpdate;
   final Future<void> Function(bool completed) onComplete;
   final VoidCallback onDelete;
   final VoidCallback onTypeTap;
@@ -977,11 +1100,13 @@ class _SetRow extends ConsumerStatefulWidget {
   const _SetRow({
     required this.index,
     required this.set,
+    required this.metric,
     this.downSetOrdinal = 0,
     this.priorSet,
     this.microLabelText,
     this.weightFocusNode,
     this.cardKey,
+    this.prefillReps,
     required this.onUpdate,
     required this.onComplete,
     required this.onDelete,
@@ -997,12 +1122,23 @@ class _SetRow extends ConsumerStatefulWidget {
 class _SetRowState extends ConsumerState<_SetRow> {
   late final TextEditingController _weight;
   late final TextEditingController _reps;
+  late final TextEditingController _duration;
+  late final TextEditingController _distance;
+  late final TextEditingController _calories;
   late final TextEditingController _rpe;
   late final FocusNode _fallbackWeightFocusNode;
   late final FocusNode _repsFocusNode;
   final _weightFieldKey = GlobalKey();
   final _repsFieldKey = GlobalKey();
+  final _durationFieldKey = GlobalKey();
+  final _distanceFieldKey = GlobalKey();
+  final _caloriesFieldKey = GlobalKey();
   final _rpeFieldKey = GlobalKey();
+
+  /// Set the moment the user types in the reps field. A detected count never
+  /// overwrites a number the user entered themselves — a proposal that
+  /// silently replaced typing would be worse than no proposal at all.
+  bool _repsEditedByUser = false;
 
   @override
   void initState() {
@@ -1010,6 +1146,13 @@ class _SetRowState extends ConsumerState<_SetRow> {
     _weight = TextEditingController(text: _fmtWeight(widget.set.weightKg));
     _reps = TextEditingController(
       text: widget.set.reps == 0 ? '' : widget.set.reps.toString(),
+    );
+    _duration = TextEditingController(
+      text: SetMetricFormat.durationFieldText(widget.set.durationSeconds),
+    );
+    _distance = TextEditingController(text: _fmtDistance(widget.set.distanceM));
+    _calories = TextEditingController(
+      text: widget.set.calories == null ? '' : widget.set.calories.toString(),
     );
     _rpe = TextEditingController(
       text: widget.set.rpeX10 == null
@@ -1037,6 +1180,29 @@ class _SetRowState extends ConsumerState<_SetRow> {
     if (oldWidget.set.reps != widget.set.reps) {
       _reps.text = widget.set.reps == 0 ? '' : widget.set.reps.toString();
     }
+    if (oldWidget.set.durationSeconds != widget.set.durationSeconds) {
+      _duration.text = SetMetricFormat.durationFieldText(
+        widget.set.durationSeconds,
+      );
+    }
+    if (oldWidget.set.distanceM != widget.set.distanceM) {
+      _distance.text = _fmtDistance(widget.set.distanceM);
+    }
+    if (oldWidget.set.calories != widget.set.calories) {
+      _calories.text = widget.set.calories == null
+          ? ''
+          : widget.set.calories.toString();
+    }
+    // A confident detection fills the field, and only ever an empty and
+    // untouched one. Rep detection has nothing to say about a hold or a carry,
+    // so it never runs on a metric without a reps field.
+    if (widget.metric.isRepBased &&
+        widget.prefillReps != null &&
+        widget.prefillReps != oldWidget.prefillReps &&
+        !_repsEditedByUser &&
+        _reps.text.trim().isEmpty) {
+      _reps.text = widget.prefillReps.toString();
+    }
     if (oldWidget.set.rpeX10 != widget.set.rpeX10) {
       _rpe.text = widget.set.rpeX10 == null
           ? ''
@@ -1052,6 +1218,9 @@ class _SetRowState extends ConsumerState<_SetRow> {
     _repsFocusNode.dispose();
     _weight.dispose();
     _reps.dispose();
+    _duration.dispose();
+    _distance.dispose();
+    _calories.dispose();
     _rpe.dispose();
     super.dispose();
   }
@@ -1101,16 +1270,40 @@ class _SetRowState extends ConsumerState<_SetRow> {
   /// chosen unit, so an imperial user types and reads pounds throughout.
   WeightFormat get _fmt => ref.read(weightFormatProvider);
 
+  /// Distances are stored in metres and typed in the user's own unit, exactly
+  /// as weights are stored in kilograms and typed in kilograms or pounds.
+  DistanceFormat get _distFmt => ref.read(distanceFormatProvider);
+
   String _fmtWeight(double kg) => kg == 0 ? '' : _fmt.formatValue(kg);
 
-  String get _hintWeight {
-    if (widget.priorSet == null) return '';
-    return _fmtWeight(widget.priorSet!.weightKg);
-  }
+  String _fmtDistance(double? metres) =>
+      metres == null || metres == 0 ? '' : _distFmt.formatValue(metres);
 
-  String get _hintReps {
-    if (widget.priorSet == null) return '';
-    return widget.priorSet!.reps == 0 ? '' : widget.priorSet!.reps.toString();
+  /// The controller behind one declared field.
+  TextEditingController _controllerFor(SetField field) => switch (field) {
+    SetField.weight => _weight,
+    SetField.reps => _reps,
+    SetField.duration => _duration,
+    SetField.distance => _distance,
+    SetField.calories => _calories,
+  };
+
+  /// The previous set's value for one field, shown as a ghost hint and copied
+  /// in when the user completes a set without typing anything.
+  String _hintFor(SetField field) {
+    final prior = widget.priorSet;
+    if (prior == null) return '';
+    return switch (field) {
+      SetField.weight => _fmtWeight(prior.weightKg),
+      SetField.reps => prior.reps == 0 ? '' : prior.reps.toString(),
+      SetField.duration => SetMetricFormat.durationFieldText(
+        prior.durationSeconds,
+      ),
+      SetField.distance => _fmtDistance(prior.distanceM),
+      SetField.calories => prior.calories == null
+          ? ''
+          : prior.calories.toString(),
+    };
   }
 
   /// Set index cell: warmups show 'W', Down Sets show their position in the
@@ -1133,16 +1326,36 @@ class _SetRowState extends ConsumerState<_SetRow> {
   }
 
   void _commit() {
-    final entered = double.tryParse(_weight.text);
-    final r = int.tryParse(_reps.text);
+    final metric = widget.metric;
     final rpe = double.tryParse(_rpe.text);
-    // Convert the typed display value back to kilograms before it reaches
-    // the repository — storage is always metric.
+    // Only the fields this exercise actually declares are sent. A field the
+    // metric does not have stays null, which `updateSet` reads as "leave the
+    // stored value alone" — a Plank never overwrites a weight, and switching
+    // an exercise's metric never silently blanks what was already logged.
+    // Typed display values are converted back to metric first; storage is
+    // always kilograms and metres.
+    final enteredWeight = metric.has(SetField.weight)
+        ? double.tryParse(_weight.text)
+        : null;
+    final enteredDistance = metric.has(SetField.distance)
+        ? double.tryParse(_distance.text)
+        : null;
     widget.onUpdate(
-      entered == null ? null : _fmt.toKg(entered),
-      r,
-      rpe == null ? null : (rpe * 10).round(),
-      rpe == null,
+      SetFieldValues(
+        weightKg: enteredWeight == null ? null : _fmt.toKg(enteredWeight),
+        reps: metric.has(SetField.reps) ? int.tryParse(_reps.text) : null,
+        durationSeconds: metric.has(SetField.duration)
+            ? SetMetricFormat.parseDuration(_duration.text)
+            : null,
+        distanceM: enteredDistance == null
+            ? null
+            : _distFmt.toM(enteredDistance),
+        calories: metric.has(SetField.calories)
+            ? int.tryParse(_calories.text)
+            : null,
+        rpeX10: rpe == null ? null : (rpe * 10).round(),
+        clearRpe: rpe == null,
+      ),
     );
   }
 
@@ -1245,37 +1458,13 @@ class _SetRowState extends ConsumerState<_SetRow> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                Expanded(
-                  flex: 2,
-                  child: GestureDetector(
-                    onLongPress: () {
-                      Haptics.medium();
-                      final kg = double.tryParse(_weight.text);
-                      final weightKg = kg != null ? _fmt.toKg(kg) : null;
-                      PlateCalculatorSheet.show(context, weightKg: weightKg);
-                    },
-                    child: _numberField(
-                      _weight,
-                      decimal: true,
-                      fillColor: Colors.blue.withValues(alpha: 0.12),
-                      focusNode: _weightFocusNode,
-                      fieldKey: _weightFieldKey,
-                      hintText: _hintWeight,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  flex: 2,
-                  child: _numberField(
-                    _reps,
-                    fillColor: Colors.orange.withValues(alpha: 0.12),
-                    focusNode: _repsFocusNode,
-                    fieldKey: _repsFieldKey,
-                    hintText: _hintReps,
-                  ),
-                ),
+                // One input per field the exercise's metric declares, in the
+                // metric's own order — weight × reps for a squat, a lone
+                // duration for a plank, weight and metres for a sled push.
+                for (final field in widget.metric.fields) ...[
+                  const SizedBox(width: 4),
+                  Expanded(flex: 2, child: _fieldInput(field)),
+                ],
                 const SizedBox(width: 4),
                 Expanded(flex: 2, child: _rpeField(context)),
                 IconButton(
@@ -1300,13 +1489,16 @@ class _SetRowState extends ConsumerState<_SetRow> {
                 GestureDetector(
                   onTap: () {
                     Haptics.medium();
+                    // Completing a set the user did not fill in adopts the
+                    // previous set's numbers — for every field the metric
+                    // declares, not just weight and reps.
                     if (!isCompleted) {
-                      if (_weight.text.trim().isEmpty &&
-                          _hintWeight.isNotEmpty) {
-                        _weight.text = _hintWeight;
-                      }
-                      if (_reps.text.trim().isEmpty && _hintReps.isNotEmpty) {
-                        _reps.text = _hintReps;
+                      for (final field in widget.metric.fields) {
+                        final ctrl = _controllerFor(field);
+                        final hint = _hintFor(field);
+                        if (ctrl.text.trim().isEmpty && hint.isNotEmpty) {
+                          ctrl.text = hint;
+                        }
                       }
                     }
                     _commit();
@@ -1525,19 +1717,79 @@ class _SetRowState extends ConsumerState<_SetRow> {
     );
   }
 
+  /// One declared input, with the affordances that belong to that field only:
+  /// the plate calculator hangs off weight, the rep-tracker edit flag off reps,
+  /// and duration accepts `m:ss` as well as a bare seconds count.
+  Widget _fieldInput(SetField field) {
+    switch (field) {
+      case SetField.weight:
+        return GestureDetector(
+          onLongPress: () {
+            Haptics.medium();
+            final entered = double.tryParse(_weight.text);
+            final weightKg = entered != null ? _fmt.toKg(entered) : null;
+            PlateCalculatorSheet.show(context, weightKg: weightKg);
+          },
+          child: _numberField(
+            _weight,
+            decimal: true,
+            fillColor: Colors.blue.withValues(alpha: 0.12),
+            focusNode: _weightFocusNode,
+            fieldKey: _weightFieldKey,
+            hintText: _hintFor(field),
+          ),
+        );
+      case SetField.reps:
+        return _numberField(
+          _reps,
+          fillColor: Colors.orange.withValues(alpha: 0.12),
+          focusNode: _repsFocusNode,
+          fieldKey: _repsFieldKey,
+          hintText: _hintFor(field),
+          onChanged: (_) => _repsEditedByUser = true,
+        );
+      case SetField.duration:
+        return _numberField(
+          _duration,
+          allowColon: true,
+          fillColor: Colors.teal.withValues(alpha: 0.12),
+          fieldKey: _durationFieldKey,
+          hintText: _hintFor(field),
+        );
+      case SetField.distance:
+        return _numberField(
+          _distance,
+          decimal: true,
+          fillColor: Colors.purple.withValues(alpha: 0.12),
+          fieldKey: _distanceFieldKey,
+          hintText: _hintFor(field),
+        );
+      case SetField.calories:
+        return _numberField(
+          _calories,
+          fillColor: Colors.red.withValues(alpha: 0.12),
+          fieldKey: _caloriesFieldKey,
+          hintText: _hintFor(field),
+        );
+    }
+  }
+
   Widget _numberField(
     TextEditingController ctrl, {
     bool decimal = false,
+    bool allowColon = false,
     Color? fillColor,
     FocusNode? focusNode,
     GlobalKey? fieldKey,
     String? hintText,
+    ValueChanged<String>? onChanged,
   }) {
     final theme = Theme.of(context);
     return TextField(
       key: fieldKey,
       controller: ctrl,
       focusNode: focusNode,
+      onChanged: onChanged,
       textInputAction: TextInputAction.done,
       onTap: fieldKey == null ? null : () => _scrollFieldIntoView(fieldKey),
       onEditingComplete: _commit,
@@ -1552,7 +1804,11 @@ class _SetRowState extends ConsumerState<_SetRow> {
       ),
       inputFormatters: [
         FilteringTextInputFormatter.allow(
-          decimal ? RegExp(r'[0-9.]') : RegExp(r'[0-9]'),
+          allowColon
+              ? RegExp(r'[0-9:]')
+              : decimal
+              ? RegExp(r'[0-9.]')
+              : RegExp(r'[0-9]'),
         ),
       ],
       textAlign: TextAlign.center,
@@ -1683,10 +1939,18 @@ class _SetRowState extends ConsumerState<_SetRow> {
   }
 }
 
-/// Per-exercise assisted-rep-tracking opt-in, shown in the exercise options
-/// menu for an eligible slug (Task 1, REP-01). When consent has not been
-/// granted, this degrades to a link back to the dedicated consent screen —
-/// **never** a silent no-op and never an inline consent shortcut.
+/// Per-exercise assisted-rep-tracking **override**, shown in the exercise
+/// options menu for a measurable slug.
+///
+/// This used to be the opt-in — the thing that turned tracking on for one
+/// exercise. From v30 the global switch in workout settings does that, and
+/// this only records an exception: "not this one". Turning it back on clears
+/// the exception rather than enabling anything by itself, which is why the
+/// subtitle talks about *this exercise* and not about the feature.
+///
+/// When consent has not been granted, this degrades to a link back to the
+/// dedicated consent screen — **never** a silent no-op and never an inline
+/// consent shortcut.
 class _RepTrackingMenuTile extends ConsumerWidget {
   const _RepTrackingMenuTile({required this.exerciseSlug});
 
@@ -1709,13 +1973,30 @@ class _RepTrackingMenuTile extends ConsumerWidget {
       );
     }
 
+    final globalOn = ref.watch(repAutoCountEnabledProvider).asData?.value ?? false;
+    if (!globalOn) {
+      return const ListTile(
+        leading: Icon(Icons.sensors_outlined),
+        title: Text('Assisted rep counting'),
+        subtitle: Text('Turn it on in workout settings first'),
+        enabled: false,
+      );
+    }
+
+    final profile = profileFor(exerciseSlug);
     final enabledAsync = ref.watch(repTrackingEnabledForProvider(exerciseSlug));
     final enabled = enabledAsync.asData?.value ?? false;
 
     return ListTile(
       leading: const Icon(Icons.sensors_outlined),
-      title: const Text('Assisted rep tracking'),
-      subtitle: const Text('Propose a rep count for this exercise'),
+      title: const Text('Count reps for this exercise'),
+      // The profile's own reason string, so "why is this off?" is answerable
+      // from the data rather than from a commit message.
+      subtitle: Text(
+        profile?.site == SensorSite.pocket
+            ? 'Needs your phone in a pocket — your hands stay fixed'
+            : 'Counted from your watch',
+      ),
       trailing: Switch(
         value: enabled,
         onChanged: (val) {

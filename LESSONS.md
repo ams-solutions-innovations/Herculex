@@ -1,5 +1,33 @@
 # Herculex Lessons
 
+## Migration fixtures and invariants that live outside the schema — 2026-08-19
+
+- **A precondition asserted only in the migration step that first needed it
+  is not an invariant, it's a coincidence.** `pending_sync_ops` has no Dart
+  primary key beyond its autoincrement `id`; the `ON CONFLICT(entity_type,
+  entity_id)` in all three outbox triggers is backed by a hand-made unique
+  index. That index was created in `onCreate` and in the `from < 25` block —
+  but `installSyncTriggers` also runs from the `from < 27` block, so an
+  upgrade starting at v25 or v26 got triggers whose conflict target did not
+  exist, and died on the first write to any synced table. Real devices all
+  happened to pass through v25, which is why only the generated fixtures
+  caught it. Fix: the function that writes the triggers now asserts the index
+  they depend on, so the two cannot drift apart again.
+- **`drift_dev schema dump` captures Drift-declared entities only.** Any
+  index, trigger or constraint created through `customStatement` is invisible
+  to `drift_schemas/*.json`, so a fixture built with `SchemaVerifier.startAt`
+  is missing every one of them. That is not a fixture bug to work around —
+  it is the fixture correctly showing that the artifact isn't part of the
+  declared schema, and it is exactly how the bug above surfaced.
+- **Work added to `beforeOpen` runs against every fixture, not just real
+  databases.** The unconditional `ExerciseImporter.runFromAsset` refresh (so
+  catalogue-only releases land without a migration) turned every hand-rolled
+  narrow fixture — `schema_v21_test.dart` stamps down six tables — into a
+  hard "no such table: exercise_catalog" on open. Guard such work on the
+  table actually existing (`sqlite_master` lookup, the same idiom
+  `installSyncTriggers` already used), never with a blanket `try/catch`,
+  which would also swallow a genuinely broken importer.
+
 ## Cloud Sync (RB-02) Lessons — 2026-08-13
 
 - **A pulled row and a locally-edited row look identical to a SQLite

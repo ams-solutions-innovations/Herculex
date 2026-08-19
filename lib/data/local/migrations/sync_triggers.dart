@@ -44,6 +44,40 @@ Future<void> installSyncTriggers(GeneratedDatabase db) async {
       .getSingleOrNull();
   if (outboxExists == null) return;
 
+  // Every trigger body below upserts with `ON CONFLICT(entity_type,
+  // entity_id)`, and SQLite rejects that at *fire* time unless a matching
+  // unique constraint exists. `pending_sync_ops` declares neither in Dart —
+  // its only key is the autoincrement `id` — so the constraint is this
+  // hand-made index, and it is a precondition of the triggers rather than a
+  // performance nicety.
+  //
+  // It is asserted here, next to the triggers that need it, instead of only
+  // in `onCreate` and the `from < 25` migration block where it used to live.
+  // Those two sites cover every real device, but they left the invariant
+  // "outbox triggers exist => their conflict target exists" depending on
+  // which migration step happened to run: an upgrade starting at v25 or v26
+  // installs triggers (via the `from < 27` block) without ever passing
+  // through the code that creates the index, and the next INSERT into any
+  // synced table dies. Idempotent, so the two original sites are harmless.
+  //
+  // The dedupe first is what the `from < 25` block used a swallowing
+  // try/catch for: duplicate outbox rows would make the index fail to build.
+  // Swallowing is not an option at this call site — an index that quietly
+  // did not get built leaves the triggers created just below pointing at a
+  // conflict target that does not exist, which is the same crash as above,
+  // only deferred to the first write. Dropping the older duplicate is
+  // lossless: keeping the newest row per entity is precisely what
+  // `ON CONFLICT DO UPDATE` would have produced, and the surviving row
+  // re-pushes the same entity anyway.
+  await db.customStatement(
+    'DELETE FROM pending_sync_ops WHERE id NOT IN '
+    '(SELECT MAX(id) FROM pending_sync_ops GROUP BY entity_type, entity_id)',
+  );
+  await db.customStatement(
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_sync_ops_entity '
+    'ON pending_sync_ops(entity_type, entity_id)',
+  );
+
   for (final table in syncedTableNames) {
     try {
       final isCustomFiltered = isCustomFilteredTableNames.contains(table);

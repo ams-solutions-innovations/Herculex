@@ -828,6 +828,11 @@ class WorkoutsRepository {
     double? bodyweightKg,
     double? chainsKg,
     DateTime? completedAt,
+    // Non-rep logging metrics (EXR-05). Null means "this movement is not
+    // measured that way" — see the column comments on SetEntries.
+    int? durationSeconds,
+    double? distanceM,
+    int? calories,
   }) async {
     final existing = await (_db.select(
       _db.setEntries,
@@ -851,6 +856,9 @@ class WorkoutsRepository {
             setTypeMetaJson: Value(setTypeMetaJson),
             bodyweightKg: Value(bodyweightKg),
             chainsKg: Value(chainsKg),
+            durationSeconds: Value(durationSeconds),
+            distanceM: Value(distanceM),
+            calories: Value(calories),
           ),
         );
   }
@@ -871,6 +879,16 @@ class WorkoutsRepository {
     double? chainsKg,
     bool clearChainsKg = false,
     DateTime? completedAt,
+    // Non-rep logging metrics (EXR-05). Same absent/null/clear idiom as
+    // bodyweightKg and chainsKg above: passing null leaves the stored value
+    // alone, the clear flag writes SQL NULL. 0013 made these nullable so
+    // "not measured this way" stays distinguishable from "measured, and zero".
+    int? durationSeconds,
+    bool clearDurationSeconds = false,
+    double? distanceM,
+    bool clearDistanceM = false,
+    int? calories,
+    bool clearCalories = false,
   }) async {
     await (_db.update(_db.setEntries)..where((t) => t.id.equals(setId))).write(
       SetEntriesCompanion(
@@ -904,6 +922,21 @@ class WorkoutsRepository {
             : chainsKg == null
             ? const Value.absent()
             : Value(chainsKg),
+        durationSeconds: clearDurationSeconds
+            ? const Value(null)
+            : durationSeconds == null
+            ? const Value.absent()
+            : Value(durationSeconds),
+        distanceM: clearDistanceM
+            ? const Value(null)
+            : distanceM == null
+            ? const Value.absent()
+            : Value(distanceM),
+        calories: clearCalories
+            ? const Value(null)
+            : calories == null
+            ? const Value.absent()
+            : Value(calories),
       ),
     );
   }

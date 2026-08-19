@@ -27,6 +27,27 @@ abstract interface class GeminiBackend {
     required List<int> imageBytes,
     required String mimeType,
   });
+
+  Future<Map<String, dynamic>> analyzeBarcodeProduct({
+    required List<int> imageBytes,
+    required String mimeType,
+    required String barcode,
+    String? userNote,
+  });
+
+  Future<Map<String, dynamic>> estimateBodyFat({
+    required List<Map<String, dynamic>> images,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  });
+
+  Future<Map<String, dynamic>> analyzeDreamPhysique({
+    required List<Map<String, dynamic>> currentImages,
+    required List<int> targetImageBytes,
+    required String targetImageMimeType,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  });
 }
 
 class UnconfiguredGeminiBackend implements GeminiBackend {
@@ -54,6 +75,36 @@ class UnconfiguredGeminiBackend implements GeminiBackend {
   Future<String> identifyExercise({
     required List<int> imageBytes,
     required String mimeType,
+  }) async {
+    throw _notConfigured();
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeBarcodeProduct({
+    required List<int> imageBytes,
+    required String mimeType,
+    required String barcode,
+    String? userNote,
+  }) async {
+    throw _notConfigured();
+  }
+
+  @override
+  Future<Map<String, dynamic>> estimateBodyFat({
+    required List<Map<String, dynamic>> images,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  }) async {
+    throw _notConfigured();
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeDreamPhysique({
+    required List<Map<String, dynamic>> currentImages,
+    required List<int> targetImageBytes,
+    required String targetImageMimeType,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
   }) async {
     throw _notConfigured();
   }
@@ -109,6 +160,67 @@ class SupabaseGeminiBackend implements GeminiBackend {
     final text = data['text'];
     if (text is String) return text.trim();
     throw Exception('AI analysis returned an invalid exercise response.');
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeBarcodeProduct({
+    required List<int> imageBytes,
+    required String mimeType,
+    required String barcode,
+    String? userNote,
+  }) async {
+    final data = await _invoke({
+      'kind': 'barcode_product',
+      'image': _imagePayload(imageBytes, mimeType),
+      'barcode': barcode,
+      'userNote': userNote,
+    });
+    return _resultMap(data);
+  }
+
+  @override
+  Future<Map<String, dynamic>> estimateBodyFat({
+    required List<Map<String, dynamic>> images,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  }) async {
+    final payloadImages = images.map((img) {
+      final bytes = img['bytes'] as List<int>;
+      final mime = img['mimeType'] as String;
+      return _imagePayload(bytes, mime);
+    }).toList();
+
+    final data = await _invoke({
+      'kind': 'body_fat_estimate',
+      'images': payloadImages,
+      'biometrics': biometrics,
+      'userNote': userNote,
+    });
+    return _resultMap(data);
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeDreamPhysique({
+    required List<Map<String, dynamic>> currentImages,
+    required List<int> targetImageBytes,
+    required String targetImageMimeType,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  }) async {
+    final payloadCurrent = currentImages.map((img) {
+      final bytes = img['bytes'] as List<int>;
+      final mime = img['mimeType'] as String;
+      return _imagePayload(bytes, mime);
+    }).toList();
+
+    final data = await _invoke({
+      'kind': 'dream_physique',
+      'currentImages': payloadCurrent,
+      'targetImage': _imagePayload(targetImageBytes, targetImageMimeType),
+      'biometrics': biometrics,
+      'userNote': userNote,
+    });
+    return _resultMap(data);
   }
 
   Future<Map<String, dynamic>> _invoke(Map<String, dynamic> body) async {

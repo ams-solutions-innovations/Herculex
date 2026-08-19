@@ -13,6 +13,7 @@ import '../../analytics/domain/training_snapshot.dart';
 import '../../analytics/domain/variant_performance.dart';
 import '../../analytics/presentation/analytics_providers.dart';
 import '../domain/equipment_variants.dart';
+import '../domain/logging_metric.dart';
 import '../domain/one_rep_max.dart';
 import 'workouts_providers.dart';
 import 'exercise_artwork.dart';
@@ -59,6 +60,7 @@ class _ExerciseDetailsBody extends ConsumerWidget {
     final byEquipment = ref.watch(equipmentPerformanceProvider(exercise.id));
     final byAccessory = ref.watch(accessoryPerformanceProvider(exercise.id));
     final weightFormat = ref.watch(weightFormatProvider);
+    final metric = LoggingMetric.fromId(exercise.loggingMetric);
 
     return HxScreenShell(
       title: exercise.name,
@@ -93,12 +95,19 @@ class _ExerciseDetailsBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 14),
-        _TrendCard(exerciseId: exercise.id),
-        const SizedBox(height: 14),
+        // An estimated 1RM is a weight for a rep. A plank, a sled push and a
+        // row erg have no such number, so the trend card is simply absent
+        // rather than plotting a flat line through their placeholder zeros
+        // (EXR-05).
+        if (metric.isRepBased && metric.isLoaded) ...[
+          _TrendCard(exerciseId: exercise.id),
+          const SizedBox(height: 14),
+        ],
         _PerformanceCard(
           title: 'By equipment',
           async: byEquipment,
           weightFormat: weightFormat,
+          metric: metric,
           labelOf: (record) => equipmentVariantLabel(record.label),
         ),
         const SizedBox(height: 14),
@@ -106,6 +115,7 @@ class _ExerciseDetailsBody extends ConsumerWidget {
           title: 'By accessories',
           async: byAccessory,
           weightFormat: weightFormat,
+          metric: metric,
           labelOf: (record) => record.label,
         ),
         const SizedBox(height: 14),
@@ -312,12 +322,17 @@ class _PerformanceCard extends StatelessWidget {
   final String title;
   final AsyncValue<List<PerformanceRecord>> async;
   final WeightFormat weightFormat;
+
+  /// What the exercise is measured in. Decides whether the per-variant line
+  /// can honestly quote a best weight and reps at all (EXR-05).
+  final LoggingMetric metric;
   final String Function(PerformanceRecord) labelOf;
 
   const _PerformanceCard({
     required this.title,
     required this.async,
     required this.weightFormat,
+    required this.metric,
     required this.labelOf,
   });
 
@@ -360,7 +375,13 @@ class _PerformanceCard extends StatelessWidget {
                                           ),
                                     ),
                                     Text(
-                                      '${weightFormat.format(record.bestWeightKg)} × ${record.bestWeightReps} reps · ${record.setCount} sets',
+                                      metric.isRepBased && metric.isLoaded
+                                          ? '${weightFormat.format(record.bestWeightKg)} × ${record.bestWeightReps} reps · ${record.setCount} sets'
+                                          // A best set of a timed or measured
+                                          // movement is not a weight for a rep;
+                                          // the honest number here is how much
+                                          // of it was done.
+                                          : '${record.setCount} sets',
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall
@@ -371,7 +392,9 @@ class _PerformanceCard extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              if (record.bestE1RmKg != null)
+                              if (record.bestE1RmKg != null &&
+                                  metric.isRepBased &&
+                                  metric.isLoaded)
                                 Text(
                                   weightFormat.format(record.bestE1RmKg!),
                                   style: Theme.of(context).textTheme.titleMedium

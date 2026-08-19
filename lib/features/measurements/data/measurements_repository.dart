@@ -11,7 +11,7 @@ class MeasurementsRepository {
 
   /// Built-in measurement metrics; UI may add `custom:<name>` keys.
   static const builtInMetrics = [
-    'bodyweight', 'neck', 'chest', 'arms_l', 'arms_r', 'waist', 'hips',
+    'bodyweight', 'body_fat', 'neck', 'chest', 'arms_l', 'arms_r', 'waist', 'hips',
     'thigh_l', 'thigh_r', 'calf_l', 'calf_r', 'back',
   ];
 
@@ -27,6 +27,18 @@ class MeasurementsRepository {
     return (_db.select(_db.bodyMeasurements)
           ..orderBy([(t) => OrderingTerm(expression: t.dateIso)]))
         .watch();
+  }
+
+  /// Get the most recent value for each metric as a map (e.g. {'waist': 82.0, 'neck': 38.0}).
+  Future<Map<String, double>> getLatestMeasurements() async {
+    final rows = await (_db.select(_db.bodyMeasurements)
+          ..orderBy([(t) => OrderingTerm(expression: t.dateIso)]))
+        .get();
+    final map = <String, double>{};
+    for (final r in rows) {
+      map[r.metric] = r.value;
+    }
+    return map;
   }
 
   /// One sample per metric per day — re-logging the same day overwrites.
@@ -72,6 +84,15 @@ class MeasurementsRepository {
           [(t) => OrderingTerm(expression: t.dateIso, mode: OrderingMode.desc)]);
     if (pose != null) q.where((t) => t.pose.equals(pose));
     return q.watch();
+  }
+
+  Future<List<ProgressPhotoData>> getRecentPhotos({int limit = 20, String? pose}) async {
+    final q = _db.select(_db.progressPhotos)
+      ..orderBy(
+          [(t) => OrderingTerm(expression: t.dateIso, mode: OrderingMode.desc)])
+      ..limit(limit);
+    if (pose != null) q.where((t) => t.pose.equals(pose));
+    return q.get();
   }
 
   Future<int> addPhoto({

@@ -165,6 +165,34 @@ class SupabaseAuthService implements AuthProviderService {
     await _client.auth.signOut();
   }
 
+  @override
+  Future<void> deleteAccount() async {
+    // `auth.users` is unreachable from the anon/authenticated roles, so the
+    // delete runs service-role-side in the `delete-account` Edge Function.
+    // Nothing identifying is sent: the function derives the account from the
+    // verified JWT, so this request body is empty by design.
+    try {
+      await _client.functions.invoke('delete-account');
+    } on FunctionException catch (error) {
+      final details = error.details;
+      if (details is Map && details['error'] is String) {
+        throw AuthException(details['error'] as String);
+      }
+      throw AuthException(
+        'Could not delete the account (${error.status}). Please try again.',
+      );
+    }
+
+    // Only after the server confirmed. The access token is dead the moment
+    // the auth row goes, so this is local cleanup — it must not be able to
+    // fail the operation the user already got.
+    try {
+      await signOut();
+    } catch (_) {
+      // Already effectively signed out; the caller wipes the device next.
+    }
+  }
+
   AuthSession _require(Session? session, User? user, String op) {
     if (session == null) {
       // Happens when email confirmation is required: the user exists but has

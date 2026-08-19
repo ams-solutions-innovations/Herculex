@@ -33,7 +33,7 @@ void main() {
       'pullup_wrist_clean_8reps',
       trace,
       repCount: 8,
-      movement: RepMovement.pullUp,
+      movement: RepMovement.verticalPull,
       source: 'wrist',
       description: 'clean baseline set',
       recordedBy: 'tester',
@@ -49,7 +49,7 @@ void main() {
       'dip_wrist_clean_12reps',
       trace,
       repCount: 12,
-      movement: RepMovement.dip,
+      movement: RepMovement.bodyweightPush,
       source: 'wrist',
       description: 'baseline dips',
       recordedBy: 'tester',
@@ -75,7 +75,7 @@ void main() {
     expect(sidecar.keys.toSet(), expectedKeys);
     expect(sidecar['synthetic'], isFalse);
     expect(sidecar['repCount'], 12);
-    expect(sidecar['movement'], 'dip');
+    expect(sidecar['movement'], 'bodyweightPush');
   });
 
   test('the written csv has one line per sample in t_ms,x,y,z order', () async {

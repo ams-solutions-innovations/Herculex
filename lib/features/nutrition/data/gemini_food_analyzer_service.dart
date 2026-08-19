@@ -48,6 +48,57 @@ class GeminiFoodAnalysisResult {
   }
 }
 
+/// Result of a `barcode_product` Gemini lookup — the model identifies the
+/// scanned product from its photo/barcode and searches the web for its real
+/// nutrition facts. [found] is false when Gemini couldn't confidently
+/// identify the product; callers must check it rather than trusting zeros.
+class GeminiBarcodeProductResult {
+  final bool found;
+  final String name;
+  final String? brand;
+  final double servingGrams;
+  final double kcalPer100g;
+  final double proteinPer100g;
+  final double carbsPer100g;
+  final double fatPer100g;
+  final double? fiberPer100g;
+  final double? sodiumMgPer100g;
+  final double confidence;
+
+  const GeminiBarcodeProductResult({
+    required this.found,
+    required this.name,
+    this.brand,
+    required this.servingGrams,
+    required this.kcalPer100g,
+    required this.proteinPer100g,
+    required this.carbsPer100g,
+    required this.fatPer100g,
+    this.fiberPer100g,
+    this.sodiumMgPer100g,
+    required this.confidence,
+  });
+
+  factory GeminiBarcodeProductResult.fromJson(Map<String, dynamic> json) {
+    return GeminiBarcodeProductResult(
+      found: json['found'] as bool? ?? false,
+      name: json['name'] as String? ?? 'Neznan izdelek',
+      brand: json['brand'] as String?,
+      servingGrams: (json['servingGrams'] as num?)?.toDouble() ?? 100.0,
+      kcalPer100g: (json['kcalPer100g'] as num?)?.toDouble() ?? 0.0,
+      proteinPer100g: (json['proteinPer100g'] as num?)?.toDouble() ?? 0.0,
+      carbsPer100g: (json['carbsPer100g'] as num?)?.toDouble() ?? 0.0,
+      fatPer100g: (json['fatPer100g'] as num?)?.toDouble() ?? 0.0,
+      fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
+      sodiumMgPer100g: (json['sodiumMgPer100g'] as num?)?.toDouble(),
+      confidence: ((json['confidence'] as num?)?.toDouble() ?? 0.0).clamp(
+        0.0,
+        1.0,
+      ),
+    );
+  }
+}
+
 final geminiFoodAnalyzerServiceProvider = Provider<GeminiFoodAnalyzerService>((
   ref,
 ) {
@@ -132,6 +183,20 @@ class GeminiFoodAnalyzerService {
       evidence: jsonEncode(responseJson),
       warning: responseJson['notes'] as String?,
     );
+  }
+
+  Future<GeminiBarcodeProductResult> analyzeBarcodeProduct({
+    required File imageFile,
+    required String barcode,
+    String? userNote,
+  }) async {
+    final parsedMap = await _backend.analyzeBarcodeProduct(
+      imageBytes: await imageFile.readAsBytes(),
+      mimeType: _mimeType(imageFile.path),
+      barcode: barcode,
+      userNote: userNote,
+    );
+    return GeminiBarcodeProductResult.fromJson(parsedMap);
   }
 
   String _mimeType(String path) {

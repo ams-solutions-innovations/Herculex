@@ -62,7 +62,9 @@ class FixtureRecorder {
 
     final sidecar = <String, dynamic>{
       'repCount': repCount,
-      'movement': movement?.name,
+      // The stable family id, never `.name`: the enum may be reordered or
+      // renamed and a sidecar recorded today must still resolve later.
+      'movement': movement?.id,
       'source': source,
       'placement': placement,
       'sensorType': trace.sensorType,

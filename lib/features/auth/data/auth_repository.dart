@@ -102,6 +102,17 @@ class AuthRepository {
     await _localRepository.clear();
   }
 
+  /// Deletes the remote account, then drops the cached session.
+  ///
+  /// This is the *server* half only. Wiping the device is deliberately not
+  /// done here — see [AccountDeletionService], which owns the whole
+  /// operation; this class has no business knowing about Drift or
+  /// preferences.
+  Future<void> deleteAccount() async {
+    await _authService.deleteAccount();
+    await _localRepository.clear();
+  }
+
   void dispose() {
     _sub?.cancel();
     _sub = null;

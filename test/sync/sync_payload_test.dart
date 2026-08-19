@@ -479,6 +479,85 @@ void main() {
     );
   });
 
+  group('set entry metrics', () {
+    // GSD 12-04 (EXR-05): `duration_seconds`, `distance_m` and `calories` are
+    // plain nullable columns on the already-synced `set_entries`, with no
+    // `SyncTableSpec` entry of their own — the same generic pass-through
+    // `buddy_session_id` relies on below, and the same bet
+    // `0013_set_entry_metrics.sql` makes by adding nothing but three columns.
+    //
+    // Null is load-bearing here, not merely absent: it is what distinguishes
+    // "this metric does not apply to this movement" from "logged, and it was
+    // zero", which is what keeps a sled push out of rep counts and a plank out
+    // of tonnage. A round trip that helpfully coerced null to 0 would erase
+    // exactly that distinction, so both directions are asserted.
+    test('a distance-and-duration set round-trips, nulls included', () async {
+      await sync.start(userId);
+      final exerciseId = await insertExercise(
+        db,
+        name: 'Sled Push',
+        slug: 'sled-push',
+        isCustom: false,
+      );
+      final sessionId = await db
+          .into(db.workoutSessions)
+          .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime(2026, 8, 19)));
+      final workoutExerciseId = await db
+          .into(db.workoutExercises)
+          .insert(
+            WorkoutExercisesCompanion.insert(
+              sessionId: sessionId,
+              exerciseId: exerciseId,
+              orderIndex: 0,
+            ),
+          );
+      await db
+          .into(db.setEntries)
+          .insert(
+            SetEntriesCompanion.insert(
+              workoutExerciseId: workoutExerciseId,
+              setIndex: 0,
+              // A sled push has a real load and a real distance, no reps and
+              // no calorie readout.
+              weightKg: 80,
+              reps: 0,
+              distanceM: const Value(20.5),
+              durationSeconds: const Value(45),
+            ),
+          );
+      await sync.pushOnce();
+
+      final row = pushed('set_entries');
+      expect(row['distance_m'], 20.5);
+      expect(row['duration_seconds'], 45);
+      expect(row['calories'], isNull);
+
+      // Pull onto a second device, same account, same fake cloud.
+      final dbB = await openTestDatabase();
+      final syncB = SyncService(db: dbB, backend: backend);
+      addTearDown(() async {
+        await syncB.dispose();
+        await dbB.close();
+      });
+      await syncB.start(userId);
+
+      final onB = await dbB
+          .customSelect(
+            'SELECT duration_seconds, distance_m, calories FROM set_entries '
+            'WHERE sync_uuid = ?',
+            variables: [Variable(await uuidOf('set_entries', 1))],
+          )
+          .getSingle();
+      expect(onB.data['distance_m'], 20.5);
+      expect(onB.data['duration_seconds'], 45);
+      expect(
+        onB.data['calories'],
+        isNull,
+        reason: 'null must stay null across the wire, not become 0',
+      );
+    });
+  });
+
   group('buddy_session_id', () {
     // Phase 11 Gym Buddy (BUD-02/BUD-07): `buddy_session_id` is a plain
     // nullable text column on the already-synced `workout_sessions` table,

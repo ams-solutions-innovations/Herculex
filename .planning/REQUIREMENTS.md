@@ -45,12 +45,12 @@
 
 ### Assisted rep tracking
 
-- [x] **REP-01**: Rep tracking is off until the user completes a dedicated consent screen, and then off per exercise until separately enabled. It is offered only for the enumerated eligible slugs.
-- [x] **REP-02**: The user chooses the sensor source. The phone accelerometer is used only when a placement is explicitly selected.
-- [x] **REP-03**: The tracker never completes, saves or alters a set. Every rep count and RPE reaches the database only through a user confirmation, and the tracker feature directory contains no reference to the set write path.
+- [x] **REP-01**: Rep tracking is off until the user completes a dedicated consent screen, and then off until a single global switch is turned on. Which exercises it applies to is derived from per-exercise capability profiles covering the whole catalogue, not from a per-exercise opt-in; the per-exercise control is an override that can only ever exclude. *(Revised in the catalogue-wide rework: the original wording required a per-exercise opt-in against an enumerated slug list, which asked the user to re-derive, exercise by exercise, a fact about sensor placement the app already knows.)*
+- [x] **REP-02**: The sensor site is derived from the exercise, never chosen: exercises whose hands are anchored are sensed from a pocketed phone and the rest from the watch, and the requirement is stated before the set rather than discovered after it. The phone source still requires an explicitly selected placement. *(Revised: the original "the user chooses the sensor source" offered a choice with one correct answer per exercise, where a wrong answer presents as the tracker being broken.)*
+- [x] **REP-03**: The tracker never completes, saves or alters a set. Nothing under `lib/features/reps/` references the set write path. A confidently detected count prefills the editable reps field and is written only when the user completes the set; a low-confidence, count-only or unmeasured result opens the review sheet instead. *(Revised: "reaches the database only through a user confirmation" is unchanged in substance — the write still happens on the user's own tap — but the confirmation is now completing the set rather than a second dialog per set, which at twenty sets was worse than typing the number.)*
 - [x] **REP-04**: Raw accelerometer samples are processed on the user's devices and discarded at set end. Only derived features and confirmed outcomes persist, and none of it syncs.
 - [x] **REP-05**: An RPE suggestion appears only after ≥ 10 confirmed sets across ≥ 3 sessions for that exercise/device/placement, and only when leave-one-out error is within 1.0 RPE point. Low confidence, changed placement or unsupported movement yields a count-only state.
-- [ ] **REP-06**: Recorded motion traces for pull-ups and dips verify counting accuracy, missed-rep handling, false-positive resistance, source and placement changes, and the never-auto-complete guarantee.
+- [ ] **REP-06**: Recorded motion traces verify counting accuracy, missed-rep handling, false-positive resistance, source and placement changes, and the never-auto-complete guarantee. **Scope grew with coverage**: one trace family per detection family per sensor site, not just pull-ups and dips. Still the phase's real gate, and still a human task in a gym.
 
 ### Gym Buddy — live shared workout
 
@@ -70,6 +70,28 @@
 - **PLAN-02**: Meal planner, grocery list and dietary-preference/allergen planning.
 - **SOC-01**: Sharing/copying diaries across users after an account and sync model exist.
 - **VOICE-01**: Voice food entry when a supported, privacy-reviewed recogniser is selected.
+
+### Exercise catalogue (Phase 12)
+
+- [x] **EXR-01**: Equipment variants of one movement collapse to a single picker entry; the plain version of a movement is the one a bare-name search lands on.
+- [x] **EXR-02**: Grip, attachment and start-position variants collapse into their movement rather than occupying separate top-level rows.
+- [x] **EXR-03**: Every category the app offers as a filter has exercises in it — including cardio, CrossFit and mobility.
+- [x] **EXR-04**: `loggingMetric` is a single typed registry; the catalogue asset, the custom-exercise builder and the logger all read the same vocabulary.
+- [x] **EXR-05**: A set is stored and displayed in its exercise's own units — duration, distance or calories where reps and kilos do not apply — without distorting tonnage or volume analytics.
+
+### Hercul coaching layer (Phase 13)
+
+- [ ] **HRC-01**: A dashboard card surfaces ranked observations derived from the user's own training, nutrition and bodyweight data.
+- [ ] **HRC-02**: Observations come from an authored rule corpus stored as a JSON asset and imported locally, replaceable from the cloud later without changing the engine.
+- [ ] **HRC-03**: Rule evaluation is a pure function; a rule with missing signals is skipped, and a fired rule is suppressed for its cooldown.
+- [ ] **HRC-04**: The user chooses between two voices; the blunt voice is opt-in, gated on a stated age of 18 or over, and never targets the user's body or sex.
+- [ ] **HRC-05**: No message asserts anything the app cannot show the underlying numbers for, and none constitutes medical advice.
+
+### Anthropometric ergonomics (Phase 14)
+
+- [ ] **ERG-01**: Profile height, plus optional inseam, arm span and torso measurements, yield proportion ratios.
+- [ ] **ERG-02**: Movements carry variant guidance keyed to those proportions, with sources recorded.
+- [ ] **ERG-03**: Guidance appears on the exercise and through Hercul, is absent when measurements are unknown, and is phrased as a trade-off rather than a correction.
 
 ## Out of Scope
 
@@ -93,3 +115,6 @@
 | ANLY-01–04 | 9 | Complete |
 | REP-01–06 | 10 | In Progress |
 | BUD-01–06 | 11 | Pending |
+| EXR-01–05 | 12 | Complete |
+| HRC-01–05 | 13 | Pending |
+| ERG-01–03 | 14 | Pending |

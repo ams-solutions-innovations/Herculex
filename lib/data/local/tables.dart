@@ -235,6 +235,36 @@ class SetEntries extends Table with SyncColumns, SyncTombstone {
 
   /// Average chain contribution over the ROM, already halved (kg at lockout/2).
   RealColumn get chainsKg => real().nullable()();
+
+  // ── Non-rep logging metrics (v31, EXR-05) ──
+  //
+  // Three nullable columns, one per [SetField] that is not weight or reps.
+  // Which of them a given set fills is decided by its exercise's
+  // `loggingMetric` (see `features/workouts/domain/logging_metric.dart`) —
+  // a Plank fills `durationSeconds`, a Sled Push fills `weightKg` and
+  // `distanceM`, a bike sprint fills `durationSeconds` and `calories`.
+  //
+  // Nullable rather than defaulted to zero on purpose: null means "this metric
+  // does not apply to this movement", while 0 would mean "logged, and it was
+  // zero". Analytics has to tell those apart — a duration-only set with
+  // `weightKg = 0` must contribute no tonnage, not zero-weight tonnage, and a
+  // sled push must not be counted as `reps` work it never had.
+  //
+  // [reps] and [weightKg] stay NOT NULL because every existing row has them
+  // and because widening them would silently break every query that assumes
+  // otherwise; a non-rep set writes 0 into them and is excluded from
+  // rep/tonnage aggregation by its metric, not by its stored numbers.
+
+  /// Work duration in seconds — a hold, a carry, or a cardio interval.
+  IntColumn get durationSeconds => integer().nullable()();
+
+  /// Distance covered, in metres. Metres rather than the user's display unit:
+  /// the same rule the rest of the schema follows for kilograms.
+  RealColumn get distanceM => real().nullable()();
+
+  /// Calories as reported by an erg or bike console. Not an estimate the app
+  /// computes — it is a number the machine displayed and the user copied.
+  IntColumn get calories => integer().nullable()();
 }
 
 // ── Nutrition ──────────────────────────────────────────────────────────────
@@ -1033,11 +1063,39 @@ class RepTrackingSettings extends Table {
   /// is usable (REP-02).
   TextColumn get phonePlacement => text().nullable()();
   BoolColumn get hapticsEnabled => boolean().withDefault(const Constant(true))();
+
+  /// The single global switch (v30).
+  ///
+  /// Replaces per-exercise opt-in as the thing that turns tracking on.
+  /// Eligibility is now a property of the exercise — derived from
+  /// `assets/data/rep_tracking_profiles.json`, which covers the whole
+  /// catalogue — so asking the user to opt in exercise by exercise was asking
+  /// them to re-derive physics the app already knows.
+  ///
+  /// Defaults to false, and consent still gates it: this switch is only
+  /// reachable once the consent screen has been completed, and turning it on
+  /// can never bypass `consentGrantedAt`.
+  BoolColumn get autoCountEnabled =>
+      boolean().withDefault(const Constant(false))();
 }
 
 /// Per-exercise opt-in, keyed by [ExerciseCatalog.slug] rather than by
 /// `exerciseId` so a catalogue re-import cannot orphan a preference.
 @DataClassName('RepTrackingExercisePrefData')
+/// Per-exercise **override**, not opt-in.
+///
+/// Before v30 a row here with `enabled = true` was what turned tracking on for
+/// one exercise. From v30 the global switch does that, and this table only
+/// records deliberate exceptions: a row with `enabled = false` means "never
+/// track this one, even though it is measurable and the global switch is on".
+///
+/// The reinterpretation needs no data migration and loses no intent. A row
+/// left over from the old model with `enabled = false` was a user saying "not
+/// this exercise", which is exactly what it still means; a row with
+/// `enabled = true` becomes a no-op, which is also what the user wanted. What
+/// changes is the default for a **missing** row: it used to mean off and now
+/// means follow the global switch, which is safe because that switch defaults
+/// to off.
 class RepTrackingExercisePrefs extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get exerciseSlug => text()();

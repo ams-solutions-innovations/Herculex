@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../domain/logging_metric.dart';
 import 'workouts_providers.dart';
 
 /// Full-screen builder for a fully-attributed custom exercise. Returns the
@@ -41,9 +42,11 @@ const _patterns = [
   'squat', 'hinge', 'horizontal_push', 'vertical_push', 'horizontal_pull',
   'vertical_pull', 'lunge', 'carry', 'core', 'isolation', 'other',
 ];
-const _metrics = [
-  'weight_reps', 'reps', 'time', 'distance', 'time_distance', 'weight_time',
-];
+// Derived from the registry rather than restated, because this list had
+// already drifted from it: `weight_distance` shipped on Sled Push without ever
+// appearing here, so a custom sled variant could not be given the metric its
+// seeded counterpart uses.
+final _metrics = [for (final m in LoggingMetric.values) m.id];
 const _equipmentOptions = [
   'Barbell', 'Dumbbell', 'Cable', 'Machine', 'Smith Machine', 'Bodyweight',
   'Kettlebell', 'Band', 'Plate', 'Rings', 'TRX', 'EZ Bar', 'Trap Bar', 'Other',

@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerSnapDistance
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -50,6 +52,7 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Dialog
 import androidx.wear.compose.material.rememberPickerState
 import com.ams.herculex.media.MediaControlsScreen
+import com.ams.herculex.reps.RepCaptureRow
 import com.ams.herculex.ui.OneUiPill
 import com.ams.herculex.ui.OneUiPillStyle
 import kotlinx.coroutines.launch
@@ -177,6 +180,10 @@ fun SetLoggerScreen(
 
     VerticalPager(
         state = mediaPagerState,
+        flingBehavior = PagerDefaults.flingBehavior(
+            state = mediaPagerState,
+            pagerSnapDistance = PagerSnapDistance.atMost(1),
+        ),
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black),
@@ -185,29 +192,34 @@ fun SetLoggerScreen(
             WorkoutGlanceScreen(session = s)
         } else if (verticalPage == 1) {
             HorizontalPager(
-        state = pagerState,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .nestedScroll(nestedScrollConnection),
-    ) { page ->
-        when (page) {
-            0 -> {
-                // Page 0: Set Logger Screen
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .attachWorkoutSetPickerRotary(
-                            weightState = weightState,
-                            weightOptionsCount = weightOptions.size,
-                            repsState = repsState,
-                            repsOptionsCount = repsOptions.size,
-                            rotaryTarget = rotaryTarget,
-                            focusRequester = setPickerFocus,
-                        )
-                        .padding(top = 18.dp, bottom = 4.dp, start = 10.dp, end = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
+                state = pagerState,
+                flingBehavior = PagerDefaults.flingBehavior(
+                    state = pagerState,
+                    pagerSnapDistance = PagerSnapDistance.atMost(1),
+                ),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .nestedScroll(nestedScrollConnection),
+            ) { page ->
+                when (page) {
+                    0 -> {
+                        // Page 0: Set Logger Screen
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .attachWorkoutSetPickerRotary(
+                                    weightState = weightState,
+                                    weightOptionsCount = weightOptions.size,
+                                    repsState = repsState,
+                                    repsOptionsCount = repsOptions.size,
+                                    rotaryTarget = rotaryTarget,
+                                    focusRequester = setPickerFocus,
+                                    isFocused = pagerState.currentPage == 0 && mediaPagerState.currentPage == 1,
+                                )
+                                .padding(top = 18.dp, bottom = 4.dp, start = 10.dp, end = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
                     // Header: Main exercise name and equipment variant on second line.
                     val rawName = exercise.template.name
                     val mainName = if (rawName.contains("(")) rawName.substringBefore("(").trim() else rawName
@@ -334,6 +346,18 @@ fun SetLoggerScreen(
                         }
                     }
                     
+                    // On-wrist rep capture. Tapping it is the only thing that
+                    // starts the accelerometer — see RepCaptureRow.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RepCaptureRow(exerciseSlug = exercise.template.slug)
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
                     // Set Type & Accessory Indicator & Prev Perf
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -395,7 +419,10 @@ fun SetLoggerScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black)
-                        .attachRotaryScroll(setTypeListState),
+                        .attachRotaryScroll(
+                            state = setTypeListState,
+                            isFocused = pagerState.currentPage == 1 && mediaPagerState.currentPage == 1,
+                        ),
                     autoCentering = null,
                     contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp, start = 12.dp, end = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -457,7 +484,10 @@ fun SetLoggerScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black)
-                        .attachRotaryScroll(accListState),
+                        .attachRotaryScroll(
+                            state = accListState,
+                            isFocused = pagerState.currentPage == 2 && mediaPagerState.currentPage == 1,
+                        ),
                     autoCentering = null,
                     contentPadding = PaddingValues(top = 10.dp, bottom = 20.dp, start = 14.dp, end = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),

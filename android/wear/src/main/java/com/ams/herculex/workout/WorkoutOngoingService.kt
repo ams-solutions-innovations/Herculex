@@ -72,6 +72,15 @@ class WorkoutOngoingService : Service() {
          */
         const val ACTION_START_REP_CAPTURE = "com.ams.herculex.reps.START_CAPTURE"
         const val ACTION_STOP_REP_CAPTURE = "com.ams.herculex.reps.STOP_CAPTURE"
+
+        /**
+         * Arms the low-rate motion gate for an exercise. Sets then open and
+         * close on their own — the tap-free path. Still explicit, because
+         * arming is what the user is consenting to; what it removes is the
+         * tap *per set*, not the decision to track at all.
+         */
+        const val ACTION_START_REP_WATCH = "com.ams.herculex.reps.START_WATCH"
+        const val ACTION_STOP_REP_WATCH = "com.ams.herculex.reps.STOP_WATCH"
         const val EXTRA_REP_EXERCISE_SLUG = "extra_rep_exercise_slug"
 
         private const val CHANNEL_ID = "ongoing_workout_channel"
@@ -121,6 +130,19 @@ class WorkoutOngoingService : Service() {
                 repCapture?.stop(RepCaptureController.REASON_USER)
                 return START_STICKY
             }
+            ACTION_START_REP_WATCH -> {
+                startRepWatching(intent.getStringExtra(EXTRA_REP_EXERCISE_SLUG).orEmpty())
+                return START_STICKY
+            }
+            ACTION_STOP_REP_WATCH -> {
+                // Disarm first, then close any open set. The other order works
+                // but wastes a register/unregister pair: stop() re-registers
+                // the low-rate listener whenever the gate is still armed, and
+                // stopWatching() would immediately tear it back down.
+                repCapture?.stopWatching()
+                repCapture?.stop(RepCaptureController.REASON_USER)
+                return START_STICKY
+            }
         }
 
         if (intent?.action == ACTION_STOP) {
@@ -157,19 +179,36 @@ class WorkoutOngoingService : Service() {
      * registers no listener, so the register/unregister accounting stays
      * balanced.
      */
-    private fun startRepCapture(exerciseSlug: String) {
-        val sensorManager = getSystemService(SensorManager::class.java) ?: return
-        val controller = repCapture ?: RepCaptureController(
+    private fun ensureController(): RepCaptureController? {
+        val sensorManager = getSystemService(SensorManager::class.java) ?: return null
+        return repCapture ?: RepCaptureController(
             sensors = AndroidRepSensorGateway(sensorManager),
             sender = WearRepMessageSender(applicationContext),
             batteryLevelPercent = { readBatteryPercent() },
             clock = { System.currentTimeMillis() },
             onProvisionalRep = { _provisionalRepCount.value = it },
         ).also { repCapture = it }
+    }
+
+    private fun startRepCapture(exerciseSlug: String) {
+        val controller = ensureController() ?: return
 
         _provisionalRepCount.value = 0
         val result = controller.start(exerciseSlug)
         if (result is StartResult.Started) {
+            observeAppBackground()
+        }
+    }
+
+    /**
+     * Arms the gate rather than opening a capture. Same refusal handling as
+     * [startRepCapture]: a refusal registers no listener, so the
+     * register/unregister accounting stays balanced.
+     */
+    private fun startRepWatching(exerciseSlug: String) {
+        val controller = ensureController() ?: return
+        _provisionalRepCount.value = 0
+        if (controller.startWatching(exerciseSlug) is StartResult.Started) {
             observeAppBackground()
         }
     }
