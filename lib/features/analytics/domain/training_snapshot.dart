@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import '../../../data/local/database.dart';
 import '../../workouts/domain/effective_load.dart';
+import '../../workouts/domain/equipment_variants.dart';
 import '../../workouts/domain/logging_metric.dart';
 import '../../workouts/domain/set_type.dart';
 
@@ -25,10 +28,10 @@ class ResolvedSet {
   final double effectiveKg;
 
   ResolvedSet({
-    required this.set,
-    required this.workoutExercise,
     required this.session,
+    required this.workoutExercise,
     required this.exercise,
+    required this.set,
     required this.setType,
     required this.bands,
     required this.accessoryNames,
@@ -36,13 +39,19 @@ class ResolvedSet {
   }) : effectiveKg = EffectiveLoad.computeKg(
           weightKg: set.weightKg,
           bodyweightKg: set.bodyweightKg,
-          includesBodyweight: exercise.supportsWeightedBodyweight,
+          includesBodyweight: exercise.supportsWeightedBodyweight ||
+              (workoutExercise.equipmentVariant ?? exercise.modality) == 'weighted' ||
+              (workoutExercise.equipmentVariant ?? exercise.modality) == 'bodyweight' ||
+              (workoutExercise.equipmentVariant ?? exercise.modality) == 'band',
           chainsKg: set.chainsKg,
           bands: bands,
         );
 
   /// What this exercise is measured in (EXR-05).
-  LoggingMetric get metric => LoggingMetric.fromId(exercise.loggingMetric);
+  LoggingMetric get metric => effectiveLoggingMetric(
+        exercise: exercise,
+        equipmentVariant: workoutExercise.equipmentVariant,
+      );
 
   /// Tonnage of this set, or zero when reps are not the unit of work.
   ///
@@ -57,11 +66,25 @@ class ResolvedSet {
   /// it keeps counting exactly as it did before this phase.
   double get tonnageKg => metric.isRepBased
       ? EffectiveLoad.tonnageKg(
-          effectiveKg: effectiveKg, reps: set.reps, setType: setType)
+          effectiveKg: effectiveKg, reps: countedReps, setType: setType)
       : 0.0;
 
   /// Reps this set contributes to a rep total, or zero for non-rep work.
-  int get countedReps => metric.isRepBased ? set.reps : 0;
+  /// For [SetType.myoReps], includes activation reps plus all mini-sets.
+  int get countedReps {
+    if (!metric.isRepBased) return 0;
+    var reps = set.reps;
+    if (setType == SetType.myoReps && set.setTypeMetaJson != null) {
+      try {
+        final meta = jsonDecode(set.setTypeMetaJson!) as Map<String, dynamic>;
+        final miniSets = (meta['miniSets'] as List<dynamic>?)?.cast<int>();
+        if (miniSets != null && miniSets.isNotEmpty) {
+          reps += miniSets.fold<int>(0, (sum, r) => sum + r);
+        }
+      } catch (_) {}
+    }
+    return reps;
+  }
 
   String get equipmentVariant =>
       workoutExercise.equipmentVariant ?? exercise.modality;
@@ -71,7 +94,8 @@ class ResolvedSet {
       accessoryNames.isEmpty ? 'Raw' : accessoryNames.join(' + ');
 
   /// Weighted-bodyweight work is more CNS-costly: +2 on the 1–10 scale (§9).
-  int get cnsScore => exercise.supportsWeightedBodyweight &&
+  int get cnsScore => (exercise.supportsWeightedBodyweight ||
+              (workoutExercise.equipmentVariant ?? exercise.modality) == 'weighted') &&
           set.bodyweightKg != null &&
           set.weightKg > 0
       ? (exercise.cnsScore + 2).clamp(1, 10)

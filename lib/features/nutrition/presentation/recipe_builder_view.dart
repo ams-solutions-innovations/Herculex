@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
@@ -11,6 +10,7 @@ import '../domain/daily_totals.dart';
 import '../domain/food_insights.dart';
 import '../domain/macro_targets.dart';
 import 'custom_food_form_sheet.dart';
+import 'log_entry_sheet.dart';
 import 'nutrition_providers.dart';
 
 class RecipeBuilderView extends ConsumerStatefulWidget {
@@ -73,12 +73,12 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
     await _ensureRecipe();
     if (!mounted) return;
     final food = await _showFoodPicker();
-    if (food == null) return;
-    final grams = await _askGrams(initial: food.servingGrams ?? 100);
-    if (grams == null) return;
-    await ref
-        .read(nutritionRepositoryProvider)
-        .addIngredient(recipeId: _recipeId!, foodId: food.id, grams: grams);
+    if (food == null || !mounted) return;
+    await LogEntrySheet.forIngredient(
+      context,
+      food: food,
+      recipeId: _recipeId,
+    );
   }
 
   Future<FoodData?> _showFoodPicker() async {
@@ -91,37 +91,6 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
       ),
       builder: (_) => _IngredientPickerSheet(),
     );
-  }
-
-  Future<double?> _askGrams({required double initial}) async {
-    final ctrl = TextEditingController(text: initial.toStringAsFixed(0));
-    final result = await showDialog<double>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Grams'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-          ],
-          decoration: const InputDecoration(suffixText: 'g'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () =>
-                Navigator.pop(context, double.tryParse(ctrl.text.trim())),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-    return result;
   }
 
   Future<void> _save() async {
@@ -328,7 +297,7 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
               }
               return Column(
                 children: list
-                    .map((ing) => _IngredientTile(ingredient: ing))
+                    .map((ing) => _IngredientTile(ingredient: ing, recipeId: _recipeId!))
                     .toList(),
               );
             },
@@ -632,28 +601,151 @@ class _MacroDonutPainter extends CustomPainter {
 
 class _IngredientTile extends ConsumerWidget {
   final RecipeIngredientData ingredient;
-  const _IngredientTile({required this.ingredient});
+  final int recipeId;
+
+  const _IngredientTile({
+    required this.ingredient,
+    required this.recipeId,
+  });
+
+  Future<void> _editIngredient(
+    BuildContext context,
+    WidgetRef ref,
+    FoodData food,
+  ) async {
+    await LogEntrySheet.forIngredient(
+      context,
+      food: food,
+      existingIngredient: ingredient,
+      recipeId: recipeId,
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final food =
         ref.watch(watchFoodByIdProvider(ingredient.foodId)).asData?.value ??
         _placeholder(ingredient.foodId);
+
+    final factor = ingredient.grams / 100.0;
+    final kcal = (food.kcalPer100g * factor).round();
+    final protein = (food.proteinPer100g * factor).toStringAsFixed(1);
+    final carbs = (food.carbsPer100g * factor).toStringAsFixed(1);
+    final fat = (food.fatPer100g * factor).toStringAsFixed(1);
+
     return Dismissible(
       key: ValueKey('ing_${ingredient.id}'),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        color: Colors.redAccent.withValues(alpha: 0.85),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (_) =>
           ref.read(nutritionRepositoryProvider).removeIngredient(ingredient.id),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(food.name),
-        trailing: Text('${ingredient.grams.toStringAsFixed(0)} g'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.35),
+          ),
+        ),
+        child: InkWell(
+          onTap: () => _editIngredient(context, ref, food),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              food.name,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.onSurface,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${ingredient.grams.toStringAsFixed(0)} g',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.macroKcal.withValues(
+                                alpha: 0.12,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '$kcal kcal',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.macroKcal,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          _MacroPill(
+                            label: 'P',
+                            value: '${protein}g',
+                            color: AppColors.macroProtein,
+                          ),
+                          const SizedBox(width: 6),
+                          _MacroPill(
+                            label: 'C',
+                            value: '${carbs}g',
+                            color: AppColors.macroCarbs,
+                          ),
+                          const SizedBox(width: 6),
+                          _MacroPill(
+                            label: 'F',
+                            value: '${fat}g',
+                            color: AppColors.macroFat,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  color: AppColors.secondary,
+                  onPressed: () => _editIngredient(context, ref, food),
+                  tooltip: 'Edit ingredient',
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -670,6 +762,37 @@ class _IngredientTile extends ConsumerWidget {
     isCustom: false,
     createdAt: DateTime.now(),
   );
+}
+
+class _MacroPill extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _MacroPill({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
 }
 
 class _IngredientPickerSheet extends ConsumerStatefulWidget {

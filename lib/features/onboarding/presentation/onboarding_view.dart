@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/auth_validator.dart';
+import '../../../core/notifications/toast/hx_toast_controller.dart';
+import '../../../core/notifications/toast/hx_toast_model.dart';
 import '../../auth/domain/auth_session.dart';
 import '../../../theme/colors.dart';
 import '../../../widgets/glass_container.dart';
@@ -85,7 +87,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   Future<void> _submitEmailAuth({required bool register}) async {
     final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
     if (!allowed) {
-      _showMessage('Too many failed attempts. Please wait $secondsRemaining seconds.');
+      _showError('Too many failed attempts. Please wait $secondsRemaining seconds.');
       return;
     }
 
@@ -94,13 +96,13 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
 
     final emailError = AuthValidator.validateEmail(email);
     if (emailError != null) {
-      _showMessage(emailError);
+      _showError(emailError);
       return;
     }
 
     final passwordError = AuthValidator.validatePassword(password, isRegistration: register);
     if (passwordError != null) {
-      _showMessage(passwordError);
+      _showError(passwordError);
       return;
     }
 
@@ -109,7 +111,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       if (name.isNotEmpty) {
         final nameError = AuthValidator.validateUsername(name);
         if (nameError != null) {
-          _showMessage(nameError);
+          _showError(nameError);
           return;
         }
       }
@@ -131,7 +133,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       _showMessage(register ? 'Account created successfully.' : 'Signed in successfully.');
     } catch (error) {
       _rateLimiter.recordFailure();
-      _showMessage('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
+      _showError('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -146,7 +148,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       _rateLimiter.recordSuccess();
       _showMessage('Signed in with Google.');
     } catch (error) {
-      _showMessage('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
+      _showError('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -161,7 +163,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       _rateLimiter.recordSuccess();
       _showMessage('Signed in with Apple.');
     } catch (error) {
-      _showMessage('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
+      _showError('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -172,14 +174,14 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   Future<void> _sendPasswordReset() async {
     final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
     if (!allowed) {
-      _showMessage('Too many attempts. Please wait $secondsRemaining seconds.');
+      _showError('Too many attempts. Please wait $secondsRemaining seconds.');
       return;
     }
 
     final email = _emailCtrl.text.trim();
     final emailError = AuthValidator.validateEmail(email);
     if (emailError != null) {
-      _showMessage(emailError);
+      _showError(emailError);
       return;
     }
 
@@ -188,7 +190,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       await ref.read(authRepositoryProvider).sendPasswordReset(email);
       _showMessage('Password reset email sent.');
     } catch (error) {
-      _showMessage('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
+      _showError('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -202,7 +204,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       await ref.read(authRepositoryProvider).signOut();
       _showMessage('Signed out.');
     } catch (error) {
-      _showMessage('$error');
+      _showError('$error');
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -213,6 +215,12 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   void _showMessage(String message) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     messenger?.showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showError(String message) {
+    ref
+        .read(hxToastControllerProvider.notifier)
+        .show(HxToastItem.saveFailed(message: message));
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../theme/haptics.dart';
 import '../../theme/tokens/tokens.dart';
@@ -19,9 +20,17 @@ import 'main_scaffold.dart';
 /// Actions are context-aware: fasting flips between "Start Quick Fast" and
 /// "End Fast" depending on whether a session is already running.
 class QuickAddMenu extends ConsumerStatefulWidget {
-  const QuickAddMenu({super.key, required this.onClose});
+  const QuickAddMenu({
+    super.key,
+    required this.onClose,
+    this.onActionSelected,
+  });
 
   final VoidCallback onClose;
+  final void Function(
+    Future<void> Function(BuildContext context, WidgetRef ref) action,
+  )?
+  onActionSelected;
 
   @override
   ConsumerState<QuickAddMenu> createState() => QuickAddMenuState();
@@ -33,6 +42,7 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
     vsync: this,
     duration: HxMotion.slower,
   )..forward();
+  bool _busy = false;
 
   @override
   void dispose() {
@@ -46,13 +56,24 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
   Future<void> close() => _close();
 
   Future<void> _close() async {
+    if (_busy) return;
+    _busy = true;
     await _controller.reverse();
     if (mounted) widget.onClose();
   }
 
-  Future<void> _run(Future<void> Function() action) async {
-    await _close();
-    if (mounted) await action();
+  Future<void> _run(
+    Future<void> Function(BuildContext context, WidgetRef ref) action,
+  ) async {
+    if (_busy) return;
+    _busy = true;
+    await _controller.reverse();
+    if (widget.onActionSelected != null) {
+      widget.onActionSelected!(action);
+    } else {
+      if (mounted) widget.onClose();
+      if (mounted) await action(context, ref);
+    }
   }
 
   @override
@@ -66,49 +87,50 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
         icon: Icons.restaurant_menu_rounded,
         label: 'Log food',
         accent: hx.domainNutrition,
-        onTap: () => _run(() async {
+        onTap: () => _run((ctx, ref) async {
           final today = DateUtils.dateOnly(DateTime.now());
-          await FoodPickerSheet.show(context, date: today, mealKey: 'snack');
+          await FoodPickerSheet.show(ctx, date: today, mealKey: 'snack');
         }),
       ),
       _QuickAddItem(
         icon: Icons.qr_code_scanner_rounded,
         label: 'Scan barcode',
         accent: hx.domainNutrition,
-        onTap: () => _run(() => scanAndLogFood(context, ref)),
+        onTap: () => _run((ctx, ref) => scanAndLogFood(ctx, ref)),
       ),
       _QuickAddItem(
         icon: Icons.monitor_weight_outlined,
         label: 'Log weight',
         accent: hx.domainRecovery,
-        onTap: () => _run(() => quickLogWeight(context, ref)),
+        onTap: () => _run((ctx, ref) => quickLogWeight(ctx, ref)),
       ),
       _QuickAddItem(
         icon: Icons.fitness_center_rounded,
         label: 'Quick workout',
         accent: hx.domainTraining,
-        // Resolve the gym while the menu is still open — GymPickerSheet
-        // awaits a stream first, and closing the menu before that gap
-        // unmounts our context, so the picker silently no-ops.
-        onTap: () async {
-          final gym = await GymPickerSheet.resolve(context, ref);
+        onTap: () => _run((ctx, ref) async {
+          final gym = await GymPickerSheet.resolve(ctx, ref);
           if (gym.cancelled) return;
-          await _close();
-          if (!mounted) return;
           ref.read(mainTabIndexProvider.notifier).state = 2;
           await ref
               .read(workoutsRepositoryProvider)
               .startSession(gymId: gym.gymId);
-        },
+        }),
+      ),
+      _QuickAddItem(
+        icon: Icons.group_add_rounded,
+        label: 'Join Gym Buddy',
+        accent: hx.domainTraining,
+        onTap: () => _run((ctx, ref) async {
+          ctx.push('/buddy/join');
+        }),
       ),
       activeFast == null
           ? _QuickAddItem(
               icon: Icons.play_circle_outline_rounded,
               label: 'Start Quick Fast',
               accent: hx.domainFasting,
-              // No target, so no goal notification to schedule — Quick Fast
-              // just starts the clock.
-              onTap: () => _run(() async {
+              onTap: () => _run((ctx, ref) async {
                 await ref
                     .read(fastingRepositoryProvider)
                     .startSession(FastingPlan.quickFast.targetSeconds);
@@ -118,7 +140,7 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
               icon: Icons.stop_circle_outlined,
               label: 'End Fast',
               accent: hx.domainFasting,
-              onTap: () => _run(() async => confirmEndFast(context, ref)),
+              onTap: () => _run((ctx, ref) async => confirmEndFast(ctx, ref)),
             ),
     ];
 
@@ -223,27 +245,31 @@ class _QuickAddItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         Haptics.selection();
         onTap();
       },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          HxGlass(
-            borderRadius: HxRadius.pillAll,
-            padding: const EdgeInsets.symmetric(
-                horizontal: HxSpace.x4, vertical: HxSpace.x2 + 2),
-            child: Text(label, style: theme.textTheme.labelLarge),
-          ),
-          const SizedBox(width: HxSpace.x3),
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            HxGlass(
+              borderRadius: HxRadius.pillAll,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: HxSpace.x4, vertical: HxSpace.x2 + 2),
+              child: Text(label, style: theme.textTheme.labelLarge),
+            ),
+            const SizedBox(width: HxSpace.x3),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+              child: Icon(icon, color: Colors.white, size: 20),
+            ),
+          ],
+        ),
       ),
     );
   }

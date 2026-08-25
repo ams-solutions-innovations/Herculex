@@ -5,6 +5,7 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../widgets/premium_button.dart';
 import '../domain/set_type.dart';
+import 'circuits_providers.dart';
 import 'exercise_picker_sheet.dart';
 import 'set_type_menu.dart';
 import 'workouts_providers.dart';
@@ -307,7 +308,18 @@ class _EditBodyState extends ConsumerState<_EditBody> {
                           onPressed: () async {
                             final results = await ExercisePickerSheet.show(context);
                             if (results == null || results.isEmpty || !context.mounted) return;
+                            final circuitIds = <int>{};
                             for (final picked in results) {
+                              if (picked.circuitId != null) {
+                                if (!circuitIds.contains(picked.circuitId!)) {
+                                  circuitIds.add(picked.circuitId!);
+                                  await ref.read(circuitsRepositoryProvider).addCircuitToTemplate(
+                                    templateId: template.id,
+                                    circuitId: picked.circuitId!,
+                                  );
+                                }
+                                continue;
+                              }
                               await repo.addExerciseToTemplate(
                                 templateId: template.id,
                                 exerciseId: picked.exercise.id,
@@ -455,7 +467,7 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
               Icon(Icons.fitness_center_outlined, size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
-                'Mišične skupine / Volume',
+                'Muscle Groups / Volume',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
@@ -463,7 +475,7 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
               ),
               const Spacer(),
               Text(
-                '$totalWorkingSets serij${totalWarmupSets > 0 ? ' (+$totalWarmupSets ogrevanje)' : ''}',
+                '$totalWorkingSets ${totalWorkingSets == 1 ? 'set' : 'sets'}${totalWarmupSets > 0 ? ' (+$totalWarmupSets warmup)' : ''}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppColors.secondary,
@@ -498,7 +510,7 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '${entry.value} ${entry.value == 1 ? 'serija' : (entry.value == 2 ? 'seriji' : (entry.value == 3 || entry.value == 4 ? 'serije' : 'serij'))}',
+                          '${entry.value} ${entry.value == 1 ? 'set' : 'sets'}',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -668,11 +680,17 @@ class _TemplateExerciseCard extends ConsumerWidget {
                       onUpdateSetType: (selection) {
                         if (selection.delete) {
                           repo.deleteTemplateSet(sets[i].id);
-                        } else if (selection.isWarmup != null) {
-                          repo.updateTemplateSet(sets[i].id, isWarmup: selection.isWarmup);
+                        } else if (selection.isWarmup == true) {
+                          repo.updateTemplateSet(
+                            sets[i].id,
+                            isWarmup: true,
+                            setType: SetType.standard.id,
+                            clearMetaJson: true,
+                          );
                         } else {
                           repo.updateTemplateSet(
                             sets[i].id,
+                            isWarmup: false,
                             setType: selection.type.id,
                             setTypeMetaJson: selection.metaJson,
                             clearMetaJson: selection.metaJson == null,

@@ -350,7 +350,9 @@ class WearSyncContractTest {
         val fasting = WearRevisionAllocator(context, "fasting")
 
         val workoutFirst = workout.next()
+        Thread.sleep(5)
         val fastingFirst = fasting.next()
+        Thread.sleep(5)
         val workoutSecond = workout.next()
 
         assertTrue(workoutSecond > workoutFirst)

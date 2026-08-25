@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
 import '../../../widgets/premium_button.dart';
+import '../domain/periodization.dart';
 import '../domain/preset_program.dart';
 import '../domain/program_csv.dart';
-import '../domain/periodization.dart';
+import '../domain/program_muscle_volume.dart';
 import 'marketplace_providers.dart';
 import 'programs_providers.dart';
+import 'widgets/program_muscle_volume_card.dart';
 
 class ProgramPreviewView extends ConsumerStatefulWidget {
   final PresetProgramMeta meta;
@@ -25,6 +27,7 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final docAsync = ref.watch(presetProgramDocumentProvider(widget.meta));
+    final volumeAsync = ref.watch(presetProgramVolumeProvider(widget.meta));
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -35,7 +38,7 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
       ),
       body: SafeArea(
         child: docAsync.when(
-          data: (doc) => _buildBody(theme, doc),
+          data: (doc) => _buildBody(theme, doc, volumeAsync.value),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(child: Text('Error: $err')),
         ),
@@ -43,9 +46,14 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
     );
   }
 
-  Widget _buildBody(ThemeData theme, ProgramCsvDocument doc) {
+  Widget _buildBody(
+    ThemeData theme,
+    ProgramCsvDocument doc,
+    ProgramVolumeBreakdown? volumeBreakdown,
+  ) {
     final model = PeriodizationModel.fromId(doc.periodizationModel);
     final weekIndices = doc.rows.map((r) => r.weekIndex).toSet().toList()..sort();
+    final breakdown = volumeBreakdown ?? ProgramVolumeCalculator.computeFromCsv(doc);
 
     return Column(
       children: [
@@ -58,6 +66,11 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
               Text(
                 '${doc.weeks} weeks · ${model.label} periodization',
                 style: theme.textTheme.bodySmall?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              ProgramMuscleVolumeCard(
+                breakdown: breakdown,
+                title: 'Weekly Volume per Muscle Group',
               ),
               const SizedBox(height: 16),
               for (final weekIndex in weekIndices) _buildWeekSection(theme, doc, weekIndex),

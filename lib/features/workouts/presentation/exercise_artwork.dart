@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/local/database.dart';
+import '../../../theme/colors.dart';
+import 'equipment_icon.dart';
+import 'exercise_artwork_manifest.dart';
 
 /// Maps catalog exercises to the artwork shipped with the exercise library.
 ///
-/// Keep this deliberately small and explicit. Until an exercise receives its
-/// own illustration, its tile deliberately reserves blank image space rather
-/// than suggesting a misleading substitute.
+/// Every equipment variant is its own catalog row with its own slug, so a
+/// straight slug lookup is also what makes the picture follow the equipment:
+/// the family tile shows its first (barbell) variant, and picking a different
+/// style hands the caller that variant's row — and with it, its illustration.
+///
+/// Exercises still awaiting an illustration render a clean vector equipment
+/// glyph instead; [kExerciseArtworkSlugs] is generated from the files that
+/// actually ship, so this never resolves to a missing asset.
 String? exerciseArtworkAsset(ExerciseCatalogData exercise) {
   final slug = exercise.slug?.toLowerCase();
-  if (slug == 'barbell-back-squat') {
-    return 'assets/images/exercises/barbell_back_squat_anatomical.png';
-  }
-  if (slug == 'barbell-bench-press') {
-    return 'assets/images/exercises/barbell_bench_press_anatomical.png';
-  }
-  return null;
+  if (slug == null || !kExerciseArtworkSlugs.contains(slug)) return null;
+  return 'assets/images/exercises/$slug.webp';
+}
+
+/// Resolves artwork for a slug on its own, for call sites that hold a variant
+/// slug rather than a full catalog row.
+String? exerciseArtworkAssetForSlug(String? slug) {
+  final key = slug?.toLowerCase();
+  if (key == null || !kExerciseArtworkSlugs.contains(key)) return null;
+  return 'assets/images/exercises/$key.webp';
 }
 
 /// Picks the first available artwork in a movement family.
@@ -32,6 +43,8 @@ class ExerciseArtwork extends StatelessWidget {
   final double size;
   final double radius;
   final Color? fallbackColor;
+  final Color? glyphColor;
+  final String? equipmentVariant;
 
   const ExerciseArtwork({
     super.key,
@@ -39,17 +52,38 @@ class ExerciseArtwork extends StatelessWidget {
     this.size = 48,
     this.radius = 12,
     this.fallbackColor,
+    this.glyphColor,
+    this.equipmentVariant,
   });
 
   @override
   Widget build(BuildContext context) {
     final asset = exerciseArtworkAsset(exercise);
+    final theme = Theme.of(context);
+    final equipmentStr = equipmentVariant ?? exercise.equipment;
+    final bg = fallbackColor ??
+        (theme.brightness == Brightness.dark
+            ? AppColors.surfaceVariant
+            : AppColors.surfaceContainer);
+    final iconColor = glyphColor ??
+        (fallbackColor != null ? Colors.white : AppColors.primary);
+
     final placeholder = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: fallbackColor ?? Theme.of(context).colorScheme.surfaceContainer,
+        color: bg,
         borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: EquipmentGlyph(
+        variant: equipmentStr,
+        size: size * 0.54,
+        color: iconColor,
       ),
     );
 
@@ -67,3 +101,4 @@ class ExerciseArtwork extends StatelessWidget {
     );
   }
 }
+

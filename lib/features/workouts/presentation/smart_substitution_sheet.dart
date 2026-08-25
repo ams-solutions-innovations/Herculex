@@ -5,6 +5,7 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../widgets/premium_text_field.dart';
 import '../domain/exercise_substitution.dart';
+import 'exercise_artwork.dart';
 import 'workouts_providers.dart';
 
 class SmartSubstitutionSheet extends ConsumerStatefulWidget {
@@ -370,6 +371,12 @@ class _SmartSubstitutionSheetState extends ConsumerState<SmartSubstitutionSheet>
         ),
         child: Row(
           children: [
+            ExerciseArtwork(
+              exercise: candidate,
+              size: 44,
+              radius: 10,
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

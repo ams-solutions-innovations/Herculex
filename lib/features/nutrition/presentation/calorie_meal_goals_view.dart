@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
-import '../../../theme/system_ui.dart';
+import '../../../ui/ui.dart';
 import 'goals_providers.dart';
 import 'nutrition_providers.dart';
 
@@ -16,31 +16,10 @@ class CalorieMealGoalsView extends ConsumerWidget {
     final baseline = ref.watch(baselineTargetsProvider);
     final totalKcal = baseline?.kcal ?? 0;
 
-    return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLowest,
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceContainerLowest,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: Text(
-          'Calorie Goals by Meal',
-          style: TextStyle(
-            color: AppColors.onSurface,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios,
-              size: 20, color: AppColors.onSurface),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        systemOverlayStyle: overlayStyleFor(context),
-      ),
-      body: ListView(
-        children: [
+    return HxScreenShell(
+      title: 'Calorie Goals by Meal',
+      padding: EdgeInsets.zero,
+      children: [
           // ── Enable Meal Goals toggle ─────────────────────────────────────
           _ToggleRow(
             label: 'Enable Meal Goals',
@@ -171,8 +150,7 @@ class CalorieMealGoalsView extends ConsumerWidget {
 
           const SizedBox(height: 100),
         ],
-      ),
-    );
+      );
   }
 
   Future<void> _editMealPct(

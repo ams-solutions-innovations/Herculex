@@ -35,13 +35,13 @@ void main() {
       );
 
       expect(result.estimatedMonths, 8);
-      expect(result.timeframeRange, '6 - 9 mesecev');
+      expect(result.timeframeRange, '6 - 9 months');
       expect(result.weightChangeKg, -2.5);
       expect(result.leanMuscleGainKg, 3.5);
       expect(result.fatLossKg, 6.0);
       expect(result.targetBfPercent, 11.0);
       expect(result.musclePriorities.length, 2);
-      expect(result.musclePriorities.first.group, 'Zgornji del prsi');
+      expect(result.musclePriorities.first.group, 'Upper chest');
       expect(result.musclePriorities.first.priority, 'high');
       expect(result.isAiGenerated, isTrue);
       expect(fakeBackend.calledDreamPhysique, isTrue);
@@ -96,7 +96,7 @@ class _MockGeminiBackend implements GeminiBackend {
     calledDreamPhysique = true;
     return {
       'estimatedMonths': 8,
-      'timeframeRange': '6 - 9 mesecev',
+      'timeframeRange': '6 - 9 months',
       'weightChangeKg': -2.5,
       'leanMuscleGainKg': 3.5,
       'fatLossKg': 6.0,
@@ -104,19 +104,19 @@ class _MockGeminiBackend implements GeminiBackend {
       'currentEstimatedBf': 17.5,
       'musclePriorities': [
         {
-          'group': 'Zgornji del prsi',
+          'group': 'Upper chest',
           'priority': 'high',
-          'focus': 'Incline dumbell press',
+          'focus': 'Incline dumbbell press',
         },
         {
-          'group': 'Stranske rame',
+          'group': 'Lateral delts',
           'priority': 'high',
           'focus': 'Lateral raises',
         },
       ],
-      'nutritionStrategy': 'Rahel deficit.',
-      'trainingAdvice': 'PPL split 5x tedensko.',
-      'overallAssessment': 'Cilj je dosegljiv.',
+      'nutritionStrategy': 'Slight deficit.',
+      'trainingAdvice': 'PPL split 5x weekly.',
+      'overallAssessment': 'Goal is achievable.',
     };
   }
 
@@ -157,6 +157,28 @@ class _MockGeminiBackend implements GeminiBackend {
   Future<String> identifyExercise({
     required List<int> imageBytes,
     required String mimeType,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> identifyExerciseDetailed({
+    required List<int> imageBytes,
+    required String mimeType,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeSupplementPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
   }) async =>
       throw UnimplementedError();
 }
@@ -210,6 +232,28 @@ class _FailingGeminiBackend implements GeminiBackend {
   Future<String> identifyExercise({
     required List<int> imageBytes,
     required String mimeType,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> identifyExerciseDetailed({
+    required List<int> imageBytes,
+    required String mimeType,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeSupplementPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
   }) async =>
       throw UnimplementedError();
 }

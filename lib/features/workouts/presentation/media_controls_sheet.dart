@@ -7,6 +7,7 @@ import 'package:flutter_media_controller/flutter_media_controller.dart';
 
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../nutrition/data/wear_sync_service.dart';
 
 /// Premium media controls bottom sheet.
 ///
@@ -38,6 +39,7 @@ class MediaControlsSheet extends StatefulWidget {
 
 class _MediaControlsSheetState extends State<MediaControlsSheet>
     with SingleTickerProviderStateMixin {
+  final WearSyncService _wearSyncService = WearSyncService();
   late final AnimationController _pulseCtrl;
   late final Animation<double> _pulseAnim;
 
@@ -74,18 +76,25 @@ class _MediaControlsSheetState extends State<MediaControlsSheet>
 
   Future<void> _refresh() async {
     try {
-      final info = await FlutterMediaController.getCurrentMediaInfo();
+      final info = await _wearSyncService.getMediaInfoNative();
       if (!mounted) return;
 
-      // The native side returns "No track playing" when no Notification Listener
-      // permission is granted or when nothing is actually playing.
-      final noPermission = info.track == 'No track playing' && !info.isPlaying;
+      final track = (info['track'] as String?) ?? '';
+      final artist = (info['artist'] as String?) ?? '';
+      final isPlaying = (info['isPlaying'] as bool?) ?? false;
+      final thumbnailUrl = (info['thumbnailUrl'] as String?) ?? '';
+
+      // An empty track with nothing playing means either no media session
+      // is active, or Notification Listener access hasn't been granted for
+      // MediaNotificationListener — both look the same from here, so the
+      // permission prompt doubles as the "nothing playing" empty state.
+      final noPermission = track.isEmpty && !isPlaying;
 
       // thumbnailUrl is a base64-encoded PNG from the Android side.
       Uint8List? thumb;
-      if (info.thumbnailUrl.isNotEmpty) {
+      if (thumbnailUrl.isNotEmpty) {
         try {
-          thumb = base64Decode(info.thumbnailUrl);
+          thumb = base64Decode(thumbnailUrl);
         } catch (_) {
           thumb = null;
         }
@@ -93,9 +102,9 @@ class _MediaControlsSheetState extends State<MediaControlsSheet>
 
       setState(() {
         _needsPermission = noPermission;
-        _track = noPermission ? '' : info.track;
-        _artist = noPermission ? '' : info.artist;
-        _isPlaying = info.isPlaying;
+        _track = noPermission ? '' : track;
+        _artist = noPermission ? '' : artist;
+        _isPlaying = isPlaying;
         _thumbnail = thumb;
         _loaded = true;
       });
@@ -227,19 +236,19 @@ class _MediaControlsSheetState extends State<MediaControlsSheet>
                   thumbnail: _thumbnail,
                   onPlayPause: () async {
                     Haptics.medium();
-                    await FlutterMediaController.togglePlayPause();
+                    await _wearSyncService.sendMediaActionNative('playPause');
                     await _refresh();
                   },
                   onNext: () async {
                     Haptics.light();
-                    await FlutterMediaController.nextTrack();
+                    await _wearSyncService.sendMediaActionNative('next');
                     await Future<void>.delayed(
                         const Duration(milliseconds: 400));
                     await _refresh();
                   },
                   onPrevious: () async {
                     Haptics.light();
-                    await FlutterMediaController.previousTrack();
+                    await _wearSyncService.sendMediaActionNative('previous');
                     await Future<void>.delayed(
                         const Duration(milliseconds: 400));
                     await _refresh();

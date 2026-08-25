@@ -28,6 +28,17 @@ abstract interface class GeminiBackend {
     required String mimeType,
   });
 
+  Future<Map<String, dynamic>> identifyExerciseDetailed({
+    required List<int> imageBytes,
+    required String mimeType,
+  });
+
+  Future<Map<String, dynamic>> analyzeSupplementPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  });
+
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
     required List<int> imageBytes,
     required String mimeType,
@@ -47,6 +58,11 @@ abstract interface class GeminiBackend {
     required String targetImageMimeType,
     Map<String, dynamic>? biometrics,
     String? userNote,
+  });
+
+  Future<Map<String, dynamic>> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
   });
 }
 
@@ -80,6 +96,23 @@ class UnconfiguredGeminiBackend implements GeminiBackend {
   }
 
   @override
+  Future<Map<String, dynamic>> identifyExerciseDetailed({
+    required List<int> imageBytes,
+    required String mimeType,
+  }) async {
+    throw _notConfigured();
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeSupplementPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) async {
+    throw _notConfigured();
+  }
+
+  @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
     required List<int> imageBytes,
     required String mimeType,
@@ -105,6 +138,14 @@ class UnconfiguredGeminiBackend implements GeminiBackend {
     required String targetImageMimeType,
     Map<String, dynamic>? biometrics,
     String? userNote,
+  }) async {
+    throw _notConfigured();
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
   }) async {
     throw _notConfigured();
   }
@@ -158,8 +199,45 @@ class SupabaseGeminiBackend implements GeminiBackend {
       'image': _imagePayload(imageBytes, mimeType),
     });
     final text = data['text'];
-    if (text is String) return text.trim();
+    if (text is String && text.isNotEmpty) return text.trim();
+    final result = data['result'];
+    if (result is Map && result['identifiedName'] is String) {
+      return (result['identifiedName'] as String).trim();
+    }
     throw Exception('AI analysis returned an invalid exercise response.');
+  }
+
+  @override
+  Future<Map<String, dynamic>> identifyExerciseDetailed({
+    required List<int> imageBytes,
+    required String mimeType,
+  }) async {
+    final data = await _invoke({
+      'kind': 'exercise_identification',
+      'image': _imagePayload(imageBytes, mimeType),
+    });
+    final result = data['result'];
+    if (result is Map<String, dynamic>) return result;
+    if (result is Map) return Map<String, dynamic>.from(result);
+    final text = data['text'];
+    return {
+      'identifiedName': text is String ? text.trim() : 'Unknown',
+      'confidence': text != null && text != 'Unknown' ? 0.8 : 0.0,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeSupplementPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) async {
+    final data = await _invoke({
+      'kind': 'supplement_photo',
+      'image': _imagePayload(imageBytes, mimeType),
+      'userNote': userNote,
+    });
+    return _resultMap(data);
   }
 
   @override
@@ -223,12 +301,27 @@ class SupabaseGeminiBackend implements GeminiBackend {
     return _resultMap(data);
   }
 
+  @override
+  Future<Map<String, dynamic>> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
+  }) async {
+    final data = await _invoke({
+      'kind': 'rambler_food',
+      'text': text,
+      'mealKey': preferredMealKey,
+    });
+    return _resultMap(data);
+  }
+
   Future<Map<String, dynamic>> _invoke(Map<String, dynamic> body) async {
     try {
-      final response = await _client.functions.invoke(
-        'gemini-analyze',
-        body: body,
-      );
+      final response = await _client.functions
+          .invoke(
+            'gemini-analyze',
+            body: body,
+          )
+          .timeout(const Duration(seconds: 45));
       final data = response.data;
       if (data is Map<String, dynamic>) return data;
       if (data is Map) return Map<String, dynamic>.from(data);
@@ -239,8 +332,11 @@ class SupabaseGeminiBackend implements GeminiBackend {
         throw Exception(details['error'] as String);
       }
       throw Exception(
-        'AI analysis failed (${error.status}). Please try again later.',
+        'AI analysis failed (${error.status}). Please try again.',
       );
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Error connecting to Gemini AI: $e');
     }
   }
 

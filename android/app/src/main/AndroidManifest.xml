@@ -3,8 +3,17 @@
     <!-- Phase 3: barcode scanner + OpenFoodFacts lookup -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Rambler speech-to-text -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <!-- Live workout notification -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Workout Bubble: the floating chat-head shown over other apps while a
+         workout is running. Opt-in from Settings; the user still has to grant
+         "Display over other apps" before anything is drawn. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Health Connect / Samsung Health permissions -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.WRITE_STEPS" />
@@ -26,6 +35,7 @@
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.WRITE_TOTAL_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
     <uses-permission android:name="android.permission.health.WRITE_WEIGHT" />
     <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
@@ -49,6 +59,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:allowBackup="false"
+        android:largeHeap="true"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         tools:replace="android:allowBackup">
@@ -56,7 +67,6 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -220,6 +230,45 @@
                 android:resource="@xml/widget_info_scanner" />
         </receiver>
 
+        <!-- Today's Calories (Small 2x2) -->
+        <receiver
+            android:name=".TodayCaloriesSmallWidgetProvider"
+            android:exported="true"
+            android:label="Today\'s Calories (Small)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_today_calories_small" />
+        </receiver>
+
+        <!-- Today's Calories (Medium 4x2) -->
+        <receiver
+            android:name=".TodayCaloriesMediumWidgetProvider"
+            android:exported="true"
+            android:label="Today\'s Calories">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_today_calories_medium" />
+        </receiver>
+
+        <!-- Today's Macros (Medium 4x2) -->
+        <receiver
+            android:name=".TodayMacrosMediumWidgetProvider"
+            android:exported="true"
+            android:label="Today\'s Macros">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_today_macros_medium" />
+        </receiver>
+
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -230,6 +279,9 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
         <package android:name="com.sec.android.app.shealth" />
         <package android:name="com.google.android.apps.healthdata" />

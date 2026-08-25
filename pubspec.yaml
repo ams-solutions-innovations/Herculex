@@ -38,14 +38,21 @@ dependencies:
   # Charts (Insights tab)
   fl_chart: ^0.69.0
 
+  # Staggered/masonry grid for the resizable dashboard layout
+  flutter_staggered_grid_view: ^0.7.0
+
   # Nutrition (Phase 3: OpenFoodFacts + barcode)
   http: ^1.2.2
   mobile_scanner: ^7.4.0
+  qr_flutter: ^4.1.0
   permission_handler: ^11.3.1
   cached_network_image: ^3.4.1
 
   # Progress photos (Phase D)
   image_picker: ^1.1.2
+
+  # Speech to text for Rambler AI food logging
+  speech_to_text: ^7.0.0
 
   # Sharing the workout-finish card to social apps
   share_plus: ^10.1.4

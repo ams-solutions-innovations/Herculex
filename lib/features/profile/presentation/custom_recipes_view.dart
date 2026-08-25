@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/tokens/tokens.dart';
+import '../../../ui/ui.dart';
+import '../../../widgets/premium_button.dart';
 import '../../nutrition/domain/daily_totals.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 import '../../nutrition/presentation/recipe_builder_view.dart';
@@ -10,13 +12,16 @@ import '../../nutrition/presentation/recipe_builder_view.dart';
 class CustomRecipesView extends ConsumerWidget {
   const CustomRecipesView({super.key});
 
-  Future<void> _deleteRecipe(BuildContext context, WidgetRef ref, RecipeData recipe) async {
+  Future<void> _deleteRecipe(
+      BuildContext context, WidgetRef ref, RecipeData recipe) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete "${recipe.name}"?'),
-        content: const Text('This hides it from your recipe list. Any logged history keeps its recorded nutrition and stays unchanged.'),
+        content: const Text(
+          'This hides it from your recipe list. Any logged history keeps its recorded nutrition and stays unchanged.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -41,7 +46,9 @@ class CustomRecipesView extends ConsumerWidget {
         SnackBar(
           content: Text('Deleted ${recipe.name}'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       );
     }
@@ -58,78 +65,78 @@ class CustomRecipesView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final hx = context.hx;
     final recipesAsync = ref.watch(recipesProvider);
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Custom Recipes'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+    return HxScreenShell(
+      title: 'Custom Recipes',
+      pinnedBottom: SizedBox(
+        width: double.infinity,
+        child: PremiumButton(
+          text: 'NEW RECIPE',
+          isPrimary: true,
+          icon: Icons.add_rounded,
+          onTap: () => _openRecipeBuilder(context),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openRecipeBuilder(context),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New Recipe'),
-        backgroundColor: context.hx.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: recipesAsync.when(
-        data: (recipes) {
-          if (recipes.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.menu_book_rounded,
-                      size: 64,
-                      color: context.hx.secondary.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No custom recipes yet',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+      children: [
+        recipesAsync.when(
+          data: (recipes) {
+            if (recipes.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.menu_book_rounded,
+                        size: 48,
+                        color: hx.secondary.withValues(alpha: 0.5),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap the button below to build your first recipe with custom ingredients.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: context.hx.secondary,
+                      const SizedBox(height: 16),
+                      Text(
+                        'No custom recipes yet',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap the button below to build your first recipe with custom ingredients.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: hx.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-            itemCount: recipes.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final recipe = recipes[index];
-              return _RecipeTile(
-                recipe: recipe,
-                onTap: () => _openRecipeBuilder(context, recipe: recipe),
-                onDelete: () => _deleteRecipe(context, ref, recipe),
               );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, stack) => Center(child: Text('Error loading recipes: $e')),
-      ),
+            }
+
+            return Column(
+              children: [
+                for (final recipe in recipes) ...[
+                  _RecipeTile(
+                    recipe: recipe,
+                    onTap: () => _openRecipeBuilder(context, recipe: recipe),
+                    onDelete: () => _deleteRecipe(context, ref, recipe),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (e, stack) =>
+              Center(child: Text('Error loading recipes: $e')),
+        ),
+      ],
     );
   }
 }

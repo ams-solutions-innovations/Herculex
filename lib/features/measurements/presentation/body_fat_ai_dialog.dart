@@ -7,20 +7,23 @@ import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
+import '../../../services/pending_ai_scan_service.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../profile/domain/profile.dart';
 import '../data/body_fat_ai_service.dart';
 
 class BodyFatAiDialog extends ConsumerStatefulWidget {
-  const BodyFatAiDialog({super.key});
+  final File? initialImage;
 
-  static Future<bool?> show(BuildContext context) {
+  const BodyFatAiDialog({super.key, this.initialImage});
+
+  static Future<bool?> show(BuildContext context, {File? initialImage}) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const BodyFatAiDialog(),
+      builder: (_) => BodyFatAiDialog(initialImage: initialImage),
     );
   }
 
@@ -43,6 +46,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialImage != null) {
+      _selectedFiles.add(widget.initialImage!);
+    }
     _loadInitialData();
   }
 
@@ -74,8 +80,16 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
   Future<void> _pickFromGalleryOrCamera(ImageSource source) async {
     Haptics.light();
     try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source, imageQuality: 85);
+      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+            PendingAiScanContext(type: AiScanContextType.bodyFat),
+          );
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      await ref.read(pendingAiScanServiceProvider).clearPendingContext();
       if (picked != null && mounted) {
         setState(() {
           _selectedFiles.add(File(picked.path));
@@ -83,7 +97,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         });
       }
     } catch (e) {
-      setState(() => _error = 'Napaka pri izbiri slike: $e');
+      setState(() => _error = 'Error selecting image: $e');
     }
   }
 
@@ -154,7 +168,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Telesna maščoba (${_result!.estimatedBfPercent.toStringAsFixed(1)} %) shranjena!',
+            'Body fat (${_result!.estimatedBfPercent.toStringAsFixed(1)}%) saved!',
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -165,7 +179,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Napaka pri shranjevanju: $e';
+        _error = 'Error saving: $e';
       });
     }
   }
@@ -220,13 +234,13 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Gemini AI Ocena telesne maščobe',
+                          'Gemini AI Body Fat Estimation',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          'Multimodalna analiza fotografij in meritev',
+                          'Multimodal analysis of photos and measurements',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.secondary,
                           ),
@@ -272,7 +286,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
 
                       // ── Note Field ──
                       Text(
-                        'Opomba o počutju / sliki (neobvezno)',
+                        'Note on condition / photo (optional)',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -282,7 +296,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                         controller: _noteCtrl,
                         maxLines: 2,
                         decoration: InputDecoration(
-                          hintText: 'Npr. zjutraj na tešče, dobra osvetlitev...',
+                          hintText: 'e.g. fasted morning, good lighting...',
                           filled: true,
                           fillColor: AppColors.surfaceContainer,
                           border: OutlineInputBorder(
@@ -303,8 +317,8 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                           icon: const Icon(Icons.auto_awesome),
                           label: Text(
                             _selectedFiles.isNotEmpty
-                                ? 'Analiziraj (${_selectedFiles.length} slik) z Gemini AI'
-                                : 'Izračunaj oceno po meritvah & profilu',
+                                ? 'Analyze (${_selectedFiles.length} photos) with Gemini AI'
+                                : 'Calculate estimate from measurements & profile',
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -326,14 +340,14 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                             const CircularProgressIndicator(),
                             const SizedBox(height: 20),
                             Text(
-                              'Gemini AI analizira kompozicijo telesa...',
+                              'Gemini AI is analyzing body composition...',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Ocena vaskularnosti, definicije mišic in porazdelitve maščobe',
+                              'Evaluating vascularity, muscle definition, and fat distribution',
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppColors.secondary,
@@ -365,7 +379,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                                 )
                               : const Icon(Icons.check_circle_outline),
                           label: Text(
-                            _saving ? 'Shranjevanje...' : 'Shrani v Body Measurements',
+                            _saving ? 'Saving...' : 'Save to Body Measurements',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -384,7 +398,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                         child: TextButton.icon(
                           onPressed: () => setState(() => _result = null),
                           icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text('Ponovna analiza'),
+                          label: const Text('Re-analyze'),
                         ),
                       ),
                     ],
@@ -423,7 +437,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
               Icon(Icons.person_outline, size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
-                'Biometrični profil',
+                'Biometric Profile',
                 style: theme.textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.onSurface,
@@ -437,21 +451,21 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
             runSpacing: 8,
             children: [
               _contextChip(
-                'Spol',
-                isMale ? 'Moški' : 'Ženska',
+                'Sex',
+                isMale ? 'Male' : 'Female',
                 Icons.wc,
               ),
               if (weight != null)
-                _contextChip('Teža', '${weight.toStringAsFixed(1)} kg',
+                _contextChip('Weight', '${weight.toStringAsFixed(1)} kg',
                     Icons.monitor_weight_outlined),
               if (height != null)
-                _contextChip('Višina', '${height.toStringAsFixed(0)} cm',
+                _contextChip('Height', '${height.toStringAsFixed(0)} cm',
                     Icons.height),
               if (waist != null)
-                _contextChip('Pas', '${waist.toStringAsFixed(1)} cm',
+                _contextChip('Waist', '${waist.toStringAsFixed(1)} cm',
                     Icons.straighten),
               if (neck != null)
-                _contextChip('Vrat', '${neck.toStringAsFixed(1)} cm',
+                _contextChip('Neck', '${neck.toStringAsFixed(1)} cm',
                     Icons.straighten),
             ],
           ),
@@ -499,7 +513,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Fotografije telesa (${_selectedFiles.length} izbranih)',
+              'Physique Photos (${_selectedFiles.length} selected)',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -508,13 +522,13 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.camera_alt_outlined, size: 20),
-                  tooltip: 'Kamera',
+                  tooltip: 'Camera',
                   onPressed: () =>
                       _pickFromGalleryOrCamera(ImageSource.camera),
                 ),
                 IconButton(
                   icon: const Icon(Icons.photo_library_outlined, size: 20),
-                  tooltip: 'Galerija',
+                  tooltip: 'Gallery',
                   onPressed: () =>
                       _pickFromGalleryOrCamera(ImageSource.gallery),
                 ),
@@ -524,7 +538,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Za najbolj natančno oceno izberite fotografijo od spredaj, s strani ali hrbta.',
+          'For the most accurate estimate, choose photos from the front, side, or back.',
           style: theme.textTheme.bodySmall?.copyWith(
             color: AppColors.secondary,
           ),
@@ -582,7 +596,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         // Saved progress photos picker (if any available)
         if (_savedPhotos.isNotEmpty) ...[
           Text(
-            'Izberi iz shranjenih fotografij napredka:',
+            'Select from saved progress photos:',
             style: theme.textTheme.labelMedium?.copyWith(
               color: AppColors.secondary,
               fontWeight: FontWeight.w600,
@@ -712,8 +726,8 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                         const SizedBox(width: 4),
                         Text(
                           r.isAiGenerated
-                              ? 'Gemini Multimodalna ocena'
-                              : 'Biometrični izračun',
+                              ? 'Gemini Multimodal Estimate'
+                              : 'Biometric Calculation',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -725,7 +739,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                   ),
                   if (r.confidence != null)
                     Text(
-                      'Zanesljivost: ${(r.confidence! * 100).toStringAsFixed(0)} %',
+                      'Confidence: ${(r.confidence! * 100).toStringAsFixed(0)} %',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: AppColors.secondary,
                         fontWeight: FontWeight.bold,
@@ -745,7 +759,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
               if (r.bfRangeMin != null && r.bfRangeMax != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Razpon: ${r.bfRangeMin!.toStringAsFixed(1)} % - ${r.bfRangeMax!.toStringAsFixed(1)} %',
+                  'Range: ${r.bfRangeMin!.toStringAsFixed(1)} % - ${r.bfRangeMax!.toStringAsFixed(1)} %',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.secondary,
                     fontWeight: FontWeight.w600,
@@ -763,9 +777,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
             children: [
               Expanded(
                 child: _massCard(
-                  title: 'Čista mišična masa',
+                  title: 'Lean Muscle Mass',
                   value: '${r.leanMassKg!.toStringAsFixed(1)} kg',
-                  subtitle: 'Pusta telesna masa',
+                  subtitle: 'Lean body mass',
                   icon: Icons.fitness_center,
                   accentColor: Colors.blueAccent,
                 ),
@@ -773,9 +787,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
               const SizedBox(width: 12),
               Expanded(
                 child: _massCard(
-                  title: 'Masa maščobe',
+                  title: 'Fat Mass',
                   value: '${r.fatMassKg!.toStringAsFixed(1)} kg',
-                  subtitle: 'Telesna maščoba',
+                  subtitle: 'Body fat',
                   icon: Icons.pie_chart_outline,
                   accentColor: Colors.orangeAccent,
                 ),
@@ -786,7 +800,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
 
         // ── Analysis Explanation ──
         _infoSection(
-          title: 'Vizualna & Biometrična analiza',
+          title: 'Visual & Biometric Analysis',
           icon: Icons.psychology_alt_outlined,
           content: r.explanation,
           theme: theme,
@@ -795,7 +809,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         if (r.fatDistribution != null && r.fatDistribution!.isNotEmpty) ...[
           const SizedBox(height: 12),
           _infoSection(
-            title: 'Porazdelitev maščobe',
+            title: 'Fat Distribution',
             icon: Icons.accessibility_new,
             content: r.fatDistribution!,
             theme: theme,
@@ -805,7 +819,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
         if (r.recommendations != null && r.recommendations!.isNotEmpty) ...[
           const SizedBox(height: 12),
           _infoSection(
-            title: 'Priporočilo za trening & prehrano',
+            title: 'Training & Nutrition Recommendation',
             icon: Icons.lightbulb_outline,
             content: r.recommendations!,
             theme: theme,

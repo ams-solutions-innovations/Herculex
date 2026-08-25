@@ -47,7 +47,7 @@ fun AddCaloriesScreen(navController: NavController, viewModel: NutritionViewMode
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Text("Add Calories", color = Color(0xFF9E9E9E), fontSize = 12.sp)
+            Text("Add kcal", color = Color(0xFF9E9E9E), fontSize = 12.sp)
             Spacer(Modifier.height(4.dp))
             // Current total
             Text(

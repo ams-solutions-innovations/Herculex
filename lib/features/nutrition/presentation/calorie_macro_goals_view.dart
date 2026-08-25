@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
-import '../../../theme/system_ui.dart';
+import '../../../ui/ui.dart';
 import 'nutrition_providers.dart';
 import 'nutrition_targets_view.dart';
 
@@ -14,31 +14,10 @@ class CalorieMacroGoalsView extends ConsumerWidget {
     final targets = ref.watch(baselineTargetsProvider);
     final customTargets = ref.watch(nutritionTargetsProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLowest,
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceContainerLowest,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: Text(
-          'Calorie & Macro Goals',
-          style: TextStyle(
-            color: AppColors.onSurface,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios,
-              size: 20, color: AppColors.onSurface),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        systemOverlayStyle: overlayStyleFor(context),
-      ),
-      body: ListView(
-        children: [
+    return HxScreenShell(
+      title: 'Calorie & Macro Goals',
+      padding: EdgeInsets.zero,
+      children: [
           // ── Default Goal section ─────────────────────────────────────────
           const _SectionHeader('Default Goal'),
           const _Divider(),
@@ -147,8 +126,7 @@ class CalorieMacroGoalsView extends ConsumerWidget {
 
           const SizedBox(height: 100),
         ],
-      ),
-    );
+      );
   }
 
   static int _pct(int numeratorKcal, int totalKcal) {

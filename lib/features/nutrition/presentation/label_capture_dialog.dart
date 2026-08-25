@@ -127,7 +127,7 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
     final kcal = double.tryParse(_kcal.text.replaceAll(',', '.'));
     final serving = double.tryParse(_serving.text.replaceAll(',', '.'));
     if (name.isEmpty || kcal == null || kcal <= 0) {
-      setState(() => _error = 'Ime in kalorije / 100 g so obvezne.');
+      setState(() => _error = 'Name and calories / 100g are required.');
       return;
     }
     setState(() {
@@ -178,7 +178,7 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'Shranjevanje ni uspelo: $e';
+          _error = 'Failed to save: $e';
         });
       }
     }
@@ -243,7 +243,7 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
                     CircularProgressIndicator(),
                     SizedBox(height: 12),
                     Text(
-                      'OCR bere deklaracijo; po potrebi bo Gemini popravil rezultat …',
+                      'OCR is reading the label; Gemini will refine the result if needed…',
                     ),
                   ],
                 ),
@@ -252,19 +252,19 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
               if (_draft != null) _SourceBanner(draft: _draft!),
               if (_error != null) _ErrorBanner(message: _error!),
               const SizedBox(height: 12),
-              _field('Ime izdelka', _name),
-              _field('Znamka (neobvezno)', _brand),
+              _field('Product name', _name),
+              _field('Brand (optional)', _brand),
               Row(
                 children: [
                   Expanded(
-                    child: _field('Porcija (g)', _serving, numeric: true),
+                    child: _field('Serving (g)', _serving, numeric: true),
                   ),
                   const SizedBox(width: 10),
                   Expanded(child: _field('kcal / 100 g', _kcal, numeric: true)),
                 ],
               ),
               Text(
-                'Makrohranila / 100 g',
+                'Macronutrients / 100 g',
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: AppColors.secondary,
                 ),
@@ -272,19 +272,19 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
               Row(
                 children: [
                   Expanded(
-                    child: _field('Beljakovine g', _protein, numeric: true),
+                    child: _field('Protein g', _protein, numeric: true),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(child: _field('OH g', _carbs, numeric: true)),
+                  Expanded(child: _field('Carbs g', _carbs, numeric: true)),
                   const SizedBox(width: 8),
-                  Expanded(child: _field('Maščobe g', _fat, numeric: true)),
+                  Expanded(child: _field('Fat g', _fat, numeric: true)),
                 ],
               ),
               Row(
                 children: [
-                  Expanded(child: _field('Vlaknine g', _fiber, numeric: true)),
+                  Expanded(child: _field('Fiber g', _fiber, numeric: true)),
                   const SizedBox(width: 8),
-                  Expanded(child: _field('Natrij mg', _sodium, numeric: true)),
+                  Expanded(child: _field('Sodium mg', _sodium, numeric: true)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -296,13 +296,13 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
                 icon: const Icon(Icons.save_outlined),
                 label: Text(
                   _saving
-                      ? 'Shranjujem …'
-                      : 'Preglej in dodaj v ${widget.meal.label}',
+                      ? 'Saving…'
+                      : 'Review and add to ${widget.meal.label}',
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Nič se ne shrani brez tega pregleda. Vrednosti lahko popraviš pred vnosom.',
+                'Nothing is saved without this review. You can adjust values before logging.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.secondary,
                 ),
@@ -357,7 +357,7 @@ class _SourceBanner extends StatelessWidget {
         ),
         title: Text(source),
         subtitle: Text(
-          'Confidence ${(draft.confidence * 100).round()}% — preveri deklaracijo',
+          'Confidence ${(draft.confidence * 100).round()}% — check label',
         ),
       ),
     );

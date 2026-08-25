@@ -61,51 +61,51 @@ object WorkoutStore {
         WorkoutTemplate(
             id = "push_1", name = "Push Day",
             exercises = listOf(
-                ExerciseTemplate("Barbell Bench Press",    4, 80.0,  8, slug = "barbell-bench-press"),
-                ExerciseTemplate("Overhead Press",         4, 50.0,  8, slug = "overhead-press"),
-                ExerciseTemplate("Incline Dumbbell Press", 3, 24.0, 10, slug = "incline-dumbbell-press"),
-                ExerciseTemplate("Dumbbell Lateral Raise", 3, 12.0, 15, slug = "dumbbell-lateral-raise"),
-                ExerciseTemplate("Tricep Pushdown (Rope)", 3, 25.0, 12, slug = "tricep-pushdown-rope"),
+                ExerciseTemplate("Barbell Bench Press",    4, 80.0,  8, slug = "barbell-bench-press", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Overhead Press",         4, 50.0,  8, slug = "overhead-press", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Incline Dumbbell Press", 3, 24.0, 10, slug = "incline-dumbbell-press", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Dumbbell Lateral Raise", 3, 12.0, 15, slug = "dumbbell-lateral-raise", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Tricep Pushdown (Rope)", 3, 25.0, 12, slug = "tricep-pushdown-rope", loggingMetric = "weight_reps"),
             )
         ),
         WorkoutTemplate(
             id = "pull_1", name = "Pull Day",
             exercises = listOf(
-                ExerciseTemplate("Conventional Deadlift", 4, 120.0, 5, slug = "conventional-deadlift"),
-                ExerciseTemplate("Barbell Row",           4,  70.0, 8, slug = "barbell-row"),
-                ExerciseTemplate("Lat Pulldown",          3,  60.0, 10, slug = "lat-pulldown"),
-                ExerciseTemplate("Dumbbell Curl",         3,  15.0, 12, slug = "dumbbell-curl"),
-                ExerciseTemplate("Face Pull",             3,  20.0, 15, slug = "face-pull"),
+                ExerciseTemplate("Conventional Deadlift", 4, 120.0, 5, slug = "conventional-deadlift", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Barbell Row",           4,  70.0, 8, slug = "barbell-row", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Lat Pulldown",          3,  60.0, 10, slug = "lat-pulldown", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Dumbbell Curl",         3,  15.0, 12, slug = "dumbbell-curl", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Face Pull",             3,  20.0, 15, slug = "face-pull", loggingMetric = "weight_reps"),
             )
         ),
         WorkoutTemplate(
             id = "lbw_1", name = "LBW I.",
             exercises = listOf(
-                ExerciseTemplate("Barbell Back Squat",   4, 100.0, 6, slug = "barbell-back-squat"),
-                ExerciseTemplate("Romanian Deadlift",    4,  70.0, 8, slug = "romanian-deadlift"),
-                ExerciseTemplate("Leg Press",            3, 120.0, 10, slug = "leg-press"),
-                ExerciseTemplate("Lying Leg Curl",       3,  40.0, 12, slug = "lying-leg-curl"),
-                ExerciseTemplate("Standing Calf Raise",  4,  60.0, 15, slug = "standing-calf-raise"),
+                ExerciseTemplate("Barbell Back Squat",   4, 100.0, 6, slug = "barbell-back-squat", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Romanian Deadlift",    4,  70.0, 8, slug = "romanian-deadlift", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Leg Press",            3, 120.0, 10, slug = "leg-press", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Lying Leg Curl",       3,  40.0, 12, slug = "lying-leg-curl", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Standing Calf Raise",  4,  60.0, 15, slug = "standing-calf-raise", loggingMetric = "weight_reps"),
             )
         ),
         WorkoutTemplate(
             id = "lbw_2", name = "LBW II.",
             exercises = listOf(
-                ExerciseTemplate("Good Morning",           4, 20.0, 10, slug = "good-morning"),
-                ExerciseTemplate("Safety Bar Squat",       4, 60.0,  6, slug = "safety-bar-squat"),
-                ExerciseTemplate("Bulgarian Split Squat",  3, 20.0,  8, slug = "bulgarian-split-squat"),
-                ExerciseTemplate("Nordic Hamstring Curl",  3,  0.0,  6, slug = "nordic-hamstring-curl"),
-                ExerciseTemplate("Leg Extension",          3, 40.0, 12, slug = "leg-extension"),
+                ExerciseTemplate("Good Morning",           4, 20.0, 10, slug = "good-morning", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Safety Bar Squat",       4, 60.0,  6, slug = "safety-bar-squat", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Bulgarian Split Squat",  3, 20.0,  8, slug = "bulgarian-split-squat", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Nordic Hamstring Curl",  3,  0.0,  6, slug = "nordic-hamstring-curl", loggingMetric = "reps"),
+                ExerciseTemplate("Leg Extension",          3, 40.0, 12, slug = "leg-extension", loggingMetric = "weight_reps"),
             )
         ),
         WorkoutTemplate(
             id = "upper_1", name = "Upper Body",
             exercises = listOf(
-                ExerciseTemplate("Pull-Up",                 4,  0.0, 8, slug = "pull-up"),
-                ExerciseTemplate("Dumbbell Overhead Press", 3, 20.0, 10, slug = "dumbbell-overhead-press"),
-                ExerciseTemplate("Seated Cable Row (V-Bar)",3, 50.0, 12, slug = "seated-cable-row-v-bar"),
-                ExerciseTemplate("Dumbbell Fly",            3, 16.0, 12, slug = "dumbbell-fly"),
-                ExerciseTemplate("Hammer Curl",             3, 14.0, 12, slug = "hammer-curl"),
+                ExerciseTemplate("Pull-Up",                 4,  0.0, 8, slug = "pull-up", loggingMetric = "reps"),
+                ExerciseTemplate("Dumbbell Overhead Press", 3, 20.0, 10, slug = "dumbbell-overhead-press", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Seated Cable Row (V-Bar)",3, 50.0, 12, slug = "seated-cable-row-v-bar", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Dumbbell Fly",            3, 16.0, 12, slug = "dumbbell-fly", loggingMetric = "weight_reps"),
+                ExerciseTemplate("Hammer Curl",             3, 14.0, 12, slug = "hammer-curl", loggingMetric = "weight_reps"),
             )
         ),
     )
@@ -174,10 +174,12 @@ object WorkoutStore {
                         setIndex = if (!sObj.isNull("setIndex")) sObj.optInt("setIndex") else j,
                         weight = sObj.optDouble("weight", 0.0),
                         reps = sObj.optInt("reps", 0),
+                        distanceMeters = sObj.optNullableDouble("distanceM"),
                         rpe = if (!sObj.isNull("rpe")) sObj.optDouble("rpe") else null,
                         setType = WearSyncContract.normalizeSetType(rawSetType),
                         isWarmup = WearSyncContract.normalizeIsWarmup(rawSetType, sObj.optBoolean("isWarmup", false)),
                         accessory = if (sObj.has("accessory")) sObj.getString("accessory") else null,
+                        durationSeconds = sObj.optNullableInt("durationSeconds"),
                         completed = sObj.optBoolean("completed", true),
                         setTypeMetaJson = sObj.optString("setTypeMetaJson").takeIf { it.isNotBlank() && it != "null" },
                         bodyweightKg = sObj.optNullableDouble("bodyweightKg"),
@@ -186,7 +188,8 @@ object WorkoutStore {
                     )
                 }
                 val wireId = resolveExerciseWireId(exObj.optString("wireId"))
-                ActiveExercise(template = templateItem, sets = sets, wireId = wireId)
+                val supersetGroup = if (!exObj.isNull("supersetGroup")) exObj.optInt("supersetGroup") else templateItem.supersetGroup
+                ActiveExercise(template = templateItem, sets = sets, wireId = wireId, supersetGroup = supersetGroup)
             }
             viewModel?.updateSessionFromRemote(
                 exercises,
@@ -212,6 +215,7 @@ object WorkoutStore {
         session.exercises.forEach { ex ->
             val exObj = JSONObject()
             exObj.put("wireId", ex.wireId)
+            ex.supersetGroup?.let { exObj.put("supersetGroup", it) }
             exObj.put("template", templateItemToJson(ex.template))
             val setsArr = JSONArray()
             ex.sets.forEach { set ->
@@ -220,6 +224,8 @@ object WorkoutStore {
                 set.setIndex?.let { sObj.put("setIndex", it) }
                 sObj.put("weight", set.weight)
                 sObj.put("reps", set.reps)
+                set.durationSeconds?.let { sObj.put("durationSeconds", it) }
+                set.distanceMeters?.let { sObj.put("distanceM", it) }
                 set.rpe?.let { sObj.put("rpe", it) }
                 sObj.put("setType", set.setType)
                 sObj.put("isWarmup", set.isWarmup)
@@ -317,6 +323,11 @@ object WorkoutStore {
     private fun JSONObject.optNullableDouble(name: String): Double? {
         if (!has(name) || isNull(name)) return null
         return optDouble(name)
+    }
+
+    private fun JSONObject.optNullableInt(name: String): Int? {
+        if (!has(name) || isNull(name)) return null
+        return optInt(name)
     }
 
     private fun JSONObject.optNullableLong(name: String): Long? {

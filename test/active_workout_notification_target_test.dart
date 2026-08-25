@@ -78,6 +78,82 @@ void main() {
       expect(target, isNotNull);
       expect(target!.exerciseName, 'Workout in progress');
     });
+
+    test('carries muscle group and equipment variant from the catalog entry', () {
+      final target = selectActiveWorkoutNotificationTarget(
+        exercises: [_exercise(id: 10, exerciseId: 1, orderIndex: 0)],
+        setsByWorkoutExerciseId: {
+          10: [_set(id: 100, workoutExerciseId: 10, setIndex: 0)],
+        },
+        catalog: [_catalog(id: 1, name: 'Squat')],
+      );
+
+      expect(target, isNotNull);
+      expect(target!.primaryMuscle, 'Chest');
+      expect(target.equipmentVariant, 'barbell');
+    });
+
+    test(
+      "prefers the workout exercise's own equipment variant over the catalog default",
+      () {
+        final target = selectActiveWorkoutNotificationTarget(
+          exercises: [
+            _exercise(
+              id: 10,
+              exerciseId: 1,
+              orderIndex: 0,
+              equipmentVariant: 'dumbbell',
+            ),
+          ],
+          setsByWorkoutExerciseId: {
+            10: [_set(id: 100, workoutExerciseId: 10, setIndex: 0)],
+          },
+          catalog: [_catalog(id: 1, name: 'Squat')],
+        );
+
+        expect(target!.equipmentVariant, 'dumbbell');
+      },
+    );
+
+    test('picks the most recently completed set as lastCompletedSet', () {
+      final target = selectActiveWorkoutNotificationTarget(
+        exercises: [_exercise(id: 10, exerciseId: 1, orderIndex: 0)],
+        setsByWorkoutExerciseId: {
+          10: [
+            _set(
+              id: 100,
+              workoutExerciseId: 10,
+              setIndex: 0,
+              completed: true,
+              weightKg: 60,
+            ),
+            _set(
+              id: 101,
+              workoutExerciseId: 10,
+              setIndex: 1,
+              completed: true,
+              weightKg: 65,
+            ),
+            _set(id: 102, workoutExerciseId: 10, setIndex: 2),
+          ],
+        },
+        catalog: [_catalog(id: 1, name: 'Squat')],
+      );
+
+      expect(target!.lastCompletedSet?.id, 101);
+    });
+
+    test('lastCompletedSet is null when nothing has been completed yet', () {
+      final target = selectActiveWorkoutNotificationTarget(
+        exercises: [_exercise(id: 10, exerciseId: 1, orderIndex: 0)],
+        setsByWorkoutExerciseId: {
+          10: [_set(id: 100, workoutExerciseId: 10, setIndex: 0)],
+        },
+        catalog: [_catalog(id: 1, name: 'Squat')],
+      );
+
+      expect(target!.lastCompletedSet, isNull);
+    });
   });
 }
 
@@ -85,12 +161,14 @@ WorkoutExerciseData _exercise({
   required int id,
   required int exerciseId,
   required int orderIndex,
+  String? equipmentVariant,
 }) {
   return WorkoutExerciseData(
     id: id,
     sessionId: 1,
     exerciseId: exerciseId,
     orderIndex: orderIndex,
+    equipmentVariant: equipmentVariant,
   );
 }
 

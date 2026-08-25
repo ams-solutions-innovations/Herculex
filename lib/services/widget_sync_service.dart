@@ -9,6 +9,38 @@ import 'package:flutter/services.dart';
 class WidgetSyncService {
   static const _channel = MethodChannel('com.ams.herculex/widget');
 
+  /// Sync full nutrition data (calories goal, food, exercise, remaining, and macros)
+  /// to the home-screen widgets.
+  Future<void> syncNutrition({
+    required int baseGoalKcal,
+    required int foodKcal,
+    required int exerciseKcal,
+    required int remainingKcal,
+    required int carbsCurrent,
+    required int carbsTarget,
+    required int fatCurrent,
+    required int fatTarget,
+    required int proteinCurrent,
+    required int proteinTarget,
+  }) async {
+    try {
+      await _channel.invokeMethod('syncNutrition', {
+        'baseGoalKcal': baseGoalKcal,
+        'foodKcal': foodKcal,
+        'exerciseKcal': exerciseKcal,
+        'remainingKcal': remainingKcal,
+        'carbsCurrent': carbsCurrent,
+        'carbsTarget': carbsTarget,
+        'fatCurrent': fatCurrent,
+        'fatTarget': fatTarget,
+        'proteinCurrent': proteinCurrent,
+        'proteinTarget': proteinTarget,
+      });
+    } on PlatformException catch (e) {
+      debugPrint('[WidgetSync] syncNutrition failed: ${e.message}');
+    }
+  }
+
   /// Sync macro data (carbs, fat, protein) to the three macro pill widgets.
   Future<void> syncMacros({
     required int carbsCurrent,

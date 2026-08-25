@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,12 +7,14 @@ import 'package:uuid/uuid.dart';
 
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../nutrition/data/product_catalogue_repository.dart';
 import '../../nutrition/domain/nutrient_definitions.dart';
 import '../../nutrition/presentation/barcode_scanner_view.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 import '../domain/supplement.dart';
-import '../presentation/supplement_providers.dart';
+import 'supplement_ai_scan_dialog.dart';
 import 'supplement_nutrients_sheet.dart';
+import 'supplement_providers.dart';
 
 /// Bottom sheet to add or edit a single supplement.
 class SupplementEditSheet extends ConsumerStatefulWidget {
@@ -86,6 +90,43 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
     _brandCtrl.dispose();
     _doseCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _scanWithGemini() async {
+    final result = await SupplementAiScanDialog.show(context);
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _nameCtrl.text = result.name;
+      if (result.brand != null) _brandCtrl.text = result.brand!;
+      if (result.doseAmount != null) {
+        _doseCtrl.text =
+            result.doseAmount!.truncateToDouble() == result.doseAmount
+                ? result.doseAmount!.toStringAsFixed(0)
+                : result.doseAmount!.toStringAsFixed(1);
+      }
+      if (result.doseUnit != null &&
+          supplementDoseUnits.contains(result.doseUnit)) {
+        _doseUnit = result.doseUnit!;
+      }
+      if (result.nutrients.isNotEmpty) {
+        _nutrients = {..._nutrients, ...result.nutrients};
+      }
+      if (result.schedule != SupplementSchedule.none) {
+        _schedule = result.schedule;
+        if (result.schedule == SupplementSchedule.time &&
+            result.timeHHMM != null) {
+          final parts = result.timeHHMM!.split(':');
+          if (parts.length == 2) {
+            _time = TimeOfDay(
+              hour: int.tryParse(parts[0]) ?? 8,
+              minute: int.tryParse(parts[1]) ?? 0,
+            );
+          }
+        }
+      }
+      _scanMessage = 'Gemini AI je uspešno prebral podatke o dopolnilu.';
+    });
   }
 
   /// Scans a barcode and pre-fills name/brand from OpenFoodFacts. A lookup
@@ -191,6 +232,55 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
     } else {
       await repo.addSupplement(supplement);
     }
+
+    // Persist to custom foods database for global search, logging, and Supabase sync
+    try {
+      final nutritionRepo = ref.read(nutritionRepositoryProvider);
+      final doseValue = dose != null && dose > 0 ? dose : 1.0;
+      await nutritionRepo.createCustomFood(
+        name: name,
+        brand: brand.isEmpty ? null : brand,
+        barcode: _barcode,
+        category: 'supplement',
+        kcalPer100g: _nutrients['kcal'] ?? _nutrients['calories'] ?? 0,
+        proteinPer100g: _nutrients['protein'] ?? 0,
+        carbsPer100g: _nutrients['carbs'] ?? 0,
+        fatPer100g: _nutrients['fat'] ?? 0,
+        servingGrams: doseValue,
+        servingLabel: '${doseValue.toStringAsFixed(0)} $_doseUnit',
+        referenceBasis: '1 $_doseUnit',
+        sourceMetadataJson: jsonEncode({
+          'source': 'gemini_supplement',
+          'nutrients': _nutrients,
+          'schedule': _schedule.name,
+        }),
+      );
+    } catch (_) {
+      // Non-fatal if food insert fails or duplicate
+    }
+
+    // If barcode is present, publish to shared public community catalogue
+    if (_barcode != null && _barcode!.trim().isNotEmpty) {
+      try {
+        final catalogRepo = ref.read(productCatalogueRepositoryProvider);
+        final doseValue = dose != null && dose > 0 ? dose : 1.0;
+        await catalogRepo.publish(
+          barcode: _barcode!.trim(),
+          name: name,
+          brand: brand.isEmpty ? null : brand,
+          kcalPer100g: _nutrients['kcal'] ?? _nutrients['calories'] ?? 0,
+          proteinPer100g: _nutrients['protein'] ?? 0,
+          carbsPer100g: _nutrients['carbs'] ?? 0,
+          fatPer100g: _nutrients['fat'] ?? 0,
+          servingGrams: doseValue,
+          servingLabel: '${doseValue.toStringAsFixed(0)} $_doseUnit',
+          referenceBasis: '1 $_doseUnit',
+        );
+      } catch (_) {
+        // Non-fatal community contribution
+      }
+    }
+
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -251,28 +341,51 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Barcode scan
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _scanning ? null : _scanBarcode,
-                        icon: _scanning
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.qr_code_scanner, size: 18),
-                        label: Text(_barcode == null
-                            ? 'Scan barcode'
-                            : 'Barcode $_barcode — rescan'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: BorderSide(
-                              color: AppColors.primary.withValues(alpha: 0.4)),
-                          shape: const StadiumBorder(),
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                    // AI Photo Scan + Barcode Scan
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: _scanWithGemini,
+                            icon: const Icon(Icons.auto_awesome, size: 18),
+                            label: const Text('AI Foto sken'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF9B59B6),
+                              foregroundColor: Colors.white,
+                              shape: const StadiumBorder(),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _scanning ? null : _scanBarcode,
+                            icon: _scanning
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.qr_code_scanner, size: 18),
+                            label: Text(
+                              _barcode == null
+                                  ? 'Črtna koda'
+                                  : 'Koda $_barcode',
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: BorderSide(
+                                color: AppColors.primary.withValues(alpha: 0.4),
+                              ),
+                              shape: const StadiumBorder(),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     if (_scanMessage != null) ...[
                       const SizedBox(height: 8),

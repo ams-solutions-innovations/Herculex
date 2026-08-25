@@ -6,8 +6,10 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
+import '../../../services/pending_ai_scan_service.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../../ui/ui.dart';
 import '../../nutrition/domain/macro_targets.dart';
 import '../data/dream_physique_service.dart';
 import '../domain/profile.dart';
@@ -78,8 +80,17 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
   Future<void> _pickCurrentPhoto(ImageSource source) async {
     Haptics.light();
     try {
+      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+            PendingAiScanContext(type: AiScanContextType.dreamPhysique),
+          );
       final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source, imageQuality: 85);
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      await ref.read(pendingAiScanServiceProvider).clearPendingContext();
       if (picked != null && mounted) {
         setState(() {
           _currentFiles.add(File(picked.path));
@@ -87,18 +98,24 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         });
       }
     } catch (e) {
-      setState(() => _error = 'Napaka pri izbiri slike: $e');
+      setState(() => _error = 'Error selecting image: $e');
     }
   }
 
   Future<void> _pickTargetPhoto() async {
     Haptics.light();
     try {
+      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+            PendingAiScanContext(type: AiScanContextType.dreamPhysique),
+          );
       final picker = ImagePicker();
       final picked = await picker.pickImage(
         source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
         imageQuality: 85,
       );
+      await ref.read(pendingAiScanServiceProvider).clearPendingContext();
       if (picked != null && mounted) {
         setState(() {
           _targetFile = File(picked.path);
@@ -106,7 +123,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         });
       }
     } catch (e) {
-      setState(() => _error = 'Napaka pri izbiri ciljne slike: $e');
+      setState(() => _error = 'Error selecting target image: $e');
     }
   }
 
@@ -126,11 +143,11 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
   Future<void> _startAnalysis() async {
     if (_currentFiles.isEmpty) {
-      setState(() => _error = 'Prosimo, dodajte vsaj eno sliko svoje trenutne postave.');
+      setState(() => _error = 'Please add at least one photo of your current physique.');
       return;
     }
     if (_targetFile == null) {
-      setState(() => _error = 'Prosimo, izberite ciljno sliko želene sanjske postave.');
+      setState(() => _error = 'Please select a target photo of your dream physique.');
       return;
     }
 
@@ -173,37 +190,31 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
     final theme = Theme.of(context);
     final profile = ref.watch(profileProvider).asData?.value;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dream Physique AI'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-      ),
-      body: _loadingData
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-              children: [
-                if (_error != null) ...[
-                  _buildErrorCard(_error!),
-                  const SizedBox(height: 16),
-                ],
-
-                if (_result == null && !_analyzing) ...[
-                  // ── Setup Mode ──
-                  _buildSetupView(theme, profile),
-                ] else if (_analyzing) ...[
-                  // ── Analyzing Loading State ──
-                  _buildLoadingView(theme),
-                ] else if (_result != null) ...[
-                  // ── Rich Results View ──
-                  _buildResultsView(theme, profile),
-                ],
+    return HxScreenShell(
+      title: 'Dream Physique AI',
+      children: _loadingData
+          ? const [
+              Padding(
+                padding: EdgeInsets.all(48),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ]
+          : [
+              if (_error != null) ...[
+                _buildErrorCard(_error!),
+                const SizedBox(height: 16),
               ],
-            ),
+              if (_result == null && !_analyzing) ...[
+                // ── Setup Mode ──
+                _buildSetupView(theme, profile),
+              ] else if (_analyzing) ...[
+                // ── Analyzing Loading State ──
+                _buildLoadingView(theme),
+              ] else if (_result != null) ...[
+                // ── Rich Results View ──
+                _buildResultsView(theme, profile),
+              ],
+            ],
     );
   }
 
@@ -249,14 +260,14 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AI primerjava in načrt do cilja',
+                      'AI comparison and goal roadmap',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Izberite svojo trenutno postavo in sliko vzornika za natančen izračun časovnega okvirja, mišic in BF%.',
+                      'Select your current physique and role model photo for an accurate timeframe, muscle, and BF% projection.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.secondary,
                         fontSize: 12,
@@ -275,7 +286,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '1. Vaša trenutna postava',
+              '1. Your current physique',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -285,12 +296,12 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                 IconButton(
                   icon: const Icon(Icons.camera_alt_outlined, size: 20),
                   onPressed: () => _pickCurrentPhoto(ImageSource.camera),
-                  tooltip: 'Kamera',
+                  tooltip: 'Camera',
                 ),
                 IconButton(
                   icon: const Icon(Icons.photo_library_outlined, size: 20),
                   onPressed: () => _pickCurrentPhoto(ImageSource.gallery),
-                  tooltip: 'Galerija',
+                  tooltip: 'Gallery',
                 ),
               ],
             ),
@@ -298,7 +309,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Izberite med shranjenimi slikami ali naložite novo.',
+          'Select from saved photos or upload a new one.',
           style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
         ),
         const SizedBox(height: 12),
@@ -354,7 +365,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         // Saved progress photos carousel
         if (_savedPhotos.isNotEmpty) ...[
           Text(
-            'Izbira iz galerije napredka:',
+            'Select from progress gallery:',
             style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.secondary,
               fontWeight: FontWeight.bold,
@@ -362,13 +373,13 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           ),
           const SizedBox(height: 8),
           SizedBox(
-            height: 90,
+            height: 95,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _savedPhotos.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, idx) {
-                final photo = _savedPhotos[idx];
+              itemBuilder: (context, index) {
+                final photo = _savedPhotos[index];
                 final file = File(photo.filePath);
                 final isSelected =
                     _currentFiles.any((f) => f.path == file.path);
@@ -376,7 +387,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                 return GestureDetector(
                   onTap: () => _toggleSavedPhoto(photo),
                   child: Container(
-                    width: 70,
+                    width: 75,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
@@ -395,20 +406,41 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                               ? Image.file(file, fit: BoxFit.cover)
                               : Container(
                                   color: AppColors.surfaceContainer,
-                                  child: const Icon(Icons.broken_image, size: 20),
+                                  child: const Icon(Icons.image, size: 20),
                                 ),
                         ),
                         if (isSelected)
                           Container(
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.4),
+                              color: AppColors.primary.withValues(alpha: 0.35),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Center(
                               child: Icon(Icons.check_circle,
-                                  color: Colors.white, size: 20),
+                                  color: Colors.white, size: 22),
                             ),
                           ),
+                        Positioned(
+                          bottom: 2,
+                          left: 2,
+                          right: 2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              photo.pose.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -422,14 +454,14 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
         // ── 2. Target / Dream Physique Section ──
         Text(
-          '2. Ciljna sanjska postava (Dream Physique)',
+          '2. Target Dream Physique',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          'Naložite sliko postave, ki jo želite doseči (iz galerije ali spleta).',
+          'Upload a photo of the physique you want to achieve (from gallery or web).',
           style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
         ),
         const SizedBox(height: 12),
@@ -473,7 +505,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                               Icon(Icons.edit, size: 12, color: Colors.white),
                               SizedBox(width: 4),
                               Text(
-                                'Zamenjaj sliko',
+                                'Change photo',
                                 style: TextStyle(
                                     color: Colors.white, fontSize: 11),
                               ),
@@ -490,7 +522,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                           size: 40, color: AppColors.primary),
                       const SizedBox(height: 8),
                       Text(
-                        'Izberi ciljno fotografijo iz galerije',
+                        'Choose target photo from gallery',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -498,7 +530,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Podpira JPG, PNG, WEBP',
+                        'Supports JPG, PNG, WEBP',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.secondary,
                         ),
@@ -512,7 +544,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
         // ── 3. Target Aesthetic Style ──
         Text(
-          'Želen stil estetike',
+          'Desired aesthetic style',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -555,9 +587,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _statSnippet('Teža', '${weight?.toStringAsFixed(1) ?? "--"} kg'),
-              _statSnippet('Višina', '${height?.toStringAsFixed(0) ?? "--"} cm'),
-              _statSnippet('Dnevne kalorije',
+              _statSnippet('Weight', '${weight?.toStringAsFixed(1) ?? "--"} kg'),
+              _statSnippet('Height', '${height?.toStringAsFixed(0) ?? "--"} cm'),
+              _statSnippet('Daily Calories',
                   macro != null ? '${macro.kcal} kcal' : '--'),
             ],
           ),
@@ -573,7 +605,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             onPressed: _startAnalysis,
             icon: const Icon(Icons.auto_awesome),
             label: const Text(
-              'Primerjaj in ustvari načrt z Gemini AI',
+              'Compare and create plan with Gemini AI',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: FilledButton.styleFrom(
@@ -614,14 +646,14 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             const CircularProgressIndicator(),
             const SizedBox(height: 24),
             Text(
-              'Gemini AI primerja postavi...',
+              'Gemini AI is comparing physiques...',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Analiza mišične mase, zmanjšanja telesne maščobe in izračun časovnega okvirja',
+              'Analyzing muscle mass, fat reduction, and calculating timeline',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.secondary,
@@ -658,7 +690,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                     child: Column(
                       children: [
                         Text(
-                          'Trenutno',
+                          'Current',
                           style: theme.textTheme.labelMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.secondary,
@@ -733,7 +765,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                     child: Column(
                       children: [
                         Text(
-                          'Cilj (Dream)',
+                          'Goal (Dream)',
                           style: theme.textTheme.labelMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
@@ -780,9 +812,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           children: [
             Expanded(
               child: _MetricTile(
-                title: 'Časovni okvir',
+                title: 'Timeframe',
                 value: r.timeframeRange,
-                subtitle: 'Realna ocena',
+                subtitle: 'Realistic estimate',
                 icon: Icons.timer_outlined,
                 color: Colors.amber.shade700,
               ),
@@ -790,10 +822,10 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             const SizedBox(width: 12),
             Expanded(
               child: _MetricTile(
-                title: 'Sprememba teže',
+                title: 'Weight Change',
                 value:
                     '${r.weightChangeKg >= 0 ? "+" : ""}${r.weightChangeKg.toStringAsFixed(1)} kg',
-                subtitle: r.weightChangeKg <= 0 ? 'Neto znižanje' : 'Neto prirast',
+                subtitle: r.weightChangeKg <= 0 ? 'Net loss' : 'Net gain',
                 icon: Icons.monitor_weight_outlined,
                 color: Colors.blueAccent,
               ),
@@ -805,9 +837,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           children: [
             Expanded(
               child: _MetricTile(
-                title: 'Potrebne mišice',
+                title: 'Muscle Needed',
                 value: '+${r.leanMuscleGainKg.toStringAsFixed(1)} kg',
-                subtitle: 'Pusta mišična masa',
+                subtitle: 'Lean muscle mass',
                 icon: Icons.fitness_center,
                 color: Colors.green,
               ),
@@ -815,9 +847,9 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             const SizedBox(width: 12),
             Expanded(
               child: _MetricTile(
-                title: 'Izguba maščobe',
+                title: 'Fat Loss',
                 value: '-${r.fatLossKg.toStringAsFixed(1)} kg',
-                subtitle: 'Ciljni BF: ${r.targetBfPercent.toStringAsFixed(0)}%',
+                subtitle: 'Target BF: ${r.targetBfPercent.toStringAsFixed(0)}%',
                 icon: Icons.local_fire_department_outlined,
                 color: Colors.deepOrangeAccent,
               ),
@@ -833,7 +865,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                 size: 20, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
-              'Fokus mišičnih skupin za estetiko',
+              'Aesthetic Muscle Group Focus',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -842,7 +874,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Za dosego ciljne simetrije dajte prednost tem mišicam:',
+          'To achieve target symmetry, prioritize these muscles:',
           style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
         ),
         const SizedBox(height: 12),
@@ -856,7 +888,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
         // ── Nutrition Strategy Card ──
         _SectionCard(
-          title: 'Prehranska strategija',
+          title: 'Nutrition Strategy',
           icon: Icons.restaurant_outlined,
           content: r.nutritionStrategy,
           theme: theme,
@@ -865,7 +897,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
         // ── Training Strategy Card ──
         _SectionCard(
-          title: 'Strategija treninga',
+          title: 'Training Strategy',
           icon: Icons.sports_gymnastics_outlined,
           content: r.trainingAdvice,
           theme: theme,
@@ -874,7 +906,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
         // ── Overall Assessment Card ──
         _SectionCard(
-          title: 'Zaključna ocena',
+          title: 'Overall Assessment',
           icon: Icons.psychology_outlined,
           content: r.overallAssessment,
           theme: theme,
@@ -892,7 +924,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
               setState(() => _result = null);
             },
             icon: const Icon(Icons.refresh),
-            label: const Text('Nova analiza / Spremeni slike'),
+            label: const Text('New analysis / Change photos'),
             style: OutlinedButton.styleFrom(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),

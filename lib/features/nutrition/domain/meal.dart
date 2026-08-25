@@ -32,6 +32,20 @@ String dateIso(DateTime d) {
 }
 
 DateTime parseDateIso(String s) {
-  final parts = s.split('-');
-  return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+  try {
+    final parsed = DateTime.tryParse(s);
+    if (parsed != null) {
+      return DateTime(parsed.year, parsed.month, parsed.day);
+    }
+    final parts = s.split('-');
+    if (parts.length >= 3) {
+      return DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2].split('T').first),
+      );
+    }
+  } catch (_) {}
+  return DateTime.now();
 }
+

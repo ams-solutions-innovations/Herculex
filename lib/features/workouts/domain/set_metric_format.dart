@@ -74,26 +74,40 @@ class SetMetricFormat {
 
   /// One-line rendering of a logged set, in its own units.
   ///
-  /// `60 kg × 8`, `2:00`, `40 kg · 20 m`, `250 kcal`. Only the fields the
-  /// metric declares are read, so a `weight_reps` set produces the exact
-  /// string the app rendered before this existed and history does not shift
-  /// under existing users.
+  /// `60 kg × 8`, `2:00`, `40 kg · 20 m`, `250 kcal`, `+15 kg × 8`. Only the
+  /// fields the metric declares are read, so a `weight_reps` set produces the
+  /// exact string the app rendered before this existed and history does not
+  /// shift under existing users.
   static String summariseSet(
     SetEntryData set, {
     required LoggingMetric metric,
     required WeightFormat weight,
     required DistanceFormat distance,
+    bool isWeightedBodyweight = false,
   }) {
     // Weight × reps is the overwhelmingly common case and reads as a product,
     // not as a list of two measurements — keep its own separator.
     if (metric == LoggingMetric.weightReps) {
+      if (isWeightedBodyweight) {
+        if (set.weightKg > 0) {
+          return '+${weight.format(set.weightKg)} × ${set.reps}';
+        } else if (set.weightKg == 0) {
+          return 'BW × ${set.reps}';
+        }
+      }
       return '${weight.format(set.weightKg)} × ${set.reps}';
     }
     final parts = <String>[];
     for (final field in metric.fields) {
       switch (field) {
         case SetField.weight:
-          parts.add(weight.format(set.weightKg));
+          if (isWeightedBodyweight && set.weightKg > 0) {
+            parts.add('+${weight.format(set.weightKg)}');
+          } else if (isWeightedBodyweight && set.weightKg == 0) {
+            parts.add('BW');
+          } else {
+            parts.add(weight.format(set.weightKg));
+          }
         case SetField.reps:
           parts.add('${set.reps} reps');
         case SetField.duration:

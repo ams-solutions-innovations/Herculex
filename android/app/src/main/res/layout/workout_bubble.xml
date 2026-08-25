@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Workout Bubble chat head.
+
+  `ic_launcher_foreground` is adaptive-icon art and carries a large safe-zone
+  padding of its own, which leaves the mark looking tiny inside a disc this
+  small — so the logo is scaled up and the root clips children to its oval
+  outline (set in WorkoutBubbleController, since android:clipToOutline is
+  API 31+ and minSdk here is 26).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/workout_bubble_root"
+    android:layout_width="@dimen/workout_bubble_size"
+    android:layout_height="@dimen/workout_bubble_size"
+    android:background="@drawable/bubble_background"
+    android:contentDescription="@string/workout_bubble_content_description"
+    android:elevation="8dp"
+    android:padding="4dp">
+
+    <ImageView
+        android:id="@+id/workout_bubble_logo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter"
+        android:scaleX="1.05"
+        android:scaleY="1.05"
+        android:src="@drawable/ic_launcher_foreground" />
+</FrameLayout>

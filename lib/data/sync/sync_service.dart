@@ -1,14 +1,21 @@
 import 'dart:async';
-import 'dart:developer' show log;
+import 'dart:developer' as developer show log;
 import 'dart:math' as math;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:uuid/uuid.dart';
 
 import '../local/migrations/sync_backfill.dart' show isCustomFilteredTableNames;
 import 'sync_backend_service.dart';
 import 'sync_id_resolver.dart';
 import 'sync_table_specs.dart';
+
+void _log(String message) {
+  developer.log(message);
+  debugPrint('SyncService: $message');
+}
 
 /// After this many consecutive failures an outbox op is quarantined: it stops
 /// being retried, stops blocking inbound pulls for its row, and is surfaced
@@ -251,7 +258,7 @@ class SyncService {
     if (owner == userId) return;
 
     if (owner != null) {
-      log('SyncService: local database owner changed ($owner -> $userId); '
+      _log('local database owner changed ($owner -> $userId); '
           'clearing outbox and cursors');
       await _db.customUpdate('DELETE FROM pending_sync_ops');
       await _db.customUpdate('DELETE FROM sync_cursors');
@@ -259,6 +266,20 @@ class SyncService {
       _lastRunError = null;
     }
     await _writeCursor(_ownerKey, userId);
+  }
+
+  /// Unquarantines any failed ops, clears any prior run error, and triggers an
+  /// immediate push + pull cycle.
+  Future<void> retryAll() async {
+    final userId = _userId;
+    if (userId == null || !_backend.isConfigured) return;
+    _log('retryAll: unquarantining pending ops and forcing push + pull');
+    await _db.customUpdate(
+      'UPDATE pending_sync_ops SET attempts = 0, last_error = NULL, next_retry_at = NULL',
+    );
+    _lastRunError = null;
+    await pushOnce();
+    await pullAll();
   }
 
   /// Re-enqueues every syncable local row so the whole database is pushed to
@@ -307,10 +328,10 @@ class SyncService {
       } catch (e) {
         // One unsyncable table must not abort the whole re-upload; the rest of
         // the database is still worth getting up.
-        log('SyncService: re-upload could not enqueue $table: $e');
+        _log('re-upload could not enqueue $table: $e');
       }
     }
-    log('SyncService: re-upload enqueued $enqueued row(s)');
+    _log('re-upload enqueued $enqueued row(s)');
     await pushOnce();
     return enqueued;
   }
@@ -399,6 +420,7 @@ class SyncService {
             )
             .getSingleOrNull();
         if (row != null) {
+          await _ensureParentsPushed(table, row.data, userId);
           final payload = await _buildRemotePayload(table, row.data, userId);
           await _backend.upsert(table, payload);
           final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -441,9 +463,9 @@ class SyncService {
       );
       _lastRunError = e.toString();
       if (attempts >= maxPushAttempts) {
-        log('SyncService quarantined $table/$entityId after $attempts attempts: $e');
+        _log('SyncService quarantined $table/$entityId after $attempts attempts: $e');
       } else {
-        log('SyncService push failed for $table/$entityId (attempt $attempts): $e');
+        _log('SyncService push failed for $table/$entityId (attempt $attempts): $e');
       }
       return false;
     }
@@ -530,6 +552,91 @@ class SyncService {
     return remote;
   }
 
+  /// Before pushing a child row to Postgres, ensures any local parent rows it
+  /// references via FK are already upserted to the remote backend so Postgres
+  /// FK constraints (e.g. food_entries -> foods) are never violated.
+  Future<void> _ensureParentsPushed(
+    String table,
+    Map<String, dynamic> row,
+    String userId,
+  ) async {
+    final spec = syncTableSpecsByName[table];
+    if (spec == null) return;
+
+    for (final fk in spec.fkFields) {
+      if (fk is SimpleFk) {
+        final localId = row[fk.localColumn] as int?;
+        if (localId != null) {
+          await _pushParentIfUnsynced(fk.parentTable, localId, userId);
+        }
+      } else if (fk is CatalogueFk) {
+        final localId = row[fk.localColumn] as int?;
+        if (localId != null) {
+          await _pushParentIfUnsynced(fk.parentTable, localId, userId);
+        }
+      } else if (fk is BandFk) {
+        final localId = row[fk.localColumn] as int?;
+        if (localId != null) {
+          await _pushParentIfUnsynced('bands', localId, userId);
+        }
+      }
+    }
+  }
+
+  Future<void> _pushParentIfUnsynced(
+    String parentTable,
+    int parentLocalId,
+    String userId,
+  ) async {
+    final spec = syncTableSpecsByName[parentTable];
+    if (spec == null) return;
+
+    final isCustomFiltered =
+        isCustomFilteredTableNames.contains(parentTable) && parentTable != 'recipes';
+    final isCustomGuard = isCustomFiltered ? ' AND is_custom = 1' : '';
+
+    final parentRow = await _db
+        .customSelect(
+          'SELECT * FROM $parentTable WHERE id = ?$isCustomGuard',
+          variables: [Variable(parentLocalId)],
+        )
+        .getSingleOrNull();
+
+    if (parentRow == null) return;
+
+    var parentUuid = parentRow.data['sync_uuid'] as String?;
+    if (parentUuid == null) {
+      parentUuid = const Uuid().v4();
+      await _db.customUpdate(
+        'UPDATE $parentTable SET sync_uuid = ? WHERE id = ?',
+        variables: [Variable(parentUuid), Variable(parentLocalId)],
+        updates: {},
+      );
+    }
+
+    // Recursively ensure any grandparent tables are pushed first
+    await _ensureParentsPushed(parentTable, parentRow.data, userId);
+
+    final payload = await _buildRemotePayload(
+      parentTable,
+      {...parentRow.data, 'sync_uuid': parentUuid},
+      userId,
+    );
+    await _backend.upsert(parentTable, payload);
+
+    final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    await _db.customUpdate(
+      'UPDATE $parentTable SET synced_at = ? WHERE sync_uuid = ?',
+      variables: [Variable(nowSeconds), Variable(parentUuid)],
+      updates: {},
+    );
+
+    await _db.customUpdate(
+      'DELETE FROM pending_sync_ops WHERE entity_type = ? AND entity_id = ?',
+      variables: [Variable(parentTable), Variable(parentUuid)],
+    );
+  }
+
   // ── Pull ───────────────────────────────────────────────────────────────
 
   Future<void> pullAll() async {
@@ -576,7 +683,7 @@ class SyncService {
       // pull failure is exactly the "looks synced, isn't" behavior RB-02 is
       // about.
       _lastRunError = e.toString();
-      log('SyncService pull failed for $table: $e');
+      _log('SyncService pull failed for $table: $e');
       return false;
     }
     if (remoteRows.isEmpty) return true;
@@ -637,7 +744,7 @@ class SyncService {
       }
     } catch (e) {
       _lastRunError = e.toString();
-      log('SyncService tombstone pull failed: $e');
+      _log('SyncService tombstone pull failed: $e');
       return false;
     }
 
@@ -729,7 +836,7 @@ class SyncService {
           ).toUtc();
         } catch (e) {
           _lastRunError = e.toString();
-          log('SyncService tombstone apply failed for $table/$id: $e');
+          _log('SyncService tombstone apply failed for $table/$id: $e');
           break;
         }
       }
@@ -763,7 +870,7 @@ class SyncService {
   /// delete. Compares local rows against the remote id set per table and
   /// removes the ones that are provably gone.
   Future<bool> _fullReconcile(String userId) async {
-    log('SyncService: tombstone cursor older than retention; full reconcile');
+    _log('SyncService: tombstone cursor older than retention; full reconcile');
     var clean = true;
 
     for (final table in syncTableOrder.reversed) {
@@ -772,7 +879,7 @@ class SyncService {
         remoteIds = await _backend.pullExistingIds(table, userId: userId);
       } catch (e) {
         _lastRunError = e.toString();
-        log('SyncService reconcile failed for $table: $e');
+        _log('SyncService reconcile failed for $table: $e');
         clean = false;
         continue;
       }

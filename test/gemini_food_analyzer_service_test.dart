@@ -46,6 +46,30 @@ void main() {
       expect(draft.proteinPer100g, 20);
     },
   );
+
+  test(
+    'rambler voice and text food analysis parses structured food items and macros',
+    () async {
+      final backend = _FakeGeminiBackend();
+      final service = GeminiFoodAnalyzerService(backend);
+
+      final result = await service.analyzeRamblerText(
+        text: '200g piščančjih prsi in 150g riža',
+        preferredMealKey: 'lunch',
+      );
+
+      expect(backend.lastKind, 'rambler_food');
+      expect(backend.lastText, '200g piščančjih prsi in 150g riža');
+      expect(result.suggestedMealKey, 'lunch');
+      expect(result.items.length, 2);
+      expect(result.items[0].name, 'Piščančje prsi');
+      expect(result.items[0].servingGrams, 200);
+      expect(result.items[0].totalKcal, 330);
+      expect(result.items[0].totalProtein, 62);
+      expect(result.items[1].name, 'Kuhan riž');
+      expect(result.items[1].servingGrams, 150);
+    },
+  );
 }
 
 Future<File> _tempImage(String extension) async {
@@ -118,6 +142,39 @@ class _FakeGeminiBackend implements GeminiBackend {
   }
 
   @override
+  Future<Map<String, dynamic>> identifyExerciseDetailed({
+    required List<int> imageBytes,
+    required String mimeType,
+  }) async {
+    lastKind = 'exercise_identification';
+    lastMimeType = mimeType;
+    return {
+      'identifiedName': 'Bench Press',
+      'confidence': 0.9,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeSupplementPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) async {
+    lastKind = 'supplement_photo';
+    lastMimeType = mimeType;
+    lastUserNote = userNote;
+    return {
+      'name': 'Creatine Monohydrate',
+      'brand': 'Optimum Nutrition',
+      'doseAmount': 5.0,
+      'doseUnit': 'g',
+      'nutrients': {'protein': 0.0},
+      'schedule': 'post_workout',
+      'confidence': 0.95,
+    };
+  }
+
+  @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
     required List<int> imageBytes,
     required String mimeType,
@@ -182,6 +239,49 @@ class _FakeGeminiBackend implements GeminiBackend {
       'nutritionStrategy': 'High protein deficit.',
       'trainingAdvice': 'PPL split.',
       'overallAssessment': 'Achievable goal.',
+    };
+  }
+
+  String? lastText;
+  String? lastPreferredMealKey;
+
+  @override
+  Future<Map<String, dynamic>> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
+  }) async {
+    lastKind = 'rambler_food';
+    lastText = text;
+    lastPreferredMealKey = preferredMealKey;
+    return {
+      'suggestedMealKey': 'lunch',
+      'summary': 'Piščančje prsi in riž',
+      'items': [
+        {
+          'name': 'Piščančje prsi',
+          'servingGrams': 200.0,
+          'portionAmount': 200.0,
+          'portionUnit': 'g',
+          'kcalPer100g': 165.0,
+          'proteinPer100g': 31.0,
+          'carbsPer100g': 0.0,
+          'fatPer100g': 3.6,
+          'fiberPer100g': 0.0,
+          'confidence': 0.95,
+        },
+        {
+          'name': 'Kuhan riž',
+          'servingGrams': 150.0,
+          'portionAmount': 150.0,
+          'portionUnit': 'g',
+          'kcalPer100g': 130.0,
+          'proteinPer100g': 2.7,
+          'carbsPer100g': 28.0,
+          'fatPer100g': 0.3,
+          'fiberPer100g': 0.4,
+          'confidence': 0.9,
+        },
+      ],
     };
   }
 }

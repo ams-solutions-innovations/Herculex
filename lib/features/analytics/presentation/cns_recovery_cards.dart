@@ -1,9 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../theme/colors.dart';
 import 'analytics_providers.dart';
+import 'widgets/muscle_recovery_row.dart';
 
 /// CNS dashboard card (V2 §3): 28-day daily-load bar chart, readiness gauge,
 /// and deload recommendation banner.
@@ -15,25 +17,46 @@ class CnsTrendCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final trends = ref.watch(cnsTrendsProvider);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('CNS Load',
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text('Daily nervous-system load over the last 28 days.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: AppColors.secondary)),
-          const SizedBox(height: 16),
+    return InkWell(
+      onTap: () => context.push('/cns'),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(20),
+          border:
+              Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('CNS Load',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Details',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary)),
+                    const SizedBox(width: 2),
+                    Icon(Icons.chevron_right,
+                        size: 16, color: AppColors.primary),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('Daily nervous-system load over the last 28 days.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.secondary)),
+            const SizedBox(height: 16),
           trends.when(
             data: (t) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +132,8 @@ class CnsTrendCard extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _statusBadge(String status) {
@@ -195,44 +219,9 @@ class RecoveryDetailCard extends ConsumerWidget {
             data: (list) => Column(
               children: [
                 for (final r in list)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 92,
-                          child: Text(r.muscle,
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(fontWeight: FontWeight.w600)),
-                        ),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: r.recoveryScore / 100,
-                              minHeight: 8,
-                              backgroundColor: AppColors.outlineVariant
-                                  .withValues(alpha: 0.2),
-                              valueColor: AlwaysStoppedAnimation(
-                                r.recoveryScore >= 70
-                                    ? Colors.green
-                                    : r.recoveryScore >= 30
-                                        ? Colors.amber
-                                        : Colors.red,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 40,
-                          child: Text('${r.recoveryScore}',
-                              textAlign: TextAlign.end,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.secondary)),
-                        ),
-                      ],
-                    ),
+                  MuscleRecoveryRow(
+                    muscle: r.muscle,
+                    recoveryScore: r.recoveryScore,
                   ),
               ],
             ),

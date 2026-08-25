@@ -4,16 +4,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/auth_validator.dart';
 import '../../../core/env.dart';
+import '../../../core/notifications/toast/hx_toast_controller.dart';
+import '../../../core/notifications/toast/hx_toast_model.dart';
 import '../../../core/units.dart';
 import '../../../data/sync/sync_service.dart';
+import '../../../theme/colors.dart';
+import '../../../theme/haptics.dart';
 import '../../../theme/tokens/tokens.dart';
 import '../../../theme/theme_provider.dart';
 import '../../../ui/ui.dart';
-import '../../nutrition/domain/macro_targets.dart';
+import '../../nutrition/data/speech_to_text_service.dart';
+import '../../nutrition/domain/diet_phase.dart';
+import '../../nutrition/presentation/goals_providers.dart';
+import '../../nutrition/presentation/nutrition_providers.dart';
+import '../../workouts/presentation/workout_bubble_controller.dart';
+import '../../../services/workout_bubble_service.dart';
 import '../domain/profile.dart';
 
 // ── Profile view ─────────────────────────────────────────────────────────────
@@ -63,6 +73,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
 
+  Timer? _autoSaveTimer;
   bool _saving = false;
 
   @override
@@ -86,6 +97,40 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         : heightFmt.formatValue(p!.heightCm!);
   }
 
+  @override
+  void didUpdateWidget(_ProfileBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile != widget.profile && _autoSaveTimer == null) {
+      final p = widget.profile;
+      _goal = p?.goal ?? FitnessGoal.maintenance;
+      _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
+      _sex = p?.sex;
+      _countBurnedCalories = p?.countBurnedCalories ?? false;
+      if (_nameCtrl.text != (p?.name ?? '')) {
+        _nameCtrl.text = p?.name ?? '';
+      }
+      if (_ageCtrl.text != (p?.ageYears?.toString() ?? '')) {
+        _ageCtrl.text = p?.ageYears?.toString() ?? '';
+      }
+      final weightFmt = ref.read(weightFormatProvider);
+      final heightFmt = ref.read(heightFormatProvider);
+      final weightStr = p?.weightKg == null ? '' : weightFmt.formatValue(p!.weightKg!);
+      final heightStr = p?.heightCm == null ? '' : heightFmt.formatValue(p!.heightCm!);
+      if (_weightCtrl.text != weightStr) _weightCtrl.text = weightStr;
+      if (_heightCtrl.text != heightStr) _heightCtrl.text = heightStr;
+    }
+  }
+
+  void _onFieldChanged([String? _]) {
+    setState(() {});
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        ref.read(localProfileRepositoryProvider).save(_draft());
+      }
+    });
+  }
+
   /// Re-renders the body-stat fields when the measurement system flips, so a
   /// stored 82.5 kg becomes 182 lb in place rather than being reinterpreted.
   void _rewriteBodyStatFields() {
@@ -99,6 +144,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
+    // Flush draft to local profile storage before tearing down
+    ref.read(localProfileRepositoryProvider).save(_draft());
     _nameCtrl.dispose();
     _ageCtrl.dispose();
     _weightCtrl.dispose();
@@ -131,18 +179,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   }
 
   Future<void> _save() async {
+    _autoSaveTimer?.cancel();
     setState(() => _saving = true);
     await ref.read(localProfileRepositoryProvider).save(_draft());
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Profile saved'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-      ),
-    );
+    ref.read(hxToastControllerProvider.notifier).show(HxToastItem.profileSaved());
   }
 
   Future<void> _clearData(BuildContext context) async {
@@ -221,6 +263,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 label: 'Age',
                 hint: 'yrs',
                 controller: _ageCtrl,
+                onChanged: _onFieldChanged,
               ),
             ),
             const SizedBox(width: 12),
@@ -229,6 +272,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 label: isMetric ? 'Weight (kg)' : 'Weight (lb)',
                 hint: isMetric ? 'kg' : 'lb',
                 controller: _weightCtrl,
+                onChanged: _onFieldChanged,
               ),
             ),
             const SizedBox(width: 12),
@@ -237,6 +281,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 label: isMetric ? 'Height (cm)' : 'Height (in)',
                 hint: isMetric ? 'cm' : 'in',
                 controller: _heightCtrl,
+                onChanged: _onFieldChanged,
               ),
             ),
           ],
@@ -267,7 +312,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 child: _PillToggle(
                   label: s.label,
                   selected: selected,
-                  onTap: () => setState(() => _sex = s),
+                  onTap: () {
+                    setState(() => _sex = s);
+                    _onFieldChanged();
+                  },
                 ),
               ),
             );
@@ -275,22 +323,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         ),
 
         const SizedBox(height: 28),
-
-        // ── Fitness goal ──────────────────────────────────────────────────
-        _SectionHeader('Fitness Goal'),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: FitnessGoal.values.map((g) {
-            final selected = _goal == g;
-            return _PillToggle(
-              label: g.label,
-              selected: selected,
-              onTap: () => setState(() => _goal = g),
-            );
-          }).toList(),
-        ),
 
         const SizedBox(height: 28),
 
@@ -305,17 +337,20 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               child: _ActivityTile(
                 level: a,
                 selected: selected,
-                onTap: () => setState(() => _activityLevel = a),
+                onTap: () {
+                  setState(() => _activityLevel = a);
+                  _onFieldChanged();
+                },
               ),
             );
           }).toList(),
         ),
 
+        const SizedBox(height: 20),
+
+        // ── Active Target & Dieting Phase (Gradient Squircle) ──
+        const _ProfileActiveTargetSquircleCard(),
         const SizedBox(height: 12),
-        // App-calculated daily calories for the current draft, with a shortcut
-        // into Targets & Dieting for overriding it (§5).
-        _CalorieEstimateRow(targets: MacroTargets.fromProfile(_draft())),
-        const SizedBox(height: 10),
         const _DreamPhysiqueCard(),
 
         const SizedBox(height: 28),
@@ -356,7 +391,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               label: 'Include Burned Calories',
               trailing: Switch(
                 value: _countBurnedCalories,
-                onChanged: (val) => setState(() => _countBurnedCalories = val),
+                onChanged: (val) {
+                  setState(() => _countBurnedCalories = val);
+                  _onFieldChanged();
+                },
               ),
             ),
             _SettingsDivider(),
@@ -367,8 +405,31 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             _SettingsDivider(),
             _SettingsTile(
+              icon: Icons.mic_rounded,
+              label: 'Voice / Rambler Language',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${ref.watch(speechToTextServiceProvider).selectedLanguageOption.flag} ${ref.watch(speechToTextServiceProvider).selectedLanguageOption.name}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: context.hx.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right,
+                    color: context.hx.onSurfaceVariant,
+                    size: 18,
+                  ),
+                ],
+              ),
+              onTap: () => _showSttLanguagePicker(context),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
               icon: Icons.health_and_safety_rounded,
-              label: 'Samsung Health & Integrations',
+              label: 'Health Integrations',
               trailing: Icon(
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
@@ -386,6 +447,20 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               onTap: () => context.push('/rep-tracking-consent'),
             ),
             _SettingsDivider(),
+            // Android-only: iOS has no system overlay windows, so the row is
+            // hidden rather than shown disabled — a permanently dead switch
+            // reads as a bug.
+            if (WorkoutBubbleService.instance.isSupported) ...[
+              _SettingsTile(
+                icon: Icons.bubble_chart_rounded,
+                label: 'Workout Bubble',
+                trailing: Switch(
+                  value: ref.watch(workoutBubbleEnabledProvider),
+                  onChanged: _onWorkoutBubbleToggled,
+                ),
+              ),
+              _SettingsDivider(),
+            ],
             // Its own row: this reports cloud sync, and hanging it off the
             // Samsung Health tile read as that integration's status.
             _SettingsTile(
@@ -394,7 +469,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               trailing: const SyncStatusBadge(),
               onTap: ref.watch(authSessionProvider).valueOrNull == null
                   ? () => _showAuthSheet(context)
-                  : null,
+                  : () => _showSyncDetailSheet(context),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -438,6 +513,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             _SettingsDivider(),
             _SettingsTile(
+              icon: Icons.fitness_center_rounded,
+              label: 'Exercise Library',
+              trailing: Icon(
+                Icons.chevron_right,
+                color: context.hx.onSurfaceVariant,
+              ),
+              onTap: () => context.push('/exercises'),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
               icon: Icons.restaurant_menu_rounded,
               label: 'Custom Foods',
               trailing: Icon(
@@ -464,7 +549,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => _showComingSoon(context, 'Notifications'),
+              onTap: () => context.push('/notifications'),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -623,15 +708,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     if (error != null) {
       // Nothing was deleted — `AccountDeletionService` only wipes the device
       // after the backend confirms — so this is safe to retry.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red.shade700,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-        ),
-      );
+      ref
+          .read(hxToastControllerProvider.notifier)
+          .show(HxToastItem.saveFailed(message: error));
     }
     // On success the cleared profile drops the router back to onboarding,
     // exactly as `_clearData` does.
@@ -643,6 +722,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const _AuthSheet(),
+    );
+  }
+
+  Future<void> _showSyncDetailSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _SyncDetailSheet(),
     );
   }
 
@@ -671,10 +759,113 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     }
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
+  void _showSttLanguagePicker(BuildContext context) {
+    Haptics.selection();
+    final stt = ref.read(speechToTextServiceProvider);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.hx.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Govor v besedilo / STT Jezik',
+                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: kSupportedSttLanguages.length,
+                  itemBuilder: (ctx, i) {
+                    final lang = kSupportedSttLanguages[i];
+                    final isSelected =
+                        lang.localeId.toLowerCase() ==
+                        stt.selectedLocaleId.toLowerCase();
+                    return ListTile(
+                      leading: Text(
+                        lang.flag,
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                      title: Text(
+                        lang.name,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: isSelected ? AppColors.primary : null,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(Icons.check, color: AppColors.primary)
+                          : null,
+                      onTap: () async {
+                        Haptics.selection();
+                        await ref
+                            .read(speechToTextServiceProvider)
+                            .setLocale(lang.localeId);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Turning the Workout Bubble on needs "Display over other apps", which is a
+  /// settings-screen grant rather than a dialog: `request()` opens the system
+  /// page and returns when the user comes back, so the real answer has to be
+  /// re-read afterwards. The switch only goes on if the permission actually
+  /// landed — otherwise the setting would claim a bubble the OS will never draw.
+  Future<void> _onWorkoutBubbleToggled(bool enabled) async {
+    final notifier = ref.read(workoutBubbleEnabledProvider.notifier);
+    if (!enabled) {
+      await notifier.set(false);
+      return;
+    }
+
+    if (await WorkoutBubbleService.instance.hasPermission()) {
+      await notifier.set(true);
+      return;
+    }
+
+    await Permission.systemAlertWindow.request();
+    final granted = await WorkoutBubbleService.instance.hasPermission();
+    await notifier.set(granted);
+    if (granted || !mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$feature settings coming soon'),
+        content: const Text(
+          'Herculex needs "Display over other apps" to float the workout '
+          'bubble. You can grant it any time in system settings.',
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
@@ -736,55 +927,287 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
 // ── Avatar header ─────────────────────────────────────────────────────────────
 
-/// The daily calorie figure the app derives from the profile, with an edit
-/// affordance that jumps straight into Targets & Dieting (§5).
-class _CalorieEstimateRow extends StatelessWidget {
-  final MacroTargets? targets;
-  const _CalorieEstimateRow({required this.targets});
+/// Gradient squircle card displaying the active target calories, phase, pace and macros.
+class _ProfileActiveTargetSquircleCard extends ConsumerWidget {
+  const _ProfileActiveTargetSquircleCard();
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final t = targets;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hx = context.hx;
+    final activePlan = ref.watch(activeDietPlanProvider);
+    final profile = ref.watch(profileProvider).asData?.value;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targets = ref.watch(effectiveTargetsProvider(today)).asData?.value ??
+        ref.watch(baselineTargetsProvider);
+
+    final phaseColor = switch (activePlan.phase) {
+      DietPhase.cut => AppColors.macroKcal,
+      DietPhase.bulk => const Color(0xFF30D158),
+      DietPhase.maingain => const Color(0xFFBF5AF2),
+      DietPhase.maintain => const Color(0xFF64D2FF),
+    };
+
+    final phaseIcon = switch (activePlan.phase) {
+      DietPhase.cut => Icons.trending_down_rounded,
+      DietPhase.bulk => Icons.trending_up_rounded,
+      DietPhase.maingain => Icons.auto_awesome_rounded,
+      DietPhase.maintain => Icons.balance_rounded,
+    };
+
+    final kcal = targets?.kcal ?? 0;
+    final protein = targets?.proteinG ?? 0;
+    final carbs = targets?.carbsG ?? 0;
+    final fat = targets?.fatG ?? 0;
+    final bwKg = profile?.weightKg;
+
+    final deltaText = activePlan.kcalDelta == 0
+        ? 'TDEE Maintenance'
+        : '${activePlan.kcalDelta > 0 ? '+' : ''}${activePlan.kcalDelta} kcal / day (${activePlan.phase.label})';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: context.hx.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: context.hx.primary.withValues(alpha: 0.25)),
+        gradient: LinearGradient(
+          colors: [
+            phaseColor.withValues(alpha: hx.isDark ? 0.20 : 0.14),
+            hx.surfaceContainerLowest,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: phaseColor.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.local_fire_department, size: 20, color: context.hx.primary),
-          const SizedBox(width: 12),
-          Expanded(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            Haptics.selection();
+            context.push('/nutrition-targets');
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  t == null
-                      ? 'Estimated daily calories'
-                      : '${t.kcal} kcal / day',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: phaseColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(phaseIcon, color: phaseColor, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Active Goal & Calories',
+                                style: TextStyle(
+                                  color: hx.onSurfaceVariant,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 14,
+                                color: hx.onSurfaceVariant.withValues(alpha: 0.6),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            activePlan.phase.label,
+                            style: TextStyle(
+                              color: hx.onSurface,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  t == null
-                      ? 'Add age, weight and height to calculate'
-                      : 'Calculated from your stats, goal and activity level',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: context.hx.onSurfaceVariant,
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$kcal kcal',
+                          style: TextStyle(
+                            color: hx.onSurface,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 26,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          'Target daily intake',
+                          style: TextStyle(
+                            color: hx.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: phaseColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: phaseColor.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        deltaText,
+                        style: TextStyle(
+                          color: phaseColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (kcal > 0) ...[
+                  const SizedBox(height: 14),
+                  Divider(
+                    height: 1,
+                    color: hx.outlineVariant.withValues(alpha: 0.3),
                   ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ProfileMacroSquircleBadge(
+                          label: 'Protein',
+                          value: '${protein}g',
+                          subtext: bwKg != null
+                              ? '${(protein / bwKg).toStringAsFixed(1)} g/kg'
+                              : '${((protein * 4 / kcal) * 100).round()}%',
+                          color: AppColors.macroProtein,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ProfileMacroSquircleBadge(
+                          label: 'Carbs',
+                          value: '${carbs}g',
+                          subtext: '${((carbs * 4 / kcal) * 100).round()}%',
+                          color: AppColors.macroCarbs,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ProfileMacroSquircleBadge(
+                          label: 'Fat',
+                          value: '${fat}g',
+                          subtext: '${((fat * 9 / kcal) * 100).round()}%',
+                          color: AppColors.macroFat,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Tap to change phase or pace',
+                      style: TextStyle(
+                        color: phaseColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 14,
+                      color: phaseColor,
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.edit_outlined, size: 20, color: context.hx.primary),
-            tooltip: 'Targets & dieting',
-            onPressed: () => context.push('/nutrition-targets'),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileMacroSquircleBadge extends StatelessWidget {
+  final String label;
+  final String value;
+  final String subtext;
+  final Color color;
+
+  const _ProfileMacroSquircleBadge({
+    required this.label,
+    required this.value,
+    required this.subtext,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: hx.onSurfaceVariant,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            subtext,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -864,7 +1287,7 @@ class _DreamPhysiqueCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Primerjava s ciljno postavo, ocena mesecev, mišic & BF%',
+                        'Comparison with target physique, estimated months, muscle & BF%',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: context.hx.onSurfaceVariant,
                           fontSize: 12,
@@ -956,8 +1379,8 @@ class _AvatarHeader extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           profile != null
-              ? '${profile!.goal.label} · ${profile!.activityLevel.label}'
-              : 'Set your goals and stats',
+              ? profile!.activityLevel.label
+              : 'Set your stats',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: context.hx.onSurfaceVariant,
@@ -1140,6 +1563,7 @@ class _StatField extends StatelessWidget {
   final String label;
   final String hint;
   final TextEditingController controller;
+  final ValueChanged<String>? onChanged;
 
   /// Every remaining stat field is numeric — the name moved into the avatar
   /// editor, so there is no free-text variant left to configure.
@@ -1149,6 +1573,7 @@ class _StatField extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.controller,
+    this.onChanged,
   });
 
   @override
@@ -1170,6 +1595,7 @@ class _StatField extends StatelessWidget {
         const SizedBox(height: 6),
         TextField(
           controller: controller,
+          onChanged: onChanged,
           keyboardType: keyboardType,
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -1428,87 +1854,77 @@ class _SettingsTile extends StatelessWidget {
 }
 
 class _ThemeToggle extends ConsumerWidget {
+  const _ThemeToggle();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(themeModeProvider);
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _ThemePill(
-          label: 'Light',
-          icon: Icons.light_mode_rounded,
-          selected: mode == ThemeMode.light,
-          onTap: () =>
-              ref.read(themeModeProvider.notifier).set(ThemeMode.light),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      decoration: BoxDecoration(
+        color: context.hx.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.hx.outlineVariant.withValues(alpha: 0.5),
         ),
-        const SizedBox(width: 4),
-        _ThemePill(
-          label: 'System',
-          icon: Icons.brightness_auto_rounded,
-          selected: mode == ThemeMode.system,
-          onTap: () =>
-              ref.read(themeModeProvider.notifier).set(ThemeMode.system),
-        ),
-        const SizedBox(width: 4),
-        _ThemePill(
-          label: 'Dark',
-          icon: Icons.dark_mode_rounded,
-          selected: mode == ThemeMode.dark,
-          onTap: () => ref.read(themeModeProvider.notifier).set(ThemeMode.dark),
-        ),
-      ],
-    );
-  }
-}
-
-class _ThemePill extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-  const _ThemePill({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? context.hx.primary : context.hx.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected
-                ? context.hx.primary
-                : context.hx.outlineVariant.withValues(alpha: 0.5),
-            width: 1,
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ThemeMode>(
+          value: mode,
+          isDense: true,
+          icon: Icon(
+            Icons.arrow_drop_down_rounded,
+            color: context.hx.onSurfaceVariant,
+            size: 20,
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: selected ? Colors.white : context.hx.secondary,
+          dropdownColor: context.hx.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: context.hx.onSurface,
+          ),
+          items: [
+            DropdownMenuItem(
+              value: ThemeMode.light,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.light_mode_rounded, size: 14, color: context.hx.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  const Text('Light'),
+                ],
+              ),
             ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? Colors.white : context.hx.secondary,
+            DropdownMenuItem(
+              value: ThemeMode.system,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.brightness_auto_rounded, size: 14, color: context.hx.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  const Text('System'),
+                ],
+              ),
+            ),
+            DropdownMenuItem(
+              value: ThemeMode.dark,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.dark_mode_rounded, size: 14, color: context.hx.onSurfaceVariant),
+                  const SizedBox(width: 6),
+                  const Text('Dark'),
+                ],
               ),
             ),
           ],
+          onChanged: (newMode) {
+            if (newMode != null) {
+              ref.read(themeModeProvider.notifier).set(newMode);
+            }
+          },
         ),
       ),
     );
@@ -1815,4 +2231,270 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
     );
   }
 }
+
+// ── Sync Detail Sheet ───────────────────────────────────────────────────────
+
+class _SyncDetailSheet extends ConsumerStatefulWidget {
+  const _SyncDetailSheet();
+
+  @override
+  ConsumerState<_SyncDetailSheet> createState() => _SyncDetailSheetState();
+}
+
+class _SyncDetailSheetState extends ConsumerState<_SyncDetailSheet> {
+  bool _busy = false;
+  String? _statusMessage;
+
+  Future<void> _syncNow() async {
+    setState(() {
+      _busy = true;
+      _statusMessage = null;
+    });
+    try {
+      await ref.read(syncServiceProvider).retryAll();
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Sync completed';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Sync failed: $e';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _reuploadAll() async {
+    setState(() {
+      _busy = true;
+      _statusMessage = null;
+    });
+    try {
+      final count = await ref.read(syncServiceProvider).reuploadAllLocalData();
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Re-enqueued $count items for upload';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Re-upload failed: $e';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final syncState = ref.watch(syncStateProvider).valueOrNull ??
+        const SyncState(phase: SyncPhase.disabled);
+    final session = ref.watch(authSessionProvider).valueOrNull;
+
+    final Color statusColor = switch (syncState.phase) {
+      SyncPhase.disabled => context.hx.onSurfaceVariant,
+      SyncPhase.syncing => context.hx.primary,
+      SyncPhase.pending => Colors.orangeAccent,
+      SyncPhase.synced => context.hx.primary,
+      SyncPhase.error => Colors.redAccent,
+    };
+
+    final String statusLabel = switch (syncState.phase) {
+      SyncPhase.disabled => 'Disabled',
+      SyncPhase.syncing => 'Syncing…',
+      SyncPhase.pending => '${syncState.pendingCount} pending changes',
+      SyncPhase.synced => 'Synced and up to date',
+      SyncPhase.error => 'Sync error',
+    };
+
+    return HxSheet(
+      scrollable: false,
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 0,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  switch (syncState.phase) {
+                    SyncPhase.disabled => Icons.cloud_off_outlined,
+                    SyncPhase.syncing => Icons.cloud_sync_outlined,
+                    SyncPhase.pending => Icons.cloud_upload_outlined,
+                    SyncPhase.synced => Icons.cloud_done_outlined,
+                    SyncPhase.error => Icons.cloud_off,
+                  },
+                  color: statusColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cloud Sync',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      session?.email ?? 'Account sync status',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: context.hx.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+                if (syncState.lastSyncedAt != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Last synced: ${syncState.lastSyncedAt}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: context.hx.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                if (syncState.pendingCount > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Pending outbox items: ${syncState.pendingCount}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+                if (syncState.quarantinedCount > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Quarantined items: ${syncState.quarantinedCount}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.redAccent.shade200,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (syncState.lastError != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.error_outline, size: 18, color: Colors.redAccent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      syncState.lastError!,
+                      style: const TextStyle(fontSize: 12, color: Colors.redAccent),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (_statusMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _statusMessage!,
+              style: TextStyle(
+                fontSize: 13,
+                color: context.hx.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: _busy ? null : _syncNow,
+            icon: _busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.sync_rounded),
+            label: Text(_busy ? 'Syncing…' : 'Sync Now / Retry'),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.hx.primary,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _reuploadAll,
+            icon: const Icon(Icons.cloud_upload_outlined),
+            label: const Text('Re-upload All Local Data'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 

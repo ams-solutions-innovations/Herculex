@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../theme/colors.dart';
 import '../../../../theme/haptics.dart';
+import '../../../../theme/tokens/tokens.dart';
 import '../../../workouts/presentation/exercise_picker_sheet.dart';
 import '../../../workouts/presentation/workouts_providers.dart';
 import 'dashboard_shared.dart';
@@ -18,6 +19,7 @@ class MiniWorkoutsCard extends ConsumerWidget {
     final repo = ref.watch(microWorkoutsRepositoryProvider);
 
     return dashboardCard(
+      accent: context.hx.domainTraining,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

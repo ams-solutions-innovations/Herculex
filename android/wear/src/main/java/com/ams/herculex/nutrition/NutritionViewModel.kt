@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.math.roundToInt
 
 data class NutritionData(
     val calories: Int = 0,
@@ -26,6 +27,7 @@ data class NutritionData(
     val weeklyTonnage: Float = 0f,
     val weeklySets: Int = 0,
     val weeklyVolumeJson: String = "[]",
+    val nutrientTrendsJson: String = "[]",
 )
 
 data class NutritionGoals(
@@ -54,12 +56,45 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     private val _pendingQuickAddItem = MutableStateFlow<QuickAddFoodItem?>(null)
     val pendingQuickAddItem: StateFlow<QuickAddFoodItem?> = _pendingQuickAddItem.asStateFlow()
 
+    /// Portion multiplier chosen on the "adjust amount" screen (1.0 = the
+    /// item's default portion) — carried alongside [pendingQuickAddItem] so
+    /// the meal-picker screen after it can apply the same scaling [logQuickAdd]
+    /// does, without needing a nav argument.
+    private val _pendingQuickAddMultiplier = MutableStateFlow(1.0)
+    val pendingQuickAddMultiplier: StateFlow<Double> = _pendingQuickAddMultiplier.asStateFlow()
+
+    init {
+        com.ams.herculex.sync.SyncService.activeNutritionViewModel = this
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        if (com.ams.herculex.sync.SyncService.activeNutritionViewModel === this) {
+            com.ams.herculex.sync.SyncService.activeNutritionViewModel = null
+        }
+    }
+
     // ── Public actions ───────────────────────────────────────────────────────
 
     /// Stashes the tapped quick-add item so the meal-picker screen (pushed
     /// right after this call) can read it without a nav argument.
     fun selectQuickAddItem(item: QuickAddFoodItem) {
         _pendingQuickAddItem.value = item
+        _pendingQuickAddMultiplier.value = 1.0
+    }
+
+    /// Sets the portion multiplier chosen on the "adjust amount" screen.
+    fun setPendingQuickAddMultiplier(multiplier: Double) {
+        _pendingQuickAddMultiplier.value = multiplier
+    }
+
+    /// The meal a one-tap "+" quick-add should log to, skipping the meal
+    /// picker entirely: the food's own last-used meal if the phone reported
+    /// one, otherwise the first synced meal slot, otherwise "snack".
+    fun defaultMealKeyFor(item: QuickAddFoodItem): String {
+        return item.lastMealKey
+            ?: _quickAddMealSlots.value.firstOrNull()?.key
+            ?: "snack"
     }
 
     /// Re-reads the synced quick-add snapshot. Unlike [refresh] this isn't
@@ -75,14 +110,26 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     /// locally (so the watch's own totals update immediately) and forwards
     /// the command to the phone, which is the source of truth for the food
     /// diary and will resolve [item.foodId] against its catalogue.
-    fun logQuickAdd(item: QuickAddFoodItem, mealKey: String) {
-        MacroStore.addFood(ctx(), item.kcal, item.protein, item.carbs, item.fat)
+    ///
+    /// [multiplier] scales the item's default-portion macros/amount linearly
+    /// (e.g. 1.5 = one and a half of the usual serving) — set via the
+    /// "adjust amount" screen, or left at 1.0 for the one-tap "+" quick-add
+    /// that just repeats the last-logged amount.
+    fun logQuickAdd(item: QuickAddFoodItem, mealKey: String, multiplier: Double = 1.0) {
+        val calories = (item.kcal * multiplier).roundToInt()
+        val protein  = (item.protein * multiplier).roundToInt()
+        val carbs    = (item.carbs * multiplier).roundToInt()
+        val fats     = (item.fat * multiplier).roundToInt()
+        val portionAmount = item.portionAmount * multiplier
+
+        MacroStore.addFood(ctx(), calories, protein, carbs, fats)
         refresh()
         _pendingQuickAddItem.value = null
+        _pendingQuickAddMultiplier.value = 1.0
         val commandJson = QuickAddStore.createLogCommand(
             foodId = item.foodId,
             mealKey = mealKey,
-            portionAmount = item.portionAmount,
+            portionAmount = portionAmount,
             portionUnit = item.portionUnit,
         )
         viewModelScope.launch {
@@ -114,6 +161,18 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
                 fats = fats,
             ),
         )
+    }
+
+    fun logRamblerVoice(text: String, mealKey: String) {
+        val commandJson = org.json.JSONObject().apply {
+            put("commandId", java.util.UUID.randomUUID().toString())
+            put("text", text)
+            put("mealKey", mealKey)
+            put("createdAtEpochMs", System.currentTimeMillis())
+        }.toString()
+        viewModelScope.launch {
+            syncManager.sendRamblerCommand(commandJson)
+        }
     }
 
     fun refresh() {
@@ -161,6 +220,7 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
         weeklyTonnage = MacroStore.weeklyTonnage(ctx()),
         weeklySets = MacroStore.weeklySets(ctx()),
         weeklyVolumeJson = MacroStore.weeklyVolumeJson(ctx()),
+        nutrientTrendsJson = MacroStore.nutrientTrendsJson(ctx()),
     )
 
     private fun loadGoals() = NutritionGoals(

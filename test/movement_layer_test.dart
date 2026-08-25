@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/presentation/equipment_variant_sheet.dart';
 import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
 
@@ -81,6 +83,45 @@ void main() {
               '${e.name} offers equipment no member of its movement performs',
         );
       }
+    });
+
+    test(
+        'calisthenics exercises that support weighted load offer bodyweight, weighted, and band',
+        () async {
+      final pullUp = await bySlug('pull-up');
+      final options = EquipmentVariantSheet.optionsFor(pullUp);
+      expect(options, containsAll(['bodyweight', 'weighted', 'band']));
+
+      final dip = await bySlug('chest-dips');
+      final dipOptions = EquipmentVariantSheet.optionsFor(dip);
+      expect(dipOptions, containsAll(['bodyweight', 'weighted', 'band']));
+    });
+
+    test(
+        'effectiveLoggingMetric returns weightReps for weighted variant and reps for bodyweight',
+        () async {
+      final pullUp = await bySlug('pull-up');
+      expect(
+        effectiveLoggingMetric(
+          exercise: pullUp,
+          equipmentVariant: 'bodyweight',
+        ),
+        LoggingMetric.reps,
+      );
+      expect(
+        effectiveLoggingMetric(
+          exercise: pullUp,
+          equipmentVariant: 'weighted',
+        ),
+        LoggingMetric.weightReps,
+      );
+      expect(
+        effectiveLoggingMetric(
+          exercise: pullUp,
+          equipmentVariant: 'band',
+        ),
+        LoggingMetric.reps,
+      );
     });
   });
 

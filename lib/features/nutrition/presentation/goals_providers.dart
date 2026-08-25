@@ -1,7 +1,88 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../domain/diet_phase.dart';
 import 'nutrition_providers.dart';
+
+// ── Active diet plan (Cut / Bulk / Maingain / Maintain & pace) ───────────────
+
+class ActiveDietPlan {
+  final DietPhase phase;
+  final double weeklyRateKg;
+  final int kcalDelta;
+  final String paceLabel;
+
+  const ActiveDietPlan({
+    required this.phase,
+    required this.weeklyRateKg,
+    required this.kcalDelta,
+    required this.paceLabel,
+  });
+
+  ActiveDietPlan copyWith({
+    DietPhase? phase,
+    double? weeklyRateKg,
+    int? kcalDelta,
+    String? paceLabel,
+  }) =>
+      ActiveDietPlan(
+        phase: phase ?? this.phase,
+        weeklyRateKg: weeklyRateKg ?? this.weeklyRateKg,
+        kcalDelta: kcalDelta ?? this.kcalDelta,
+        paceLabel: paceLabel ?? this.paceLabel,
+      );
+}
+
+class ActiveDietPlanNotifier extends Notifier<ActiveDietPlan> {
+  static const _phaseKey = 'diet_active_phase';
+  static const _rateKey = 'diet_weekly_rate_kg';
+  static const _deltaKey = 'diet_kcal_delta';
+  static const _labelKey = 'diet_pace_label';
+
+  @override
+  ActiveDietPlan build() {
+    final p = ref.watch(sharedPreferencesProvider);
+    final phaseStr = p.getString(_phaseKey) ?? 'cut';
+    final phase = DietPhase.values.firstWhere(
+      (e) => e.name == phaseStr,
+      orElse: () => DietPhase.cut,
+    );
+    final rate = p.getDouble(_rateKey) ?? 0.5;
+    final delta = p.getInt(_deltaKey) ?? -500;
+    final label = p.getString(_labelKey) ?? '0.50 kg/w (Normalno)';
+
+    return ActiveDietPlan(
+      phase: phase,
+      weeklyRateKg: rate,
+      kcalDelta: delta,
+      paceLabel: label,
+    );
+  }
+
+  Future<void> setPlan({
+    required DietPhase phase,
+    required double weeklyRateKg,
+    required int kcalDelta,
+    required String paceLabel,
+  }) async {
+    final p = ref.read(sharedPreferencesProvider);
+    await p.setString(_phaseKey, phase.name);
+    await p.setDouble(_rateKey, weeklyRateKg);
+    await p.setInt(_deltaKey, kcalDelta);
+    await p.setString(_labelKey, paceLabel);
+    state = ActiveDietPlan(
+      phase: phase,
+      weeklyRateKg: weeklyRateKg,
+      kcalDelta: kcalDelta,
+      paceLabel: paceLabel,
+    );
+  }
+}
+
+final activeDietPlanProvider =
+    NotifierProvider<ActiveDietPlanNotifier, ActiveDietPlan>(
+  ActiveDietPlanNotifier.new,
+);
 
 // ── Starting weight ──────────────────────────────────────────────────────────
 
@@ -255,3 +336,116 @@ final mealGoalKcalProvider =
 
   return goals.mealCalories(targets.kcal, pct);
 });
+
+// ── Minimum targets & floor limits ─────────────────────────────────────────
+
+enum MinProteinMode {
+  perLb('g/lb (bw)'),
+  perKg('g/kg (bw)'),
+  fixed('Fixed (g)');
+
+  final String label;
+  const MinProteinMode(this.label);
+}
+
+class MinimumTargetsState {
+  final bool enabled;
+  final MinProteinMode mode;
+  final double proteinValue;
+  final int? minCaloriesKcal;
+
+  const MinimumTargetsState({
+    this.enabled = false,
+    this.mode = MinProteinMode.perLb,
+    this.proteinValue = 1.0,
+    this.minCaloriesKcal,
+  });
+
+  MinimumTargetsState copyWith({
+    bool? enabled,
+    MinProteinMode? mode,
+    double? proteinValue,
+    Object? minCaloriesKcal = _undefined,
+  }) =>
+      MinimumTargetsState(
+        enabled: enabled ?? this.enabled,
+        mode: mode ?? this.mode,
+        proteinValue: proteinValue ?? this.proteinValue,
+        minCaloriesKcal: minCaloriesKcal == _undefined
+            ? this.minCaloriesKcal
+            : minCaloriesKcal as int?,
+      );
+
+  int? resolvedMinProteinG(double? weightKg) {
+    if (!enabled) return null;
+    switch (mode) {
+      case MinProteinMode.perLb:
+        if (weightKg == null || weightKg <= 0) return null;
+        final weightLb = weightKg * 2.20462;
+        return (weightLb * proteinValue).round();
+      case MinProteinMode.perKg:
+        if (weightKg == null || weightKg <= 0) return null;
+        return (weightKg * proteinValue).round();
+      case MinProteinMode.fixed:
+        return proteinValue.round();
+    }
+  }
+
+  int? get effectiveMinCaloriesKcal => enabled ? minCaloriesKcal : null;
+}
+
+const _undefined = Object();
+
+class MinimumTargetsNotifier extends Notifier<MinimumTargetsState> {
+  static const _enabledKey = 'min_targets_enabled';
+  static const _modeKey = 'min_targets_mode';
+  static const _proteinValKey = 'min_targets_protein_val';
+  static const _kcalKey = 'min_targets_kcal';
+
+  @override
+  MinimumTargetsState build() {
+    final p = ref.watch(sharedPreferencesProvider);
+    final modeStr = p.getString(_modeKey) ?? 'perLb';
+    final mode = MinProteinMode.values.firstWhere(
+      (e) => e.name == modeStr,
+      orElse: () => MinProteinMode.perLb,
+    );
+    final kcalVal = p.getInt(_kcalKey);
+    return MinimumTargetsState(
+      enabled: p.getBool(_enabledKey) ?? false,
+      mode: mode,
+      proteinValue: p.getDouble(_proteinValKey) ?? 1.0,
+      minCaloriesKcal: kcalVal != null && kcalVal > 0 ? kcalVal : null,
+    );
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    await ref.read(sharedPreferencesProvider).setBool(_enabledKey, enabled);
+    state = state.copyWith(enabled: enabled);
+  }
+
+  Future<void> setMode(MinProteinMode mode) async {
+    await ref.read(sharedPreferencesProvider).setString(_modeKey, mode.name);
+    state = state.copyWith(mode: mode);
+  }
+
+  Future<void> setProteinValue(double val) async {
+    await ref.read(sharedPreferencesProvider).setDouble(_proteinValKey, val);
+    state = state.copyWith(proteinValue: val);
+  }
+
+  Future<void> setMinCalories(int? kcal) async {
+    final p = ref.read(sharedPreferencesProvider);
+    if (kcal != null && kcal > 0) {
+      await p.setInt(_kcalKey, kcal);
+    } else {
+      await p.remove(_kcalKey);
+    }
+    state = state.copyWith(minCaloriesKcal: kcal);
+  }
+}
+
+final minimumTargetsProvider =
+    NotifierProvider<MinimumTargetsNotifier, MinimumTargetsState>(
+  MinimumTargetsNotifier.new,
+);

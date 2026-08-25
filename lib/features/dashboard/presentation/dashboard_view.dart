@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
 import '../../../theme/colors.dart';
+import '../../../theme/haptics.dart';
 import '../../../theme/tokens/tokens.dart';
 import '../../../widgets/glass_container.dart';
 import '../../nutrition/domain/daily_totals.dart';
@@ -30,6 +32,12 @@ class DashboardView extends ConsumerWidget {
     final name = _firstName(profile?.name);
     final isFemale = profile?.sex == BiologicalSex.female;
     final config = ref.watch(dashboardConfigProvider);
+    final editMode = ref.watch(dashboardEditModeProvider);
+
+    final visibleEntries = [
+      for (final e in config.widgets.asMap().entries)
+        if (e.value.visible) e,
+    ];
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -65,23 +73,179 @@ class DashboardView extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.tune, size: 20),
-                    tooltip: 'Customize dashboard',
-                    onPressed: () => _showCustomizeSheet(context, ref),
-                  ),
-                  const SizedBox(width: 4),
-                  _ProfileAvatarButton(name: name),
+                  if (editMode)
+                    _DoneEditingButton(
+                      onTap: () {
+                        Haptics.selection();
+                        ref.read(dashboardEditModeProvider.notifier).state =
+                            false;
+                      },
+                    )
+                  else ...[
+                    IconButton(
+                      icon: const Icon(Icons.tune, size: 20),
+                      tooltip: 'Customize dashboard',
+                      onPressed: () => _showCustomizeSheet(context, ref),
+                    ),
+                    const SizedBox(width: 4),
+                    _ProfileAvatarButton(name: name),
+                  ],
                 ],
               ),
               const SizedBox(height: 24),
-              // Config-driven widget list (§18). Each visible slot maps to a
-              // renderer; the cycle widget is additionally gated on sex.
-              for (final w in config.visibleWidgets)
-                if (w.type != DashboardWidgetType.cycle || isFemale) ...[
-                  _renderWidget(w.type, theme, ref, context),
-                  const SizedBox(height: 24),
+              // Config-driven widget grid (§18). Each visible slot maps to a
+              // standalone renderer or a Samsung-style widget stack, laid out
+              // in a 2-column staggered grid so widgets can go half- or
+              // full-width (One UI / iOS-style in-place resize).
+              StaggeredGrid.count(
+                crossAxisCount: 2,
+                mainAxisSpacing: 24,
+                crossAxisSpacing: 16,
+                children: [
+                  for (final entry in visibleEntries)
+                    StaggeredGridTile.fit(
+                      crossAxisCellCount:
+                          entry.value.effectiveSize == DashboardWidgetSize.half
+                              ? 1
+                              : 2,
+                      child: Builder(
+                        key: ValueKey(entry.value.id),
+                        builder: (context) {
+                          final w = entry.value;
+                          final index = entry.key;
+                          final validTypes = isFemale
+                              ? w.types
+                              : w.types
+                                  .where(
+                                      (t) => t != DashboardWidgetType.cycle)
+                                  .toList();
+                          if (validTypes.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+
+                          void enterEditMode() {
+                            if (editMode) return;
+                            Haptics.heavy();
+                            ref
+                                .read(dashboardEditModeProvider.notifier)
+                                .state = true;
+                          }
+
+                          final Widget rendered = validTypes.length > 1
+                              ? _StackedDashboardWidget(
+                                  types: validTypes,
+                                  theme: theme,
+                                  renderWidget: (type) =>
+                                      _renderWidget(type, theme, ref, context),
+                                  onLongPress: enterEditMode,
+                                )
+                              : GestureDetector(
+                                  onLongPress: editMode ? null : enterEditMode,
+                                  child: _renderWidget(
+                                    validTypes.first,
+                                    theme,
+                                    ref,
+                                    context,
+                                  ),
+                                );
+
+                          final tile = _EditableDashboardTile(
+                            slotIndex: index,
+                            slot: w,
+                            editMode: editMode,
+                            child: rendered,
+                          );
+
+                          if (!editMode) return tile;
+
+                          // Edit mode: press-and-hold again to drag the tile
+                          // to a new position (reorder), like a home-screen
+                          // widget grid. Dropping onto another tile swaps
+                          // their slot order.
+                          final tileWidth = _tileWidth(context, w.effectiveSize);
+                          return LongPressDraggable<int>(
+                            data: index,
+                            onDragStarted: Haptics.medium,
+                            feedback: Material(
+                              color: Colors.transparent,
+                              child: SizedBox(
+                                width: tileWidth,
+                                child: Transform.scale(
+                                  scale: 1.04,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(28),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.35),
+                                          blurRadius: 24,
+                                          spreadRadius: 4,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                        BoxShadow(
+                                          color: context.hx.primary
+                                              .withValues(alpha: 0.35),
+                                          blurRadius: 16,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Opacity(
+                                      opacity: 0.95,
+                                      child: tile,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            childWhenDragging: AnimatedOpacity(
+                              duration: HxMotion.fast,
+                              opacity: 0.25,
+                              child: tile,
+                            ),
+                            child: DragTarget<int>(
+                              onWillAcceptWithDetails: (details) =>
+                                  details.data != index,
+                              onAcceptWithDetails: (details) {
+                                Haptics.selection();
+                                ref
+                                    .read(dashboardConfigProvider.notifier)
+                                    .reorder(details.data, index);
+                              },
+                              builder: (context, candidate, rejected) {
+                                final isTarget = candidate.isNotEmpty;
+                                return AnimatedScale(
+                                  scale: isTarget ? 0.94 : 1.0,
+                                  duration: HxMotion.fast,
+                                  curve: HxMotion.emphasized,
+                                  child: AnimatedContainer(
+                                    duration: HxMotion.fast,
+                                    curve: HxMotion.emphasized,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(28),
+                                      boxShadow: isTarget
+                                          ? [
+                                              BoxShadow(
+                                                color: context.hx.primary
+                                                    .withValues(alpha: 0.45),
+                                                blurRadius: 16,
+                                                spreadRadius: 2,
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: tile,
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                 ],
+              ),
               const SizedBox(height: 76),
             ],
           ),
@@ -90,9 +254,16 @@ class DashboardView extends ConsumerWidget {
     );
   }
 
-  /// Maps a dashboard widget type to its renderer. Keeps the existing
-  /// hand-built sections; the new recovery/CNS/volume/PR/bodyweight cards live
-  /// in dashboard_widgets.dart.
+  /// Approximate on-screen tile width for the drag feedback, matching the
+  /// grid's 24px page padding and 16px column gap.
+  double _tileWidth(BuildContext context, DashboardWidgetSize size) {
+    final available = MediaQuery.sizeOf(context).width - 48;
+    return size == DashboardWidgetSize.half
+        ? (available - 16) / 2
+        : available;
+  }
+
+  /// Maps a dashboard widget type to its renderer.
   Widget _renderWidget(DashboardWidgetType type, ThemeData theme, WidgetRef ref,
       BuildContext context) {
     switch (type) {
@@ -105,8 +276,10 @@ class DashboardView extends ConsumerWidget {
           targets: ref.watch(effectiveTargetsProvider(_today())).asData?.value ??
               ref.watch(baselineTargetsProvider),
         );
-      case DashboardWidgetType.trends:
-        return const TrendCardsRow();
+      case DashboardWidgetType.calorieTrends:
+        return const CalorieTrendPreviewCard();
+      case DashboardWidgetType.bodyweightTrends:
+        return const BodyweightTrendPreviewCard();
       case DashboardWidgetType.todaysPlan:
         return const SmartWorkoutLauncherCard();
       case DashboardWidgetType.miniWorkouts:
@@ -197,8 +370,22 @@ class DashboardView extends ConsumerWidget {
           return InkWell(
             onTap: () => context.push('/fasting'),
             borderRadius: BorderRadius.circular(28),
-            child: GlassContainer(
+            child: Container(
               padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accent.withValues(alpha: context.hx.isDark ? 0.16 : 0.12),
+                    context.hx.surfaceContainerLowest,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.3),
+                ),
+              ),
               child: Column(
                 children: [
                   Row(
@@ -302,8 +489,22 @@ class DashboardView extends ConsumerWidget {
           return InkWell(
             onTap: () => context.push('/fasting'),
             borderRadius: BorderRadius.circular(28),
-            child: GlassContainer(
+            child: Container(
               padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accent.withValues(alpha: context.hx.isDark ? 0.16 : 0.12),
+                    context.hx.surfaceContainerLowest,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.3),
+                ),
+              ),
               child: Column(
                 children: [
                   Row(
@@ -408,6 +609,293 @@ class _ProfileAvatarButton extends StatelessWidget {
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Samsung One UI-style swipeable stacked widget with pill pagination dots.
+class _StackedDashboardWidget extends StatefulWidget {
+  const _StackedDashboardWidget({
+    required this.types,
+    required this.theme,
+    required this.renderWidget,
+    required this.onLongPress,
+  });
+
+  final List<DashboardWidgetType> types;
+  final ThemeData theme;
+  final Widget Function(DashboardWidgetType type) renderWidget;
+  final VoidCallback onLongPress;
+
+  @override
+  State<_StackedDashboardWidget> createState() => _StackedDashboardWidgetState();
+}
+
+class _StackedDashboardWidgetState extends State<_StackedDashboardWidget> {
+  final _controller = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  double _heightForKind(DashboardWidgetKind kind) {
+    return switch (kind) {
+      DashboardWidgetKind.card => 146.0,
+      DashboardWidgetKind.large => 280.0,
+      DashboardWidgetKind.pill => 105.0,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    final primaryKind = widget.types.first.kind;
+    final height = _heightForKind(primaryKind);
+
+    return GestureDetector(
+      onLongPress: widget.onLongPress,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            height: height,
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: widget.types.length,
+              onPageChanged: (i) {
+                Haptics.selection();
+                setState(() => _page = i);
+              },
+              itemBuilder: (context, index) {
+                return widget.renderWidget(widget.types[index]);
+              },
+            ),
+          ),
+          const SizedBox(height: HxSpace.x2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < widget.types.length; i++)
+                AnimatedContainer(
+                  duration: HxMotion.base,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == _page ? 16 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i == _page
+                        ? hx.primary
+                        : hx.outlineVariant.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Filled "Done" pill shown in the header while the dashboard is in edit
+/// mode — the exit gesture, mirroring iOS Home Screen edit mode.
+class _DoneEditingButton extends StatelessWidget {
+  const _DoneEditingButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: hx.primary,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          'Done',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Wraps a dashboard tile with One UI / iOS-style in-place edit controls: a
+/// remove button (top-left) and, for widgets that support it, a resize
+/// handle (bottom-right) that snaps the tile between half and full width.
+class _EditableDashboardTile extends ConsumerWidget {
+  const _EditableDashboardTile({
+    required this.slotIndex,
+    required this.slot,
+    required this.editMode,
+    required this.child,
+  });
+
+  final int slotIndex;
+  final DashboardWidgetConfig slot;
+  final bool editMode;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hx = context.hx;
+    final notifier = ref.read(dashboardConfigProvider.notifier);
+    final canResize = !slot.isStack && slot.type.resizable;
+
+    return AnimatedContainer(
+      duration: HxMotion.base,
+      curve: HxMotion.emphasized,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        border: editMode
+            ? Border.all(
+                color: hx.primary.withValues(alpha: 0.5),
+                width: 1.5,
+              )
+            : null,
+      ),
+      child: AnimatedSize(
+        duration: HxMotion.slow,
+        curve: HxMotion.emphasized,
+        alignment: Alignment.topCenter,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            editMode ? IgnorePointer(child: child) : child,
+            if (editMode) ...[
+              Positioned(
+                top: -8,
+                left: -8,
+                child: _RemoveButton(
+                  onTap: () {
+                    Haptics.selection();
+                    notifier.toggleSlot(slotIndex, false);
+                  },
+                ),
+              ),
+              if (canResize)
+                Positioned(
+                  bottom: -8,
+                  right: -8,
+                  child: _ResizeHandle(
+                    size: slot.effectiveSize,
+                    onFlip: (next) {
+                      Haptics.selection();
+                      notifier.resize(slotIndex, next);
+                    },
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Small circular remove control, iOS Control Center-style.
+class _RemoveButton extends StatelessWidget {
+  const _RemoveButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: Colors.redAccent,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: const Icon(Icons.remove, size: 16, color: Colors.white),
+      ),
+    );
+  }
+}
+
+/// Drag-to-resize handle. Supports both tapping to toggle size and horizontal dragging.
+class _ResizeHandle extends StatefulWidget {
+  const _ResizeHandle({required this.size, required this.onFlip});
+
+  final DashboardWidgetSize size;
+  final ValueChanged<DashboardWidgetSize> onFlip;
+
+  @override
+  State<_ResizeHandle> createState() => _ResizeHandleState();
+}
+
+class _ResizeHandleState extends State<_ResizeHandle> {
+  double _dragAccum = 0;
+
+  void _flip() {
+    widget.onFlip(
+      widget.size == DashboardWidgetSize.half
+          ? DashboardWidgetSize.full
+          : DashboardWidgetSize.half,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return GestureDetector(
+      onTap: _flip,
+      onPanUpdate: (details) {
+        _dragAccum += details.delta.dx;
+        if (_dragAccum.abs() > 36) {
+          _flip();
+          _dragAccum = 0;
+        }
+      },
+      onPanEnd: (_) => _dragAccum = 0,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: hx.primary,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Transform.rotate(
+          angle: 1.5708, // 90°: horizontal drag maps to a horizontal glyph
+          child: Icon(
+            widget.size == DashboardWidgetSize.half
+                ? Icons.unfold_more
+                : Icons.unfold_less,
+            size: 16,
+            color: Colors.white,
           ),
         ),
       ),

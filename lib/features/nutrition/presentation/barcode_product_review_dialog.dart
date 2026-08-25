@@ -196,7 +196,7 @@ class _BarcodeProductReviewDialogState
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Napaka pri shranjevanju: $e';
+        _error = 'Error saving: $e';
       });
     }
   }
@@ -237,7 +237,7 @@ class _BarcodeProductReviewDialogState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Gemini AI · iskanje izdelka',
+                      'Gemini AI · Product Lookup',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -290,12 +290,12 @@ class _BarcodeProductReviewDialogState
                           const CircularProgressIndicator(),
                           const SizedBox(height: 16),
                           const Text(
-                            'Gemini AI isce izdelek na spletu...',
+                            'Gemini AI is searching for product online...',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Iskanje po barkodi in videzu embalaze',
+                            'Searching by barcode and packaging appearance',
                             style: TextStyle(
                               color: AppColors.secondary,
                               fontSize: 12,
@@ -314,7 +314,7 @@ class _BarcodeProductReviewDialogState
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Izdelka ni bilo mogoce zanesljivo prepoznati.',
+                      'Could not reliably identify product.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium,
                     ),
@@ -324,29 +324,29 @@ class _BarcodeProductReviewDialogState
                         Expanded(
                           child: OutlinedButton(
                             onPressed: _analyze,
-                            child: const Text('Poskusi znova'),
+                            child: const Text('Try again'),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: FilledButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Vnesi rocno'),
+                            child: const Text('Enter manually'),
                           ),
                         ),
                       ],
                     ),
                   ] else if (_result != null) ...[
                     Text(
-                      'Podrobnosti izdelka',
+                      'Product details',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _Field(controller: _nameCtrl, label: 'Ime izdelka'),
+                    _Field(controller: _nameCtrl, label: 'Product name'),
                     const SizedBox(height: 12),
-                    _Field(controller: _brandCtrl, label: 'Znamka'),
+                    _Field(controller: _brandCtrl, label: 'Brand'),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -361,7 +361,7 @@ class _BarcodeProductReviewDialogState
                         Expanded(
                           child: _Field(
                             controller: _kcalCtrl,
-                            label: 'Kalorije / 100g',
+                            label: 'Calories / 100g',
                             suffix: 'kcal',
                           ),
                         ),
@@ -369,7 +369,7 @@ class _BarcodeProductReviewDialogState
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Makronutrienti (na 100g)',
+                      'Macronutrients (per 100g)',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.secondary,
@@ -381,7 +381,7 @@ class _BarcodeProductReviewDialogState
                         Expanded(
                           child: _Field(
                             controller: _proteinCtrl,
-                            label: 'Beljakovine',
+                            label: 'Protein',
                             suffix: 'g',
                             decimal: true,
                           ),
@@ -390,7 +390,7 @@ class _BarcodeProductReviewDialogState
                         Expanded(
                           child: _Field(
                             controller: _carbsCtrl,
-                            label: 'Oglj. hidrati',
+                            label: 'Carbs',
                             suffix: 'g',
                             decimal: true,
                           ),
@@ -399,7 +399,7 @@ class _BarcodeProductReviewDialogState
                         Expanded(
                           child: _Field(
                             controller: _fatCtrl,
-                            label: 'Mascobe',
+                            label: 'Fat',
                             suffix: 'g',
                             decimal: true,
                           ),
@@ -412,7 +412,7 @@ class _BarcodeProductReviewDialogState
                         Expanded(
                           child: _Field(
                             controller: _fiberCtrl,
-                            label: 'Vlaknine',
+                            label: 'Fiber',
                             suffix: 'g',
                             decimal: true,
                           ),
@@ -421,7 +421,7 @@ class _BarcodeProductReviewDialogState
                         Expanded(
                           child: _Field(
                             controller: _sodiumCtrl,
-                            label: 'Natrij',
+                            label: 'Sodium',
                             suffix: 'mg',
                             decimal: true,
                           ),
@@ -430,8 +430,8 @@ class _BarcodeProductReviewDialogState
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Preveri, ali so podatki pravilni, preden shranis — '
-                      'izdelek bo dodan v skupno bazo za vse uporabnike.',
+                      'Verify the data before saving — '
+                      'product will be added to the shared database for all users.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.secondary,
                       ),
@@ -450,7 +450,7 @@ class _BarcodeProductReviewDialogState
                         child: _saving
                             ? const CircularProgressIndicator()
                             : const Text(
-                                'Potrdi in dodaj v skupno bazo',
+                                'Confirm and add to database',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

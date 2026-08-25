@@ -9,6 +9,7 @@ import '../../workouts/presentation/workouts_providers.dart';
 import '../domain/split_template.dart';
 import 'programs_providers.dart';
 import 'template_picker_sheet.dart';
+import 'widgets/program_muscle_volume_card.dart';
 
 /// Edit a block: per-week volume, the days in each week, their templates, and
 /// the block's lifecycle (archive / delete).
@@ -26,6 +27,7 @@ class BlockDetailView extends ConsumerWidget {
     final programs = ref.watch(programsListProvider).value ?? const [];
     final program = programs.where((p) => p.id == programId).firstOrNull;
     final weeks = ref.watch(programWeeksProvider(programId));
+    final volumeAsync = ref.watch(programVolumeBreakdownProvider(programId));
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -58,7 +60,13 @@ class BlockDetailView extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
                 children: [
                   _Summary(program: program),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+                  if (volumeAsync.value != null && volumeAsync.value!.isNotEmpty)
+                    ProgramMuscleVolumeCard(
+                      breakdown: volumeAsync.value!,
+                      title: 'Weekly Volume per Muscle Group',
+                    ),
+                  const SizedBox(height: 4),
                   for (final week in list)
                     _WeekCard(program: program, week: week),
                 ],

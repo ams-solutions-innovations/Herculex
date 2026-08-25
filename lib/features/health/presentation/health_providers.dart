@@ -87,6 +87,25 @@ final externalWorkoutsProvider = FutureProvider<List<HealthDataPoint>>((
   return read.value ?? const [];
 });
 
+final daysOfStepHistoryProvider = FutureProvider<int>((ref) async {
+  final service = ref.watch(healthServiceProvider);
+  return service.getDaysOfStepHistory();
+});
+
+/// A separate, wider live workout query for the Recovery page's joint-stress
+/// check (needs ~8 weeks of cardio history for its knee load index) — kept
+/// apart from [externalWorkoutsProvider] rather than widening its 14-day
+/// window, since every other consumer of that one only needs the short
+/// recovery-engine window and a 60-day live HealthKit/Health Connect query is
+/// comparatively heavy.
+final wideExternalWorkoutsProvider = FutureProvider<List<HealthDataPoint>>((
+  ref,
+) async {
+  final service = ref.watch(healthServiceProvider);
+  final read = await service.readWorkouts(60);
+  return read.value ?? const [];
+});
+
 final autoAdjustGymVolumeProvider = StateProvider<bool>((ref) {
   return true;
 });

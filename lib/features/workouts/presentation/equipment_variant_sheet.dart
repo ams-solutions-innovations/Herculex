@@ -41,6 +41,7 @@ class EquipmentVariantSheet extends StatelessWidget {
     'kettlebell': Icons.sports_handball,
     'band': Icons.gesture,
     'bodyweight': Icons.accessibility_new,
+    'weighted': Icons.add_circle_outline,
     'other': Icons.more_horiz,
   };
 
@@ -169,10 +170,21 @@ class _VariantButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            EquipmentGlyph(
-              variant: variant,
-              size: 22,
-              color: isDefault ? AppColors.primary : AppColors.secondary,
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: isDefault
+                    ? AppColors.primary.withValues(alpha: 0.15)
+                    : AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: EquipmentGlyph(
+                variant: variant,
+                size: 20,
+                color: isDefault ? AppColors.primary : AppColors.secondary,
+              ),
             ),
             const SizedBox(width: 10),
             Text(

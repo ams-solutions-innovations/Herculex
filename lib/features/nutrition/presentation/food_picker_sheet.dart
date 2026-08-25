@@ -1,10 +1,13 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
+import '../../../services/pending_ai_scan_service.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../domain/barcode_utils.dart';
@@ -18,6 +21,7 @@ import 'label_capture_dialog.dart';
 import 'log_entry_sheet.dart';
 import 'meal_slots_provider.dart';
 import 'nutrition_providers.dart';
+import 'rambler_food_dialog.dart';
 import 'recipe_builder_view.dart';
 
 /// Tabbed bottom sheet: All · My Meals · My Recipes · My Foods.
@@ -198,9 +202,9 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
           children: [
             ListTile(
               leading: Icon(Icons.camera_alt, color: AppColors.primary),
-              title: const Text('Poslikaj hrano s kamero'),
+              title: const Text('Take a photo of food with camera'),
               subtitle: const Text(
-                'Gemini AI bo ocenil sestavo in hranilne vrednosti',
+                'Gemini AI will estimate composition and nutritional values',
               ),
               onTap: () => Navigator.pop(
                 ctx,
@@ -209,7 +213,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Izberi sliko iz galerije'),
+              title: const Text('Choose photo from gallery'),
               onTap: () => Navigator.pop(
                 ctx,
                 const _PhotoChoice(_PhotoMode.food, ImageSource.gallery),
@@ -220,9 +224,9 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                 Icons.document_scanner_outlined,
                 color: AppColors.primary,
               ),
-              title: const Text('Poslikaj prehransko deklaracijo'),
+              title: const Text('Take a photo of nutrition label'),
               subtitle: const Text(
-                'OCR prebere deklaracijo; Gemini popravi slab rezultat',
+                'OCR reads the label; Gemini resolves low-confidence scans',
               ),
               onTap: () => Navigator.pop(
                 ctx,
@@ -236,7 +240,23 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
 
     if (choice == null || !mounted) return;
 
-    final picked = await picker.pickImage(source: choice.source);
+    await ref.read(pendingAiScanServiceProvider).setPendingContext(
+          PendingAiScanContext(
+            type: choice.mode == _PhotoMode.label
+                ? AiScanContextType.nutritionLabel
+                : AiScanContextType.food,
+            mealKey: _activeMealKey,
+            dateIso: widget.date.toIso8601String(),
+          ),
+        );
+
+    final picked = await picker.pickImage(
+      source: choice.source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+    await ref.read(pendingAiScanServiceProvider).clearPendingContext();
     if (picked == null || !mounted) return;
     final bool? logged;
     if (choice.mode == _PhotoMode.label) {
@@ -259,6 +279,17 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
       );
     }
 
+    if (logged == true && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  Future<void> _openRambler() async {
+    final logged = await RamblerFoodDialog.show(
+      context,
+      date: widget.date,
+      initialMealKey: _activeMealKey,
+    );
     if (logged == true && mounted) {
       Navigator.of(context).pop(true);
     }
@@ -398,18 +429,27 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
+                        icon: const Icon(
+                          Icons.mic_none_rounded,
+                          size: 20,
+                          color: Color(0xFF64B5F6),
+                        ),
+                        onPressed: _openRambler,
+                        tooltip: 'Rambler AI (Voice & Text)',
+                      ),
+                      IconButton(
                         icon: Icon(
                           Icons.camera_alt_outlined,
                           size: 20,
                           color: AppColors.primary,
                         ),
                         onPressed: _takePhotoAndAnalyze,
-                        tooltip: 'Poslikaj hrano z AI',
+                        tooltip: 'Photo food with AI',
                       ),
                       IconButton(
                         icon: const Icon(Icons.qr_code_scanner, size: 20),
                         onPressed: _scan,
-                        tooltip: 'Skeniraj črtno kodo',
+                        tooltip: 'Scan barcode',
                       ),
                     ],
                   ),
@@ -431,7 +471,36 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+
+            // ── Quick Action Cards: Rambler AI & Skeniraj kodo ─────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _QuickActionCard(
+                      icon: Icons.mic_rounded,
+                      title: 'Rambler',
+                      subtitle: 'Voice & Text AI',
+                      color: const Color(0xFF64B5F6),
+                      onTap: _openRambler,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _QuickActionCard(
+                      icon: Icons.qr_code_scanner_rounded,
+                      title: 'Skeniraj kodo',
+                      subtitle: 'Črtna koda & kamera',
+                      color: AppColors.primary,
+                      onTap: _scan,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
 
             // ── Category Tabs (All, My Meals, My Recipes, My Foods) ─────────
             TabBar(
@@ -473,22 +542,28 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
 
   // ─── ALL TAB ───────────────────────────────────────────────────────────────
   Widget _buildAllTab(ScrollController controller) {
-    final asyncFoods = ref.watch(foodSearchProvider(_query));
-    return asyncFoods.when(
-      data: (list) {
-        if (list.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'No matching foods found.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
-                  ),
-                  const SizedBox(height: 16),
-                  if ((_query ?? '').trim().isNotEmpty)
+    final queryText = (_query ?? '').trim();
+
+    // 1. If searching, show standard search results from catalogue
+    if (queryText.isNotEmpty) {
+      final asyncFoods = ref.watch(foodSearchProvider(queryText));
+      return asyncFoods.when(
+        data: (list) {
+          if (list.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'No matching foods found.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.secondary),
+                    ),
+                    const SizedBox(height: 16),
                     FilledButton.icon(
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Create custom food'),
@@ -500,29 +575,192 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
                       onPressed: () async {
                         final food = await CustomFoodFormSheet.show(
                           context,
-                          initialName: _query!.trim(),
+                          initialName: queryText,
                         );
                         if (food != null && mounted) _logFood(food);
                       },
                     ),
-                ],
+                  ],
+                ),
               ),
+            );
+          }
+          return ListView.builder(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            itemCount: list.length,
+            itemBuilder: (_, i) => _FoodTile(
+              food: list[i],
+              onTap: () => _logFood(list[i]),
+              onQuickAdd: () => _quickLogFood(list[i]),
             ),
           );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
+      );
+    }
+
+    // 2. Default state: Suggested (time/meal-based) + Recent (chronological newest to oldest) + Fallback (All foods)
+    final currentHour = ref.watch(clockProvider).now().hour;
+    final asyncSuggested = ref.watch(
+      suggestedFoodsProvider(
+        FoodSuggestionParams(hour: currentHour, mealKey: _activeMealKey),
+      ),
+    );
+    final asyncRecent = ref.watch(recentlyLoggedFoodsProvider);
+    final asyncAll = ref.watch(foodSearchProvider(null));
+
+    // Show loading while primary data streams initialize
+    if (asyncRecent.isLoading &&
+        !asyncRecent.hasValue &&
+        asyncSuggested.isLoading &&
+        !asyncSuggested.hasValue) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final suggestedFoods = asyncSuggested.valueOrNull ?? const <FoodData>[];
+    final recentFoods = asyncRecent.valueOrNull ?? const <FoodData>[];
+    final allFoods = asyncAll.valueOrNull ?? const <FoodData>[];
+
+    final slots = ref.watch(mealSlotsProvider);
+    final activeSlot = slots.firstWhereOrNull((s) => s.key == _activeMealKey);
+    final mealLabel = activeSlot?.label ?? _activeMealKey;
+
+    // If user has never logged any foods yet, fallback to all foods catalogue
+    if (suggestedFoods.isEmpty && recentFoods.isEmpty) {
+      if (allFoods.isEmpty) {
+        if (asyncAll.isLoading) {
+          return const Center(child: CircularProgressIndicator());
         }
-        return ListView.builder(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          itemCount: list.length,
-          itemBuilder: (_, i) => _FoodTile(
-            food: list[i],
-            onTap: () => _logFood(list[i]),
-            onQuickAdd: () => _quickLogFood(list[i]),
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'No foods in catalogue.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.secondary),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Create custom food'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                  ),
+                  onPressed: () async {
+                    final food = await CustomFoodFormSheet.show(context);
+                    if (food != null && mounted) _logFood(food);
+                  },
+                ),
+              ],
+            ),
           ),
         );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      }
+
+      return ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          _buildSectionHeader(
+            icon: Icons.restaurant_menu,
+            title: 'All Foods',
+            subtitle: 'Catalogue',
+            iconColor: AppColors.primary,
+          ),
+          for (final food in allFoods)
+            _FoodTile(
+              food: food,
+              onTap: () => _logFood(food),
+              onQuickAdd: () => _quickLogFood(food),
+            ),
+        ],
+      );
+    }
+
+    final suggestedIds = suggestedFoods.map((f) => f.id).toSet();
+    final remainingRecent =
+        recentFoods.where((f) => !suggestedIds.contains(f.id)).toList();
+
+    return ListView(
+      controller: controller,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      children: [
+        // ── Suggested Section ──
+        if (suggestedFoods.isNotEmpty) ...[
+          _buildSectionHeader(
+            icon: Icons.auto_awesome,
+            title: 'Suggested',
+            subtitle: 'for $mealLabel',
+            iconColor: AppColors.primary,
+          ),
+          for (final food in suggestedFoods)
+            _FoodTile(
+              food: food,
+              onTap: () => _logFood(food),
+              onQuickAdd: () => _quickLogFood(food),
+            ),
+          const SizedBox(height: 8),
+        ],
+
+        // ── Recent Section (Most recent to oldest) ──
+        if (remainingRecent.isNotEmpty) ...[
+          _buildSectionHeader(
+            icon: Icons.history,
+            title: 'Recent',
+            subtitle: 'Most recent first',
+            iconColor: AppColors.secondary,
+          ),
+          for (final food in remainingRecent)
+            _FoodTile(
+              food: food,
+              onTap: () => _logFood(food),
+              onQuickAdd: () => _quickLogFood(food),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Color? iconColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 10, 2, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: iconColor ?? AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.1,
+                ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(width: 6),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                    fontSize: 12,
+                  ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -570,14 +808,11 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.rice_bowl_outlined, size: 44, color: AppColors.primary),
+              Image.asset(
+                'assets/images/my_meals_empty.png',
+                width: 200,
+                height: 140,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 20),
               Text(
@@ -704,7 +939,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
 
   // ─── MY FOODS TAB ──────────────────────────────────────────────────────────
   Widget _buildMyFoodsTab(ScrollController controller) {
-    final asyncFoods = ref.watch(recentFoodsProvider);
+    final asyncFoods = ref.watch(customFoodsProvider(null));
     return ListView(
       controller: controller,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
@@ -732,8 +967,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
         ),
         const SizedBox(height: 12),
         asyncFoods.when(
-          data: (list) {
-            final customs = list.where((f) => f.isCustom).toList();
+          data: (customs) {
             if (customs.isEmpty) {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 32),
@@ -1000,3 +1234,83 @@ class _RecipeTile extends StatelessWidget {
     );
   }
 }
+
+class _QuickActionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: () {
+        Haptics.selection();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withValues(alpha: 0.35),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

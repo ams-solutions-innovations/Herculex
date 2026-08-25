@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/units.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../workouts/presentation/workouts_providers.dart';
 
 import 'body_fat_ai_dialog.dart';
 
@@ -61,7 +63,7 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
           if (widget.metric == 'body_fat')
             IconButton(
               icon: Icon(Icons.auto_awesome, color: AppColors.primary),
-              tooltip: 'Gemini AI Ocena',
+              tooltip: 'Gemini AI Estimate',
               onPressed: () {
                 Haptics.selection();
                 BodyFatAiDialog.show(context);
@@ -414,7 +416,7 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                           BodyFatAiDialog.show(context);
                         },
                         icon: const Icon(Icons.auto_awesome, size: 18),
-                        label: const Text('AI Ocena'),
+                        label: const Text('AI Estimate'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: BorderSide(
@@ -434,7 +436,7 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                       child: FilledButton.icon(
                         onPressed: () => _logEntry(context),
                         icon: const Icon(Icons.add),
-                        label: Text('Ročni vnos'),
+                        label: const Text('Manual Entry'),
                         style: FilledButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -465,7 +467,32 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
 
   Future<void> _logEntry(BuildContext context) async {
     Haptics.selection();
-    final ctrl = TextEditingController();
+    final rows = ref.read(_metricHistoryProvider(widget.metric)).asData?.value;
+    final lastVal = (rows != null && rows.isNotEmpty) ? rows.last.value : null;
+
+    String initialText = '';
+    if (widget.metric == 'bodyweight') {
+      final latestKg = await ref.read(latestBodyweightProvider.future);
+      final profile = ref.read(profileProvider).valueOrNull;
+      final kg = latestKg ?? profile?.weightKg;
+      if (kg != null) {
+        final fmt = ref.read(weightFormatProvider);
+        initialText = fmt.formatValue(kg);
+      }
+    } else if (lastVal != null) {
+      initialText = lastVal.truncateToDouble() == lastVal
+          ? lastVal.toStringAsFixed(0)
+          : lastVal.toStringAsFixed(1);
+    }
+
+    final ctrl = TextEditingController(text: initialText);
+    if (initialText.isNotEmpty) {
+      ctrl.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: initialText.length,
+      );
+    }
+    if (!context.mounted) return;
     final value = await showDialog<double>(
       context: context,
       builder: (dialogCtx) => AlertDialog(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../theme/colors.dart';
+import '../../../../theme/tokens/tokens.dart';
 import '../../../health/domain/cycle_adjuster.dart';
 import '../../../health/presentation/cycle_providers.dart';
 /// Cycle-phase focus card (§18). Live reactive card showing current phase,
@@ -13,6 +14,7 @@ class CycleFocusCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final hx = context.hx;
     final adjustmentAsync = ref.watch(cycleAdjustmentProvider);
 
     return adjustmentAsync.when(
@@ -42,9 +44,16 @@ class CycleFocusCard extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: phaseColor.withValues(alpha: 0.1),
+              gradient: LinearGradient(
+                colors: [
+                  phaseColor.withValues(alpha: hx.isDark ? 0.18 : 0.12),
+                  hx.surfaceContainerLowest,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: phaseColor.withValues(alpha: 0.35)),
+              border: Border.all(color: phaseColor.withValues(alpha: 0.3)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,

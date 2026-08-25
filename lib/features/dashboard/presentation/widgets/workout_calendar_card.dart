@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../theme/colors.dart';
 import '../../../../theme/haptics.dart';
+import '../../../../theme/tokens/tokens.dart';
 import '../dashboard_providers.dart';
 import 'dashboard_shared.dart';
 /// Interactive Workout Calendar widget on the dashboard (§18).
@@ -18,6 +19,7 @@ class WorkoutCalendarCard extends ConsumerWidget {
     final selectedDate = ref.watch(calendarSelectedDateProvider);
 
     return dashboardCard(
+      accent: context.hx.domainTraining,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -237,16 +239,17 @@ class WorkoutCalendarCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 summary.isToday ? 'Today ($dateStr)' : dateStr,
                 style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
-              if (summary.hasCompleted)
+              if (summary.hasCompleted) ...[
+                const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.green.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
@@ -256,6 +259,7 @@ class WorkoutCalendarCard extends ConsumerWidget {
                     style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -297,9 +301,11 @@ class WorkoutCalendarCard extends ConsumerWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          sess.notes != null && sess.notes!.isNotEmpty
-                              ? sess.notes!
-                              : 'Workout Session #${sess.id}',
+                          (sess.name != null && sess.name!.trim().isNotEmpty)
+                              ? sess.name!.trim()
+                              : (sess.notes != null && sess.notes!.isNotEmpty
+                                  ? sess.notes!
+                                  : 'Workout Session #${sess.id}'),
                           style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                         ),
                       ),

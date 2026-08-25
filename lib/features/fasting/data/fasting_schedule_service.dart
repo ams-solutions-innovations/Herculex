@@ -52,9 +52,12 @@ class FastingScheduleService {
   /// Cancel-and-reschedule for one row — the only safe way to apply an edit,
   /// since a changed day/time must drop notification ids that no longer
   /// apply before any new ones are added.
-  Future<void> rescheduleOne(FastingScheduleData schedule) async {
+  Future<void> rescheduleOne(
+    FastingScheduleData schedule, {
+    bool enabled = true,
+  }) async {
     await cancelForSchedule(schedule.id);
-    if (!schedule.enabled) return;
+    if (!enabled || !schedule.enabled) return;
 
     final plan = resolveSchedulePlan(schedule.planName);
     final targetSeconds = resolveScheduleTargetSeconds(
@@ -74,9 +77,12 @@ class FastingScheduleService {
   /// Rehydrates every row — call on app launch (an Android reboot clears
   /// exact alarms, and edits made offline before the app closed still need
   /// to land) and whenever the schedule list changes wholesale.
-  Future<void> rescheduleAll(List<FastingScheduleData> schedules) async {
+  Future<void> rescheduleAll(
+    List<FastingScheduleData> schedules, {
+    bool enabled = true,
+  }) async {
     for (final schedule in schedules) {
-      await rescheduleOne(schedule);
+      await rescheduleOne(schedule, enabled: enabled);
     }
   }
 

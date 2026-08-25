@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../theme/colors.dart';
+import '../../../../theme/tokens/tokens.dart';
 import '../../../gyms/presentation/gym_picker_sheet.dart';
 import '../dashboard_providers.dart';
 import 'dashboard_shared.dart';
@@ -16,6 +17,7 @@ class SmartWorkoutLauncherCard extends ConsumerWidget {
     final today = ref.watch(todaysScheduledWorkoutProvider);
 
     return dashboardCard(
+      accent: context.hx.domainTraining,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

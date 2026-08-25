@@ -109,6 +109,18 @@ Declared permissions and their justification (needed for store privacy forms):
 | Internet | Supabase sync/auth, OpenFoodFacts product lookup, Gemini label analysis |
 | Notifications | Active-workout lock-screen status and timers |
 | Foreground service (health) | Keeping the active-workout notification alive |
+| Display over other apps (`SYSTEM_ALERT_WINDOW`, Android) | The optional Workout Bubble — a floating chat head that expands into a live card for the workout already running |
+
+**Play Console note on `SYSTEM_ALERT_WINDOW`.** This is a sensitive permission
+and the listing has to justify it. The justification is: the permission is used
+for a single, user-visible, opt-in feature (Settings → App Settings → Workout
+Bubble, off by default); the overlay is a 40dp app-icon chat head shown only
+while a workout session is active and the app is in the background; it is
+draggable and can be dismissed by the user at any time; it never covers system
+UI for deceptive purposes, never captures input intended for another app, and
+reads no content from the apps beneath it. Tapping it expands the user's own
+live workout card — exercise, set, load, elapsed time and the same set controls
+the ongoing notification already offers — which closes on any touch outside it.
 
 Data collection:
 - **Local-first by default**: unauthenticated usage stores all workouts, nutrition logs, and profile data solely on-device.

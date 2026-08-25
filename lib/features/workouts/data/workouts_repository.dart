@@ -8,6 +8,7 @@ import '../../../data/local/exercise_biomechanics.dart';
 import '../../programs/domain/schedule_status.dart';
 import '../domain/active_workout_notification_target.dart';
 import '../domain/exercise_search.dart';
+import '../domain/workout_name_generator.dart';
 
 class LastPerformanceSnapshot {
   final String? equipmentVariant;
@@ -143,6 +144,8 @@ class ExerciseCatalogSnapshot {
         if (allowed.contains(hit.id)) _byId[hit.id]!,
     ];
   }
+
+  ExerciseCatalogData? find(int id) => _byId[id];
 }
 
 /// Single facade over the workout tables. UI never touches Drift directly —
@@ -444,17 +447,50 @@ class WorkoutsRepository {
         .write(WorkoutSessionsCompanion(gymId: Value(gymId)));
   }
 
+  Future<List<ExerciseCatalogData>> getExercisesForSession(int sessionId) async {
+    final sessionExercises = await (_db.select(_db.workoutExercises)
+          ..where((t) => t.sessionId.equals(sessionId))
+          ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+        .get();
+    if (sessionExercises.isEmpty) return const [];
+    final exerciseIds = sessionExercises.map((e) => e.exerciseId).toSet();
+    final exercises = await (_db.select(_db.exerciseCatalog)
+          ..where((t) => t.id.isIn(exerciseIds)))
+        .get();
+    final exerciseMap = {for (final e in exercises) e.id: e};
+    return [
+      for (final we in sessionExercises)
+        if (exerciseMap.containsKey(we.exerciseId)) exerciseMap[we.exerciseId]!,
+    ];
+  }
+
   Future<void> endSession(
     int sessionId, {
     int? sessionRpe,
     DateTime? endedAt,
+    int? caloriesBurned,
+    String? photoPath,
   }) async {
+    final session = await (_db.select(_db.workoutSessions)
+          ..where((t) => t.id.equals(sessionId)))
+        .getSingleOrNull();
+    if (session != null &&
+        (session.name == null || session.name!.trim().isEmpty || session.name == 'Awesome Workout')) {
+      final exercises = await getExercisesForSession(sessionId);
+      final autoName = WorkoutNameGenerator.generate(exercises);
+      await (_db.update(_db.workoutSessions)
+            ..where((t) => t.id.equals(sessionId)))
+          .write(WorkoutSessionsCompanion(name: Value(autoName)));
+    }
+
     await (_db.update(
       _db.workoutSessions,
     )..where((t) => t.id.equals(sessionId))).write(
       WorkoutSessionsCompanion(
         endedAt: Value(endedAt ?? _clock.now()),
         sessionRpe: Value(sessionRpe),
+        caloriesBurned: caloriesBurned != null ? Value(caloriesBurned) : const Value.absent(),
+        photoPath: photoPath != null ? Value(photoPath) : const Value.absent(),
       ),
     );
 
@@ -463,6 +499,22 @@ class WorkoutsRepository {
     await (_db.update(_db.scheduledWorkouts)
           ..where((t) => t.completedSessionId.equals(sessionId)))
         .write(const ScheduledWorkoutsCompanion(status: Value('done')));
+  }
+
+  Future<void> updateSessionPhoto(int sessionId, String? photoPath) async {
+    await (_db.update(_db.workoutSessions)
+          ..where((t) => t.id.equals(sessionId)))
+        .write(WorkoutSessionsCompanion(
+      photoPath: Value(photoPath),
+    ));
+  }
+
+  Future<void> updateSessionCalories(int sessionId, int? caloriesBurned) async {
+    await (_db.update(_db.workoutSessions)
+          ..where((t) => t.id.equals(sessionId)))
+        .write(WorkoutSessionsCompanion(
+      caloriesBurned: Value(caloriesBurned),
+    ));
   }
 
   Future<void> deleteSession(int sessionId) async {
@@ -615,6 +667,19 @@ class WorkoutsRepository {
           ),
         );
 
+    double? bodyweight;
+    if (exercise.supportsWeightedBodyweight || equipmentVariant == 'weighted') {
+      final bwRow = await (_db.select(_db.bodyMeasurements)
+            ..where((t) => t.metric.equals('bodyweight'))
+            ..orderBy([
+              (t) =>
+                  OrderingTerm(expression: t.dateIso, mode: OrderingMode.desc),
+            ])
+            ..limit(1))
+          .getSingleOrNull();
+      bodyweight = bwRow?.value;
+    }
+
     await _db
         .into(_db.setEntries)
         .insert(
@@ -623,6 +688,7 @@ class WorkoutsRepository {
             setIndex: 0,
             weightKg: 0,
             reps: 0,
+            bodyweightKg: Value(bodyweight),
           ),
         );
 

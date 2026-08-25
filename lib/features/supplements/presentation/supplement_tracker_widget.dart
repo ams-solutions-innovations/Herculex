@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../../theme/tokens/tokens.dart';
 import '../domain/supplement.dart';
+import 'supplement_ai_scan_dialog.dart';
 import 'supplement_edit_sheet.dart';
 import 'supplement_providers.dart';
 
@@ -30,13 +32,23 @@ class SupplementTrackerWidget extends ConsumerWidget {
 
   Widget _buildCard(BuildContext context, ThemeData theme, WidgetRef ref,
       SupplementDayState state) {
+    final hx = context.hx;
+    const accent = Color(0xFF9B59B6);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        gradient: LinearGradient(
+          colors: [
+            accent.withValues(alpha: hx.isDark ? 0.16 : 0.12),
+            hx.surfaceContainerLowest,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          color: accent.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -107,7 +119,6 @@ class SupplementTrackerWidget extends ConsumerWidget {
                       ),
                     ),
                   ),
-                const SizedBox(width: 4),
                 // Add button
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline, size: 22),
@@ -369,30 +380,50 @@ class _EmptyState extends StatelessWidget {
                   ?.copyWith(color: AppColors.secondary),
             ),
             const SizedBox(height: 16),
-            GestureDetector(
-              onTap: onAdd,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF9B59B6).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.add, size: 16, color: Color(0xFF9B59B6)),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Add your first supplement',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF9B59B6),
-                        fontWeight: FontWeight.w600,
-                      ),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                FilledButton.icon(
+                  onPressed: () async {
+                    final result = await SupplementAiScanDialog.show(context);
+                    if (result != null && context.mounted) {
+                      await SupplementEditSheet.show(
+                        context,
+                        existing: result.toSupplement(),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  label: const Text('AI Foto sken'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF9B59B6),
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 11,
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                OutlinedButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Ročni vnos'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF9B59B6),
+                    side: BorderSide(
+                      color: const Color(0xFF9B59B6).withValues(alpha: 0.4),
+                    ),
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 11,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

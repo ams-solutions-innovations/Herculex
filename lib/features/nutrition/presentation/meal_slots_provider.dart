@@ -43,6 +43,12 @@ class MealSlotsNotifier extends StateNotifier<List<MealSlot>> {
     await _persist();
   }
 
+  Future<void> addBuiltIn(MealSlot slot) async {
+    if (state.any((s) => s.key == slot.key)) return;
+    state = [...state, slot];
+    await _persist();
+  }
+
   Future<void> rename(String key, String label) async {
     final trimmed = label.trim();
     if (trimmed.isEmpty) return;
@@ -54,8 +60,7 @@ class MealSlotsNotifier extends StateNotifier<List<MealSlot>> {
   }
 
   Future<void> remove(String key) async {
-    final slot = state.firstWhere((candidate) => candidate.key == key);
-    if (slot.isBuiltIn) return;
+    if (state.length <= 1) return;
     state = state.where((candidate) => candidate.key != key).toList();
     await _persist();
   }

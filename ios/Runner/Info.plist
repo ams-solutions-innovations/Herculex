@@ -6,6 +6,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan food barcodes to log meals quickly.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Record your voice to describe foods and meals with Rambler AI.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Recognize spoken food and meal entries for quick logging.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Sync daily steps, active calories, sleep, and heart rate to provide accurate workout and nutrition recommendations.</string>
 	<key>NSHealthUpdateUsageDescription</key>

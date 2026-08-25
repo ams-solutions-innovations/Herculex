@@ -23,9 +23,9 @@ class MusclePriority {
 
   factory MusclePriority.fromJson(Map<String, dynamic> json) {
     return MusclePriority(
-      group: json['group'] as String? ?? 'Mišična skupina',
+      group: json['group'] as String? ?? 'Muscle Group',
       priority: json['priority'] as String? ?? 'medium',
-      focus: json['focus'] as String? ?? 'Progresivna obremenitev',
+      focus: json['focus'] as String? ?? 'Progressive overload',
     );
   }
 }
@@ -61,7 +61,7 @@ class DreamPhysiqueAnalysisResult {
 
   factory DreamPhysiqueAnalysisResult.fromJson(Map<String, dynamic> json) {
     final months = (json['estimatedMonths'] as num?)?.toInt() ?? 6;
-    final range = json['timeframeRange'] as String? ?? '$months mesecev';
+    final range = json['timeframeRange'] as String? ?? '$months months';
     final weightDelta =
         (json['weightChangeKg'] as num?)?.toDouble() ?? 0.0;
     final muscleGain =
@@ -90,27 +90,27 @@ class DreamPhysiqueAnalysisResult {
           ? priorities
           : const [
               MusclePriority(
-                group: 'Zgornji del prsi',
+                group: 'Upper Chest',
                 priority: 'high',
-                focus: 'Incline potiski in kabli pod kotom',
+                focus: 'Incline presses and angled cable crossovers',
               ),
               MusclePriority(
-                group: 'Stranske rame',
+                group: 'Lateral Delts',
                 priority: 'high',
-                focus: 'Lateralni dvigi za V-obliko',
+                focus: 'Lateral raises for V-taper',
               ),
               MusclePriority(
-                group: 'Hrbet / Lats',
+                group: 'Back / Lats',
                 priority: 'medium',
-                focus: 'Široki potegi za širino hrbta',
+                focus: 'Wide pulldowns for back width',
               ),
             ],
       nutritionStrategy: json['nutritionStrategy'] as String? ??
-          'Priporočen prilagojen vnos kalorij z 2.0g beljakovin na kg telesne teže.',
+          'Recommended adjusted calorie intake with 2.0g protein per kg body weight.',
       trainingAdvice: json['trainingAdvice'] as String? ??
-          'Trening 4-5x tedensko z dosledno progresivno obremenitvijo.',
+          'Train 4-5x weekly with consistent progressive overload.',
       overallAssessment: json['overallAssessment'] as String? ??
-          'Cilj je realen in dosegljiv z doslednim pristopom.',
+          'The goal is realistic and achievable with a consistent approach.',
       isAiGenerated: true,
     );
   }
@@ -154,11 +154,11 @@ class DreamPhysiqueService {
       }
 
       if (currentPayload.isEmpty) {
-        throw Exception('Izberite vsaj eno fotografijo svoje trenutne postave.');
+        throw Exception('Select at least one photo of your current physique.');
       }
 
       if (!await targetImage.exists()) {
-        throw Exception('Ciljna fotografija sanjske postave ne obstaja.');
+        throw Exception('Target dream physique photo does not exist.');
       }
 
       final targetBytes = await targetImage.readAsBytes();
@@ -194,7 +194,7 @@ class DreamPhysiqueService {
 
       return DreamPhysiqueAnalysisResult(
         estimatedMonths: estMonths,
-        timeframeRange: '${estMonths - 1} - ${estMonths + 2} mesecev',
+        timeframeRange: '${estMonths - 1} - ${estMonths + 2} months',
         weightChangeKg: double.parse(netWeightChange.toStringAsFixed(1)),
         leanMuscleGainKg: double.parse(muscleToGain.toStringAsFixed(1)),
         fatLossKg: double.parse(fatToLose.toStringAsFixed(1)),
@@ -202,37 +202,37 @@ class DreamPhysiqueService {
         currentEstimatedBf: double.parse(estCurrentBf.toStringAsFixed(1)),
         musclePriorities: const [
           MusclePriority(
-            group: 'Zgornji del prsi (Upper Chest)',
+            group: 'Upper Chest',
             priority: 'high',
-            focus: 'Incline potiski z ročkami in kabelni dvigi pod kotom za V-obliko',
+            focus: 'Incline dumbbell presses and angled cable flyes for upper chest fullness',
           ),
           MusclePriority(
-            group: 'Stranske rame (Lateral Delts)',
+            group: 'Lateral Delts',
             priority: 'high',
-            focus: 'Lateralni dvigi na škripcu in z ročkami z visoko frekvenco (2-3x tedensko)',
+            focus: 'Cable and dumbbell lateral raises with high frequency (2-3x weekly)',
           ),
           MusclePriority(
-            group: 'Hrbet / V-Taper (Lats)',
+            group: 'Back / V-Taper (Lats)',
             priority: 'medium',
-            focus: 'Široki potegi na prsa in enoročni potegi za širino hrbta',
+            focus: 'Wide lat pulldowns and single-arm rows for back width',
           ),
           MusclePriority(
-            group: 'Trup / Abs & Serratus',
+            group: 'Core / Abs & Serratus',
             priority: 'high',
-            focus: 'Viseči dvigi kolen, cable crunches in znižanje telesne maščobe',
+            focus: 'Hanging knee raises, cable crunches, and caloric deficit for leanness',
           ),
           MusclePriority(
-            group: 'Roke (Biceps / Triceps)',
+            group: 'Arms (Biceps / Triceps)',
             priority: 'medium',
-            focus: 'Izolacijske vaje za dolgo glavo tricepsa in vrh bicepsa',
+            focus: 'Isolation movements for long head of triceps and bicep peak',
           ),
         ],
         nutritionStrategy:
-            'Priporočen zmeren kalorični deficit (cca 250–400 kcal pod vzdrževalnimi) z visokim vnosom beljakovin (2.0–2.2 g/kg).',
+            'Recommended moderate calorie deficit (~250–400 kcal below maintenance) with high protein intake (2.0–2.2 g/kg).',
         trainingAdvice:
-            'Frekvenca 4-5 treningov tedensko (Upper/Lower ali PPL) s poudarkom na zgornjem delu prsi in stranskih ramenih.',
+            'Frequency of 4-5 sessions per week (Upper/Lower or PPL) with emphasis on upper chest and lateral delts.',
         overallAssessment:
-            'Ocena narejena na podlagi biometričnega profila (AI povezava: $e). Cilj je dosegljiv z doslednim treningom in načrtovano prehrano.',
+            'Estimate based on biometric profile (AI connection: $e). Goal is achievable with consistent training and structured nutrition.',
         isAiGenerated: false,
       );
     }

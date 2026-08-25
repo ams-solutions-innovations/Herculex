@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/units.dart';
 import '../../../../theme/colors.dart';
+import '../../../../theme/tokens/tokens.dart';
 import '../../../analytics/presentation/analytics_providers.dart';
 import 'dashboard_shared.dart';
 /// Latest estimated 1RM PRs (§18).
@@ -14,6 +15,7 @@ class LatestPrsCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final prs = ref.watch(topOneRmsProvider);
     return dashboardCard(
+      accent: context.hx.domainTraining,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

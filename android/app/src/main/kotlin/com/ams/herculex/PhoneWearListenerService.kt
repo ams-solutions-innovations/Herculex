@@ -57,6 +57,7 @@ class PhoneWearListenerService : WearableListenerService() {
         private const val KEY_FASTING_COMMANDS = "fasting_commands"
         private const val KEY_QUICKADD_COMMANDS = "quickadd_commands"
         private const val KEY_MACRO_COMMANDS = "macro_commands"
+        private const val KEY_RAMBLER_COMMANDS = "rambler_commands"
 
         /// Identifies the last watch-started session we raised [NOTIF_ID] for.
         ///
@@ -76,6 +77,8 @@ class PhoneWearListenerService : WearableListenerService() {
         var onWatchFastingCommandListener: ((String?) -> Unit)? = null
         var onWatchQuickAddCommandListener: ((String?) -> Unit)? = null
         var onWatchMacroCommandListener: ((String?) -> Unit)? = null
+        var onWatchRamblerCommandListener: ((String?) -> Unit)? = null
+        var onWatchMediaCommandListener: ((String?) -> Unit)? = null
 
         /// Rep-capture traffic (`/herculex/reps/*`). One listener for all three
         /// paths — the path is passed through as the first argument and the
@@ -219,6 +222,32 @@ class PhoneWearListenerService : WearableListenerService() {
             }
             prefs.edit().putString(KEY_MACRO_COMMANDS, retained.toString()).apply()
         }
+
+        fun pendingRamblerCommands(context: Context): List<String> {
+            val raw = context.applicationContext
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_RAMBLER_COMMANDS, "[]")
+            val array = JSONArray(raw ?: "[]")
+            return buildList(array.length()) {
+                for (index in 0 until array.length()) {
+                    array.optString(index).takeIf { it.isNotBlank() }?.let(::add)
+                }
+            }
+        }
+
+        fun clearPendingRamblerCommand(context: Context, commandId: String) {
+            if (commandId.isBlank()) return
+            val prefs = context.applicationContext
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val current = JSONArray(prefs.getString(KEY_RAMBLER_COMMANDS, "[]") ?: "[]")
+            val retained = JSONArray()
+            for (index in 0 until current.length()) {
+                val commandJson = current.optString(index)
+                val id = runCatching { JSONObject(commandJson).optString("commandId") }.getOrNull()
+                if (id != commandId) retained.put(commandJson)
+            }
+            prefs.edit().putString(KEY_RAMBLER_COMMANDS, retained.toString()).apply()
+        }
     }
 
     override fun onDataChanged(dataEvents: DataEventBuffer) {
@@ -344,6 +373,22 @@ class PhoneWearListenerService : WearableListenerService() {
                 Log.d("PhoneWearListener", "Received macro command")
                 savePendingMacroCommand(commandJson)
                 onWatchMacroCommandListener?.invoke(commandJson)
+            }
+            WearSyncPaths.MESSAGE_RAMBLER_COMMAND -> {
+                val commandJson = String(messageEvent.data)
+                Log.d("PhoneWearListener", "Received rambler command: $commandJson")
+                savePendingRamblerCommand(commandJson)
+                onWatchRamblerCommandListener?.invoke(commandJson)
+            }
+            WearSyncPaths.MESSAGE_MEDIA_COMMAND -> {
+                val commandJson = String(messageEvent.data)
+                Log.d("PhoneWearListener", "Received media command: $commandJson")
+                val listener = onWatchMediaCommandListener
+                if (listener != null) {
+                    listener.invoke(commandJson)
+                } else {
+                    handleFallbackMediaCommand(commandJson)
+                }
             }
 
             // Rep capture. Forwarded verbatim — this file computes, adjusts
@@ -474,6 +519,21 @@ class PhoneWearListenerService : WearableListenerService() {
         prefs.edit().putString(KEY_MACRO_COMMANDS, items.toString()).apply()
     }
 
+    private fun savePendingRamblerCommand(commandJson: String?) {
+        if (commandJson.isNullOrBlank()) return
+        val prefs = applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val items = JSONArray(prefs.getString(KEY_RAMBLER_COMMANDS, "[]") ?: "[]")
+        val commandId = runCatching { JSONObject(commandJson).optString("commandId") }.getOrNull()
+        if (!commandId.isNullOrBlank()) {
+            for (index in 0 until items.length()) {
+                val existing = runCatching { JSONObject(items.optString(index)).optString("commandId") }.getOrNull()
+                if (existing == commandId) return
+            }
+        }
+        items.put(commandJson)
+        prefs.edit().putString(KEY_RAMBLER_COMMANDS, items.toString()).apply()
+    }
+
     /// Raises the "started on watch" alert at most once per watch-started
     /// session.
     ///
@@ -587,6 +647,40 @@ class PhoneWearListenerService : WearableListenerService() {
             origin == "watch"
         } catch (_: Exception) {
             false
+        }
+    }
+
+    private fun handleFallbackMediaCommand(commandJson: String) {
+        try {
+            val obj = JSONObject(commandJson)
+            val action = obj.optString("action")
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager ?: return
+            val keyCode = when (action) {
+                "play_pause", "play", "pause" -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                "next" -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+                "previous" -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                "volume_up" -> {
+                    audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_RAISE, 0)
+                    return
+                }
+                "volume_down" -> {
+                    audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_LOWER, 0)
+                    return
+                }
+                "set_volume" -> {
+                    val targetVol = obj.optInt("volume", -1)
+                    if (targetVol >= 0) {
+                        val max = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, targetVol.coerceIn(0, max), 0)
+                    }
+                    return
+                }
+                else -> return
+            }
+            audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
+            audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
+        } catch (e: Exception) {
+            Log.e("PhoneWearListener", "Failed fallback media command", e)
         }
     }
 }

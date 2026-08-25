@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
+import '../../../services/pending_ai_scan_service.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../data/measurements_repository.dart';
@@ -203,7 +204,19 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
     );
     if (pose == null || !mounted) return;
 
-    final file = await ImagePicker().pickImage(source: source, imageQuality: 80);
+    await ref.read(pendingAiScanServiceProvider).setPendingContext(
+          PendingAiScanContext(
+            type: AiScanContextType.bodyFat,
+            metricKey: pose,
+          ),
+        );
+    final file = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+    await ref.read(pendingAiScanServiceProvider).clearPendingContext();
     if (file == null || !mounted) return;
 
     await ref.read(measurementsRepositoryProvider).addPhoto(

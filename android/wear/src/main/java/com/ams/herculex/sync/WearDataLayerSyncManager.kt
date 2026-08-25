@@ -54,6 +54,20 @@ class WearDataLayerSyncManager(
         return sendRealtimeEvent(WearSyncPaths.MESSAGE_MACRO_COMMAND, commandJson)
     }
 
+    suspend fun sendRamblerCommand(commandJson: String): Boolean {
+        return sendRealtimeEvent(WearSyncPaths.MESSAGE_RAMBLER_COMMAND, commandJson)
+    }
+
+    suspend fun sendMediaCommand(action: String, value: Int = 0): Boolean {
+        val payload = org.json.JSONObject().apply {
+            put("action", action)
+            put("value", value)
+            put("timestampEpochMs", System.currentTimeMillis())
+        }.toString()
+        sendMessageToAllNodes(WearSyncPaths.MESSAGE_MEDIA_COMMAND, payload)
+        return true
+    }
+
     /**
      * Fire-and-forget MessageClient broadcast to all connected nodes — near
      * instant, unlike DataClient puts which the system can batch/coalesce.

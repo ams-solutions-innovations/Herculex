@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drop target shown near the bottom of the screen while the bubble is dragged. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/workout_bubble_dismiss_root"
+    android:layout_width="@dimen/workout_bubble_dismiss_size"
+    android:layout_height="@dimen/workout_bubble_dismiss_size"
+    android:background="@drawable/bubble_dismiss_background"
+    android:contentDescription="@string/workout_bubble_dismiss_content_description"
+    android:elevation="4dp">
+
+    <ImageView
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="center"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_bubble_dismiss" />
+</FrameLayout>

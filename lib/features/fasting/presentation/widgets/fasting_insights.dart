@@ -72,7 +72,8 @@ class FastingInsights extends ConsumerWidget {
   }) {
     final theme = Theme.of(context);
     final hx = context.hx;
-    return HxGlass(
+    return HxCard(
+      accent: accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

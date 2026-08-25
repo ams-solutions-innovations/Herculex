@@ -142,6 +142,10 @@ final List<SyncTableSpec> syncTableSpecs = [
     'cycle_settings',
     dateTimeColumns: ['last_period_start'],
   ),
+  const SyncTableSpec(
+    'joint_pain_logs',
+    dateTimeColumns: ['logged_at'],
+  ),
   const SyncTableSpec('exercise_rotations'),
   const SyncTableSpec('daily_summaries'),
   const SyncTableSpec('external_events'),
@@ -172,6 +176,10 @@ final List<SyncTableSpec> syncTableSpecs = [
       SimpleFk(localColumn: 'folder_id', parentTable: 'workout_folders'),
     ],
     dateTimeColumns: ['created_at', 'last_used_at'],
+  ),
+  const SyncTableSpec(
+    'workout_circuits',
+    dateTimeColumns: ['created_at'],
   ),
   const SyncTableSpec(
     'workout_sessions',
@@ -228,6 +236,13 @@ final List<SyncTableSpec> syncTableSpecs = [
     'template_exercises',
     fkFields: [
       const SimpleFk(localColumn: 'template_id', parentTable: 'workout_templates'),
+      _exerciseFk('exercise_id'),
+    ],
+  ),
+  SyncTableSpec(
+    'circuit_exercises',
+    fkFields: [
+      const SimpleFk(localColumn: 'circuit_id', parentTable: 'workout_circuits'),
       _exerciseFk('exercise_id'),
     ],
   ),

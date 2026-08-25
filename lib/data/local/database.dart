@@ -40,6 +40,7 @@ part 'database.g.dart';
     HealthSamples,
     CycleLogs,
     CycleSettings,
+    JointPainLogs,
     PendingSyncOps,
     WorkoutFolders,
     WorkoutTemplates,
@@ -73,6 +74,9 @@ part 'database.g.dart';
     // syncTableSpecs.
     BuddySessionsLocal,
     BuddyChoreographySlots,
+    // Workout Circuits (v34)
+    WorkoutCircuits,
+    CircuitExercises,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -82,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 31;
+  int get schemaVersion => 34;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -805,6 +809,46 @@ class AppDatabase extends _$AppDatabase {
         await tryAddColumn(setEntries, setEntries.durationSeconds);
         await tryAddColumn(setEntries, setEntries.distanceM);
         await tryAddColumn(setEntries, setEntries.calories);
+      }
+      if (from < 32) {
+        // Recovery page: joint-pain flags. Synced (SyncColumns +
+        // SyncTombstone), so it needs the same sync_uuid unique index and
+        // outbox trigger every other synced table gets in onCreate —
+        // mirrored here for upgrades, same idiom as the v27 block above.
+        await m.createTable(jointPainLogs);
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_joint_pain_logs '
+          'ON joint_pain_logs(sync_uuid)',
+        );
+        await installSyncTriggers(this);
+      }
+      if (from < 33) {
+        Future<void> tryAddColumn(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          try {
+            await m.addColumn(table, column);
+          } catch (_) {
+            // Column already exists on this fixture.
+          }
+        }
+
+        await tryAddColumn(workoutSessions, workoutSessions.photoPath);
+        await tryAddColumn(workoutSessions, workoutSessions.caloriesBurned);
+      }
+      if (from < 34) {
+        await m.createTable(workoutCircuits);
+        await m.createTable(circuitExercises);
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_workout_circuits '
+          'ON workout_circuits(sync_uuid)',
+        );
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_circuit_exercises '
+          'ON circuit_exercises(sync_uuid)',
+        );
+        await installSyncTriggers(this);
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is

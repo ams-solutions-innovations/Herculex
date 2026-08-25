@@ -145,7 +145,7 @@ class _HealthIntegrationsViewState
                           color: AppColors.primary,
                         ),
                         onPressed: _syncAllData,
-                        tooltip: 'Sinhroniziraj vse',
+                        tooltip: 'Sync all',
                       ),
               ),
             ],
@@ -153,19 +153,6 @@ class _HealthIntegrationsViewState
           const SizedBox(height: 12),
 
           // ── Platform cards ─────────────────────────────────────────────
-          _buildPlatformCard(
-            theme: theme,
-            platform: HealthPlatform.samsung,
-            name: 'Samsung Health',
-            subtitle: 'Health Connect API · Android',
-            icon: Icons.watch_rounded,
-            accentColor: const Color(0xFF1428A0),
-            isConnected: permissions['samsung'] ?? false,
-            permKey: 'samsung',
-            lastSync: lastSyncTime,
-            route: '/health/samsung',
-          ),
-          const SizedBox(height: 12),
           _buildPlatformCard(
             theme: theme,
             platform: HealthPlatform.apple,
@@ -235,7 +222,7 @@ class _HealthIntegrationsViewState
           ),
           const SizedBox(height: 16),
           Text(
-            'Ko je vklopljeno, Herculex prilagodi dnevna priporočila za število serij glede na globino spanca, počivajoči srčni utrip in kardiovaskularni stres.',
+            'When enabled, Herculex adjusts daily set recommendations based on sleep depth, resting heart rate, and cardiovascular stress.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.secondary,
             ),
@@ -331,8 +318,8 @@ class _HealthIntegrationsViewState
                           isConnected
                               ? (lastSync != null
                                     ? 'Sync ${_formatTime(lastSync)}'
-                                    : 'Povezano')
-                              : 'Ni povezano',
+                                    : 'Connected')
+                              : 'Not connected',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -645,7 +632,7 @@ class _HealthIntegrationsViewState
           ),
           const SizedBox(height: 6),
           Text(
-            'Poveži vsaj eno integracijo zgoraj, da sinhroniziraš biometrične podatke.',
+            'Connect at least one integration above to sync biometric data.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.secondary,
             ),
@@ -846,19 +833,32 @@ class _HealthIntegrationsViewState
 
   String _syncMessage(DailyHealthRead result) {
     if (result.hasAnyAvailableMetric) {
-      return 'Zdravstveni podatki sinhronizirani.';
+      final parts = <String>[];
+      if (result.steps.isAvailable && result.steps.value != null) {
+        parts.add('${result.steps.value!.round()} steps');
+      }
+      if (result.activeKcal.isAvailable && result.activeKcal.value != null) {
+        parts.add('${result.activeKcal.value!.round()} kcal');
+      }
+      if (result.sleepHours.isAvailable && result.sleepHours.value != null) {
+        parts.add('${result.sleepHours.value!.toStringAsFixed(1)}h sleep');
+      }
+      if (parts.isNotEmpty) {
+        return 'Synced: ${parts.join(', ')}';
+      }
+      return 'Health data synced.';
     }
     switch (result.overallStatus) {
       case HealthReadStatus.denied:
-        return 'Dostop do zdravstvenih podatkov je zavrnjen.';
+        return 'Access to health data was denied.';
       case HealthReadStatus.unavailable:
-        return 'Zdravstveni podatki na tej napravi niso na voljo.';
+        return 'Health data is not available on this device.';
       case HealthReadStatus.error:
-        return 'Branje zdravstvenih podatkov ni uspelo.';
+        return 'Failed to read health data.';
       case HealthReadStatus.empty:
-        return 'Za danes ni zdravstvenih podatkov.';
+        return 'No new health data in Health Connect for today.';
       case HealthReadStatus.available:
-        return 'Zdravstveni podatki sinhronizirani.';
+        return 'Health data synced.';
     }
   }
 

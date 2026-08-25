@@ -4,11 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,11 +29,15 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Minimal glance page reached by swiping down from the set logger: just the time and how far
- * through the workout you are, for a quick glance without the full logging UI in the way.
+ * Minimal glance page reached by swiping down from the set logger: time, workout completion %,
+ * completed sets, elapsed workout duration, and real-time heart rate.
  */
 @Composable
-fun WorkoutGlanceScreen(session: WorkoutSession) {
+fun WorkoutGlanceScreen(
+    session: WorkoutSession,
+    heartRate: Int = -1,
+    elapsedSeconds: Long = 0L,
+) {
     var nowEpochMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -49,45 +53,87 @@ fun WorkoutGlanceScreen(session: WorkoutSession) {
     val progress = if (targetSets > 0) (completedSets.toFloat() / targetSets).coerceIn(0f, 1f) else 0f
     val percentText = "${(progress * 100).toInt()}%"
 
-    Column(
+    val elapsedHours = elapsedSeconds / 3600
+    val elapsedMinutes = (elapsedSeconds % 3600) / 60
+    val elapsedSecs = elapsedSeconds % 60
+    val elapsedDisplay = if (elapsedHours > 0) {
+        "%d:%02d:%02d".format(elapsedHours, elapsedMinutes, elapsedSecs)
+    } else {
+        "%d:%02d".format(elapsedMinutes, elapsedSecs)
+    }
+    val hrDisplay = if (heartRate > 0) "$heartRate" else "--"
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = timeText,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 40.sp,
-        )
-        Spacer(Modifier.height(14.dp))
-        Box(
+        // Full-bezel ring, like a classic round timer face, instead of a
+        // small inset circle — hugs the edge of the watch screen.
+        CircularProgressIndicator(
+            progress = progress,
             modifier = Modifier
-                .size(90.dp)
-                .background(Color(0xFF1B1F2C), shape = CircleShape),
-            contentAlignment = Alignment.Center,
+                .fillMaxSize()
+                .padding(6.dp),
+            indicatorColor = Color(0xFF1976D2),
+            trackColor = Color(0xFF1B1F2C),
+            strokeWidth = 8.dp,
+        )
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            CircularProgressIndicator(
-                progress = progress,
-                modifier = Modifier.fillMaxSize(),
-                indicatorColor = Color(0xFF1565C0),
-                trackColor = Color(0xFF1B1F2C),
-                strokeWidth = 6.dp,
+            Text(
+                text = timeText,
+                color = Color(0xFF9098AA),
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
             )
+            Spacer(Modifier.height(2.dp))
             Text(
                 text = percentText,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+                fontSize = 40.sp,
             )
+            Text(
+                text = "$completedSets/$targetSets sets",
+                color = Color(0xFF9098AA),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text("⏱️", fontSize = 12.sp)
+                    Text(
+                        text = elapsedDisplay,
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text("❤️", fontSize = 12.sp)
+                    Text(
+                        text = hrDisplay,
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "$completedSets/$targetSets sets",
-            color = Color(0xFF9098AA),
-            fontSize = 12.sp,
-        )
     }
 }

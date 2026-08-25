@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../../supplements/domain/supplement_intake.dart';
 import '../../supplements/presentation/supplement_providers.dart';
 import '../domain/daily_totals.dart';
@@ -39,66 +40,63 @@ class NutrientOverviewView extends ConsumerWidget {
         ? foodTotals
         : foodTotals.plus(micros: intake.nutrients);
 
-    return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLowest,
-      appBar: AppBar(
-        title: const Text('Nutrient overview'),
-        backgroundColor: AppColors.surfaceContainerLowest,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: totals.kcal <= 0 && intake.nutrients.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  'Nothing logged on ${DateFormat('EEE, MMM d').format(date)} yet.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.secondary),
+    final isEmpty = totals.kcal <= 0 && intake.nutrients.isEmpty;
+
+    return HxScreenShell(
+      title: 'Nutrient Overview',
+      children: isEmpty
+          ? [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                child: Center(
+                  child: Text(
+                    'Nothing logged on ${DateFormat('EEE, MMM d').format(date)} yet.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.secondary),
+                  ),
                 ),
               ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-              children: [
-                Text(DateFormat('EEEE, d MMMM').format(date),
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: AppColors.secondary)),
-                const SizedBox(height: 20),
-                _EnergySplitCard(totals: totals, targets: targets),
-                const SizedBox(height: 20),
-                _SectionTitle('Macronutrients'),
-                const SizedBox(height: 10),
-                _MacroBars(totals: totals, targets: targets),
-                const SizedBox(height: 24),
-                _SectionTitle('Micronutrients'),
-                const SizedBox(height: 4),
+            ]
+          : [
+              Text(
+                DateFormat('EEEE, d MMMM').format(date),
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.secondary),
+              ),
+              const SizedBox(height: 20),
+              _EnergySplitCard(totals: totals, targets: targets),
+              const SizedBox(height: 20),
+              _SectionTitle('Macronutrients'),
+              const SizedBox(height: 10),
+              _MacroBars(totals: totals, targets: targets),
+              const SizedBox(height: 24),
+              _SectionTitle('Micronutrients'),
+              const SizedBox(height: 4),
+              Text(
+                intake.nutrients.isEmpty
+                    ? 'Shown as a share of the daily reference intake. Bars '
+                        'are capped at 100%; foods without data contribute '
+                        'nothing.'
+                    : 'Includes today\'s ticked supplements. Shown as a '
+                        'share of the daily reference intake.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.secondary),
+              ),
+              if (intake.untrackedNames.isNotEmpty) ...[
+                const SizedBox(height: 6),
                 Text(
-                  intake.nutrients.isEmpty
-                      ? 'Shown as a share of the daily reference intake. Bars '
-                          'are capped at 100%; foods without data contribute '
-                          'nothing.'
-                      : 'Includes today\'s ticked supplements. Shown as a '
-                          'share of the daily reference intake.',
+                  '${intake.untrackedNames.join(', ')} '
+                  '${intake.untrackedNames.length == 1 ? 'has' : 'have'} no '
+                  'per-dose nutrients set, so nothing is counted for '
+                  '${intake.untrackedNames.length == 1 ? 'it' : 'them'}.',
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: AppColors.secondary),
                 ),
-                if (intake.untrackedNames.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    '${intake.untrackedNames.join(', ')} '
-                    '${intake.untrackedNames.length == 1 ? 'has' : 'have'} no '
-                    'per-dose nutrients set, so nothing is counted for '
-                    '${intake.untrackedNames.length == 1 ? 'it' : 'them'}.',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: AppColors.secondary),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _NutrientBars(totals: totals),
               ],
-            ),
+              const SizedBox(height: 12),
+              _NutrientBars(totals: totals),
+            ],
     );
   }
 }

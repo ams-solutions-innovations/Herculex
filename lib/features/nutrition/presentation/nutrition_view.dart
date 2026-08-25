@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/notifications/toast/hx_toast_controller.dart';
+import '../../../core/notifications/toast/hx_toast_model.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
@@ -312,10 +314,10 @@ class _DayPage extends ConsumerWidget {
   }
 }
 
-/// Expandable meal accordion. Header shows macro grams; tapping the macro row
-/// toggles to % of that meal's total kcal. The "+ Add" button lives at the
+/// Expandable meal accordion. Header shows macro percentages or grams; tapping the macro row
+/// toggles between % and g for all meals. The "+ Add" button lives at the
 /// bottom of the expanded body.
-class _MealAccordion extends StatefulWidget {
+class _MealAccordion extends ConsumerStatefulWidget {
   final MealSlot meal;
   final List<FoodEntryData> entries;
   final DateTime date;
@@ -327,24 +329,27 @@ class _MealAccordion extends StatefulWidget {
   });
 
   @override
-  State<_MealAccordion> createState() => _MealAccordionState();
+  ConsumerState<_MealAccordion> createState() => _MealAccordionState();
 }
 
-/// What the meal header's macro chip shows. Tapping the chip advances through
-/// the cycle: share of the meal's energy → grams → kilocalories (§3).
+/// What the meal header's macro chip shows. Tapping the chip toggles between
+/// share of the meal's energy (%) and grams (g).
 enum MacroDisplayMode {
   percent,
-  grams,
-  kcal;
+  grams;
 
-  MacroDisplayMode get next =>
-      MacroDisplayMode.values[(index + 1) % MacroDisplayMode.values.length];
+  MacroDisplayMode get next => switch (this) {
+        percent => grams,
+        grams => percent,
+      };
 }
 
-class _MealAccordionState extends State<_MealAccordion>
+final mealMacroDisplayModeProvider =
+    StateProvider<MacroDisplayMode>((ref) => MacroDisplayMode.percent);
+
+class _MealAccordionState extends ConsumerState<_MealAccordion>
     with SingleTickerProviderStateMixin {
   bool _expanded = false;
-  MacroDisplayMode _macroMode = MacroDisplayMode.percent;
 
   late final AnimationController _ctrl;
   late final Animation<double> _expandAnim;
@@ -383,6 +388,7 @@ class _MealAccordionState extends State<_MealAccordion>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final macroMode = ref.watch(mealMacroDisplayModeProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -439,13 +445,14 @@ class _MealAccordionState extends State<_MealAccordion>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Macro summary — tapping cycles % → g → kcal
+                  // Macro summary — tapping cycles % ↔ g across all meals
                   if (widget.entries.isNotEmpty)
                     _MealMacroSummary(
                       entries: widget.entries,
-                      mode: _macroMode,
-                      onToggle: () =>
-                          setState(() => _macroMode = _macroMode.next),
+                      mode: macroMode,
+                      onToggle: () => ref
+                          .read(mealMacroDisplayModeProvider.notifier)
+                          .update((mode) => mode.next),
                     ),
                   const SizedBox(width: 8),
                   AnimatedRotation(
@@ -464,7 +471,7 @@ class _MealAccordionState extends State<_MealAccordion>
           // ── Body (animated) ─────────────────────────────────────────────
           SizeTransition(
             sizeFactor: _expandAnim,
-            axisAlignment: -1.0,
+            alignment: Alignment.topCenter,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -570,7 +577,6 @@ class _MealMacroSummary extends ConsumerWidget {
                 ? '${(grams * kcalPer1g / totalKcal * 100).round()}%'
                 : '—',
           MacroDisplayMode.grams => '${grams.toStringAsFixed(0)}g',
-          MacroDisplayMode.kcal => '${(grams * kcalPer1g).round()} kcal',
         };
 
         return GestureDetector(
@@ -827,7 +833,7 @@ class _EntryTile extends ConsumerWidget {
     final macros = await repo.macrosForEntry(entry);
     final resolved = await _resolveNameInfo(ref);
     final portionText = entry.foodId != null
-        ? '${(entry.gramsOverride ?? 0).toStringAsFixed(0)} g'
+        ? '${(entry.gramsOverride ?? (entry.portionUnit == 'g' ? entry.portionAmount : null) ?? entry.snapshotServingGrams ?? entry.portionAmount ?? 0).toStringAsFixed(0)} g'
         : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
     return _EntryDisplay(
       name: resolved.name,
@@ -931,13 +937,12 @@ class _EntryTile extends ConsumerWidget {
                               orElse: () => MealSlot(key: targetMealKey, label: targetMealKey),
                             )
                             .label;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Moved ${display.name} to $targetLabel'),
-                            duration: const Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                        ref.read(hxToastControllerProvider.notifier).show(
+                              HxToastItem.entryMoved(
+                                itemName: display.name,
+                                targetLabel: targetLabel,
+                              ),
+                            );
                       },
                       itemBuilder: (context) => [
                         for (final slot in mealSlots)
@@ -1054,13 +1059,12 @@ class _EntryTile extends ConsumerWidget {
                             mealKey: slot.key,
                           );
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Moved ${display.name} to ${slot.label}'),
-                              duration: const Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
+                          ref.read(hxToastControllerProvider.notifier).show(
+                                HxToastItem.entryMoved(
+                                  itemName: display.name,
+                                  targetLabel: slot.label,
+                                ),
+                              );
                         },
                       ),
                   ],

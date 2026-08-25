@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/tokens/tokens.dart';
+import '../../../ui/ui.dart';
+import '../../../widgets/premium_button.dart';
 import '../../nutrition/presentation/custom_food_form_sheet.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 
@@ -37,7 +39,9 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete "${food.name}"?'),
-        content: const Text('This hides it from your food catalogue and search. Any logged history keeps its recorded nutrition and stays unchanged.'),
+        content: const Text(
+          'This hides it from your food catalogue and search. Any logged history keeps its recorded nutrition and stays unchanged.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -62,7 +66,9 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
         SnackBar(
           content: Text('Deleted ${food.name}'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       );
     }
@@ -71,109 +77,104 @@ class _CustomFoodsViewState extends ConsumerState<CustomFoodsView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final foodsAsync = ref.watch(customFoodsProvider(_query.isEmpty ? null : _query));
+    final hx = context.hx;
+    final foodsAsync =
+        ref.watch(customFoodsProvider(_query.isEmpty ? null : _query));
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Custom Foods'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+    return HxScreenShell(
+      title: 'Custom Foods',
+      pinnedBottom: SizedBox(
+        width: double.infinity,
+        child: PremiumButton(
+          text: 'ADD FOOD',
+          isPrimary: true,
+          icon: Icons.add_rounded,
+          onTap: () => CustomFoodFormSheet.show(context),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => CustomFoodFormSheet.show(context),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Food'),
-        backgroundColor: context.hx.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            child: TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Search custom foods…',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded),
-                        onPressed: () => _searchCtrl.clear(),
-                      )
-                    : null,
-                filled: true,
-                fillColor: context.hx.surfaceContainer,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+      children: [
+        TextField(
+          controller: _searchCtrl,
+          decoration: InputDecoration(
+            hintText: 'Search custom foods…',
+            prefixIcon: const Icon(Icons.search_rounded),
+            suffixIcon: _query.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded),
+                    onPressed: () => _searchCtrl.clear(),
+                  )
+                : null,
+            filled: true,
+            fillColor: hx.surfaceContainer,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
             ),
           ),
-          Expanded(
-            child: foodsAsync.when(
-              data: (foods) {
-                if (foods.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.restaurant_rounded,
-                            size: 64,
-                            color: context.hx.secondary.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _query.isEmpty ? 'No custom foods yet' : 'No custom foods found',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _query.isEmpty
-                                ? 'Tap the button below to create your first custom food.'
-                                : 'Try searching for another keyword.',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: context.hx.secondary,
-                            ),
-                          ),
-                        ],
+        ),
+        const SizedBox(height: HxSpace.x4),
+        foodsAsync.when(
+          data: (foods) {
+            if (foods.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.restaurant_rounded,
+                        size: 48,
+                        color: hx.secondary.withValues(alpha: 0.5),
                       ),
-                    ),
-                  );
-                }
+                      const SizedBox(height: 16),
+                      Text(
+                        _query.isEmpty
+                            ? 'No custom foods yet'
+                            : 'No custom foods found',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _query.isEmpty
+                            ? 'Tap the button below to create your first custom food.'
+                            : 'Try searching for another keyword.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: hx.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                  itemCount: foods.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final food = foods[index];
-                    return _CustomFoodTile(
-                      food: food,
-                      onTap: () => CustomFoodFormSheet.show(context, existingFood: food),
-                      onDelete: () => _deleteFood(food),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error loading custom foods: $e')),
-            ),
+            return Column(
+              children: [
+                for (final food in foods) ...[
+                  _CustomFoodTile(
+                    food: food,
+                    onTap: () =>
+                        CustomFoodFormSheet.show(context, existingFood: food),
+                    onDelete: () => _deleteFood(food),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
           ),
-        ],
-      ),
+          error: (e, _) => Center(child: Text('Error loading custom foods: $e')),
+        ),
+      ],
     );
   }
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="36dp"
+    android:height="36dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Blue Dumbbell Logo -->
+    <path
+        android:fillColor="#42A5F5"
+        android:pathData="M6,5 H8 V19 H6 Z M3,8 H5 V16 H3 Z M16,5 H18 V19 H16 Z M19,8 H21 V16 H19 Z M8,11 H16 V13 H8 Z" />
+</vector>

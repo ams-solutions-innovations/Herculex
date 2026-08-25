@@ -1,14 +1,28 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'package:go_router/go_router.dart';
 
 import '../../services/app_shortcuts_service.dart';
+import '../../services/pending_ai_scan_service.dart';
 import '../../ui/hx_nav_bar.dart';
 import '../../widgets/live_workout_banner.dart';
+import '../dashboard/presentation/dashboard_providers.dart';
 import '../dashboard/presentation/dashboard_view.dart';
+import '../measurements/presentation/body_fat_ai_dialog.dart';
+import '../nutrition/domain/meal.dart';
+import '../nutrition/presentation/gemini_photo_analysis_dialog.dart';
+import '../nutrition/presentation/label_capture_dialog.dart';
 import '../nutrition/presentation/nutrition_view.dart';
 import '../profile/presentation/profile_view.dart';
+import '../workouts/presentation/exercise_ai_scan_dialog.dart';
 import '../workouts/presentation/workouts_providers.dart';
 import '../workouts/presentation/workouts_view.dart';
+import '../supplements/presentation/supplement_ai_scan_dialog.dart';
+import '../supplements/presentation/supplement_edit_sheet.dart';
 import 'quick_add_menu.dart';
 
 /// The four-tab home shell. Bottom-nav index drives which feature view
@@ -44,8 +58,118 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(appShortcutsServiceProvider).initialize(context);
+        _checkLostImageData();
       }
     });
+  }
+
+  Future<void> _checkLostImageData() async {
+    try {
+      if (!Platform.isAndroid) return;
+      final response = await ImagePicker().retrieveLostData();
+      if (response.isEmpty || response.file == null) return;
+      final file = File(response.file!.path);
+      if (!mounted) return;
+
+      final pendingService = ref.read(pendingAiScanServiceProvider);
+      final pendingContext = pendingService.getPendingContext();
+      await pendingService.clearPendingContext();
+
+      final currentTab = ref.read(mainTabIndexProvider);
+      final type = pendingContext?.type ??
+          (currentTab == 1
+              ? AiScanContextType.food
+              : currentTab == 2
+                  ? AiScanContextType.exercise
+                  : currentTab == 3
+                      ? AiScanContextType.bodyFat
+                      : AiScanContextType.supplement);
+
+      if (!mounted) return;
+
+      switch (type) {
+        case AiScanContextType.supplement:
+          final result = await SupplementAiScanDialog.show(
+            context,
+            initialImage: file,
+          );
+          if (result != null && mounted) {
+            await SupplementEditSheet.show(
+              context,
+              existing: result.toSupplement(),
+            );
+          }
+          break;
+
+        case AiScanContextType.food:
+          final mealKey = pendingContext?.mealKey ?? 'snack';
+          final date = pendingContext?.dateIso != null
+              ? DateTime.tryParse(pendingContext!.dateIso!) ?? DateTime.now()
+              : DateTime.now();
+          final dateOnly = DateTime(date.year, date.month, date.day);
+          if (!mounted) return;
+          await GeminiPhotoAnalysisDialog.show(
+            context,
+            imageFile: file,
+            meal: Meal.fromName(mealKey),
+            mealKey: mealKey,
+            date: dateOnly,
+          );
+          break;
+
+        case AiScanContextType.nutritionLabel:
+          final mealKey = pendingContext?.mealKey ?? 'snack';
+          final date = pendingContext?.dateIso != null
+              ? DateTime.tryParse(pendingContext!.dateIso!) ?? DateTime.now()
+              : DateTime.now();
+          final dateOnly = DateTime(date.year, date.month, date.day);
+          if (!mounted) return;
+          await LabelCaptureDialog.show(
+            context,
+            imageFile: file,
+            meal: Meal.fromName(mealKey),
+            mealKey: mealKey,
+            date: dateOnly,
+          );
+          break;
+
+        case AiScanContextType.exercise:
+          if (!mounted) return;
+          await ExerciseAiScanDialog.show(
+            context,
+            initialImage: XFile(file.path),
+          );
+          break;
+
+        case AiScanContextType.bodyFat:
+          if (!mounted) return;
+          await BodyFatAiDialog.show(
+            context,
+            initialImage: file,
+          );
+          break;
+
+        case AiScanContextType.dreamPhysique:
+          ref.read(mainTabIndexProvider.notifier).state = 3;
+          if (mounted) {
+            context.push('/profile/dream-physique');
+          }
+          break;
+
+        case AiScanContextType.workoutPhoto:
+          final sessionId = pendingContext?.extra?['sessionId'] as int?;
+          if (sessionId != null) {
+            await ref
+                .read(workoutsRepositoryProvider)
+                .updateSessionPhoto(sessionId, file.path);
+            ref.invalidate(sessionSummaryProvider(sessionId));
+            ref.invalidate(workoutSessionProvider(sessionId));
+          }
+          break;
+      }
+    } catch (e) {
+      debugPrint('Error recovering lost image data: $e');
+    }
   }
 
   @override
@@ -60,6 +184,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     final index = ref.watch(mainTabIndexProvider);
     final hasActiveSession =
         ref.watch(activeSessionProvider).asData?.value != null;
+    final dashboardEditMode = ref.watch(dashboardEditModeProvider);
     final showBanner = hasActiveSession && index != 2;
     final bannerAtTop = ref.watch(liveWorkoutBannerAtTopProvider);
 
@@ -86,6 +211,12 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         children: [
           PageView(
             controller: _pageController,
+            // Editing the dashboard grid needs the horizontal drags for its
+            // resize handle and reorder gestures — a swipeable PageView
+            // would otherwise win those gestures and change tabs instead.
+            physics: dashboardEditMode
+                ? const NeverScrollableScrollPhysics()
+                : null,
             onPageChanged: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
             children: _tabs,
           ),
@@ -113,6 +244,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             QuickAddMenu(
               key: _quickAddMenuKey,
               onClose: () => setState(() => _quickAddOpen = false),
+              onActionSelected: (action) {
+                setState(() => _quickAddOpen = false);
+                action(context, ref);
+              },
             ),
           Positioned(
             left: 0,

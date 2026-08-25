@@ -135,7 +135,12 @@ final accessoriesRepositoryProvider = Provider<AccessoriesRepository>((ref) {
 });
 
 final measurementsRepositoryProvider = Provider<MeasurementsRepository>((ref) {
-  return MeasurementsRepository(ref.watch(appDatabaseProvider));
+  final db = ref.watch(appDatabaseProvider);
+  final profileRepo = ref.watch(localProfileRepositoryProvider);
+  final repo = MeasurementsRepository(db, profileRepo);
+  profileRepo.setMeasurementsRepository(repo);
+  repo.syncOnStartup();
+  return repo;
 });
 
 final exerciseProgressionsRepositoryProvider =

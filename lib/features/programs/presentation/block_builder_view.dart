@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
@@ -10,9 +11,11 @@ import '../../../widgets/premium_button.dart';
 import '../../../widgets/premium_text_field.dart';
 import '../../workouts/presentation/workouts_providers.dart';
 import '../domain/periodization.dart';
+import '../domain/program_muscle_volume.dart';
 import '../domain/split_template.dart';
 import 'programs_providers.dart';
 import 'template_picker_sheet.dart';
+import 'widgets/program_muscle_volume_card.dart';
 
 /// Four-step block builder: basics → split → content → schedule.
 ///
@@ -632,6 +635,27 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
               ),
             ],
           ),
+          if (linked > 0) ...[
+            const SizedBox(height: 16),
+            FutureBuilder<ProgramVolumeBreakdown>(
+              future: ProgramVolumeCalculator.computeFromTemplates(
+                db: ref.read(appDatabaseProvider),
+                templatesBySlot: _templatesBySlot,
+                plan: plan,
+                weeks: _weeks,
+                model: _model,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  return ProgramMuscleVolumeCard(
+                    breakdown: snapshot.data!,
+                    title: 'Estimated Volume per Muscle Group',
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         ],
       ),
     );

@@ -27,10 +27,13 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
+import androidx.compose.foundation.clickable
+import androidx.navigation.NavController
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachRotaryScroll
 
 private data class NutrientRow(
+    val id: String,
     val label: String,
     val unit: String,
     val icon: String,
@@ -41,15 +44,18 @@ private data class NutrientRow(
 )
 
 private val nutrientRows = listOf(
-    NutrientRow("Calories", "kcal", "⚡", Color(0xFF42A5F5), OneUiPillStyle.RoyalBlue,    { it.calories }, { it.calorieGoal }),
-    NutrientRow("Protein",  "g",    "🥩", Color(0xFFFFA726), OneUiPillStyle.Terracotta,   { it.protein  }, { it.proteinGoal }),
-    NutrientRow("Carbs",    "g",    "🌾", Color(0xFF26C6DA), OneUiPillStyle.SlateNavy,    { it.carbs    }, { it.carbsGoal  }),
-    NutrientRow("Fat",      "g",    "🥑", Color(0xFFBA68C8), OneUiPillStyle.VioletIndigo, { it.fats     }, { it.fatGoal    }),
-    NutrientRow("Water",    "ml",   "💧", Color(0xFF80DEEA), OneUiPillStyle.AccentBlue,   { it.water    }, { it.waterGoal  }),
+    NutrientRow("calories", "kcal",     "",     "⚡", Color(0xFF42A5F5), OneUiPillStyle.RoyalBlue,    { it.calories }, { it.calorieGoal }),
+    NutrientRow("protein",  "Protein",  "g",    "🥩", Color(0xFFFFA726), OneUiPillStyle.Terracotta,   { it.protein  }, { it.proteinGoal }),
+    NutrientRow("carbs",    "Carbs",    "g",    "🌾", Color(0xFF26C6DA), OneUiPillStyle.SlateNavy,    { it.carbs    }, { it.carbsGoal  }),
+    NutrientRow("fats",     "Fat",      "g",    "🥑", Color(0xFFBA68C8), OneUiPillStyle.VioletIndigo, { it.fats     }, { it.fatGoal    }),
+    NutrientRow("water",    "Water",    "ml",   "💧", Color(0xFF80DEEA), OneUiPillStyle.AccentBlue,   { it.water    }, { it.waterGoal  }),
 )
 
 @Composable
-fun NutrientsScreen(viewModel: NutritionViewModel) {
+fun NutrientsScreen(
+    navController: NavController,
+    viewModel: NutritionViewModel,
+) {
     val data  by viewModel.data.collectAsState()
     val goals by viewModel.goals.collectAsState()
     val listState = rememberScalingLazyListState()
@@ -87,6 +93,7 @@ fun NutrientsScreen(viewModel: NutritionViewModel) {
                 unit  = row.unit,
                 color = row.color,
                 style = row.style,
+                onClick = { navController.navigate("nutrient_trend/${row.id}") },
             )
         }
     }
@@ -101,6 +108,7 @@ private fun NutrientItem(
     unit: String,
     color: Color,
     style: OneUiPillStyle,
+    onClick: () -> Unit,
 ) {
     val progress = if (goal > 0) (value.toFloat() / goal.toFloat()).coerceIn(0f, 1f) else 0f
 
@@ -108,6 +116,7 @@ private fun NutrientItem(
         modifier = Modifier
             .fillMaxWidth()
             .background(style.containerColor, shape = CircleShape)
+            .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -131,7 +140,7 @@ private fun NutrientItem(
                 Text(label, color = style.contentColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("$value", color = color, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("/ $goal $unit", color = style.secondaryColor, fontSize = 10.sp)
+                    Text(if (unit.isNotEmpty()) "/ $goal $unit" else "/ $goal", color = style.secondaryColor, fontSize = 10.sp)
                 }
             }
             Spacer(Modifier.height(4.dp))

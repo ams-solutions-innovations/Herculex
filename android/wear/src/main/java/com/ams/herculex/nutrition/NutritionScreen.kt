@@ -31,9 +31,9 @@ private data class MenuItem(
 )
 
 private val menuItems = listOf(
-    MenuItem("Log food",      "+",  OneUiPillStyle.RoyalBlue,    "log_food"),
+    MenuItem("Log food",      "+",  OneUiPillStyle.SlateNavy,    "log_food"),
     MenuItem("Nutrients",     "≡",  OneUiPillStyle.VioletIndigo, "nutrients"),
-    MenuItem("Add calories",  "⚡", OneUiPillStyle.Terracotta,   "add_calories"),
+    MenuItem("Add kcal",      "⚡", OneUiPillStyle.Terracotta,   "add_calories"),
     MenuItem("Add water",     "○",  OneUiPillStyle.AccentBlue,   "add_water"),
 )
 

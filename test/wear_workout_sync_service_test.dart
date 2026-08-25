@@ -73,12 +73,18 @@ void main() {
   late WorkoutsRepository repo;
   late ProviderContainer container;
 
+  final dispatchedCalls = <MethodCall>[];
+
   setUp(() async {
+    dispatchedCalls.clear();
     WearSyncService.resetForTesting();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           const MethodChannel(WearSyncService.channelName),
-          (call) async => null,
+          (call) async {
+            dispatchedCalls.add(call);
+            return null;
+          },
         );
 
     // Required once WearWorkoutSyncService's constructor reads
@@ -777,6 +783,92 @@ void main() {
         (s) => s.id != set1Id && s.id != set2Id,
       );
       expect(newSet.weightKg, 20.0);
+    },
+  );
+
+  test(
+    'pushActiveSessionToWatch sets hasActiveSyncedSession and notifySessionEnded dispatches endWorkoutOnWatch',
+    () async {
+      final service = buildService();
+      expect(service.hasActiveSyncedSession, isFalse);
+
+      final sessionId = await repo.startSession(sessionUuid: 'test-session-uuid-1');
+      final session = await repo.watchSession(sessionId).first;
+
+      await service.pushActiveSessionToWatch(session);
+      await pumpEventQueue();
+
+      expect(service.hasActiveSyncedSession, isTrue);
+
+      await service.notifySessionEnded();
+      await pumpEventQueue();
+
+      expect(service.hasActiveSyncedSession, isFalse);
+
+      final endCalls = dispatchedCalls.where(
+        (c) => c.method == 'endWorkoutOnWatch',
+      ).toList();
+      expect(endCalls, hasLength(1));
+      expect(endCalls.first.arguments, {'entity_id': 'test-session-uuid-1'});
+    },
+  );
+
+  test(
+    'notifySessionEnded with explicit entityId dispatches cleanly even without previous push',
+    () async {
+      final service = buildService();
+
+      await service.notifySessionEnded('explicit-uuid-99');
+      await pumpEventQueue();
+
+      final endCalls = dispatchedCalls.where(
+        (c) => c.method == 'endWorkoutOnWatch',
+      ).toList();
+      expect(endCalls, hasLength(1));
+      expect(endCalls.first.arguments, {'entity_id': 'explicit-uuid-99'});
+    },
+  );
+
+  test(
+    'myo_reps sets with miniSets sync properly and preserve meta in database',
+    () async {
+      buildService();
+      final exerciseId = await createExercise('Bicep Curl');
+
+      final payload = workoutEnvelopeJson(
+        entityId: 'session-myo-1',
+        revision: 1,
+        exercises: [
+          {
+            'template': {'catalogExerciseId': exerciseId, 'name': 'Bicep Curl'},
+            'sets': [
+              {
+                'weight': 30.0,
+                'reps': 12,
+                'completed': true,
+                'setType': 'myo_reps',
+                'setTypeMetaJson': '{"miniSets":[3,3,3]}',
+              },
+            ],
+          },
+        ],
+      );
+      await emitWorkoutUpdated(payload);
+      await pumpEventQueue();
+
+      final session = await repo.watchActiveSession().first;
+      expect(session, isNotNull);
+
+      final exercises = await repo.watchSessionExercises(session!.id).first;
+      expect(exercises, hasLength(1));
+
+      final sets =
+          await repo.watchSetsForWorkoutExercise(exercises.first.id).first;
+      expect(sets, hasLength(1));
+      expect(sets.first.setType, 'myo_reps');
+      expect(sets.first.setTypeMetaJson, '{"miniSets":[3,3,3]}');
+      expect(sets.first.weightKg, 30.0);
+      expect(sets.first.reps, 12);
     },
   );
 }

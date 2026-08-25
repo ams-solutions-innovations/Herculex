@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import 'circuit_builder_view.dart';
+import 'circuits_providers.dart';
 import 'template_builder_view.dart';
 import 'workouts_providers.dart';
 
@@ -14,6 +16,7 @@ class TemplatesView extends ConsumerWidget {
     final theme = Theme.of(context);
     final foldersAsync = ref.watch(workoutFoldersProvider);
     final unfiledAsync = ref.watch(workoutTemplatesProvider(null));
+    final circuitsAsync = ref.watch(workoutCircuitsProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
@@ -32,9 +35,36 @@ class TemplatesView extends ConsumerWidget {
               label: 'Template',
               onTap: () => TemplateBuilderView.show(context),
             ),
+            const SizedBox(width: 10),
+            _IconPill(
+              icon: Icons.repeat_rounded,
+              label: 'Circuit',
+              onTap: () => CircuitBuilderView.show(context),
+            ),
           ],
         ),
         const SizedBox(height: 16),
+
+        // Circuits
+        circuitsAsync.when(
+          data: (circuits) {
+            if (circuits.isEmpty) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('CIRCUITS',
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: AppColors.secondary, letterSpacing: 1.2)),
+                const SizedBox(height: 10),
+                for (final c in circuits)
+                  _CircuitTile(circuit: c),
+                const SizedBox(height: 24),
+              ],
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (e, _) => const SizedBox.shrink(),
+        ),
 
         // Folders
         foldersAsync.when(
@@ -78,7 +108,8 @@ class TemplatesView extends ConsumerWidget {
 
         // Empty state
         if (foldersAsync.asData?.value.isEmpty == true &&
-            unfiledAsync.asData?.value.isEmpty == true)
+            unfiledAsync.asData?.value.isEmpty == true &&
+            circuitsAsync.asData?.value.isEmpty == true)
           _EmptyState(onCreateTemplate: () => TemplateBuilderView.show(context)),
       ],
     );
@@ -245,6 +276,233 @@ class _TemplateTile extends ConsumerWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => _TemplateMenuSheet(template: template, ref: ref),
+    );
+  }
+}
+
+// ── Circuit tile ────────────────────────────────────────────────────────────
+
+class _CircuitTile extends ConsumerWidget {
+  final WorkoutCircuitData circuit;
+  const _CircuitTile({required this.circuit});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final exercisesAsync = ref.watch(circuitExercisesProvider(circuit.id));
+    final count = exercisesAsync.asData?.value.length ?? 0;
+
+    final restFormatted = circuit.restSeconds >= 60
+        ? '${circuit.restSeconds ~/ 60}m${circuit.restSeconds % 60 > 0 ? ' ${circuit.restSeconds % 60}s' : ''}'
+        : '${circuit.restSeconds}s';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _startOrEdit(context, ref),
+        onLongPress: () => _showMenu(context, ref),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.repeat_rounded, size: 22, color: AppColors.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            circuit.name,
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'CIRCUIT',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$count ${count == 1 ? 'exercise' : 'exercises'} • ${circuit.rounds} rounds • $restFormatted pause',
+                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Start',
+                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _startOrEdit(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CircuitActionSheet(circuit: circuit, ref: ref),
+    );
+  }
+
+  void _showMenu(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CircuitMenuSheet(circuit: circuit, ref: ref),
+    );
+  }
+}
+
+class _CircuitActionSheet extends StatelessWidget {
+  final WorkoutCircuitData circuit;
+  final WidgetRef ref;
+  const _CircuitActionSheet({required this.circuit, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.bottomSheetTheme.backgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.outlineVariant.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            circuit.name,
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${circuit.rounds} rounds • ${circuit.restSeconds}s rest between rounds',
+            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+          ),
+          const SizedBox(height: 20),
+          _SheetAction(
+            icon: Icons.play_arrow_rounded,
+            label: 'Start Circuit Workout',
+            color: AppColors.primary,
+            onTap: () async {
+              Navigator.pop(context);
+              final repo = ref.read(circuitsRepositoryProvider);
+              await repo.startSessionFromCircuit(circuit.id);
+            },
+          ),
+          const SizedBox(height: 8),
+          _SheetAction(
+            icon: Icons.edit_outlined,
+            label: 'Edit Circuit',
+            onTap: () {
+              Navigator.pop(context);
+              CircuitBuilderView.show(context, existing: circuit);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircuitMenuSheet extends StatelessWidget {
+  final WorkoutCircuitData circuit;
+  final WidgetRef ref;
+  const _CircuitMenuSheet({required this.circuit, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.bottomSheetTheme.backgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.outlineVariant.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _SheetAction(
+            icon: Icons.edit_outlined,
+            label: 'Edit Circuit',
+            onTap: () {
+              Navigator.pop(context);
+              CircuitBuilderView.show(context, existing: circuit);
+            },
+          ),
+          const SizedBox(height: 8),
+          _SheetAction(
+            icon: Icons.delete_outline,
+            label: 'Delete Circuit',
+            color: Colors.redAccent,
+            onTap: () async {
+              Navigator.pop(context);
+              await ref.read(circuitsRepositoryProvider).deleteCircuit(circuit.id);
+            },
+          ),
+        ],
+      ),
     );
   }
 }

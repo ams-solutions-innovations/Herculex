@@ -17,6 +17,8 @@ class HxCard extends StatelessWidget {
     this.onTap,
     this.accent,
     this.fill,
+    this.gradient,
+    this.useAccentGradient = true,
   });
 
   final Widget child;
@@ -30,6 +32,8 @@ class HxCard extends StatelessWidget {
   /// to its domain (nutrition, training, fasting, recovery).
   final Color? accent;
   final Color? fill;
+  final Gradient? gradient;
+  final bool useAccentGradient;
 
   @override
   Widget build(BuildContext context) {
@@ -37,20 +41,35 @@ class HxCard extends StatelessWidget {
     final borderRadius = BorderRadius.circular(radius ?? HxRadius.xl);
     final accent = this.accent;
 
+    final cardGradient = gradient ??
+        (accent != null && useAccentGradient
+            ? LinearGradient(
+                colors: [
+                  accent.withValues(alpha: hx.isDark ? 0.16 : 0.12),
+                  hx.surfaceContainerLowest,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null);
+
     final card = Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: fill ??
-            (accent == null
-                ? hx.surfaceContainerLowest
-                : Color.alphaBlend(
-                    accent.withValues(alpha: hx.isDark ? 0.06 : 0.04),
-                    hx.surfaceContainerLowest,
-                  )),
+        gradient: cardGradient,
+        color: cardGradient == null
+            ? (fill ??
+                (accent == null
+                    ? hx.surfaceContainerLowest
+                    : Color.alphaBlend(
+                        accent.withValues(alpha: hx.isDark ? 0.06 : 0.04),
+                        hx.surfaceContainerLowest,
+                      )))
+            : null,
         borderRadius: borderRadius,
         border: Border.all(
-          color: accent?.withValues(alpha: 0.35) ??
+          color: accent?.withValues(alpha: 0.3) ??
               hx.outlineVariant.withValues(alpha: 0.3),
         ),
       ),

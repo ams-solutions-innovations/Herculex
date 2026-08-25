@@ -33,6 +33,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _heartRate = MutableStateFlow(-1)
     val heartRate: StateFlow<Int> = _heartRate.asStateFlow()
 
+    private val _prCelebration = MutableStateFlow<WatchPrEvent?>(null)
+    val prCelebration: StateFlow<WatchPrEvent?> = _prCelebration.asStateFlow()
+
+    private val _sessionPrs = MutableStateFlow<List<WatchPrEvent>>(emptyList())
+    val sessionPrs: StateFlow<List<WatchPrEvent>> = _sessionPrs.asStateFlow()
+
+    private val _finishedWorkoutSummary = MutableStateFlow<WorkoutSummaryData?>(null)
+    val finishedWorkoutSummary: StateFlow<WorkoutSummaryData?> = _finishedWorkoutSummary.asStateFlow()
+
     private var timerJob: Job? = null
     private var sessionStartEpochMs: Long = System.currentTimeMillis()
 
@@ -95,11 +104,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             sessionId = sessionId,
         )
         _session.value = newSession
+        _sessionPrs.value = emptyList()
+        _finishedWorkoutSummary.value = null
         _elapsedSeconds.value = 0L
         sessionStartEpochMs = startEpochMs
         _elapsedSeconds.value = ((System.currentTimeMillis() - startEpochMs) / 1000).coerceAtLeast(0)
         startTimer()
         startServiceIfNeeded(sessionStartEpochMs)
+
+        template.exercises.forEach { ExerciseUsageTracker.recordUsed(getApplication(), it) }
 
         if (broadcastToPhone) {
             broadcastSessionToPhone("/herculex_watch_workout_started", newSession)
@@ -172,6 +185,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun addExerciseToSession(exerciseTemplate: ExerciseTemplate) {
+        ExerciseUsageTracker.recordUsed(getApplication(), exerciseTemplate)
         val current = _session.value ?: return
         val exercises = current.exercises + ActiveExercise(template = exerciseTemplate)
         val updated = current.copy(exercises = exercises)
@@ -208,6 +222,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun substituteExerciseInSession(exerciseIndex: Int, newTemplate: ExerciseTemplate) {
+        ExerciseUsageTracker.recordUsed(getApplication(), newTemplate)
         val current = _session.value ?: return
         if (exerciseIndex !in current.exercises.indices) return
         val exercises = current.exercises.toMutableList()
@@ -267,18 +282,27 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         rpe: Double? = null,
         setType: String = "standard",
         accessory: String? = null,
+        durationSeconds: Int? = null,
+        distanceMeters: Double? = null,
     ) {
         val current = _session.value ?: return
+        if (exerciseIndex !in current.exercises.indices) return
         val exercises = current.exercises.toMutableList()
         val exercise  = exercises[exerciseIndex]
         val openIndex = exercise.sets.indexOfFirst { !it.completed }
+        val normalizedType = com.ams.herculex.sync.WearSyncContract.normalizeSetType(setType)
+        val isWarmup = com.ams.herculex.sync.WearSyncContract.normalizeIsWarmup(setType, false)
+        val isMyo = normalizedType == "myo_reps"
+
         val completedSet = if (openIndex >= 0) {
             exercise.sets[openIndex].copy(
                 weight = weight,
                 reps = reps,
+                durationSeconds = durationSeconds,
+                distanceMeters = distanceMeters,
                 rpe = rpe,
-                setType = com.ams.herculex.sync.WearSyncContract.normalizeSetType(setType),
-                isWarmup = com.ams.herculex.sync.WearSyncContract.normalizeIsWarmup(setType, false),
+                setType = normalizedType,
+                isWarmup = isWarmup,
                 accessory = accessory,
                 completed = true,
                 completedAtEpochMs = System.currentTimeMillis(),
@@ -289,25 +313,80 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 setIndex = exercise.sets.size,
                 weight = weight,
                 reps = reps,
+                durationSeconds = durationSeconds,
+                distanceMeters = distanceMeters,
                 rpe = rpe,
-                setType = com.ams.herculex.sync.WearSyncContract.normalizeSetType(setType),
-                isWarmup = com.ams.herculex.sync.WearSyncContract.normalizeIsWarmup(setType, false),
+                setType = normalizedType,
+                isWarmup = isWarmup,
                 accessory = accessory,
                 completed = true,
                 completedAtEpochMs = System.currentTimeMillis(),
             )
         }
+        val targetSetIdx = if (openIndex >= 0) openIndex else exercise.sets.size
         val newSets = if (openIndex >= 0) {
             exercise.sets.toMutableList().also { it[openIndex] = completedSet }
         } else {
             exercise.sets + completedSet
         }
         exercises[exerciseIndex] = exercise.copy(sets = newSets)
+        ExerciseUsageTracker.recordUsed(getApplication(), exercise.template)
+
+        // Evaluate for personal record (1RM, Reps, Weight PR)
+        val prEvent = WatchPrEvaluator.evaluateCompletedSet(exercise, completedSet)
+        if (prEvent != null) {
+            _sessionPrs.value = _sessionPrs.value + prEvent
+            showPrCelebration(prEvent)
+        }
 
         val nextOpenIndex = newSets.indexOfFirst { !it.completed }
         val allDone       = nextOpenIndex < 0 && newSets.count { it.completed } >= exercise.template.targetSets
-        val newExIndex    = if (allDone) (exerciseIndex + 1).coerceAtMost(exercises.size - 1) else exerciseIndex
-        val newSetIndex   = if (allDone) 0 else nextOpenIndex.takeIf { it >= 0 } ?: newSets.size
+        val isExtraMode   = isMyo || normalizedType == "forced" || normalizedType == "cheat"
+
+        val sGroup = exercise.supersetGroup ?: exercise.template.supersetGroup
+        val groupIndices = if (sGroup != null) {
+            exercises.indices.filter {
+                (exercises[it].supersetGroup ?: exercises[it].template.supersetGroup) == sGroup
+            }
+        } else emptyList()
+
+        val newExIndex: Int
+        val newSetIndex: Int
+
+        if (isExtraMode) {
+            // Keep user focused on this set so extra reps (forced, cheat, mini) can be logged immediately.
+            newExIndex = exerciseIndex
+            newSetIndex = targetSetIdx
+        } else if (groupIndices.size > 1) {
+            val currentPos = groupIndices.indexOf(exerciseIndex)
+            var targetExIdx = exerciseIndex
+            var targetSet = 0
+            var found = false
+            for (step in 1..groupIndices.size) {
+                val candidateIdx = groupIndices[(currentPos + step) % groupIndices.size]
+                val candidateEx = exercises[candidateIdx]
+                val open = candidateEx.sets.indexOfFirst { !it.completed }
+                if (open >= 0 || candidateEx.sets.size < candidateEx.template.targetSets) {
+                    targetExIdx = candidateIdx
+                    targetSet = if (open >= 0) open else candidateEx.sets.size
+                    found = true
+                    break
+                }
+            }
+            if (found) {
+                newExIndex = targetExIdx
+                newSetIndex = targetSet
+            } else if (allDone) {
+                newExIndex = (exerciseIndex + 1).coerceAtMost(exercises.size - 1)
+                newSetIndex = 0
+            } else {
+                newExIndex = exerciseIndex
+                newSetIndex = nextOpenIndex.takeIf { it >= 0 } ?: newSets.size
+            }
+        } else {
+            newExIndex = if (allDone) (exerciseIndex + 1).coerceAtMost(exercises.size - 1) else exerciseIndex
+            newSetIndex = if (allDone) 0 else nextOpenIndex.takeIf { it >= 0 } ?: newSets.size
+        }
 
         val updated = current.copy(
             exercises            = exercises,
@@ -317,6 +396,163 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         _session.value = updated
         // broadcastSessionToPhone already ships the full session over the
         // fast MessageClient path, so a separate weight-only event isn't needed.
+        broadcastSessionToPhone("/herculex_watch_session_update", updated)
+    }
+
+    fun addMiniSet(exerciseIndex: Int, setIndex: Int, miniReps: Int) {
+        val current = _session.value ?: return
+        if (exerciseIndex !in current.exercises.indices) return
+        val exercises = current.exercises.toMutableList()
+        val exercise = exercises[exerciseIndex]
+        val targetIdx = if (setIndex in exercise.sets.indices) setIndex else exercise.sets.lastIndex
+        if (targetIdx !in exercise.sets.indices) return
+
+        val set = exercise.sets[targetIdx]
+        val currentMini = set.getMiniSets()
+        val updatedSet = set.withMiniSets(currentMini + miniReps)
+
+        val newSets = exercise.sets.toMutableList().also { it[targetIdx] = updatedSet }
+        exercises[exerciseIndex] = exercise.copy(sets = newSets)
+
+        val updated = current.copy(
+            exercises = exercises,
+            currentExerciseIndex = exerciseIndex,
+            currentSetIndex = targetIdx,
+        )
+        _session.value = updated
+        broadcastSessionToPhone("/herculex_watch_session_update", updated)
+    }
+
+    fun removeLastMiniSet(exerciseIndex: Int, setIndex: Int) {
+        val current = _session.value ?: return
+        if (exerciseIndex !in current.exercises.indices) return
+        val exercises = current.exercises.toMutableList()
+        val exercise = exercises[exerciseIndex]
+        val targetIdx = if (setIndex in exercise.sets.indices) setIndex else exercise.sets.lastIndex
+        if (targetIdx !in exercise.sets.indices) return
+
+        val set = exercise.sets[targetIdx]
+        val currentMini = set.getMiniSets()
+        if (currentMini.isEmpty()) return
+        val updatedSet = set.withMiniSets(currentMini.dropLast(1))
+
+        val newSets = exercise.sets.toMutableList().also { it[targetIdx] = updatedSet }
+        exercises[exerciseIndex] = exercise.copy(sets = newSets)
+
+        val updated = current.copy(
+            exercises = exercises,
+            currentExerciseIndex = exerciseIndex,
+            currentSetIndex = targetIdx,
+        )
+        _session.value = updated
+        broadcastSessionToPhone("/herculex_watch_session_update", updated)
+    }
+
+    fun addExtraReps(exerciseIndex: Int, setIndex: Int, extraReps: Int) {
+        val current = _session.value ?: return
+        if (exerciseIndex !in current.exercises.indices) return
+        val exercises = current.exercises.toMutableList()
+        val exercise = exercises[exerciseIndex]
+        val targetIdx = if (setIndex in exercise.sets.indices) setIndex else exercise.sets.lastIndex
+        if (targetIdx !in exercise.sets.indices) return
+
+        val set = exercise.sets[targetIdx]
+        val currentExtra = set.getExtraReps()
+        val updatedSet = set.withExtraReps(currentExtra + extraReps)
+
+        val newSets = exercise.sets.toMutableList().also { it[targetIdx] = updatedSet }
+        exercises[exerciseIndex] = exercise.copy(sets = newSets)
+
+        val updated = current.copy(
+            exercises = exercises,
+            currentExerciseIndex = exerciseIndex,
+            currentSetIndex = targetIdx,
+        )
+        _session.value = updated
+        broadcastSessionToPhone("/herculex_watch_session_update", updated)
+    }
+
+    fun removeLastExtraReps(exerciseIndex: Int, setIndex: Int) {
+        val current = _session.value ?: return
+        if (exerciseIndex !in current.exercises.indices) return
+        val exercises = current.exercises.toMutableList()
+        val exercise = exercises[exerciseIndex]
+        val targetIdx = if (setIndex in exercise.sets.indices) setIndex else exercise.sets.lastIndex
+        if (targetIdx !in exercise.sets.indices) return
+
+        val set = exercise.sets[targetIdx]
+        val currentExtra = set.getExtraReps()
+        if (currentExtra.isEmpty()) return
+        val updatedSet = set.withExtraReps(currentExtra.dropLast(1))
+
+        val newSets = exercise.sets.toMutableList().also { it[targetIdx] = updatedSet }
+        exercises[exerciseIndex] = exercise.copy(sets = newSets)
+
+        val updated = current.copy(
+            exercises = exercises,
+            currentExerciseIndex = exerciseIndex,
+            currentSetIndex = targetIdx,
+        )
+        _session.value = updated
+        broadcastSessionToPhone("/herculex_watch_session_update", updated)
+    }
+
+    fun finishMyoSet(exerciseIndex: Int, setIndex: Int) = finishExtraSet(exerciseIndex, setIndex)
+
+    fun finishExtraSet(exerciseIndex: Int, setIndex: Int) {
+        val current = _session.value ?: return
+        if (exerciseIndex !in current.exercises.indices) return
+        val exercises = current.exercises
+        val exercise = exercises[exerciseIndex]
+        val nextOpenIndex = exercise.sets.indexOfFirst { !it.completed }
+        val allDone = nextOpenIndex < 0 && exercise.completedSets >= exercise.template.targetSets
+
+        val sGroup = exercise.supersetGroup ?: exercise.template.supersetGroup
+        val groupIndices = if (sGroup != null) {
+            exercises.indices.filter {
+                (exercises[it].supersetGroup ?: exercises[it].template.supersetGroup) == sGroup
+            }
+        } else emptyList()
+
+        val newExIndex: Int
+        val newSetIndex: Int
+
+        if (groupIndices.size > 1) {
+            val currentPos = groupIndices.indexOf(exerciseIndex)
+            var targetExIdx = exerciseIndex
+            var targetSet = 0
+            var found = false
+            for (step in 1..groupIndices.size) {
+                val candidateIdx = groupIndices[(currentPos + step) % groupIndices.size]
+                val candidateEx = exercises[candidateIdx]
+                val open = candidateEx.sets.indexOfFirst { !it.completed }
+                if (open >= 0 || candidateEx.sets.size < candidateEx.template.targetSets) {
+                    targetExIdx = candidateIdx
+                    targetSet = if (open >= 0) open else candidateEx.sets.size
+                    found = true
+                    break
+                }
+            }
+            if (found) {
+                newExIndex = targetExIdx
+                newSetIndex = targetSet
+            } else if (allDone) {
+                newExIndex = (exerciseIndex + 1).coerceAtMost(exercises.size - 1)
+                newSetIndex = 0
+            } else {
+                newExIndex = exerciseIndex
+                newSetIndex = nextOpenIndex.takeIf { it >= 0 } ?: exercise.sets.size
+            }
+        } else {
+            newExIndex = if (allDone) (exerciseIndex + 1).coerceAtMost(exercises.size - 1) else exerciseIndex
+            newSetIndex = if (allDone) 0 else nextOpenIndex.takeIf { it >= 0 } ?: exercise.sets.size
+        }
+
+        val updated = current.copy(
+            currentExerciseIndex = newExIndex,
+            currentSetIndex = newSetIndex,
+        )
+        _session.value = updated
         broadcastSessionToPhone("/herculex_watch_session_update", updated)
     }
 
@@ -363,6 +599,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     setIndex = planned.setIndex,
                     weight = planned.targetWeightKg ?: template.prevWeight,
                     reps = planned.targetReps ?: planned.targetRepsMin ?: template.prevReps.coerceAtLeast(1),
+                    distanceMeters = planned.targetDistanceMeters,
                     setType = planned.setType,
                     isWarmup = planned.isWarmup,
                     completed = false,
@@ -454,7 +691,16 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun endSession(isFinish: Boolean, notifyPhone: Boolean) {
-        val endingSessionId = _session.value?.sessionId
+        val currentSession = _session.value
+        val endingSessionId = currentSession?.sessionId
+        if (isFinish && currentSession != null) {
+            _finishedWorkoutSummary.value = WatchPrEvaluator.computeSummary(
+                session = currentSession,
+                elapsedSeconds = _elapsedSeconds.value,
+                heartRate = _heartRate.value,
+                sessionPrs = _sessionPrs.value,
+            )
+        }
         timerJob?.cancel()
         _session.value        = null
         _elapsedSeconds.value = 0L
@@ -469,6 +715,18 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             action = WorkoutOngoingService.ACTION_STOP
         }
         getApplication<Application>().startService(intent)
+    }
+
+    fun showPrCelebration(event: WatchPrEvent) {
+        _prCelebration.value = event
+    }
+
+    fun dismissPrCelebration() {
+        _prCelebration.value = null
+    }
+
+    fun clearFinishedSummary() {
+        _finishedWorkoutSummary.value = null
     }
 
     private fun startTimer() {

@@ -78,44 +78,48 @@ class AppShortcutsService {
     BuildContext context,
     String shortcutType,
   ) async {
-    if (shortcutType == 'start_empty_workout') {
-      // 1. Switch to Workouts tab
-      ref.read(mainTabIndexProvider.notifier).state = 2;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!context.mounted) return;
 
-      // 2. Start empty session if no active session
-      final active = ref.read(activeSessionProvider).asData?.value;
-      if (active == null) {
-        final repo = ref.read(workoutsRepositoryProvider);
-        await repo.startSession();
-      }
-    } else if (shortcutType == 'quick_scan_food') {
-      // 1. Switch to Nutrition tab
-      ref.read(mainTabIndexProvider.notifier).state = 1;
-
-      // 2. Open Food Picker Sheet for today's food logging
-      final now = DateTime.now();
-      final date = DateTime(now.year, now.month, now.day);
-      if (context.mounted) {
-        await FoodPickerSheet.show(
-          context,
-          date: date,
-          mealKey: 'lunch',
-        );
-      }
-    } else if (shortcutType.startsWith('template_')) {
-      final templateIdStr = shortcutType.replaceFirst('template_', '');
-      final templateId = int.tryParse(templateIdStr);
-      if (templateId != null) {
+      if (shortcutType == 'start_empty_workout') {
         // 1. Switch to Workouts tab
         ref.read(mainTabIndexProvider.notifier).state = 2;
 
-        // 2. Start session from template if no session active
+        // 2. Start empty session if no active session
         final active = ref.read(activeSessionProvider).asData?.value;
         if (active == null) {
-          final templatesRepo = ref.read(templatesRepositoryProvider);
-          await templatesRepo.startSessionFromTemplate(templateId);
+          final repo = ref.read(workoutsRepositoryProvider);
+          await repo.startSession();
+        }
+      } else if (shortcutType == 'quick_scan_food') {
+        // 1. Switch to Nutrition tab
+        ref.read(mainTabIndexProvider.notifier).state = 1;
+
+        // 2. Open Food Picker Sheet for today's food logging
+        final now = DateTime.now();
+        final date = DateTime(now.year, now.month, now.day);
+        if (context.mounted) {
+          await FoodPickerSheet.show(
+            context,
+            date: date,
+            mealKey: 'snack',
+          );
+        }
+      } else if (shortcutType.startsWith('template_')) {
+        final templateIdStr = shortcutType.replaceFirst('template_', '');
+        final templateId = int.tryParse(templateIdStr);
+        if (templateId != null) {
+          // 1. Switch to Workouts tab
+          ref.read(mainTabIndexProvider.notifier).state = 2;
+
+          // 2. Start session from template if no session active
+          final active = ref.read(activeSessionProvider).asData?.value;
+          if (active == null) {
+            final templatesRepo = ref.read(templatesRepositoryProvider);
+            await templatesRepo.startSessionFromTemplate(templateId);
+          }
         }
       }
-    }
+    });
   }
 }

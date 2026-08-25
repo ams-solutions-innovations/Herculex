@@ -4,6 +4,7 @@ import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
 import '../data/programs_repository.dart';
 import '../data/rotations_repository.dart';
+import '../domain/program_muscle_volume.dart';
 import '../domain/scheduled_workout_row.dart';
 
 final programsRepositoryProvider = Provider<ProgramsRepository>((ref) {
@@ -204,3 +205,13 @@ final rotationMembersProvider =
     StreamProvider.family<List<RotationMemberData>, int>((ref, rotationId) {
       return ref.watch(rotationsRepositoryProvider).watchMembers(rotationId);
     });
+
+/// Computes the per-muscle weekly set volume breakdown for any program in the database.
+final programVolumeBreakdownProvider =
+    FutureProvider.family<ProgramVolumeBreakdown, int>((ref, programId) {
+  final db = ref.watch(appDatabaseProvider);
+  // Invalidate / re-compute when weeks change
+  ref.watch(programWeeksProvider(programId));
+  return ProgramVolumeCalculator.computeFromDatabase(db, programId);
+});
+

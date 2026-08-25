@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/env.dart';
 import '../../../data/local/database.dart';
+import '../../../services/pending_ai_scan_service.dart';
 import '../../../theme/colors.dart';
 import '../data/product_catalogue_repository.dart';
 import 'barcode_product_review_dialog.dart';
@@ -66,7 +67,7 @@ Future<FoodData?> resolveUnknownBarcode(
     final wantsPhoto = await _confirmPhotoPrompt(context);
     if (wantsPhoto == true) {
       if (!context.mounted) return null;
-      final imageFile = await _pickProductPhoto(context);
+      final imageFile = await _pickProductPhoto(context, ref, barcode);
       if (imageFile != null) {
         if (!context.mounted) return null;
         final food = await BarcodeProductReviewDialog.show(
@@ -87,26 +88,30 @@ Future<bool?> _confirmPhotoPrompt(BuildContext context) {
   return showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Izdelek ni najden'),
+      title: const Text('Product not found'),
       content: const Text(
-        'Tega izdelka ni v nasi bazi. Ga zelis poslikati, da Gemini AI '
-        'poisce hranilne vrednosti na spletu?',
+        'This product is not in our database. Would you like to take a photo so Gemini AI '
+        'can find the nutrition facts online?',
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Vnesi rocno'),
+          child: const Text('Enter manually'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Poslikaj izdelek'),
+          child: const Text('Photograph product'),
         ),
       ],
     ),
   );
 }
 
-Future<File?> _pickProductPhoto(BuildContext context) async {
+Future<File?> _pickProductPhoto(
+  BuildContext context,
+  WidgetRef ref,
+  String barcode,
+) async {
   final source = await showModalBottomSheet<ImageSource>(
     context: context,
     backgroundColor: Theme.of(context).colorScheme.surface,
@@ -119,12 +124,12 @@ Future<File?> _pickProductPhoto(BuildContext context) async {
         children: [
           ListTile(
             leading: Icon(Icons.camera_alt, color: AppColors.primary),
-            title: const Text('Poslikaj izdelek s kamero'),
+            title: const Text('Take photo with camera'),
             onTap: () => Navigator.pop(ctx, ImageSource.camera),
           ),
           ListTile(
             leading: const Icon(Icons.photo_library),
-            title: const Text('Izberi sliko iz galerije'),
+            title: const Text('Choose image from gallery'),
             onTap: () => Navigator.pop(ctx, ImageSource.gallery),
           ),
         ],
@@ -132,7 +137,19 @@ Future<File?> _pickProductPhoto(BuildContext context) async {
     ),
   );
   if (source == null) return null;
-  final picked = await ImagePicker().pickImage(source: source);
+  await ref.read(pendingAiScanServiceProvider).setPendingContext(
+        PendingAiScanContext(
+          type: AiScanContextType.food,
+          extra: {'barcode': barcode},
+        ),
+      );
+  final picked = await ImagePicker().pickImage(
+    source: source,
+    maxWidth: 1024,
+    maxHeight: 1024,
+    imageQuality: 85,
+  );
+  await ref.read(pendingAiScanServiceProvider).clearPendingContext();
   if (picked == null) return null;
   return File(picked.path);
 }

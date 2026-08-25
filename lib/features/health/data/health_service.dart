@@ -100,31 +100,33 @@ class HealthService {
     final now = _clock.now();
     final todayStr = _formatDateIso(now);
     final midnight = DateTime(now.year, now.month, now.day);
+    // Buffer query window by +15 min so rounded interval buckets from watches/wearables are captured
+    final queryEnd = now.add(const Duration(minutes: 15));
 
     final result = DailyHealthRead(
       dateIso: todayStr,
-      steps: await _readSteps(midnight, now),
+      steps: await _readSteps(midnight, queryEnd),
       activeKcal: await _readSummedNumeric(
         types: [HealthDataType.ACTIVE_ENERGY_BURNED],
         startTime: midnight,
-        endTime: now,
+        endTime: queryEnd,
       ),
       restingHr: await _readAverageNumeric(
         types: [HealthDataType.RESTING_HEART_RATE],
         startTime: midnight,
-        endTime: now,
+        endTime: queryEnd,
       ),
-      sleepHours: await _readSleepHours(midnight, now),
-      waterMl: await _readWaterMl(midnight, now),
+      sleepHours: await _readSleepHours(midnight, queryEnd),
+      waterMl: await _readWaterMl(midnight, queryEnd),
       foodKcal: await _readSummedNumeric(
         types: [HealthDataType.NUTRITION],
         startTime: midnight,
-        endTime: now,
+        endTime: queryEnd,
       ),
       weightKg: await _readLatestNumeric(
         types: [HealthDataType.WEIGHT],
         startTime: now.subtract(const Duration(days: 7)),
-        endTime: now,
+        endTime: queryEnd,
       ),
       readAt: now,
     );
@@ -202,10 +204,13 @@ class HealthService {
     required DateTime startTime,
     required DateTime endTime,
     required int totalCaloriesBurned,
+    HealthWorkoutActivityType activityType =
+        HealthWorkoutActivityType.STRENGTH_TRAINING,
   }) async {
     try {
+      await _health.configure();
       return await _health.writeWorkoutData(
-        activityType: HealthWorkoutActivityType.WEIGHTLIFTING,
+        activityType: activityType,
         title: activityName,
         start: startTime,
         end: endTime,
@@ -213,7 +218,22 @@ class HealthService {
         totalEnergyBurnedUnit: HealthDataUnit.KILOCALORIE,
       );
     } catch (_) {
-      return false;
+      try {
+        final fallbackType =
+            activityType == HealthWorkoutActivityType.STRENGTH_TRAINING
+                ? HealthWorkoutActivityType.WEIGHTLIFTING
+                : HealthWorkoutActivityType.STRENGTH_TRAINING;
+        return await _health.writeWorkoutData(
+          activityType: fallbackType,
+          title: activityName,
+          start: startTime,
+          end: endTime,
+          totalEnergyBurned: totalCaloriesBurned,
+          totalEnergyBurnedUnit: HealthDataUnit.KILOCALORIE,
+        );
+      } catch (_) {
+        return false;
+      }
     }
   }
 
@@ -250,21 +270,66 @@ class HealthService {
     );
   }
 
+  Future<int> getDaysOfStepHistory() async {
+    final samples = await (_db.selectOnly(_db.healthSamples, distinct: true)
+          ..addColumns([_db.healthSamples.dateIso])
+          ..where(_db.healthSamples.kind.equals('steps')))
+        .get();
+    return samples.length;
+  }
+
   Future<HealthRead<double>> _readSteps(
     DateTime startTime,
     DateTime endTime,
   ) async {
     const types = [HealthDataType.STEPS];
     try {
-      final steps = await _health.getTotalStepsInInterval(startTime, endTime);
-      if (steps == null) {
+      int? steps = await _health.getTotalStepsInInterval(startTime, endTime);
+
+      // Query raw data points across all connected sources (Samsung Health, Galaxy Watch, Google Fit, phone pedometer)
+      List<HealthDataPoint> data = [];
+      try {
+        data = await _health.getHealthDataFromTypes(
+          types: types,
+          startTime: startTime,
+          endTime: endTime,
+        );
+      } catch (_) {
+        // Fallback: If raw point retrieval fails, continue with aggregate value
+      }
+
+      double maxSourceSum = 0;
+      if (data.isNotEmpty) {
+        final Map<String, double> stepsBySource = {};
+        for (final point in data) {
+          final val = _numericValue(point);
+          if (val != null && val > 0) {
+            final sourceKey = point.sourceName.isNotEmpty
+                ? point.sourceName
+                : (point.sourceId.isNotEmpty ? point.sourceId : 'default');
+            stepsBySource[sourceKey] = (stepsBySource[sourceKey] ?? 0.0) + val;
+          }
+        }
+
+        for (final sum in stepsBySource.values) {
+          if (sum > maxSourceSum) {
+            maxSourceSum = sum;
+          }
+        }
+      }
+
+      final effectiveSteps = (steps != null && steps > maxSourceSum)
+          ? steps.toDouble()
+          : (maxSourceSum > 0 ? maxSourceSum : (steps?.toDouble()));
+
+      if (effectiveSteps == null) {
         return HealthRead<double>.empty(
           readAt: endTime,
           dataTypes: _typeNames(types),
         );
       }
       return HealthRead<double>.available(
-        value: steps.toDouble(),
+        value: effectiveSteps,
         readAt: endTime,
         dataTypes: _typeNames(types),
       );

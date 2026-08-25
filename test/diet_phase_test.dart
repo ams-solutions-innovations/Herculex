@@ -6,6 +6,7 @@ void main() {
     test('save labels name the phase', () {
       expect(DietPhase.cut.saveLabel, 'Save Cut');
       expect(DietPhase.bulk.saveLabel, 'Save Bulk');
+      expect(DietPhase.maingain.saveLabel, 'Save Maingain');
       expect(DietPhase.maintain.saveLabel, 'Save Target');
     });
   });
@@ -15,6 +16,15 @@ void main() {
       final t = DietPhaseCalculator.apply(
           phase: DietPhase.maintain, baselineKcal: 2500, bodyweightKg: 80);
       expect(t.kcal, 2500);
+      expect(t.deltaKcal, 0);
+    });
+
+    test('maingain applies default lean surplus with high protein', () {
+      final t = DietPhaseCalculator.apply(
+          phase: DietPhase.maingain, baselineKcal: 2500, bodyweightKg: 80);
+      expect(t.kcal, 2650);
+      expect(t.deltaKcal, 150);
+      expect(t.proteinG, (80 * 2.2).round());
     });
 
     test('cut removes the default 20% deficit', () {
@@ -29,6 +39,26 @@ void main() {
       expect(t.kcal, 2750);
     });
 
+    test('weeklyRateKg sets cut pace from 0.25 to 1.0 kg/week', () {
+      final mild = DietPhaseCalculator.apply(
+          phase: DietPhase.cut, baselineKcal: 2500, bodyweightKg: 80, weeklyRateKg: 0.25);
+      expect(mild.kcal, 2250);
+
+      final agg = DietPhaseCalculator.apply(
+          phase: DietPhase.cut, baselineKcal: 2500, bodyweightKg: 80, weeklyRateKg: 1.0);
+      expect(agg.kcal, 1500);
+    });
+
+    test('weeklyRateKg sets bulk pace from 0.25 to 1.0 kg/week', () {
+      final lean = DietPhaseCalculator.apply(
+          phase: DietPhase.bulk, baselineKcal: 2500, bodyweightKg: 80, weeklyRateKg: 0.25);
+      expect(lean.kcal, 2750);
+
+      final agg = DietPhaseCalculator.apply(
+          phase: DietPhase.bulk, baselineKcal: 2500, bodyweightKg: 80, weeklyRateKg: 1.0);
+      expect(agg.kcal, 3500);
+    });
+
     test('an override replaces the default shift', () {
       final t = DietPhaseCalculator.apply(
         phase: DietPhase.cut,
@@ -39,13 +69,17 @@ void main() {
       expect(t.kcal, 1800);
     });
 
-    test('protein is raised in a cut relative to maintenance', () {
+    test('protein is raised in a cut and maingain relative to maintenance', () {
       final cut = DietPhaseCalculator.apply(
           phase: DietPhase.cut, baselineKcal: 2500, bodyweightKg: 80);
+      final maingain = DietPhaseCalculator.apply(
+          phase: DietPhase.maingain, baselineKcal: 2500, bodyweightKg: 80);
       final maintain = DietPhaseCalculator.apply(
           phase: DietPhase.maintain, baselineKcal: 2500, bodyweightKg: 80);
       expect(cut.proteinG, greaterThan(maintain.proteinG));
+      expect(maingain.proteinG, greaterThan(maintain.proteinG));
       expect(cut.proteinG, (80 * 2.2).round());
+      expect(maingain.proteinG, (80 * 2.2).round());
     });
 
     test('macros add back up to the calorie target', () {
@@ -85,6 +119,36 @@ void main() {
       expect(t.proteinG, 0);
       expect(t.carbsG, 0);
       expect(t.fatG, 0);
+    });
+
+    test('enforces minProteinG floor when specified', () {
+      final t = DietPhaseCalculator.apply(
+        phase: DietPhase.maintain,
+        baselineKcal: 2500,
+        bodyweightKg: 80,
+        minProteinG: 176,
+      );
+      expect(t.proteinG, 176);
+    });
+
+    test('enforces minCaloriesKcal floor when specified', () {
+      final t = DietPhaseCalculator.apply(
+        phase: DietPhase.cut,
+        baselineKcal: 2500,
+        bodyweightKg: 80,
+        weeklyRateKg: 1.0,
+        minCaloriesKcal: 1750,
+      );
+      expect(t.kcal, 1750);
+    });
+  });
+
+  group('DietPhaseCalculator.paceOptionsFor', () {
+    test('provides pace presets for all phases', () {
+      for (final phase in DietPhase.values) {
+        final options = DietPhaseCalculator.paceOptionsFor(phase);
+        expect(options, isNotEmpty);
+      }
     });
   });
 }

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../data/local/database.dart';
 
@@ -320,7 +321,11 @@ class TemplatesRepository {
     int? gymId,
     String? notes,
     double volumeFactor = 1.0,
+    String? sessionUuid,
   }) async {
+    final template = await (_db.select(_db.workoutTemplates)
+          ..where((t) => t.id.equals(templateId)))
+        .getSingleOrNull();
     final exercises = await (_db.select(_db.templateExercises)
           ..where((t) => t.templateId.equals(templateId))
           ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
@@ -329,9 +334,11 @@ class TemplatesRepository {
     return _db.transaction(() async {
       final sessionId = await _db.into(_db.workoutSessions).insert(
             WorkoutSessionsCompanion.insert(
+              name: Value(template?.name),
               startedAt: startedAt ?? DateTime.now(),
               gymId: Value(gymId),
               notes: Value(notes),
+              sessionUuid: Value(sessionUuid ?? const Uuid().v4()),
             ),
           );
       for (final te in exercises) {
@@ -340,6 +347,7 @@ class TemplatesRepository {
                 sessionId: sessionId,
                 exerciseId: te.exerciseId,
                 orderIndex: te.orderIndex,
+                supersetGroup: Value(te.supersetGroup),
                 targetRestSeconds: Value(te.targetRestSeconds),
               ),
             );

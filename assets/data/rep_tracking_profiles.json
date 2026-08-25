@@ -3691,21 +3691,6 @@
     "reason": "derived from pattern=vertical_push"
   },
   {
-    "slug": "safety-bar-overhead-press",
-    "tier": "supported",
-    "site": "wrist",
-    "family": "verticalPush",
-    "channels": [
-      "tilt",
-      "dyn"
-    ],
-    "minCycleAmplitudeDeg": 35.0,
-    "minCycleAmplitudeMs2": 1.5,
-    "minPeriodMs": 900,
-    "maxPeriodMs": 9000,
-    "reason": "derived from pattern=vertical_push"
-  },
-  {
     "slug": "axle-bar-overhead-press",
     "tier": "supported",
     "site": "wrist",

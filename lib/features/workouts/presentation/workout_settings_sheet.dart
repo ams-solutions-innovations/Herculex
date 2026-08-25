@@ -6,8 +6,8 @@ import '../../../app/providers.dart';
 import '../../../core/units.dart';
 import '../../../features/profile/domain/profile.dart';
 import '../../../theme/colors.dart';
-import '../../reps/presentation/rep_auto_count_tile.dart';
 import '../data/workout_quick_action_settings.dart';
+import '../../buddy/presentation/buddy_share_sheet.dart';
 import 'plate_calculator_sheet.dart';
 import 'rest_timer_controller.dart';
 
@@ -225,12 +225,6 @@ class WorkoutSettingsSheet extends ConsumerWidget {
           ),
           Divider(height: 1, color: AppColors.outlineVariant),
 
-          // ── Assisted rep counting ─────────────────────────────────────
-          _SectionHeader(label: 'REP COUNTING'),
-          const RepAutoCountTile(),
-
-          Divider(height: 1, color: AppColors.outlineVariant),
-
           // ── Keep Awake ────────────────────────────────────────────────
           _SectionHeader(label: 'DISPLAY'),
           SwitchListTile(
@@ -276,8 +270,21 @@ class WorkoutSettingsSheet extends ConsumerWidget {
           ),
           Divider(height: 1, color: AppColors.outlineVariant),
 
-          // ── Coming Soon ───────────────────────────────────────────────
+          // ── Tools ─────────────────────────────────────────────────────
           _SectionHeader(label: 'TOOLS'),
+          ListTile(
+            leading: Icon(
+              Icons.group_rounded,
+              color: AppColors.primary,
+            ),
+            title: const Text('Live Workout Sharing'),
+            subtitle: const Text('Share QR code with your gym buddy to train together'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).pop();
+              BuddyShareSheet.show(context);
+            },
+          ),
           // Plate Calculator — real feature
           ListTile(
             leading: Icon(

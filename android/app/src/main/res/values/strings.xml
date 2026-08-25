@@ -7,4 +7,13 @@
     <string name="widget_fat_description">Fat — shows your daily fat progress</string>
     <string name="widget_protein_description">Protein — shows your daily protein progress</string>
     <string name="widget_scanner_description">Scan Food — opens the barcode scanner to log food</string>
+    <string name="widget_today_calories_small_label">Today\'s Calories</string>
+    <string name="widget_today_calories_small_description">Today\'s Calories — track calorie goal and remaining energy</string>
+    <string name="widget_today_calories_medium_label">Today\'s Calories</string>
+    <string name="widget_today_calories_medium_description">Today\'s Calories — track calorie goal, exercise, and log food fast</string>
+    <string name="widget_today_macros_medium_label">Today\'s Macros</string>
+    <string name="widget_today_macros_medium_description">Today\'s Macros — keep your daily carb, fat, and protein goals on track</string>
+    <string name="workout_bubble_content_description">Herculex workout in progress — tap to open</string>
+    <string name="workout_bubble_dismiss_content_description">Dismiss the workout bubble</string>
+    <string name="workout_bubble_open_app">Open in Herculex</string>
 </resources>

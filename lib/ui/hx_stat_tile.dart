@@ -45,6 +45,7 @@ class HxStatTile extends StatelessWidget {
     return HxCard(
       padding: const EdgeInsets.all(HxSpace.x4 - 2),
       radius: HxRadius.md,
+      accent: accent,
       onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

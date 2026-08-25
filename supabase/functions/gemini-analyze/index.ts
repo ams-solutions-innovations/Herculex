@@ -9,9 +9,11 @@ type GeminiKind =
   | "food_photo"
   | "nutrition_label"
   | "exercise_identification"
+  | "supplement_photo"
   | "barcode_product"
   | "body_fat_estimate"
-  | "dream_physique";
+  | "dream_physique"
+  | "rambler_food";
 
 type GeminiImage = {
   mimeType?: string;
@@ -21,6 +23,8 @@ type GeminiImage = {
 
 type GeminiRequest = {
   kind?: GeminiKind;
+  text?: string;
+  mealKey?: string;
   image?: GeminiImage;
   images?: GeminiImage[];
   currentImages?: GeminiImage[];
@@ -32,7 +36,7 @@ type GeminiRequest = {
 };
 
 const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
+const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -79,12 +83,23 @@ Deno.serve(async (req) => {
       case "exercise_identification": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const text = await generateText({
+        const result = await generateJson({
           images: [image],
           promptText: exerciseIdentificationPrompt(),
           temperature: 0.1,
         });
-        return json({ text: text.trim() || "Unknown" });
+        const name = typeof result.identifiedName === "string" ? result.identifiedName.trim() : "Unknown";
+        return json({ text: name || "Unknown", result });
+      }
+      case "supplement_photo": {
+        const image = validateImage(payload.image);
+        if ("error" in image) return json({ error: image.error }, 400);
+        const result = await generateJson({
+          images: [image],
+          promptText: supplementPhotoPrompt(payload.userNote),
+          temperature: 0.1,
+        });
+        return json({ result });
       }
       case "barcode_product": {
         const image = validateImage(payload.image);
@@ -142,6 +157,18 @@ Deno.serve(async (req) => {
           images: allImages,
           promptText: dreamPhysiquePrompt(payload.biometrics, payload.userNote),
           temperature: 0.2,
+        });
+        return json({ result });
+      }
+      case "rambler_food": {
+        const text = payload.text?.trim() || payload.userNote?.trim();
+        if (!text) {
+          return json({ error: "Text description of food is required." }, 400);
+        }
+        const result = await generateJson({
+          images: [],
+          promptText: ramblerFoodPrompt(text, payload.mealKey),
+          temperature: 0.1,
         });
         return json({ result });
       }
@@ -507,12 +534,136 @@ JSON schema:
 
 function exerciseIdentificationPrompt(): string {
   return `
-Analyze this image of gym equipment or an exercise setup.
-Identify the exercise or machine.
-Return only the exercise or machine name.
-If it is a chest press machine, return either "Plate Loaded Chest Press" or
-"Pin Loaded Chest Press" depending on what you see.
-If you do not know, return "Unknown".
+You are a gym equipment and exercise biomechanics expert for Herculex fitness app.
+Analyze this image of gym equipment, a fitness machine, weights, or workout station setup.
+
+Identify:
+1. The specific exercise or machine name in "identifiedName" (e.g. "Incline Dumbbell Bench Press", "Lat Pulldown", "Leg Extension Machine", "Cable Face Pull", "Plate Loaded Chest Press", "Pin Loaded Chest Press", "Smith Machine Squat", "Barbell Bicep Curl").
+2. Primary muscle group in "primaryMuscle" (e.g. "Chest", "Back", "Lats", "Legs", "Quads", "Hamstrings", "Glutes", "Shoulders", "Biceps", "Triceps", "Abs", "Calves", "Traps").
+3. Equipment category in "equipment" (e.g. "machine", "cable", "barbell", "dumbbell", "kettlebell", "smith", "plate-loaded", "bodyweight").
+4. Movement category in "category" (e.g. "Push", "Pull", "Legs", "Core", "Cardio").
+5. Confidence from 0.0 to 1.0 in "confidence".
+6. Short Slovenian description in "description" (e.g. "Fitnes naprava za potisk s prsi za krepitev prsnih mišic in tricepsa.").
+
+If the image is not gym equipment or an exercise, return:
+{
+  "identifiedName": "Unknown",
+  "primaryMuscle": null,
+  "equipment": null,
+  "category": null,
+  "confidence": 0.0,
+  "description": "Slike ni bilo mogoče prepoznati kot fitnes napravo."
+}
+
+Return ONLY valid JSON:
+{
+  "identifiedName": "Lat Pulldown Machine",
+  "primaryMuscle": "Lats",
+  "equipment": "cable",
+  "category": "Pull",
+  "confidence": 0.95,
+  "description": "Naprava za priteg na prsi (Lat Pulldown) za krepitev širokih hrbtnih mišic."
+}
+`;
+}
+
+function supplementPhotoPrompt(userNote?: string | null): string {
+  const note = userNote?.trim()
+    ? `Opomba uporabnika: "${userNote.trim()}"`
+    : "";
+  return `
+You are an expert sports nutritionist and dietary supplement specialist for Herculex fitness app.
+Analyze the provided photo of a dietary supplement (e.g. tub, bottle, packaging, or supplement facts / nutrition label).
+${note}
+
+Identify:
+1. Product name in "name" (e.g. "Creatine Monohydrate", "Whey Protein Isolate", "Omega 3", "Vitamin D3", "Pre-Workout", "Magnezij Bisglicinat").
+2. Brand or manufacturer in "brand" (e.g. "Optimum Nutrition", "MyProtein", "Battery Nutrition", "OstroVit", "Now Foods", etc. or null if unknown).
+3. Recommended single dose amount in "doseAmount" (numeric value, e.g. 5.0, 30.0, 1.0, 2.0).
+4. Dose unit in "doseUnit" (must be one of: 'g', 'mg', 'µg', 'ml', 'IU', 'capsule', 'scoop').
+5. Nutrients provided per single dose in "nutrients" object matching supported Herculex nutrient keys in standard units:
+   - "protein" (in g)
+   - "fiber" (in g)
+   - "sugars" (in g)
+   - "saturated_fat" (in g)
+   - "trans_fat" (in g)
+   - "sodium" (in mg)
+   - "potassium" (in mg)
+   - "cholesterol" (in mg)
+   - "calcium" (in mg)
+   - "iron" (in mg)
+   - "magnesium" (in mg)
+   - "zinc" (in mg)
+   - "vitamin_a" (in µg)
+   - "vitamin_b12" (in µg)
+   - "vitamin_c" (in mg)
+   - "vitamin_d" (in µg - note: 1000 IU = 25 µg)
+   - "vitamin_e" (in mg)
+   - "vitamin_k" (in µg)
+   - "folate" (in µg)
+   - "omega_3" (in g)
+   - "caffeine" (in mg)
+6. Recommended schedule in "schedule": "none", "time" (e.g. for morning vitamins/omega 3), or "post_workout" (e.g. for creatine, whey protein).
+7. If schedule is "time", recommended default time in "timeHHMM" (e.g. "08:00"), otherwise null.
+8. A short Slovenian description/explanation in "description".
+9. Confidence score from 0.0 to 1.0 in "confidence".
+
+Return ONLY a valid JSON object:
+{
+  "name": "Creatine Monohydrate",
+  "brand": "Optimum Nutrition",
+  "doseAmount": 5.0,
+  "doseUnit": "g",
+  "nutrients": {
+    "protein": 0.0
+  },
+  "schedule": "post_workout",
+  "timeHHMM": null,
+  "confidence": 0.95,
+  "description": "Čisti mikroniziran kreatin monohidrat za povečanje moči in eksplozivnosti."
+}
+`;
+}
+
+function ramblerFoodPrompt(text: string, preferredMealKey?: string): string {
+  const mealContext = preferredMealKey ? `Preferred or current meal slot: "${preferredMealKey}"` : "";
+  return `
+You are an expert nutritionist and meal analyzer for the Herculex fitness & nutrition app.
+The user described what they ate or drank, either spoken (speech-to-text) or typed, in Slovenian, English, or another language.
+
+User input:
+"${text}"
+${mealContext}
+
+Analyze the food items described and extract each individual food component with realistic nutritional values (per 100g and estimated serving portion).
+
+Rules:
+1. Parse every mentioned food/beverage into an item.
+2. If quantities are specified (e.g. "200g", "2 pieces", "skleda", "1 žlica", "2 jajci"), estimate the portion in grams and specify portionAmount + portionUnit.
+3. If no quantity is specified, provide a typical realistic single serving (e.g., 1 banana = 120g, 1 slice bread = 40g, 1 egg = 55g, coffee with milk = 200ml, 1 steak = 200g).
+4. Provide accurate macronutrient values per 100g (kcalPer100g, proteinPer100g, carbsPer100g, fatPer100g, fiberPer100g).
+5. Infer the most likely meal slot ('breakfast', 'lunch', 'dinner', 'snack') if not already clear.
+6. Provide names in the language used by the user (prefer Slovenian if user spoke Slovenian, English if English).
+
+Return ONLY a JSON object:
+{
+  "suggestedMealKey": "breakfast",
+  "summary": "Kratek povzetek obroka v slovenščini ali angleščini",
+  "items": [
+    {
+      "name": "Pečene piščančje prsi",
+      "servingGrams": 200.0,
+      "portionAmount": 200.0,
+      "portionUnit": "g",
+      "kcalPer100g": 165.0,
+      "proteinPer100g": 31.0,
+      "carbsPer100g": 0.0,
+      "fatPer100g": 3.6,
+      "fiberPer100g": 0.0,
+      "confidence": 0.95
+    }
+  ]
+}
 `;
 }
 

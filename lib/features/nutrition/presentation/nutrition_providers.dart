@@ -8,6 +8,7 @@ import '../../../data/local/database.dart';
 import '../../../services/widget_sync_service.dart';
 import '../data/nutrition_repository.dart';
 import '../data/openfoodfacts_client.dart';
+import '../data/gemini_food_analyzer_service.dart';
 import '../domain/daily_totals.dart';
 import '../domain/macro_targets.dart';
 import '../domain/carb_cycling.dart';
@@ -211,6 +212,40 @@ final recentFoodsProvider = FutureProvider<List<FoodData>>((ref) {
   return ref.watch(nutritionRepositoryProvider).recentFoods();
 });
 
+/// Watches all unique foods previously logged in strictly descending order of
+/// their latest log time.
+final recentlyLoggedFoodsProvider =
+    StreamProvider.autoDispose<List<FoodData>>((ref) {
+      return ref.watch(nutritionRepositoryProvider).watchRecentlyLoggedFoods();
+    });
+
+class FoodSuggestionParams {
+  final int hour;
+  final String? mealKey;
+
+  const FoodSuggestionParams({required this.hour, this.mealKey});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FoodSuggestionParams &&
+          runtimeType == other.runtimeType &&
+          hour == other.hour &&
+          mealKey == other.mealKey;
+
+  @override
+  int get hashCode => Object.hash(hour, mealKey);
+}
+
+/// Watches foods suggested for a given time of day / hour and/or active meal slot.
+final suggestedFoodsProvider = StreamProvider.autoDispose
+    .family<List<FoodData>, FoodSuggestionParams>((ref, params) {
+      return ref.watch(nutritionRepositoryProvider).watchSuggestedFoods(
+        hour: params.hour,
+        mealKey: params.mealKey,
+      );
+    });
+
 /// Group entries by meal for rendering meal sections.
 final entriesByMealProvider = Provider.autoDispose
     .family<AsyncValue<Map<String, List<FoodEntryData>>>, DateTime>((
@@ -260,6 +295,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   final appliedFastingCommands = <String>{};
   final appliedQuickAddCommands = <String>{};
   final appliedMacroCommands = <String>{};
+  final appliedRamblerCommands = <String>{};
 
   Future<void> syncQuickAddToWear() async {
     final repo = ref.read(nutritionRepositoryProvider);
@@ -279,6 +315,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
             'portionAmount': item.portionAmount,
             'portionUnit': item.portionUnit,
             'portionLabel': item.portionLabel,
+            if (item.lastMealKey != null) 'lastMealKey': item.lastMealKey,
           },
       ],
     });
@@ -313,6 +350,35 @@ final wearSyncControllerProvider = Provider<void>((ref) {
       volumeJson = jsonEncode(list);
     }
 
+    final historyMap = ref.read(nutritionHistoryProvider).asData?.value ?? {};
+    final trendsList = <Map<String, dynamic>>[];
+    for (int i = 6; i >= 0; i--) {
+      final d = today.subtract(Duration(days: i));
+      final iso = DateFormat('yyyy-MM-dd').format(d);
+      final dayLabel = DateFormat('E').format(d);
+      final dayTotals = historyMap[iso];
+      trendsList.add({
+        'date': iso,
+        'day': dayLabel,
+        'calories': (dayTotals?.kcal ?? (i == 0 ? totals.kcal : 0.0)).round(),
+        'protein': (dayTotals?.proteinG ?? (i == 0 ? totals.proteinG : 0.0)).round(),
+        'carbs': (dayTotals?.carbsG ?? (i == 0 ? totals.carbsG : 0.0)).round(),
+        'fats': (dayTotals?.fatG ?? (i == 0 ? totals.fatG : 0.0)).round(),
+        'water': 0,
+      });
+    }
+
+    final targets =
+        ref.read(effectiveTargetsProvider(today)).asData?.value ??
+        ref.read(baselineTargetsProvider);
+    final baseline = ref.read(baselineTargetsProvider);
+
+    final calorieGoal = targets?.kcal ?? baseline?.kcal ?? 2000;
+    final proteinGoal = targets?.proteinG ?? baseline?.proteinG ?? 150;
+    final carbsGoal   = targets?.carbsG ?? baseline?.carbsG ?? 200;
+    final fatGoal     = targets?.fatG ?? baseline?.fatG ?? 65;
+    final waterGoal   = 2000;
+
     await ref
         .read(wearSyncServiceProvider)
         .syncMacros(
@@ -324,6 +390,12 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           weeklyTonnage: volume?.totalTonnageKg ?? 0.0,
           weeklySets: volume?.totalSets ?? 0,
           weeklyVolumeJson: volumeJson,
+          nutrientTrendsJson: jsonEncode(trendsList),
+          calorieGoal: calorieGoal,
+          proteinGoal: proteinGoal,
+          carbsGoal: carbsGoal,
+          fatGoal: fatGoal,
+          waterGoal: waterGoal,
         );
     await syncFastingToWear();
     await syncQuickAddToWear();
@@ -417,7 +489,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   };
 
   // Phase 5 (docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md,
-  // "manjkajoča nutrition sinhronizacija"): the watch's "+200 kcal" /
+  // "missing nutrition sync"): the watch's "+200 kcal" /
   // "+500ml water" / manual food quick-adds (NutritionViewModel.addCalories/
   // addWater/logFood) previously only touched the watch's own local
   // MacroStore and were never sent to the phone at all. Mirrors the
@@ -501,6 +573,66 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     }
   };
 
+  WearSyncService.onWatchRamblerCommand = (commandJson) async {
+    if (commandJson == null || commandJson.isEmpty) return;
+    try {
+      final decoded = jsonDecode(commandJson) as Map<String, dynamic>;
+      final commandId = decoded['commandId'] as String?;
+      if (commandId == null || commandId.isEmpty) return;
+      if (appliedRamblerCommands.contains(commandId)) {
+        await ref
+            .read(wearSyncServiceProvider)
+            .markWatchRamblerCommandApplied(commandId);
+        return;
+      }
+
+      final text = decoded['text'] as String? ?? '';
+      final mealKey = decoded['mealKey'] as String? ?? 'lunch';
+
+      if (text.trim().isNotEmpty) {
+        final analyzer = ref.read(geminiFoodAnalyzerServiceProvider);
+        final result = await analyzer.analyzeRamblerText(
+          text: text,
+          preferredMealKey: mealKey,
+        );
+
+        final repo = ref.read(nutritionRepositoryProvider);
+        final selectedMeal = (result.suggestedMealKey != null &&
+                result.suggestedMealKey!.isNotEmpty)
+            ? result.suggestedMealKey!
+            : mealKey;
+
+        for (final item in result.items) {
+          final food = await repo.createCustomFood(
+            name: item.name,
+            brand: 'Rambler AI',
+            kcalPer100g: item.kcalPer100g,
+            proteinPer100g: item.proteinPer100g,
+            carbsPer100g: item.carbsPer100g,
+            fatPer100g: item.fatPer100g,
+            servingGrams: item.servingGrams,
+            servingLabel: '${item.servingGrams.toStringAsFixed(0)} g',
+          );
+
+          await repo.logFood(
+            date: DateTime.now(),
+            mealKey: selectedMeal,
+            foodId: food.id,
+            grams: item.servingGrams,
+          );
+        }
+      }
+
+      appliedRamblerCommands.add(commandId);
+      await ref
+          .read(wearSyncServiceProvider)
+          .markWatchRamblerCommandApplied(commandId);
+      await syncAllToWear();
+    } catch (e) {
+      debugPrint('Error processing watch rambler command: $e');
+    }
+  };
+
   ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (
     previous,
     next,
@@ -531,33 +663,111 @@ final wearSyncControllerProvider = Provider<void>((ref) {
       syncAllToWear();
     }
   });
+
+  ref.listen<AsyncValue<MacroTargets?>>(effectiveTargetsProvider(today), (
+    previous,
+    next,
+  ) {
+    if (next.hasValue) {
+      syncAllToWear();
+    }
+  });
+
+  ref.listen<AsyncValue<Map<String, DailyTotals>>>(nutritionHistoryProvider, (
+    previous,
+    next,
+  ) {
+    if (next.hasValue) {
+      syncAllToWear();
+    }
+  });
 });
 
-/// Syncs macro totals + targets to the Android home-screen pill widgets
+/// Syncs full nutrition totals + targets to the Android home-screen widgets
 /// every time [dailyTotalsProvider] or [effectiveTargetsProvider] emits.
 final widgetMacroSyncControllerProvider = Provider<void>((ref) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final widgetSync = ref.watch(widgetSyncServiceProvider);
 
-  ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (
-    _,
-    next,
-  ) async {
-    if (!next.hasValue) return;
-    final totals = next.value!;
+  Future<void> doSync() async {
+    final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
+    if (totals == null) return;
+
     final targets =
         ref.read(effectiveTargetsProvider(today)).asData?.value ??
         ref.read(baselineTargetsProvider);
-    await widgetSync.syncMacros(
+    final baseline = ref.read(baselineTargetsProvider);
+
+    final isoDate =
+        "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+    double extraCalories = 0;
+    try {
+      final healthSamples = await ref
+          .read(appDatabaseProvider)
+          .select(ref.read(appDatabaseProvider).healthSamples)
+          .get();
+      final sample = healthSamples
+          .where((s) => s.dateIso == isoDate && s.kind == 'active_kcal')
+          .firstOrNull;
+      if (sample != null) {
+        extraCalories = sample.value;
+      }
+    } catch (_) {}
+
+    final profile = ref.read(profileProvider).valueOrNull;
+    final exerciseKcal = extraCalories.round();
+    final foodKcal = totals.kcal.round();
+
+    int baseGoalKcal = baseline?.kcal ?? targets?.kcal ?? 0;
+    if (profile?.countBurnedCalories == true && targets != null && extraCalories > 0) {
+      baseGoalKcal = (targets.kcal - exerciseKcal).clamp(0, 99999);
+    } else if (targets != null) {
+      baseGoalKcal = targets.kcal;
+    }
+
+    final remainingKcal = baseGoalKcal - foodKcal + exerciseKcal;
+
+    await widgetSync.syncNutrition(
+      baseGoalKcal: baseGoalKcal,
+      foodKcal: foodKcal,
+      exerciseKcal: exerciseKcal,
+      remainingKcal: remainingKcal,
       carbsCurrent: totals.carbsG.round(),
-      carbsTarget: targets?.carbsG ?? 0,
+      carbsTarget: targets?.carbsG ?? baseline?.carbsG ?? 0,
       fatCurrent: totals.fatG.round(),
-      fatTarget: targets?.fatG ?? 0,
+      fatTarget: targets?.fatG ?? baseline?.fatG ?? 0,
       proteinCurrent: totals.proteinG.round(),
-      proteinTarget: targets?.proteinG ?? 0,
+      proteinTarget: targets?.proteinG ?? baseline?.proteinG ?? 0,
     );
+  }
+
+  ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (
+    _,
+    next,
+  ) {
+    if (next.hasValue && next.value != null) {
+      doSync();
+    }
   }, fireImmediately: true);
+
+  ref.listen<AsyncValue<MacroTargets?>>(effectiveTargetsProvider(today), (
+    _,
+    next,
+  ) {
+    if (next.hasValue) {
+      doSync();
+    }
+  });
+
+  ref.listen<AsyncValue<Map<String, DailyTotals>>>(nutritionHistoryProvider, (
+    _,
+    next,
+  ) {
+    if (next.hasValue) {
+      doSync();
+    }
+  });
 });
 
 /// Provider for multi-day daily totals history (up to 92 days back).
@@ -571,26 +781,45 @@ final nutritionHistoryProvider =
           .watchDailyTotalsForRange(startDate, endDate);
     });
 
-/// Provider for Average Weekly Calories (past 7 days daily average).
-final averageWeeklyCaloriesProvider = Provider.autoDispose<double?>((ref) {
+/// Provider for 7-day average intake of a specific macro ('kcal', 'protein', 'carbs', 'fat').
+final averageWeeklyMacroProvider =
+    Provider.autoDispose.family<double?, String>((ref, macro) {
   final history = ref.watch(nutritionHistoryProvider).asData?.value;
   if (history == null || history.isEmpty) return null;
 
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
 
-  double totalKcal = 0;
+  double total = 0;
   int count = 0;
 
   for (int i = 0; i < 7; i++) {
     final d = today.subtract(Duration(days: i));
     final iso = DateFormat('yyyy-MM-dd').format(d);
     if (history.containsKey(iso)) {
-      totalKcal += history[iso]!.kcal;
-      count++;
+      final totals = history[iso];
+      if (totals != null) {
+        final val = switch (macro) {
+          'protein' => totals.proteinG,
+          'carbs' => totals.carbsG,
+          'fat' => totals.fatG,
+          _ => totals.kcal,
+        };
+        if (val > 0 && !val.isNaN && !val.isInfinite) {
+          total += val;
+          count++;
+        }
+      }
     }
   }
 
-  if (count == 0) return 0.0;
-  return totalKcal / count;
+  if (count == 0) return null;
+  return total / count;
 });
+
+/// Provider for Average Weekly Calories (past 7 days daily average).
+final averageWeeklyCaloriesProvider = Provider.autoDispose<double?>((ref) {
+  return ref.watch(averageWeeklyMacroProvider('kcal'));
+});
+
+

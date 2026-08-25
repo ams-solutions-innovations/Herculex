@@ -15,8 +15,10 @@ import '../../analytics/presentation/analytics_providers.dart';
 import '../domain/equipment_variants.dart';
 import '../domain/logging_metric.dart';
 import '../domain/one_rep_max.dart';
-import 'workouts_providers.dart';
+import '../domain/progression_engine.dart';
 import 'exercise_artwork.dart';
+import 'progression_override_sheet.dart';
+import 'workouts_providers.dart';
 
 class ExerciseDetailsView extends ConsumerWidget {
   final int exerciseId;
@@ -118,6 +120,8 @@ class _ExerciseDetailsBody extends ConsumerWidget {
           metric: metric,
           labelOf: (record) => record.label,
         ),
+        const SizedBox(height: 14),
+        _ProgressionGoalCard(exercise: exercise),
         const SizedBox(height: 14),
         HxCard(
           child: Column(
@@ -554,3 +558,135 @@ List<_TrendPoint> _trendPoints(TrainingSnapshot snapshot, int exerciseId) {
   if (points.length <= 8) return points;
   return points.sublist(points.length - 8);
 }
+
+class _ProgressionGoalCard extends ConsumerWidget {
+  final ExerciseCatalogData exercise;
+
+  const _ProgressionGoalCard({required this.exercise});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progressionAsync = ref.watch(exerciseProgressionProvider(exercise.id));
+    final theme = Theme.of(context);
+    final hx = context.hx;
+
+    return HxCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Progression Strategy',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit_outlined, size: 20, color: hx.primary),
+                tooltip: 'Configure Progression',
+                onPressed: () => ProgressionOverrideSheet.show(
+                  context,
+                  exerciseId: exercise.id,
+                  exerciseName: exercise.name,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          progressionAsync.when(
+            loading: () => const _CardLoading(),
+            error: (e, _) => Text('Could not load progression: $e'),
+            data: (progression) {
+              if (progression == null || !progression.enabled) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Double Progression (Default: Muscle Gain)',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Rep target: 8–12 reps · Weekly increase: +2.5%',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () => ProgressionOverrideSheet.show(
+                        context,
+                        exerciseId: exercise.id,
+                        exerciseName: exercise.name,
+                      ),
+                      child: Text(
+                        'Customize progression goal…',
+                        style: TextStyle(
+                          color: hx.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              final goal = ProgressionGoal.values.firstWhere(
+                (g) => g.name == progression.goal,
+                orElse: () => ProgressionGoal.muscleGain,
+              );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: hx.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          goal.label,
+                          style: TextStyle(
+                            color: hx.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${goal.repsMin}–${goal.repsMax} reps',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Weekly increase: +${progression.weeklyIncreasePct.toStringAsFixed(1)}%',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+

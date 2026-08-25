@@ -103,5 +103,10 @@ void main() {
       expect(SetType.standard.volumeFactor, 1.0);
       expect(SetType.standard.cnsFactor, 1.0);
     });
+
+    test('myoReps has standard volumeFactor of 1.0 and cnsFactor 1.0', () {
+      expect(SetType.myoReps.volumeFactor, 1.0);
+      expect(SetType.myoReps.cnsFactor, 1.0);
+    });
   });
 }

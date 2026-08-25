@@ -20,6 +20,8 @@ object MacroStore {
     private const val KEY_WEEKLY_TONNAGE = "weekly_tonnage"
     private const val KEY_WEEKLY_SETS    = "weekly_sets"
     private const val KEY_WEEKLY_VOLUME_JSON = "weekly_volume_json"
+    private const val KEY_NUTRIENT_TRENDS_JSON = "nutrient_trends_json"
+    private const val KEY_DAY = "macro_day"
 
     // Daily goals (synced from phone or defaulted)
     private const val KEY_CALORIE_GOAL = "calorie_goal"
@@ -44,6 +46,11 @@ object MacroStore {
             .putInt(KEY_CARBS, carbs)
             .putInt(KEY_FATS, fats)
             .putString(KEY_FASTING, fasting)
+            // The phone is the source of truth for "today", so a full push
+            // also stamps the day key — this is what lets a watch-side
+            // addFood/addCalories/addWater made right after this push detect
+            // it's still the same day and add on top rather than reset.
+            .putString(KEY_DAY, todayKey())
             .apply()
     }
 
@@ -67,16 +74,19 @@ object MacroStore {
     // ── Watch-side additions ─────────────────────────────────────────────────
 
     fun addCalories(context: Context, amount: Int) {
+        rolloverIfNeeded(context)
         val p = prefs(context)
         p.edit().putInt(KEY_CALORIES, p.getInt(KEY_CALORIES, 0) + amount).apply()
     }
 
     fun addWater(context: Context, amountMl: Int) {
+        rolloverIfNeeded(context)
         val p = prefs(context)
         p.edit().putInt(KEY_WATER, p.getInt(KEY_WATER, 0) + amountMl).apply()
     }
 
     fun addFood(context: Context, calories: Int, protein: Int, carbs: Int, fats: Int) {
+        rolloverIfNeeded(context)
         val p = prefs(context)
         p.edit()
             .putInt(KEY_CALORIES, p.getInt(KEY_CALORIES, 0) + calories)
@@ -114,12 +124,12 @@ object MacroStore {
 
     // ── Readers ──────────────────────────────────────────────────────────────
 
-    fun calories(context: Context): Int    = prefs(context).getInt(KEY_CALORIES, 0)
-    fun protein(context: Context): Int     = prefs(context).getInt(KEY_PROTEIN, 0)
-    fun carbs(context: Context): Int       = prefs(context).getInt(KEY_CARBS, 0)
-    fun fats(context: Context): Int        = prefs(context).getInt(KEY_FATS, 0)
+    fun calories(context: Context): Int    { rolloverIfNeeded(context); return prefs(context).getInt(KEY_CALORIES, 0) }
+    fun protein(context: Context): Int     { rolloverIfNeeded(context); return prefs(context).getInt(KEY_PROTEIN, 0) }
+    fun carbs(context: Context): Int       { rolloverIfNeeded(context); return prefs(context).getInt(KEY_CARBS, 0) }
+    fun fats(context: Context): Int        { rolloverIfNeeded(context); return prefs(context).getInt(KEY_FATS, 0) }
     fun fasting(context: Context): String  = prefs(context).getString(KEY_FASTING, "0h 0m") ?: "0h 0m"
-    fun water(context: Context): Int       = prefs(context).getInt(KEY_WATER, 0)
+    fun water(context: Context): Int       { rolloverIfNeeded(context); return prefs(context).getInt(KEY_WATER, 0) }
 
     fun calorieGoal(context: Context): Int = prefs(context).getInt(KEY_CALORIE_GOAL, 2000)
     fun proteinGoal(context: Context): Int = prefs(context).getInt(KEY_PROTEIN_GOAL, 150)
@@ -130,6 +140,7 @@ object MacroStore {
     fun weeklyTonnage(context: Context): Float = prefs(context).getFloat(KEY_WEEKLY_TONNAGE, 0f)
     fun weeklySets(context: Context): Int      = prefs(context).getInt(KEY_WEEKLY_SETS, 0)
     fun weeklyVolumeJson(context: Context): String = prefs(context).getString(KEY_WEEKLY_VOLUME_JSON, "[]") ?: "[]"
+    fun nutrientTrendsJson(context: Context): String = prefs(context).getString(KEY_NUTRIENT_TRENDS_JSON, "[]") ?: "[]"
 
     fun saveWeeklyVolume(context: Context, tonnage: Double, sets: Int, json: String) {
         prefs(context).edit()
@@ -137,6 +148,46 @@ object MacroStore {
             .putInt(KEY_WEEKLY_SETS, sets)
             .putString(KEY_WEEKLY_VOLUME_JSON, json)
             .apply()
+    }
+
+    fun saveNutrientTrends(context: Context, json: String) {
+        prefs(context).edit()
+            .putString(KEY_NUTRIENT_TRENDS_JSON, json)
+            .apply()
+    }
+
+    // ── Day rollover ─────────────────────────────────────────────────────────
+
+    private fun todayKey(): String {
+        val cal = java.util.Calendar.getInstance()
+        return "%04d-%02d-%02d".format(
+            cal.get(java.util.Calendar.YEAR),
+            cal.get(java.util.Calendar.MONTH) + 1,
+            cal.get(java.util.Calendar.DAY_OF_MONTH),
+        )
+    }
+
+    /// `addCalories`/`addWater`/`addFood` only ever add to whatever is already
+    /// persisted, and the readers just return whatever's persisted — neither
+    /// knows the stored totals are from a previous day. Without this, a
+    /// watch-side quick-add (or a screen opened) after midnight but before
+    /// the phone's next full [save] push piles the new entry on top of
+    /// yesterday's leftover numbers instead of starting the new day at zero.
+    /// [fasting]/weekly-tonnage/nutrient-trends are intentionally untouched —
+    /// fasting spans midnight by design, and the weekly stats aren't daily.
+    private fun rolloverIfNeeded(context: Context) {
+        val p = prefs(context)
+        val today = todayKey()
+        if (p.getString(KEY_DAY, null) != today) {
+            p.edit()
+                .putInt(KEY_CALORIES, 0)
+                .putInt(KEY_PROTEIN, 0)
+                .putInt(KEY_CARBS, 0)
+                .putInt(KEY_FATS, 0)
+                .putInt(KEY_WATER, 0)
+                .putString(KEY_DAY, today)
+                .apply()
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

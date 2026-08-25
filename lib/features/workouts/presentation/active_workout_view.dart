@@ -6,17 +6,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/units.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../health/presentation/health_providers.dart';
+import '../domain/circuit_stats.dart';
+import '../domain/workout_name_generator.dart';
 import 'active_exercise_card.dart';
+import 'circuits_providers.dart';
 import 'duration_picker_dialog.dart';
 import 'dynamic_workout_view.dart';
 import 'equipment_variant_sheet.dart';
 import 'exercise_picker_sheet.dart';
 import 'media_controls_sheet.dart';
 import 'rest_timer_banner.dart';
+import 'rest_timer_controller.dart';
+import '../../buddy/application/buddy_providers.dart';
+import '../../buddy/domain/buddy_scope.dart';
+import '../../buddy/presentation/buddy_presence_bar.dart';
+import '../../buddy/presentation/buddy_share_sheet.dart';
 import 'workout_finish_view.dart';
 import 'workout_settings_sheet.dart';
 import 'workouts_providers.dart';
@@ -41,15 +50,12 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     });
     // Enable wakelock if the user preference is on (default: true).
     _applyWakelock();
-
   }
 
   void _applyWakelock() {
     final keepAwake = ref.read(keepAwakeProvider);
     WakelockPlus.toggle(enable: keepAwake);
   }
-
-
 
   @override
   void dispose() {
@@ -67,13 +73,27 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   Widget build(BuildContext context) {
     final session = widget.session;
     final theme = Theme.of(context);
-    final editingOriginalEndedAt =
-        ref.watch(editingSessionOriginalEndedAtProvider)[session.id];
+    final editingOriginalEndedAt = ref.watch(
+      editingSessionOriginalEndedAtProvider,
+    )[session.id];
     final sessionExercises = ref.watch(sessionExercisesProvider(session.id));
+    final liveStats =
+        ref.watch(activeSessionStatsProvider(session.id)).valueOrNull ??
+        const LiveWorkoutStats();
+    final weightFormat = ref.watch(weightFormatProvider);
     final catalog = ref.watch(
       exerciseCatalogProvider(const ExerciseCatalogFilter()),
     );
     final repo = ref.watch(workoutsRepositoryProvider);
+    final buddyState = ref.watch(buddySessionControllerProvider);
+    final buddySender = buddyState.isSharing
+        ? ref.watch(
+            buddyChoreographySenderProvider((
+              buddySessionId: buddyState.buddySessionId!,
+              localWorkoutSessionId: session.id,
+            )),
+          )
+        : null;
 
     // One-tap switch between Classic and Dynamic full-screen mode (§14).
     if (ref.watch(dynamicWorkoutModeProvider)) {
@@ -89,101 +109,111 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
             SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: () => _editWorkoutName(context, ref, session),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              (session.name != null && session.name!.isNotEmpty)
-                                  ? session.name!
-                                  : 'Workout in progress',
-                              style: theme.textTheme.displayMedium?.copyWith(
-                                fontSize: 24,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Icon(
-                            Icons.edit_outlined,
-                            size: 18,
-                            color: AppColors.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Row(
                       children: [
-                        InkWell(
-                          onTap: () async {
-                            final currentDur =
-                                _resolvedEndedAt(session.startedAt, editingOriginalEndedAt)
-                                    .difference(session.startedAt);
-                            final newMins = await DurationPickerDialog.show(
-                              context,
-                              initialMinutes:
-                                  currentDur.inMinutes > 0 ? currentDur.inMinutes : 45,
-                            );
-                            if (newMins != null && newMins > 0) {
-                              final newEndedAt =
-                                  session.startedAt.add(Duration(minutes: newMins));
-                              ref
-                                  .read(editingSessionOriginalEndedAtProvider.notifier)
-                                  .update((state) => {...state, session.id: newEndedAt});
-                              setState(() {});
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () =>
+                                _editWorkoutName(context, ref, session),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  _elapsed(session.startedAt,
-                                      originalEndedAt: editingOriginalEndedAt),
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
+                                Flexible(
+                                  child: Text(
+                                    (session.name != null &&
+                                            session.name!.isNotEmpty)
+                                        ? session.name!
+                                        : 'Workout in progress',
+                                    style: theme.textTheme.displayMedium
+                                        ?.copyWith(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                Icon(Icons.edit_outlined,
-                                    size: 14, color: AppColors.primary),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
                               ],
                             ),
                           ),
                         ),
-                        const Spacer(),
                         IconButton(
-                          icon: const Icon(Icons.settings_outlined),
+                          icon: const Icon(Icons.group_add_outlined, size: 22),
+                          tooltip: 'Gym Buddy',
+                          onPressed: () => BuddyShareSheet.show(context),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.settings_outlined, size: 22),
                           tooltip: 'Workout settings',
                           onPressed: () => WorkoutSettingsSheet.show(context),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.fullscreen),
+                          icon: const Icon(Icons.fullscreen, size: 22),
                           tooltip: 'Dynamic mode',
                           onPressed: () =>
-                              ref.read(dynamicWorkoutModeProvider.notifier).state = true,
+                              ref
+                                      .read(dynamicWorkoutModeProvider.notifier)
+                                      .state =
+                                  true,
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.close, size: 22),
                           tooltip: 'Cancel workout',
                           onPressed: () => _confirmCancel(context, ref),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 10),
+                    _ActiveWorkoutStatsBar(
+                      elapsedText: _elapsed(
+                        session.startedAt,
+                        originalEndedAt: editingOriginalEndedAt,
+                      ),
+                      totalSets: liveStats.totalSets,
+                      completedSets: liveStats.completedSets,
+                      tonnageText: weightFormat.formatTonnage(
+                        liveStats.totalTonnageKg,
+                      ),
+                      onEditDuration: () async {
+                        final currentDur = _resolvedEndedAt(
+                          session.startedAt,
+                          editingOriginalEndedAt,
+                        ).difference(session.startedAt);
+                        final newMins = await DurationPickerDialog.show(
+                          context,
+                          initialMinutes: currentDur.inMinutes > 0
+                              ? currentDur.inMinutes
+                              : 45,
+                        );
+                        if (newMins != null && newMins > 0) {
+                          final newEndedAt = session.startedAt.add(
+                            Duration(minutes: newMins),
+                          );
+                          ref
+                              .read(
+                                editingSessionOriginalEndedAtProvider.notifier,
+                              )
+                              .update(
+                                (state) => {...state, session.id: newEndedAt},
+                              );
+                          setState(() {});
+                        }
+                      },
+                    ),
                   ],
                 ),
+              ),
             ),
-          ),
+            const BuddyPresenceBar(),
             const _HealthActivityAdjustmentBanner(),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 4),
@@ -235,11 +265,27 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                       ),
                       child: child,
                     ),
-                    onReorder: (oldIndex, newIndex) => repo.reorderWorkoutExercises(
-                      sessionId: session.id,
-                      oldIndex: oldIndex,
-                      newIndex: newIndex,
-                    ),
+                    onReorder: (oldIndex, newIndex) {
+                      repo.reorderWorkoutExercises(
+                        sessionId: session.id,
+                        oldIndex: oldIndex,
+                        newIndex: newIndex,
+                      );
+                      if (buddySender != null) {
+                        final reordered = List<WorkoutExerciseData>.from(rows);
+                        final moved = reordered.removeAt(oldIndex);
+                        reordered.insert(
+                          newIndex > oldIndex ? newIndex - 1 : newIndex,
+                          moved,
+                        );
+                        buddySender.reorder(
+                          workoutExerciseIdsInOrder: reordered
+                              .map((r) => r.id)
+                              .toList(),
+                          scope: BuddyScope.both,
+                        );
+                      }
+                    },
                     itemBuilder: (_, i) {
                       final we = rows[i];
                       final exercise = catalog.asData?.value.firstWhere(
@@ -247,7 +293,9 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                         orElse: () => _placeholderExercise(we.exerciseId),
                       );
                       if (exercise == null) {
-                        return SizedBox.shrink(key: ValueKey('exercise_${we.id}'));
+                        return SizedBox.shrink(
+                          key: ValueKey('exercise_${we.id}'),
+                        );
                       }
                       return _LinkedExerciseTile(
                         key: ValueKey('exercise_${we.id}'),
@@ -260,13 +308,23 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                           sessionExercises: rows,
                           catalogExercises: catalog.asData?.value ?? const [],
                           firstSetFocusNode: _focusNodeFor(we.id),
-                          onCompletedSet: (completedWorkoutExerciseId, setIndex) =>
-                              _advanceWithinLinkedGroup(
-                                rows,
-                                completedWorkoutExerciseId,
-                                setIndex,
-                              ),
-                          onRemove: () => repo.removeWorkoutExercise(we.id),
+                          onCompletedSet:
+                              (completedWorkoutExerciseId, setIndex) =>
+                                  _advanceWithinLinkedGroup(
+                                    rows,
+                                    completedWorkoutExerciseId,
+                                    setIndex,
+                                  ),
+                          onRemove: () {
+                            if (buddySender != null) {
+                              buddySender.removeExercise(
+                                workoutExerciseId: we.id,
+                                scope: BuddyScope.mine,
+                              );
+                            } else {
+                              repo.removeWorkoutExercise(we.id);
+                            }
+                          },
                           dragHandle: dragHandle,
                         ),
                       );
@@ -280,56 +338,95 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
           ],
         ),
         // ── Floating action bar ─────────────────────────────────────────
-        Positioned(
+        // Hidden while the keyboard is up (logging kg/reps/RPE) so it never
+        // covers the field being edited; slides back in once it closes.
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
           left: 0,
           right: 0,
-          bottom: 0,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _FloatyButton(
-                      text: 'Exercise',
-                      icon: Icons.add,
-                      isPrimary: false,
-                      onTap: () async {
-                        final results = await ExercisePickerSheet.show(context);
-                        if (results == null || results.isEmpty || !context.mounted) return;
-                        for (final result in results) {
-                          if (!context.mounted) return;
-                          final picked = result.exercise;
-                          final String? variant =
-                              (results.length > 1 || result.equipmentAlreadyChosen)
-                                  ? picked.modality
-                                  : await EquipmentVariantSheet.show(
-                                      context,
-                                      picked,
-                                    );
-                          if (variant == null) continue;
-                          await repo.addExerciseToSession(
-                            sessionId: session.id,
-                            exerciseId: picked.id,
-                            equipmentVariant: variant,
-                          );
-                        }
-                      },
-                    ),
+          bottom: _keyboardOpen(context) ? -140 : 0,
+          child: IgnorePointer(
+            ignoring: _keyboardOpen(context),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 150),
+              opacity: _keyboardOpen(context) ? 0 : 1,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _FloatyButton(
+                          text: 'Exercise',
+                          icon: Icons.add,
+                          isPrimary: false,
+                          onTap: () async {
+                            final results = await ExercisePickerSheet.show(
+                              context,
+                            );
+                            if (results == null ||
+                                results.isEmpty ||
+                                !context.mounted)
+                              return;
+                            final circuitIds = <int>{};
+                            for (final result in results) {
+                              if (!context.mounted) return;
+                              if (result.circuitId != null) {
+                                if (!circuitIds.contains(result.circuitId!)) {
+                                  circuitIds.add(result.circuitId!);
+                                  await ref
+                                      .read(circuitsRepositoryProvider)
+                                      .addCircuitToSession(
+                                        sessionId: session.id,
+                                        circuitId: result.circuitId!,
+                                      );
+                                }
+                                continue;
+                              }
+                              final picked = result.exercise;
+                              final String? variant =
+                                  result.equipmentVariant ??
+                                  ((results.length > 1 ||
+                                          result.equipmentAlreadyChosen)
+                                      ? picked.modality
+                                      : await EquipmentVariantSheet.show(
+                                          context,
+                                          picked,
+                                        ));
+                              if (variant == null) continue;
+                              if (buddySender != null) {
+                                await buddySender.addExercise(
+                                  exerciseId: picked.id,
+                                  equipmentVariant: variant,
+                                  scope: BuddyScope.both,
+                                );
+                              } else {
+                                await repo.addExerciseToSession(
+                                  sessionId: session.id,
+                                  exerciseId: picked.id,
+                                  equipmentVariant: variant,
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _FloatyButton(
+                          text: 'Finish',
+                          icon: Icons.check,
+                          isPrimary: true,
+                          onTap: () async {
+                            await _showFinishSummary(context, ref, session);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _FloatyButton(
-                      text: 'Finish',
-                      icon: Icons.check,
-                      isPrimary: true,
-                      onTap: () async {
-                        await _showFinishSummary(context, ref, session);
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -337,6 +434,9 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
       ],
     );
   }
+
+  bool _keyboardOpen(BuildContext context) =>
+      MediaQuery.viewInsetsOf(context).bottom > 0;
 
   DateTime _resolvedEndedAt(DateTime startedAt, DateTime? originalEndedAt) {
     if (originalEndedAt != null) return originalEndedAt;
@@ -367,18 +467,35 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   ) {
     final currentIndex = rows.indexWhere((r) => r.id == workoutExerciseId);
     if (currentIndex < 0) return false;
-    final group = rows[currentIndex].supersetGroup;
+    final currentEx = rows[currentIndex];
+    final group = currentEx.supersetGroup;
     if (group == null) return false;
 
     final groupRows = rows.where((r) => r.supersetGroup == group).toList()
       ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    if (groupRows.length <= 1) return false;
     final groupIndex = groupRows.indexWhere((r) => r.id == workoutExerciseId);
-    if (groupIndex < 0 || groupIndex == groupRows.length - 1) return false;
+    if (groupIndex < 0) return false;
 
-    final next = groupRows[groupIndex + 1];
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _firstSetFocusNodes[next.id]?.requestFocus();
-    });
+    final isLastInGroup = groupIndex == groupRows.length - 1;
+    if (isLastInGroup) {
+      // Completed the round for the entire superset / giant set group!
+      final rest = currentEx.targetRestSeconds ?? 90;
+      final groupLabel = groupRows.length == 2
+          ? 'Superset'
+          : (groupRows.length == 3 ? 'Tri-Set' : 'Giant Set');
+      ref
+          .read(restTimerProvider.notifier)
+          .start(
+            seconds: rest,
+            exerciseName: '$groupLabel Rest (Round $setIndex)',
+          );
+      // Dismiss keyboard cleanly when round ends — user is resting
+      FocusManager.instance.primaryFocus?.unfocus();
+    } else {
+      // Intra-round transition between linked exercises: dismiss keyboard cleanly
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
     return true;
   }
 
@@ -402,14 +519,19 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   );
 
   void _confirmCancel(BuildContext context, WidgetRef ref) {
-    final editingOriginalEndedAt =
-        ref.read(editingSessionOriginalEndedAtProvider)[widget.session.id];
+    final editingOriginalEndedAt = ref.read(
+      editingSessionOriginalEndedAtProvider,
+    )[widget.session.id];
     final isEditingPastWorkout = editingOriginalEndedAt != null;
 
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isEditingPastWorkout ? 'Close workout edit?' : 'Close active workout?'),
+        title: Text(
+          isEditingPastWorkout
+              ? 'Close workout edit?'
+              : 'Close active workout?',
+        ),
         content: Text(
           isEditingPastWorkout
               ? 'Choose how to exit editing:'
@@ -428,11 +550,18 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                 final db = ref.read(appDatabaseProvider);
                 final stmt = db.update(db.workoutSessions)
                   ..where((t) => t.id.equals(widget.session.id));
-                await stmt.write(WorkoutSessionsCompanion(
-                  endedAt: drift.Value(editingOriginalEndedAt),
-                ));
+                await stmt.write(
+                  WorkoutSessionsCompanion(
+                    endedAt: drift.Value(editingOriginalEndedAt),
+                  ),
+                );
               } else {
-                await ref.read(workoutsRepositoryProvider).endSession(widget.session.id);
+                await ref
+                    .read(workoutsRepositoryProvider)
+                    .endSession(widget.session.id);
+                ref
+                    .read(wearWorkoutSyncServiceProvider)
+                    .notifySessionEnded(widget.session.sessionUuid);
               }
               if (ctx.mounted) Navigator.pop(ctx);
             },
@@ -445,18 +574,25 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                 final db = ref.read(appDatabaseProvider);
                 final stmt = db.update(db.workoutSessions)
                   ..where((t) => t.id.equals(widget.session.id));
-                await stmt.write(WorkoutSessionsCompanion(
-                  endedAt: drift.Value(editingOriginalEndedAt),
-                ));
-                ref.read(editingSessionOriginalEndedAtProvider.notifier).update((state) {
-                  final copy = Map<int, DateTime>.from(state);
-                  copy.remove(widget.session.id);
-                  return copy;
-                });
+                await stmt.write(
+                  WorkoutSessionsCompanion(
+                    endedAt: drift.Value(editingOriginalEndedAt),
+                  ),
+                );
+                ref.read(editingSessionOriginalEndedAtProvider.notifier).update(
+                  (state) {
+                    final copy = Map<int, DateTime>.from(state);
+                    copy.remove(widget.session.id);
+                    return copy;
+                  },
+                );
               } else {
                 await ref
                     .read(workoutsRepositoryProvider)
                     .deleteSession(widget.session.id);
+                ref
+                    .read(wearWorkoutSyncServiceProvider)
+                    .notifySessionEnded(widget.session.sessionUuid);
               }
               if (ctx.mounted) Navigator.pop(ctx);
             },
@@ -475,12 +611,34 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     WidgetRef ref,
     WorkoutSessionData session,
   ) async {
-    final editingOriginalEndedAt =
-        ref.read(editingSessionOriginalEndedAtProvider)[session.id];
-    final nameCtrl = TextEditingController(
-      text: session.name ?? 'Awesome Workout',
-    );
+    final editingOriginalEndedAt = ref.read(
+      editingSessionOriginalEndedAtProvider,
+    )[session.id];
     final repo = ref.read(workoutsRepositoryProvider);
+
+    String defaultWorkoutName = session.name?.trim() ?? '';
+    if (defaultWorkoutName.isEmpty || defaultWorkoutName == 'Awesome Workout') {
+      final sessionExercises =
+          ref.read(sessionExercisesProvider(session.id)).asData?.value ?? [];
+      final catalogSnapshot = ref
+          .read(exerciseCatalogSnapshotProvider)
+          .asData
+          ?.value;
+      if (sessionExercises.isNotEmpty && catalogSnapshot != null) {
+        final exercises = sessionExercises
+            .map((we) => catalogSnapshot.find(we.exerciseId))
+            .whereType<ExerciseCatalogData>()
+            .toList();
+        defaultWorkoutName = WorkoutNameGenerator.generate(exercises);
+      } else {
+        final exercises = await repo.getExercisesForSession(session.id);
+        defaultWorkoutName = WorkoutNameGenerator.generate(exercises);
+      }
+    }
+
+    final nameCtrl = TextEditingController(text: defaultWorkoutName);
+
+    if (!mounted) return;
 
     await showDialog<void>(
       context: context,
@@ -489,7 +647,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
         builder: (ctx, setStateDialog) {
           final currentEndedAt =
               ref.watch(editingSessionOriginalEndedAtProvider)[session.id] ??
-                  editingOriginalEndedAt;
+              editingOriginalEndedAt;
           return AlertDialog(
             title: const Text('Finish Workout'),
             content: Column(
@@ -514,19 +672,24 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                     const SizedBox(width: 8),
                     InkWell(
                       onTap: () async {
-                        final currentDur =
-                            _resolvedEndedAt(session.startedAt, currentEndedAt)
-                                .difference(session.startedAt);
+                        final currentDur = _resolvedEndedAt(
+                          session.startedAt,
+                          currentEndedAt,
+                        ).difference(session.startedAt);
                         final newMins = await DurationPickerDialog.show(
                           context,
-                          initialMinutes:
-                              currentDur.inMinutes > 0 ? currentDur.inMinutes : 45,
+                          initialMinutes: currentDur.inMinutes > 0
+                              ? currentDur.inMinutes
+                              : 45,
                         );
                         if (newMins != null && newMins > 0) {
-                          final newEndedAt =
-                              session.startedAt.add(Duration(minutes: newMins));
+                          final newEndedAt = session.startedAt.add(
+                            Duration(minutes: newMins),
+                          );
                           ref
-                              .read(editingSessionOriginalEndedAtProvider.notifier)
+                              .read(
+                                editingSessionOriginalEndedAtProvider.notifier,
+                              )
                               .update(
                                 (state) => {...state, session.id: newEndedAt},
                               );
@@ -553,24 +716,59 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
               ),
               FilledButton(
                 onPressed: () async {
-                  final finalEndedAt = ref.read(
+                  final finalEndedAt =
+                      ref.read(
                         editingSessionOriginalEndedAtProvider,
                       )[session.id] ??
                       editingOriginalEndedAt;
                   final name = nameCtrl.text.trim();
-                  await repo.updateSessionName(
+                  final finalName = name.isEmpty ? defaultWorkoutName : name;
+                  await repo.updateSessionName(session.id, finalName);
+
+                  final end = finalEndedAt ?? ref.read(clockProvider).now();
+                  final duration = end.difference(session.startedAt);
+                  final profile = ref.read(profileProvider).valueOrNull;
+                  final weight =
+                      (profile?.weightKg != null && profile!.weightKg! > 20)
+                      ? profile.weightKg!
+                      : 75.0;
+                  final minutes = duration.inMinutes > 0
+                      ? duration.inMinutes
+                      : 1;
+                  final calculatedCalories = (5.0 * weight * (minutes / 60.0))
+                      .round()
+                      .clamp(10, 3000);
+
+                  await repo.endSession(
                     session.id,
-                    name.isEmpty ? 'Workout' : name,
+                    endedAt: finalEndedAt,
+                    caloriesBurned: calculatedCalories,
                   );
-                  await repo.endSession(session.id, endedAt: finalEndedAt);
+
+                  try {
+                    await ref
+                        .read(healthServiceProvider)
+                        .writeWorkoutToHealth(
+                          activityName: finalName,
+                          startTime: session.startedAt,
+                          endTime: end,
+                          totalCaloriesBurned: calculatedCalories,
+                        );
+                  } catch (_) {
+                    // Non-blocking sync attempt
+                  }
+
+                  ref
+                      .read(wearWorkoutSyncServiceProvider)
+                      .notifySessionEnded(session.sessionUuid);
                   if (finalEndedAt != null) {
                     ref
                         .read(editingSessionOriginalEndedAtProvider.notifier)
                         .update((state) {
-                      final copy = Map<int, DateTime>.from(state);
-                      copy.remove(session.id);
-                      return copy;
-                    });
+                          final copy = Map<int, DateTime>.from(state);
+                          copy.remove(session.id);
+                          return copy;
+                        });
                   }
                   if (!ctx.mounted) return;
                   Navigator.pop(ctx);
@@ -662,9 +860,10 @@ class _MediaMiniPillState extends State<_MediaMiniPill>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     )..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _anim = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -687,9 +886,7 @@ class _MediaMiniPillState extends State<_MediaMiniPill>
         decoration: BoxDecoration(
           color: AppColors.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.3),
-          ),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -720,7 +917,7 @@ class _MediaMiniPillState extends State<_MediaMiniPill>
   }
 }
 
-class _LinkedExerciseTile extends StatelessWidget {
+class _LinkedExerciseTile extends ConsumerWidget {
   final int index;
   final WorkoutExerciseData workoutExercise;
   final List<WorkoutExerciseData> rows;
@@ -735,7 +932,7 @@ class _LinkedExerciseTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final group = workoutExercise.supersetGroup;
     final groupRows = group == null
         ? <WorkoutExerciseData>[]
@@ -745,7 +942,27 @@ class _LinkedExerciseTile extends StatelessWidget {
     final groupIndex = groupRows.indexWhere((r) => r.id == workoutExercise.id);
     final isFirst = groupIndex == 0;
     final isLast = groupIndex == groupRows.length - 1;
-    final label = groupRows.length >= 3 ? 'GIANT' : 'SUPER';
+    final groupCount = groupRows.length;
+    final label = groupCount == 2
+        ? 'SUPERSET'
+        : (groupCount == 3 ? 'TRI-SET' : 'GIANT SET');
+    final tooltipMsg = groupCount == 2
+        ? 'Superset'
+        : (groupCount == 3 ? 'Tri-Set' : 'Giant Set');
+
+    // Calculate circuit metrics
+    CircuitPerformanceStats stats = CircuitPerformanceStats.empty;
+    if (isLinked) {
+      final setsByExercise = <int, List<SetEntryData>>{};
+      for (final gr in groupRows) {
+        final setsAsync = ref.watch(workoutExerciseSetsProvider(gr.id));
+        setsByExercise[gr.id] = setsAsync.asData?.value ?? [];
+      }
+      stats = calculateCircuitStats(
+        exercises: groupRows,
+        setsByExerciseId: setsByExercise,
+      );
+    }
 
     final dragHandle = Tooltip(
       message: 'Hold to reorder',
@@ -776,16 +993,16 @@ class _LinkedExerciseTile extends StatelessWidget {
         if (isLinked)
           Positioned(
             left: 20,
-            top: isFirst ? 34 : 0,
+            top: isFirst ? 42 : 0,
             bottom: isLast ? 34 : 0,
             child: Container(width: 3, color: AppColors.primary),
           ),
         if (isLinked)
           Positioned(
             left: 12,
-            top: 27,
+            top: isFirst ? 48 : 27,
             child: Tooltip(
-              message: groupRows.length >= 3 ? 'Giant set' : 'Superset',
+              message: tooltipMsg,
               child: Container(
                 width: 19,
                 height: 19,
@@ -815,15 +1032,61 @@ class _LinkedExerciseTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (isLinked && isFirst)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(34, 4, 16, 0),
-                  child: Text(
-                    '$label SET',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.35),
                     ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.repeat_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Rounds: ${stats.completedRounds}/${stats.totalPlannedRounds}',
+                        style: TextStyle(
+                          color: AppColors.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        width: 1,
+                        height: 12,
+                        color: AppColors.outlineVariant,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Avg Rest: ${stats.formattedAvgRest}',
+                        style: TextStyle(
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               builder(context, dragHandle),
@@ -964,12 +1227,165 @@ class _HealthActivityAdjustmentBanner extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   adj.message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
-                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActiveWorkoutStatsBar extends StatelessWidget {
+  final String elapsedText;
+  final int totalSets;
+  final int completedSets;
+  final String tonnageText;
+  final VoidCallback onEditDuration;
+
+  const _ActiveWorkoutStatsBar({
+    required this.elapsedText,
+    required this.totalSets,
+    required this.completedSets,
+    required this.tonnageText,
+    required this.onEditDuration,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final setsText = totalSets == 0
+        ? '0'
+        : (completedSets == totalSets
+              ? '$totalSets'
+              : '$completedSets / $totalSets');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.surfaceVariant.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // 1. Time / Duration
+          Expanded(
+            child: InkWell(
+              onTap: onEditDuration,
+              borderRadius: BorderRadius.circular(10),
+              child: _StatColumn(
+                icon: Icons.timer_outlined,
+                iconColor: AppColors.primary,
+                label: 'TIME',
+                value: elapsedText,
+                showEditHint: true,
+              ),
+            ),
+          ),
+          Container(
+            height: 28,
+            width: 1,
+            color: AppColors.surfaceVariant.withValues(alpha: 0.6),
+          ),
+          // 2. Sets
+          Expanded(
+            child: _StatColumn(
+              icon: Icons.format_list_numbered_rounded,
+              iconColor: const Color(0xFFFF9800),
+              label: 'SETS',
+              value: setsText,
+            ),
+          ),
+          Container(
+            height: 28,
+            width: 1,
+            color: AppColors.surfaceVariant.withValues(alpha: 0.6),
+          ),
+          // 3. Volume / Tonnage
+          Expanded(
+            child: _StatColumn(
+              icon: Icons.fitness_center_rounded,
+              iconColor: const Color(0xFF26C6DA),
+              label: 'VOLUME',
+              value: tonnageText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatColumn extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  final bool showEditHint;
+
+  const _StatColumn({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    this.showEditHint = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 12, color: iconColor.withValues(alpha: 0.85)),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.secondary,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              if (showEditHint) ...[
+                const SizedBox(width: 3),
+                Icon(
+                  Icons.edit_outlined,
+                  size: 10,
+                  color: AppColors.primary.withValues(alpha: 0.8),
+                ),
+              ],
+            ],
           ),
         ],
       ),

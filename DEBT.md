@@ -47,4 +47,17 @@ them.
 - **`.secrets/live_sync.json`** holds both accounts' credentials in plain
   text, gitignored. Fine for a local dev machine; revisit if this ever needs
   to run in CI.
+- **`docs/now-bar-native-adapter-contract.md` describes code that no longer
+  exists.** It documents a `com.ams.herculex/ongoing_workout_surface`
+  MethodChannel and an
+  `android/app/src/main/kotlin/com/ams/herculex/nowbar/` package
+  (`OngoingWorkoutSurfaceAdapter`, `OngoingWorkoutActionReceiver`,
+  `AndroidOngoingWorkoutSurfaceRenderer`, `LiveUpdatesCapability`, ...) in the
+  present tense, but that whole package was deleted in `c0cf4f2`. Only the
+  Dart-side leftovers survive
+  (`lib/features/workouts/domain/ongoing_workout_surface_snapshot.dart` and its
+  test), and `.planning/STATE.md` still claims "Phase 8 (Samsung Now Bar)
+  confirmed complete". Read the file as a design spec for a future Now Bar
+  adapter, never as a description of the current build. Costs real time —
+  it was mistaken for live code while planning the Workout Bubble.
 

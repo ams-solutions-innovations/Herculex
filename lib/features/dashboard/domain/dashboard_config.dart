@@ -1,8 +1,24 @@
+import 'package:flutter/material.dart';
+
+/// Visual and compatibility kind for dashboard widgets.
+enum DashboardWidgetKind {
+  pill,
+  card,
+  large;
+}
+
+/// Grid footprint of a dashboard slot: half (1 of 2 columns) or full (both).
+enum DashboardWidgetSize {
+  half,
+  full;
+}
+
 /// The widgets that can appear on the editable dashboard (V2 §18).
 enum DashboardWidgetType {
   fastingTimer('fasting_timer', 'Fasting Timer'),
   macros('macros', 'Nutrition Overview'),
-  trends('trends', 'Trend Charts'),
+  calorieTrends('calorie_trends', 'Calorie Trends'),
+  bodyweightTrends('bodyweight_trends', 'Bodyweight Trends'),
   todaysPlan('todays_plan', "Today's Plan"),
   miniWorkouts('mini_workouts', 'Mini Workouts Checklist'),
   workoutCalendar('workout_calendar', 'Workout Calendar'),
@@ -22,7 +38,64 @@ enum DashboardWidgetType {
   final String id;
   final String label;
 
+  /// Dedicated icon for the customization sheet and widget header badges.
+  IconData get icon => switch (this) {
+        DashboardWidgetType.fastingTimer => Icons.timer_outlined,
+        DashboardWidgetType.macros => Icons.pie_chart_outline,
+        DashboardWidgetType.calorieTrends => Icons.local_fire_department_outlined,
+        DashboardWidgetType.bodyweightTrends => Icons.show_chart_rounded,
+        DashboardWidgetType.todaysPlan => Icons.fitness_center_outlined,
+        DashboardWidgetType.miniWorkouts => Icons.checklist_outlined,
+        DashboardWidgetType.workoutCalendar => Icons.calendar_month_outlined,
+        DashboardWidgetType.recoverySummary => Icons.battery_charging_full_outlined,
+        DashboardWidgetType.cnsLoad => Icons.bolt_outlined,
+        DashboardWidgetType.weeklyVolume => Icons.bar_chart_outlined,
+        DashboardWidgetType.latestPrs => Icons.emoji_events_outlined,
+        DashboardWidgetType.bodyweight => Icons.scale_outlined,
+        DashboardWidgetType.cycle => Icons.water_drop_outlined,
+        DashboardWidgetType.quickScan => Icons.document_scanner_outlined,
+        DashboardWidgetType.supplements => Icons.medication_outlined,
+        DashboardWidgetType.remainingCalories => Icons.calculate_outlined,
+        DashboardWidgetType.nutritionStreak => Icons.local_fire_department,
+        DashboardWidgetType.workoutStreak => Icons.military_tech_outlined,
+      };
+
+  /// Widget shape classification for stack compatibility.
+  DashboardWidgetKind get kind => switch (this) {
+        DashboardWidgetType.calorieTrends ||
+        DashboardWidgetType.bodyweightTrends ||
+        DashboardWidgetType.recoverySummary ||
+        DashboardWidgetType.cnsLoad ||
+        DashboardWidgetType.weeklyVolume ||
+        DashboardWidgetType.latestPrs =>
+          DashboardWidgetKind.card,
+        DashboardWidgetType.macros ||
+        DashboardWidgetType.todaysPlan ||
+        DashboardWidgetType.miniWorkouts ||
+        DashboardWidgetType.workoutCalendar =>
+          DashboardWidgetKind.large,
+        _ => DashboardWidgetKind.pill,
+      };
+
+  /// Whether this widget's layout tolerates shrinking to half the dashboard
+  /// width. Full-bleed feature widgets (fasting timer, macros, calendar…)
+  /// aren't built for it, so they never show a resize handle.
+  bool get resizable => switch (this) {
+        DashboardWidgetType.calorieTrends ||
+        DashboardWidgetType.bodyweightTrends ||
+        DashboardWidgetType.recoverySummary ||
+        DashboardWidgetType.cnsLoad ||
+        DashboardWidgetType.latestPrs ||
+        DashboardWidgetType.bodyweight ||
+        DashboardWidgetType.remainingCalories ||
+        DashboardWidgetType.nutritionStreak ||
+        DashboardWidgetType.workoutStreak =>
+          true,
+        _ => false,
+      };
+
   static DashboardWidgetType? fromId(String id) {
+    if (id == 'trends') return DashboardWidgetType.calorieTrends;
     for (final t in values) {
       if (t.id == id) return t;
     }
@@ -30,15 +103,40 @@ enum DashboardWidgetType {
   }
 }
 
-/// One configured dashboard slot: which widget, and whether it's shown.
+/// One configured dashboard slot: either a standalone widget or a stack of
+/// compatible widgets (like Samsung One UI widget stacks).
 class DashboardWidgetConfig {
-  final DashboardWidgetType type;
+  final List<DashboardWidgetType> types;
   final bool visible;
+  final DashboardWidgetSize size;
 
-  const DashboardWidgetConfig(this.type, {this.visible = true});
+  const DashboardWidgetConfig(
+    this.types, {
+    this.visible = true,
+    this.size = DashboardWidgetSize.full,
+  });
 
-  DashboardWidgetConfig copyWith({bool? visible}) =>
-      DashboardWidgetConfig(type, visible: visible ?? this.visible);
+  DashboardWidgetType get type => types.first;
+  bool get isStack => types.length > 1;
+  String get id => types.map((t) => t.id).join('+');
+  String get label =>
+      isStack ? types.map((t) => t.label).join(' & ') : type.label;
+
+  /// Resolved grid span, clamped to full for stacks and non-resizable types
+  /// regardless of what [size] happens to hold.
+  DashboardWidgetSize get effectiveSize =>
+      !isStack && type.resizable ? size : DashboardWidgetSize.full;
+
+  DashboardWidgetConfig copyWith({
+    List<DashboardWidgetType>? types,
+    bool? visible,
+    DashboardWidgetSize? size,
+  }) =>
+      DashboardWidgetConfig(
+        types ?? this.types,
+        visible: visible ?? this.visible,
+        size: size ?? this.size,
+      );
 }
 
 /// Ordered, toggleable dashboard layout (V2 §18). Pure value type with
@@ -50,25 +148,29 @@ class DashboardConfig {
 
   const DashboardConfig(this.widgets);
 
-  /// Default layout for a fresh install — the order the dashboard ships with.
+  /// Default layout for a fresh install — Calorie & Bodyweight Trends ship
+  /// stacked together as a Samsung-style widget stack.
   static const DashboardConfig defaults = DashboardConfig([
-    DashboardWidgetConfig(DashboardWidgetType.fastingTimer),
-    DashboardWidgetConfig(DashboardWidgetType.supplements),
-    DashboardWidgetConfig(DashboardWidgetType.quickScan),
-    DashboardWidgetConfig(DashboardWidgetType.remainingCalories),
-    DashboardWidgetConfig(DashboardWidgetType.macros),
-    DashboardWidgetConfig(DashboardWidgetType.trends),
-    DashboardWidgetConfig(DashboardWidgetType.todaysPlan),
-    DashboardWidgetConfig(DashboardWidgetType.miniWorkouts),
-    DashboardWidgetConfig(DashboardWidgetType.workoutCalendar),
-    DashboardWidgetConfig(DashboardWidgetType.recoverySummary),
-    DashboardWidgetConfig(DashboardWidgetType.cnsLoad, visible: false),
-    DashboardWidgetConfig(DashboardWidgetType.weeklyVolume, visible: false),
-    DashboardWidgetConfig(DashboardWidgetType.latestPrs, visible: false),
-    DashboardWidgetConfig(DashboardWidgetType.bodyweight, visible: false),
-    DashboardWidgetConfig(DashboardWidgetType.nutritionStreak, visible: false),
-    DashboardWidgetConfig(DashboardWidgetType.workoutStreak, visible: false),
-    DashboardWidgetConfig(DashboardWidgetType.cycle),
+    DashboardWidgetConfig([DashboardWidgetType.fastingTimer]),
+    DashboardWidgetConfig([DashboardWidgetType.supplements]),
+    DashboardWidgetConfig([DashboardWidgetType.quickScan]),
+    DashboardWidgetConfig([DashboardWidgetType.remainingCalories]),
+    DashboardWidgetConfig([DashboardWidgetType.macros]),
+    DashboardWidgetConfig([
+      DashboardWidgetType.calorieTrends,
+      DashboardWidgetType.bodyweightTrends,
+    ]),
+    DashboardWidgetConfig([DashboardWidgetType.todaysPlan]),
+    DashboardWidgetConfig([DashboardWidgetType.miniWorkouts]),
+    DashboardWidgetConfig([DashboardWidgetType.workoutCalendar]),
+    DashboardWidgetConfig([DashboardWidgetType.recoverySummary]),
+    DashboardWidgetConfig([DashboardWidgetType.cnsLoad], visible: false),
+    DashboardWidgetConfig([DashboardWidgetType.weeklyVolume], visible: false),
+    DashboardWidgetConfig([DashboardWidgetType.latestPrs], visible: false),
+    DashboardWidgetConfig([DashboardWidgetType.bodyweight], visible: false),
+    DashboardWidgetConfig([DashboardWidgetType.nutritionStreak], visible: false),
+    DashboardWidgetConfig([DashboardWidgetType.workoutStreak], visible: false),
+    DashboardWidgetConfig([DashboardWidgetType.cycle]),
   ]);
 
   List<DashboardWidgetConfig> get visibleWidgets =>
@@ -77,11 +179,26 @@ class DashboardConfig {
   DashboardConfig toggle(DashboardWidgetType type, bool visible) {
     return DashboardConfig([
       for (final w in widgets)
-        if (w.type == type) w.copyWith(visible: visible) else w,
+        if (w.types.contains(type)) w.copyWith(visible: visible) else w,
     ]);
   }
 
-  /// Moves the widget at [oldIndex] to [newIndex] (reorder).
+  DashboardConfig toggleSlot(int index, bool visible) {
+    if (index < 0 || index >= widgets.length) return this;
+    final list = [...widgets];
+    list[index] = list[index].copyWith(visible: visible);
+    return DashboardConfig(list);
+  }
+
+  /// Sets the grid span of the slot at [index] (half vs full width).
+  DashboardConfig resize(int index, DashboardWidgetSize size) {
+    if (index < 0 || index >= widgets.length) return this;
+    final list = [...widgets];
+    list[index] = list[index].copyWith(size: size);
+    return DashboardConfig(list);
+  }
+
+  /// Moves the widget slot at [oldIndex] to [newIndex] (reorder).
   DashboardConfig reorder(int oldIndex, int newIndex) {
     final list = [...widgets];
     final item = list.removeAt(oldIndex);
@@ -89,9 +206,70 @@ class DashboardConfig {
     return DashboardConfig(list);
   }
 
-  /// Serializes to a compact string: `id:1,id:0,…` (1 = visible).
-  String encode() =>
-      widgets.map((w) => '${w.type.id}:${w.visible ? 1 : 0}').join(',');
+  /// Stacks [addedType] into the slot containing [targetType].
+  DashboardConfig stackWidgets(
+    DashboardWidgetType targetType,
+    DashboardWidgetType addedType,
+  ) {
+    if (targetType == addedType) return this;
+    final list = <DashboardWidgetConfig>[];
+    for (final w in widgets) {
+      if (w.types.contains(targetType)) {
+        final newTypes = [...w.types];
+        if (!newTypes.contains(addedType)) {
+          newTypes.add(addedType);
+        }
+        list.add(w.copyWith(types: newTypes));
+      } else if (w.types.contains(addedType)) {
+        final remaining = w.types.where((t) => t != addedType).toList();
+        if (remaining.isNotEmpty) {
+          list.add(w.copyWith(types: remaining));
+        }
+      } else {
+        list.add(w);
+      }
+    }
+    return DashboardConfig(list);
+  }
+
+  /// Unstacks [type] from its current slot and places it as a standalone slot.
+  DashboardConfig unstackWidget(DashboardWidgetType type) {
+    final list = <DashboardWidgetConfig>[];
+    for (final w in widgets) {
+      if (w.isStack && w.types.contains(type)) {
+        final remaining = w.types.where((t) => t != type).toList();
+        list.add(w.copyWith(types: remaining));
+        list.add(DashboardWidgetConfig([type], visible: w.visible));
+      } else {
+        list.add(w);
+      }
+    }
+    return DashboardConfig(list);
+  }
+
+  /// Reorders widgets inside a single stacked slot.
+  DashboardConfig reorderInStack(int slotIndex, int oldIndex, int newIndex) {
+    if (slotIndex < 0 || slotIndex >= widgets.length) return this;
+    final slot = widgets[slotIndex];
+    if (!slot.isStack) return this;
+    final innerList = [...slot.types];
+    final item = innerList.removeAt(oldIndex);
+    innerList.insert(newIndex.clamp(0, innerList.length), item);
+    final list = [...widgets];
+    list[slotIndex] = slot.copyWith(types: innerList);
+    return DashboardConfig(list);
+  }
+
+  /// Serializes to a compact string: `id1+id2:1,id3:0:h,…` (1 = visible,
+  /// trailing `:h` = half-width; omitted = full-width, so pre-resize saves
+  /// keep decoding unchanged).
+  String encode() => widgets
+      .map((w) {
+        final base =
+            '${w.types.map((t) => t.id).join('+')}:${w.visible ? 1 : 0}';
+        return w.size == DashboardWidgetSize.half ? '$base:h' : base;
+      })
+      .join(',');
 
   /// Parses [encode]'s output. Drops unknown ids; appends any widget types
   /// that weren't stored (as hidden) so the set stays complete and ordered.
@@ -102,17 +280,48 @@ class DashboardConfig {
     for (final token in raw.split(',')) {
       final parts = token.split(':');
       if (parts.isEmpty) continue;
-      final type = DashboardWidgetType.fromId(parts[0].trim());
-      if (type == null || seen.contains(type)) continue;
+      final typeIds = parts[0].trim().split('+');
+      final slotTypes = <DashboardWidgetType>[];
+
+      for (final tid in typeIds) {
+        if (tid == 'trends') {
+          // Legacy trends token: if neither calorie nor bodyweight trends seen, add both stacked
+          if (!seen.contains(DashboardWidgetType.calorieTrends)) {
+            slotTypes.add(DashboardWidgetType.calorieTrends);
+            seen.add(DashboardWidgetType.calorieTrends);
+          }
+          if (!seen.contains(DashboardWidgetType.bodyweightTrends)) {
+            slotTypes.add(DashboardWidgetType.bodyweightTrends);
+            seen.add(DashboardWidgetType.bodyweightTrends);
+          }
+          continue;
+        }
+
+        final type = DashboardWidgetType.fromId(tid);
+        if (type == null || seen.contains(type)) continue;
+        slotTypes.add(type);
+        seen.add(type);
+      }
+
+      if (slotTypes.isEmpty) continue;
       final visible = parts.length < 2 || parts[1].trim() != '0';
-      parsed.add(DashboardWidgetConfig(type, visible: visible));
-      seen.add(type);
+      final size = parts.length > 2 && parts[2].trim() == 'h'
+          ? DashboardWidgetSize.half
+          : DashboardWidgetSize.full;
+      parsed.add(
+        DashboardWidgetConfig(slotTypes, visible: visible, size: size),
+      );
     }
+
     if (parsed.isEmpty) return defaults;
+
     // Append any newly-introduced widget types (hidden) in default order.
     for (final d in defaults.widgets) {
-      if (!seen.contains(d.type)) {
-        parsed.add(DashboardWidgetConfig(d.type, visible: false));
+      for (final type in d.types) {
+        if (!seen.contains(type)) {
+          parsed.add(DashboardWidgetConfig([type], visible: false));
+          seen.add(type);
+        }
       }
     }
     return DashboardConfig(parsed);

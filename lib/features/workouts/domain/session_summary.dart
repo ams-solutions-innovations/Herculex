@@ -1,3 +1,4 @@
+import '../../../core/notifications/in_app_notification_model.dart';
 import '../../analytics/domain/muscle_recovery_v3.dart';
 import '../../analytics/domain/training_snapshot.dart';
 
@@ -20,6 +21,15 @@ class SessionSummary {
   /// Muscle groups trained, heaviest first — at most a handful, for chips.
   final List<String> muscleGroups;
 
+  /// Unlocked records and achievements for this session (for share card & review).
+  final List<InAppNotificationItem> achievements;
+
+  /// Photo path on local device, if attached.
+  final String? photoPath;
+
+  /// Total calories burned (in kcal).
+  final int caloriesBurned;
+
   const SessionSummary({
     required this.sessionId,
     required this.name,
@@ -30,6 +40,9 @@ class SessionSummary {
     required this.tonnageKg,
     required this.exerciseCount,
     required this.muscleGroups,
+    this.achievements = const [],
+    this.photoPath,
+    this.caloriesBurned = 0,
   });
 
   /// Reduces a loaded [snapshot] to just [sessionId].
@@ -39,6 +52,10 @@ class SessionSummary {
     required String name,
     required DateTime startedAt,
     required DateTime? endedAt,
+    List<InAppNotificationItem> achievements = const [],
+    String? photoPath,
+    int? savedCalories,
+    double? userWeightKg,
   }) {
     final sets = [
       for (final rs in snapshot.sets)
@@ -55,12 +72,16 @@ class SessionSummary {
 
     var reps = 0;
     var tonnage = 0.0;
+    var explicitCalories = 0;
     final exerciseIds = <int>{};
     final muscleSets = <String, int>{};
 
     for (final rs in sets) {
       reps += rs.countedReps;
       tonnage += rs.tonnageKg;
+      if (rs.set.calories != null && rs.set.calories! > 0) {
+        explicitCalories += rs.set.calories!;
+      }
       exerciseIds.add(rs.exercise.id);
 
       final muscles = musclesByExercise[rs.exercise.id] ??
@@ -73,6 +94,22 @@ class SessionSummary {
       }
     }
 
+    final duration = (endedAt ?? startedAt).difference(startedAt);
+
+    int finalCalories;
+    if (savedCalories != null && savedCalories > 0) {
+      finalCalories = savedCalories;
+    } else if (explicitCalories > 0) {
+      finalCalories = explicitCalories;
+    } else {
+      // Standard MET estimate for resistance / strength training: ~5.0 MET
+      // Formula: kcal = MET * weight_kg * (duration_minutes / 60)
+      final weight = userWeightKg != null && userWeightKg > 20 ? userWeightKg : 75.0;
+      final minutes = duration.inMinutes > 0 ? duration.inMinutes : (sets.isNotEmpty ? sets.length * 2 : 1);
+      final estimated = (5.0 * weight * (minutes / 60.0)).round();
+      finalCalories = sets.isNotEmpty ? estimated.clamp(10, 3000) : 0;
+    }
+
     final ranked = muscleSets.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -80,12 +117,15 @@ class SessionSummary {
       sessionId: sessionId,
       name: name,
       startedAt: startedAt,
-      duration: (endedAt ?? startedAt).difference(startedAt),
+      duration: duration,
       totalSets: sets.length,
       totalReps: reps,
       tonnageKg: tonnage,
       exerciseCount: exerciseIds.length,
       muscleGroups: [for (final e in ranked.take(4)) e.key],
+      achievements: achievements,
+      photoPath: photoPath,
+      caloriesBurned: finalCalories,
     );
   }
 
@@ -100,4 +140,7 @@ class SessionSummary {
   String get tonnageLabel => tonnageKg >= 1000
       ? '${(tonnageKg / 1000).toStringAsFixed(1)} t'
       : '${tonnageKg.round()} kg';
+
+  /// Format calories burned.
+  String get caloriesLabel => '$caloriesBurned kcal';
 }

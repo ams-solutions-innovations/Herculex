@@ -10,6 +10,7 @@ object WearSyncPaths {
     const val STATE_MACRO_TARGETS = "/herculex/state/macro_targets"
     const val STATE_FASTING = "/herculex/state/fasting"
     const val STATE_USER_TOKEN = "/herculex/state/user_token"
+    const val STATE_MEDIA_STATE = "/herculex/state/media_state"
 
     // These must stay under the "/herculex" prefix — the watch manifest's
     // MESSAGE_RECEIVED intent-filter only matches that prefix, so anything
@@ -17,6 +18,9 @@ object WearSyncPaths {
     const val MESSAGE_START_REST_TIMER = "/herculex/workout/start_rest_timer"
     const val MESSAGE_UPDATE_WEIGHT = "/herculex/workout/update_weight"
     const val MESSAGE_FINISH_WORKOUT = "/herculex/workout/finish"
+    const val MESSAGE_ACHIEVEMENT = "/herculex/achievement"
+    const val MESSAGE_MEDIA_COMMAND = "/herculex/media_command"
+    const val MESSAGE_MEDIA_STATE = "/herculex/media_state"
 
     // Assisted rep tracking (watch -> phone). Raw accelerometer samples are
     // batched roughly 1 s per MESSAGE_REP_SAMPLES and never leave the paired
@@ -47,4 +51,6 @@ object WearSyncPaths {
     const val MESSAGE_QUICKADD_ACK = "/herculex_quickadd_ack"
     const val MESSAGE_MACRO_COMMAND = "/herculex_macro_command"
     const val MESSAGE_MACRO_ACK = "/herculex_macro_ack"
+    const val MESSAGE_RAMBLER_COMMAND = "/herculex_rambler_command"
+    const val MESSAGE_RAMBLER_ACK = "/herculex_rambler_ack"
 }

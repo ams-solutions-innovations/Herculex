@@ -122,9 +122,9 @@ class _MockGeminiBackend implements GeminiBackend {
       'bfRangeMin': 12.5,
       'bfRangeMax': 15.0,
       'confidence': 0.92,
-      'explanation': 'Odlična definicija trebušnih mišic in nizka raven podkožne maščobe.',
-      'fatDistribution': 'Zmerno na spodnjem delu trebuha.',
-      'recommendations': 'Vzdržujte trenutni vnos kalorij.',
+      'explanation': 'Good abdominal definition and low levels of subcutaneous fat.',
+      'fatDistribution': 'Moderate on lower abdomen.',
+      'recommendations': 'Maintain current calorie intake.',
     };
   }
 
@@ -168,6 +168,28 @@ class _MockGeminiBackend implements GeminiBackend {
   Future<String> identifyExercise({
     required List<int> imageBytes,
     required String mimeType,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> identifyExerciseDetailed({
+    required List<int> imageBytes,
+    required String mimeType,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeSupplementPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
   }) async =>
       throw UnimplementedError();
 }

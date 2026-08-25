@@ -73,12 +73,28 @@ class AccessoryTraySheet extends ConsumerWidget {
                 children: [
                   for (final a in list.where((a) => a.kind != 'chains'))
                     FilterChip(
-                      label: Text(a.name),
+                      label: Text(
+                        a.name,
+                        style: TextStyle(
+                          fontWeight: attachedIds.contains(a.id)
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: attachedIds.contains(a.id)
+                              ? AppColors.primary
+                              : null,
+                        ),
+                      ),
                       selected: attachedIds.contains(a.id),
                       onSelected: (_) => repo.toggleSetAccessory(
                           setEntryId: set.id, accessoryId: a.id),
                       selectedColor:
-                          AppColors.primaryContainer.withValues(alpha: 0.5),
+                          AppColors.primaryContainer.withValues(alpha: 0.7),
+                      side: BorderSide(
+                        color: attachedIds.contains(a.id)
+                            ? AppColors.primary
+                            : AppColors.outlineVariant,
+                        width: attachedIds.contains(a.id) ? 1.5 : 1.0,
+                      ),
                       checkmarkColor: AppColors.primary,
                     ),
                 ],

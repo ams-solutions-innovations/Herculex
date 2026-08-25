@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../theme/tokens/tokens.dart';
 import 'hx_back_button.dart';
-import 'hx_glass.dart';
 
 /// Page shell for pushed screens.
 ///
@@ -164,32 +163,47 @@ class _HxScreenShellState extends State<HxScreenShell>
               },
               child: SizedBox(
                 height: _headerHeight,
-                child: Row(
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    if (widget.showBack) ...[
-                      const HxBackButton(),
-                      const SizedBox(width: HxSpace.x3),
-                    ],
-                    Flexible(
-                      child: HxGlass(
-                        borderRadius: HxRadius.pillAll,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: HxSpace.x4, vertical: HxSpace.x2 + 2),
-                        child: Text(
-                          widget.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium,
+                    // Centered title outside of pill
+                    Positioned.fill(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 56),
+                          child: Text(
+                            widget.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    if (widget.actions.isNotEmpty) ...[
-                      const SizedBox(width: HxSpace.x3),
-                      for (final action in widget.actions) ...[
-                        action,
-                        const SizedBox(width: HxSpace.x2),
-                      ],
-                    ],
+                    // Back button on the left
+                    if (widget.showBack)
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: HxBackButton(),
+                      ),
+                    // Actions on the right
+                    if (widget.actions.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final action in widget.actions) ...[
+                              action,
+                              const SizedBox(width: HxSpace.x2),
+                            ],
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../nutrition/data/wear_sync_service.dart';
@@ -9,10 +10,25 @@ import '../data/micro_workouts_repository.dart';
 import '../data/templates_repository.dart';
 import '../data/workouts_repository.dart';
 import '../data/wear_workout_sync_service.dart';
+import '../data/media_sync_service.dart';
 import '../../analytics/presentation/analytics_providers.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
+import '../../../core/units.dart';
+import '../../gamification/presentation/gamification_providers.dart';
 import '../domain/calendar_service.dart';
+import '../domain/effective_load.dart';
 import '../domain/session_summary.dart';
+import '../domain/set_type.dart';
+
+final mediaSyncServiceProvider = Provider<MediaSyncService>((ref) {
+  final wearSync = ref.watch(wearSyncServiceProvider);
+  final service = MediaSyncService(wearSync);
+  service.start();
+  ref.onDispose(() {
+    service.stop();
+  });
+  return service;
+});
 
 final workoutsRepositoryProvider = Provider<WorkoutsRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -50,6 +66,66 @@ final workoutSessionProvider = StreamProvider.family<WorkoutSessionData, int>((
   return ref.watch(workoutsRepositoryProvider).watchSession(sessionId);
 });
 
+/// Live aggregate stats (total sets, completed sets, total tonnage) for an
+/// active workout session in real-time.
+class LiveWorkoutStats {
+  final int totalSets;
+  final int completedSets;
+  final double totalTonnageKg;
+
+  const LiveWorkoutStats({
+    this.totalSets = 0,
+    this.completedSets = 0,
+    this.totalTonnageKg = 0.0,
+  });
+}
+
+final activeSessionStatsProvider =
+    StreamProvider.family<LiveWorkoutStats, int>((ref, sessionId) {
+  final db = ref.watch(appDatabaseProvider);
+  final query = db.select(db.setEntries).join([
+    drift.innerJoin(
+      db.workoutExercises,
+      db.workoutExercises.id.equalsExp(db.setEntries.workoutExerciseId),
+    ),
+  ])..where(db.workoutExercises.sessionId.equals(sessionId));
+
+  return query.watch().map((rows) {
+    int total = 0;
+    int completed = 0;
+    double tonnage = 0.0;
+
+    for (final row in rows) {
+      final set = row.readTable(db.setEntries);
+      total++;
+      if (set.isCompleted) {
+        completed++;
+      }
+      final effectiveKg = EffectiveLoad.computeKg(
+        weightKg: set.weightKg,
+        bodyweightKg: set.bodyweightKg,
+        includesBodyweight: set.bodyweightKg != null,
+        chainsKg: set.chainsKg,
+      );
+      final setType = SetType.fromId(set.setType);
+      final setTonnage = EffectiveLoad.tonnageKg(
+        effectiveKg: effectiveKg,
+        reps: set.reps,
+        setType: setType,
+      );
+      if (set.isCompleted || (set.reps > 0 && set.weightKg > 0)) {
+        tonnage += setTonnage;
+      }
+    }
+
+    return LiveWorkoutStats(
+      totalSets: total,
+      completedSets: completed,
+      totalTonnageKg: tonnage,
+    );
+  });
+});
+
 /// Headline totals for a finished session, backing the finish screen and its
 /// shareable card. Reads the same snapshot the analytics engines use, so the
 /// tonnage here matches the dashboard rather than being recomputed naively.
@@ -57,14 +133,40 @@ final sessionSummaryProvider = FutureProvider.autoDispose
     .family<SessionSummary, int>((ref, sessionId) async {
       final snapshot = await ref.watch(trainingSnapshotProvider.future);
       final session = await ref.watch(workoutSessionProvider(sessionId).future);
+      final weightFormat = ref.watch(weightFormatProvider);
+      final evaluator = ref.watch(achievementEvaluatorProvider);
+
+      final workoutName = (session.name?.trim().isNotEmpty ?? false)
+          ? session.name!.trim()
+          : 'Workout';
+
+      final completedCount = snapshot.sets
+          .map((s) => s.session.id)
+          .toSet()
+          .length;
+
+      final achievements = evaluator.evaluateSessionSummaryAchievements(
+        snapshot: snapshot,
+        currentSessionId: sessionId,
+        workoutName: workoutName,
+        startedAt: session.startedAt,
+        endedAt: session.endedAt ?? DateTime.now(),
+        weightFormat: weightFormat,
+        totalCompletedWorkouts: completedCount,
+      );
+
+      final profile = ref.watch(profileProvider).valueOrNull;
+
       return SessionSummary.fromSnapshot(
         snapshot: snapshot,
         sessionId: sessionId,
-        name: (session.name?.trim().isNotEmpty ?? false)
-            ? session.name!.trim()
-            : 'Workout',
+        name: workoutName,
         startedAt: session.startedAt,
         endedAt: session.endedAt,
+        achievements: achievements,
+        photoPath: session.photoPath,
+        savedCalories: session.caloriesBurned,
+        userWeightKg: profile?.weightKg,
       );
     });
 
@@ -145,6 +247,8 @@ final setsForWorkoutExerciseProvider =
           .watch(workoutsRepositoryProvider)
           .watchSetsForWorkoutExercise(workoutExerciseId);
     });
+
+final workoutExerciseSetsProvider = setsForWorkoutExerciseProvider;
 
 /// (exerciseId) → [last completed working sets from prior session]
 final lastPerformanceProvider =
@@ -261,6 +365,7 @@ final exerciseProgressionProvider =
 final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
   // Need to eagerly load the sync service so its callbacks are registered.
   final syncService = ref.watch(wearWorkoutSyncServiceProvider);
+  ref.watch(mediaSyncServiceProvider);
 
   // Handle explicit sync requests from watch
   WearSyncService.onRequestSync = () async {
@@ -302,19 +407,6 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
     );
   };
 
-  // Handle session lifecycle end notifications
-  ref.listen<AsyncValue<WorkoutSessionData?>>(activeSessionProvider, (
-    previous,
-    next,
-  ) {
-    if (next.hasValue &&
-        next.value == null &&
-        previous?.hasValue == true &&
-        previous?.value != null) {
-      syncService.notifySessionEnded(previous?.value?.sessionUuid);
-    }
-  });
-
   // Watch active session and all exercises & sets reactively.
   final activeSession = ref.watch(activeSessionProvider).asData?.value;
   if (activeSession != null) {
@@ -329,6 +421,13 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
     if (!syncService.shouldSkipOutboundSync) {
       Future.microtask(() {
         syncService.pushActiveSessionToWatch(activeSession);
+      });
+    }
+  } else {
+    if (!syncService.shouldSkipOutboundSync &&
+        syncService.hasActiveSyncedSession) {
+      Future.microtask(() {
+        syncService.notifySessionEnded();
       });
     }
   }

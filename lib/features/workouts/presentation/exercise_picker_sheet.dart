@@ -8,8 +8,11 @@ import 'package:image_picker/image_picker.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../services/ai_service.dart';
+import 'circuit_builder_view.dart';
+import 'circuits_providers.dart';
 import 'custom_exercise_builder_view.dart';
 import 'exercise_artwork.dart';
+import 'exercise_ai_scan_dialog.dart';
 import 'equipment_icon.dart';
 import 'workouts_providers.dart';
 
@@ -17,13 +20,31 @@ import 'workouts_providers.dart';
 /// when the user picked from a multi-variant family style chooser, meaning the
 /// equipment is already encoded in the catalog entry and a second equipment
 /// prompt would be redundant.
-typedef ExercisePickResult = ({
-  ExerciseCatalogData exercise,
-  bool equipmentAlreadyChosen,
-});
+class ExercisePickResult {
+  final ExerciseCatalogData exercise;
+  final bool equipmentAlreadyChosen;
+  final String? equipmentVariant;
+  final int? circuitId;
+  final int? circuitRounds;
+  final int? circuitRestSeconds;
+  final int? targetReps;
+  final double? targetWeightKg;
+
+  const ExercisePickResult({
+    required this.exercise,
+    this.equipmentAlreadyChosen = false,
+    this.equipmentVariant,
+    this.circuitId,
+    this.circuitRounds,
+    this.circuitRestSeconds,
+    this.targetReps,
+    this.targetWeightKg,
+  });
+}
 
 const exercisePickerFilterChips = <String>[
   'Recent',
+  'Circuits',
   'All',
   'Compound',
   'Isolation',
@@ -99,7 +120,6 @@ class ExercisePickerSheet extends ConsumerStatefulWidget {
 class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
   String _query = '';
   String? _category;
-  bool _isScanningAi = false;
   final _ctrl = TextEditingController();
   Timer? _debounce;
   final _selectedMap = <int, ExercisePickResult>{};
@@ -130,15 +150,17 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
 
   void _toggleSelection(
     ExerciseCatalogData exercise,
-    bool equipmentAlreadyChosen,
-  ) {
+    bool equipmentAlreadyChosen, {
+    String? equipmentVariant,
+  }) {
     setState(() {
       if (_selectedMap.containsKey(exercise.id)) {
         _selectedMap.remove(exercise.id);
       } else {
-        _selectedMap[exercise.id] = (
+        _selectedMap[exercise.id] = ExercisePickResult(
           exercise: exercise,
           equipmentAlreadyChosen: equipmentAlreadyChosen,
+          equipmentVariant: equipmentVariant,
         );
       }
     });
@@ -178,7 +200,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
     final theme = Theme.of(context);
     final exercises = ref.watch(
       exerciseSearchProvider(
-        ExerciseCatalogFilter(query: _query, category: _category),
+        ExerciseCatalogFilter(query: _query, category: _category == 'Circuits' ? null : _category),
       ),
     );
     final recentIdsAsync = ref.watch(recentExerciseIdsProvider);
@@ -229,7 +251,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                           );
                           if (created != null && context.mounted) {
                             Navigator.of(context).pop([
-                              (
+                              ExercisePickResult(
                                 exercise: created,
                                 equipmentAlreadyChosen: false,
                               ),
@@ -250,52 +272,25 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                       prefixIcon: const Icon(Icons.search, size: 20),
                       filled: true,
                       fillColor: AppColors.surfaceVariant,
-                      suffixIcon: _isScanningAi
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : IconButton(
-                              icon: Icon(
-                                Icons.document_scanner,
-                                color: AppColors.primary,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          Icons.camera_alt_outlined,
+                          color: AppColors.primary,
+                        ),
+                        tooltip: 'Gemini AI: Skeniraj napravo / vajo',
+                        onPressed: () async {
+                          final match = await ExerciseAiScanDialog.show(context);
+                          if (context.mounted && match != null) {
+                            Navigator.of(context).pop([
+                              ExercisePickResult(
+                                exercise: match,
+                                equipmentAlreadyChosen: false,
+                                equipmentVariant: null,
                               ),
-                              tooltip: 'AI: Slikaj mašino/vajo',
-                              onPressed: () async {
-                                final picker = ImagePicker();
-                                final xfile = await picker.pickImage(
-                                  source: ImageSource.camera,
-                                );
-                                if (xfile == null) return;
-
-                                setState(() => _isScanningAi = true);
-                                try {
-                                  final ai = ref.read(aiServiceProvider);
-                                  final match = await ai
-                                      .identifyExerciseFromImage(xfile);
-                                  if (context.mounted && match != null) {
-                                    Navigator.of(context).pop([
-                                      (
-                                        exercise: match,
-                                        equipmentAlreadyChosen: false,
-                                      ),
-                                    ]);
-                                  } else if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'AI could not confidently identify this machine.',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } finally {
-                                  if (context.mounted) {
-                                    setState(() => _isScanningAi = false);
-                                  }
-                                }
-                              },
-                            ),
+                            ]);
+                          }
+                        },
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(28),
                         borderSide: BorderSide.none,
@@ -349,63 +344,72 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                 ),
                 const SizedBox(height: 8),
                 Expanded(
-                  child: exercises.when(
-                    data: (list) {
-                      final recentIds = recentIdsAsync.asData?.value ?? <int>{};
-                      var filteredList = list;
-                      if (_category == 'Recent') {
-                        filteredList = list
-                            .where((e) => recentIds.contains(e.id))
-                            .toList();
-                      } else if (recentIds.isNotEmpty && _query.isEmpty) {
-                        // Recency only orders the unfiltered browse list. While a
-                        // query is typed, relevance wins — otherwise any of the 50
-                        // recent exercises outranks an exact name match.
-                        filteredList = sortRecentExercisesFirst(
-                          list,
-                          recentIds,
-                        );
-                      }
+                  child: _category == 'Circuits'
+                      ? _CircuitsPickerList(
+                          controller: controller,
+                          query: _query,
+                        )
+                      : exercises.when(
+                          data: (list) {
+                            final recentIds = recentIdsAsync.asData?.value ?? <int>{};
+                            var filteredList = list;
+                            if (_category == 'Recent') {
+                              filteredList = list
+                                  .where((e) => recentIds.contains(e.id))
+                                  .toList();
+                            } else if (recentIds.isNotEmpty && _query.isEmpty) {
+                              // Recency only orders the unfiltered browse list. While a
+                              // query is typed, relevance wins — otherwise any of the 50
+                              // recent exercises outranks an exact name match.
+                              filteredList = sortRecentExercisesFirst(
+                                list,
+                                recentIds,
+                              );
+                            }
 
-                      if (filteredList.isEmpty) {
-                        return Center(
-                          child: Text(
-                            _category == 'Recent'
-                                ? 'No recent exercises logged yet'
-                                : 'No exercises found',
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        );
-                      }
-                      final groups = _groupByFamily(filteredList);
-                      return ListView.builder(
-                        controller: controller,
-                        padding: EdgeInsets.fromLTRB(
-                          16,
-                          8,
-                          16,
-                          _selectedMap.isNotEmpty ? 90 : 32,
-                        ),
-                        itemCount: groups.length,
-                        itemBuilder: (_, i) {
-                          final g = groups[i];
-                          if (g.length == 1) {
-                            final isSelected = _selectedMap.containsKey(
-                              g.first.id,
-                            );
-                            return _ExerciseTile(
-                              exercise: g.first,
-                              isSelected: isSelected,
-                              onTap: () => _toggleSelection(g.first, false),
-                            );
-                          }
-                          final selectedCount = g
-                              .where((v) => _selectedMap.containsKey(v.id))
-                              .length;
-                          return _FamilyTile(
-                            variants: g,
-                            selectedCount: selectedCount,
-                            onPick: (picked) => _toggleSelection(picked, true),
+                            if (filteredList.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  _category == 'Recent'
+                                      ? 'No recent exercises logged yet'
+                                      : 'No exercises found',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              );
+                            }
+                            final groups = _groupByFamily(filteredList);
+                            return ListView.builder(
+                              controller: controller,
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                8,
+                                16,
+                                _selectedMap.isNotEmpty ? 90 : 32,
+                              ),
+                              itemCount: groups.length,
+                              itemBuilder: (_, i) {
+                                final g = groups[i];
+                                if (g.length == 1) {
+                                  final isSelected = _selectedMap.containsKey(
+                                    g.first.id,
+                                  );
+                                  return _ExerciseTile(
+                                    exercise: g.first,
+                                    isSelected: isSelected,
+                                    onTap: () => _toggleSelection(g.first, false),
+                                  );
+                                }
+                                final selectedCount = g
+                                    .where((v) => _selectedMap.containsKey(v.id))
+                                    .length;
+                                return _FamilyTile(
+                                  variants: g,
+                                  selectedCount: selectedCount,
+                            onPick: (picked, {variant}) => _toggleSelection(
+                              picked,
+                              true,
+                              equipmentVariant: variant,
+                            ),
                           );
                         },
                       );
@@ -462,7 +466,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
 class _FamilyTile extends StatelessWidget {
   final List<ExerciseCatalogData> variants;
   final int selectedCount;
-  final ValueChanged<ExerciseCatalogData> onPick;
+  final void Function(ExerciseCatalogData exercise, {String? variant}) onPick;
   const _FamilyTile({
     required this.variants,
     required this.selectedCount,
@@ -491,7 +495,9 @@ class _FamilyTile extends StatelessWidget {
             label,
             variants,
           );
-          if (picked != null) onPick(picked);
+          if (picked != null) {
+            onPick(picked.exercise, variant: picked.variant);
+          }
         },
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
@@ -508,7 +514,13 @@ class _FamilyTile extends StatelessWidget {
           child: Row(
             children: [
               ExerciseArtwork(
-                exercise: variants.first,
+                // The default picture is the family's first (base) style, but
+                // fall through to the first style that actually has artwork so
+                // a missing base illustration does not blank the whole family.
+                exercise: variants.firstWhere(
+                  (v) => exerciseArtworkAsset(v) != null,
+                  orElse: () => variants.first,
+                ),
                 size: 48,
                 radius: 10,
                 fallbackColor: isSelected
@@ -656,12 +668,12 @@ class _StyleChooserSheet extends StatelessWidget {
   final List<ExerciseCatalogData> variants;
   const _StyleChooserSheet({required this.movement, required this.variants});
 
-  static Future<ExerciseCatalogData?> show(
+  static Future<({ExerciseCatalogData exercise, String? variant})?> show(
     BuildContext context,
     String movement,
     List<ExerciseCatalogData> variants,
   ) {
-    return showModalBottomSheet<ExerciseCatalogData>(
+    return showModalBottomSheet<({ExerciseCatalogData exercise, String? variant})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -701,7 +713,7 @@ class _StyleChooserSheet extends StatelessWidget {
           color:
               theme.bottomSheetTheme.backgroundColor ??
               AppColors.surfaceContainerLowest,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: SafeArea(
           top: false,
@@ -741,10 +753,14 @@ class _StyleChooserSheet extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _StyleOption(
-                              equipmentVariant: v.modality,
+                              equipmentVariant: v.equipment,
+                              exercise: v,
                               label: v.equipment,
                               subtitle: v.name,
-                              onTap: () => Navigator.of(context).pop(v),
+                              onTap: () => Navigator.of(context).pop((
+                                exercise: v,
+                                variant: v.modality,
+                              )),
                             ),
                           ),
                         if (weightedBase != null)
@@ -752,10 +768,13 @@ class _StyleChooserSheet extends StatelessWidget {
                             padding: const EdgeInsets.only(bottom: 10),
                             child: _StyleOption(
                               equipmentVariant: 'weighted',
+                              exercise: weightedBase,
                               label: 'Weighted',
                               subtitle: '${weightedBase.name} + added load',
-                              onTap: () =>
-                                  Navigator.of(context).pop(weightedBase),
+                              onTap: () => Navigator.of(context).pop((
+                                exercise: weightedBase,
+                                variant: 'weighted',
+                              )),
                             ),
                           ),
                       ],
@@ -771,8 +790,12 @@ class _StyleChooserSheet extends StatelessWidget {
   }
 }
 
+
 class _StyleOption extends StatelessWidget {
   final String equipmentVariant;
+  /// The catalog row behind this style, so the thumbnail shows the illustration
+  /// for *this* equipment rather than a generic glyph.
+  final ExerciseCatalogData? exercise;
   final String label;
   final String subtitle;
   final VoidCallback onTap;
@@ -781,6 +804,7 @@ class _StyleOption extends StatelessWidget {
     required this.label,
     required this.subtitle,
     required this.onTap,
+    this.exercise,
   });
 
   @override
@@ -801,12 +825,32 @@ class _StyleOption extends StatelessWidget {
         ),
         child: Row(
           children: [
-            EquipmentGlyph(
-              variant: equipmentVariant,
-              size: 22,
-              color: AppColors.secondary,
-            ),
-            const SizedBox(width: 12),
+            if (exercise != null)
+              ExerciseArtwork(
+                exercise: exercise!,
+                size: 44,
+                radius: 8,
+                equipmentVariant: equipmentVariant,
+              )
+            else
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.2),
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: EquipmentGlyph(
+                  variant: equipmentVariant,
+                  size: 22,
+                  color: AppColors.primary,
+                ),
+              ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -947,6 +991,275 @@ class _ExerciseTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Circuits Picker List ───────────────────────────────────────────────────
+
+class _CircuitsPickerList extends ConsumerWidget {
+  final ScrollController controller;
+  final String query;
+
+  const _CircuitsPickerList({
+    required this.controller,
+    required this.query,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final circuitsAsync = ref.watch(workoutCircuitsProvider);
+
+    return circuitsAsync.when(
+      data: (circuits) {
+        final filtered = query.trim().isEmpty
+            ? circuits
+            : circuits
+                .where((c) => c.name.toLowerCase().contains(query.toLowerCase()))
+                .toList();
+
+        if (filtered.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.repeat_rounded, size: 48, color: AppColors.primary),
+                  const SizedBox(height: 12),
+                  Text(
+                    circuits.isEmpty ? 'No circuits created yet' : 'No circuits match "$query"',
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Create circuits to perform sequential giant supersets with round pauses.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Create Circuit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final created = await CircuitBuilderView.show(context);
+                      if (created != null && context.mounted) {
+                        final repo = ref.read(circuitsRepositoryProvider);
+                        final exList = await repo.getCircuitExercises(created.id);
+                        final snapshot = await ref
+                            .read(workoutsRepositoryProvider)
+                            .watchExerciseCatalog()
+                            .first;
+                        final catMap = {for (final c in snapshot.exercises) c.id: c};
+                        final results = exList.map((ce) {
+                          final cat = catMap[ce.exerciseId] ??
+                              ExerciseCatalogData(
+                                id: ce.exerciseId,
+                                name: 'Exercise #${ce.exerciseId}',
+                                primaryMuscle: '',
+                                equipment: '',
+                                mechanics: '',
+                                force: '',
+                                plane: '',
+                                defaultRestSeconds: 90,
+                                isCustom: false,
+                                category: 'strength',
+                                modality: 'barbell',
+                                cnsScore: 3,
+                                recoveryImpact: 3,
+                                loggingMetric: 'weight_reps',
+                                supportsWeightedBodyweight: false,
+                                isReviewed: false,
+                              );
+                          return ExercisePickResult(
+                            exercise: cat,
+                            circuitId: created.id,
+                            circuitRounds: created.rounds,
+                            circuitRestSeconds: created.restSeconds,
+                            targetReps: ce.targetReps,
+                            targetWeightKg: ce.targetWeightKg,
+                          );
+                        }).toList();
+                        if (context.mounted) {
+                          Navigator.of(context).pop(results);
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          itemCount: filtered.length,
+          itemBuilder: (context, index) {
+            final circuit = filtered[index];
+            return _CircuitPickerCard(circuit: circuit);
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Failed to load circuits: $e')),
+    );
+  }
+}
+
+class _CircuitPickerCard extends ConsumerWidget {
+  final WorkoutCircuitData circuit;
+
+  const _CircuitPickerCard({required this.circuit});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final exercisesAsync = ref.watch(circuitExercisesProvider(circuit.id));
+    final exercises = exercisesAsync.asData?.value ?? [];
+
+    final restFormatted = circuit.restSeconds >= 60
+        ? '${circuit.restSeconds ~/ 60}m${circuit.restSeconds % 60 > 0 ? ' ${circuit.restSeconds % 60}s' : ''}'
+        : '${circuit.restSeconds}s';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.repeat_rounded, color: AppColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            circuit.name,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'CIRCUIT',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${exercises.length} exercises • ${circuit.rounds} rounds • $restFormatted pause',
+                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  minimumSize: const Size(60, 32),
+                ),
+                onPressed: () async {
+                  final repo = ref.read(circuitsRepositoryProvider);
+                  final exList = await repo.getCircuitExercises(circuit.id);
+                  final snapshot = await ref
+                      .read(workoutsRepositoryProvider)
+                      .watchExerciseCatalog()
+                      .first;
+                  final catMap = {for (final c in snapshot.exercises) c.id: c};
+                  final results = exList.map((ce) {
+                    final cat = catMap[ce.exerciseId] ??
+                        ExerciseCatalogData(
+                          id: ce.exerciseId,
+                          name: 'Exercise #${ce.exerciseId}',
+                          primaryMuscle: '',
+                          equipment: '',
+                          mechanics: '',
+                          force: '',
+                          plane: '',
+                          defaultRestSeconds: 90,
+                          isCustom: false,
+                          category: 'strength',
+                          modality: 'barbell',
+                          cnsScore: 3,
+                          recoveryImpact: 3,
+                          loggingMetric: 'weight_reps',
+                          supportsWeightedBodyweight: false,
+                          isReviewed: false,
+                        );
+                    return ExercisePickResult(
+                      exercise: cat,
+                      circuitId: circuit.id,
+                      circuitRounds: circuit.rounds,
+                      circuitRestSeconds: circuit.restSeconds,
+                      targetReps: ce.targetReps,
+                      targetWeightKg: ce.targetWeightKg,
+                    );
+                  }).toList();
+                  if (context.mounted) {
+                    Navigator.of(context).pop(results);
+                  }
+                },
+                child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ],
+          ),
+          if (circuit.notes != null && circuit.notes!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              circuit.notes!,
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ],
       ),
     );
   }

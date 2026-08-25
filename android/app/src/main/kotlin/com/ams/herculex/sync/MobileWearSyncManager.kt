@@ -49,6 +49,28 @@ class MobileWearSyncManager(
         )
     }
 
+    suspend fun syncMediaState(mediaJson: String) {
+        stateStore.saveString("media_state_json", mediaJson)
+        putState(
+            path = WearSyncPaths.STATE_MEDIA_STATE,
+            values = mapOf(
+                "media_json" to mediaJson,
+                "updated_at" to System.currentTimeMillis(),
+            ),
+        )
+        sendMessageToAllNodes(
+            path = WearSyncPaths.MESSAGE_MEDIA_STATE,
+            payload = mediaJson,
+        )
+    }
+
+    suspend fun sendAchievement(achievementJson: String) {
+        sendMessageToAllNodes(
+            path = WearSyncPaths.MESSAGE_ACHIEVEMENT,
+            payload = achievementJson,
+        )
+    }
+
     suspend fun endActiveSession(entityId: String) {
         clearPendingWorkout()
         syncActiveWorkoutSession(null, endedEntityId = entityId)

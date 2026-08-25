@@ -85,11 +85,11 @@ class _HealthPlatformDetailViewState
   String get _description {
     switch (widget.platform) {
       case HealthPlatform.samsung:
-        return 'Dvosmerna sinhronizacija prek Samsung Health SDK in Health Connect API.';
+        return 'Two-way sync via Samsung Health SDK and Health Connect API.';
       case HealthPlatform.apple:
-        return 'Sinhronizacija prek HealthKit API na iPhone in Apple Watch.';
+        return 'Sync via HealthKit API on iPhone and Apple Watch.';
       case HealthPlatform.google:
-        return 'Sinhronizacija prek Google Health Connect na Android napravah.';
+        return 'Sync via Google Health Connect on Android devices.';
     }
   }
 
@@ -100,37 +100,37 @@ class _HealthPlatformDetailViewState
       case HealthPlatform.samsung:
         return [
           _CategoryItem(
-            'Hrana in makrohranila',
+            'Food and macronutrients',
             Icons.restaurant_rounded,
             samsungHealthSyncFoodProvider,
           ),
           _CategoryItem(
-            'Voda in hidracija',
+            'Water and hydration',
             Icons.water_drop_rounded,
             samsungHealthSyncWaterProvider,
           ),
           _CategoryItem(
-            'Dnevni koraki',
+            'Daily steps',
             Icons.directions_walk_rounded,
             samsungHealthSyncStepsProvider,
           ),
           _CategoryItem(
-            'Vadbe in kardio',
+            'Workouts and cardio',
             Icons.fitness_center_rounded,
             samsungHealthSyncWorkoutsProvider,
           ),
           _CategoryItem(
-            'Spanec in faze spanca',
+            'Sleep and sleep stages',
             Icons.bedtime_rounded,
             samsungHealthSyncSleepProvider,
           ),
           _CategoryItem(
-            'Srčni utrip, HRV in biometrija',
+            'Heart rate, HRV and biometrics',
             Icons.favorite_rounded,
             samsungHealthSyncBiometricsProvider,
           ),
           _CategoryItem(
-            'Telesna teža',
+            'Body weight',
             Icons.monitor_weight_rounded,
             samsungHealthSyncWeightProvider,
           ),
@@ -138,42 +138,42 @@ class _HealthPlatformDetailViewState
       case HealthPlatform.apple:
         return [
           _CategoryItem(
-            'Hrana in makrohranila',
+            'Food and macronutrients',
             Icons.restaurant_rounded,
             appleHealthSyncFoodProvider,
           ),
           _CategoryItem(
-            'Voda in hidracija',
+            'Water and hydration',
             Icons.water_drop_rounded,
             appleHealthSyncWaterProvider,
           ),
           _CategoryItem(
-            'Dnevni koraki',
+            'Daily steps',
             Icons.directions_walk_rounded,
             appleHealthSyncStepsProvider,
           ),
           _CategoryItem(
-            'Vadbe in kardio',
+            'Workouts and cardio',
             Icons.fitness_center_rounded,
             appleHealthSyncWorkoutsProvider,
           ),
           _CategoryItem(
-            'Spanec in faze spanca',
+            'Sleep and sleep stages',
             Icons.bedtime_rounded,
             appleHealthSyncSleepProvider,
           ),
           _CategoryItem(
-            'Srčni utrip, HRV in biometrija',
+            'Heart rate, HRV and biometrics',
             Icons.favorite_rounded,
             appleHealthSyncBiometricsProvider,
           ),
           _CategoryItem(
-            'Telesna teža',
+            'Body weight',
             Icons.monitor_weight_rounded,
             appleHealthSyncWeightProvider,
           ),
           _CategoryItem(
-            'Mindfulness in dihanje',
+            'Mindfulness and breathing',
             Icons.self_improvement_rounded,
             appleHealthSyncMindfulnessProvider,
           ),
@@ -181,42 +181,42 @@ class _HealthPlatformDetailViewState
       case HealthPlatform.google:
         return [
           _CategoryItem(
-            'Hrana in makrohranila',
+            'Food and macronutrients',
             Icons.restaurant_rounded,
             googleHealthSyncFoodProvider,
           ),
           _CategoryItem(
-            'Voda in hidracija',
+            'Water and hydration',
             Icons.water_drop_rounded,
             googleHealthSyncWaterProvider,
           ),
           _CategoryItem(
-            'Dnevni koraki',
+            'Daily steps',
             Icons.directions_walk_rounded,
             googleHealthSyncStepsProvider,
           ),
           _CategoryItem(
-            'Vadbe in kardio',
+            'Workouts and cardio',
             Icons.fitness_center_rounded,
             googleHealthSyncWorkoutsProvider,
           ),
           _CategoryItem(
-            'Spanec in faze spanca',
+            'Sleep and sleep stages',
             Icons.bedtime_rounded,
             googleHealthSyncSleepProvider,
           ),
           _CategoryItem(
-            'Srčni utrip, HRV in biometrija',
+            'Heart rate, HRV and biometrics',
             Icons.favorite_rounded,
             googleHealthSyncBiometricsProvider,
           ),
           _CategoryItem(
-            'Telesna teža',
+            'Body weight',
             Icons.monitor_weight_rounded,
             googleHealthSyncWeightProvider,
           ),
           _CategoryItem(
-            'Nasičenost s kisikom (SpO₂)',
+            'Blood oxygen saturation (SpO₂)',
             Icons.air_rounded,
             googleHealthSyncBloodOxygenProvider,
           ),
@@ -249,11 +249,11 @@ class _HealthPlatformDetailViewState
   String get _autoSyncLabel {
     switch (widget.platform) {
       case HealthPlatform.samsung:
-        return 'Samodejna sinhronizacija (3× / dan)';
+        return 'Automatic sync (3× / day)';
       case HealthPlatform.apple:
-        return 'Samodejna sinhronizacija v ozadju';
+        return 'Automatic background sync';
       case HealthPlatform.google:
-        return 'Samodejna sinhronizacija v ozadju';
+        return 'Automatic background sync';
     }
   }
 
@@ -280,19 +280,32 @@ class _HealthPlatformDetailViewState
 
   String _syncMessage(DailyHealthRead result) {
     if (result.hasAnyAvailableMetric) {
-      return '$_title sinhroniziran.';
+      final parts = <String>[];
+      if (result.steps.isAvailable && result.steps.value != null) {
+        parts.add('${result.steps.value!.round()} steps');
+      }
+      if (result.activeKcal.isAvailable && result.activeKcal.value != null) {
+        parts.add('${result.activeKcal.value!.round()} kcal');
+      }
+      if (result.sleepHours.isAvailable && result.sleepHours.value != null) {
+        parts.add('${result.sleepHours.value!.toStringAsFixed(1)}h sleep');
+      }
+      if (parts.isNotEmpty) {
+        return '$_title synced: ${parts.join(', ')}';
+      }
+      return '$_title synced.';
     }
     switch (result.overallStatus) {
       case HealthReadStatus.denied:
-        return 'Dostop do $_title je zavrnjen.';
+        return 'Access to $_title was denied.';
       case HealthReadStatus.unavailable:
-        return '$_title na tej napravi ni na voljo.';
+        return '$_title is not available on this device.';
       case HealthReadStatus.error:
-        return 'Branje iz $_title ni uspelo.';
+        return 'Failed to read from $_title.';
       case HealthReadStatus.empty:
-        return 'V $_title ni podatkov za izbrano obdobje.';
+        return 'No data for today in $_title.';
       case HealthReadStatus.available:
-        return '$_title sinhroniziran.';
+        return '$_title synced.';
     }
   }
 
@@ -333,13 +346,13 @@ class _HealthPlatformDetailViewState
 
           if (isConnected) ...[
             // ── Categories ────────────────────────────────────────────────
-            _buildSectionLabel('KATEGORIJE SINHRONIZACIJE', theme),
+            _buildSectionLabel('SYNC CATEGORIES', theme),
             const SizedBox(height: 12),
             _buildCategoriesCard(theme),
             const SizedBox(height: 24),
 
             // ── Sync settings ─────────────────────────────────────────────
-            _buildSectionLabel('NASTAVITVE SINHRONIZACIJE', theme),
+            _buildSectionLabel('SYNC SETTINGS', theme),
             const SizedBox(height: 12),
             GlassContainer(
               padding: const EdgeInsets.all(20),
@@ -348,7 +361,7 @@ class _HealthPlatformDetailViewState
                   _buildSettingRow(
                     theme,
                     _autoSyncLabel,
-                    'Samodejno uvozi in izvozi podatke',
+                    'Automatically import and export data',
                     Icons.sync_rounded,
                     autoSync,
                     (v) => ref.read(_autoSyncProvider.notifier).state = v,
@@ -359,8 +372,8 @@ class _HealthPlatformDetailViewState
                   ),
                   _buildSettingRow(
                     theme,
-                    'Dvosmerna sinhronizacija',
-                    'Izvozi podatke iz Herculex v $_title',
+                    'Two-way sync',
+                    'Export data from Herculex to $_title',
                     Icons.swap_horiz_rounded,
                     bidirectional,
                     (v) => ref.read(_bidirectionalProvider.notifier).state = v,
@@ -369,6 +382,53 @@ class _HealthPlatformDetailViewState
               ),
             ),
             const SizedBox(height: 24),
+
+            // ── Watch Sync Guidance Card (for Samsung / Android) ───────────
+            if (widget.platform == HealthPlatform.samsung ||
+                widget.platform == HealthPlatform.google) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.watch_rounded,
+                            size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'WATCH SYNC (GALAXY WATCH)',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'The watch saves steps to Samsung Health, which forwards them to Health Connect.\n'
+                      '• If the watch shows more steps than the app, open Samsung Health on your phone briefly to refresh data.\n'
+                      '• In Health Connect > Data sources, set Samsung Health to the top priority.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                        height: 1.4,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
 
             // ── Sync now button ────────────────────────────────────────────
             SizedBox(
@@ -395,7 +455,7 @@ class _HealthPlatformDetailViewState
                       )
                     : const Icon(Icons.sync_rounded, size: 20),
                 label: Text(
-                  _isSyncing ? 'Sinhroniziranje...' : 'Sinhroniziraj sedaj',
+                  _isSyncing ? 'Syncing...' : 'Sync now',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -474,9 +534,9 @@ class _HealthPlatformDetailViewState
                 child: Text(
                   isConnected
                       ? lastSync != null
-                            ? 'Zadnji sync: ${_formatTime(lastSync)}'
-                            : 'Povezano — ni prejšnjih sinhronizacij'
-                      : 'Ni povežano — vklopi, da dovoliš dostop',
+                            ? 'Last sync: ${_formatTime(lastSync)}'
+                            : 'Connected — no previous syncs'
+                      : 'Not connected — enable to grant access',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.secondary,
                   ),
@@ -506,7 +566,7 @@ class _HealthPlatformDetailViewState
                 ),
                 icon: const Icon(Icons.link_rounded, size: 18),
                 label: const Text(
-                  'Poveži',
+                  'Connect',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),

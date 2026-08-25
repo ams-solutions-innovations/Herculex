@@ -1,13 +1,45 @@
 import 'package:drift/drift.dart';
+import 'package:intl/intl.dart';
 
 import '../../../data/local/database.dart';
+import '../../profile/data/local_profile_repository.dart';
+import '../../profile/domain/profile.dart';
 
 /// Body measurements + progress photo pointers (V2 §17). Photos themselves
 /// live under the app documents directory — device-only, never synced.
 class MeasurementsRepository {
   final AppDatabase _db;
+  LocalProfileRepository? _profileRepo;
 
-  MeasurementsRepository(this._db);
+  MeasurementsRepository(this._db, [this._profileRepo]);
+
+  void setProfileRepository(LocalProfileRepository profileRepo) {
+    _profileRepo = profileRepo;
+    syncOnStartup();
+  }
+
+  Future<void> syncOnStartup() async {
+    final repo = _profileRepo;
+    if (repo == null) return;
+    final latestDbWeight = await latestBodyweightKg();
+    final profile = repo.currentProfile;
+
+    if (latestDbWeight != null) {
+      if (profile != null && profile.weightKg != latestDbWeight) {
+        await repo.save(
+          profile.copyWith(weightKg: latestDbWeight),
+          syncToLog: false,
+        );
+      }
+    } else if (profile?.weightKg != null) {
+      final todayIso = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      await logMeasurement(
+        dateIso: todayIso,
+        metric: 'bodyweight',
+        value: profile!.weightKg!,
+      );
+    }
+  }
 
   /// Built-in measurement metrics; UI may add `custom:<name>` keys.
   static const builtInMetrics = [
@@ -56,11 +88,35 @@ class MeasurementsRepository {
                 dateIso: dateIso, metric: metric, value: value),
           );
     });
+    if (metric == 'bodyweight') {
+      await _syncProfileWithLatestWeight();
+    }
   }
 
   Future<void> deleteMeasurement(int id) async {
+    final row = await (_db.select(_db.bodyMeasurements)..where((t) => t.id.equals(id))).getSingleOrNull();
     await (_db.delete(_db.bodyMeasurements)..where((t) => t.id.equals(id)))
         .go();
+    if (row?.metric == 'bodyweight') {
+      await _syncProfileWithLatestWeight();
+    }
+  }
+
+  Future<void> _syncProfileWithLatestWeight() async {
+    final repo = _profileRepo;
+    if (repo == null) return;
+    final latest = await latestBodyweightKg();
+    final profile = repo.currentProfile ??
+        Profile(
+          goal: FitnessGoal.maintenance,
+          activityLevel: ActivityLevel.lightlyActive,
+        );
+    if (profile.weightKg != latest) {
+      await repo.save(
+        profile.copyWith(weightKg: latest),
+        syncToLog: false,
+      );
+    }
   }
 
   /// Most recent bodyweight, used to snapshot `set_entries.bodyweight_kg`

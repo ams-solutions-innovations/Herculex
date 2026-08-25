@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,6 +26,13 @@ import com.ams.herculex.ui.OneUiPillStyle
 
 @Composable
 fun ExerciseOptionsScreen(navController: NavController, viewModel: WorkoutViewModel) {
+    val session by viewModel.session.collectAsState()
+
+    // If session was discarded/finished, pop back to home
+    LaunchedEffect(session) {
+        if (session == null) navController.popBackStack("home", inclusive = false)
+    }
+
     val listState = rememberScalingLazyListState()
 
     ScalingLazyColumn(

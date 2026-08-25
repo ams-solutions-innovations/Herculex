@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
-
+import '../../notifications/presentation/notification_settings_provider.dart';
 import '../../../services/workout_notification_service.dart';
 
 /// Whether the rest timer should auto-start after a completed set.
@@ -72,9 +72,12 @@ class RestTimerController extends Notifier<RestTimerState> {
     );
     
     if (seconds > 0) {
+      final notifEnabled =
+          ref.read(notificationSettingsProvider).restTimerAlertsEnabled;
       WorkoutNotificationService.instance.scheduleRestTimer(
         seconds, 
         exerciseName ?? 'Time for your next set!',
+        enabled: notifEnabled,
       );
     }
 
@@ -105,9 +108,12 @@ class RestTimerController extends Notifier<RestTimerState> {
     final clock = ref.read(clockProvider);
     final remaining = state.remainingSecondsFrom(clock.now());
     if (remaining > 0) {
+      final notifEnabled =
+          ref.read(notificationSettingsProvider).restTimerAlertsEnabled;
       WorkoutNotificationService.instance.scheduleRestTimer(
         remaining, 
         state.exerciseName ?? 'Time for your next set!',
+        enabled: notifEnabled,
       );
     }
   }

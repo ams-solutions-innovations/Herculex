@@ -94,6 +94,12 @@ flutter {
 afterEvaluate {
     tasks.named("assembleDebug") { dependsOn(":wear:assembleDebug") }
     tasks.named("assembleRelease") { dependsOn(":wear:assembleRelease") }
+    tasks.named("preBuild") {
+        doLast {
+            file("${layout.buildDirectory.get()}/intermediates/flutter/debug").mkdirs()
+            file("${layout.buildDirectory.get()}/intermediates/flutter/release").mkdirs()
+        }
+    }
 }
 
 dependencies {

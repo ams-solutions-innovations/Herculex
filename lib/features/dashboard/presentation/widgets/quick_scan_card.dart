@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../theme/colors.dart';
 import '../../../../theme/haptics.dart';
+import '../../../../theme/tokens/tokens.dart';
 import '../../../nutrition/presentation/food_picker_sheet.dart';
 import '../../../nutrition/presentation/quick_scan_food.dart';
 class QuickScanWidget extends ConsumerWidget {
@@ -16,15 +17,24 @@ class QuickScanWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final hx = context.hx;
+    final accent = AppColors.primary;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        gradient: LinearGradient(
+          colors: [
+            accent.withValues(alpha: hx.isDark ? 0.16 : 0.12),
+            hx.surfaceContainerLowest,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
+          color: accent.withValues(alpha: 0.3),
         ),
       ),
       child: Column(

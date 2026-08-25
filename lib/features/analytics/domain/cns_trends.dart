@@ -42,10 +42,13 @@ class CnsTrendsResult {
 
   String? get recommendation {
     if (deloadSuggested) {
-      return 'CNS load is ${(acuteWeeklyLoad / (chronicWeeklyLoad == 0 ? 1 : chronicWeeklyLoad)).toStringAsFixed(1)}× your 4-week average — schedule a deload week.';
+      return 'CNS load is ${(acuteWeeklyLoad / (chronicWeeklyLoad == 0 ? 1 : chronicWeeklyLoad)).toStringAsFixed(1)}× your multi-week average — schedule a deload week (reduce volume by ~50%).';
     }
     if (currentLoad >= 0.7) {
-      return 'CNS fatigue is elevated. Consider reducing intensity or avoiding max-effort work today.';
+      return 'CNS fatigue is elevated today (${(currentLoad * 100).round()}%). Consider taking an extra rest day, postponing heavy compound lifts by 1–2 days, or reducing intensity.';
+    }
+    if (currentLoad >= 0.45) {
+      return 'Moderate CNS load. Training is progressing well — keep rest periods adequate between heavy sets.';
     }
     return null;
   }
@@ -76,12 +79,10 @@ class CnsTrends {
       if (completedAt == null) continue;
 
       final intensity = rs.cnsScore / 10.0;
-      final rpe = rs.set.rpeX10 != null ? rs.set.rpeX10! / 10.0 : 7.0;
-      final rpeFactor = rpe >= 9
-          ? 1.5
-          : rpe >= 8
-              ? 1.3
-              : 1.0;
+      final rpe = rs.set.rpeX10 != null ? rs.set.rpeX10! / 10.0 : null;
+      final rpeFactor = rpe != null
+          ? (rpe >= 9 ? 1.5 : (rpe >= 8 ? 1.3 : 1.0))
+          : 1.0;
       final setLoad = intensity * rpeFactor * rs.setType.cnsFactor;
 
       final day =
@@ -103,14 +104,22 @@ class CnsTrends {
     final acute = daily
         .skip(max(0, daily.length - 7))
         .fold(0.0, (sum, d) => sum + d.load);
-    final chronic =
-        daily.fold(0.0, (sum, d) => sum + d.load) / max(1, daily.length ~/ 7);
+
+    // Calculate active training span in the window to avoid dividing by 4 on newer accounts
+    final earliestTrainingIndex = daily.indexWhere((d) => d.load > 0);
+    final daysSinceFirstTraining = earliestTrainingIndex == -1 ? 0 : daily.length - earliestTrainingIndex;
+    final weeksOfHistory = max(1, (daysSinceFirstTraining / 7.0).ceil());
+    final chronic = daily.fold(0.0, (sum, d) => sum + d.load) / weeksOfHistory;
+
+    // A true deload week requires at least 3 weeks (21 days) of training history
+    // and meaningful chronic load, so new users don't get premature deload alerts.
+    final hasSufficientHistory = daysSinceFirstTraining >= 21;
+    final deloadSuggested = hasSufficientHistory && chronic > 1.5 && acute > 1.4 * chronic;
 
     return CnsTrendsResult(
       daily: daily,
       currentLoad: gauge.clamp(0.0, 1.0),
-      // Require a meaningful chronic base so week one doesn't scream deload.
-      deloadSuggested: chronic > 1.0 && acute > 1.4 * chronic,
+      deloadSuggested: deloadSuggested,
       acuteWeeklyLoad: acute,
       chronicWeeklyLoad: chronic,
     );

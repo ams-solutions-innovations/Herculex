@@ -72,6 +72,10 @@ fun Modifier.attachWorkoutSetPickerRotary(
     weightOptionsCount: Int,
     repsState: PickerState,
     repsOptionsCount: Int,
+    timeState: PickerState? = null,
+    timeOptionsCount: Int = 0,
+    distanceState: PickerState? = null,
+    distanceOptionsCount: Int = 0,
     rotaryTarget: RotaryTarget,
     focusRequester: FocusRequester,
     isFocused: Boolean = true,
@@ -79,8 +83,18 @@ fun Modifier.attachWorkoutSetPickerRotary(
     focusRequester = focusRequester,
     isFocused = isFocused,
     onStep = { steps ->
-        val pickerState = if (rotaryTarget == RotaryTarget.WEIGHT) weightState else repsState
-        val maxOptions = if (rotaryTarget == RotaryTarget.WEIGHT) weightOptionsCount else repsOptionsCount
+        val pickerState = when (rotaryTarget) {
+            RotaryTarget.WEIGHT -> weightState
+            RotaryTarget.REPS -> repsState
+            RotaryTarget.TIME -> timeState ?: repsState
+            RotaryTarget.DISTANCE -> distanceState ?: repsState
+        }
+        val maxOptions = when (rotaryTarget) {
+            RotaryTarget.WEIGHT -> weightOptionsCount
+            RotaryTarget.REPS -> repsOptionsCount
+            RotaryTarget.TIME -> if (timeState != null) timeOptionsCount else repsOptionsCount
+            RotaryTarget.DISTANCE -> if (distanceState != null) distanceOptionsCount else repsOptionsCount
+        }
         val newIdx = (pickerState.selectedOption + steps).coerceIn(0, maxOptions - 1)
         if (newIdx != pickerState.selectedOption) {
             pickerState.scrollToOption(newIdx)

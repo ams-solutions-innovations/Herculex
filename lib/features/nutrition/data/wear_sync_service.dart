@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import '../../../core/notifications/in_app_notification_model.dart';
 
 enum _WatchEventType { started, updated, ended }
 
@@ -29,7 +31,12 @@ class WearSyncService {
   static Function(String?)? _onWatchFastingCommand;
   static Function(String?)? _onWatchQuickAddCommand;
   static Function(String?)? _onWatchMacroCommand;
+  static Function(String?)? _onWatchMediaCommand;
   static Function()? onRequestSync;
+
+  static set onWatchMediaCommand(Function(String?)? handler) {
+    _onWatchMediaCommand = handler;
+  }
 
   // Rep-capture traffic (`/herculex/reps/*`, 10-03). The native host
   // (`PhoneWearListenerService.onRepMessageListener`) forwards all three
@@ -70,6 +77,9 @@ class WearSyncService {
   static final List<String?> _pendingFastingCommands = [];
   static final List<String?> _pendingQuickAddCommands = [];
   static final List<String?> _pendingMacroCommands = [];
+  static final List<String?> _pendingRamblerCommands = [];
+
+  static Function(String?)? _onWatchRamblerCommand;
 
   static set onWatchWorkoutStarted(Function(String?, bool)? handler) {
     _onWatchWorkoutStarted = handler;
@@ -99,6 +109,11 @@ class WearSyncService {
   static set onWatchMacroCommand(Function(String?)? handler) {
     _onWatchMacroCommand = handler;
     _drainPendingMacroCommands();
+  }
+
+  static set onWatchRamblerCommand(Function(String?)? handler) {
+    _onWatchRamblerCommand = handler;
+    _drainPendingRamblerCommands();
   }
 
   WearSyncService() {
@@ -151,6 +166,12 @@ class WearSyncService {
           break;
         case 'onWatchMacroCommand':
           _deliverMacroCommand(call.arguments?['command_json'] as String?);
+          break;
+        case 'onWatchRamblerCommand':
+          _deliverRamblerCommand(call.arguments?['command_json'] as String?);
+          break;
+        case 'onWatchMediaCommand':
+          _onWatchMediaCommand?.call(call.arguments?['command_json'] as String?);
           break;
         case 'onRequestSync':
           onRequestSync?.call();
@@ -271,6 +292,23 @@ class WearSyncService {
     }
   }
 
+  static void _deliverRamblerCommand(String? commandJson) {
+    final handler = _onWatchRamblerCommand;
+    if (handler == null) {
+      _pendingRamblerCommands.add(commandJson);
+      return;
+    }
+    handler(commandJson);
+  }
+
+  static void _drainPendingRamblerCommands() {
+    final handler = _onWatchRamblerCommand;
+    if (handler == null) return;
+    while (_pendingRamblerCommands.isNotEmpty) {
+      handler(_pendingRamblerCommands.removeAt(0));
+    }
+  }
+
   /// Visible for tests — the handlers and queue are process-global statics.
   @visibleForTesting
   static void resetForTesting() {
@@ -280,6 +318,7 @@ class WearSyncService {
     _onWatchFastingCommand = null;
     _onWatchQuickAddCommand = null;
     _onWatchMacroCommand = null;
+    _onWatchRamblerCommand = null;
     _onWatchRepCaptureStart = null;
     _onWatchRepSamples = null;
     _onWatchRepCaptureEnd = null;
@@ -288,6 +327,7 @@ class WearSyncService {
     _pendingFastingCommands.clear();
     _pendingQuickAddCommands.clear();
     _pendingMacroCommands.clear();
+    _pendingRamblerCommands.clear();
   }
 
   /// Tells the native host the watch's session is now in the phone's database,
@@ -313,6 +353,12 @@ class WearSyncService {
     double weeklyTonnage = 0.0,
     int weeklySets = 0,
     String weeklyVolumeJson = "[]",
+    String nutrientTrendsJson = "[]",
+    int calorieGoal = 2000,
+    int proteinGoal = 150,
+    int carbsGoal = 200,
+    int fatGoal = 65,
+    int waterGoal = 2000,
   }) async {
     try {
       await _channel.invokeMethod('syncMacros', {
@@ -324,8 +370,14 @@ class WearSyncService {
         'weekly_tonnage': weeklyTonnage,
         'weekly_sets': weeklySets,
         'weekly_volume_json': weeklyVolumeJson,
+        'nutrient_trends_json': nutrientTrendsJson,
+        'calorie_goal': calorieGoal,
+        'protein_goal': proteinGoal,
+        'carbs_goal': carbsGoal,
+        'fat_goal': fatGoal,
+        'water_goal': waterGoal,
       });
-      debugPrint('Synced macros & volume to wear');
+      debugPrint('Synced macros & goals to wear');
     } on PlatformException catch (e) {
       debugPrint('Failed to sync macros to wear: ${e.message}');
     }
@@ -383,6 +435,16 @@ class WearSyncService {
     }
   }
 
+  Future<void> markWatchRamblerCommandApplied(String commandId) async {
+    try {
+      await _channel.invokeMethod('markWatchRamblerCommandApplied', {
+        'command_id': commandId,
+      });
+    } catch (e) {
+      debugPrint('Failed to ack watch rambler command: $e');
+    }
+  }
+
   Future<void> syncWorkouts(String workoutsJson) async {
     try {
       await _channel.invokeMethod('syncWorkouts', {
@@ -418,6 +480,44 @@ class WearSyncService {
     }
   }
 
+  Future<void> syncMediaState(String mediaJson) async {
+    try {
+      await _channel.invokeMethod('syncMediaState', {
+        'media_json': mediaJson,
+      });
+    } on PlatformException catch (e) {
+      debugPrint('Failed to sync media state to wear: ${e.message}');
+    }
+  }
+
+  /// Native replacement for the `flutter_media_controller` plugin's
+  /// `getMediaInfo` — that plugin queries `getActiveSessions()` against its
+  /// own `AppWidgetProvider` class, which can never hold notification
+  /// listener access, so it always throws and reports "no track playing".
+  /// This queries the plugin's actual `MediaNotificationListener` service
+  /// (already declared/grantable in AndroidManifest.xml) instead, and
+  /// prefers a session that's actually playing over whatever
+  /// `getActiveSessions()` happens to return first.
+  Future<Map<String, dynamic>> getMediaInfoNative() async {
+    try {
+      final result = await _channel.invokeMethod<Map>('getMediaInfoNative');
+      return result?.cast<String, dynamic>() ?? const {};
+    } on PlatformException catch (e) {
+      debugPrint('Failed to read native media info: ${e.message}');
+      return const {};
+    }
+  }
+
+  /// Native replacement for `flutter_media_controller`'s `mediaAction` —
+  /// same wrong-ComponentName bug as [getMediaInfoNative].
+  Future<void> sendMediaActionNative(String action) async {
+    try {
+      await _channel.invokeMethod('mediaActionNative', {'action': action});
+    } on PlatformException catch (e) {
+      debugPrint('Failed to send native media action: ${e.message}');
+    }
+  }
+
   Future<void> endWorkoutOnWatch(String entityId) async {
     try {
       await _channel.invokeMethod('endWorkoutOnWatch', {
@@ -426,6 +526,25 @@ class WearSyncService {
       debugPrint('Ended workout on watch');
     } on PlatformException catch (e) {
       debugPrint('Failed to end workout on watch: ${e.message}');
+    }
+  }
+
+  Future<void> sendAchievementNotification(InAppNotificationItem item) async {
+    try {
+      final jsonPayload = jsonEncode({
+        'exerciseName': item.title,
+        'prType': item.type.name,
+        'headline': item.badgeText,
+        'valueText': item.valueText,
+        'subDetail': item.subtitle,
+        'durationMs': item.duration.inMilliseconds,
+      });
+      await _channel.invokeMethod('sendAchievement', {
+        'achievement_json': jsonPayload,
+      });
+      debugPrint('Sent achievement to watch: ${item.title}');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to send achievement to watch: ${e.message}');
     }
   }
 }

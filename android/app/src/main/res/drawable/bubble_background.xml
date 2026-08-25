@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The chat-head disc. Filled with the adaptive icon's own background colour so
+  the bubble reads as the Herculex launcher icon rather than as a new mark,
+  with a hairline rim to keep it separated from dark wallpapers and dark apps.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/ic_launcher_background" />
+    <stroke
+        android:width="1dp"
+        android:color="#33FFFFFF" />
+</shape>

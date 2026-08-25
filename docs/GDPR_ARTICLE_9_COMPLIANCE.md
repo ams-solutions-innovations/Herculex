@@ -2,16 +2,17 @@
 
 **Product:** Herculex  
 **Entity:** AMS Solutions Studio  
-**Date:** August 17, 2026  
+**Date:** August 20, 2026  
 
 ---
 
 ## 1. Executive Summary & Direct Answer
 **Is GDPR Article 9 Special Category Data processed in Herculex?**  
-**YES.** Specifically, two features process data classified as "data concerning health":
+**YES.** Specifically, four features process data classified as "data concerning health":
 1. **Menstrual Cycle Tracking (`cycle_logs`, `cycle_settings`)**: Period dates, cycle phase, flow intensity.
 2. **Body Measurements (`body_measurements`, `daily_summaries`)**: Body weight, body fat %, physical circumferences.
 3. **Biometric HealthKit / Health Connect Data (`health_samples`)**: Heart rate, HRV, sleep stages, SpO₂ (*Note: Kept local-only*).
+4. **Joint Pain Tracking (`joint_pain_logs`)**: Flagged joint (elbow, shoulder, wrist, knee, hip, lower back), severity, optional note — used by the Recovery page's per-joint overtraining check.
 
 ---
 

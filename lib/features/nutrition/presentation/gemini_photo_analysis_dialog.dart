@@ -149,7 +149,7 @@ class _GeminiPhotoAnalysisDialogState
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Napaka pri shranjevanju: $e';
+        _error = 'Error saving: $e';
       });
     }
   }
@@ -195,7 +195,7 @@ class _GeminiPhotoAnalysisDialogState
                   Icon(Icons.auto_awesome, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Gemini AI Analiza hrane',
+                    'Gemini AI Food Analysis',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -235,14 +235,14 @@ class _GeminiPhotoAnalysisDialogState
                   ],
                   if (_result == null && !_analyzing) ...[
                     Text(
-                      'Opomba / Sestava hrane (neobvezno)',
+                      'Notes / Ingredients (optional)',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Dodajte opombo o kolicini ali sestavinah, da bo analiza natancnejsa.',
+                      'Add a note about quantity or ingredients for more accurate analysis.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.secondary,
                       ),
@@ -252,7 +252,7 @@ class _GeminiPhotoAnalysisDialogState
                       controller: _noteCtrl,
                       maxLines: 2,
                       decoration: InputDecoration(
-                        hintText: 'Napisite opombo (npr. 150g riza, 2 jajci)',
+                        hintText: 'Write a note (e.g., 150g rice, 2 eggs)',
                         filled: true,
                         fillColor: AppColors.surfaceContainer,
                         border: OutlineInputBorder(
@@ -270,7 +270,7 @@ class _GeminiPhotoAnalysisDialogState
                         onPressed: _startAnalysis,
                         icon: const Icon(Icons.auto_awesome),
                         label: const Text(
-                          'Analiziraj z Gemini AI',
+                          'Analyze with Gemini AI',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -291,12 +291,12 @@ class _GeminiPhotoAnalysisDialogState
                           const CircularProgressIndicator(),
                           const SizedBox(height: 16),
                           const Text(
-                            'Gemini AI analizira sliko in sestavine...',
+                            'Gemini AI is analyzing photo and ingredients...',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Racunanje hranilnih vrednosti in ocene obroka',
+                            'Calculating nutritional values and meal score',
                             style: TextStyle(
                               color: AppColors.secondary,
                               fontSize: 12,
@@ -313,20 +313,20 @@ class _GeminiPhotoAnalysisDialogState
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'Podrobnosti obroka',
+                      'Meal details',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _NumberField(controller: _nameCtrl, label: 'Ime hrane'),
+                    _NumberField(controller: _nameCtrl, label: 'Food name'),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
                           child: _NumberField(
                             controller: _gramsCtrl,
-                            label: 'Celotna masa (g)',
+                            label: 'Total weight (g)',
                             suffix: 'g',
                           ),
                         ),
@@ -334,7 +334,7 @@ class _GeminiPhotoAnalysisDialogState
                         Expanded(
                           child: _NumberField(
                             controller: _kcalCtrl,
-                            label: 'Kalorije / 100g',
+                            label: 'Calories / 100g',
                             suffix: 'kcal',
                           ),
                         ),
@@ -342,7 +342,7 @@ class _GeminiPhotoAnalysisDialogState
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Makronutrienti (na 100g)',
+                      'Macronutrients (per 100g)',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.secondary,
@@ -354,7 +354,7 @@ class _GeminiPhotoAnalysisDialogState
                         Expanded(
                           child: _NumberField(
                             controller: _proteinCtrl,
-                            label: 'Beljakovine',
+                            label: 'Protein',
                             suffix: 'g',
                             decimal: true,
                           ),
@@ -363,7 +363,7 @@ class _GeminiPhotoAnalysisDialogState
                         Expanded(
                           child: _NumberField(
                             controller: _carbsCtrl,
-                            label: 'Oglj. hidrati',
+                            label: 'Carbs',
                             suffix: 'g',
                             decimal: true,
                           ),
@@ -372,7 +372,7 @@ class _GeminiPhotoAnalysisDialogState
                         Expanded(
                           child: _NumberField(
                             controller: _fatCtrl,
-                            label: 'Mascobe',
+                            label: 'Fat',
                             suffix: 'g',
                             decimal: true,
                           ),
@@ -393,7 +393,7 @@ class _GeminiPhotoAnalysisDialogState
                         child: _saving
                             ? const CircularProgressIndicator()
                             : Text(
-                                'Dodaj v ${widget.meal.label}',
+                                'Add to ${widget.meal.label}',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -406,7 +406,7 @@ class _GeminiPhotoAnalysisDialogState
                       child: TextButton.icon(
                         onPressed: () => setState(() => _result = null),
                         icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text('Ponovno analiziraj sliko'),
+                        label: const Text('Re-analyze photo'),
                       ),
                     ),
                   ],
@@ -482,7 +482,7 @@ class _RatingPanel extends StatelessWidget {
                 const Icon(Icons.star, size: 16, color: Colors.white),
                 const SizedBox(width: 4),
                 Text(
-                  'Ocena hrane: ${result.rating.toStringAsFixed(1)} / 10',
+                  'Food score: ${result.rating.toStringAsFixed(1)} / 10',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

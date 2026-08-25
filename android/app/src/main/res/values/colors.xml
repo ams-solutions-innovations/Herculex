@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#000000</color>
+    <!-- Workout Bubble popup. Fixed dark palette rather than theme-following:
+         the popup floats over arbitrary other apps, so it has to stay legible
+         no matter what is behind it. `bubble_accent` mirrors HxColors.primary
+         (0xFF0A84FF) so the popup still reads as Herculex. -->
+    <color name="bubble_popup_surface">#F21C1C1E</color>
+    <color name="bubble_accent">#0A84FF</color>
+    <color name="bubble_on_surface">#FFFFFFFF</color>
+    <color name="bubble_on_surface_variant">#B3FFFFFF</color>
+    <!-- Full-screen dim shown behind the bubble+popup while open, ~35% black.
+         Alpha is baked into the color, but the view's own alpha is what's
+         actually animated for the fade in/out (see WorkoutBubbleController). -->
+    <color name="bubble_scrim">#59000000</color>
 </resources>

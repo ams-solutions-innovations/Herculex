@@ -32,8 +32,33 @@ class DashboardConfigNotifier extends Notifier<DashboardConfig> {
     ref.read(dashboardConfigRepositoryProvider).save(state);
   }
 
+  void toggleSlot(int index, bool visible) {
+    state = state.toggleSlot(index, visible);
+    ref.read(dashboardConfigRepositoryProvider).save(state);
+  }
+
+  void resize(int index, DashboardWidgetSize size) {
+    state = state.resize(index, size);
+    ref.read(dashboardConfigRepositoryProvider).save(state);
+  }
+
   void reorder(int oldIndex, int newIndex) {
     state = state.reorder(oldIndex, newIndex);
+    ref.read(dashboardConfigRepositoryProvider).save(state);
+  }
+
+  void stackWidgets(DashboardWidgetType target, DashboardWidgetType added) {
+    state = state.stackWidgets(target, added);
+    ref.read(dashboardConfigRepositoryProvider).save(state);
+  }
+
+  void unstackWidget(DashboardWidgetType type) {
+    state = state.unstackWidget(type);
+    ref.read(dashboardConfigRepositoryProvider).save(state);
+  }
+
+  void reorderInStack(int slotIndex, int oldIndex, int newIndex) {
+    state = state.reorderInStack(slotIndex, oldIndex, newIndex);
     ref.read(dashboardConfigRepositoryProvider).save(state);
   }
 }
@@ -42,6 +67,10 @@ final dashboardConfigProvider =
     NotifierProvider<DashboardConfigNotifier, DashboardConfig>(
       DashboardConfigNotifier.new,
     );
+
+/// Whether the dashboard is in in-place edit mode (long-press to enter,
+/// "Done" to exit) showing per-tile remove/resize controls.
+final dashboardEditModeProvider = StateProvider<bool>((ref) => false);
 
 final scheduledWorkoutServiceProvider = Provider<ScheduledWorkoutService>((
   ref,

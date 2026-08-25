@@ -6,11 +6,17 @@ class ActiveWorkoutNotificationTarget {
   final String exerciseName;
   final SetEntryData set;
   final int totalSets;
+  final String primaryMuscle;
+  final String equipmentVariant;
+  final SetEntryData? lastCompletedSet;
 
   const ActiveWorkoutNotificationTarget({
     required this.exerciseName,
     required this.set,
     required this.totalSets,
+    this.primaryMuscle = '',
+    this.equipmentVariant = '',
+    this.lastCompletedSet,
   });
 }
 
@@ -26,14 +32,19 @@ ActiveWorkoutNotificationTarget? selectActiveWorkoutNotificationTarget({
     final sets = setsByWorkoutExerciseId[exercise.id] ?? const <SetEntryData>[];
     if (sets.isEmpty) continue;
 
-    final exerciseName =
-        catalog.firstWhereOrNull((e) => e.id == exercise.exerciseId)?.name ??
-        'Workout in progress';
+    final catalogEntry = catalog.firstWhereOrNull(
+      (e) => e.id == exercise.exerciseId,
+    );
+    final exerciseName = catalogEntry?.name ?? 'Workout in progress';
     final nextOpenSet = sets.where((s) => !s.isCompleted).firstOrNull;
     final target = ActiveWorkoutNotificationTarget(
       exerciseName: exerciseName,
       set: nextOpenSet ?? sets.last,
       totalSets: sets.length,
+      primaryMuscle: catalogEntry?.primaryMuscle ?? '',
+      equipmentVariant:
+          exercise.equipmentVariant ?? catalogEntry?.modality ?? '',
+      lastCompletedSet: sets.where((s) => s.isCompleted).lastOrNull,
     );
 
     if (nextOpenSet != null) {

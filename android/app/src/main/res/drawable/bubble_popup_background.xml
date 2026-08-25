@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The expanded live-workout card that the chat head opens into. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/bubble_popup_surface" />
+    <corners android:radius="18dp" />
+    <stroke
+        android:width="1dp"
+        android:color="#26FFFFFF" />
+</shape>

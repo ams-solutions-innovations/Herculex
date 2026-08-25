@@ -39,6 +39,7 @@ class SyncService : WearableListenerService() {
 
     companion object {
         var activeViewModel: WorkoutViewModel? = null
+        var activeNutritionViewModel: com.ams.herculex.nutrition.NutritionViewModel? = null
 
         fun requestSyncFromPhone(context: Context) {
             com.google.android.gms.wearable.Wearable.getNodeClient(context).connectedNodes.addOnSuccessListener { nodes ->
@@ -72,9 +73,11 @@ class SyncService : WearableListenerService() {
                     val weeklyTonnage = dataMap.getDouble("weekly_tonnage", 0.0)
                     val weeklySets = dataMap.getInt("weekly_sets", 0)
                     val weeklyVolumeJson = dataMap.getString("weekly_volume_json", "[]") ?: "[]"
+                    val nutrientTrendsJson = dataMap.getString("nutrient_trends_json", "[]") ?: "[]"
 
                     MacroStore.save(this, calories, protein, carbs, fats, fasting)
                     MacroStore.saveWeeklyVolume(this, weeklyTonnage, weeklySets, weeklyVolumeJson)
+                    MacroStore.saveNutrientTrends(this, nutrientTrendsJson)
 
                     if (dataMap.containsKey("calorie_goal")) {
                         MacroStore.saveGoals(
@@ -87,6 +90,7 @@ class SyncService : WearableListenerService() {
                         )
                     }
 
+                    activeNutritionViewModel?.refresh()
                     requestComplicationUpdates()
                     requestTileUpdate()
                     Log.d("SyncService", "Nutrition synced: ${calories}kcal P${protein}")
@@ -172,6 +176,14 @@ class SyncService : WearableListenerService() {
                         .putString("user_token", dataMap.getString("user_token").orEmpty())
                         .apply()
                 }
+
+                path == WearSyncPaths.STATE_MEDIA_STATE -> {
+                    val mediaJson = dataMap.getString("media_json").orEmpty()
+                    if (mediaJson.isNotBlank()) {
+                        com.ams.herculex.media.WearMediaStore.save(this, mediaJson)
+                        Log.d("SyncService", "Media state synced via DataClient")
+                    }
+                }
             }
         }
     }
@@ -193,6 +205,24 @@ class SyncService : WearableListenerService() {
                 // needed even though endSessionFromPhone() also stops it
                 // when a ViewModel happens to be alive.
                 stopOngoingServiceDirect()
+            }
+            WearSyncPaths.MESSAGE_ACHIEVEMENT -> {
+                try {
+                    val jsonStr = String(messageEvent.data)
+                    val obj = org.json.JSONObject(jsonStr)
+                    val event = com.ams.herculex.workout.WatchPrEvent(
+                        exerciseName = obj.optString("exerciseName", "Exercise"),
+                        prType = obj.optString("prType", "PR"),
+                        headline = obj.optString("headline", "🏆 NOVI PR!"),
+                        valueText = obj.optString("valueText", ""),
+                        diffText = obj.optString("diffText").takeIf { it.isNotBlank() },
+                        subDetail = obj.optString("subDetail").takeIf { it.isNotBlank() },
+                        durationMs = obj.optLong("durationMs", 3000L),
+                    )
+                    activeViewModel?.showPrCelebration(event)
+                } catch (e: Exception) {
+                    Log.e("SyncService", "Failed to parse achievement event", e)
+                }
             }
             // Fast path: same payload/semantics as the DataClient paths above,
             // delivered via MessageClient for near-instant application.
@@ -230,6 +260,13 @@ class SyncService : WearableListenerService() {
             }
             WearSyncPaths.MESSAGE_MACRO_ACK -> {
                 Log.d("SyncService", "Phone applied macro command")
+            }
+            WearSyncPaths.MESSAGE_MEDIA_STATE -> {
+                val mediaJson = String(messageEvent.data)
+                if (mediaJson.isNotBlank()) {
+                    com.ams.herculex.media.WearMediaStore.save(this, mediaJson)
+                    Log.d("SyncService", "Media state received via MessageClient: $mediaJson")
+                }
             }
         }
     }

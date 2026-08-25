@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/clock.dart';
 import '../../../data/local/database.dart';
@@ -75,6 +76,7 @@ class MicroWorkoutsRepository {
               endedAt: Value(now),
               notes: Value('Micro: ${micro.name}'),
               microWorkoutId: Value(micro.id),
+              sessionUuid: Value(const Uuid().v4()),
             ),
           );
       final weId = await _db.into(_db.workoutExercises).insert(

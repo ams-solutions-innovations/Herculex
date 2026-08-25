@@ -5,7 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../features/admin/presentation/admin_dashboard_view.dart';
 import '../features/admin/presentation/admin_insert_recipe_view.dart';
 import '../features/admin/presentation/admin_insert_workout_view.dart';
+import '../features/analytics/presentation/cns_view.dart';
 import '../features/analytics/presentation/insights_view.dart';
+import '../features/analytics/presentation/muscle_volume_detail_view.dart';
+import '../features/analytics/presentation/muscle_volume_overview_view.dart';
+import '../features/recovery/presentation/recovery_view.dart';
 import '../features/fasting/presentation/fasting_schedule_view.dart';
 import '../features/fasting/presentation/fasting_view.dart';
 import '../features/gyms/presentation/gyms_view.dart';
@@ -14,6 +18,7 @@ import '../features/health/presentation/health_integrations_view.dart';
 import '../features/health/presentation/health_platform_detail_view.dart';
 import '../features/measurements/presentation/measurements_view.dart';
 import '../features/measurements/presentation/metric_detail_view.dart';
+import '../features/notifications/presentation/notification_settings_view.dart';
 import '../features/nutrition/presentation/calorie_macro_goals_view.dart';
 import '../features/nutrition/presentation/calorie_meal_goals_view.dart';
 import '../features/nutrition/presentation/goals_view.dart';
@@ -30,12 +35,13 @@ import '../features/profile/presentation/custom_foods_view.dart';
 import '../features/profile/presentation/custom_recipes_view.dart';
 import '../features/profile/presentation/dream_physique_view.dart';
 import '../features/profile/presentation/profile_view.dart';
-import '../features/reps/presentation/rep_tracking_consent_view.dart';
 import '../features/shell/main_scaffold.dart';
 import '../features/shell/splash_view.dart';
 import '../features/workouts/presentation/micro_workouts_view.dart';
 import '../features/workouts/presentation/exercise_details_view.dart';
+import '../features/workouts/presentation/exercise_library_view.dart';
 import '../features/workouts/presentation/workout_history_view.dart';
+import '../features/buddy/presentation/buddy_join_scanner_view.dart';
 import 'providers.dart';
 
 /// Bridges the Riverpod profile stream into a [Listenable] so
@@ -114,14 +120,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/micro-workouts',
         builder: (_, _) => const MicroWorkoutsView(),
       ),
+      GoRoute(
+        path: '/exercises',
+        builder: (_, _) => const ExerciseLibraryView(),
+      ),
       GoRoute(path: '/insights', builder: (_, _) => const InsightsView()),
+      GoRoute(path: '/cns', builder: (_, _) => const CnsView()),
+      GoRoute(path: '/recovery', builder: (_, _) => const RecoveryView()),
+      GoRoute(
+        path: '/muscle-volume',
+        builder: (_, _) => const MuscleVolumeOverviewView(),
+      ),
+      GoRoute(
+        path: '/muscle-volume/:muscle',
+        builder: (_, state) => MuscleVolumeDetailView(
+          muscle: state.pathParameters['muscle']!,
+        ),
+      ),
       GoRoute(
         path: '/health',
         builder: (_, _) => const HealthIntegrationsView(),
-      ),
-      GoRoute(
-        path: '/rep-tracking-consent',
-        builder: (_, _) => const RepTrackingConsentView(),
       ),
       GoRoute(path: '/cycle', builder: (_, _) => const CycleTrackingView()),
       GoRoute(
@@ -140,6 +158,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             const HealthPlatformDetailView(platform: HealthPlatform.google),
       ),
       GoRoute(path: '/profile', builder: (_, _) => const ProfileView()),
+      GoRoute(
+        path: '/notifications',
+        builder: (_, _) => const NotificationSettingsView(),
+      ),
       GoRoute(
         path: '/dream-physique',
         builder: (_, _) => const DreamPhysiqueView(),
@@ -172,6 +194,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/nutrition/weekly-stats',
         builder: (_, _) => const WeeklyCaloriesView(),
       ),
+      GoRoute(
+        path: '/macro-trends/:macro',
+        builder: (_, state) => MacroTrendView(
+          macro: state.pathParameters['macro'] ?? 'kcal',
+        ),
+      ),
       GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
       GoRoute(
         path: '/calorie-macro-goals',
@@ -184,6 +212,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/rotation-pools',
         builder: (_, _) => const RotationPoolsView(),
+      ),
+      GoRoute(
+        path: '/buddy/join',
+        builder: (_, _) => const BuddyJoinScannerView(),
       ),
       // Developer-only content tools. Excluded from release builds entirely.
       if (kDebugMode) ...[

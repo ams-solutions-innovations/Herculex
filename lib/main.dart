@@ -33,6 +33,18 @@ Future<void> main() async {
   } catch (_) {}
   WearSyncService.initialize();
 
+  // The widget channel carries inbound deep links (`openActiveWorkout`,
+  // `openScanner`, ...) but its handler is only registered once
+  // `_HerculexAppState.initState` runs, so on a cold start — the normal case
+  // when opening from the Workout Bubble or a home-screen widget — the link
+  // arrives first. Flutter's default per-channel buffer holds a single message
+  // and warns on overflow, so a second event during the same startup would
+  // discard the first. Same idiom `WearSyncService.initialize` uses.
+  ServicesBinding.instance.channelBuffers.resize(
+    'com.ams.herculex/widget',
+    16,
+  );
+
   // Assisted rep tracking reads its per-exercise capability profiles from an
   // asset into an in-memory registry, so this has to run on every launch —
   // unlike the exercise catalogue, which is imported into the database on

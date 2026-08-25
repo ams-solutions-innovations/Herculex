@@ -175,6 +175,12 @@ class WorkoutSessions extends Table with SyncColumns, SyncTombstone {
   /// a VS comparison later. This is a synced column on an otherwise-synced
   /// table, unlike the two buddy mirror tables below.
   TextColumn get buddySessionId => text().nullable()();
+
+  /// Local path to workout completion photo (v33).
+  TextColumn get photoPath => text().nullable()();
+
+  /// Total calories burned for this session in kcal (v33).
+  IntColumn get caloriesBurned => integer().nullable()();
 }
 
 @DataClassName('WorkoutExerciseData')
@@ -818,6 +824,25 @@ class CycleSettings extends Table with SyncColumns, SyncTombstone {
   Set<Column> get primaryKey => {id};
 }
 
+/// One joint-pain status change, from the Recovery page's joint selector. An
+/// event log (one row per change) rather than one row per day, same shape as
+/// [CycleLogs] — a joint's current status is its most recent row, and
+/// [severity] 0 means "marked as resolved" rather than "still hurts, just
+/// mildly". Synced: deliberately user-entered health-adjacent data, same
+/// Article 9 category and consent model as cycle tracking, not raw
+/// third-party telemetry passthrough like [HealthSamples].
+@DataClassName('JointPainLogData')
+class JointPainLogs extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get dateIso => text()();
+  DateTimeColumn get loggedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  TextColumn get joint => text()(); // one of JointModel.joints
+  IntColumn get severity =>
+      integer().withDefault(const Constant(1))(); // 0=resolved, 1-3=mild/moderate/severe
+  TextColumn get note => text().nullable()();
+}
+
 @DataClassName('PendingSyncOpData')
 class PendingSyncOps extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -914,6 +939,38 @@ class TemplateSets extends Table with SyncColumns, SyncTombstone {
   IntColumn get targetRepsMax => integer().nullable()();
   RealColumn get targetWeightKg => real().nullable()();
   BoolColumn get isWarmup => boolean().withDefault(const Constant(false))();
+}
+
+// ── Workout Circuits (v34) ─────────────────────────────────────────────────
+
+/// A reusable workout circuit (multi-exercise giant superset with configured rounds and pause between rounds).
+@DataClassName('WorkoutCircuitData')
+class WorkoutCircuits extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get notes => text().nullable()();
+  IntColumn get rounds => integer().withDefault(const Constant(3))();
+  IntColumn get restSeconds => integer().withDefault(const Constant(90))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// One exercise slot inside a circuit.
+@DataClassName('CircuitExerciseData')
+class CircuitExercises extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get circuitId => integer().references(
+    WorkoutCircuits,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+  IntColumn get orderIndex => integer()();
+  IntColumn get targetReps => integer().nullable()();
+  RealColumn get targetWeightKg => real().nullable()();
 }
 
 // ── V2 Logging Foundation (v10) ────────────────────────────────────────────

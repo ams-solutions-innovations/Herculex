@@ -17,9 +17,13 @@ class SupplementNotificationScheduler {
 
   /// Reschedules daily timed notifications for all supplements with
   /// [SupplementSchedule.time]. Cancels any previously scheduled ones first.
-  Future<void> reschedule(List<Supplement> supplements) async {
+  Future<void> reschedule(
+    List<Supplement> supplements, {
+    bool enabled = true,
+  }) async {
     // Cancel all existing timed supplement notifications.
     await cancelAll(supplements.length + 10);
+    if (!enabled) return;
 
     int idOffset = 0;
     for (final supplement in supplements) {

@@ -307,7 +307,15 @@ class WorkoutNotificationService {
     );
   }
 
-  Future<void> scheduleRestTimer(int seconds, String exerciseName) async {
+  Future<void> scheduleRestTimer(
+    int seconds,
+    String exerciseName, {
+    bool enabled = true,
+  }) async {
+    if (!enabled) {
+      await cancelRestTimer();
+      return;
+    }
     final scheduledDate = tz.TZDateTime.now(
       tz.local,
     ).add(Duration(seconds: seconds));

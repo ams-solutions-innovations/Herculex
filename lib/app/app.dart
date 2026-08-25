@@ -5,13 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../core/notifications/in_app_notification_overlay.dart';
+import '../core/notifications/toast/hx_toast_overlay.dart';
 import '../core/units.dart';
 import '../data/local/database.dart';
 import '../features/analytics/presentation/analytics_providers.dart';
 import '../features/fasting/data/fasting_schedule_action_queue.dart';
 import '../features/fasting/domain/fasting_schedule_occurrence.dart';
 import '../features/fasting/presentation/fasting_providers.dart';
+import '../features/notifications/data/notification_sync_service.dart';
+import '../features/notifications/presentation/notification_settings_provider.dart';
 import '../features/nutrition/presentation/barcode_scanner_view.dart';
+import '../features/nutrition/presentation/food_picker_sheet.dart';
 import '../features/nutrition/presentation/nutrition_providers.dart';
 import '../features/shell/main_scaffold.dart';
 import '../features/supplements/data/supplement_repository.dart';
@@ -21,7 +26,11 @@ import '../features/workouts/data/workout_quick_action_settings.dart';
 import '../features/workouts/domain/ongoing_workout_surface_snapshot.dart';
 import '../features/workouts/domain/workout_notification_command.dart';
 import '../services/active_workout_surface_sync_policy.dart';
+import '../features/workouts/presentation/circuits_providers.dart';
+import '../features/workouts/presentation/exercise_picker_sheet.dart';
+import '../features/workouts/presentation/workout_bubble_controller.dart';
 import '../features/workouts/presentation/workouts_providers.dart';
+import '../services/workout_bubble_service.dart';
 import '../services/workout_notification_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/colors.dart';
@@ -41,6 +50,13 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   bool _isDrainingWorkoutActions = false;
   Timer? _notificationSyncDebounce;
 
+  /// Workout Bubble visibility inputs. The bubble is only ever shown while the
+  /// app is in the background, so its state has to be tracked here rather than
+  /// derived on demand — provider changes can move the bubble too (a workout
+  /// ending on the watch, the setting being switched off).
+  bool _appBackgrounded = false;
+  bool _bubblePermissionGranted = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,12 +73,27 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
           targetSetId: setId,
         );
     WorkoutNotificationService.instance.init();
+    // Popup controls carry action IDs or value edits back to the app.
+    WorkoutBubbleService.onAction = (actionId, sessionId, setId, value) async {
+      await _applyWorkoutBubbleAction(
+        actionId,
+        sessionId: sessionId,
+        targetSetId: setId,
+        value: value,
+      );
+      await _syncBubble();
+    };
+    WorkoutBubbleService.instance.init();
+    Future<void>.microtask(_refreshBubblePermission);
     Future<void>.microtask(_drainPendingWorkoutNotificationActions);
     Future<void>.microtask(_drainPendingFastingScheduleActions);
     // An Android reboot clears exact alarms, and edits made offline before
     // the app last closed still need to reach the notification plugin —
     // full rehydrate on every launch, same reasoning as workout actions.
     Future<void>.microtask(_rehydrateFastingSchedules);
+    Future<void>.microtask(() {
+      ref.read(notificationSyncServiceProvider).syncAll();
+    });
 
     // Listen for the scanner deep-link from the Scanner home-screen widget.
     // When the user taps the widget, Android sends 'openScanner' via
@@ -70,8 +101,62 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     const widgetChannel = MethodChannel('com.ams.herculex/widget');
     widgetChannel.setMethodCallHandler((call) async {
       if (call.method == 'openActiveWorkout' && mounted) {
+        final args = (call.arguments as Map?)?.cast<String, dynamic>();
+        final action = args?['action'] as String?;
         ref.read(mainTabIndexProvider.notifier).state = 2;
         ref.read(routerProvider).go('/app');
+
+        if (action == 'add_exercise') {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            final activeSession = ref.read(activeSessionProvider).valueOrNull;
+            if (activeSession != null && mounted) {
+              final results = await ExercisePickerSheet.show(context);
+              if (results == null || results.isEmpty || !mounted) return;
+              final repo = ref.read(workoutsRepositoryProvider);
+              final circuitIds = <int>{};
+              for (final result in results) {
+                if (!mounted) return;
+                if (result.circuitId != null) {
+                  if (!circuitIds.contains(result.circuitId!)) {
+                    circuitIds.add(result.circuitId!);
+                    await ref.read(circuitsRepositoryProvider).addCircuitToSession(
+                          sessionId: activeSession.id,
+                          circuitId: result.circuitId!,
+                        );
+                  }
+                  continue;
+                }
+                final picked = result.exercise;
+                final variant = result.equipmentVariant ?? picked.modality;
+                await repo.addExerciseToSession(
+                  sessionId: activeSession.id,
+                  exerciseId: picked.id,
+                  equipmentVariant: variant,
+                );
+              }
+            }
+          });
+        }
+        return;
+      }
+      if (call.method == 'openNutrition' && mounted) {
+        ref.read(mainTabIndexProvider.notifier).state = 1;
+        ref.read(routerProvider).go('/app');
+        return;
+      }
+      if (call.method == 'openFoodSearch' && mounted) {
+        ref.read(mainTabIndexProvider.notifier).state = 1;
+        ref.read(routerProvider).go('/app');
+        final ctx = context;
+        if (ctx.mounted) {
+          final now = DateTime.now();
+          final date = DateTime(now.year, now.month, now.day);
+          await FoodPickerSheet.show(
+            ctx,
+            date: date,
+            mealKey: 'lunch',
+          );
+        }
         return;
       }
       if (call.method == 'openScanner' && mounted) {
@@ -105,16 +190,101 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     _stopPendingWorkoutActionDrain();
     _notificationSyncDebounce?.cancel();
     WorkoutNotificationService.instance.cancel();
+    WorkoutBubbleService.instance.hide();
     super.dispose();
   }
 
   void _onBackground() {
+    _appBackgrounded = true;
     _syncNotification();
+    unawaited(_syncBubble());
   }
 
   void _onForeground() {
+    _appBackgrounded = false;
     _drainPendingWorkoutNotificationActions();
     _syncNotification();
+    // Re-read on every resume: the user can revoke "Display over other apps"
+    // from system settings at any time, and coming back is the only moment we
+    // reliably get to notice.
+    unawaited(_refreshBubblePermission());
+  }
+
+  /// Reconciles the bubble with the current session, setting and permission,
+  /// and refreshes what its popup displays. Idempotent — the native side
+  /// re-renders an already-visible bubble rather than rebuilding it, so this is
+  /// also the update path after every set edit.
+  ///
+  /// [snapshot] lets a caller that already built one hand it over, so a set
+  /// edit costs a single target query rather than one per surface.
+  Future<void> _syncBubble({OngoingWorkoutSurfaceSnapshot? snapshot}) async {
+    if (!WorkoutBubbleService.instance.isSupported) return;
+    final sessionAsync = ref.read(activeSessionProvider);
+    final visible = shouldShowWorkoutBubble(
+      activeSession: sessionAsync,
+      enabled: ref.read(workoutBubbleEnabledProvider),
+      appBackgrounded: _appBackgrounded,
+      permissionGranted: _bubblePermissionGranted,
+    );
+    // `valueOrNull`, not `asData`: an errored provider that retains a previous
+    // session is `hasValue`, which the policy above accepts, but `asData` is
+    // null for it.
+    final session = sessionAsync.valueOrNull;
+    if (!visible || session == null) {
+      await WorkoutBubbleService.instance.hide();
+      return;
+    }
+
+    final resolved = snapshot ?? await _surfaceSnapshotFor(session);
+    if (!mounted) return;
+    // An awaited query above can outlive the session it was started for.
+    if (ref.read(activeSessionProvider).valueOrNull?.id != session.id) return;
+
+    final stats = ref.read(activeSessionStatsProvider(session.id)).valueOrNull ??
+        const LiveWorkoutStats();
+    final weightFormat = ref.read(weightFormatProvider);
+    final tonnageText = weightFormat.formatTonnage(stats.totalTonnageKg);
+    final setsText = stats.totalSets == 0
+        ? '0'
+        : (stats.completedSets == stats.totalSets
+            ? '${stats.totalSets}'
+            : '${stats.completedSets} / ${stats.totalSets}');
+
+    await WorkoutBubbleService.instance.show(
+      sessionId: session.id,
+      startedAtEpochMs: session.startedAt.millisecondsSinceEpoch,
+      exerciseName: resolved.exerciseName,
+      subtitle: resolved.subtitle,
+      setNumber: resolved.currentSet != null ? '${resolved.currentSet}' : '1',
+      weight: resolved.weightKg != null
+          ? weightFormat.formatValue(resolved.weightKg!)
+          : '-',
+      reps: resolved.reps != null ? '${resolved.reps}' : '-',
+      rpe: 'RPE',
+      totalSetsText: setsText,
+      tonnageText: tonnageText,
+      lastSetText: resolved.lastSetSummary,
+      targetSetId: resolved.targetSetId,
+      actions: [
+        for (final action in resolved.actions)
+          <String, Object?>{
+            'id': action.id,
+            'label': action.label,
+            // Which control is the primary one is a workout-domain call, so
+            // it is decided here rather than by the native renderer matching
+            // on an action ID it would have to keep in sync.
+            'primary': action.id == WorkoutNotificationActionIds.completeSet,
+          },
+      ],
+    );
+  }
+
+  Future<void> _refreshBubblePermission() async {
+    if (!WorkoutBubbleService.instance.isSupported) return;
+    final granted = await WorkoutBubbleService.instance.hasPermission();
+    if (!mounted) return;
+    _bubblePermissionGranted = granted;
+    await _syncBubble();
   }
 
   /// Several independent providers (session exercises, and one per exercise's
@@ -135,6 +305,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
   /// that has [SupplementSchedule.postWorkout] set.
   void _firePostWorkoutSupplementReminder() {
     try {
+      final notifSettings = ref.read(notificationSettingsProvider);
+      if (!notifSettings.postWorkoutSupplementEnabled) return;
+
       final prefs = ref.read(sharedPreferencesProvider);
       final repo = SupplementRepository(prefs);
       final postWorkout = repo
@@ -156,9 +329,15 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       return;
     }
     final session = sessionAsync.asData?.value;
-    if (shouldClearOngoingWorkoutSurface(sessionAsync)) {
+    final notifSettings = ref.read(notificationSettingsProvider);
+    if (shouldClearOngoingWorkoutSurface(sessionAsync) ||
+        !notifSettings.activeWorkoutBannerEnabled) {
       _stopPendingWorkoutActionDrain();
       WorkoutNotificationService.instance.cancel();
+      // The bubble has its own setting and must not inherit the banner's;
+      // on the live path below `_syncWorkoutNotificationFor` reconciles it
+      // with the snapshot it already built.
+      unawaited(_syncBubble());
       return;
     }
     if (session == null) {
@@ -168,19 +347,30 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     unawaited(_syncWorkoutNotificationFor(session));
   }
 
-  Future<void> _syncWorkoutNotificationFor(WorkoutSessionData session) async {
+  /// The display model shared by every ongoing-workout surface — the tray
+  /// notification and the Workout Bubble's popup both render exactly this, so
+  /// they can never disagree about which set the user is on.
+  Future<OngoingWorkoutSurfaceSnapshot> _surfaceSnapshotFor(
+    WorkoutSessionData session,
+  ) async {
     final repo = ref.read(workoutsRepositoryProvider);
     final target = await repo.activeNotificationTargetForSession(session.id);
-    if (!mounted) return;
-    final activeSession = ref.read(activeSessionProvider).asData?.value;
-    if (activeSession?.id != session.id) return;
-
     final weightFormat = ref.read(weightFormatProvider);
-    final snapshot = buildOngoingWorkoutSurfaceSnapshot(
+    return buildOngoingWorkoutSurfaceSnapshot(
       target: target,
       formatWeight: weightFormat.format,
       loadStepKg: ref.read(quickLoadStepProvider),
     );
+  }
+
+  Future<void> _syncWorkoutNotificationFor(WorkoutSessionData session) async {
+    final snapshot = await _surfaceSnapshotFor(session);
+    if (!mounted) return;
+    final activeSession = ref.read(activeSessionProvider).asData?.value;
+    if (activeSession?.id != session.id) return;
+
+    // Reuses the snapshot rather than letting the bubble query for its own.
+    unawaited(_syncBubble(snapshot: snapshot));
     unawaited(
       WorkoutNotificationService.instance.showOrUpdate(
         sessionId: session.id,
@@ -195,6 +385,59 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         targetSetId: snapshot.targetSetId,
         reps: snapshot.reps,
       ),
+    );
+  }
+
+  Future<bool> _applyWorkoutBubbleAction(
+    String actionId, {
+    int? sessionId,
+    int? targetSetId,
+    String? value,
+  }) async {
+    final session = ref.read(activeSessionProvider).asData?.value;
+    if (session == null) return false;
+    if (sessionId != null && sessionId != session.id) return true;
+
+    final repo = ref.read(workoutsRepositoryProvider);
+    final target = await repo.activeNotificationTargetForSession(session.id);
+    if (target == null) return false;
+    final targetSet = target.set;
+
+    if (actionId == 'edit_weight' && value != null) {
+      final weightFormat = ref.read(weightFormatProvider);
+      final parsed = double.tryParse(value.replaceAll(',', '.'));
+      if (parsed != null && parsed >= 0) {
+        final kg = weightFormat.toKg(parsed);
+        await repo.updateSet(setId: targetSet.id, weightKg: kg);
+        await _syncWorkoutNotificationFor(session);
+        return true;
+      }
+    } else if (actionId == 'edit_reps' && value != null) {
+      final parsed = int.tryParse(value);
+      if (parsed != null && parsed >= 0) {
+        await repo.updateSet(setId: targetSet.id, reps: parsed);
+        await _syncWorkoutNotificationFor(session);
+        return true;
+      }
+    } else if (actionId == 'edit_rpe' && value != null) {
+      final parsed = double.tryParse(value.replaceAll(',', '.'));
+      if (parsed != null && parsed >= 0) {
+        final rpeX10 = (parsed * 10).round();
+        await repo.updateSet(setId: targetSet.id, rpeX10: rpeX10);
+        await _syncWorkoutNotificationFor(session);
+        return true;
+      }
+    } else if (actionId == 'complete_set') {
+      final newCompleted = !targetSet.isCompleted;
+      await repo.updateSet(setId: targetSet.id, isCompleted: newCompleted);
+      await _syncWorkoutNotificationFor(session);
+      return true;
+    }
+
+    return _applyWorkoutNotificationAction(
+      actionId,
+      sessionId: sessionId,
+      targetSetId: targetSetId,
     );
   }
 
@@ -339,6 +582,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     // syncServiceProvider in app/providers.dart.
     ref.watch(syncServiceProvider);
 
+    // Initialize local notification syncing across meals, supplements, fasting, daily log.
+    ref.watch(notificationSyncServiceProvider);
+
     final router = ref.watch(routerProvider);
     WorkoutNotificationService.onNotificationTap = () {
       ref.read(mainTabIndexProvider.notifier).state = 2;
@@ -349,6 +595,10 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     // Keep notification in sync when active session changes.
     ref.listen(activeSessionProvider, (previous, next) {
       _syncNotification();
+      // A workout can also start or end while the app is backgrounded — most
+      // often from the watch — so the bubble follows the session too, not just
+      // the lifecycle transitions.
+      unawaited(_syncBubble());
       // Fire post-workout supplement reminder when session transitions active→null.
       final hadSession = previous?.asData?.value != null;
       final hasSession = next.asData?.value != null;
@@ -359,6 +609,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
     ref.listen(unitsProvider, (_, _) => _syncNotification());
     ref.listen(quickLoadStepProvider, (_, _) => _syncNotification());
+    ref.listen(notificationSettingsProvider, (_, _) => _syncNotification());
+    ref.listen(workoutBubbleEnabledProvider, (_, _) => unawaited(_syncBubble()));
 
     final activeSession = ref.watch(activeSessionProvider).asData?.value;
     if (activeSession != null) {
@@ -417,7 +669,11 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       builder: (context, child) {
         return Container(
           decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
-          child: child ?? const SizedBox.shrink(),
+          child: InAppNotificationHost(
+            child: HxToastHost(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
         );
       },
     );

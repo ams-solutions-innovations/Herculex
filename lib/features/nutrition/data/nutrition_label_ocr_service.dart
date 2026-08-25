@@ -31,7 +31,7 @@ class NutritionLabelOcrService {
         );
       } catch (_) {
         return ocrDraft.withWarning(
-          'OCR ni dovolj zanesljiv, Gemini fallback pa ni uspel. Preveri vsa polja pred shranjevanjem.',
+          'OCR confidence is low and Gemini fallback failed. Check all fields before saving.',
         );
       }
     } finally {

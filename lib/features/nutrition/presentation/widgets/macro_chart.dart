@@ -90,7 +90,7 @@ class MacroTrendChart extends StatelessWidget {
       final iso = DateFormat('yyyy-MM-dd').format(date);
       final totals = historyMap[iso] ?? DailyTotals.empty;
       final val = macroValueForTotals(totals, macro);
-      spots.add(FlSpot((days - 1 - i).toDouble(), val));
+      spots.add(FlSpot((days - 1 - i).toDouble(), (val.isNaN || val.isInfinite) ? 0 : val));
     }
 
     final hasAnyData = spots.any((s) => s.y > 0);
@@ -109,7 +109,7 @@ class MacroTrendChart extends StatelessWidget {
     }
 
     final maxYValue = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    final topBound = (targetValue != null && targetValue > maxYValue)
+    final topBound = (targetValue != null && !targetValue.isNaN && !targetValue.isInfinite && targetValue > maxYValue)
         ? targetValue * 1.15
         : maxYValue > 0
             ? maxYValue * 1.2
@@ -126,7 +126,7 @@ class MacroTrendChart extends StatelessWidget {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: topBound / 4 > 0 ? topBound / 4 : 1,
+            horizontalInterval: (topBound / 4 > 0 && !topBound.isNaN && !topBound.isInfinite) ? topBound / 4 : 1,
             getDrawingHorizontalLine: (val) => FlLine(
               color: AppColors.outlineVariant.withValues(alpha: 0.15),
               strokeWidth: 1,
@@ -164,7 +164,7 @@ class MacroTrendChart extends StatelessWidget {
             ),
           ),
           borderData: FlBorderData(show: false),
-          extraLinesData: targetValue == null || targetValue <= 0
+          extraLinesData: targetValue == null || targetValue <= 0 || targetValue.isNaN || targetValue.isInfinite
               ? null
               : ExtraLinesData(
                   horizontalLines: [
@@ -190,6 +190,7 @@ class MacroTrendChart extends StatelessWidget {
                 ),
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (_) => AppColors.surfaceContainer,
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((spot) {
                   final idx = spot.x.toInt();

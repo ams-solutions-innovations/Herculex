@@ -202,12 +202,24 @@
       "Bash(python \"C:/Users/marti/AppData/Local/Temp/claude/c--Users-marti-AMS-d-o-o-Herculex/969c4c05-f3ae-484d-bb11-2661017b3658/scratchpad/diag_clusters.py\")",
       "Bash(python tool/derive_rep_profiles.py --write)",
       "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" ./gradlew :wear:compileDebugKotlin :wear:testDebugUnitTest --console=plain)",
-      "Bash(rm -f \"$\\(pwd\\)/../../../tmp/failures.txt\")"
+      "Bash(rm -f \"$\\(pwd\\)/../../../tmp/failures.txt\")",
+      "Bash(curl -s -w '\\\\nHTTP_STATUS:%{http_code}\\\\n' -X POST https://ldzgyzigvbwofbswitrv.supabase.co/functions/v1/gemini-analyze -H 'Authorization: Bearer sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag' -H 'apikey: sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag' -H 'Content-Type: application/json' -d '{\"kind\":\"exercise_identification\",\"image\":{\"mimeType\":\"image/png\",\"data\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\"}}')",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" -X POST \\\\ *)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s -w '\\\\nHTTP_STATUS:%{http_code}\\\\n' -X POST https://ldzgyzigvbwofbswitrv.supabase.co/functions/v1/gemini-analyze -H 'Authorization: Bearer sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag' -H 'apikey: sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag' -H 'Content-Type: application/json' -d '{\"kind\":\"food_photo\",\"image\":{\"mimeType\":\"image/png\",\"data\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\"}}')",
+      "Bash(curl -s -w '\\\\nHTTP_STATUS:%{http_code}\\\\n' -X POST https://ldzgyzigvbwofbswitrv.supabase.co/functions/v1/gemini-analyze -H 'Authorization: Bearer sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag' -H 'apikey: sb_publishable_QJOJ4p3vjZRqpYbR7JIh9Q_ouOF2oag' -H 'Content-Type: application/json' -d '{\"kind\":\"barcode_product\",\"barcode\":\"5410188031072\",\"image\":{\"mimeType\":\"image/png\",\"data\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\"}}')",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew :app:assembleDebug)",
+      "Bash(awk '/Phase 11/{f=1} f && /^## Phase 1[2-9]|^## Phase 2/{if\\(!/Phase 11/\\) exit} f' .planning/ROADMAP.md)",
+      "Bash(rm -f assets/images/exercises/*.png)",
+      "Bash(python tool/import_exercise_artwork.py)",
+      "Bash(adb -s adb-RFAWB1C5DZM-aVTHGC._adb-tls-connect._tcp shell dumpsys package com.ams.herculex)",
+      "Bash(adb -s R5CY12RLCWE shell dumpsys package com.ams.herculex)"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",
       "C:\\Users\\marti\\.claude\\get-shit-done\\workflows",
-      "c:\\Users\\marti\\AMS d.o.o\\Herculex\\.planning\\phases\\11-gym-buddy-live-workout"
+      "c:\\Users\\marti\\AMS d.o.o\\Herculex\\.planning\\phases\\11-gym-buddy-live-workout",
+      "C:\\Users\\marti\\AppData\\Local\\Temp\\claude\\c--Users-marti-AMS-d-o-o-Herculex\\c9e30185-0e3e-4058-a743-4c49fd4ef7de\\scratchpad"
     ]
   }
 }

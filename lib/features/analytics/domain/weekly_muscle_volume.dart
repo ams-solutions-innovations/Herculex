@@ -81,23 +81,7 @@ class WeeklyMuscleVolume {
       totalTonnage += rs.tonnageKg;
       totalSets++;
 
-      final rows = musclesByExercise[rs.exercise.id] ?? const [];
-      final involvement = rows.isNotEmpty
-          ? [
-              for (final r in rows)
-                (
-                  MuscleRecoveryV3.alias[r.muscle] ?? r.muscle,
-                  (MuscleRecoveryV3.roleWeight[r.role] ?? 0) * r.contribution,
-                )
-            ]
-          : [
-              (
-                MuscleRecoveryV3.alias[rs.exercise.primaryMuscle] ??
-                    rs.exercise.primaryMuscle,
-                1.0
-              )
-            ];
-
+      final involvement = MuscleRecoveryV3.involvementFor(rs, musclesByExercise);
       for (final (muscle, w) in involvement) {
         if (!tonnage.containsKey(muscle)) continue;
         tonnage[muscle] = tonnage[muscle]! + rs.tonnageKg * w;

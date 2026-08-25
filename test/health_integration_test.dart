@@ -1,7 +1,8 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:health/health.dart';
 import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/workouts/domain/session_summary.dart';
 
 void main() {
   group('Health Integration Tests', () {
@@ -82,6 +83,27 @@ void main() {
       final chestRecovery = muscle.firstWhere((e) => e.muscle == 'Chest').recoveryScore;
 
       expect(quadsRecovery, lessThan(chestRecovery));
+    });
+
+    test('SessionSummary calculates estimated calories and retains photoPath', () {
+      final start = DateTime(2026, 8, 21, 9, 0);
+      final end = DateTime(2026, 8, 21, 10, 0); // 60 min
+
+      final summary = SessionSummary.fromSnapshot(
+        snapshot: const TrainingSnapshot(sets: [], exerciseMuscles: []),
+        sessionId: 1,
+        name: 'Arm Day',
+        startedAt: start,
+        endedAt: end,
+        photoPath: '/storage/emulated/0/workout_1.jpg',
+        savedCalories: 450,
+      );
+
+      expect(summary.name, equals('Arm Day'));
+      expect(summary.durationLabel, equals('1h 0m'));
+      expect(summary.caloriesBurned, equals(450));
+      expect(summary.caloriesLabel, equals('450 kcal'));
+      expect(summary.photoPath, equals('/storage/emulated/0/workout_1.jpg'));
     });
   });
 }

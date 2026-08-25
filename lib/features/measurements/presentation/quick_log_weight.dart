@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
+import '../../../core/notifications/toast/hx_toast_controller.dart';
+import '../../../core/notifications/toast/hx_toast_model.dart';
 import '../../../core/units.dart';
 import '../../../theme/haptics.dart';
 import '../../workouts/presentation/workouts_providers.dart';
@@ -10,8 +12,20 @@ import '../../workouts/presentation/workouts_providers.dart';
 /// Shared bodyweight quick-log dialog, used by the dashboard's bodyweight
 /// card and the global quick-add menu so both stay in sync.
 Future<void> quickLogWeight(BuildContext context, WidgetRef ref) async {
-  final ctrl = TextEditingController();
   final fmt = ref.read(weightFormatProvider);
+  final latestKg = await ref.read(latestBodyweightProvider.future);
+  final profile = ref.read(profileProvider).valueOrNull;
+  final initialKg = latestKg ?? profile?.weightKg;
+
+  final initialText = initialKg != null ? fmt.formatValue(initialKg) : '';
+  final ctrl = TextEditingController(text: initialText);
+  if (initialText.isNotEmpty) {
+    ctrl.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: initialText.length,
+    );
+  }
+  if (!context.mounted) return;
   final value = await showDialog<double>(
     context: context,
     builder: (dialogCtx) => AlertDialog(
@@ -50,5 +64,12 @@ Future<void> quickLogWeight(BuildContext context, WidgetRef ref) async {
           value: fmt.toKg(value),
         );
     ref.invalidate(latestBodyweightProvider);
+    ref
+        .read(hxToastControllerProvider.notifier)
+        .show(
+          HxToastItem.weightLogged(
+            weightFormatted: fmt.format(fmt.toKg(value)),
+          ),
+        );
   }
 }

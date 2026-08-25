@@ -20,6 +20,10 @@ data class QuickAddFoodItem(
     val portionAmount: Double,
     val portionUnit: String,
     val portionLabel: String,
+    /// Meal key (breakfast/lunch/dinner/snack) this food was most recently
+    /// logged to on the phone, if any — lets the "+" quick-add button log
+    /// with zero extra taps by reusing it instead of asking again.
+    val lastMealKey: String? = null,
 )
 
 /// Watch-side cache of the phone's recent/most-common foods and meal slots,
@@ -66,6 +70,9 @@ object QuickAddStore {
                         portionAmount = item.optDouble("portionAmount", 100.0),
                         portionUnit = item.optString("portionUnit", "g"),
                         portionLabel = item.optString("portionLabel", "100 g"),
+                        lastMealKey = if (!item.isNull("lastMealKey")) {
+                            item.optString("lastMealKey").takeIf { it.isNotBlank() }
+                        } else null,
                     ),
                 )
             }

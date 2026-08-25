@@ -22,6 +22,7 @@ const _labels = <String, String>{
   'kettlebell': 'Kettlebell',
   'band': 'Band',
   'bodyweight': 'Bodyweight',
+  'weighted': 'Weighted',
   'other': 'Other',
 };
 
@@ -49,18 +50,61 @@ List<String> equipmentVariantsFor(ExerciseCatalogData exercise) {
   // measured in reps.
   final allowed = decodeAllowedEquipment(exercise.allowedEquipment);
   if (allowed.isNotEmpty) {
-    return [base, ...allowed.where((m) => m != base)];
+    final list = [base, ...allowed.where((m) => m != base)];
+    if (exercise.supportsWeightedBodyweight &&
+        (list.contains('bodyweight') || base == 'bodyweight') &&
+        !list.contains('weighted')) {
+      final bwIdx = list.indexOf('bodyweight');
+      if (bwIdx != -1) {
+        list.insert(bwIdx + 1, 'weighted');
+      } else {
+        list.add('weighted');
+      }
+    }
+    if ((list.contains('bodyweight') || base == 'bodyweight') &&
+        LoggingMetric.fromId(exercise.loggingMetric).isRepBased &&
+        !list.contains('band')) {
+      list.add('band');
+    }
+    return list;
   }
   if (base == 'bodyweight' &&
       LoggingMetric.fromId(exercise.loggingMetric).isRepBased) {
-    // Bodyweight movements can be loaded via band assistance or stay pure;
-    // added weight is handled by the weighted-bodyweight field, not a
-    // variant switch. Timed holds are excluded — there is no such thing as a
-    // band-assisted plank, and the movement layer has no list to correct it.
+    // Bodyweight movements that support added weight offer pure bodyweight,
+    // weighted (+ load) and band assistance. Timed holds are excluded —
+    // there is no such thing as a band-assisted plank, and the movement layer
+    // has no list to correct it.
+    if (exercise.supportsWeightedBodyweight) {
+      return ['bodyweight', 'weighted', 'band'];
+    }
     return ['bodyweight', 'band'];
   }
   // No movement: the catalog row already encodes its equipment.
   return [base];
+}
+
+/// Resolves the effective [LoggingMetric] for an exercise when performed with
+/// a specific [equipmentVariant].
+///
+/// For bodyweight/calisthenics exercises (e.g. Dips, Pull-Ups, Ring Dips),
+/// performing as pure `bodyweight` or `band` logs reps only, while performing
+/// as `weighted` enables the external load field (Weight × Reps).
+LoggingMetric effectiveLoggingMetric({
+  required ExerciseCatalogData exercise,
+  String? equipmentVariant,
+}) {
+  final variant = equipmentVariant ?? exercise.modality;
+  if (variant == 'weighted') {
+    return LoggingMetric.weightReps;
+  }
+  if (variant == 'bodyweight' || variant == 'band') {
+    final base = LoggingMetric.fromId(exercise.loggingMetric);
+    if (base == LoggingMetric.weightReps) {
+      return LoggingMetric.reps;
+    }
+    return base;
+  }
+  return LoggingMetric.fromId(exercise.loggingMetric);
 }
 
 /// Parses the `allowedEquipment` JSON blob, dropping anything that isn't a

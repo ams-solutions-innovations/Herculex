@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Workout Bubble chat head. Standard app icon dimension. -->
+    <dimen name="workout_bubble_size">60dp</dimen>
+    <dimen name="workout_bubble_dismiss_size">56dp</dimen>
+    <dimen name="workout_bubble_popup_width">330dp</dimen>
+</resources>

@@ -130,6 +130,22 @@ fun HomeScreen(
             )
         }
 
+        // Active workout pill (Emerald Green One UI style placed directly below Sync with Phone when workout running)
+        if (session != null) {
+            val minutes = elapsed / 60
+            val seconds = elapsed % 60
+            item {
+                OneUiPill(
+                    title = "Active Workout",
+                    statValue = "%d:%02d".format(minutes, seconds),
+                    statLabel = session?.template?.name ?: "Workout",
+                    icon = "⏱️",
+                    style = OneUiPillStyle.EmeraldGreen,
+                    onClick = { navController.navigate("active_workout") },
+                )
+            }
+        }
+
         // Workouts Pill (Primary One UI Royal Blue)
         item {
             OneUiPill(
@@ -202,22 +218,6 @@ fun HomeScreen(
                 style = OneUiPillStyle.SlateNavy,
                 onClick = { navController.navigate("weekly_volume") },
             )
-        }
-
-        // Active workout pill (Emerald Green One UI style when workout running)
-        if (session != null) {
-            val minutes = elapsed / 60
-            val seconds = elapsed % 60
-            item {
-                OneUiPill(
-                    title = "Active Workout",
-                    statValue = "%d:%02d".format(minutes, seconds),
-                    statLabel = session?.template?.name ?: "Workout",
-                    icon = "⏱️",
-                    style = OneUiPillStyle.EmeraldGreen,
-                    onClick = { navController.navigate("active_workout") },
-                )
-            }
         }
     }
 }

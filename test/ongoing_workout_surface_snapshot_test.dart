@@ -71,11 +71,119 @@ void main() {
         snapshot.actions.map((action) => action.label),
         contains('+ 2.5 kg'),
       );
+      expect(snapshot.subtitle, '');
+      expect(snapshot.lastSetSummary, isNull);
+    });
+
+    test('subtitle joins muscle group and equipment label', () {
+      final snapshot = buildOngoingWorkoutSurfaceSnapshot(
+        target: ActiveWorkoutNotificationTarget(
+          exerciseName: 'Barbell Back Squat',
+          set: _set(),
+          totalSets: 3,
+          primaryMuscle: 'Quads',
+          equipmentVariant: 'barbell',
+        ),
+        formatWeight: _formatKg,
+        loadStepKg: 2.5,
+      );
+
+      expect(snapshot.subtitle, 'Quads • Barbell');
+    });
+
+    test('subtitle falls back to whichever half is present', () {
+      final muscleOnly = buildOngoingWorkoutSurfaceSnapshot(
+        target: ActiveWorkoutNotificationTarget(
+          exerciseName: 'Barbell Back Squat',
+          set: _set(),
+          totalSets: 3,
+          primaryMuscle: 'Quads',
+        ),
+        formatWeight: _formatKg,
+        loadStepKg: 2.5,
+      );
+      expect(muscleOnly.subtitle, 'Quads');
+
+      final equipmentOnly = buildOngoingWorkoutSurfaceSnapshot(
+        target: ActiveWorkoutNotificationTarget(
+          exerciseName: 'Barbell Back Squat',
+          set: _set(),
+          totalSets: 3,
+          equipmentVariant: 'barbell',
+        ),
+        formatWeight: _formatKg,
+        loadStepKg: 2.5,
+      );
+      expect(equipmentOnly.subtitle, 'Barbell');
+    });
+
+    test('lastSetSummary is null when nothing has been completed yet', () {
+      final snapshot = buildOngoingWorkoutSurfaceSnapshot(
+        target: ActiveWorkoutNotificationTarget(
+          exerciseName: 'Barbell Back Squat',
+          set: _set(),
+          totalSets: 3,
+        ),
+        formatWeight: _formatKg,
+        loadStepKg: 2.5,
+      );
+
+      expect(snapshot.lastSetSummary, isNull);
+    });
+
+    test('lastSetSummary includes RPE with a half-point value', () {
+      final snapshot = buildOngoingWorkoutSurfaceSnapshot(
+        target: ActiveWorkoutNotificationTarget(
+          exerciseName: 'Barbell Back Squat',
+          set: _set(),
+          totalSets: 3,
+          lastCompletedSet: _set(weightKg: 60, reps: 5, rpeX10: 85),
+        ),
+        formatWeight: _formatKg,
+        loadStepKg: 2.5,
+      );
+
+      expect(snapshot.lastSetSummary, 'Last set: 60 kg × 5 @8.5');
+    });
+
+    test('lastSetSummary omits the decimal for a whole-number RPE', () {
+      final snapshot = buildOngoingWorkoutSurfaceSnapshot(
+        target: ActiveWorkoutNotificationTarget(
+          exerciseName: 'Barbell Back Squat',
+          set: _set(),
+          totalSets: 3,
+          lastCompletedSet: _set(weightKg: 60, reps: 5, rpeX10: 80),
+        ),
+        formatWeight: _formatKg,
+        loadStepKg: 2.5,
+      );
+
+      expect(snapshot.lastSetSummary, 'Last set: 60 kg × 5 @8');
+    });
+
+    test('lastSetSummary omits the RPE suffix entirely when none was logged', () {
+      final snapshot = buildOngoingWorkoutSurfaceSnapshot(
+        target: ActiveWorkoutNotificationTarget(
+          exerciseName: 'Barbell Back Squat',
+          set: _set(),
+          totalSets: 3,
+          lastCompletedSet: _set(weightKg: 60, reps: 5),
+        ),
+        formatWeight: _formatKg,
+        loadStepKg: 2.5,
+      );
+
+      expect(snapshot.lastSetSummary, 'Last set: 60 kg × 5');
     });
   });
 }
 
-SetEntryData _set({int setIndex = 0, double weightKg = 80, int reps = 5}) {
+SetEntryData _set({
+  int setIndex = 0,
+  double weightKg = 80,
+  int reps = 5,
+  int? rpeX10,
+}) {
   return SetEntryData(
     id: 1,
     workoutExerciseId: 10,
@@ -85,6 +193,7 @@ SetEntryData _set({int setIndex = 0, double weightKg = 80, int reps = 5}) {
     isWarmup: false,
     isCompleted: false,
     setType: 'standard',
+    rpeX10: rpeX10,
   );
 }
 

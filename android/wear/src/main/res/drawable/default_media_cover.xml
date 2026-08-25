@@ -1,0 +1,75 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="300dp"
+    android:height="300dp"
+    android:viewportWidth="300"
+    android:viewportHeight="300">
+
+    <!-- Deep dark ambient background -->
+    <path
+        android:pathData="M0,0h300v300h-300z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="150"
+                android:startY="0"
+                android:endX="150"
+                android:endY="300"
+                android:type="linear">
+                <item android:color="#FF1A1A24" android:offset="0.0" />
+                <item android:color="#FF121218" android:offset="0.5" />
+                <item android:color="#FF0A0A0E" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Ambient colored lighting glow / subtle album backdrop art -->
+    <path
+        android:pathData="M150,150m-140,0a140,140 0,1 1,280 0a140,140 0,1 1,-280 0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="110"
+                android:centerY="100"
+                android:gradientRadius="180"
+                android:type="radial">
+                <item android:color="#4D3B4861" android:offset="0.0" />
+                <item android:color="#26232E42" android:offset="0.5" />
+                <item android:color="#000A0A0E" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Warm accent tone on the right side -->
+    <path
+        android:pathData="M150,150m-140,0a140,140 0,1 1,280 0a140,140 0,1 1,-280 0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="200"
+                android:centerY="210"
+                android:gradientRadius="160"
+                android:type="radial">
+                <item android:color="#334A3830" android:offset="0.0" />
+                <item android:color="#1A281E1C" android:offset="0.6" />
+                <item android:color="#000A0A0E" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Subtle vinyl record grooved rings in background -->
+    <path
+        android:pathData="M150,150m-110,0a110,110 0,1 1,220 0a110,110 0,1 1,-220 0"
+        android:strokeWidth="1.2"
+        android:strokeColor="#18FFFFFF" />
+    <path
+        android:pathData="M150,150m-85,0a85,85 0,1 1,170 0a85,85 0,1 1,-170 0"
+        android:strokeWidth="1.0"
+        android:strokeColor="#12FFFFFF" />
+    <path
+        android:pathData="M150,150m-60,0a60,60 0,1 1,120 0a60,60 0,1 1,-120 0"
+        android:strokeWidth="0.8"
+        android:strokeColor="#0EFFFFFF" />
+
+    <!-- Stylized music note watermark / artistic silhouette in background -->
+    <path
+        android:pathData="M168,105 L168,145 C164.5,143 159.8,142 154,144 C146.5,146.5 142,154 144,160 C146,166 153.5,168 161,165.5 C167,163.5 171,157.5 171,151 L171,118 L195,111 L195,135 C191.5,133 186.8,132 181,134 C173.5,136.5 169,144 171,150 C173,156 180.5,158 188,155.5 C194,153.5 198,147.5 198,141 L198,100 L168,105 Z"
+        android:fillColor="#15FFFFFF" />
+</vector>

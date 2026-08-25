@@ -154,14 +154,23 @@ class StartFastPanel extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? hx.domainFasting.withValues(alpha: 0.1)
-              : hx.surfaceContainerLowest,
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    hx.domainFasting.withValues(alpha: hx.isDark ? 0.20 : 0.14),
+                    hx.surfaceContainerLowest,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSelected ? null : hx.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
                 ? hx.domainFasting
                 : hx.outlineVariant.withValues(alpha: 0.3),
+            width: isSelected ? 1.5 : 1.0,
           ),
         ),
         child: Row(
@@ -171,7 +180,7 @@ class StartFastPanel extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? hx.domainFasting.withValues(alpha: 0.2)
+                    ? hx.domainFasting.withValues(alpha: 0.25)
                     : hx.surfaceVariant,
                 shape: BoxShape.circle,
               ),
@@ -190,16 +199,46 @@ class StartFastPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(plan.nameString,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
-                  Text(plan.description,
-                      style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary)),
+                  Text(
+                    plan.nameString,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? hx.domainFasting : null,
+                    ),
+                  ),
+                  Text(
+                    plan.description,
+                    style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                  ),
                 ],
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle, color: hx.domainFasting, size: 24),
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: hx.domainFasting,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              )
+            else
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: hx.outlineVariant.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -219,14 +258,23 @@ class StartFastPanel extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? hx.domainFasting.withValues(alpha: 0.1)
-              : hx.surfaceContainerLowest,
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    hx.domainFasting.withValues(alpha: hx.isDark ? 0.20 : 0.14),
+                    hx.surfaceContainerLowest,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSelected ? null : hx.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
                 ? hx.domainFasting
                 : hx.outlineVariant.withValues(alpha: 0.3),
+            width: isSelected ? 1.5 : 1.0,
           ),
         ),
         child: Row(
@@ -236,7 +284,7 @@ class StartFastPanel extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? hx.domainFasting.withValues(alpha: 0.2)
+                    ? hx.domainFasting.withValues(alpha: 0.25)
                     : hx.surfaceVariant,
                 shape: BoxShape.circle,
               ),
@@ -249,16 +297,46 @@ class StartFastPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Custom (${customTargetHours}h)',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
-                  Text('Set your own target hours (tap to change)',
-                      style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary)),
+                  Text(
+                    'Custom (${customTargetHours}h)',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? hx.domainFasting : null,
+                    ),
+                  ),
+                  Text(
+                    'Set your own target hours (tap to change)',
+                    style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                  ),
                 ],
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle, color: hx.domainFasting, size: 24),
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: hx.domainFasting,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              )
+            else
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: hx.outlineVariant.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

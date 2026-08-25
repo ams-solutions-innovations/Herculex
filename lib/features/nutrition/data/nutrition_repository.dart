@@ -106,6 +106,7 @@ class NutritionRepository {
     double? sodiumMgPer100g,
     double? potassiumMgPer100g,
     double? cholesterolMgPer100g,
+    String? category,
   }) async {
     final id = await _db
         .into(_db.foods)
@@ -126,6 +127,7 @@ class NutritionRepository {
             servingAmount: Value(servingAmount),
             servingUnit: Value(servingUnit),
             sourceMetadataJson: Value(sourceMetadataJson),
+            category: Value(category),
             source: const Value('local'),
             isCustom: const Value(true),
             sodiumMgPer100g: Value(sodiumMgPer100g),
@@ -302,6 +304,17 @@ class NutritionRepository {
     await (_db.delete(
       _db.recipeIngredients,
     )..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> updateIngredient({
+    required int id,
+    required double grams,
+  }) async {
+    await (_db.update(_db.recipeIngredients)..where((t) => t.id.equals(id))).write(
+      RecipeIngredientsCompanion(
+        grams: Value(grams),
+      ),
+    );
   }
 
   /// Macros per serving for a recipe.
@@ -1005,15 +1018,154 @@ class NutritionRepository {
     return [for (final id in ids) byId[id]].whereType<FoodData>().toList();
   }
 
+  /// Stream of all unique foods previously logged, ordered strictly from most
+  /// recently logged (latest `loggedAt` descending) to oldest.
+  Stream<List<FoodData>> watchRecentlyLoggedFoods({int? limit}) {
+    final q = _db.select(_db.foodEntries)
+      ..where((t) => t.foodId.isNotNull())
+      ..orderBy([(t) => OrderingTerm(expression: t.loggedAt, mode: OrderingMode.desc)]);
+
+    return q.watch().asyncMap((entries) async {
+      final seenIds = <int>{};
+      final orderedIds = <int>[];
+      for (final e in entries) {
+        final id = e.foodId;
+        if (id != null && seenIds.add(id)) {
+          orderedIds.add(id);
+          if (limit != null && orderedIds.length >= limit) break;
+        }
+      }
+      if (orderedIds.isEmpty) return <FoodData>[];
+      final foodsMap = await foodsByIds(orderedIds);
+      return orderedIds
+          .map((id) => foodsMap[id])
+          .whereType<FoodData>()
+          .where((f) => f.deletedAt == null)
+          .toList();
+    });
+  }
+
+  /// Stream of foods suggested based on time of day (hour) and/or [mealKey].
+  /// Analyzes past logged entries within the last 90 days.
+  Stream<List<FoodData>> watchSuggestedFoods({
+    required int hour,
+    String? mealKey,
+    int limit = 5,
+  }) {
+    final cutoff = _clock.now().subtract(const Duration(days: 90));
+    final q = _db.select(_db.foodEntries)
+      ..where(
+        (t) =>
+            t.foodId.isNotNull() &
+            t.loggedAt.isBiggerOrEqualValue(cutoff),
+      )
+      ..orderBy([(t) => OrderingTerm(expression: t.loggedAt, mode: OrderingMode.desc)]);
+
+    return q.watch().asyncMap((entries) async {
+      if (entries.isEmpty) return <FoodData>[];
+
+      final scores = <int, double>{};
+      final now = _clock.now();
+
+      for (final e in entries) {
+        final id = e.foodId;
+        if (id == null) continue;
+
+        double matchScore = 0.0;
+
+        // Hour proximity score (max 6 points for exact hour, decaying up to ±2 hours)
+        final entryHour = e.loggedAt.hour;
+        final rawDiff = (entryHour - hour).abs();
+        final hourDiff = rawDiff > 12 ? 24 - rawDiff : rawDiff;
+        if (hourDiff == 0) {
+          matchScore += 6.0;
+        } else if (hourDiff == 1) {
+          matchScore += 4.0;
+        } else if (hourDiff == 2) {
+          matchScore += 2.0;
+        } else if (hourDiff == 3) {
+          matchScore += 1.0;
+        }
+
+        // Meal key match score (e.g. breakfast, lunch, dinner, snack)
+        if (mealKey != null && mealKey.isNotEmpty) {
+          if (e.meal.toLowerCase() == mealKey.toLowerCase()) {
+            matchScore += 4.0;
+          }
+        }
+
+        // Only contribute to score if the entry matches the time window or meal slot
+        if (matchScore > 0) {
+          final ageInDays = now.difference(e.loggedAt).inDays;
+          double recencyBonus = 0.5;
+          if (ageInDays <= 7) {
+            recencyBonus = 2.0;
+          } else if (ageInDays <= 30) {
+            recencyBonus = 1.0;
+          }
+
+          scores[id] = (scores[id] ?? 0.0) + matchScore + recencyBonus;
+        }
+      }
+
+      if (scores.isEmpty) return <FoodData>[];
+
+      // Minimum score threshold to qualify as a relevant suggestion
+      final candidateEntries = scores.entries
+          .where((entry) => entry.value >= 3.0)
+          .toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
+      if (candidateEntries.isEmpty) return <FoodData>[];
+
+      final topIds = candidateEntries.take(limit).map((e) => e.key).toList();
+      final foodsMap = await foodsByIds(topIds);
+
+      return topIds
+          .map((id) => foodsMap[id])
+          .whereType<FoodData>()
+          .where((f) => f.deletedAt == null)
+          .toList();
+    });
+  }
+
   /// The same ranking as [recentFoods], pre-resolved to a default portion's
   /// macro totals — for surfaces (like the watch) that can't run their own
   /// per-100g × grams math against the local catalogue.
   Future<List<QuickAddFoodItem>> quickAddFoods({int limit = 12}) async {
     final foods = await recentFoods(limit: limit);
-    return [for (final food in foods) _quickAddItemForFood(food)];
+    final lastMealByFoodId = await _lastMealKeysForFoodIds(
+      foods.map((f) => f.id).toList(),
+    );
+    return [
+      for (final food in foods)
+        _quickAddItemForFood(food, lastMealByFoodId[food.id]),
+    ];
   }
 
-  QuickAddFoodItem _quickAddItemForFood(FoodData food) {
+  /// Most recent [FoodEntryData.meal] logged for each food id — lets a
+  /// tap-to-log quick-add surface (the watch) offer a one-tap "add exactly
+  /// what I logged last time" action without asking which meal again.
+  Future<Map<int, String>> _lastMealKeysForFoodIds(List<int> foodIds) async {
+    if (foodIds.isEmpty) return const {};
+    final entries =
+        await (_db.select(_db.foodEntries)
+              ..where((t) => t.foodId.isIn(foodIds))
+              ..orderBy([
+                (t) =>
+                    OrderingTerm(expression: t.loggedAt, mode: OrderingMode.desc),
+              ]))
+            .get();
+    final result = <int, String>{};
+    for (final e in entries) {
+      final id = e.foodId;
+      if (id == null || result.containsKey(id)) continue;
+      result[id] = e.meal;
+    }
+    return result;
+  }
+
+  QuickAddFoodItem _quickAddItemForFood(FoodData food, String? lastMealKey) {
     final totals = _totalsForFood(food);
     final amount = food.servingAmount ?? food.servingGrams ?? 100;
     final unit = food.servingUnit ?? 'g';
@@ -1028,6 +1180,7 @@ class NutritionRepository {
       portionAmount: amount,
       portionUnit: unit,
       portionLabel: label,
+      lastMealKey: lastMealKey,
     );
   }
 
@@ -1050,6 +1203,7 @@ class QuickAddFoodItem {
   final double portionAmount;
   final String portionUnit;
   final String portionLabel;
+  final String? lastMealKey;
 
   const QuickAddFoodItem({
     required this.foodId,
@@ -1061,5 +1215,6 @@ class QuickAddFoodItem {
     required this.portionAmount,
     required this.portionUnit,
     required this.portionLabel,
+    this.lastMealKey,
   });
 }

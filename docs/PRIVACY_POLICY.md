@@ -46,6 +46,12 @@ Under GDPR Article 9, data concerning health requires explicit consent and heigh
 * Accelerometer and gyroscope data used for rep tracking is processed in real time in device memory and immediately discarded.
 * Only anonymous, mathematically derived feature values (e.g. repetition frequency) are stored locally on the device for algorithm calibration.
 
+### G. Workout Bubble & "Display Over Other Apps" (Android only)
+* The **Workout Bubble** is an optional, off-by-default floating shortcut you can enable under Settings → App Settings. It requires Android's "Display over other apps" permission, which you grant yourself in system settings and can revoke at any time.
+* The bubble is shown **only** while a workout session is active and Herculex is in the background. It disappears when you return to the app or finish the workout.
+* Tapping it expands a small card showing your **current workout only** — exercise name, set number, weight and reps, and elapsed time — with controls to adjust reps/weight and complete the set. That is the same information as the ongoing workout notification, and it is read from your device's local database. **Be aware this means workout details are briefly visible on top of whatever app you are using**, so leave the feature off if you would rather they were not.
+* **Nothing flows the other way.** Herculex does **not** read, record, capture, or transmit anything about the apps underneath the bubble — not their content, not their identity, and not your interactions with them. The permission is used only to draw our own window.
+
 ---
 
 ## 3. Third-Party Integrations & Processing

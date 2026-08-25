@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/notifications/in_app_notification_controller.dart';
+import '../../../core/notifications/in_app_notification_model.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
@@ -22,7 +24,11 @@ class LogEntrySheet extends ConsumerStatefulWidget {
   final RecipeData? recipe;
   final DateTime date;
   final String initialMealKey;
-  final ScrollController? scrollController;
+  final bool isIngredient;
+  final double? initialGrams;
+  final RecipeIngredientData? existingIngredient;
+  final int? recipeId;
+  final VoidCallback? onIngredientDelete;
 
   const LogEntrySheet._({
     this.existingEntry,
@@ -30,7 +36,11 @@ class LogEntrySheet extends ConsumerStatefulWidget {
     this.recipe,
     required this.date,
     required this.initialMealKey,
-    this.scrollController,
+    this.isIngredient = false,
+    this.initialGrams,
+    this.existingIngredient,
+    this.recipeId,
+    this.onIngredientDelete,
   });
 
   static Future<bool?> forFood(
@@ -39,16 +49,12 @@ class LogEntrySheet extends ConsumerStatefulWidget {
     required DateTime date,
     required String initialMealKey,
   }) {
-    return showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _LogEntrySheetShell(
-        builder: (_, scrollController) => LogEntrySheet._(
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => LogEntrySheet._(
           food: food,
           date: date,
           initialMealKey: initialMealKey,
-          scrollController: scrollController,
         ),
       ),
     );
@@ -60,16 +66,12 @@ class LogEntrySheet extends ConsumerStatefulWidget {
     required DateTime date,
     required String initialMealKey,
   }) {
-    return showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _LogEntrySheetShell(
-        builder: (_, scrollController) => LogEntrySheet._(
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => LogEntrySheet._(
           recipe: recipe,
           date: date,
           initialMealKey: initialMealKey,
-          scrollController: scrollController,
         ),
       ),
     );
@@ -82,18 +84,38 @@ class LogEntrySheet extends ConsumerStatefulWidget {
     RecipeData? recipe,
     required DateTime date,
   }) {
-    return showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _LogEntrySheetShell(
-        builder: (_, scrollController) => LogEntrySheet._(
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => LogEntrySheet._(
           existingEntry: entry,
           food: food,
           recipe: recipe,
           date: date,
           initialMealKey: entry.meal,
-          scrollController: scrollController,
+        ),
+      ),
+    );
+  }
+
+  static Future<double?> forIngredient(
+    BuildContext context, {
+    required FoodData food,
+    double? initialGrams,
+    RecipeIngredientData? existingIngredient,
+    int? recipeId,
+    VoidCallback? onIngredientDelete,
+  }) {
+    return Navigator.of(context).push<double>(
+      MaterialPageRoute(
+        builder: (_) => LogEntrySheet._(
+          food: food,
+          date: DateTime.now(),
+          initialMealKey: '',
+          isIngredient: true,
+          initialGrams: initialGrams ?? existingIngredient?.grams,
+          existingIngredient: existingIngredient,
+          recipeId: recipeId,
+          onIngredientDelete: onIngredientDelete,
         ),
       ),
     );
@@ -134,7 +156,19 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   void initState() {
     super.initState();
     final entry = widget.existingEntry;
-    if (entry != null) {
+    if (widget.isIngredient) {
+      final grams = widget.existingIngredient?.grams ??
+          widget.initialGrams ??
+          widget.food?.servingAmount ??
+          widget.food?.servingGrams ??
+          100;
+      _quantity = TextEditingController(
+        text: grams % 1 == 0
+            ? grams.toStringAsFixed(0)
+            : grams.toStringAsFixed(1),
+      );
+      _selectedUnit = _defaultUnit;
+    } else if (entry != null) {
       final amount = entry.portionAmount ?? entry.gramsOverride ?? entry.servings;
       _quantity = TextEditingController(
         text: amount % 1 == 0 ? amount.toStringAsFixed(0) : amount.toStringAsFixed(1),
@@ -182,6 +216,27 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     Haptics.success();
     setState(() => _saving = true);
     final repo = ref.read(nutritionRepositoryProvider);
+
+    if (widget.isIngredient) {
+      final factor = _kUnitToGrams[_selectedUnit] ?? 1.0;
+      final grams = total * factor;
+      if (widget.existingIngredient != null) {
+        await repo.updateIngredient(
+          id: widget.existingIngredient!.id,
+          grams: grams,
+        );
+      } else if (widget.recipeId != null && widget.food != null) {
+        await repo.addIngredient(
+          recipeId: widget.recipeId!,
+          foodId: widget.food!.id,
+          grams: grams,
+        );
+      }
+      if (!mounted) return;
+      Navigator.of(context).pop(grams);
+      return;
+    }
+
     final isFood = widget.food != null || (widget.existingEntry != null && widget.existingEntry!.foodId != null);
 
     double? grams;
@@ -224,6 +279,22 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
         }
       }
     }
+    try {
+      final currentTotals =
+          await ref.read(dailyTotalsProvider(widget.date).future);
+      final targets =
+          await ref.read(effectiveTargetsProvider(widget.date).future);
+      if (targets != null &&
+          currentTotals.proteinG >= targets.proteinG &&
+          targets.proteinG > 0) {
+        ref.read(inAppNotificationControllerProvider.notifier).show(
+              InAppNotificationItem.proteinGoal(
+                currentGrams: currentTotals.proteinG,
+                targetGrams: targets.proteinG.toDouble(),
+              ),
+            );
+      }
+    } catch (_) {}
     if (!mounted) return;
     Navigator.of(context).pop(true);
   }
@@ -235,6 +306,17 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   }
 
   Future<void> _delete() async {
+    if (widget.isIngredient) {
+      if (widget.existingIngredient == null) return;
+      Haptics.heavy();
+      setState(() => _saving = true);
+      final repo = ref.read(nutritionRepositoryProvider);
+      await repo.removeIngredient(widget.existingIngredient!.id);
+      widget.onIngredientDelete?.call();
+      if (!mounted) return;
+      Navigator.of(context).pop(null);
+      return;
+    }
     if (widget.existingEntry == null) return;
     Haptics.heavy();
     setState(() => _saving = true);
@@ -534,8 +616,23 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mealSlots = ref.watch(mealSlotsProvider);
-    final isFood = widget.food != null || (widget.existingEntry != null && widget.existingEntry!.foodId != null);
-    final isEditing = widget.existingEntry != null;
+    final isFood = widget.food != null ||
+        (widget.existingEntry != null && widget.existingEntry!.foodId != null);
+    final isEditing = widget.isIngredient
+        ? (widget.existingIngredient != null)
+        : (widget.existingEntry != null);
+
+    final String pageTitle;
+    if (widget.isIngredient) {
+      pageTitle = isEditing ? 'Edit Ingredient' : 'Add Ingredient';
+    } else if (isEditing) {
+      pageTitle = 'Edit Food';
+    } else if (widget.recipe != null) {
+      pageTitle = 'Log Recipe';
+    } else {
+      pageTitle = 'Add Food';
+    }
+
     final title = widget.food?.name ?? widget.recipe?.name ?? 'Logged Item';
     final subtitle = isFood
         ? (widget.food != null
@@ -545,10 +642,14 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
             ? '${widget.recipe!.servings} servings per recipe'
             : 'Recipe entry');
     final availableUnits = isFood ? _kFoodUnits : const ['servings'];
-    final timestampEnabled = ref.watch(logTimestampEnabledProvider);
+    final timestampEnabled =
+        !widget.isIngredient && ref.watch(logTimestampEnabledProvider);
 
     final currentMealLabel = mealSlots
-        .firstWhere((m) => m.key == _mealKey, orElse: () => MealSlot(key: _mealKey, label: _mealKey))
+        .firstWhere(
+          (m) => m.key == _mealKey,
+          orElse: () => MealSlot(key: _mealKey, label: _mealKey),
+        )
         .label;
 
     final food = widget.food;
@@ -563,178 +664,197 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
             sodiumMg: food.sodiumMgPer100g,
           );
 
-    return ListView(
-      controller: widget.scrollController,
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      shrinkWrap: true,
-      children: [
-        // ── Top Sheet Drag Handle ────────────────────────────────────────────
-        Center(
-          child: Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.outlineVariant.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(2),
-            ),
+    final String buttonText;
+    if (_saving) {
+      buttonText = 'Saving…';
+    } else if (widget.isIngredient) {
+      buttonText = isEditing ? 'Update Ingredient' : 'Add to Recipe';
+    } else if (isEditing) {
+      buttonText = 'Update Entry';
+    } else if (_extraDays.isNotEmpty) {
+      buttonText = 'Log to ${_extraDays.length + 1} Days';
+    } else {
+      buttonText = 'Log Food';
+    }
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Back',
+        ),
+        title: Text(
+          pageTitle,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 8),
-
-        // ── Top Header Bar (Close, Title, Save Checkmark) ────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).pop(),
-              tooltip: 'Cancel',
-            ),
-            Text(
-              isEditing ? 'Edit Food' : 'Add Food',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            IconButton(
-              icon: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(Icons.check, color: AppColors.primary, size: 26),
-              onPressed: _saving ? null : _save,
-              tooltip: 'Save',
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // ── Food Title & Subtitle ───────────────────────────────────────────
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.secondary,
-              ),
-            ),
-          ],
-        ),
-
-        // ── Composition Badges ──────────────────────────────────────────────
-        if (insights.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [for (final i in insights) _InsightBadge(insight: i)],
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(Icons.check, color: AppColors.primary, size: 24),
+            onPressed: _saving ? null : _save,
+            tooltip: 'Save',
           ),
         ],
-        const SizedBox(height: 16),
-
-        // ── Grouped Settings Card (Meal, Servings, Serving Size, Time) ──────
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainer,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.4),
-            ),
-          ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _SettingsRow(
-                label: 'Meal',
-                value: currentMealLabel,
-                onTap: () => _showMealPicker(context, mealSlots),
+              PremiumButton(
+                text: buttonText,
+                onTap: _saving ? () {} : _save,
               ),
-              _SettingsRow(
-                label: 'Number of Servings',
-                value: _fmtAmount(_servings),
-                onTap: () => _showServingsPicker(context),
-              ),
-              _SettingsRow(
-                label: 'Serving Size',
-                value: '${_quantity.text.isEmpty ? '0' : _quantity.text} ${isFood ? _selectedUnit : 'servings'}',
-                onTap: () => _showServingSizePicker(context, isFood, availableUnits),
-              ),
-              if (timestampEnabled)
-                _SettingsRow(
-                  label: 'Time',
-                  value: _time == null ? 'Set time' : _time!.format(context),
-                  showDivider: false,
-                  onTap: () async {
-                    final picked = await showTimePicker(
-                      context: context,
-                      initialTime: _time ?? TimeOfDay.now(),
-                    );
-                    if (picked != null) setState(() => _time = picked);
-                  },
+              if (isEditing) ...[
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: _saving ? null : _delete,
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: Colors.redAccent,
+                    ),
+                    label: Text(
+                      widget.isIngredient
+                          ? 'Remove from recipe'
+                          : 'Delete from log',
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
+              ],
             ],
           ),
         ),
-        const SizedBox(height: 20),
-
-        // ── Add to Multiple Days ─────────────────────────────────────────────
-        if (!isEditing) ...[
-          _MultiDayPicker(
-            baseDate: widget.date,
-            selected: _extraDays,
-            onToggle: (day) {
-              Haptics.selection();
-              setState(() {
-                if (!_extraDays.remove(day)) _extraDays.add(day);
-              });
-            },
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        children: [
+          // ── Food Title & Subtitle ─────────────────────────────────────────
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.secondary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-        ],
 
-        // ── Nutrition Breakdown & Goals Preview ──────────────────────────────
-        _NutritionPreview(
-          food: widget.food,
-          recipe: widget.recipe,
-          amount: _totalAmount,
-          unit: isFood ? _selectedUnit : 'servings',
-          date: widget.date,
-        ),
-        const SizedBox(height: 24),
+          // ── Composition Badges ────────────────────────────────────────────
+          if (insights.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [for (final i in insights) _InsightBadge(insight: i)],
+            ),
+          ],
+          const SizedBox(height: 14),
 
-        // ── Primary Action Button ────────────────────────────────────────────
-        PremiumButton(
-          text: _saving
-              ? 'Saving…'
-              : isEditing
-                  ? 'Update Entry'
-                  : _extraDays.isEmpty
-                      ? 'Log Food'
-                      : 'Log to ${_extraDays.length + 1} Days',
-          onTap: _saving ? () {} : _save,
-        ),
-
-        if (isEditing) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton.icon(
-              onPressed: _saving ? null : _delete,
-              icon: const Icon(Icons.delete, size: 18, color: Colors.redAccent),
-              label: const Text('Delete from log', style: TextStyle(color: Colors.redAccent)),
+          // ── Grouped Settings Card (Meal, Servings, Serving Size, Time) ────
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Column(
+              children: [
+                if (!widget.isIngredient)
+                  _SettingsRow(
+                    label: 'Meal',
+                    value: currentMealLabel,
+                    onTap: () => _showMealPicker(context, mealSlots),
+                  ),
+                _SettingsRow(
+                  label: 'Number of Servings',
+                  value: _fmtAmount(_servings),
+                  onTap: () => _showServingsPicker(context),
+                ),
+                _SettingsRow(
+                  label: 'Serving Size',
+                  value:
+                      '${_quantity.text.isEmpty ? '0' : _quantity.text} ${isFood ? _selectedUnit : 'servings'}',
+                  showDivider: timestampEnabled,
+                  onTap: () => _showServingSizePicker(
+                    context,
+                    isFood,
+                    availableUnits,
+                  ),
+                ),
+                if (timestampEnabled)
+                  _SettingsRow(
+                    label: 'Time',
+                    value: _time == null ? 'Set time' : _time!.format(context),
+                    showDivider: false,
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: _time ?? TimeOfDay.now(),
+                      );
+                      if (picked != null) setState(() => _time = picked);
+                    },
+                  ),
+              ],
             ),
           ),
+          const SizedBox(height: 14),
+
+          // ── Add to Multiple Days ───────────────────────────────────────────
+          if (!widget.isIngredient && !isEditing) ...[
+            _MultiDayPicker(
+              baseDate: widget.date,
+              selected: _extraDays,
+              onToggle: (day) {
+                Haptics.selection();
+                setState(() {
+                  if (!_extraDays.remove(day)) _extraDays.add(day);
+                });
+              },
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // ── Nutrition Breakdown & Goals Preview ────────────────────────────
+          _NutritionPreview(
+            food: widget.food,
+            recipe: widget.recipe,
+            amount: _totalAmount,
+            unit: isFood ? _selectedUnit : 'servings',
+            date: widget.date,
+          ),
         ],
-      ],
+      ),
     );
   }
 }
@@ -765,7 +885,7 @@ class _SettingsRow extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -894,7 +1014,11 @@ class _MultiDayPicker extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             for (final day in _candidates) ...[
-              _buildDayChip(day, isBase: DateUtils.isSameDay(day, cleanBase), isSelected: selected.contains(day)),
+              _buildDayChip(
+                day,
+                isBase: DateUtils.isSameDay(day, cleanBase),
+                isSelected: selected.contains(day),
+              ),
             ],
           ],
         ),
@@ -902,7 +1026,11 @@ class _MultiDayPicker extends StatelessWidget {
     );
   }
 
-  Widget _buildDayChip(DateTime day, {required bool isBase, required bool isSelected}) {
+  Widget _buildDayChip(
+    DateTime day, {
+    required bool isBase,
+    required bool isSelected,
+  }) {
     final dayName = DateFormat('EEE').format(day);
     final dayNum = DateFormat('d').format(day);
     final active = isBase || isSelected;
@@ -929,7 +1057,9 @@ class _MultiDayPicker extends StatelessWidget {
               shape: BoxShape.circle,
               color: active ? AppColors.primary : AppColors.surfaceContainer,
               border: Border.all(
-                color: active ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.5),
+                color: active
+                    ? AppColors.primary
+                    : AppColors.outlineVariant.withValues(alpha: 0.5),
                 width: active ? 1.5 : 1,
               ),
             ),
@@ -976,7 +1106,8 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
   String? _futureKey;
 
   Future<DailyTotals> _cachedResolve() {
-    final key = '${widget.food?.id}|${widget.recipe?.id}|${widget.amount}|${widget.unit}';
+    final key =
+        '${widget.food?.id}|${widget.recipe?.id}|${widget.amount}|${widget.unit}';
     if (_futureKey != key || _future == null) {
       _futureKey = key;
       _future = _resolve();
@@ -1006,7 +1137,8 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final targets = ref.watch(effectiveTargetsProvider(widget.date)).asData?.value ??
+    final targets =
+        ref.watch(effectiveTargetsProvider(widget.date)).asData?.value ??
         ref.watch(baselineTargetsProvider);
 
     return FutureBuilder<DailyTotals>(
@@ -1023,10 +1155,10 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
         );
 
         return Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: AppColors.outlineVariant.withValues(alpha: 0.4),
             ),
@@ -1038,13 +1170,13 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
               Row(
                 children: [
                   SizedBox(
-                    width: 86,
-                    height: 86,
+                    width: 74,
+                    height: 74,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         CustomPaint(
-                          size: const Size(86, 86),
+                          size: const Size(74, 74),
                           painter: _MacroDonutPainter(
                             proteinG: t.proteinG,
                             carbsG: t.carbsG,
@@ -1052,7 +1184,9 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
                             proteinColor: AppColors.macroProtein,
                             carbsColor: AppColors.macroCarbs,
                             fatColor: AppColors.macroFat,
-                            trackColor: AppColors.outlineVariant.withValues(alpha: 0.25),
+                            trackColor: AppColors.outlineVariant.withValues(
+                              alpha: 0.25,
+                            ),
                           ),
                         ),
                         Column(
@@ -1060,7 +1194,7 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
                           children: [
                             Text(
                               '${t.kcal.round()}',
-                              style: theme.textTheme.titleMedium?.copyWith(
+                              style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 height: 1.1,
                               ),
@@ -1069,7 +1203,7 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
                               'Cal',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: AppColors.secondary,
-                                fontSize: 10,
+                                fontSize: 9,
                               ),
                             ),
                           ],
@@ -1077,7 +1211,7 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1108,16 +1242,16 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
 
               // ── Percent of Your Daily Goals Header & Bars ─────────────────
               Text(
                 'Percent of Your Daily Goals',
-                style: theme.textTheme.titleSmall?.copyWith(
+                style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
@@ -1165,7 +1299,7 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
 
               // ── Optional Micronutrients Accordion ─────────────────────────
               if (t.hasMicros) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 InkWell(
                   onTap: () => setState(() => _showMicros = !_showMicros),
                   borderRadius: BorderRadius.circular(12),
@@ -1185,7 +1319,11 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
                         AnimatedRotation(
                           turns: _showMicros ? 0.5 : 0,
                           duration: const Duration(milliseconds: 200),
-                          child: Icon(Icons.expand_more, size: 18, color: AppColors.primary),
+                          child: Icon(
+                            Icons.expand_more,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -1194,7 +1332,9 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
                 AnimatedSize(
                   duration: const Duration(milliseconds: 200),
                   alignment: Alignment.topLeft,
-                  child: !_showMicros ? const SizedBox.shrink() : _microsList(theme, t),
+                  child: !_showMicros
+                      ? const SizedBox.shrink()
+                      : _microsList(theme, t),
                 ),
               ],
             ],
@@ -1247,7 +1387,9 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
     required Color color,
     bool isKcal = false,
   }) {
-    final pct = (target != null && target > 0) ? (value / target).clamp(0.0, 1.0) : 0.0;
+    final pct = (target != null && target > 0)
+        ? (value / target).clamp(0.0, 1.0)
+        : 0.0;
     final pctInt = (pct * 100).round();
 
     return Column(
@@ -1310,7 +1452,8 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
       if (t.fiberG > 0) ('Fibre', '${t.fiberG.toStringAsFixed(1)} g'),
       if (t.sodiumMg > 0) ('Sodium', '${t.sodiumMg.round()} mg'),
       if (t.potassiumMg > 0) ('Potassium', '${t.potassiumMg.round()} mg'),
-      if (t.cholesterolMg > 0) ('Cholesterol', '${t.cholesterolMg.round()} mg'),
+      if (t.cholesterolMg > 0)
+        ('Cholesterol', '${t.cholesterolMg.round()} mg'),
       for (final e in t.micros.entries)
         if (e.value > 0) (e.key, e.value.toStringAsFixed(1)),
     ];
@@ -1326,8 +1469,18 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(name, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
-                  Text(val, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    name,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                  Text(
+                    val,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1360,7 +1513,7 @@ class _MacroDonutPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final strokeWidth = 7.0;
+    final strokeWidth = 6.0;
     final radius = (size.width - strokeWidth) / 2;
 
     final trackPaint = Paint()
@@ -1387,7 +1540,13 @@ class _MacroDonutPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round;
-      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+      canvas.drawArc(
+        rect,
+        startAngle + 0.04,
+        math.max(0, sweepAngle - 0.08),
+        false,
+        paint,
+      );
       startAngle += sweepAngle;
     }
 
@@ -1398,7 +1557,13 @@ class _MacroDonutPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round;
-      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+      canvas.drawArc(
+        rect,
+        startAngle + 0.04,
+        math.max(0, sweepAngle - 0.08),
+        false,
+        paint,
+      );
       startAngle += sweepAngle;
     }
 
@@ -1409,7 +1574,13 @@ class _MacroDonutPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round;
-      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+      canvas.drawArc(
+        rect,
+        startAngle + 0.04,
+        math.max(0, sweepAngle - 0.08),
+        false,
+        paint,
+      );
     }
   }
 
@@ -1421,28 +1592,4 @@ class _MacroDonutPainter extends CustomPainter {
       oldDelegate.proteinColor != proteinColor ||
       oldDelegate.carbsColor != carbsColor ||
       oldDelegate.fatColor != fatColor;
-}
-
-// ─── Shell for DraggableScrollableSheet ──────────────────────────────────────
-class _LogEntrySheetShell extends StatelessWidget {
-  final Widget Function(BuildContext, ScrollController) builder;
-  const _LogEntrySheetShell({required this.builder});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DraggableScrollableSheet(
-      initialChildSize: 0.92,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) => Container(
-        decoration: BoxDecoration(
-          color: theme.bottomSheetTheme.backgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: builder(context, scrollController),
-      ),
-    );
-  }
 }

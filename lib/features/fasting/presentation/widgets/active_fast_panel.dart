@@ -7,6 +7,7 @@ import '../../../../theme/colors.dart';
 import '../../../../theme/tokens/tokens.dart';
 import '../../../../widgets/premium_button.dart';
 import '../../domain/fasting_plan.dart';
+import '../../../notifications/presentation/notification_settings_provider.dart';
 import '../end_fast_dialog.dart';
 import '../fasting_providers.dart';
 
@@ -161,9 +162,15 @@ class ActiveFastPanel extends ConsumerWidget {
     if (!isQuickFastTarget(active.targetSeconds)) {
       final targetTime =
           newStartTime.add(Duration(seconds: active.targetSeconds));
+      final notifEnabled =
+          ref.read(notificationSettingsProvider).fastingGoalReachedEnabled;
       await ref
           .read(fastingNotificationSchedulerProvider)
-          .scheduleFastingGoal(targetTime, planName: 'Fasting');
+          .scheduleFastingGoal(
+            targetTime,
+            planName: 'Fasting',
+            enabled: notifEnabled,
+          );
     }
   }
 
@@ -213,9 +220,15 @@ class ActiveFastPanel extends ConsumerWidget {
     await repo.updateSessionTarget(active.id, newTargetSec);
 
     final targetTime = active.startedAt.add(Duration(seconds: newTargetSec));
+    final notifEnabled =
+        ref.read(notificationSettingsProvider).fastingGoalReachedEnabled;
     await ref
         .read(fastingNotificationSchedulerProvider)
-        .scheduleFastingGoal(targetTime, planName: '${selected}h');
+        .scheduleFastingGoal(
+          targetTime,
+          planName: '${selected}h',
+          enabled: notifEnabled,
+        );
   }
 }
 

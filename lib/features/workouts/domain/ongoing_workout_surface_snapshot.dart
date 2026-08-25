@@ -1,4 +1,6 @@
+import '../../../data/local/database.dart';
 import 'active_workout_notification_target.dart';
+import 'equipment_variants.dart';
 import 'workout_notification_command.dart';
 
 class OngoingWorkoutSurfaceSnapshot {
@@ -13,6 +15,15 @@ class OngoingWorkoutSurfaceSnapshot {
   final String loadStepLabel;
   final List<OngoingWorkoutSurfaceAction> actions;
 
+  /// "{muscle} • {equipment}", e.g. "Quads • Barbell" — same wording the full
+  /// active-workout screen uses (`active_exercise_card.dart`'s exercise
+  /// subtitle), reused here for the bubble popup's subtitle line.
+  final String subtitle;
+
+  /// "Last set: {weight} × {reps}", with " @{rpe}" appended when an RPE was
+  /// logged. Null when nothing has been completed for this exercise yet.
+  final String? lastSetSummary;
+
   const OngoingWorkoutSurfaceSnapshot({
     required this.exerciseName,
     required this.currentSet,
@@ -24,6 +35,8 @@ class OngoingWorkoutSurfaceSnapshot {
     required this.loadStepKg,
     required this.loadStepLabel,
     required this.actions,
+    this.subtitle = '',
+    this.lastSetSummary,
   });
 
   String get setLabel {
@@ -65,7 +78,41 @@ OngoingWorkoutSurfaceSnapshot buildOngoingWorkoutSurfaceSnapshot({
     loadStepKg: loadStepKg,
     loadStepLabel: loadStepLabel,
     actions: buildOngoingWorkoutSurfaceActions(loadStepLabel: loadStepLabel),
+    subtitle: target == null ? '' : _subtitleFor(target),
+    lastSetSummary: target == null
+        ? null
+        : _lastSetSummaryFor(target.lastCompletedSet, formatWeight),
   );
+}
+
+/// "{muscle} • {equipment}", matching `active_exercise_card.dart`'s own
+/// exercise subtitle wording so the bubble reads the same as the full app.
+String _subtitleFor(ActiveWorkoutNotificationTarget target) {
+  final muscle = target.primaryMuscle;
+  final equipment = equipmentVariantLabel(target.equipmentVariant);
+  if (muscle.isEmpty) return equipment;
+  if (equipment.isEmpty) return muscle;
+  return '$muscle • $equipment';
+}
+
+String? _lastSetSummaryFor(
+  SetEntryData? lastSet,
+  String Function(double kg) formatWeight,
+) {
+  if (lastSet == null) return null;
+  final weight = formatWeight(lastSet.weightKg);
+  final rpeX10 = lastSet.rpeX10;
+  final rpeSuffix = rpeX10 == null ? '' : ' @${_formatRpe(rpeX10)}';
+  return 'Last set: $weight × ${lastSet.reps}$rpeSuffix';
+}
+
+/// `rpeX10` halves are stored ×10 as plain int math — 85 -> "8.5", 80 -> "8"
+/// (never "8.0"), matching the mock's `@8.5` style.
+String _formatRpe(int rpeX10) {
+  final whole = rpeX10 / 10;
+  return whole.truncateToDouble() == whole
+      ? whole.toStringAsFixed(0)
+      : whole.toStringAsFixed(1);
 }
 
 List<OngoingWorkoutSurfaceAction> buildOngoingWorkoutSurfaceActions({

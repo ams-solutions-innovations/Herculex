@@ -76,6 +76,8 @@ class _FakeHealthAdapter implements HealthAdapter {
     return true;
   }
 
+  Map<String, dynamic>? lastWrittenWorkout;
+
   @override
   Future<bool> writeWorkoutData({
     required HealthWorkoutActivityType activityType,
@@ -85,6 +87,14 @@ class _FakeHealthAdapter implements HealthAdapter {
     required int totalEnergyBurned,
     required HealthDataUnit totalEnergyBurnedUnit,
   }) async {
+    lastWrittenWorkout = {
+      'activityType': activityType,
+      'title': title,
+      'start': start,
+      'end': end,
+      'totalEnergyBurned': totalEnergyBurned,
+      'totalEnergyBurnedUnit': totalEnergyBurnedUnit,
+    };
     return true;
   }
 }
@@ -234,4 +244,79 @@ void main() {
     expect(read.status, HealthReadStatus.empty);
     expect(read.value, isNull);
   });
+
+  test('writeWorkoutToHealth sends custom title, calories, and times', () async {
+    final start = DateTime(2026, 8, 13, 10, 0);
+    final end = DateTime(2026, 8, 13, 11, 15);
+
+    final success = await service.writeWorkoutToHealth(
+      activityName: 'Arm Day',
+      startTime: start,
+      endTime: end,
+      totalCaloriesBurned: 480,
+    );
+
+    expect(success, isTrue);
+    expect(adapter.lastWrittenWorkout, isNotNull);
+    expect(adapter.lastWrittenWorkout!['title'], equals('Arm Day'));
+    expect(adapter.lastWrittenWorkout!['totalEnergyBurned'], equals(480));
+    expect(adapter.lastWrittenWorkout!['start'], equals(start));
+    expect(adapter.lastWrittenWorkout!['end'], equals(end));
+    expect(
+      adapter.lastWrittenWorkout!['activityType'],
+      equals(HealthWorkoutActivityType.STRENGTH_TRAINING),
+    );
+  });
+
+  test(
+    'multi-source step resolution picks higher watch/Samsung Health steps over lower aggregate',
+    () async {
+      // Simulate Health Connect returning 996 as aggregate (e.g. from phone pedometer)
+      adapter.steps = 996;
+      // But data points contain Samsung Health records with 1816 steps
+      adapter.data[HealthDataType.STEPS] = [
+        HealthDataPoint(
+          uuid: 'pedometer-phone',
+          value: NumericHealthValue(numericValue: 996),
+          type: HealthDataType.STEPS,
+          unit: HealthDataUnit.COUNT,
+          dateFrom: now.subtract(const Duration(hours: 4)),
+          dateTo: now,
+          sourcePlatform: HealthPlatformType.googleHealthConnect,
+          sourceDeviceId: 'phone',
+          sourceId: 'com.google.android.apps.fitness',
+          sourceName: 'Google Fit',
+        ),
+        HealthDataPoint(
+          uuid: 'samsung-watch-steps-1',
+          value: NumericHealthValue(numericValue: 1000),
+          type: HealthDataType.STEPS,
+          unit: HealthDataUnit.COUNT,
+          dateFrom: now.subtract(const Duration(hours: 5)),
+          dateTo: now.subtract(const Duration(hours: 2)),
+          sourcePlatform: HealthPlatformType.googleHealthConnect,
+          sourceDeviceId: 'galaxy-watch',
+          sourceId: 'com.sec.android.app.shealth',
+          sourceName: 'Samsung Health',
+        ),
+        HealthDataPoint(
+          uuid: 'samsung-watch-steps-2',
+          value: NumericHealthValue(numericValue: 816),
+          type: HealthDataType.STEPS,
+          unit: HealthDataUnit.COUNT,
+          dateFrom: now.subtract(const Duration(hours: 2)),
+          dateTo: now,
+          sourcePlatform: HealthPlatformType.googleHealthConnect,
+          sourceDeviceId: 'galaxy-watch',
+          sourceId: 'com.sec.android.app.shealth',
+          sourceName: 'Samsung Health',
+        ),
+      ];
+
+      final read = await service.runDailySync();
+
+      expect(read.steps.status, HealthReadStatus.available);
+      expect(read.steps.value, 1816.0);
+    },
+  );
 }

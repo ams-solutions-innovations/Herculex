@@ -44,7 +44,7 @@ class BodyFatAiResult {
     final min = (json['bfRangeMin'] as num?)?.toDouble();
     final max = (json['bfRangeMax'] as num?)?.toDouble();
     final conf = (json['confidence'] as num?)?.toDouble();
-    final expl = json['explanation'] as String? ?? 'Ocena na podlagi analize.';
+    final expl = json['explanation'] as String? ?? 'Estimate based on analysis.';
     final dist = json['fatDistribution'] as String?;
     final rec = json['recommendations'] as String?;
 
@@ -177,12 +177,13 @@ class BodyFatAiService {
         ageYears: age,
         isMale: isMale,
       );
-      biometrics['bmiFormulaReferenceBf'] = double.parse(bmiBf.toStringAsFixed(1));
+      if (bmiBf != null) {
+        biometrics['bmiFormulaReferenceBf'] = double.parse(bmiBf.toStringAsFixed(1));
+      }
     }
-
+    // If no images provided, return instant mathematical estimate
     if (imageFiles.isEmpty) {
-      // Return formula-based calculation if no images provided
-      final estimated = navyBf ?? bmiBf ?? (isMale ? 16.0 : 23.0);
+      final estimated = navyBf ?? bmiBf ?? (isMale ? 15.0 : 22.0);
       final fatMass = weightKg != null ? weightKg * (estimated / 100.0) : null;
       final leanMass = weightKg != null && fatMass != null ? weightKg - fatMass : null;
 
@@ -192,12 +193,12 @@ class BodyFatAiService {
         bfRangeMax: double.parse((estimated + 1.5).toStringAsFixed(1)),
         confidence: navyBf != null ? 0.8 : 0.65,
         explanation: navyBf != null
-            ? 'Izračunano po antropometrični formuli US Navy na podlagi meritev obsegov pasu, vratu in višine.'
-            : 'Ocena izračunana na podlagi ITM (indeksa telesne mase), starosti in spola.',
-        fatDistribution: 'Za podrobnejšo vizualno analizo definicije in porazdelitve maščobe priložite fotografijo telesa.',
+            ? 'Calculated using the US Navy anthropometric formula based on waist, neck, and height measurements.'
+            : 'Estimate calculated based on BMI (body mass index), age, and sex.',
+        fatDistribution: 'Attach a physique photo for more detailed visual analysis of definition and fat distribution.',
         leanMassKg: leanMass != null ? double.parse(leanMass.toStringAsFixed(1)) : null,
         fatMassKg: fatMass != null ? double.parse(fatMass.toStringAsFixed(1)) : null,
-        recommendations: 'Dodajte fotografijo za natančnejšo vizualno analizo z Gemini AI.',
+        recommendations: 'Add a photo for more accurate visual analysis with Gemini AI.',
         isAiGenerated: false,
       );
     }
@@ -213,7 +214,7 @@ class BodyFatAiService {
       }
 
       if (imagesPayload.isEmpty) {
-        throw Exception('Izbrane slike ne obstajajo na napravi.');
+        throw Exception('Selected images do not exist on device.');
       }
 
       final resultJson = await _backend.estimateBodyFat(
@@ -234,11 +235,11 @@ class BodyFatAiService {
         bfRangeMin: double.parse((fallbackBf - 2.0).toStringAsFixed(1)),
         bfRangeMax: double.parse((fallbackBf + 2.0).toStringAsFixed(1)),
         confidence: 0.70,
-        explanation: 'Ocena narejena na podlagi biometričnih formul (US Navy / BMI) zaradi nedostopnosti AI strežnika: $e',
-        fatDistribution: 'Standardna porazdelitev glede na vaš profil.',
+        explanation: 'Estimate generated using biometric formulas (US Navy / BMI) due to AI server unavailability: $e',
+        fatDistribution: 'Standard distribution based on your profile.',
         leanMassKg: leanMass != null ? double.parse(leanMass.toStringAsFixed(1)) : null,
         fatMassKg: fatMass != null ? double.parse(fatMass.toStringAsFixed(1)) : null,
-        recommendations: 'Preverite povezavo s strežnikom za polno multimodalno vizualno analizo.',
+        recommendations: 'Check server connection for full multimodal visual analysis.',
         isAiGenerated: false,
       );
     }

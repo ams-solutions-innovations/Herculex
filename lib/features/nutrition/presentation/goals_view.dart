@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/providers.dart';
 import '../../../theme/colors.dart';
-import '../../../theme/system_ui.dart';
+import '../../../ui/ui.dart';
 import '../../profile/domain/profile.dart';
 import 'goals_providers.dart';
 
@@ -34,31 +34,10 @@ class GoalsView extends ConsumerWidget {
     final weeklyGoalStr = _weeklyGoalLabel(weeklyGoal);
     final activityStr = profile?.activityLevel.label ?? '--';
 
-    return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLowest,
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceContainerLowest,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: Text(
-          'Goals',
-          style: TextStyle(
-            color: AppColors.onSurface,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios,
-              size: 20, color: AppColors.onSurface),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        systemOverlayStyle: overlayStyleFor(context),
-      ),
-      body: ListView(
-        children: [
+    return HxScreenShell(
+      title: 'Goals',
+      padding: EdgeInsets.zero,
+      children: [
           // ── Weight & activity rows ────────────────────────────────────────
           _GoalValueRow(
             label: 'Starting Weight',
@@ -160,8 +139,7 @@ class GoalsView extends ConsumerWidget {
 
           const SizedBox(height: 100),
         ],
-      ),
-    );
+      );
   }
 
   // ── Edit weight / activity sheets ─────────────────────────────────────────

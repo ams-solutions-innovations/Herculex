@@ -33,7 +33,7 @@ class GeminiFoodAnalysisResult {
 
   factory GeminiFoodAnalysisResult.fromJson(Map<String, dynamic> json) {
     return GeminiFoodAnalysisResult(
-      name: json['name'] as String? ?? 'Neznana hrana',
+      name: json['name'] as String? ?? 'Unknown food',
       brand: json['brand'] as String? ?? 'Gemini AI',
       estimatedServingGrams:
           (json['estimatedServingGrams'] as num?)?.toDouble() ?? 100.0,
@@ -43,7 +43,7 @@ class GeminiFoodAnalysisResult {
       fatPer100g: (json['fatPer100g'] as num?)?.toDouble() ?? 0.0,
       fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
       rating: (json['rating'] as num?)?.toDouble() ?? 7.0,
-      ratingReason: json['ratingReason'] as String? ?? 'Ocenjeno z Gemini AI.',
+      ratingReason: json['ratingReason'] as String? ?? 'Evaluated with Gemini AI.',
     );
   }
 }
@@ -82,7 +82,7 @@ class GeminiBarcodeProductResult {
   factory GeminiBarcodeProductResult.fromJson(Map<String, dynamic> json) {
     return GeminiBarcodeProductResult(
       found: json['found'] as bool? ?? false,
-      name: json['name'] as String? ?? 'Neznan izdelek',
+      name: json['name'] as String? ?? 'Unknown product',
       brand: json['brand'] as String?,
       servingGrams: (json['servingGrams'] as num?)?.toDouble() ?? 100.0,
       kcalPer100g: (json['kcalPer100g'] as num?)?.toDouble() ?? 0.0,
@@ -95,6 +95,97 @@ class GeminiBarcodeProductResult {
         0.0,
         1.0,
       ),
+    );
+  }
+}
+
+class RamblerFoodItem {
+  String name;
+  double servingGrams;
+  double portionAmount;
+  String portionUnit;
+  double kcalPer100g;
+  double proteinPer100g;
+  double carbsPer100g;
+  double fatPer100g;
+  double? fiberPer100g;
+  double confidence;
+
+  RamblerFoodItem({
+    required this.name,
+    required this.servingGrams,
+    required this.portionAmount,
+    this.portionUnit = 'g',
+    required this.kcalPer100g,
+    required this.proteinPer100g,
+    required this.carbsPer100g,
+    required this.fatPer100g,
+    this.fiberPer100g,
+    this.confidence = 0.9,
+  });
+
+  double get totalKcal => (kcalPer100g * servingGrams / 100);
+  double get totalProtein => (proteinPer100g * servingGrams / 100);
+  double get totalCarbs => (carbsPer100g * servingGrams / 100);
+  double get totalFat => (fatPer100g * servingGrams / 100);
+
+  factory RamblerFoodItem.fromJson(Map<String, dynamic> json) {
+    final servingGrams = (json['servingGrams'] as num?)?.toDouble() ?? 100.0;
+    return RamblerFoodItem(
+      name: json['name'] as String? ?? 'Food item',
+      servingGrams: servingGrams,
+      portionAmount: (json['portionAmount'] as num?)?.toDouble() ?? servingGrams,
+      portionUnit: json['portionUnit'] as String? ?? 'g',
+      kcalPer100g: (json['kcalPer100g'] as num?)?.toDouble() ?? 0.0,
+      proteinPer100g: (json['proteinPer100g'] as num?)?.toDouble() ?? 0.0,
+      carbsPer100g: (json['carbsPer100g'] as num?)?.toDouble() ?? 0.0,
+      fatPer100g: (json['fatPer100g'] as num?)?.toDouble() ?? 0.0,
+      fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
+      confidence: ((json['confidence'] as num?)?.toDouble() ?? 0.9).clamp(0.0, 1.0),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'servingGrams': servingGrams,
+    'portionAmount': portionAmount,
+    'portionUnit': portionUnit,
+    'kcalPer100g': kcalPer100g,
+    'proteinPer100g': proteinPer100g,
+    'carbsPer100g': carbsPer100g,
+    'fatPer100g': fatPer100g,
+    'fiberPer100g': fiberPer100g,
+    'confidence': confidence,
+  };
+}
+
+class RamblerFoodResult {
+  final String? suggestedMealKey;
+  final String? summary;
+  final List<RamblerFoodItem> items;
+
+  const RamblerFoodResult({
+    this.suggestedMealKey,
+    this.summary,
+    required this.items,
+  });
+
+  factory RamblerFoodResult.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'];
+    final itemsList = <RamblerFoodItem>[];
+    if (rawItems is List) {
+      for (final it in rawItems) {
+        if (it is Map<String, dynamic>) {
+          itemsList.add(RamblerFoodItem.fromJson(it));
+        } else if (it is Map) {
+          itemsList.add(RamblerFoodItem.fromJson(Map<String, dynamic>.from(it)));
+        }
+      }
+    }
+    return RamblerFoodResult(
+      suggestedMealKey: json['suggestedMealKey'] as String?,
+      summary: json['summary'] as String?,
+      items: itemsList,
     );
   }
 }
@@ -197,6 +288,17 @@ class GeminiFoodAnalyzerService {
       userNote: userNote,
     );
     return GeminiBarcodeProductResult.fromJson(parsedMap);
+  }
+
+  Future<RamblerFoodResult> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
+  }) async {
+    final parsedMap = await _backend.analyzeRamblerText(
+      text: text,
+      preferredMealKey: preferredMealKey,
+    );
+    return RamblerFoodResult.fromJson(parsedMap);
   }
 
   String _mimeType(String path) {

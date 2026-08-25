@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../measurements/data/measurements_repository.dart';
 import '../domain/profile.dart';
 
 class LocalProfileRepository {
@@ -9,6 +11,7 @@ class LocalProfileRepository {
 
   final SharedPreferences _prefs;
   final _controller = StreamController<Profile?>.broadcast();
+  MeasurementsRepository? _measurementsRepo;
 
   LocalProfileRepository(this._prefs) {
     _controller.onListen = () {
@@ -18,6 +21,10 @@ class LocalProfileRepository {
         }
       });
     };
+  }
+
+  void setMeasurementsRepository(MeasurementsRepository repo) {
+    _measurementsRepo = repo;
   }
 
   Profile? get currentProfile {
@@ -32,9 +39,21 @@ class LocalProfileRepository {
 
   Stream<Profile?> watch() => _controller.stream;
 
-  Future<void> save(Profile profile) async {
+  Future<void> save(Profile profile, {bool syncToLog = true}) async {
+    final oldWeight = currentProfile?.weightKg;
     await _prefs.setString(_kProfileKey, profile.encode());
     _controller.add(profile);
+
+    if (syncToLog && profile.weightKg != null && _measurementsRepo != null) {
+      if (oldWeight != profile.weightKg) {
+        final todayIso = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        await _measurementsRepo!.logMeasurement(
+          dateIso: todayIso,
+          metric: 'bodyweight',
+          value: profile.weightKg!,
+        );
+      }
+    }
   }
 
   Future<void> clear() async {

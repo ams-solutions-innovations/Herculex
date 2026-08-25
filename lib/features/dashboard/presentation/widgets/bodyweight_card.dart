@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/units.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/haptics.dart';
+import '../../../../theme/tokens/tokens.dart';
 import '../../../workouts/presentation/workouts_providers.dart';
 import '../../../measurements/presentation/quick_log_weight.dart';
 import '../dashboard_providers.dart';
@@ -27,57 +28,138 @@ class BodyweightMiniCard extends ConsumerWidget {
         ? null
         : DateTime.tryParse(history.last.dateIso);
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(28),
-      onTap: () {
-        Haptics.selection();
-        context.push('/measurements/bodyweight');
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 220;
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(isCompact ? 20 : 28),
+          onTap: () {
+            Haptics.selection();
+            context.push('/measurements/bodyweight');
+          },
+          child: dashboardCard(
+            accent: context.hx.domainRecovery,
+            radius: isCompact ? 20 : null,
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 14 : 20,
+              vertical: isCompact ? 12 : 16,
+            ),
+            child: isCompact
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'BODYWEIGHT',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.secondary,
+                              letterSpacing: 0.8,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => quickLogWeight(context, ref),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.add,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      bw.when(
+                        data: (kg) => Text(
+                          kg == null
+                              ? '—'
+                              : ref.watch(weightFormatProvider).format(kg),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        loading: () => const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        error: (e, _) =>
+                            const Icon(Icons.error_outline, size: 18),
+                      ),
+                      if (lastLogged != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormat('MMM d').format(lastLogged),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.secondary,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            dashboardTitle(context, 'Bodyweight'),
+                            if (lastLogged != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Last logged ${DateFormat('MMM d').format(lastLogged)}',
+                                style: theme.textTheme.bodySmall
+                                    ?.copyWith(color: AppColors.secondary),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      bw.when(
+                        data: (kg) => Text(
+                          kg == null
+                              ? '—'
+                              : ref.watch(weightFormatProvider).format(kg),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        loading: () => const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        error: (e, _) =>
+                            const Icon(Icons.error_outline, size: 18),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: Icon(Icons.add_circle_outline,
+                            color: AppColors.primary, size: 22),
+                        tooltip: 'Quick add bodyweight',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => quickLogWeight(context, ref),
+                      ),
+                    ],
+                  ),
+          ),
+        );
       },
-      child: dashboardCard(
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  dashboardTitle(context, 'Bodyweight'),
-                  if (lastLogged != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Last logged ${DateFormat('MMM d').format(lastLogged)}',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: AppColors.secondary),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            bw.when(
-              data: (kg) => Text(
-                kg == null ? '—' : ref.watch(weightFormatProvider).format(kg),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              loading: () => const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              error: (e, _) => const Icon(Icons.error_outline, size: 18),
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: Icon(Icons.add_circle_outline,
-                  color: AppColors.primary, size: 22),
-              tooltip: 'Quick add bodyweight',
-              visualDensity: VisualDensity.compact,
-              onPressed: () => quickLogWeight(context, ref),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

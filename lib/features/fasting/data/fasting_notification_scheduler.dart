@@ -11,7 +11,15 @@ class FastingNotificationScheduler {
   FastingNotificationScheduler(this._plugin);
 
   /// Schedules a notification when the fasting window completes.
-  Future<void> scheduleFastingGoal(DateTime targetTime, {String planName = 'Fasting'}) async {
+  Future<void> scheduleFastingGoal(
+    DateTime targetTime, {
+    String planName = 'Fasting',
+    bool enabled = true,
+  }) async {
+    if (!enabled) {
+      await cancelFastingGoal();
+      return;
+    }
     final now = DateTime.now();
     if (targetTime.isBefore(now)) {
       return;

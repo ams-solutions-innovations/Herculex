@@ -26,10 +26,14 @@ void main() {
           .toggle(DashboardWidgetType.cnsLoad, true)
           .reorder(0, 3);
       final decoded = DashboardConfig.decode(cfg.encode());
-      expect(decoded.widgets.map((w) => w.type),
-          cfg.widgets.map((w) => w.type));
-      expect(decoded.widgets.map((w) => w.visible),
-          cfg.widgets.map((w) => w.visible));
+      expect(
+        decoded.widgets.map((w) => w.types),
+        cfg.widgets.map((w) => w.types),
+      );
+      expect(
+        decoded.widgets.map((w) => w.visible),
+        cfg.widgets.map((w) => w.visible),
+      );
     });
 
     test('toggle flips a single widget', () {
@@ -37,26 +41,28 @@ void main() {
           DashboardConfig.defaults.toggle(DashboardWidgetType.bodyweight, true);
       expect(
         cfg.widgets
-            .singleWhere((w) => w.type == DashboardWidgetType.bodyweight)
+            .singleWhere((w) => w.types.contains(DashboardWidgetType.bodyweight))
             .visible,
         isTrue,
       );
       // Others untouched.
       expect(
         cfg.widgets
-            .singleWhere((w) => w.type == DashboardWidgetType.macros)
+            .singleWhere((w) => w.types.contains(DashboardWidgetType.macros))
             .visible,
         isTrue,
       );
     });
 
-    test('reorder moves a widget without dropping any', () {
+    test('reorder moves a slot without dropping any', () {
       final cfg = DashboardConfig.defaults.reorder(0, 4);
       expect(cfg.widgets, hasLength(DashboardConfig.defaults.widgets.length));
-      expect(cfg.widgets.map((w) => w.type).toSet(),
-          DashboardConfig.defaults.widgets.map((w) => w.type).toSet());
+      expect(
+        cfg.widgets.expand((w) => w.types).toSet(),
+        DashboardConfig.defaults.widgets.expand((w) => w.types).toSet(),
+      );
       // The first widget (fastingTimer) moved later.
-      expect(cfg.widgets.first.type,
+      expect(cfg.widgets.first.types.first,
           isNot(DashboardWidgetType.fastingTimer));
     });
 
@@ -64,36 +70,76 @@ void main() {
       final cfg =
           DashboardConfig.defaults.toggle(DashboardWidgetType.fastingTimer, false);
       expect(
-        cfg.visibleWidgets.any((w) => w.type == DashboardWidgetType.fastingTimer),
+        cfg.visibleWidgets.any((w) => w.types.contains(DashboardWidgetType.fastingTimer)),
         isFalse,
       );
     });
 
+    test('stackWidgets and unstackWidget manage stacks correctly', () {
+      var cfg = DashboardConfig.defaults;
+      // Stack recoverySummary with cnsLoad
+      cfg = cfg.stackWidgets(
+        DashboardWidgetType.recoverySummary,
+        DashboardWidgetType.cnsLoad,
+      );
+      final recoverySlot = cfg.widgets.firstWhere(
+        (w) => w.types.contains(DashboardWidgetType.recoverySummary),
+      );
+      expect(recoverySlot.isStack, isTrue);
+      expect(recoverySlot.types, [
+        DashboardWidgetType.recoverySummary,
+        DashboardWidgetType.cnsLoad,
+      ]);
+
+      // Unstack cnsLoad
+      cfg = cfg.unstackWidget(DashboardWidgetType.cnsLoad);
+      final unstackedRecovery = cfg.widgets.firstWhere(
+        (w) => w.types.contains(DashboardWidgetType.recoverySummary),
+      );
+      expect(unstackedRecovery.isStack, isFalse);
+      expect(
+        cfg.widgets.any((w) =>
+            w.types.length == 1 && w.types.first == DashboardWidgetType.cnsLoad),
+        isTrue,
+      );
+    });
+
     test('decode of empty/garbage falls back to defaults', () {
-      expect(DashboardConfig.decode(null).widgets.map((w) => w.type),
-          DashboardConfig.defaults.widgets.map((w) => w.type));
-      expect(DashboardConfig.decode('   ').widgets,
-          isNotEmpty);
+      expect(
+        DashboardConfig.decode(null).widgets.map((w) => w.types),
+        DashboardConfig.defaults.widgets.map((w) => w.types),
+      );
+      expect(DashboardConfig.decode('   ').widgets, isNotEmpty);
     });
 
     test('decode drops unknown ids and appends newly-added types as hidden', () {
       // Stored config knows only two widgets; the rest must be appended hidden.
       final decoded = DashboardConfig.decode('macros:1,bogus_widget:1,cns_load:0');
-      final types = decoded.widgets.map((w) => w.type).toList();
+      final types = decoded.widgets.expand((w) => w.types).toList();
       expect(types.contains(DashboardWidgetType.macros), isTrue);
       expect(types.first, DashboardWidgetType.macros); // preserved first
       // Every known type is present exactly once.
       expect(types.toSet().length, DashboardWidgetType.values.length);
       // Appended types are hidden.
       final appended = decoded.widgets
-          .firstWhere((w) => w.type == DashboardWidgetType.bodyweight);
+          .firstWhere((w) => w.types.contains(DashboardWidgetType.bodyweight));
       expect(appended.visible, isFalse);
       // Explicit hidden flag preserved.
       expect(
         decoded.widgets
-            .firstWhere((w) => w.type == DashboardWidgetType.cnsLoad)
+            .firstWhere((w) => w.types.contains(DashboardWidgetType.cnsLoad))
             .visible,
         isFalse,
+      );
+    });
+
+    test('decode handles legacy trends string with backward compatibility', () {
+      final decoded = DashboardConfig.decode('fasting_timer:1,trends:1');
+      expect(
+        decoded.widgets.any((w) =>
+            w.types.contains(DashboardWidgetType.calorieTrends) &&
+            w.types.contains(DashboardWidgetType.bodyweightTrends)),
+        isTrue,
       );
     });
   });

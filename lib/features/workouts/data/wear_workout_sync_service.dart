@@ -20,6 +20,7 @@ class WearWorkoutSyncService {
   int _lastCurrentExerciseIndex = 0;
   int _lastCurrentSetIndex = 0;
   int? _lastSyncedSessionId;
+  String? _lastSyncedEntityId;
   bool _isApplyingRemoteSession = false;
   DateTime? _suppressOutboundUntil;
   Future<void> _remoteApplyQueue = Future.value();
@@ -47,6 +48,10 @@ class WearWorkoutSyncService {
     return until != null && DateTime.now().isBefore(until);
   }
 
+  bool get hasActiveSyncedSession =>
+      _lastSyncedSessionId != null ||
+      (_lastSyncedEntityId != null && _lastSyncedEntityId!.isNotEmpty);
+
   Future<void> syncTemplatesToWatch(
     List<WorkoutTemplateData> templates,
     Map<int, List<TemplateExerciseData>> templateExercises,
@@ -68,6 +73,7 @@ class WearWorkoutSyncService {
         exJsonList.add({
           ..._templateJson(catalogItem),
           'targetSets': ex.targetSets,
+          'supersetGroup': ex.supersetGroup,
           'plannedSets': (templateSets[ex.id] ?? [])
               .map(_templateSetJson)
               .toList(),
@@ -229,6 +235,7 @@ class WearWorkoutSyncService {
         }
       }
       _lastSyncedSessionId = null;
+      _lastSyncedEntityId = null;
     } catch (e, st) {
       debugPrint('Failed to handle watch workout ended: $e\n$st');
     }
@@ -297,10 +304,13 @@ class WearWorkoutSyncService {
   /// Call when the active session on the phone ends (finished or discarded)
   /// so the watch tears down its session and stops surfacing it in the
   /// background (ongoing activity, media controls, etc.).
-  Future<void> notifySessionEnded(String? sessionUuid) async {
+  Future<void> notifySessionEnded([String? sessionUuid]) async {
+    final targetEntityId = (sessionUuid != null && sessionUuid.isNotEmpty)
+        ? sessionUuid
+        : (_lastSyncedEntityId ?? '');
     _lastSyncedSessionId = null;
-    if (sessionUuid == null || sessionUuid.isEmpty) return;
-    await _wearSyncService.endWorkoutOnWatch(sessionUuid);
+    _lastSyncedEntityId = null;
+    await _wearSyncService.endWorkoutOnWatch(targetEntityId);
   }
 
   /// Indexes the catalog for inbound watch matching.
@@ -475,13 +485,33 @@ class WearWorkoutSyncService {
           );
           final setType = normalizeWearSetType(watchSetType);
           final accessory = setData['accessory'] as String?;
-          final setTypeMetaJson =
-              setData['setTypeMetaJson'] as String? ??
-              (accessory == null || accessory.isEmpty
-                  ? null
-                  : jsonEncode({'watchAccessory': accessory}));
+          final rawMetaJson = setData['setTypeMetaJson'] as String?;
+          String? setTypeMetaJson;
+          if (rawMetaJson != null &&
+              rawMetaJson.isNotEmpty &&
+              rawMetaJson != 'null') {
+            if (accessory != null &&
+                accessory.isNotEmpty &&
+                accessory != 'None') {
+              try {
+                final map = jsonDecode(rawMetaJson) as Map<String, dynamic>;
+                map['watchAccessory'] = accessory;
+                setTypeMetaJson = jsonEncode(map);
+              } catch (_) {
+                setTypeMetaJson = rawMetaJson;
+              }
+            } else {
+              setTypeMetaJson = rawMetaJson;
+            }
+          } else if (accessory != null &&
+              accessory.isNotEmpty &&
+              accessory != 'None') {
+            setTypeMetaJson = jsonEncode({'watchAccessory': accessory});
+          }
           final bodyweightKg = (setData['bodyweightKg'] as num?)?.toDouble();
           final chainsKg = (setData['chainsKg'] as num?)?.toDouble();
+          final durationSeconds = (setData['durationSeconds'] as num?)?.toInt();
+          final distanceM = (setData['distanceM'] as num?)?.toDouble();
           final completedAtEpochMs = (setData['completedAtEpochMs'] as num?)
               ?.toInt();
           final completedAt = completedAtEpochMs == null
@@ -497,17 +527,20 @@ class WearWorkoutSyncService {
             matchedSetIds.add(existing.id);
             if (existing.weightKg != weight ||
                 existing.reps != reps ||
+                existing.durationSeconds != durationSeconds ||
                 existing.rpeX10 != rpeX10 ||
                 existing.isCompleted != isCompleted ||
                 existing.isWarmup != isWarmup ||
                 existing.setType != setType ||
                 existing.setTypeMetaJson != setTypeMetaJson ||
                 existing.bodyweightKg != bodyweightKg ||
-                existing.chainsKg != chainsKg) {
+                existing.chainsKg != chainsKg ||
+                existing.distanceM != distanceM) {
               await _workoutsRepository.updateSet(
                 setId: existing.id,
                 weightKg: weight,
                 reps: reps,
+                durationSeconds: durationSeconds,
                 rpeX10: rpeX10,
                 clearRpe: rpeX10 == null,
                 isCompleted: isCompleted,
@@ -519,6 +552,8 @@ class WearWorkoutSyncService {
                 clearBodyweightKg: bodyweightKg == null,
                 chainsKg: chainsKg,
                 clearChainsKg: chainsKg == null,
+                distanceM: distanceM,
+                clearDistanceM: distanceM == null,
                 completedAt: completedAt,
               );
             }
@@ -529,6 +564,7 @@ class WearWorkoutSyncService {
               workoutExerciseId: workoutExerciseId,
               weightKg: weight,
               reps: reps,
+              durationSeconds: durationSeconds,
               rpeX10: rpeX10,
               isCompleted: isCompleted,
               isWarmup: isWarmup,
@@ -536,6 +572,7 @@ class WearWorkoutSyncService {
               setTypeMetaJson: setTypeMetaJson,
               bodyweightKg: bodyweightKg,
               chainsKg: chainsKg,
+              distanceM: distanceM,
               completedAt: completedAt,
             );
           }
@@ -613,6 +650,7 @@ class WearWorkoutSyncService {
     final json = <String, dynamic>{
       if (item != null) 'catalogExerciseId': item.id,
       if (item?.slug != null) 'slug': item!.slug,
+      if (item?.loggingMetric != null) 'loggingMetric': item!.loggingMetric,
       'name': item?.name ?? fallbackName ?? 'Exercise',
     };
     if (item != null) {
@@ -672,7 +710,7 @@ class WearWorkoutSyncService {
         if (isNextMode && (defaultPriorWeight > 0 || defaultPriorReps > 0)) {
           final target = ProgressionEngine.suggestNext(
             lastWeightKg: defaultPriorWeight,
-            lastReps: defaultPriorReps > 0 ? defaultPriorReps : 8,
+            lastReps: defaultPriorReps > 0 ? defaultPriorReps : 1,
             goal: ProgressionGoal.muscleGain,
             equipmentVariant: ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
           );
@@ -698,7 +736,7 @@ class WearWorkoutSyncService {
           if (isNextMode && priorSet != null && !priorSet.isWarmup) {
             final target = ProgressionEngine.suggestNext(
               lastWeightKg: setPriorWeight,
-              lastReps: setPriorReps > 0 ? setPriorReps : 8,
+              lastReps: setPriorReps > 0 ? setPriorReps : 1,
               goal: ProgressionGoal.muscleGain,
               equipmentVariant: ex.equipmentVariant ?? catalogItem?.modality ?? 'barbell',
             );
@@ -711,13 +749,16 @@ class WearWorkoutSyncService {
               : (setEntry.weightKg > 0 ? setEntry.weightKg : setHintWeight);
           final reps = setEntry.isCompleted
               ? setEntry.reps
-              : (setEntry.reps > 0 ? setEntry.reps : (setHintReps > 0 ? setHintReps : 8));
+              : (setEntry.reps > 0 ? setEntry.reps : (setHintReps > 0 ? setHintReps : 1));
 
           final setJson = <String, dynamic>{
             'wireId': 'set_${setEntry.id}',
             'setIndex': setEntry.setIndex,
             'weight': weight,
             'reps': reps,
+            if (setEntry.durationSeconds != null)
+              'durationSeconds': setEntry.durationSeconds,
+            if (setEntry.distanceM != null) 'distanceM': setEntry.distanceM,
             'setType': normalizeWearSetType(setEntry.setType),
             'isWarmup': setEntry.isWarmup,
             'setTypeMetaJson': setEntry.setTypeMetaJson,
@@ -743,11 +784,13 @@ class WearWorkoutSyncService {
 
         exJsonList.add({
           'wireId': 'exercise_${ex.id}',
+          'supersetGroup': ex.supersetGroup,
           'template': {
             ..._templateJson(
               catalogItem,
               equipmentVariant: ex.equipmentVariant,
             ),
+            'supersetGroup': ex.supersetGroup,
             'targetSets': sets.length,
             'prevWeight': defaultHintWeight > 0 ? defaultHintWeight : defaultPriorWeight,
             'prevReps': defaultHintReps > 0 ? defaultHintReps : defaultPriorReps,
@@ -758,8 +801,12 @@ class WearWorkoutSyncService {
                     'setIndex': setEntry.setIndex,
                     'setType': normalizeWearSetType(setEntry.setType),
                     'isWarmup': setEntry.isWarmup,
-                    'targetReps': setEntry.reps > 0 ? setEntry.reps : (defaultHintReps > 0 ? defaultHintReps : 8),
+                    'targetReps': setEntry.reps > 0 ? setEntry.reps : (defaultHintReps > 0 ? defaultHintReps : 1),
                     'targetWeightKg': setEntry.weightKg > 0 ? setEntry.weightKg : defaultHintWeight,
+                    if (setEntry.durationSeconds != null)
+                      'durationSeconds': setEntry.durationSeconds,
+                    if (setEntry.distanceM != null)
+                      'targetDistanceM': setEntry.distanceM,
                     'setTypeMetaJson': setEntry.setTypeMetaJson,
                   },
                 )
@@ -794,6 +841,7 @@ class WearWorkoutSyncService {
       // Fallback only guards a theoretical pre-migration NULL race; every
       // session created after schema 22 has a sessionUuid.
       final entityId = session.sessionUuid ?? 'phone_session_${session.id}';
+      _lastSyncedEntityId = entityId;
       final sessionJson = WearSyncEnvelope.wrap(
         entity: wearSyncEntityActiveWorkout,
         entityId: entityId,

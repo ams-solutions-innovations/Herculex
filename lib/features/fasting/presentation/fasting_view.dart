@@ -6,14 +6,17 @@ import '../../../theme/tokens/tokens.dart';
 import '../../../ui/ui.dart';
 import '../../../widgets/premium_button.dart';
 import '../domain/fasting_plan.dart';
+import '../../notifications/presentation/notification_settings_provider.dart';
 import 'fasting_providers.dart';
 import 'widgets/active_fast_panel.dart';
+import 'widgets/clock_dial_background.dart';
 import 'widgets/fasting_history.dart';
 import 'widgets/fasting_insights.dart';
+import 'widgets/fasting_streak_card.dart';
 import 'widgets/start_fast_panel.dart';
 
 /// Fasting's first-class page (`/fasting`), replacing the 1,100-line bottom
-/// sheet it used to be. A large clock motif sits low-opacity behind the
+/// sheet it used to be. A minimalist clock dial motif sits behind the
 /// header — the section's visual identity — and Start Fast is genuinely
 /// pinned (via [HxScreenShell.pinnedBottom]) so starting the selected plan
 /// never requires scrolling, not just "near the top" as the sheet had it.
@@ -31,26 +34,17 @@ class _FastingViewState extends ConsumerState<FastingView> {
 
   @override
   Widget build(BuildContext context) {
-    final hx = context.hx;
     final activeAsync = ref.watch(activeFastingSessionProvider);
     final active = activeAsync.asData?.value;
     final isLoaded = activeAsync.hasValue;
 
     return Stack(
       children: [
-        Positioned(
-          top: 40,
+        const Positioned(
+          top: 30,
           left: 0,
           right: 0,
-          child: IgnorePointer(
-            child: Center(
-              child: Icon(
-                Icons.watch_later_rounded,
-                size: 320,
-                color: hx.domainFasting.withValues(alpha: hx.isDark ? 0.05 : 0.07),
-              ),
-            ),
-          ),
+          child: ClockDialBackground(size: 320),
         ),
         HxScreenShell(
           title: 'Fasting',
@@ -73,6 +67,8 @@ class _FastingViewState extends ConsumerState<FastingView> {
                 )
               : null,
           children: [
+            const FastingStreakCard(),
+            const SizedBox(height: HxSpace.x6),
             activeAsync.when(
               data: (active) => active != null
                   ? ActiveFastPanel(active: active)
@@ -124,8 +120,14 @@ class _FastingViewState extends ConsumerState<FastingView> {
         ? '$_customTargetHours-Hour'
         : _selectedPlan.nameString;
 
+    final notifEnabled =
+        ref.read(notificationSettingsProvider).fastingGoalReachedEnabled;
     await ref
         .read(fastingNotificationSchedulerProvider)
-        .scheduleFastingGoal(targetTime, planName: planName);
+        .scheduleFastingGoal(
+          targetTime,
+          planName: planName,
+          enabled: notifEnabled,
+        );
   }
 }

@@ -9390,43 +9390,6 @@
     "movementSlug": "overhead-press-vertical-push"
   },
   {
-    "slug": "safety-bar-overhead-press",
-    "name": "Safety Bar Overhead Press",
-    "aka": [
-      "SSB OHP"
-    ],
-    "bodyPart": "Shoulders",
-    "category": "powerlifting",
-    "movementPattern": "vertical_push",
-    "movementPatternRaw": "Vertical Push",
-    "modality": "barbell",
-    "equipment": "Safety Bar",
-    "primaryMuscle": "Shoulders",
-    "primaryMuscles": [
-      "Front Delts"
-    ],
-    "secondaryMuscles": [
-      "Side Delts",
-      "Triceps",
-      "Traps"
-    ],
-    "stabilizers": [
-      "Core"
-    ],
-    "cnsScore": 6,
-    "recoveryImpact": 3,
-    "loggingMetric": "weight_reps",
-    "supportsWeightedBodyweight": false,
-    "defaultRestSeconds": 180,
-    "similar": [
-      "Overhead Press",
-      "Swiss Bar OHP",
-      "Machine Shoulder Press"
-    ],
-    "derived": true,
-    "movementSlug": "overhead-press-vertical-push"
-  },
-  {
     "slug": "axle-bar-overhead-press",
     "name": "Axle Bar Overhead Press",
     "aka": [
@@ -9674,7 +9637,10 @@
     "slug": "reverse-ez-bar-curl",
     "name": "Reverse EZ Bar Curl",
     "aka": [
-      "Pronated EZ Curl"
+      "Pronated EZ Curl",
+      "EZ Bar Reverse Curl",
+      "Eze Bar Reverse Curl",
+      "Reverse EZ-Bar Curl"
     ],
     "bodyPart": "Arms",
     "category": "hypertrophy",
@@ -16213,5 +16179,301 @@
       "Thoracic Extension"
     ],
     "derived": false
+  },
+  {
+    "slug": "plate-loaded-reverse-curl",
+    "name": "Plate-Loaded Reverse Curl",
+    "aka": [
+      "Plate-Loaded Reverse Bicep Curl",
+      "Reverse Plate Curl"
+    ],
+    "bodyPart": "Arms",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Elbow Flexion (Pronated)",
+    "modality": "machine_plate",
+    "equipment": "Machine",
+    "primaryMuscle": "Forearms",
+    "primaryMuscles": [
+      "Forearms",
+      "Biceps"
+    ],
+    "secondaryMuscles": [
+      "Brachialis"
+    ],
+    "stabilizers": [
+      "Wrists"
+    ],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "Reverse Barbell Curl",
+      "Dumbbell Reverse Curl"
+    ],
+    "derived": true,
+    "movementSlug": "reverse-curl-isolation"
+  },
+  {
+    "slug": "plate-loaded-side-neck-curl",
+    "name": "Plate-Loaded Side Neck Curl",
+    "aka": [
+      "Plate-Loaded Neck Side Flexion",
+      "Olympic Plate Lateral Neck Flexion",
+      "Plate-Loaded Lateral Neck Curl"
+    ],
+    "bodyPart": "Neck",
+    "category": "hypertrophy",
+    "movementPattern": "core",
+    "movementPatternRaw": "Neck Lateral Flexion",
+    "modality": "machine_plate",
+    "equipment": "Machine",
+    "primaryMuscle": "Neck",
+    "primaryMuscles": [
+      "Neck"
+    ],
+    "secondaryMuscles": [],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "Machine Neck Side Flexion",
+      "Band Neck Side Flexion",
+      "Plate-Loaded Neck Curl",
+      "Plate-Loaded Neck Extension"
+    ],
+    "derived": true,
+    "movementSlug": "neck-side-flexion-core"
+  },
+  {
+    "slug": "afrikas-bicep-curl",
+    "name": "Afrikas Bicep Curl",
+    "aka": [
+      "Afrika's Curl",
+      "Afrikas Curl",
+      "Strict Constant-Tension Curl"
+    ],
+    "bodyPart": "Arms",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Elbow Flexion (Constant Tension)",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
+    "primaryMuscle": "Biceps",
+    "primaryMuscles": [
+      "Biceps"
+    ],
+    "secondaryMuscles": [
+      "Forearms",
+      "Brachialis"
+    ],
+    "stabilizers": [
+      "Abs"
+    ],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "Strict Barbell Curl",
+      "Dumbbell Bicep Curl",
+      "Incline Dumbbell Curl"
+    ],
+    "derived": true,
+    "movementSlug": "curl-isolation"
+  },
+  {
+    "slug": "single-arm-chest-supported-cable-row",
+    "name": "Single-Arm Chest-Supported Cable Row",
+    "aka": [
+      "One-Arm Chest-Supported Cable Row",
+      "Unilateral Chest-Supported Cable Row",
+      "Chest-Supported Single-Arm Cable Row"
+    ],
+    "bodyPart": "Back",
+    "category": "hypertrophy",
+    "movementPattern": "horizontal_pull",
+    "movementPatternRaw": "Unilateral Horizontal Pull (Chest Supported)",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Rhomboids",
+      "Upper Back"
+    ],
+    "secondaryMuscles": [
+      "Biceps",
+      "Rear Delts"
+    ],
+    "stabilizers": [
+      "Forearms"
+    ],
+    "cnsScore": 3,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 90,
+    "similar": [
+      "Seated Low Row Machine (Chest-Supported)",
+      "Seated Cable Row (Neutral Single)",
+      "Single-Arm Cable Row"
+    ],
+    "derived": true,
+    "movementSlug": "seated-row-horizontal-pull"
+  },
+  {
+    "slug": "seated-cable-row-underhand",
+    "name": "Seated Cable Row (Underhand Grip)",
+    "aka": [
+      "Underhand Seated Cable Row",
+      "Supinated Seated Cable Row",
+      "Reverse Grip Seated Cable Row"
+    ],
+    "bodyPart": "Back",
+    "category": "hypertrophy",
+    "movementPattern": "horizontal_pull",
+    "movementPatternRaw": "Horizontal Pull (Supinated Grip)",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Rhomboids"
+    ],
+    "secondaryMuscles": [
+      "Biceps",
+      "Rear Delts"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Forearms"
+    ],
+    "cnsScore": 4,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 90,
+    "similar": [
+      "Seated Cable Row (V-Bar)",
+      "Seated Cable Row (Wide)",
+      "Underhand Lat Pulldown"
+    ],
+    "derived": true,
+    "movementSlug": "seated-row-horizontal-pull"
+  },
+  {
+    "slug": "seated-cable-row-independent-handles",
+    "name": "Seated Cable Row (Independent Handles)",
+    "aka": [
+      "Dual D-Handle Seated Cable Row",
+      "Seated Cable Row (Fly Handles)",
+      "Dual Cable Seated Row",
+      "Seated Cable Row with Independent Handles"
+    ],
+    "bodyPart": "Back",
+    "category": "hypertrophy",
+    "movementPattern": "horizontal_pull",
+    "movementPatternRaw": "Bilateral Independent Horizontal Pull",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Back",
+    "primaryMuscles": [
+      "Lats",
+      "Rhomboids",
+      "Middle Traps"
+    ],
+    "secondaryMuscles": [
+      "Biceps",
+      "Rear Delts"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Forearms"
+    ],
+    "cnsScore": 3,
+    "recoveryImpact": 2,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 90,
+    "similar": [
+      "Seated Cable Row (Rope)",
+      "Seated Cable Row (V-Bar)",
+      "Seated Cable Row (Neutral Single)"
+    ],
+    "derived": true,
+    "movementSlug": "seated-row-horizontal-pull"
+  },
+  {
+    "slug": "reverse-cable-wrist-curl-straight-bar",
+    "name": "Reverse Cable Wrist Curl (Straight Bar)",
+    "aka": [
+      "Reverse Cable Straight Bar Wrist Curl",
+      "Cable Reverse Wrist Curl",
+      "Cable Forearm Extension (Straight Bar)"
+    ],
+    "bodyPart": "Arms",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Wrist Extension (Cable)",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Forearms",
+    "primaryMuscles": [
+      "Forearms"
+    ],
+    "secondaryMuscles": [],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "Reverse Wrist Curl",
+      "Cable Wrist Curl (Straight Bar)",
+      "Dumbbell Reverse Wrist Curl"
+    ],
+    "derived": true,
+    "movementSlug": "reverse-wrist-curl-isolation"
+  },
+  {
+    "slug": "cable-wrist-curl-straight-bar",
+    "name": "Cable Wrist Curl (Straight Bar)",
+    "aka": [
+      "Cable Straight Bar Wrist Curl",
+      "Cable Forearm Flexion (Straight Bar)",
+      "Straight Bar Cable Wrist Curl"
+    ],
+    "bodyPart": "Arms",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Wrist Flexion (Cable)",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Forearms",
+    "primaryMuscles": [
+      "Forearms"
+    ],
+    "secondaryMuscles": [],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "Wrist Curl (Barbell)",
+      "Reverse Cable Wrist Curl (Straight Bar)",
+      "Dumbbell Wrist Curl"
+    ],
+    "derived": true,
+    "movementSlug": "wrist-curl-isolation"
   }
 ]
