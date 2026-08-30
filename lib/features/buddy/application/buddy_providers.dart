@@ -8,6 +8,7 @@ import '../../workouts/presentation/workouts_providers.dart';
 import '../data/buddy_channel_service.dart';
 import '../data/buddy_remote_gateway.dart';
 import '../data/buddy_slot_store.dart';
+import '../data/unconfigured_buddy_gateway.dart';
 import 'buddy_choreography_sender.dart';
 import 'buddy_session_controller.dart';
 import 'buddy_share_policy.dart';
@@ -21,21 +22,22 @@ final supabaseClientProvider = Provider<SupabaseClient?>((ref) {
   return Supabase.instance.client;
 });
 
+/// Degrades instead of throwing when the build has no backend.
+///
+/// These two used to `throw StateError` from inside `Provider.create`, which
+/// surfaces **synchronously out of `ref.watch` during `build`** — and
+/// `ActiveWorkoutView` watches [buddySessionControllerProvider], so every
+/// credential-less build red-screened on the app's most-used screen. Same
+/// no-op idiom as `authServiceProvider`/`syncBackendServiceProvider`.
 final buddyGatewayProvider = Provider<BuddyGateway>((ref) {
   final client = ref.watch(supabaseClientProvider);
-  if (client == null) {
-    throw StateError('Supabase is not configured in this build');
-  }
+  if (client == null) return const UnconfiguredBuddyGateway();
   return SupabaseBuddyGateway(client: client);
 });
 
 final buddyChannelServiceProvider = Provider<BuddyChannelService>((ref) {
-  final client = ref.watch(supabaseClientProvider);
-  if (client == null) {
-    throw StateError('Supabase is not configured in this build');
-  }
   return BuddyChannelService(
-    client: client,
+    client: ref.watch(supabaseClientProvider),
     gateway: ref.watch(buddyGatewayProvider),
   );
 });
@@ -67,7 +69,12 @@ final buddySessionControllerProvider =
         currentAvatarUrl: null,
       );
 
-      ref.onDispose(controller.dispose);
+      // No `ref.onDispose(controller.dispose)`: StateNotifierProvider already
+      // disposes the notifier it created, and StateNotifier.dispose asserts it
+      // has not run before — so registering it again is a double dispose that
+      // throws on every teardown. It went unnoticed only because
+      // `buddyGatewayProvider` used to throw before this line was ever
+      // reached in any build without Supabase credentials.
       return controller;
     });
 

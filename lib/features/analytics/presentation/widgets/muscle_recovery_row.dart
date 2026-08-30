@@ -53,7 +53,10 @@ class MuscleRecoveryRow extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: recoveryScore / 100,
+                // Out-of-range values make the indicator paint outside its
+                // own box; this is the only progress `value:` in the app that
+                // wasn't clamped.
+                value: (recoveryScore / 100).clamp(0.0, 1.0),
                 minHeight: 8,
                 backgroundColor: AppColors.outlineVariant.withValues(alpha: 0.2),
                 valueColor: AlwaysStoppedAnimation(barColor),

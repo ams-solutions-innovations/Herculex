@@ -11,10 +11,11 @@ import 'tokens/hx_colors.dart';
 /// this class is deleted once the last call site moves over.
 class AppColors {
   /// Kept in sync from `main()` (before the first frame), `ThemeNotifier.set`,
-  /// and `HerculexApp.build` for the `system` case.
+  /// `AppColorThemeNotifier.set`, and `HerculexApp.build` for the `system` case.
   static Brightness brightness = Brightness.dark;
+  static AppColorTheme colorTheme = AppColorTheme.classicBlue;
 
-  static HxColors get _p => HxColors.of(brightness);
+  static HxColors get _p => HxColors.of(brightness, colorTheme);
 
   // ── Light Blue Background Gradient ──
   static LinearGradient get backgroundGradient => _p.backgroundGradient;

@@ -50,11 +50,17 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
               onTap: () async {
                 Navigator.pop(dialogContext);
                 final repo = ref.read(fastingRepositoryProvider);
-                final active = await repo.activeSession();
-                final pastSessions = await repo.watchHistory().first;
+                // Cancel first, and read history with a one-shot query rather
+                // than `watchHistory().first`. Both matter: the scheduled goal
+                // notification used to be cancelled only *after* a stream
+                // subscription had produced its first value, so a slow or
+                // absent emission left the notification armed and the session
+                // never ended — the user taps Save and nothing happens.
                 await ref
                     .read(fastingNotificationSchedulerProvider)
                     .cancelFastingGoal();
+                final active = await repo.activeSession();
+                final pastSessions = await repo.history();
                 await repo.endSession(completed: true);
                 if (active != null) {
                   final duration =

@@ -101,7 +101,7 @@ void main() {
     final active = await repo.activeSession();
     expect(active, isNull);
 
-    final history = await repo.watchHistory().first;
+    final history = await repo.history();
     expect(history, hasLength(1));
     expect(history.first.completed, isTrue);
   });
@@ -138,7 +138,7 @@ void main() {
     final active = await repo.activeSession();
     expect(active, isNull);
 
-    final history = await repo.watchHistory().first;
+    final history = await repo.history();
     expect(history, isEmpty);
   });
 }

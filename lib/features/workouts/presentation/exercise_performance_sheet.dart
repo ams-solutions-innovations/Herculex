@@ -15,12 +15,7 @@ class ExercisePerformanceSheet extends StatelessWidget {
   const ExercisePerformanceSheet({super.key, required this.exercise});
 
   static Future<void> show(BuildContext context, ExerciseCatalogData exercise) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ExercisePerformanceSheet(exercise: exercise),
-    );
+    return context.push('/exercise/${exercise.id}');
   }
 
   @override

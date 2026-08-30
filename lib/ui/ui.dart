@@ -9,4 +9,5 @@ export 'hx_pill.dart';
 export 'hx_screen_shell.dart';
 export 'hx_sheet.dart';
 export 'hx_stat_tile.dart';
+export 'hx_sticky_dismissible.dart';
 export 'hx_top_tabs.dart';

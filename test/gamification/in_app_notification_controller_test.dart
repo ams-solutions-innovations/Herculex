@@ -97,4 +97,37 @@ void main() {
     expect(find.textContaining('18,450 kg'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('InAppNotificationHost renders text without underline when mounted above Navigator', (tester) async {
+    final notifier = InAppNotificationNotifier();
+    final item = InAppNotificationItem.weightPr(
+      exerciseName: 'Bench Press',
+      weightFormatted: '140 kg',
+    );
+
+    // Mounted at builder level outside Scaffold/Navigator
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          inAppNotificationControllerProvider.overrideWith((ref) => notifier),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => InAppNotificationHost(
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: const SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    notifier.show(item);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1200));
+
+    final textWidgets = tester.widgetList<Text>(find.byType(Text));
+    expect(textWidgets, isNotEmpty);
+    for (final tw in textWidgets) {
+      expect(tw.style?.decoration, equals(TextDecoration.none));
+    }
+  });
 }

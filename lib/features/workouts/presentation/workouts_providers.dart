@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../nutrition/data/wear_sync_service.dart';
+import '../../fasting/data/fasting_repository.dart';
 import '../../fasting/domain/fasting_sync_snapshot.dart';
 import '../../fasting/presentation/fasting_providers.dart';
 import '../../../app/providers.dart';
@@ -265,6 +266,10 @@ final recentExerciseIdsProvider = FutureProvider<Set<int>>((ref) async {
   return ref.watch(workoutsRepositoryProvider).getRecentExerciseIds();
 });
 
+final exerciseUsageCountsProvider = FutureProvider<Map<int, int>>((ref) async {
+  return ref.watch(workoutsRepositoryProvider).getExerciseUsageCounts();
+});
+
 final calendarServiceProvider = Provider<CalendarService>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return CalendarService(db);
@@ -384,6 +389,11 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
     final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
     final activeFast = ref.read(activeFastingSessionProvider).asData?.value;
     final wearSyncService = ref.read(wearSyncServiceProvider);
+    final fastingRepo = ref.read(fastingRepositoryProvider);
+
+    // Watcher callbacks shouldn't await before reading everything they need,
+    // but the repo is safe to read.
+    final lastFast = activeFast == null ? (await fastingRepo.history(limit: 1)).firstOrNull : null;
 
     if (activeSession != null) {
       await syncService.pushActiveSessionToWatch(activeSession);
@@ -402,6 +412,7 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
     await wearSyncService.syncFastingSnapshot(
       encodeFastingSnapshot(
         session: activeFast,
+        lastSession: lastFast,
         revision: ref.read(wearSyncRevisionAllocatorProvider).next(),
       ),
     );
@@ -418,11 +429,9 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
       ref.watch(setsForWorkoutExerciseProvider(exercise.id));
     }
 
-    if (!syncService.shouldSkipOutboundSync) {
-      Future.microtask(() {
-        syncService.pushActiveSessionToWatch(activeSession);
-      });
-    }
+    Future.microtask(() {
+      syncService.scheduleOutboundSync(activeSession);
+    });
   } else {
     if (!syncService.shouldSkipOutboundSync &&
         syncService.hasActiveSyncedSession) {

@@ -392,7 +392,7 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _draftExercises.length,
-                    onReorder: (oldIndex, newIndex) {
+                    onReorderItem: (oldIndex, newIndex) {
                       setState(() {
                         if (oldIndex < newIndex) newIndex -= 1;
                         final item = _draftExercises.removeAt(oldIndex);

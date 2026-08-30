@@ -532,6 +532,13 @@ class NutritionRepository {
     await (_db.delete(_db.foodEntries)..where((t) => t.id.equals(id))).go();
   }
 
+  Future<void> restoreEntry(FoodEntryData entry) async {
+    await _db.into(_db.foodEntries).insert(
+          entry.toCompanion(false),
+          mode: InsertMode.insertOrReplace,
+        );
+  }
+
   Future<void> updateEntry({
     required int id,
     double? servings,

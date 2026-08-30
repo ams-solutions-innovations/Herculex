@@ -11,6 +11,7 @@ import '../../../core/units.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../../ui/ui.dart';
 import '../../gamification/presentation/gamification_providers.dart';
 import '../../profile/domain/profile.dart';
 import '../data/workouts_repository.dart';
@@ -24,6 +25,7 @@ import 'accessory_tray_sheet.dart';
 import 'down_set_config_sheet.dart';
 import 'duration_wheel_sheet.dart';
 import 'equipment_variant_sheet.dart';
+import 'exercise_artwork.dart';
 import 'exercise_performance_sheet.dart';
 import 'machine_config_sheet.dart';
 import 'plate_calculator_sheet.dart';
@@ -110,27 +112,47 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      exercise.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    Haptics.selection();
+                    context.push('/exercise/${exercise.id}');
+                  },
+                  child: Row(
+                    children: [
+                      ExerciseArtwork(
+                        exercise: exercise,
+                        size: 32,
+                        radius: 16,
+                        equipmentVariant: workoutExercise.equipmentVariant,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${exercise.primaryMuscle} • ${EquipmentVariantSheet.labelFor(workoutExercise.equipmentVariant ?? exercise.modality)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.secondary,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              exercise.name,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${exercise.primaryMuscle} • ${EquipmentVariantSheet.labelFor(workoutExercise.equipmentVariant ?? exercise.modality)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               IconButton(
@@ -344,7 +366,39 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                           }
                         }
                       },
-                      onDelete: () => repo.deleteSet(rows[i].id),
+                      onDelete: () async {
+                        final setToRestore = rows[i];
+                        final setNumber = i + 1;
+                        final bands =
+                            await repo.bandsForSet(setToRestore.id);
+                        final accessories =
+                            await repo.accessoriesForSet(setToRestore.id);
+                        await repo.deleteSet(setToRestore.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Set $setNumber deleted'),
+                              duration: const Duration(seconds: 3),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                textColor: AppColors.primary,
+                                onPressed: () async {
+                                  await repo.restoreSet(
+                                    setToRestore,
+                                    bands: bands,
+                                    accessories: accessories,
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        }
+                      },
                       // One-tap set-type switch (§15, §26).
                       onTypeTap: () async {
                         final sel = await SetTypeMenu.show(
@@ -354,7 +408,37 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         );
                         if (sel != null) {
                           if (sel.delete) {
-                            await repo.deleteSet(rows[i].id);
+                            final setToRestore = rows[i];
+                            final setNumber = i + 1;
+                            final bands =
+                                await repo.bandsForSet(setToRestore.id);
+                            final accessories =
+                                await repo.accessoriesForSet(setToRestore.id);
+                            await repo.deleteSet(setToRestore.id);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Set $setNumber deleted'),
+                                  duration: const Duration(seconds: 3),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  action: SnackBarAction(
+                                    label: 'Undo',
+                                    textColor: AppColors.primary,
+                                    onPressed: () async {
+                                      await repo.restoreSet(
+                                        setToRestore,
+                                        bands: bands,
+                                        accessories: accessories,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
                           } else if (sel.isWarmup == true) {
                             await repo.updateSet(
                               setId: rows[i].id,
@@ -873,10 +957,10 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               ListTile(
                 leading: const Icon(Icons.insights),
                 title: const Text('Exercise info'),
-                subtitle: const Text('Quick view and full exercise details'),
+                subtitle: const Text('View full exercise details & analytics'),
                 onTap: () {
                   Navigator.pop(context);
-                  ExercisePerformanceSheet.show(context, widget.exercise);
+                  context.push('/exercise/${widget.exercise.id}');
                 },
               ),
               ListTile(
@@ -1512,16 +1596,10 @@ class _SetRowState extends ConsumerState<_SetRow> {
       }
     }
 
-    return Dismissible(
+    return HxStickyDismissible(
       key: ValueKey('set_${widget.set.id}'),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        color: Colors.redAccent.withValues(alpha: 0.85),
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
-      onDismissed: (_) => widget.onDelete(),
+      borderRadius: BorderRadius.circular(8),
+      onDismissed: () => widget.onDelete(),
       child: Container(
         decoration: BoxDecoration(
           color: color,

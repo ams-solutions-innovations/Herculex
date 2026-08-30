@@ -39,7 +39,7 @@ void main() {
       ],
       child: MaterialApp(
         theme: AppTheme.darkTheme,
-        home: child,
+        home: Scaffold(body: child),
       ),
     );
   }
@@ -132,6 +132,10 @@ void main() {
 
   testWidgets('RemainingCaloriesCard renders Set a goal when null',
       (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
     await tester.pumpWidget(
       testApp(
         const RemainingCaloriesCard(),

@@ -10,7 +10,7 @@ import 'package:herculex/data/local/database.dart';
 
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v28.dart' as v28;
-import 'generated_migrations/schema_v29.dart' as v29;
+import 'generated_migrations/schema_v34.dart' as v34;
 
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
@@ -21,9 +21,15 @@ void main() {
     () async {
       await verifier.testWithDataIntegrity(
         oldVersion: 28,
-        newVersion: 29,
+        // Validated against the *current* schema rather than against v29,
+        // even though the v29 step is what this test is about. This pair of
+        // lines moves with every `schemaVersion` bump — see the long note in
+        // `schema_v26_test.dart` for why `Migrator.createTable` makes any
+        // other target wrong. Every assertion below is about the v29 step
+        // and survives the retarget.
+        newVersion: 34,
         createOld: v28.DatabaseAtV28.new,
-        createNew: v29.DatabaseAtV29.new,
+        createNew: v34.DatabaseAtV34.new,
         openTestedDatabase: AppDatabase.forTesting,
         createItems: (batch, oldDb) {
           // `gyms` is untouched by v29; the canary proving the migration is

@@ -19,11 +19,20 @@ class AppTheme {
   /// half of the pairing.
   static const String fontDisplay = 'SpaceGrotesk';
 
-  static ThemeData get lightTheme => _buildTheme(Brightness.light);
-  static ThemeData get darkTheme => _buildTheme(Brightness.dark);
+  static ThemeData get lightTheme => _buildTheme(Brightness.light, AppColorTheme.classicBlue);
+  static ThemeData get darkTheme => _buildTheme(Brightness.dark, AppColorTheme.classicBlue);
 
-  static ThemeData _buildTheme(Brightness brightness) {
-    final p = HxColors.of(brightness);
+  static ThemeData lightThemeWith(AppColorTheme colorTheme) =>
+      _buildTheme(Brightness.light, colorTheme);
+  static ThemeData darkThemeWith(AppColorTheme colorTheme) =>
+      _buildTheme(Brightness.dark, colorTheme);
+  static ThemeData buildTheme(Brightness brightness,
+          [AppColorTheme colorTheme = AppColorTheme.classicBlue]) =>
+      _buildTheme(brightness, colorTheme);
+
+  static ThemeData _buildTheme(Brightness brightness,
+      [AppColorTheme colorTheme = AppColorTheme.classicBlue]) {
+    final p = HxColors.of(brightness, colorTheme);
     final isDark = p.isDark;
 
     final scheme = isDark

@@ -44,6 +44,7 @@ object WearSyncPaths {
     const val MESSAGE_WATCH_SESSION_STARTED = "/herculex_watch_workout_started"
     const val MESSAGE_WATCH_SESSION_UPDATE = "/herculex_watch_session_update"
     const val MESSAGE_WATCH_SESSION_END = "/herculex_watch_session_end"
+    const val MESSAGE_WATCH_SESSION_SAVE_AS_TEMPLATE = "/herculex_watch_session_save_as_template"
     const val MESSAGE_WATCH_SESSION_DISCARD = "/herculex_watch_session_discard"
     const val MESSAGE_FASTING_COMMAND = "/herculex_fasting_command"
     const val MESSAGE_FASTING_ACK = "/herculex_fasting_ack"

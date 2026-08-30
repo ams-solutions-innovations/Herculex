@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/premium_button.dart';
 import '../domain/daily_totals.dart';
 import '../domain/food_insights.dart';
@@ -66,6 +67,10 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
           servings: servings,
           notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
         );
+    // Dismissing the sheet while the insert is in flight otherwise throws
+    // "setState() called after dispose()" — `_addIngredient` right below
+    // already guards the same await.
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -634,22 +639,13 @@ class _IngredientTile extends ConsumerWidget {
     final carbs = (food.carbsPer100g * factor).toStringAsFixed(1);
     final fat = (food.fatPer100g * factor).toStringAsFixed(1);
 
-    return Dismissible(
+    return HxStickyDismissible(
       key: ValueKey('ing_${ingredient.id}'),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.redAccent.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
-      onDismissed: (_) =>
+      borderRadius: BorderRadius.circular(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      onDismissed: () =>
           ref.read(nutritionRepositoryProvider).removeIngredient(ingredient.id),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: AppColors.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
@@ -796,6 +792,8 @@ class _MacroPill extends StatelessWidget {
 }
 
 class _IngredientPickerSheet extends ConsumerStatefulWidget {
+  const _IngredientPickerSheet();
+
   @override
   ConsumerState<_IngredientPickerSheet> createState() =>
       _IngredientPickerSheetState();
@@ -815,83 +813,303 @@ class _IngredientPickerSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final foods = ref.watch(foodSearchProvider(_query));
+    final queryText = (_query ?? '').trim();
+    final hasQuery = queryText.isNotEmpty;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
-      builder: (_, controller) => Column(
+      builder: (_, controller) => Stack(
         children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              controller: _ctrl,
-              onChanged: (v) => setState(() => _query = v),
-              decoration: InputDecoration(
-                hintText: 'Search foods…',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: AppColors.surfaceVariant,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide(color: AppColors.outlineVariant),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide(color: AppColors.outlineVariant),
+          Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('New custom food'),
-                onPressed: () async {
-                  final food = await CustomFoodFormSheet.show(context);
-                  if (food != null && context.mounted) {
-                    Navigator.of(context).pop(food);
-                  }
-                },
-              ),
-            ),
-          ),
-          Expanded(
-            child: foods.when(
-              data: (list) => ListView.separated(
-                controller: controller,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: list.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (_, i) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(list[i].name, style: theme.textTheme.titleSmall),
-                  subtitle: Text(
-                    '${list[i].kcalPer100g.toStringAsFixed(0)} kcal/100g',
-                  ),
-                  onTap: () => Navigator.of(context).pop(list[i]),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Add Ingredient',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Custom Food'),
+                      onPressed: () async {
+                        final food = await CustomFoodFormSheet.show(context);
+                        if (food != null && context.mounted) {
+                          Navigator.of(context).pop(food);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+              const Divider(height: 1),
+              Expanded(
+                child: hasQuery
+                    ? _buildSearchResults(controller, theme, queryText)
+                    : _buildDefaultList(controller, theme),
+              ),
+            ],
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: math.max(
+              24.0,
+              MediaQuery.paddingOf(context).bottom + 14.0,
             ),
+            child: _buildFloatingSearchBar(theme),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchResults(
+    ScrollController controller,
+    ThemeData theme,
+    String query,
+  ) {
+    final searchAsync = ref.watch(foodSearchProvider(query));
+    return searchAsync.when(
+      data: (list) {
+        if (list.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'No foods found matching "$query".',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.secondary),
+              ),
+            ),
+          );
+        }
+        return ListView.separated(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+          itemCount: list.length,
+          separatorBuilder: (_, _) => const Divider(height: 1),
+          itemBuilder: (_, i) => _buildFoodTile(list[i], theme),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+    );
+  }
+
+  Widget _buildDefaultList(ScrollController controller, ThemeData theme) {
+    final recentsAsync = ref.watch(recentlyLoggedFoodsProvider);
+    final allFoodsAsync = ref.watch(foodSearchProvider(null));
+
+    final recents = recentsAsync.asData?.value ?? [];
+    final allFoods = allFoodsAsync.asData?.value ?? [];
+
+    if (recentsAsync.isLoading && allFoodsAsync.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (recents.isEmpty && allFoods.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'No foods found. Use the search bar below or create a custom food.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.secondary),
+          ),
+        ),
+      );
+    }
+
+    final recentIds = recents.map((f) => f.id).toSet();
+    final remainingFoods =
+        allFoods.where((f) => !recentIds.contains(f.id)).toList();
+
+    return ListView(
+      controller: controller,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+      children: [
+        // ── Most Frequent / Recent Foods ──
+        if (recents.isNotEmpty) ...[
+          _buildSectionHeader(
+            icon: Icons.history_rounded,
+            title: 'Frequently Used',
+            subtitle: 'Most common & recent',
+            iconColor: AppColors.primary,
+            theme: theme,
+          ),
+          for (final f in recents) ...[
+            _buildFoodTile(f, theme),
+            const Divider(height: 1),
+          ],
+          const SizedBox(height: 8),
+        ],
+
+        // ── All Foods ──
+        if (remainingFoods.isNotEmpty) ...[
+          _buildSectionHeader(
+            icon: Icons.restaurant_menu,
+            title: 'All Foods',
+            subtitle: 'Catalogue',
+            iconColor: AppColors.secondary,
+            theme: theme,
+          ),
+          for (final f in remainingFoods) ...[
+            _buildFoodTile(f, theme),
+            const Divider(height: 1),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Color? iconColor,
+    required ThemeData theme,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 10, 2, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: iconColor ?? AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.1,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(width: 6),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFoodTile(FoodData food, ThemeData theme) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        food.name,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        '${food.kcalPer100g.toStringAsFixed(0)} kcal/100g · P: ${food.proteinPer100g.toStringAsFixed(1)}g · C: ${food.carbsPer100g.toStringAsFixed(1)}g · F: ${food.fatPer100g.toStringAsFixed(1)}g',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: AppColors.secondary,
+        ),
+      ),
+      trailing: Icon(
+        Icons.add_circle_outline,
+        color: AppColors.primary,
+      ),
+      onTap: () => Navigator.of(context).pop(food),
+    );
+  }
+
+  Widget _buildFloatingSearchBar(ThemeData theme) {
+    final hasQuery = _ctrl.text.isNotEmpty;
+    final surfaceColor = Color.alphaBlend(
+      AppColors.primary.withValues(alpha: 0.12),
+      const Color(0xFF1B2433),
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.40),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.15),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+            spreadRadius: 0.5,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.50),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _ctrl,
+        onChanged: (v) => setState(() => _query = v),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Search for a food or ingredient',
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.secondary.withValues(alpha: 0.85),
+          ),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            size: 22,
+            color: AppColors.primary,
+          ),
+          suffixIcon: hasQuery
+              ? IconButton(
+                  icon: const Icon(Icons.close, size: 20, color: Colors.white70),
+                  onPressed: () {
+                    _ctrl.clear();
+                    setState(() => _query = null);
+                  },
+                  tooltip: 'Clear',
+                )
+              : null,
+          filled: true,
+          fillColor: Colors.transparent,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
       ),
     );
   }

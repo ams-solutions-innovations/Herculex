@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../theme/tokens/tokens.dart';
 import '../../../../ui/ui.dart';
-/// Dashboard card surface. Now delegates to the shared [HxCard] primitive —
-/// this helper stays only so the ~14 call sites below read unchanged.
+import '../../domain/dashboard_config.dart';
+import '../dashboard_providers.dart';
+
+/// Dashboard card surface. Now delegates to the shared [HxCard] primitive,
+/// respecting the user-configured [DashboardCardShape].
 Widget dashboardCard({
   required Widget child,
   VoidCallback? onTap,
@@ -12,22 +16,27 @@ Widget dashboardCard({
   EdgeInsets? padding,
   Gradient? gradient,
 }) =>
-    HxCard(
-      onTap: onTap,
-      accent: accent,
-      radius: radius,
-      padding: padding ?? const EdgeInsets.all(HxSpace.x5),
-      gradient: gradient,
-      child: child,
+    Consumer(
+      builder: (context, ref, _) {
+        final shape = ref.watch(dashboardCardShapeProvider);
+        return HxCard(
+          onTap: onTap,
+          accent: accent,
+          radius: radius ?? shape.cardRadius,
+          padding: padding ?? const EdgeInsets.all(HxSpace.x5),
+          gradient: gradient,
+          child: child,
+        );
+      },
     );
 
-/// Fully-rounded "pill" surface used by the compact single-line dashboard
-/// widgets (CNS Load, Total Volume …). [radius] animates so a pill can open
-/// into a card without the shape jumping.
-class DashboardPill extends StatelessWidget {
+/// Dashboard "pill" surface used by compact single-line and mini widgets
+/// (CNS Load, Total Volume, Streaks). Adapts to the user-selected [DashboardCardShape]
+/// so all widgets on the dashboard share cohesive geometry.
+class DashboardPill extends ConsumerWidget {
   final Widget child;
   final VoidCallback? onTap;
-  final double radius;
+  final double? radius;
   final EdgeInsets padding;
   final Color? color;
   final Gradient? gradient;
@@ -36,15 +45,18 @@ class DashboardPill extends StatelessWidget {
     super.key,
     required this.child,
     this.onTap,
-    this.radius = 999,
+    this.radius,
     this.padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
     this.color,
     this.gradient,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final hx = context.hx;
+    final shape = ref.watch(dashboardCardShapeProvider);
+    final effectiveRadius = radius ?? shape.pillRadius;
+
     final pillGradient = gradient ??
         (color != null
             ? LinearGradient(
@@ -64,7 +76,7 @@ class DashboardPill extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: pillGradient,
         color: pillGradient == null ? hx.surfaceContainerLowest : null,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(effectiveRadius),
         border: Border.all(
           color: color?.withValues(alpha: 0.3) ??
               hx.outlineVariant.withValues(alpha: 0.3),
@@ -75,6 +87,7 @@ class DashboardPill extends StatelessWidget {
         type: MaterialType.transparency,
         child: InkWell(
           onTap: onTap,
+          borderRadius: BorderRadius.circular(effectiveRadius),
           child: Padding(padding: padding, child: child),
         ),
       ),

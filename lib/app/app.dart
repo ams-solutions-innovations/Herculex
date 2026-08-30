@@ -633,6 +633,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     }
 
     final themeMode = ref.watch(themeModeProvider);
+    final colorTheme = ref.watch(appColorThemeProvider);
 
     final platformBrightness = MediaQuery.platformBrightnessOf(context);
     final effectiveBrightness = switch (themeMode) {
@@ -642,6 +643,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     };
 
     AppColors.brightness = effectiveBrightness;
+    AppColors.colorTheme = colorTheme;
 
     final isDark = effectiveBrightness == Brightness.dark;
     SystemChrome.setSystemUIOverlayStyle(
@@ -658,12 +660,12 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
     return MaterialApp.router(
       key: ValueKey(
-        '${themeMode.name}_${effectiveBrightness.name}',
+        '${themeMode.name}_${effectiveBrightness.name}_${colorTheme.name}',
       ), // Rebuild widget tree when theme changes
       title: 'Herculex',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.buildTheme(Brightness.light, colorTheme),
+      darkTheme: AppTheme.buildTheme(Brightness.dark, colorTheme),
       themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {

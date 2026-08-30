@@ -1,5 +1,6 @@
 // lib/features/recovery/domain/training_suggestion.dart
 import '../../analytics/domain/muscle_recovery_v3.dart';
+import '../../analytics/domain/muscle_volume_trend.dart';
 import 'deload_urgency.dart';
 import 'joint_model.dart';
 import 'joint_stress_advisor.dart';
@@ -78,6 +79,7 @@ abstract final class TrainingSuggestionEngine {
     required List<MuscleGroupRecovery> recovery,
     required List<MuscleDeloadSignal> deloadSignals,
     required List<JointStressResult> jointStress,
+    required Map<String, MuscleVolumeTrend> volumeTrends,
   }) {
     final deloadByMuscle = {for (final s in deloadSignals) s.muscle: s.urgency};
 
@@ -94,20 +96,36 @@ abstract final class TrainingSuggestionEngine {
       if (category != null) byCategory[category]!.add(r);
     }
 
-    final categoryScores = {
-      for (final c in MuscleCategory.values)
-        c: byCategory[c]!.isEmpty
-            ? 0.0
-            : byCategory[c]!.fold(0.0, (s, r) => s + r.recoveryScore) / byCategory[c]!.length,
-    };
+    final totalWeeklyVolume = volumeTrends.values.fold(0.0, (s, t) => s + t.averageWeeklySets);
+    final isEstablishedUser = totalWeeklyVolume > 10.0;
 
-    bool usable(MuscleGroupRecovery r) =>
-        deloadByMuscle[r.muscle] != DeloadUrgency.recommended && !jointExcluded.contains(r.muscle);
+    bool usable(MuscleGroupRecovery r) {
+      if (deloadByMuscle[r.muscle] == DeloadUrgency.recommended) return false;
+      if (jointExcluded.contains(r.muscle)) return false;
+
+      if (isEstablishedUser) {
+        final trend = volumeTrends[r.muscle];
+        // If the user basically never trains this muscle, don't recommend it.
+        // This prevents perpetually-fresh but ignored muscles (like Abs/Neck)
+        // from dominating the suggestions.
+        if (trend != null && trend.averageWeeklySets < 0.2) return false;
+      }
+      return true;
+    }
+
+    final categoryScores = <MuscleCategory, double>{
+      for (final c in MuscleCategory.values)
+        c: () {
+          final usables = byCategory[c]!.where(usable).toList();
+          if (usables.isEmpty) return 0.0;
+          return usables.map((r) => r.recoveryScore).reduce((a, b) => a < b ? a : b) as double;
+        }(),
+    };
 
     final ranked = MuscleCategory.values.toList()
       ..sort((a, b) => categoryScores[b]!.compareTo(categoryScores[a]!));
     final best = ranked.firstWhere(
-      (c) => byCategory[c]!.any(usable),
+      (c) => categoryScores[c]! > 0.0,
       orElse: () => ranked.first,
     );
 

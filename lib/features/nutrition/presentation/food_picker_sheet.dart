@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -63,13 +64,12 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
   }
 
   Future<void> _logFood(FoodData f) async {
-    final logged = await LogEntrySheet.forFood(
+    await LogEntrySheet.forFood(
       context,
       food: f,
       date: widget.date,
       initialMealKey: _activeMealKey,
     );
-    if (logged == true && mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _quickLogFood(FoodData f) async {
@@ -85,17 +85,15 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
       portionAmount: amount,
       portionUnit: unit,
     );
-    if (mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _logRecipe(RecipeData r) async {
-    final logged = await LogEntrySheet.forRecipe(
+    await LogEntrySheet.forRecipe(
       context,
       recipe: r,
       date: widget.date,
       initialMealKey: _activeMealKey,
     );
-    if (logged == true && mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _quickLogRecipe(RecipeData r) async {
@@ -107,7 +105,6 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
       recipeId: r.id,
       servings: 1.0,
     );
-    if (mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _scan() async {
@@ -363,178 +360,235 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
-      builder: (_, controller) => Container(
-        decoration: BoxDecoration(
-          color: theme.bottomSheetTheme.backgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // ── Header with Meal Dropdown Selector ───────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.of(context).pop(),
+      builder: (_, controller) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.bottomSheetTheme.backgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                InkWell(
-                  onTap: () => _showMealSelector(context, slots),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          activeMealLabel,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+              ),
+              const SizedBox(height: 8),
+
+              // ── Header with Meal Dropdown Selector ───────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  InkWell(
+                    onTap: () => _showMealSelector(context, slots),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            activeMealLabel,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48), // Balance spacing
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // ── Quick Action Cards: Rambler AI & Skeniraj kodo ─────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _QuickActionCard(
+                        icon: Icons.mic_rounded,
+                        title: 'Rambler',
+                        subtitle: 'Voice & Text AI',
+                        color: const Color(0xFF64B5F6),
+                        onTap: _openRambler,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _QuickActionCard(
+                        icon: Icons.qr_code_scanner_rounded,
+                        title: 'Skeniraj kodo',
+                        subtitle: 'Črtna koda & kamera',
+                        color: AppColors.primary,
+                        onTap: _scan,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // ── Category Tabs (All, My Meals, My Recipes, My Foods) ─────────
+              TabBar(
+                controller: _tabs,
+                isScrollable: false,
+                labelColor: AppColors.primary,
+                unselectedLabelColor: AppColors.secondary,
+                indicatorColor: AppColors.primary,
+                indicatorWeight: 2.5,
+                dividerColor: Colors.transparent,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                tabs: const [
+                  Tab(text: 'All'),
+                  Tab(text: 'My Meals'),
+                  Tab(text: 'My Recipes'),
+                  Tab(text: 'My Foods'),
+                ],
+              ),
+              Divider(height: 1, color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+
+              // ── Tab Views + Floating Search Bar ────────────────────────────
+              Expanded(
+                child: Stack(
+                  children: [
+                    TabBarView(
+                      controller: _tabs,
+                      children: [
+                        _buildAllTab(controller),
+                        _buildMyMealsTab(controller),
+                        _buildMyRecipesTab(controller),
+                        _buildMyFoodsTab(controller),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(width: 48), // Balance spacing
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // ── Search Input Bar ─────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _queryCtrl,
-                onChanged: (v) => setState(() => _query = v),
-                decoration: InputDecoration(
-                  hintText: 'Search for a food, recipe, or meal',
-                  hintStyle: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
-                  prefixIcon: const Icon(Icons.search, size: 22),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.mic_none_rounded,
-                          size: 20,
-                          color: Color(0xFF64B5F6),
-                        ),
-                        onPressed: _openRambler,
-                        tooltip: 'Rambler AI (Voice & Text)',
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: math.max(
+                        24.0,
+                        MediaQuery.paddingOf(context).bottom + 14.0,
                       ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.camera_alt_outlined,
-                          size: 20,
-                          color: AppColors.primary,
-                        ),
-                        onPressed: _takePhotoAndAnalyze,
-                        tooltip: 'Photo food with AI',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.qr_code_scanner, size: 20),
-                        onPressed: _scan,
-                        tooltip: 'Scan barcode',
-                      ),
-                    ],
-                  ),
-                  filled: true,
-                  fillColor: AppColors.surfaceContainer,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28),
-                    borderSide: BorderSide(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                      child: _buildFloatingSearchBar(theme),
                     ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28),
-                    borderSide: BorderSide(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            // ── Quick Action Cards: Rambler AI & Skeniraj kodo ─────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _QuickActionCard(
-                      icon: Icons.mic_rounded,
-                      title: 'Rambler',
-                      subtitle: 'Voice & Text AI',
-                      color: const Color(0xFF64B5F6),
-                      onTap: _openRambler,
+  Widget _buildFloatingSearchBar(ThemeData theme) {
+    final hasQuery = _queryCtrl.text.isNotEmpty;
+    final surfaceColor = Color.alphaBlend(
+      AppColors.primary.withValues(alpha: 0.12),
+      const Color(0xFF1B2433),
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.40),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.15),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+            spreadRadius: 0.5,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.50),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _queryCtrl,
+        onChanged: (v) => setState(() => _query = v),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Search for a food, recipe, or meal',
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.secondary.withValues(alpha: 0.85),
+          ),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            size: 22,
+            color: AppColors.primary,
+          ),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasQuery)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20, color: Colors.white70),
+                  onPressed: () {
+                    _queryCtrl.clear();
+                    setState(() => _query = null);
+                  },
+                  tooltip: 'Clear',
+                ),
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _QuickActionCard(
-                      icon: Icons.qr_code_scanner_rounded,
-                      title: 'Skeniraj kodo',
-                      subtitle: 'Črtna koda & kamera',
+                    child: Icon(
+                      Icons.camera_alt_outlined,
+                      size: 18,
                       color: AppColors.primary,
-                      onTap: _scan,
                     ),
                   ),
-                ],
+                  onPressed: _takePhotoAndAnalyze,
+                  tooltip: 'Photo food with AI',
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-
-            // ── Category Tabs (All, My Meals, My Recipes, My Foods) ─────────
-            TabBar(
-              controller: _tabs,
-              isScrollable: false,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.secondary,
-              indicatorColor: AppColors.primary,
-              indicatorWeight: 2.5,
-              dividerColor: Colors.transparent,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-              tabs: const [
-                Tab(text: 'All'),
-                Tab(text: 'My Meals'),
-                Tab(text: 'My Recipes'),
-                Tab(text: 'My Foods'),
-              ],
-            ),
-            Divider(height: 1, color: AppColors.outlineVariant.withValues(alpha: 0.3)),
-
-            // ── Tab Views ────────────────────────────────────────────────────
-            Expanded(
-              child: TabBarView(
-                controller: _tabs,
-                children: [
-                  _buildAllTab(controller),
-                  _buildMyMealsTab(controller),
-                  _buildMyRecipesTab(controller),
-                  _buildMyFoodsTab(controller),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
+          filled: true,
+          fillColor: Colors.transparent,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(28),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
     );
@@ -547,6 +601,14 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
     // 1. If searching, show standard search results from catalogue
     if (queryText.isNotEmpty) {
       final asyncFoods = ref.watch(foodSearchProvider(queryText));
+      final currentHour = ref.watch(clockProvider).now().hour;
+      final asyncSuggested = ref.watch(
+        suggestedFoodsProvider(
+          FoodSuggestionParams(hour: currentHour, mealKey: _activeMealKey),
+        ),
+      );
+      final asyncRecent = ref.watch(recentlyLoggedFoodsProvider);
+
       return asyncFoods.when(
         data: (list) {
           if (list.isEmpty) {
@@ -585,14 +647,38 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               ),
             );
           }
+
+          final suggestedIds = asyncSuggested.valueOrNull?.map((e) => e.id).toSet() ?? {};
+          final recentList = asyncRecent.valueOrNull ?? [];
+          final recentIds = recentList.map((e) => e.id).toList();
+
+          final sortedList = List<FoodData>.from(list);
+          sortedList.sort((a, b) {
+            final aSuggested = suggestedIds.contains(a.id);
+            final bSuggested = suggestedIds.contains(b.id);
+            if (aSuggested && !bSuggested) return -1;
+            if (!aSuggested && bSuggested) return 1;
+
+            final aRecentIdx = recentIds.indexOf(a.id);
+            final bRecentIdx = recentIds.indexOf(b.id);
+            final aIsRecent = aRecentIdx != -1;
+            final bIsRecent = bRecentIdx != -1;
+
+            if (aIsRecent && !bIsRecent) return -1;
+            if (!aIsRecent && bIsRecent) return 1;
+            if (aIsRecent && bIsRecent) return aRecentIdx.compareTo(bRecentIdx);
+
+            return 0;
+          });
+
           return ListView.builder(
             controller: controller,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            itemCount: list.length,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
+            itemCount: sortedList.length,
             itemBuilder: (_, i) => _FoodTile(
-              food: list[i],
-              onTap: () => _logFood(list[i]),
-              onQuickAdd: () => _quickLogFood(list[i]),
+              food: sortedList[i],
+              onTap: () => _logFood(sortedList[i]),
+              onQuickAdd: () => _quickLogFood(sortedList[i]),
             ),
           );
         },
@@ -668,7 +754,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
 
       return ListView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
         children: [
           _buildSectionHeader(
             icon: Icons.restaurant_menu,
@@ -692,7 +778,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
 
     return ListView(
       controller: controller,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
       children: [
         // ── Suggested Section ──
         if (suggestedFoods.isNotEmpty) ...[
@@ -768,7 +854,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
   Widget _buildMyMealsTab(ScrollController controller) {
     return ListView(
       controller: controller,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 104),
       children: [
         // Top Action Cards
         Row(
@@ -845,7 +931,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
     final async = ref.watch(recipesProvider);
     return ListView(
       controller: controller,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 104),
       children: [
         // Top Action Cards
         Row(
@@ -942,7 +1028,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
     final asyncFoods = ref.watch(customFoodsProvider(null));
     return ListView(
       controller: controller,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 104),
       children: [
         Row(
           children: [
@@ -1121,19 +1207,8 @@ class _FoodTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // Circular Quick Add (+) Button
-              GestureDetector(
-                onTap: onQuickAdd,
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.add, color: AppColors.primary, size: 20),
-                ),
-              ),
+              // Animated Quick Add (+) Button
+              _QuickAddButton(onTap: onQuickAdd),
             ],
           ),
         ),
@@ -1214,20 +1289,126 @@ class _RecipeTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // Circular Quick Add (+) Button
-              GestureDetector(
-                onTap: onQuickAdd,
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.add, color: AppColors.primary, size: 20),
-                ),
-              ),
+              // Animated Quick Add (+) Button
+              _QuickAddButton(onTap: onQuickAdd),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Interactive Quick Add (+) Animated Feedback Button ──────────────────────
+class _QuickAddButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _QuickAddButton({required this.onTap});
+
+  @override
+  State<_QuickAddButton> createState() => _QuickAddButtonState();
+}
+
+class _QuickAddButtonState extends State<_QuickAddButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animCtrl;
+  late final Animation<double> _scaleAnim;
+  bool _isSuccess = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _scaleAnim = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.75)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.75, end: 1.25)
+            .chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 45,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.25, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 25,
+      ),
+    ]).animate(_animCtrl);
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    widget.onTap();
+    setState(() => _isSuccess = true);
+    _animCtrl.forward(from: 0.0);
+
+    Future.delayed(const Duration(milliseconds: 1100), () {
+      if (mounted) {
+        setState(() => _isSuccess = false);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedBuilder(
+        animation: _scaleAnim,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnim.value,
+          child: child,
+        ),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeInOut,
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: _isSuccess
+                ? AppColors.primary
+                : AppColors.primary.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+            boxShadow: _isSuccess
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.45),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, animation) => ScaleTransition(
+              scale: animation,
+              child: child,
+            ),
+            child: _isSuccess
+                ? const Icon(
+                    Icons.check_rounded,
+                    key: ValueKey('check'),
+                    color: Colors.white,
+                    size: 20,
+                  )
+                : Icon(
+                    Icons.add_rounded,
+                    key: const ValueKey('add'),
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
           ),
         ),
       ),

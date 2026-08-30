@@ -432,20 +432,19 @@ class SetTypeMenu extends StatelessWidget {
     SetType.forTime => 'FT',
   };
 
+  static final List<SetTypeInfo> _basicItems = SetTypeInfo.all
+      .where((i) => i.category == SetTypeCategory.basic)
+      .toList();
+  static final List<SetTypeInfo> _hypertrophyItems = SetTypeInfo.all
+      .where((i) => i.category == SetTypeCategory.hypertrophy)
+      .toList();
+  static final List<SetTypeInfo> _timedItems = SetTypeInfo.all
+      .where((i) => i.category == SetTypeCategory.timed)
+      .toList();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    // Group items by category
-    final basicItems = SetTypeInfo.all
-        .where((i) => i.category == SetTypeCategory.basic)
-        .toList();
-    final hypertrophyItems = SetTypeInfo.all
-        .where((i) => i.category == SetTypeCategory.hypertrophy)
-        .toList();
-    final timedItems = SetTypeInfo.all
-        .where((i) => i.category == SetTypeCategory.timed)
-        .toList();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
@@ -565,7 +564,7 @@ class SetTypeMenu extends StatelessWidget {
                   // Category 1: Basic & Warmup
                   _CategoryHeader(category: SetTypeCategory.basic),
                   const SizedBox(height: 6),
-                  for (final item in basicItems)
+                  for (final item in _basicItems)
                     _SquircleSetTypeTile(
                       info: item,
                       isSelected: item.isWarmup
@@ -586,7 +585,7 @@ class SetTypeMenu extends StatelessWidget {
                   // Category 2: Hypertrophy & Intensity
                   _CategoryHeader(category: SetTypeCategory.hypertrophy),
                   const SizedBox(height: 6),
-                  for (final item in hypertrophyItems)
+                  for (final item in _hypertrophyItems)
                     _SquircleSetTypeTile(
                       info: item,
                       isSelected: !isWarmup && item.type == current,
@@ -599,7 +598,7 @@ class SetTypeMenu extends StatelessWidget {
                   // Category 3: Timed & Functional
                   _CategoryHeader(category: SetTypeCategory.timed),
                   const SizedBox(height: 6),
-                  for (final item in timedItems)
+                  for (final item in _timedItems)
                     _SquircleSetTypeTile(
                       info: item,
                       isSelected: !isWarmup && item.type == current,

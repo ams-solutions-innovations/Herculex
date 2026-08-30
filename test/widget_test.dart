@@ -21,5 +21,13 @@ void main() {
 
     // On-device only: there is no landing/login screen — onboarding is first.
     expect(find.text('What is your primary goal?'), findsOneWidget);
+
+    // Booting the real app starts `NotificationSyncService`, whose pull is
+    // wrapped in `.timeout(const Duration(seconds: 2))`
+    // (`notification_sync_service.dart:88`). That timeout is a live Timer that
+    // outlives `pumpAndSettle`, and the binding asserts on any timer still
+    // pending at teardown. Let it elapse rather than leaving the suite to
+    // fail on cleanup.
+    await tester.pump(const Duration(seconds: 3));
   });
 }

@@ -41,6 +41,19 @@ class DashboardView extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: editMode
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 76.0),
+              child: _DoneEditingButton(
+                onTap: () {
+                  Haptics.selection();
+                  ref.read(dashboardEditModeProvider.notifier).state =
+                      false;
+                },
+              ),
+            )
+          : null,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
@@ -73,15 +86,7 @@ class DashboardView extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  if (editMode)
-                    _DoneEditingButton(
-                      onTap: () {
-                        Haptics.selection();
-                        ref.read(dashboardEditModeProvider.notifier).state =
-                            false;
-                      },
-                    )
-                  else ...[
+                  if (!editMode) ...[
                     IconButton(
                       icon: const Icon(Icons.tune, size: 20),
                       tooltip: 'Customize dashboard',
@@ -136,7 +141,7 @@ class DashboardView extends ConsumerWidget {
                                   types: validTypes,
                                   theme: theme,
                                   renderWidget: (type) =>
-                                      _renderWidget(type, theme, ref, context),
+                                      _renderWidget(type, theme),
                                   onLongPress: enterEditMode,
                                 )
                               : GestureDetector(
@@ -144,8 +149,6 @@ class DashboardView extends ConsumerWidget {
                                   child: _renderWidget(
                                     validTypes.first,
                                     theme,
-                                    ref,
-                                    context,
                                   ),
                                 );
 
@@ -264,18 +267,12 @@ class DashboardView extends ConsumerWidget {
   }
 
   /// Maps a dashboard widget type to its renderer.
-  Widget _renderWidget(DashboardWidgetType type, ThemeData theme, WidgetRef ref,
-      BuildContext context) {
+  Widget _renderWidget(DashboardWidgetType type, ThemeData theme) {
     switch (type) {
       case DashboardWidgetType.fastingTimer:
-        return _buildFastingWidget(theme, ref, context);
+        return const FastingTimerWidget();
       case DashboardWidgetType.macros:
-        return LiveMacrosGrid(
-          totals: ref.watch(dailyTotalsProvider(_today())).asData?.value ??
-              DailyTotals.empty,
-          targets: ref.watch(effectiveTargetsProvider(_today())).asData?.value ??
-              ref.watch(baselineTargetsProvider),
-        );
+        return const _LiveMacrosGridWrapper();
       case DashboardWidgetType.calorieTrends:
         return const CalorieTrendPreviewCard();
       case DashboardWidgetType.bodyweightTrends:
@@ -294,8 +291,6 @@ class DashboardView extends ConsumerWidget {
         return const WeeklyVolumeMiniCard();
       case DashboardWidgetType.latestPrs:
         return const LatestPrsCard();
-      case DashboardWidgetType.bodyweight:
-        return const BodyweightMiniCard();
       case DashboardWidgetType.cycle:
         return const CycleFocusCard();
       case DashboardWidgetType.quickScan:
@@ -334,9 +329,31 @@ class DashboardView extends ConsumerWidget {
     if (raw.isEmpty) return '';
     return raw.split(RegExp(r'\s+')).first;
   }
+}
 
+class _LiveMacrosGridWrapper extends ConsumerWidget {
+  const _LiveMacrosGridWrapper();
 
-  Widget _buildFastingWidget(ThemeData theme, WidgetRef ref, BuildContext context) {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final n = DateTime.now();
+    final today = DateTime(n.year, n.month, n.day);
+    
+    return LiveMacrosGrid(
+      totals: ref.watch(dailyTotalsProvider(today)).asData?.value ??
+          DailyTotals.empty,
+      targets: ref.watch(effectiveTargetsProvider(today)).asData?.value ??
+          ref.watch(baselineTargetsProvider),
+    );
+  }
+}
+
+class FastingTimerWidget extends ConsumerWidget {
+  const FastingTimerWidget({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final activeAsync = ref.watch(activeFastingSessionProvider);
     // Domain color-coding (UI-rework P1): fasting reads teal everywhere so the
     // section is recognisable at a glance.
@@ -573,11 +590,6 @@ class DashboardView extends ConsumerWidget {
     );
   }
 
-  DateTime _today() {
-    final n = DateTime.now();
-    return DateTime(n.year, n.month, n.day);
-  }
-
 }
 
 /// Circular gradient avatar in the dashboard header. Replaces the Profile nav
@@ -646,9 +658,9 @@ class _StackedDashboardWidgetState extends State<_StackedDashboardWidget> {
 
   double _heightForKind(DashboardWidgetKind kind) {
     return switch (kind) {
-      DashboardWidgetKind.card => 146.0,
-      DashboardWidgetKind.large => 280.0,
-      DashboardWidgetKind.pill => 105.0,
+      DashboardWidgetKind.card => 156.0,
+      DashboardWidgetKind.large => 290.0,
+      DashboardWidgetKind.pill => 110.0,
     };
   }
 
@@ -702,8 +714,8 @@ class _StackedDashboardWidgetState extends State<_StackedDashboardWidget> {
   }
 }
 
-/// Filled "Done" pill shown in the header while the dashboard is in edit
-/// mode — the exit gesture, mirroring iOS Home Screen edit mode.
+/// Floating "Done" pill shown in the bottom right corner while the dashboard is
+/// in edit mode — the exit gesture, mirroring iOS Home Screen edit mode.
 class _DoneEditingButton extends StatelessWidget {
   const _DoneEditingButton({required this.onTap});
   final VoidCallback onTap;
@@ -714,17 +726,36 @@ class _DoneEditingButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
           color: hx.primary,
           borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: hx.primary.withValues(alpha: 0.4),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Text(
-          'Done',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.check_rounded,
+              color: hx.onPrimary,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Done',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: hx.onPrimary,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+            ),
+          ],
         ),
       ),
     );
@@ -732,8 +763,8 @@ class _DoneEditingButton extends StatelessWidget {
 }
 
 /// Wraps a dashboard tile with One UI / iOS-style in-place edit controls: a
-/// remove button (top-left) and, for widgets that support it, a resize
-/// handle (bottom-right) that snaps the tile between half and full width.
+/// remove button (top-left) and, for widgets that support it, an intuitive
+/// size toggle pill (bottom-right) that flips the tile between half and full width.
 class _EditableDashboardTile extends ConsumerWidget {
   const _EditableDashboardTile({
     required this.slotIndex,
@@ -750,6 +781,7 @@ class _EditableDashboardTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hx = context.hx;
+    final shape = ref.watch(dashboardCardShapeProvider);
     final notifier = ref.read(dashboardConfigProvider.notifier);
     final canResize = !slot.isStack && slot.type.resizable;
 
@@ -757,48 +789,51 @@ class _EditableDashboardTile extends ConsumerWidget {
       duration: HxMotion.base,
       curve: HxMotion.emphasized,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(shape.cardRadius),
         border: editMode
             ? Border.all(
-                color: hx.primary.withValues(alpha: 0.5),
+                color: hx.primary.withValues(alpha: 0.6),
                 width: 1.5,
               )
             : null,
       ),
-      child: AnimatedSize(
-        duration: HxMotion.slow,
-        curve: HxMotion.emphasized,
-        alignment: Alignment.topCenter,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            editMode ? IgnorePointer(child: child) : child,
-            if (editMode) ...[
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedSwitcher(
+            duration: HxMotion.base,
+            switchInCurve: HxMotion.emphasized,
+            switchOutCurve: Curves.easeIn,
+            child: KeyedSubtree(
+              key: ValueKey('${slot.id}_${slot.effectiveSize}'),
+              child: editMode ? IgnorePointer(child: child) : child,
+            ),
+          ),
+          if (editMode) ...[
+            Positioned(
+              top: -8,
+              left: -8,
+              child: _RemoveButton(
+                onTap: () {
+                  Haptics.selection();
+                  notifier.toggleSlot(slotIndex, false);
+                },
+              ),
+            ),
+            if (canResize)
               Positioned(
-                top: -8,
-                left: -8,
-                child: _RemoveButton(
-                  onTap: () {
+                bottom: -8,
+                right: -8,
+                child: _ResizeButton(
+                  size: slot.effectiveSize,
+                  onFlip: (next) {
                     Haptics.selection();
-                    notifier.toggleSlot(slotIndex, false);
+                    notifier.resize(slotIndex, next);
                   },
                 ),
               ),
-              if (canResize)
-                Positioned(
-                  bottom: -8,
-                  right: -8,
-                  child: _ResizeHandle(
-                    size: slot.effectiveSize,
-                    onFlip: (next) {
-                      Haptics.selection();
-                      notifier.resize(slotIndex, next);
-                    },
-                  ),
-                ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -836,67 +871,60 @@ class _RemoveButton extends StatelessWidget {
   }
 }
 
-/// Drag-to-resize handle. Supports both tapping to toggle size and horizontal dragging.
-class _ResizeHandle extends StatefulWidget {
-  const _ResizeHandle({required this.size, required this.onFlip});
+/// Intuitive size-toggle button in dashboard edit mode: clearly communicates
+/// current footprint and provides a comfortable tap target with tactile feedback.
+class _ResizeButton extends StatelessWidget {
+  const _ResizeButton({required this.size, required this.onFlip});
 
   final DashboardWidgetSize size;
   final ValueChanged<DashboardWidgetSize> onFlip;
 
   @override
-  State<_ResizeHandle> createState() => _ResizeHandleState();
-}
-
-class _ResizeHandleState extends State<_ResizeHandle> {
-  double _dragAccum = 0;
-
-  void _flip() {
-    widget.onFlip(
-      widget.size == DashboardWidgetSize.half
-          ? DashboardWidgetSize.full
-          : DashboardWidgetSize.half,
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
     final hx = context.hx;
+    final isHalf = size == DashboardWidgetSize.half;
+
     return GestureDetector(
-      onTap: _flip,
-      onPanUpdate: (details) {
-        _dragAccum += details.delta.dx;
-        if (_dragAccum.abs() > 36) {
-          _flip();
-          _dragAccum = 0;
-        }
+      onTap: () {
+        Haptics.selection();
+        onFlip(isHalf ? DashboardWidgetSize.full : DashboardWidgetSize.half);
       },
-      onPanEnd: (_) => _dragAccum = 0,
       child: Container(
-        width: 28,
-        height: 28,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: hx.primary,
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: Theme.of(context).scaffoldBackgroundColor,
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 4,
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Transform.rotate(
-          angle: 1.5708, // 90°: horizontal drag maps to a horizontal glyph
-          child: Icon(
-            widget.size == DashboardWidgetSize.half
-                ? Icons.unfold_more
-                : Icons.unfold_less,
-            size: 16,
-            color: Colors.white,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isHalf ? Icons.open_in_full_rounded : Icons.close_fullscreen_rounded,
+              size: 12,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              isHalf ? 'Full' : '1/2',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -8,6 +8,7 @@ import '../../../core/units.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../nutrition/presentation/goals_providers.dart';
 import '../../workouts/presentation/workouts_providers.dart';
 
 import 'body_fat_ai_dialog.dart';
@@ -78,29 +79,40 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
               children: [
                 Expanded(
                   child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.show_chart,
-                          size: 64,
-                          color: AppColors.secondary.withValues(alpha: 0.4),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No $_label entries yet',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: AppColors.secondary,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.show_chart,
+                            size: 64,
+                            color: AppColors.secondary.withValues(alpha: 0.4),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Log your first measurement to track trends over time',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.secondary.withValues(alpha: 0.8),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No $_label entries yet',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppColors.secondary,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Log your first measurement to track trends over time',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary.withValues(alpha: 0.8),
+                            ),
+                          ),
+                          if (widget.metric == 'bodyweight') ...[
+                            const SizedBox(height: 24),
+                            _TargetWeightSection(
+                              latestKg: null,
+                              unit: _unit,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -187,6 +199,13 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                         ),
                       ],
                     ),
+                    if (widget.metric == 'bodyweight') ...[
+                      const SizedBox(height: 14),
+                      _TargetWeightSection(
+                        latestKg: latest.value,
+                        unit: _unit,
+                      ),
+                    ],
                     const SizedBox(height: 20),
 
                     // ── Chart Section ──
@@ -210,7 +229,13 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildChart(rows),
+                          _buildChart(
+                            rows,
+                            widget.metric == 'bodyweight'
+                                ? (ref.watch(profileProvider).valueOrNull?.targetWeightKg ??
+                                    ref.watch(goalWeightProvider))
+                                : null,
+                          ),
                         ],
                       ),
                     ),
@@ -254,7 +279,7 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
     );
   }
 
-  Widget _buildChart(List<BodyMeasurementData> rows) {
+  Widget _buildChart(List<BodyMeasurementData> rows, [double? targetValue]) {
     if (rows.isEmpty) return const SizedBox.shrink();
 
     final spots = <FlSpot>[];
@@ -262,18 +287,59 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
       spots.add(FlSpot(i.toDouble(), rows[i].value));
     }
 
-    final minY = rows.map((e) => e.value).reduce((a, b) => a < b ? a : b);
-    final maxY = rows.map((e) => e.value).reduce((a, b) => a > b ? a : b);
+    var minY = rows.map((e) => e.value).reduce((a, b) => a < b ? a : b);
+    var maxY = rows.map((e) => e.value).reduce((a, b) => a > b ? a : b);
+
+    final hasTarget = targetValue != null &&
+        targetValue > 0 &&
+        !targetValue.isNaN &&
+        !targetValue.isInfinite;
+
+    if (hasTarget) {
+      if (targetValue < minY) minY = targetValue;
+      if (targetValue > maxY) maxY = targetValue;
+    }
+
     final padding = (maxY - minY) * 0.15;
-    final chartMinY = (minY - (padding == 0 ? 1.0 : padding)).floorToDouble();
-    final chartMaxY = (maxY + (padding == 0 ? 1.0 : padding)).ceilToDouble();
+    final effectivePadding = padding == 0 ? 1.0 : padding;
+    final chartMinY = (minY - effectivePadding).floorToDouble();
+    final chartMaxY = (maxY + effectivePadding).ceilToDouble();
 
     return SizedBox(
       height: 200,
       child: LineChart(
         LineChartData(
+          minX: 0,
+          // With one measurement the inferred x-range collapses to a point and
+          // fl_chart's `(x - minX) / (maxX - minX)` goes NaN — a RenderBox
+          // assertion on the user's very first body measurement.
+          maxX: spots.length > 1 ? (spots.length - 1).toDouble() : 1.0,
           minY: chartMinY,
           maxY: chartMaxY,
+          extraLinesData: !hasTarget
+              ? null
+              : ExtraLinesData(
+                  horizontalLines: [
+                    HorizontalLine(
+                      y: targetValue,
+                      color: AppColors.primary.withValues(alpha: 0.6),
+                      strokeWidth: 1.5,
+                      dashArray: [6, 4],
+                      label: HorizontalLineLabel(
+                        show: true,
+                        alignment: Alignment.topRight,
+                        padding: const EdgeInsets.only(right: 8, bottom: 2),
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        labelResolver: (_) =>
+                            'Target: ${targetValue.toStringAsFixed(1)} $_unit',
+                      ),
+                    ),
+                  ],
+                ),
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
@@ -690,6 +756,184 @@ class _HistoryTile extends StatelessWidget {
           onPressed: onDelete,
         ),
       ),
+    );
+  }
+}
+
+class _TargetWeightSection extends ConsumerWidget {
+  final double? latestKg;
+  final String unit;
+
+  const _TargetWeightSection({
+    required this.latestKg,
+    required this.unit,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final profile = ref.watch(profileProvider).valueOrNull;
+    final goalWeight = ref.watch(goalWeightProvider);
+    final targetKg = profile?.targetWeightKg ?? goalWeight;
+
+    final hasTarget = targetKg != null;
+    final diff = (hasTarget && latestKg != null) ? latestKg! - targetKg : null;
+
+    String subtitle;
+    if (diff == null) {
+      subtitle = hasTarget ? 'Target set' : 'Tap to set your target weight';
+    } else if (diff.abs() < 0.05) {
+      subtitle = 'Goal reached! 🎉';
+    } else if (diff > 0) {
+      subtitle = '${diff.toStringAsFixed(1)} $unit to lose';
+    } else {
+      subtitle = '${(-diff).toStringAsFixed(1)} $unit to gain';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.track_changes_rounded, color: AppColors.primary, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Target Bodyweight',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasTarget ? '${targetKg.toStringAsFixed(1)} $unit' : 'Not set',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: hasTarget ? AppColors.onSurface : AppColors.secondary,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: (diff != null && diff.abs() < 0.05)
+                        ? Colors.green
+                        : AppColors.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4)),
+              shape: const StadiumBorder(),
+            ),
+            onPressed: () => _editTargetWeight(context, ref, targetKg),
+            child: Text(hasTarget ? 'Edit' : 'Set'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editTargetWeight(
+    BuildContext context,
+    WidgetRef ref,
+    double? currentKg,
+  ) async {
+    final ctrl = TextEditingController(
+      text: currentKg != null ? currentKg.toStringAsFixed(1) : '',
+    );
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final bottomPad = MediaQuery.of(ctx).viewInsets.bottom + 20;
+        return Container(
+          padding: EdgeInsets.fromLTRB(24, 20, 24, bottomPad),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainer,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Set Target Bodyweight',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Target Weight ($unit)',
+                  hintText: 'e.g. 75.0',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () async {
+                    final val = double.tryParse(ctrl.text.trim());
+                    if (val != null && val > 0) {
+                      ref.read(goalWeightProvider.notifier).set(val);
+                      final profile = ref.read(profileProvider).valueOrNull;
+                      if (profile != null) {
+                        await ref
+                            .read(localProfileRepositoryProvider)
+                            .save(profile.copyWith(targetWeightKg: val));
+                      }
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                  child: const Text('Save Target Weight'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

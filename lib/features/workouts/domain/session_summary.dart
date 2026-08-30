@@ -137,9 +137,13 @@ class SessionSummary {
   }
 
   /// Tonnes above 1 t, kilograms below, matching the dashboard's formatting.
-  String get tonnageLabel => tonnageKg >= 1000
-      ? '${(tonnageKg / 1000).toStringAsFixed(1)} t'
-      : '${tonnageKg.round()} kg';
+  /// Non-finite guard for the same reason as `WeightFormat.formatTonnage`:
+  /// `round()` throws on NaN, and this is read from a `build()`.
+  String get tonnageLabel => !tonnageKg.isFinite
+      ? '0 kg'
+      : tonnageKg >= 1000
+          ? '${(tonnageKg / 1000).toStringAsFixed(1)} t'
+          : '${tonnageKg.round()} kg';
 
   /// Format calories burned.
   String get caloriesLabel => '$caloriesBurned kcal';

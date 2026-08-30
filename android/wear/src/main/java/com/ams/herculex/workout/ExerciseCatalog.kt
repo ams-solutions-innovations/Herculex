@@ -134,6 +134,7 @@ object ExerciseCatalog {
             } else null,
             plannedSets = plannedSets,
             supersetGroup = obj.optNullableInt("supersetGroup"),
+            performanceHint = obj.optString("performanceHint").takeIf { it.isNotBlank() },
         )
     }
 
@@ -148,6 +149,7 @@ object ExerciseCatalog {
         item.equipmentVariant?.let { obj.put("equipmentVariant", it) }
         item.loggingMetric?.let { obj.put("loggingMetric", it) }
         item.supersetGroup?.let { obj.put("supersetGroup", it) }
+        item.performanceHint?.let { obj.put("performanceHint", it) }
         if (item.equipmentOptions.isNotEmpty()) {
             obj.put("equipmentOptions", JSONArray(item.equipmentOptions))
         }

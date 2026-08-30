@@ -12,12 +12,15 @@ enum BuddyConnectionState { connecting, live, degraded, ended }
 /// subscription for a buddy session.
 class BuddyChannelService {
   BuddyChannelService({
-    required SupabaseClient client,
+    required SupabaseClient? client,
     required BuddyGateway gateway,
   })  : _client = client,
         _gateway = gateway;
 
-  final SupabaseClient _client;
+  /// Null in builds without Supabase credentials. [connect] refuses in that
+  /// case; everything else — the streams, [disconnect], [dispose] — stays
+  /// usable so callers need no null handling of their own.
+  final SupabaseClient? _client;
   final BuddyGateway _gateway;
 
   RealtimeChannel? _channel;
@@ -37,7 +40,11 @@ class BuddyChannelService {
     required Future<void> Function(BuddyEvent) apply,
     required Future<void> Function(int seq) commitSeq,
   }) async {
-    if (_client.auth.currentSession == null) {
+    final client = _client;
+    if (client == null) {
+      throw StateError('Cannot connect buddy channel without a backend');
+    }
+    if (client.auth.currentSession == null) {
       throw StateError(
         'Cannot connect buddy channel without an active auth session',
       );
@@ -60,7 +67,7 @@ class BuddyChannelService {
       commitSeq: commitSeq,
     );
 
-    final channel = _client.channel(
+    final channel = client.channel(
       'buddy:$buddySessionId',
       opts: const RealtimeChannelConfig(private: true),
     );
@@ -118,7 +125,7 @@ class BuddyChannelService {
         await ch.untrack();
       } catch (_) {}
       try {
-        await _client.removeChannel(ch);
+        await _client?.removeChannel(ch);
       } catch (_) {}
       _stateCtrl.add(BuddyConnectionState.ended);
     }

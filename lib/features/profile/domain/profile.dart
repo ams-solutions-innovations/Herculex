@@ -65,6 +65,7 @@ class Profile {
   final ActivityLevel activityLevel;
   final int? ageYears;
   final double? weightKg;
+  final double? targetWeightKg;
   final double? heightCm;
   final BiologicalSex? sex;
   final MeasurementUnit preferredUnit;
@@ -76,6 +77,7 @@ class Profile {
     required this.activityLevel,
     this.ageYears,
     this.weightKg,
+    this.targetWeightKg,
     this.heightCm,
     this.sex,
     this.preferredUnit = MeasurementUnit.metric,
@@ -91,6 +93,7 @@ class Profile {
     ActivityLevel? activityLevel,
     int? ageYears,
     double? weightKg,
+    double? targetWeightKg,
     double? heightCm,
     BiologicalSex? sex,
     MeasurementUnit? preferredUnit,
@@ -101,6 +104,7 @@ class Profile {
     activityLevel: activityLevel ?? this.activityLevel,
     ageYears: ageYears ?? this.ageYears,
     weightKg: weightKg ?? this.weightKg,
+    targetWeightKg: targetWeightKg ?? this.targetWeightKg,
     heightCm: heightCm ?? this.heightCm,
     sex: sex ?? this.sex,
     preferredUnit: preferredUnit ?? this.preferredUnit,
@@ -113,6 +117,7 @@ class Profile {
     'activityLevel': activityLevel.name,
     'ageYears': ageYears,
     'weightKg': weightKg,
+    'targetWeightKg': targetWeightKg,
     'heightCm': heightCm,
     'sex': sex?.name,
     'preferredUnit': preferredUnit.name,
@@ -126,8 +131,12 @@ class Profile {
     goal: FitnessGoal.values.byName(json['goal'] as String),
     activityLevel: ActivityLevel.values.byName(json['activityLevel'] as String),
     ageYears: json['ageYears'] as int?,
-    weightKg: (json['weightKg'] as num?)?.toDouble(),
-    heightCm: (json['heightCm'] as num?)?.toDouble(),
+    weightKg: (json['weightKg'] as num?)?.toDouble() ??
+        (json['weight_kg'] as num?)?.toDouble(),
+    targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble() ??
+        (json['target_weight_kg'] as num?)?.toDouble(),
+    heightCm: (json['heightCm'] as num?)?.toDouble() ??
+        (json['height_cm'] as num?)?.toDouble(),
     sex: json['sex'] == null
         ? null
         : BiologicalSex.values.byName(json['sex'] as String),

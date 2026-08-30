@@ -91,6 +91,11 @@ class WeightFormat {
   /// Imperial uses pounds throughout — "short tons" would confuse more than
   /// they'd shorten.
   String formatTonnage(double kg) {
+    // `double.round()` throws `UnsupportedError` on NaN/Infinity, and every
+    // caller is inside a `build()` — the workout finish card, the active
+    // workout stats bar — so one corrupt stored `weightKg` multiplying through
+    // `effectiveLoad` would take the screen down rather than show a bad number.
+    if (!kg.isFinite) return isMetric ? '0 kg' : '0 lb';
     if (isMetric) {
       return kg >= 1000
           ? '${(kg / 1000).toStringAsFixed(1)} t'

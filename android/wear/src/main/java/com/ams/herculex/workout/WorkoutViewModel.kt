@@ -275,6 +275,54 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun updateActiveSetValues(
+        exerciseIndex: Int,
+        setIndex: Int,
+        weight: Double,
+        reps: Int,
+        durationSeconds: Int? = null,
+        distanceMeters: Double? = null,
+        setType: String? = null,
+        isWarmup: Boolean? = null,
+    ) {
+        val current = _session.value ?: return
+        if (exerciseIndex !in current.exercises.indices) return
+        val exercise = current.exercises[exerciseIndex]
+        if (setIndex !in exercise.sets.indices) return
+
+        val currentSet = exercise.sets[setIndex]
+        if (currentSet.weight == weight &&
+            currentSet.reps == reps &&
+            currentSet.durationSeconds == durationSeconds &&
+            currentSet.distanceMeters == distanceMeters &&
+            (setType == null || currentSet.setType == setType) &&
+            (isWarmup == null || currentSet.isWarmup == isWarmup)
+        ) {
+            return
+        }
+
+        val updatedSets = exercise.sets.mapIndexed { idx, set ->
+            if (idx == setIndex) {
+                set.copy(
+                    weight = weight,
+                    reps = reps,
+                    durationSeconds = durationSeconds ?: set.durationSeconds,
+                    distanceMeters = distanceMeters ?: set.distanceMeters,
+                    setType = setType ?: set.setType,
+                    isWarmup = isWarmup ?: set.isWarmup,
+                )
+            } else {
+                set
+            }
+        }
+
+        val exercises = current.exercises.toMutableList()
+        exercises[exerciseIndex] = exercise.copy(sets = updatedSets)
+        val updated = current.copy(exercises = exercises)
+        _session.value = updated
+        broadcastSessionToPhone("/herculex_watch_session_update", updated)
+    }
+
     fun logSet(
         exerciseIndex: Int,
         weight: Double,
@@ -556,9 +604,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         broadcastSessionToPhone("/herculex_watch_session_update", updated)
     }
 
-    fun finishWorkout() = endSession(isFinish = true, notifyPhone = true)
-    fun discardWorkout() = endSession(isFinish = false, notifyPhone = true)
-    fun endSessionFromPhone() = endSession(isFinish = true, notifyPhone = false)
+    fun finishWorkout(saveAsTemplate: Boolean = false) = endSession(isFinish = true, notifyPhone = true, saveAsTemplate = saveAsTemplate)
+    fun discardWorkout() = endSession(isFinish = false, notifyPhone = true, saveAsTemplate = false)
+    fun endSessionFromPhone() = endSession(isFinish = true, notifyPhone = false, saveAsTemplate = false)
 
     // ── Internals & DataClient Sync ──────────────────────────────────────────
 
@@ -592,13 +640,15 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun plannedSetsForTemplate(template: ExerciseTemplate): List<LoggedSet> {
+        val defaultReps = if (template.prevReps > 0) template.prevReps else 10
         if (template.plannedSets.isNotEmpty()) {
             return template.plannedSets.mapIndexed { index, planned ->
                 LoggedSet(
                     wireId = planned.wireId ?: "planned_$index",
                     setIndex = planned.setIndex,
                     weight = planned.targetWeightKg ?: template.prevWeight,
-                    reps = planned.targetReps ?: planned.targetRepsMin ?: template.prevReps.coerceAtLeast(1),
+                    reps = planned.targetReps ?: planned.targetRepsMin ?: defaultReps,
+                    durationSeconds = planned.durationSeconds,
                     distanceMeters = planned.targetDistanceMeters,
                     setType = planned.setType,
                     isWarmup = planned.isWarmup,
@@ -612,7 +662,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 wireId = "planned_$index",
                 setIndex = index,
                 weight = template.prevWeight,
-                reps = template.prevReps.coerceAtLeast(1),
+                reps = defaultReps,
                 completed = false,
             )
         }
@@ -644,6 +694,19 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                     .onFailure { android.util.Log.e("WorkoutViewModel", "Durable session-discard push failed", it) }
                 syncManager.sendMessageToAllNodes(
                     WearSyncPaths.MESSAGE_WATCH_SESSION_DISCARD,
+                    endEnvelope(entityId),
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun broadcastSessionSaveAsTemplateToPhone(entityId: String) {
+        try {
+            viewModelScope.launch {
+                syncManager.sendMessageToAllNodes(
+                    WearSyncPaths.MESSAGE_WATCH_SESSION_SAVE_AS_TEMPLATE,
                     endEnvelope(entityId),
                 )
             }
@@ -690,7 +753,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun endSession(isFinish: Boolean, notifyPhone: Boolean) {
+    private fun endSession(isFinish: Boolean, notifyPhone: Boolean, saveAsTemplate: Boolean) {
         val currentSession = _session.value
         val endingSessionId = currentSession?.sessionId
         if (isFinish && currentSession != null) {
@@ -706,6 +769,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         _elapsedSeconds.value = 0L
         if (notifyPhone && endingSessionId != null) {
             if (isFinish) {
+                if (saveAsTemplate) {
+                    broadcastSessionSaveAsTemplateToPhone(endingSessionId)
+                }
                 broadcastSessionEndToPhone(endingSessionId)
             } else {
                 broadcastSessionDiscardToPhone(endingSessionId)

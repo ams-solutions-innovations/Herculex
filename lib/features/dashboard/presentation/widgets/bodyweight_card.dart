@@ -32,28 +32,27 @@ class BodyweightMiniCard extends ConsumerWidget {
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 220;
 
-        return InkWell(
-          borderRadius: BorderRadius.circular(isCompact ? 20 : 28),
+        return dashboardCard(
+          accent: context.hx.domainRecovery,
           onTap: () {
             Haptics.selection();
             context.push('/measurements/bodyweight');
           },
-          child: dashboardCard(
-            accent: context.hx.domainRecovery,
-            radius: isCompact ? 20 : null,
-            padding: EdgeInsets.symmetric(
-              horizontal: isCompact ? 14 : 20,
-              vertical: isCompact ? 12 : 16,
-            ),
-            child: isCompact
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 14 : 20,
+            vertical: isCompact ? 12 : 16,
+          ),
+          child: isCompact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
                             'BODYWEIGHT',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: AppColors.secondary,
@@ -61,28 +60,35 @@ class BodyweightMiniCard extends ConsumerWidget {
                               fontWeight: FontWeight.bold,
                               fontSize: 10,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          GestureDetector(
-                            onTap: () => quickLogWeight(context, ref),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.add,
-                                size: 16,
-                                color: AppColors.primary,
-                              ),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => quickLogWeight(context, ref),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color:
+                                  AppColors.primary.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.add,
+                              size: 16,
+                              color: AppColors.primary,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      bw.when(
-                        data: (kg) => Text(
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    bw.when(
+                      data: (kg) => FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
                           kg == null
                               ? '—'
                               : ref.watch(weightFormatProvider).format(kg),
@@ -91,26 +97,29 @@ class BodyweightMiniCard extends ConsumerWidget {
                             color: AppColors.primary,
                           ),
                         ),
-                        loading: () => const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        error: (e, _) =>
-                            const Icon(Icons.error_outline, size: 18),
                       ),
-                      if (lastLogged != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          DateFormat('MMM d').format(lastLogged),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.secondary,
-                            fontSize: 10,
-                          ),
+                      loading: () => const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      error: (e, _) =>
+                          const Icon(Icons.error_outline, size: 18),
+                    ),
+                    if (lastLogged != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        DateFormat('MMM d').format(lastLogged),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.secondary,
+                          fontSize: 10,
                         ),
-                      ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
-                  )
+                  ],
+                )
                 : Row(
                     children: [
                       Expanded(
@@ -157,7 +166,6 @@ class BodyweightMiniCard extends ConsumerWidget {
                       ),
                     ],
                   ),
-          ),
         );
       },
     );

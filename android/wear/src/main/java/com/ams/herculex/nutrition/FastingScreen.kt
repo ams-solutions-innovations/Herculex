@@ -111,6 +111,17 @@ fun FastingScreen(
             Text(if (fasting.hasActiveFast) "Stop Fast" else "Start Fast", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
 
+        if (!fasting.hasActiveFast && fasting.lastFastDurationSeconds != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            val h = fasting.lastFastDurationSeconds / 3600L
+            val m = (fasting.lastFastDurationSeconds % 3600L) / 60L
+            Text(
+                text = "Last: ${h}h ${m}m",
+                color = Color.Gray,
+                fontSize = 10.sp,
+            )
+        }
+
         Spacer(modifier = Modifier.weight(1f))
     }
 }

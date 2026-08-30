@@ -91,6 +91,10 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
       ),
     );
 
+    final usageCounts =
+        ref.watch(exerciseUsageCountsProvider).asData?.value ??
+            const <int, int>{};
+
     return HxScreenShell(
       title: 'Exercise Library',
       actions: [
@@ -184,9 +188,25 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
             child: Center(child: Text('Failed to load exercises: $err')),
           ),
           data: (list) {
-            var filtered = list;
+            var filtered = [...list];
             if (_category == 'Custom') {
-              filtered = list.where((e) => e.isCustom).toList();
+              filtered = filtered.where((e) => e.isCustom).toList();
+            }
+
+            if (_query.isEmpty) {
+              filtered.sort((a, b) {
+                final countA = usageCounts[a.id] ?? 0;
+                final countB = usageCounts[b.id] ?? 0;
+                if (countA != countB) {
+                  return countB.compareTo(countA);
+                }
+                final tierA = _exercisePopularityTier(a);
+                final tierB = _exercisePopularityTier(b);
+                if (tierA != tierB) {
+                  return tierA.compareTo(tierB);
+                }
+                return a.name.compareTo(b.name);
+              });
             }
 
             if (filtered.isEmpty) {
@@ -364,4 +384,76 @@ class _ExerciseLibraryTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Assigns a popularity tier for catalog browse sorting.
+///
+/// Tier 1: Universal core staples (Big 3 lifts, pull-ups, rows, curls, dips...)
+/// Tier 2: Highly popular gym movements (dumbbell presses, extensions, cable work...)
+/// Tier 3: Compound exercises
+/// Tier 4: Other / niche variations
+int _exercisePopularityTier(ExerciseCatalogData e) {
+  final nameLower = e.name.toLowerCase();
+
+  const tier1Names = {
+    'barbell bench press',
+    'bench press',
+    'back squat',
+    'squat',
+    'deadlift',
+    'barbell deadlift',
+    'overhead press',
+    'barbell overhead press',
+    'pull-up',
+    'pull up',
+    'lat pulldown',
+    'barbell row',
+    'incline dumbbell press',
+    'romanian deadlift',
+    'leg press',
+    'dumbbell curl',
+    'lateral raise',
+    'dumbbell lateral raise',
+    'cable triceps pushdown',
+    'triceps pushdown',
+    'dips',
+  };
+
+  const tier2Names = {
+    'dumbbell bench press',
+    'incline barbell press',
+    'machine chest press',
+    'cable fly',
+    'push-up',
+    'front squat',
+    'bulgarian split squat',
+    'leg extension',
+    'lying leg curl',
+    'seated leg curl',
+    'hip thrust',
+    'walking lunge',
+    'seated cable row',
+    'dumbbell row',
+    'face pull',
+    'seated dumbbell press',
+    'cable lateral raise',
+    'rear delt fly',
+    'barbell curl',
+    'hammer curl',
+    'overhead triceps extension',
+    'skullcrusher',
+    'plank',
+    'hanging leg raise',
+    'cable crunch',
+    'standing calf raise',
+    'preacher curl',
+    'incline curl',
+    't-bar row',
+    'hack squat',
+  };
+
+  if (tier1Names.contains(nameLower)) return 1;
+  if (tier2Names.contains(nameLower)) return 2;
+  if (e.mechanics == 'compound') return 3;
+  return 4;
 }

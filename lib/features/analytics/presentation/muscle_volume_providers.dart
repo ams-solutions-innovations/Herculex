@@ -23,6 +23,18 @@ enum MuscleRegionFilter {
   const MuscleRegionFilter(this.label);
 }
 
+enum VolumeMetricDisplayMode {
+  total('Total'),
+  weeklyAvg('Avg / Week');
+
+  final String label;
+  const VolumeMetricDisplayMode(this.label);
+}
+
+/// Display metric mode: Total Volume / Sets vs Average Weekly Volume / Sets.
+final volumeMetricDisplayModeProvider =
+    StateProvider<VolumeMetricDisplayMode>((ref) => VolumeMetricDisplayMode.total);
+
 /// Active timeframe for both overview and detail volume views.
 final selectedVolumeTimeframeProvider =
     StateProvider<VolumeTimeframe>((ref) => VolumeTimeframe.thisWeek);

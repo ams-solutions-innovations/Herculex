@@ -27,11 +27,6 @@ class DashboardConfigNotifier extends Notifier<DashboardConfig> {
     return ref.watch(dashboardConfigRepositoryProvider).load();
   }
 
-  void toggle(DashboardWidgetType type, bool visible) {
-    state = state.toggle(type, visible);
-    ref.read(dashboardConfigRepositoryProvider).save(state);
-  }
-
   void toggleSlot(int index, bool visible) {
     state = state.toggleSlot(index, visible);
     ref.read(dashboardConfigRepositoryProvider).save(state);
@@ -56,16 +51,29 @@ class DashboardConfigNotifier extends Notifier<DashboardConfig> {
     state = state.unstackWidget(type);
     ref.read(dashboardConfigRepositoryProvider).save(state);
   }
-
-  void reorderInStack(int slotIndex, int oldIndex, int newIndex) {
-    state = state.reorderInStack(slotIndex, oldIndex, newIndex);
-    ref.read(dashboardConfigRepositoryProvider).save(state);
-  }
 }
 
 final dashboardConfigProvider =
     NotifierProvider<DashboardConfigNotifier, DashboardConfig>(
       DashboardConfigNotifier.new,
+    );
+
+/// User-selected card & pill shape style (squircle, pill, compact).
+class DashboardCardShapeNotifier extends Notifier<DashboardCardShape> {
+  @override
+  DashboardCardShape build() {
+    return ref.watch(dashboardConfigRepositoryProvider).loadShape();
+  }
+
+  void setShape(DashboardCardShape shape) {
+    state = shape;
+    ref.read(dashboardConfigRepositoryProvider).saveShape(shape);
+  }
+}
+
+final dashboardCardShapeProvider =
+    NotifierProvider<DashboardCardShapeNotifier, DashboardCardShape>(
+      DashboardCardShapeNotifier.new,
     );
 
 /// Whether the dashboard is in in-place edit mode (long-press to enter,
@@ -235,63 +243,77 @@ class CalendarDaySummary {
 }
 
 /// Stream of calendar day summaries for the 7 days of the week containing [anchorDate].
-final weekCalendarSummaryProvider =
-    StreamProvider.family<List<CalendarDaySummary>, DateTime>((
-      ref,
-      anchorDate,
-    ) {
-      final db = ref.watch(appDatabaseProvider);
-      final monday = anchorDate.subtract(
-        Duration(days: anchorDate.weekday - 1),
-      );
-      final startOfWeek = DateTime(monday.year, monday.month, monday.day);
-      final endOfWeek = startOfWeek.add(const Duration(days: 7));
+final _weekScheduledWorkoutsProvider = StreamProvider.family<List<ScheduledWorkoutData>, DateTime>((ref, anchorDate) {
+  final db = ref.watch(appDatabaseProvider);
+  final monday = anchorDate.subtract(Duration(days: anchorDate.weekday - 1));
+  final startOfWeek = DateTime(monday.year, monday.month, monday.day);
 
-      final dateIsos = List.generate(7, (i) {
-        final d = startOfWeek.add(Duration(days: i));
-        return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-      });
+  final dateIsos = List.generate(7, (i) {
+    final d = startOfWeek.add(Duration(days: i));
+    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  });
 
-      final scheduledStream = (db.select(
-        db.scheduledWorkouts,
-      )..where((t) => t.dateIso.isIn(dateIsos))).watch();
+  return (db.select(db.scheduledWorkouts)..where((t) => t.dateIso.isIn(dateIsos))).watch();
+});
 
-      final sessionsStream =
-          (db.select(db.workoutSessions)..where(
-                (t) =>
-                    t.startedAt.isBiggerOrEqualValue(startOfWeek) &
-                    t.startedAt.isSmallerThanValue(endOfWeek),
-              ))
-              .watch();
+final _weekCompletedSessionsProvider = StreamProvider.family<List<WorkoutSessionData>, DateTime>((ref, anchorDate) {
+  final db = ref.watch(appDatabaseProvider);
+  final monday = anchorDate.subtract(Duration(days: anchorDate.weekday - 1));
+  final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+  final endOfWeek = startOfWeek.add(const Duration(days: 7));
 
-      final now = DateTime.now();
-      final todayIso =
-          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  return (db.select(db.workoutSessions)..where((t) => t.startedAt.isBiggerOrEqualValue(startOfWeek) & t.startedAt.isSmallerThanValue(endOfWeek))).watch();
+});
 
-      return scheduledStream.asyncMap((schedules) async {
-        final sessions = await sessionsStream.first;
-        return List.generate(7, (i) {
-          final date = startOfWeek.add(Duration(days: i));
-          final iso = dateIsos[i];
-          final daySchedules = schedules
-              .where((s) => s.dateIso == iso)
-              .toList();
-          final daySessions = sessions
-              .where(
-                (s) =>
-                    s.startedAt.year == date.year &&
-                    s.startedAt.month == date.month &&
-                    s.startedAt.day == date.day,
-              )
-              .toList();
+/// Stream of calendar day summaries for the 7 days of the week containing [anchorDate].
+final weekCalendarSummaryProvider = Provider.family<AsyncValue<List<CalendarDaySummary>>, DateTime>((ref, anchorDate) {
+  final schedulesAsync = ref.watch(_weekScheduledWorkoutsProvider(anchorDate));
+  final sessionsAsync = ref.watch(_weekCompletedSessionsProvider(anchorDate));
 
-          return CalendarDaySummary(
-            date: date,
-            dateIso: iso,
-            isToday: iso == todayIso,
-            scheduledWorkouts: daySchedules,
-            completedSessions: daySessions,
-          );
-        });
-      });
-    });
+  if (schedulesAsync.isLoading || sessionsAsync.isLoading) {
+    return const AsyncLoading();
+  }
+  if (schedulesAsync.hasError) {
+    return AsyncError(schedulesAsync.error!, schedulesAsync.stackTrace!);
+  }
+  if (sessionsAsync.hasError) {
+    return AsyncError(sessionsAsync.error!, sessionsAsync.stackTrace!);
+  }
+
+  final schedules = schedulesAsync.requireValue;
+  final sessions = sessionsAsync.requireValue;
+
+  final monday = anchorDate.subtract(Duration(days: anchorDate.weekday - 1));
+  final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+  final now = DateTime.now();
+  final todayIso = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+  final dateIsos = List.generate(7, (i) {
+    final d = startOfWeek.add(Duration(days: i));
+    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  });
+
+  final result = List.generate(7, (i) {
+    final date = startOfWeek.add(Duration(days: i));
+    final iso = dateIsos[i];
+    final daySchedules = schedules.where((s) => s.dateIso == iso).toList();
+    final daySessions = sessions
+        .where(
+          (s) =>
+              s.startedAt.year == date.year &&
+              s.startedAt.month == date.month &&
+              s.startedAt.day == date.day,
+        )
+        .toList();
+
+    return CalendarDaySummary(
+      date: date,
+      dateIso: iso,
+      isToday: iso == todayIso,
+      scheduledWorkouts: daySchedules,
+      completedSessions: daySessions,
+    );
+  });
+  
+  return AsyncData(result);
+});

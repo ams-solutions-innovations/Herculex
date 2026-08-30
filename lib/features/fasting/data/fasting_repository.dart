@@ -101,16 +101,32 @@ class FastingRepository {
         .getSingleOrNull();
   }
 
-  Stream<List<FastingSessionData>> watchHistory({int limit = 50}) {
-    return (_db.select(_db.fastingSessions)
-          ..where((t) => t.endedAt.isNotNull())
-          ..orderBy([
-            (t) =>
-                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
-          ])
-          ..limit(limit))
-        .watch();
-  }
+  SimpleSelectStatement<$FastingSessionsTable, FastingSessionData>
+      _historyQuery(int limit) =>
+          _db.select(_db.fastingSessions)
+            ..where((t) => t.endedAt.isNotNull())
+            ..orderBy([
+              (t) => OrderingTerm(
+                    expression: t.startedAt,
+                    mode: OrderingMode.desc,
+                  ),
+            ])
+            ..limit(limit);
+
+  Stream<List<FastingSessionData>> watchHistory({int limit = 50}) =>
+      _historyQuery(limit).watch();
+
+  /// One-shot read of the same rows [watchHistory] streams.
+  ///
+  /// Callers that need the history *once* — ending a fast, evaluating
+  /// achievements — must use this rather than `watchHistory().first`.
+  /// Subscribing to a stream to take a single value leaves the caller waiting
+  /// on a broadcast that may not arrive promptly, and on the end-fast path
+  /// that read sat between the user's tap and `cancelFastingGoal()`, so a slow
+  /// first emission left a scheduled notification alive and the session not
+  /// ended.
+  Future<List<FastingSessionData>> history({int limit = 50}) =>
+      _historyQuery(limit).get();
 
   Future<int> currentStreak() async {
     final completedSessions =

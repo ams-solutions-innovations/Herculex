@@ -15,6 +15,7 @@ class WorkoutCalendarCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final viewMode = ref.watch(calendarViewModeProvider);
     final selectedDate = ref.watch(calendarSelectedDateProvider);
 
@@ -26,13 +27,25 @@ class WorkoutCalendarCard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 22),
-                  const SizedBox(width: 8),
-                  dashboardTitle(context, "Workout Calendar"),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 22),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        "Workout Calendar",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               // Segmented view switcher (Day vs Week)
               Container(
                 decoration: BoxDecoration(

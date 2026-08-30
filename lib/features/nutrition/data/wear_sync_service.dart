@@ -28,6 +28,7 @@ class WearSyncService {
   static Function(String?, bool)? _onWatchWorkoutStarted;
   static Function(String?)? _onWatchWorkoutUpdated;
   static Function(String?, bool)? _onWatchWorkoutEnded;
+  static Function(String?)? _onWatchWorkoutSavedAsTemplate;
   static Function(String?)? _onWatchFastingCommand;
   static Function(String?)? _onWatchQuickAddCommand;
   static Function(String?)? _onWatchMacroCommand;
@@ -96,6 +97,10 @@ class WearSyncService {
     _drainPendingWatchEvents();
   }
 
+  static set onWatchWorkoutSavedAsTemplate(Function(String?)? handler) {
+    _onWatchWorkoutSavedAsTemplate = handler;
+  }
+
   static set onWatchFastingCommand(Function(String?)? handler) {
     _onWatchFastingCommand = handler;
     _drainPendingFastingCommands();
@@ -157,6 +162,9 @@ class WearSyncService {
               entityId: entityId,
             ),
           );
+          break;
+        case 'onWatchWorkoutSavedAsTemplate':
+          _onWatchWorkoutSavedAsTemplate?.call(call.arguments?['entityId'] as String?);
           break;
         case 'onWatchFastingCommand':
           _deliverFastingCommand(call.arguments?['command_json'] as String?);

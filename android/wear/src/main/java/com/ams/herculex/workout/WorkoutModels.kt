@@ -40,6 +40,7 @@ data class ExerciseTemplate(
     val loggingMetric: String? = null,
     val plannedSets: List<PlannedSet> = emptyList(),
     val supersetGroup: Int? = null,
+    val performanceHint: String? = null,
 ) {
     fun isBodyweightOnly(): Boolean {
         val metric = loggingMetric?.lowercase()?.trim()

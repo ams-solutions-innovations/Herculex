@@ -19,6 +19,7 @@ class MuscleVolumeOverviewView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final overviewAsync = ref.watch(muscleVolumeOverviewProvider);
     final selectedTimeframe = ref.watch(selectedVolumeTimeframeProvider);
+    final displayMode = ref.watch(volumeMetricDisplayModeProvider);
     final selectedRegion = ref.watch(volumeRegionFilterProvider);
     final selectedSort = ref.watch(volumeSortByProvider);
 
@@ -29,9 +30,15 @@ class MuscleVolumeOverviewView extends ConsumerWidget {
           data: (data) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _HeaderSummaryCard(data: data),
+              _HeaderSummaryCard(
+                data: data,
+                displayMode: displayMode,
+              ),
               const SizedBox(height: HxSpace.x4),
-              _TimeframeSelector(currentTimeframe: selectedTimeframe),
+              _TimeframeAndModeSelector(
+                currentTimeframe: selectedTimeframe,
+                currentMode: displayMode,
+              ),
               const SizedBox(height: HxSpace.x4),
               _FilterAndSortBar(
                 currentRegion: selectedRegion,
@@ -40,6 +47,7 @@ class MuscleVolumeOverviewView extends ConsumerWidget {
               const SizedBox(height: HxSpace.x4),
               _MuscleGroupList(
                 data: data,
+                displayMode: displayMode,
                 regionFilter: selectedRegion,
                 sort: selectedSort,
               ),
@@ -67,15 +75,32 @@ class MuscleVolumeOverviewView extends ConsumerWidget {
 // ── 1. Top Summary Card ──────────────────────────────────────────────────────
 
 class _HeaderSummaryCard extends ConsumerWidget {
-  const _HeaderSummaryCard({required this.data});
+  const _HeaderSummaryCard({
+    required this.data,
+    required this.displayMode,
+  });
 
   final MuscleVolumeOverviewData data;
+  final VolumeMetricDisplayMode displayMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final hx = context.hx;
     final weight = ref.watch(weightFormatProvider);
+    final isWeekly = displayMode == VolumeMetricDisplayMode.weeklyAvg;
+
+    final tonnageStr = isWeekly
+        ? '${weight.formatTonnage(data.weeklyAverageTonnageKg)} / wk'
+        : weight.formatTonnage(data.totalTonnageKg);
+
+    final setsStr = isWeekly
+        ? data.weeklyAverageSets.toStringAsFixed(1)
+        : '${data.totalSets}';
+
+    final workoutsStr = isWeekly
+        ? data.weeklyAverageWorkouts.toStringAsFixed(1)
+        : '${data.totalWorkouts}';
 
     return HxCard(
       accent: hx.domainTraining,
@@ -86,7 +111,7 @@ class _HeaderSummaryCard extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'TOTAL VOLUME',
+                isWeekly ? 'AVG. WEEKLY VOLUME' : 'TOTAL VOLUME',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: hx.secondary,
                   fontWeight: FontWeight.bold,
@@ -111,7 +136,7 @@ class _HeaderSummaryCard extends ConsumerWidget {
           ),
           const SizedBox(height: HxSpace.x3),
           Text(
-            weight.formatTonnage(data.totalTonnageKg),
+            tonnageStr,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: hx.primary,
@@ -122,16 +147,16 @@ class _HeaderSummaryCard extends ConsumerWidget {
             children: [
               Expanded(
                 child: _MetricTile(
-                  label: 'Working Sets',
-                  value: '${data.totalSets}',
+                  label: isWeekly ? 'Sets / Wk' : 'Working Sets',
+                  value: setsStr,
                   icon: Icons.fitness_center,
                 ),
               ),
               const SizedBox(width: HxSpace.x3),
               Expanded(
                 child: _MetricTile(
-                  label: 'Workouts',
-                  value: '${data.totalWorkouts}',
+                  label: isWeekly ? 'Workouts / Wk' : 'Workouts',
+                  value: workoutsStr,
                   icon: Icons.event_available,
                 ),
               ),
@@ -202,59 +227,125 @@ class _MetricTile extends StatelessWidget {
   }
 }
 
-// ── 2. Timeframe Selector ────────────────────────────────────────────────────
+// ── 2. Timeframe & Mode Selector ─────────────────────────────────────────────
 
-class _TimeframeSelector extends ConsumerWidget {
-  const _TimeframeSelector({required this.currentTimeframe});
+class _TimeframeAndModeSelector extends ConsumerWidget {
+  const _TimeframeAndModeSelector({
+    required this.currentTimeframe,
+    required this.currentMode,
+  });
 
   final VolumeTimeframe currentTimeframe;
+  final VolumeMetricDisplayMode currentMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hx = context.hx;
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final tf in VolumeTimeframe.values) ...[
-            GestureDetector(
-              onTap: () {
-                Haptics.selection();
-                ref.read(selectedVolumeTimeframeProvider.notifier).state = tf;
-              },
-              child: AnimatedContainer(
-                duration: HxMotion.base,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: tf == currentTimeframe
-                      ? hx.primary
-                      : hx.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(HxRadius.pill),
-                  border: Border.all(
-                    color: tf == currentTimeframe
-                        ? hx.primary
-                        : hx.outlineVariant.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  tf.label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: tf == currentTimeframe
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                    color: tf == currentTimeframe
-                        ? Colors.white
-                        : hx.onSurface,
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final tf in VolumeTimeframe.values) ...[
+                      GestureDetector(
+                        onTap: () {
+                          Haptics.selection();
+                          ref
+                              .read(selectedVolumeTimeframeProvider.notifier)
+                              .state = tf;
+                        },
+                        child: AnimatedContainer(
+                          duration: HxMotion.base,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 13, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: tf == currentTimeframe
+                                ? hx.primary
+                                : hx.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(HxRadius.pill),
+                            border: Border.all(
+                              color: tf == currentTimeframe
+                                  ? hx.primary
+                                  : hx.outlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            tf.label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: tf == currentTimeframe
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: tf == currentTimeframe
+                                  ? Colors.white
+                                  : hx.onSurface,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: HxSpace.x2),
+                    ],
+                  ],
                 ),
               ),
             ),
             const SizedBox(width: HxSpace.x2),
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: hx.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(HxRadius.pill),
+                border: Border.all(
+                  color: hx.outlineVariant.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final mode in VolumeMetricDisplayMode.values)
+                    InkWell(
+                      onTap: () {
+                        Haptics.selection();
+                        ref
+                            .read(volumeMetricDisplayModeProvider.notifier)
+                            .state = mode;
+                      },
+                      borderRadius: BorderRadius.circular(HxRadius.pill),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: mode == currentMode
+                              ? hx.primary
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(HxRadius.pill),
+                        ),
+                        child: Text(
+                          mode.label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: mode == currentMode
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: mode == currentMode
+                                ? Colors.white
+                                : hx.secondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -383,11 +474,13 @@ class _FilterAndSortBar extends ConsumerWidget {
 class _MuscleGroupList extends ConsumerWidget {
   const _MuscleGroupList({
     required this.data,
+    required this.displayMode,
     required this.regionFilter,
     required this.sort,
   });
 
   final MuscleVolumeOverviewData data;
+  final VolumeMetricDisplayMode displayMode;
   final MuscleRegionFilter regionFilter;
   final MuscleVolumeSort sort;
 
@@ -396,6 +489,8 @@ class _MuscleGroupList extends ConsumerWidget {
     final theme = Theme.of(context);
     final hx = context.hx;
     final weight = ref.watch(weightFormatProvider);
+    final isWeekly = displayMode == VolumeMetricDisplayMode.weeklyAvg;
+    final weeks = data.weeksCount;
 
     // 1. Filter by region
     var list = data.groups.where((g) {
@@ -478,7 +573,9 @@ class _MuscleGroupList extends ConsumerWidget {
                           Text(
                             item.workoutCount == 0
                                 ? 'No workouts logged in this period'
-                                : '${item.workoutCount} workouts • ${item.exerciseCount} exercises • Last: ${_formatLastTrained(item.lastTrained)}',
+                                : isWeekly
+                                    ? '${item.workoutCount} workouts (${item.weeklyWorkouts(weeks).toStringAsFixed(1)}/wk) • Last: ${_formatLastTrained(item.lastTrained)}'
+                                    : '${item.workoutCount} workouts • ${item.exerciseCount} exercises • Last: ${_formatLastTrained(item.lastTrained)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: hx.secondary,
                               fontSize: 11,
@@ -491,14 +588,18 @@ class _MuscleGroupList extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          weight.formatTonnage(item.tonnageKg),
+                          isWeekly
+                              ? '${weight.formatTonnage(item.weeklyTonnageKg(weeks))} / wk'
+                              : weight.formatTonnage(item.tonnageKg),
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: item.tonnageKg > 0 ? hx.primary : hx.secondary,
                           ),
                         ),
                         Text(
-                          '${item.sets.toStringAsFixed(item.sets < 10 && item.sets > 0 ? 1 : 0)} sets',
+                          isWeekly
+                              ? '${item.weeklySets(weeks).toStringAsFixed(1)} sets / wk'
+                              : '${item.sets.toStringAsFixed(item.sets < 10 && item.sets > 0 ? 1 : 0)} sets',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: hx.secondary,
                             fontSize: 11,

@@ -225,6 +225,20 @@
         </service>
 
         <service
+            android:name=".tile.FastingTileService"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Herculex Fasting Tile"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@mipmap/ic_launcher" />
+        </service>
+
+        <service
             android:name=".sync.SyncService"
             android:exported="true">
             <intent-filter>

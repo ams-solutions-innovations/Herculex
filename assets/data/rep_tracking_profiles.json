@@ -6136,5 +6136,118 @@
     "minPeriodMs": 600,
     "maxPeriodMs": 6000,
     "reason": "hands anchored; the body travels, the wrist does not"
+  },
+  {
+    "slug": "plate-loaded-reverse-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "plate-loaded-side-neck-curl",
+    "tier": "unsupported",
+    "site": null,
+    "family": null,
+    "channels": [],
+    "reason": "the head is the moving segment"
+  },
+  {
+    "slug": "afrikas-bicep-curl",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "single-arm-chest-supported-cable-row",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "seated-cable-row-underhand",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "seated-cable-row-independent-handles",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "horizontalPull",
+    "channels": [
+      "tilt",
+      "dyn"
+    ],
+    "minCycleAmplitudeDeg": 30.0,
+    "minCycleAmplitudeMs2": 1.5,
+    "minPeriodMs": 800,
+    "maxPeriodMs": 8000,
+    "reason": "derived from pattern=horizontal_pull"
+  },
+  {
+    "slug": "reverse-cable-wrist-curl-straight-bar",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
+  },
+  {
+    "slug": "cable-wrist-curl-straight-bar",
+    "tier": "supported",
+    "site": "wrist",
+    "family": "elbowFlexion",
+    "channels": [
+      "tilt",
+      "rot"
+    ],
+    "minCycleAmplitudeDeg": 45.0,
+    "minCycleAmplitudeMs2": null,
+    "minPeriodMs": 900,
+    "maxPeriodMs": 9000,
+    "reason": "derived from pattern=isolation"
   }
 ]

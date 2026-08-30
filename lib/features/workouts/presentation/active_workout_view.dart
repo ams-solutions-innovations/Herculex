@@ -11,6 +11,7 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../health/presentation/health_providers.dart';
+import '../application/finish_workout_action.dart';
 import '../domain/circuit_stats.dart';
 import '../domain/workout_name_generator.dart';
 import 'active_exercise_card.dart';
@@ -39,15 +40,11 @@ class ActiveWorkoutView extends ConsumerStatefulWidget {
 }
 
 class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
-  Timer? _ticker;
   final Map<int, FocusNode> _firstSetFocusNodes = {};
 
   @override
   void initState() {
     super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
     // Enable wakelock if the user preference is on (default: true).
     _applyWakelock();
   }
@@ -59,8 +56,6 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
 
   @override
   void dispose() {
-    _ticker?.cancel();
-
     // Always release the wakelock when leaving the workout screen.
     WakelockPlus.disable();
     for (final node in _firstSetFocusNodes.values) {
@@ -174,10 +169,9 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                     ),
                     const SizedBox(height: 10),
                     _ActiveWorkoutStatsBar(
-                      elapsedText: _elapsed(
-                        session.startedAt,
-                        originalEndedAt: editingOriginalEndedAt,
-                      ),
+                      startedAt: session.startedAt,
+                      originalEndedAt: editingOriginalEndedAt,
+                      formatElapsed: _elapsed,
                       totalSets: liveStats.totalSets,
                       completedSets: liveStats.completedSets,
                       tonnageText: weightFormat.formatTonnage(
@@ -265,7 +259,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                       ),
                       child: child,
                     ),
-                    onReorder: (oldIndex, newIndex) {
+                    onReorderItem: (oldIndex, newIndex) {
                       repo.reorderWorkoutExercises(
                         sessionId: session.id,
                         oldIndex: oldIndex,
@@ -420,7 +414,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                           icon: Icons.check,
                           isPrimary: true,
                           onTap: () async {
-                            await _showFinishSummary(context, ref, session);
+                            await _showFinishSummary(session);
                           },
                         ),
                       ),
@@ -524,6 +518,16 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     )[widget.session.id];
     final isEditingPastWorkout = editingOriginalEndedAt != null;
 
+    // Same disposal hazard as the finish flow: `endSession`/`deleteSession`
+    // both drop this session out of `activeSessionProvider`, disposing this
+    // widget mid-handler. Everything the handlers need is read up front.
+    final db = ref.read(appDatabaseProvider);
+    final repo = ref.read(workoutsRepositoryProvider);
+    final wearSync = ref.read(wearWorkoutSyncServiceProvider);
+    final editedEndedAt = ref.read(
+      editingSessionOriginalEndedAtProvider.notifier,
+    );
+
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -546,8 +550,10 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
           // 2. Keep: Keep workout saved and exit view
           FilledButton.tonal(
             onPressed: () async {
+              // Pop before the write, not after: the write disposes this
+              // screen, taking `ctx` with it.
+              Navigator.pop(ctx);
               if (isEditingPastWorkout) {
-                final db = ref.read(appDatabaseProvider);
                 final stmt = db.update(db.workoutSessions)
                   ..where((t) => t.id.equals(widget.session.id));
                 await stmt.write(
@@ -556,22 +562,17 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                   ),
                 );
               } else {
-                await ref
-                    .read(workoutsRepositoryProvider)
-                    .endSession(widget.session.id);
-                ref
-                    .read(wearWorkoutSyncServiceProvider)
-                    .notifySessionEnded(widget.session.sessionUuid);
+                await repo.endSession(widget.session.id);
+                wearSync.notifySessionEnded(widget.session.sessionUuid);
               }
-              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Keep Workout'),
           ),
           // 3. Discard: Discard edits or delete new session
           TextButton(
             onPressed: () async {
+              Navigator.pop(ctx);
               if (isEditingPastWorkout) {
-                final db = ref.read(appDatabaseProvider);
                 final stmt = db.update(db.workoutSessions)
                   ..where((t) => t.id.equals(widget.session.id));
                 await stmt.write(
@@ -579,22 +580,15 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                     endedAt: drift.Value(editingOriginalEndedAt),
                   ),
                 );
-                ref.read(editingSessionOriginalEndedAtProvider.notifier).update(
-                  (state) {
-                    final copy = Map<int, DateTime>.from(state);
-                    copy.remove(widget.session.id);
-                    return copy;
-                  },
-                );
+                editedEndedAt.update((state) {
+                  final copy = Map<int, DateTime>.from(state);
+                  copy.remove(widget.session.id);
+                  return copy;
+                });
               } else {
-                await ref
-                    .read(workoutsRepositoryProvider)
-                    .deleteSession(widget.session.id);
-                ref
-                    .read(wearWorkoutSyncServiceProvider)
-                    .notifySessionEnded(widget.session.sessionUuid);
+                await repo.deleteSession(widget.session.id);
+                wearSync.notifySessionEnded(widget.session.sessionUuid);
               }
-              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: Text(
               isEditingPastWorkout ? 'Discard Edits' : 'Discard Workout',
@@ -606,11 +600,10 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     );
   }
 
-  Future<void> _showFinishSummary(
-    BuildContext context,
-    WidgetRef ref,
-    WorkoutSessionData session,
-  ) async {
+  // Takes neither `context` nor `ref`: both are already fields on this State,
+  // and shadowing `State.context` with a parameter defeats the analyzer's
+  // async-gap checking — which is precisely the class of bug this routine had.
+  Future<void> _showFinishSummary(WorkoutSessionData session) async {
     final editingOriginalEndedAt = ref.read(
       editingSessionOriginalEndedAtProvider,
     )[session.id];
@@ -636,18 +629,31 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
       }
     }
 
-    final nameCtrl = TextEditingController(text: defaultWorkoutName);
-
+    // After the `getExercisesForSession` await above — creating the controller
+    // before the bail-out leaked one on every early return.
     if (!mounted) return;
 
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
+    final nameCtrl = TextEditingController(text: defaultWorkoutName);
+
+    // Resolved before the dialog opens, and re-resolved nowhere: `endSession`
+    // disposes this widget (see FinishWorkoutAction's doc comment), so a
+    // `ref.read` after that await throws.
+    final finish = FinishWorkoutAction.resolve(ref);
+    // The app-level navigator outlives this screen; `context` does not.
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+
+    // Dialog-local, deliberately not a `ref.watch` on the StateProvider: this
+    // builder outlives the widget whose `ref` it would capture, and a
+    // `ref.watch` from a disposed element throws *during build* — the red
+    // screen this whole routine used to produce.
+    DateTime? currentEndedAt = editingOriginalEndedAt;
+
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDialog) {
-          final currentEndedAt =
-              ref.watch(editingSessionOriginalEndedAtProvider)[session.id] ??
-              editingOriginalEndedAt;
           return AlertDialog(
             title: const Text('Finish Workout'),
             content: Column(
@@ -683,17 +689,11 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                               : 45,
                         );
                         if (newMins != null && newMins > 0) {
-                          final newEndedAt = session.startedAt.add(
-                            Duration(minutes: newMins),
-                          );
-                          ref
-                              .read(
-                                editingSessionOriginalEndedAtProvider.notifier,
-                              )
-                              .update(
-                                (state) => {...state, session.id: newEndedAt},
-                              );
-                          setStateDialog(() {});
+                          setStateDialog(() {
+                            currentEndedAt = session.startedAt.add(
+                              Duration(minutes: newMins),
+                            );
+                          });
                         }
                       },
                       child: Text(
@@ -714,75 +714,65 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text('Resume'),
               ),
-              FilledButton(
+              TextButton(
                 onPressed: () async {
-                  final finalEndedAt =
-                      ref.read(
-                        editingSessionOriginalEndedAtProvider,
-                      )[session.id] ??
-                      editingOriginalEndedAt;
                   final name = nameCtrl.text.trim();
                   final finalName = name.isEmpty ? defaultWorkoutName : name;
-                  await repo.updateSessionName(session.id, finalName);
+                  final finalEndedAt = currentEndedAt;
 
-                  final end = finalEndedAt ?? ref.read(clockProvider).now();
-                  final duration = end.difference(session.startedAt);
-                  final profile = ref.read(profileProvider).valueOrNull;
-                  final weight =
-                      (profile?.weightKg != null && profile!.weightKg! > 20)
-                      ? profile.weightKg!
-                      : 75.0;
-                  final minutes = duration.inMinutes > 0
-                      ? duration.inMinutes
-                      : 1;
-                  final calculatedCalories = (5.0 * weight * (minutes / 60.0))
-                      .round()
-                      .clamp(10, 3000);
+                  await ref.read(templatesRepositoryProvider).saveSessionAsTemplate(
+                        session.id,
+                        finalName,
+                      );
 
-                  await repo.endSession(
-                    session.id,
+                  await finish.run(
+                    session: session,
+                    name: finalName,
                     endedAt: finalEndedAt,
-                    caloriesBurned: calculatedCalories,
                   );
 
-                  try {
-                    await ref
-                        .read(healthServiceProvider)
-                        .writeWorkoutToHealth(
-                          activityName: finalName,
-                          startTime: session.startedAt,
-                          endTime: end,
-                          totalCaloriesBurned: calculatedCalories,
-                        );
-                  } catch (_) {
-                    // Non-blocking sync attempt
-                  }
-
-                  ref
-                      .read(wearWorkoutSyncServiceProvider)
-                      .notifySessionEnded(session.sessionUuid);
-                  if (finalEndedAt != null) {
-                    ref
-                        .read(editingSessionOriginalEndedAtProvider.notifier)
-                        .update((state) {
-                          final copy = Map<int, DateTime>.from(state);
-                          copy.remove(session.id);
-                          return copy;
-                        });
-                  }
                   if (!ctx.mounted) return;
                   Navigator.pop(ctx);
-                  if (context.mounted) {
-                    await WorkoutFinishView.show(context, session.id);
-                  }
+
+                  if (!rootNavigator.mounted) return;
+                  await WorkoutFinishView.show(
+                    rootNavigator.context,
+                    session.id,
+                  );
+                },
+                child: const Text('Save as template'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final name = nameCtrl.text.trim();
+                  final finalName = name.isEmpty ? defaultWorkoutName : name;
+                  final finalEndedAt = currentEndedAt;
+
+                  await finish.run(
+                    session: session,
+                    name: finalName,
+                    endedAt: finalEndedAt,
+                  );
+
+                  if (!ctx.mounted) return;
+                  Navigator.pop(ctx);
+
+                  if (!rootNavigator.mounted) return;
+                  await WorkoutFinishView.show(
+                    rootNavigator.context,
+                    session.id,
+                  );
                 },
                 child: const Text('Finish'),
               ),
             ],
           );
         },
-      ),
-    );
+        ),
+      );
+    } finally {
+      nameCtrl.dispose();
+    }
   }
 
   void _editWorkoutName(
@@ -827,95 +817,6 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mini Media Pill
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Compact pill in the workout header showing the currently playing track.
-/// Animates a music note icon when isPlaying, and taps to open the full
-/// [MediaControlsSheet].
-class _MediaMiniPill extends StatefulWidget {
-  final String track;
-  final bool isPlaying;
-  final VoidCallback onTap;
-
-  const _MediaMiniPill({
-    required this.track,
-    required this.isPlaying,
-    required this.onTap,
-  });
-
-  @override
-  State<_MediaMiniPill> createState() => _MediaMiniPillState();
-}
-
-class _MediaMiniPillState extends State<_MediaMiniPill>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    )..repeat(reverse: true);
-    _anim = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final trackLabel = widget.track.length > 16
-        ? '${widget.track.substring(0, 14)}…'
-        : widget.track;
-
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ScaleTransition(
-              scale: widget.isPlaying
-                  ? _anim
-                  : const AlwaysStoppedAnimation(1.0),
-              child: Icon(
-                Icons.music_note_rounded,
-                size: 14,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              trackLabel,
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _LinkedExerciseTile extends ConsumerWidget {
   final int index;
@@ -1238,15 +1139,64 @@ class _HealthActivityAdjustmentBanner extends ConsumerWidget {
   }
 }
 
+class _WorkoutTimerText extends StatelessWidget {
+  final DateTime startedAt;
+  final DateTime? originalEndedAt;
+  final String Function(DateTime startedAt, {DateTime? originalEndedAt}) formatElapsed;
+
+  const _WorkoutTimerText({
+    required this.startedAt,
+    required this.originalEndedAt,
+    required this.formatElapsed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: Stream.periodic(const Duration(seconds: 1)),
+      builder: (context, _) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                formatElapsed(startedAt, originalEndedAt: originalEndedAt),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+            const SizedBox(width: 3),
+            Icon(
+              Icons.edit_outlined,
+              size: 10,
+              color: AppColors.primary.withValues(alpha: 0.8),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _ActiveWorkoutStatsBar extends StatelessWidget {
-  final String elapsedText;
+  final DateTime startedAt;
+  final DateTime? originalEndedAt;
+  final String Function(DateTime startedAt, {DateTime? originalEndedAt}) formatElapsed;
   final int totalSets;
   final int completedSets;
   final String tonnageText;
   final VoidCallback onEditDuration;
 
   const _ActiveWorkoutStatsBar({
-    required this.elapsedText,
+    required this.startedAt,
+    required this.originalEndedAt,
+    required this.formatElapsed,
     required this.totalSets,
     required this.completedSets,
     required this.tonnageText,
@@ -1278,12 +1228,36 @@ class _ActiveWorkoutStatsBar extends StatelessWidget {
             child: InkWell(
               onTap: onEditDuration,
               borderRadius: BorderRadius.circular(10),
-              child: _StatColumn(
-                icon: Icons.timer_outlined,
-                iconColor: AppColors.primary,
-                label: 'TIME',
-                value: elapsedText,
-                showEditHint: true,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.timer_outlined, size: 12, color: AppColors.primary.withValues(alpha: 0.85)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'TIME',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.secondary,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    _WorkoutTimerText(
+                      startedAt: startedAt,
+                      originalEndedAt: originalEndedAt,
+                      formatElapsed: formatElapsed,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1326,14 +1300,12 @@ class _StatColumn extends StatelessWidget {
   final Color iconColor;
   final String label;
   final String value;
-  final bool showEditHint;
 
   const _StatColumn({
     required this.icon,
     required this.iconColor,
     required this.label,
     required this.value,
-    this.showEditHint = false,
   });
 
   @override
@@ -1377,14 +1349,6 @@ class _StatColumn extends StatelessWidget {
                   maxLines: 1,
                 ),
               ),
-              if (showEditHint) ...[
-                const SizedBox(width: 3),
-                Icon(
-                  Icons.edit_outlined,
-                  size: 10,
-                  color: AppColors.primary.withValues(alpha: 0.8),
-                ),
-              ],
             ],
           ),
         ],

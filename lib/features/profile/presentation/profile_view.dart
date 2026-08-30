@@ -24,6 +24,7 @@ import '../../nutrition/presentation/goals_providers.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 import '../../workouts/presentation/workout_bubble_controller.dart';
 import '../../../services/workout_bubble_service.dart';
+import '../data/local_profile_repository.dart';
 import '../domain/profile.dart';
 
 // ── Profile view ─────────────────────────────────────────────────────────────
@@ -71,14 +72,24 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   final _nameCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
+  final _targetWeightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
 
   Timer? _autoSaveTimer;
   bool _saving = false;
 
+  /// Snapshotted here rather than read in [dispose].
+  ///
+  /// `ref.read` from `State.dispose` throws once the element is unmounted
+  /// (`riverpod_lint`'s `avoid_ref_inside_state_dispose`), and this screen's
+  /// dispose runs on a normal back-navigation pop — so the final draft flush
+  /// could take the teardown down with it.
+  late final LocalProfileRepository _profileRepository;
+
   @override
   void initState() {
     super.initState();
+    _profileRepository = ref.read(localProfileRepositoryProvider);
     final p = widget.profile;
     _goal = p?.goal ?? FitnessGoal.maintenance;
     _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
@@ -92,6 +103,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _weightCtrl.text = p?.weightKg == null
         ? ''
         : weightFmt.formatValue(p!.weightKg!);
+    final goalWeight = ref.read(goalWeightProvider);
+    final targetKg = p?.targetWeightKg ?? goalWeight;
+    _targetWeightCtrl.text = targetKg == null
+        ? ''
+        : weightFmt.formatValue(targetKg);
     _heightCtrl.text = p?.heightCm == null
         ? ''
         : heightFmt.formatValue(p!.heightCm!);
@@ -115,8 +131,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       final weightFmt = ref.read(weightFormatProvider);
       final heightFmt = ref.read(heightFormatProvider);
       final weightStr = p?.weightKg == null ? '' : weightFmt.formatValue(p!.weightKg!);
+      final targetKg = p?.targetWeightKg ?? ref.read(goalWeightProvider);
+      final targetStr = targetKg == null ? '' : weightFmt.formatValue(targetKg);
       final heightStr = p?.heightCm == null ? '' : heightFmt.formatValue(p!.heightCm!);
       if (_weightCtrl.text != weightStr) _weightCtrl.text = weightStr;
+      if (_targetWeightCtrl.text != targetStr) _targetWeightCtrl.text = targetStr;
       if (_heightCtrl.text != heightStr) _heightCtrl.text = heightStr;
     }
   }
@@ -126,7 +145,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _autoSaveTimer?.cancel();
     _autoSaveTimer = Timer(const Duration(milliseconds: 600), () {
       if (mounted) {
-        ref.read(localProfileRepositoryProvider).save(_draft());
+        final draft = _draft();
+        ref.read(localProfileRepositoryProvider).save(draft);
+        if (draft.targetWeightKg != null) {
+          ref.read(goalWeightProvider.notifier).set(draft.targetWeightKg!);
+        }
       }
     });
   }
@@ -137,8 +160,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final weightFmt = ref.read(weightFormatProvider);
     final heightFmt = ref.read(heightFormatProvider);
     final kg = widget.profile?.weightKg;
+    final targetKg = widget.profile?.targetWeightKg ?? ref.read(goalWeightProvider);
     final cm = widget.profile?.heightCm;
     _weightCtrl.text = kg == null ? '' : weightFmt.formatValue(kg);
+    _targetWeightCtrl.text = targetKg == null ? '' : weightFmt.formatValue(targetKg);
     _heightCtrl.text = cm == null ? '' : heightFmt.formatValue(cm);
   }
 
@@ -146,10 +171,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   void dispose() {
     _autoSaveTimer?.cancel();
     // Flush draft to local profile storage before tearing down
-    ref.read(localProfileRepositoryProvider).save(_draft());
+    _profileRepository.save(_draft());
     _nameCtrl.dispose();
     _ageCtrl.dispose();
     _weightCtrl.dispose();
+    _targetWeightCtrl.dispose();
     _heightCtrl.dispose();
     super.dispose();
   }
@@ -159,6 +185,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   Profile _draft() {
     final name = _nameCtrl.text.trim();
     final weight = double.tryParse(_weightCtrl.text.trim());
+    final targetWeight = double.tryParse(_targetWeightCtrl.text.trim());
     final height = double.tryParse(_heightCtrl.text.trim());
     return Profile(
       name: name.isEmpty ? null : name,
@@ -171,6 +198,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       weightKg: weight == null
           ? null
           : ref.read(weightFormatProvider).toKg(weight),
+      targetWeightKg: targetWeight == null
+          ? null
+          : ref.read(weightFormatProvider).toKg(targetWeight),
       heightCm: height == null
           ? null
           : ref.read(heightFormatProvider).toCm(height),
@@ -181,7 +211,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   Future<void> _save() async {
     _autoSaveTimer?.cancel();
     setState(() => _saving = true);
-    await ref.read(localProfileRepositoryProvider).save(_draft());
+    final draft = _draft();
+    await ref.read(localProfileRepositoryProvider).save(draft);
+    if (draft.targetWeightKg != null) {
+      ref.read(goalWeightProvider.notifier).set(draft.targetWeightKg!);
+    }
     if (!mounted) return;
     setState(() => _saving = false);
     ref.read(hxToastControllerProvider.notifier).show(HxToastItem.profileSaved());
@@ -269,7 +303,20 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             const SizedBox(width: 12),
             Expanded(
               child: _StatField(
-                label: isMetric ? 'Weight (kg)' : 'Weight (lb)',
+                label: isMetric ? 'Height (cm)' : 'Height (in)',
+                hint: isMetric ? 'cm' : 'in',
+                controller: _heightCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _StatField(
+                label: isMetric ? 'Current Weight (kg)' : 'Current Weight (lb)',
                 hint: isMetric ? 'kg' : 'lb',
                 controller: _weightCtrl,
                 onChanged: _onFieldChanged,
@@ -278,9 +325,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             const SizedBox(width: 12),
             Expanded(
               child: _StatField(
-                label: isMetric ? 'Height (cm)' : 'Height (in)',
-                hint: isMetric ? 'cm' : 'in',
-                controller: _heightCtrl,
+                label: isMetric ? 'Target Weight (kg)' : 'Target Weight (lb)',
+                hint: isMetric ? 'kg' : 'lb',
+                controller: _targetWeightCtrl,
                 onChanged: _onFieldChanged,
               ),
             ),
@@ -405,6 +452,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             _SettingsDivider(),
             _SettingsTile(
+              icon: Icons.palette_outlined,
+              label: 'App Colors',
+              trailing: _AppColorToggle(),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
               icon: Icons.mic_rounded,
               label: 'Voice / Rambler Language',
               trailing: Row(
@@ -428,6 +481,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             _SettingsDivider(),
             _SettingsTile(
+              icon: Icons.track_changes_rounded,
+              label: 'Goals & Targets',
+              trailing: Icon(
+                Icons.chevron_right,
+                color: context.hx.onSurfaceVariant,
+              ),
+              onTap: () => context.push('/goals'),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
               icon: Icons.health_and_safety_rounded,
               label: 'Health Integrations',
               trailing: Icon(
@@ -435,16 +498,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 color: context.hx.onSurfaceVariant,
               ),
               onTap: () => context.push('/health'),
-            ),
-            _SettingsDivider(),
-            _SettingsTile(
-              icon: Icons.fitness_center,
-              label: 'Assisted Rep Tracking',
-              trailing: Icon(
-                Icons.chevron_right,
-                color: context.hx.onSurfaceVariant,
-              ),
-              onTap: () => context.push('/rep-tracking-consent'),
             ),
             _SettingsDivider(),
             // Android-only: iOS has no system overlay windows, so the row is
@@ -1923,6 +1976,83 @@ class _ThemeToggle extends ConsumerWidget {
           onChanged: (newMode) {
             if (newMode != null) {
               ref.read(themeModeProvider.notifier).set(newMode);
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _AppColorToggle extends ConsumerWidget {
+  const _AppColorToggle();
+
+  static Color _previewColor(AppColorTheme theme) => switch (theme) {
+        AppColorTheme.classicBlue => const Color(0xFF0A84FF),
+        AppColorTheme.siriousBlack => const Color(0xFF27272A),
+        AppColorTheme.vividGreen => const Color(0xFF10B981),
+        AppColorTheme.sunnyYellow => const Color(0xFFF59E0B),
+        AppColorTheme.pinky => const Color(0xFFFF2D55),
+      };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeTheme = ref.watch(appColorThemeProvider);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      decoration: BoxDecoration(
+        color: context.hx.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.hx.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<AppColorTheme>(
+          value: activeTheme,
+          isDense: true,
+          icon: Icon(
+            Icons.arrow_drop_down_rounded,
+            color: context.hx.onSurfaceVariant,
+            size: 20,
+          ),
+          dropdownColor: context.hx.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: context.hx.onSurface,
+          ),
+          items: AppColorTheme.values.map((theme) {
+            return DropdownMenuItem(
+              value: theme,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: _previewColor(theme),
+                      shape: BoxShape.circle,
+                      border: theme == AppColorTheme.siriousBlack
+                          ? Border.all(
+                              color: context.hx.outlineVariant,
+                              width: 1,
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(theme.label),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (newTheme) {
+            if (newTheme != null) {
+              ref.read(appColorThemeProvider.notifier).set(newTheme);
             }
           },
         ),

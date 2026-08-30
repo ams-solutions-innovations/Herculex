@@ -139,4 +139,32 @@ class WorkoutStoreTest {
         val minted = resolveExerciseWireId(exObjWithoutWireId.optString("wireId"))
         assertTrue(minted.startsWith("watch_exercise_"))
     }
+
+    @Test
+    fun `ExerciseTemplate round trip preserves performanceHint and plannedSets`() {
+        val template = ExerciseTemplate(
+            name = "Incline Press",
+            targetSets = 3,
+            prevWeight = 60.0,
+            prevReps = 10,
+            performanceHint = "Next: 60.0 kg × 10",
+            plannedSets = listOf(
+                PlannedSet(
+                    wireId = "set_1",
+                    setIndex = 0,
+                    targetWeightKg = 60.0,
+                    targetReps = 10,
+                )
+            )
+        )
+        val json = ExerciseCatalog.toJson(template)
+        val parsed = ExerciseCatalog.parse(json)
+        assertEquals("Incline Press", parsed.name)
+        assertEquals(60.0, parsed.prevWeight, 0.001)
+        assertEquals(10, parsed.prevReps)
+        assertEquals("Next: 60.0 kg × 10", parsed.performanceHint)
+        assertEquals(1, parsed.plannedSets.size)
+        assertEquals(60.0, parsed.plannedSets[0].targetWeightKg!!, 0.001)
+        assertEquals(10, parsed.plannedSets[0].targetReps)
+    }
 }

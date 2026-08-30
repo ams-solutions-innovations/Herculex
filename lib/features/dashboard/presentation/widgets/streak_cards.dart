@@ -73,11 +73,11 @@ class _StreakPill extends StatelessWidget {
           return DashboardPill(
             onTap: onTap,
             color: color,
-            radius: 20,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -147,6 +147,7 @@ class _StreakPill extends StatelessWidget {
         return DashboardPill(
           onTap: onTap,
           color: color,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Row(
             children: [
               Container(
@@ -164,13 +165,21 @@ class _StreakPill extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(label,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      label,
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     if (streak.best > 0)
-                      Text('Best ${streak.best} $unit',
-                          style: theme.textTheme.labelSmall
-                              ?.copyWith(color: AppColors.secondary, fontSize: 10)),
+                      Text(
+                        'Best ${streak.best} $unit',
+                        style: theme.textTheme.labelSmall
+                            ?.copyWith(color: AppColors.secondary, fontSize: 10),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                   ],
                 ),
               ),

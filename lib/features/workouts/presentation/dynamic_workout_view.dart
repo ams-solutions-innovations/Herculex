@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/units.dart';
 import '../../../data/local/database.dart';
@@ -13,6 +14,8 @@ import '../../../theme/haptics.dart';
 import '../domain/equipment_variants.dart';
 import '../domain/logging_metric.dart';
 import '../domain/set_type.dart';
+import '../domain/set_type_meta.dart';
+import '../application/finish_workout_action.dart';
 import '../../gamification/presentation/gamification_providers.dart';
 import 'rest_timer_controller.dart';
 import 'workout_finish_view.dart';
@@ -47,6 +50,26 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  /// Dynamic mode used to open [WorkoutFinishView] without ever calling
+  /// `endSession`, so the session stayed active: the summary reported a `0m`
+  /// duration and fell back to the `sets.length * 2` calorie estimate, while
+  /// the live banner and the ongoing-workout notification kept running behind
+  /// the celebration screen. It now runs the same [FinishWorkoutAction] as
+  /// classic mode.
+  Future<void> _finishWorkout() async {
+    // Resolved before the first await — `endSession` disposes this widget the
+    // moment `activeSessionProvider` re-emits. See FinishWorkoutAction.
+    final finish = FinishWorkoutAction.resolve(ref);
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    final session = widget.session;
+
+    await finish.run(session: session);
+
+    if (!rootNavigator.mounted) return;
+    // ignore: use_build_context_synchronously
+    await WorkoutFinishView.show(rootNavigator.context, session.id);
   }
 
   void _goToExercise(int newIndex, List<WorkoutExerciseData> exercises) {
@@ -336,26 +359,39 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
 
           // Exercise Name
           if (catalogExercise != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                catalogExercise.name,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.displayMedium?.copyWith(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  height: 1.15,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              equipmentVariantLabel(we.equipmentVariant ?? catalogExercise.modality),
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.secondary,
-                fontWeight: FontWeight.w500,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Haptics.selection();
+                context.push('/exercise/${catalogExercise.id}');
+              },
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      catalogExercise.name,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.displayMedium?.copyWith(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        height: 1.15,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    equipmentVariantLabel(
+                      we.equipmentVariant ?? catalogExercise.modality,
+                    ),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -662,9 +698,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     }
 
     final theme = Theme.of(context);
-    final meta = set.setTypeMetaJson != null
-        ? jsonDecode(set.setTypeMetaJson!)
-        : <String, dynamic>{};
+    final meta = decodeSetTypeMeta(set.setTypeMetaJson);
 
     final List<int> extraItems;
     final String metaKey;
@@ -677,21 +711,19 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
       buttonLabel = 'Mini-Set';
       chipSuffix = 'reps';
       accentColor = AppColors.primary;
-      extraItems = (meta['miniSets'] as List<dynamic>?)?.cast<int>() ?? [];
+      extraItems = setTypeMetaInts(meta['miniSets']);
     } else if (setType == SetType.forced) {
       metaKey = 'extraReps';
       buttonLabel = 'Forced';
       chipSuffix = 'forced';
       accentColor = const Color(0xFFE53935);
-      final raw = meta['extraReps'] ?? meta['forcedReps'];
-      extraItems = raw is List ? raw.cast<int>() : (raw is num ? [raw.toInt()] : []);
+      extraItems = setTypeMetaInts(meta['extraReps'] ?? meta['forcedReps']);
     } else {
       metaKey = 'extraReps';
       buttonLabel = 'Cheat';
       chipSuffix = 'cheat';
       accentColor = const Color(0xFFFF7043);
-      final raw = meta['extraReps'] ?? meta['cheatReps'];
-      extraItems = raw is List ? raw.cast<int>() : (raw is num ? [raw.toInt()] : []);
+      extraItems = setTypeMetaInts(meta['extraReps'] ?? meta['cheatReps']);
     }
 
     return Container(
@@ -887,8 +919,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
               if (hasNextExercise) {
                 _goToExercise(_exerciseIndex + 1, exercises);
               } else {
-                // Workout fully completed, open finish sheet
-                WorkoutFinishView.show(context, widget.session.id);
+                _finishWorkout();
               }
             },
             child: Text(

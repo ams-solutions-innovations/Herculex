@@ -16,14 +16,21 @@ void main() {
 
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('reaches schema version 25', () async {
+  // The validation target is the *current* schema, not v25: `AppDatabase`
+  // always migrates all the way to its own `schemaVersion`, so
+  // `migrateAndValidate(db, 25)` compares a v34 database against the v25
+  // snapshot and can only fail. This line moves with every `schemaVersion`
+  // bump, exactly like `migration_test.dart`'s targets and the `newVersion`
+  // pairs in `schema_v26_test.dart` and friends. Every assertion in this file
+  // is about the v24 -> v25 step and survives the retarget.
+  test('a v24 database migrates through v25 to the current schema', () async {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 25);
+    await verifier.migrateAndValidate(db, 34);
 
     final row = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(row.data.values.first, 25);
+    expect(row.data.values.first, 34);
   });
 
   test(
@@ -32,7 +39,7 @@ void main() {
       final connection = await verifier.startAt(24);
       final db = AppDatabase.forTesting(connection);
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 25);
+      await verifier.migrateAndValidate(db, 34);
 
       // v24's generated fixture ships with no seed rows for `gyms`; insert
       // pre-migration-shaped rows directly to simulate an existing user.
@@ -62,7 +69,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 25);
+    await verifier.migrateAndValidate(db, 34);
 
     await db.into(db.gyms).insert(GymsCompanion.insert(name: 'New Gym'));
 
@@ -76,7 +83,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 25);
+    await verifier.migrateAndValidate(db, 34);
 
     // Column exists and is nullable/queryable post-migration — the v25
     // block must not have tried (and failed) to re-add it.

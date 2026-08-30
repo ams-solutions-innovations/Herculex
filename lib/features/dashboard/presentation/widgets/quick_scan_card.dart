@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../theme/colors.dart';
 import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
 import '../../../nutrition/presentation/food_picker_sheet.dart';
 import '../../../nutrition/presentation/quick_scan_food.dart';
+import 'dashboard_shared.dart';
+
 class QuickScanWidget extends ConsumerWidget {
   const QuickScanWidget({super.key});
 
@@ -17,26 +18,11 @@ class QuickScanWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final hx = context.hx;
     final accent = AppColors.primary;
 
-    return Container(
-      width: double.infinity,
+    return dashboardCard(
+      accent: accent,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            accent.withValues(alpha: hx.isDark ? 0.16 : 0.12),
-            hx.surfaceContainerLowest,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.3),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -55,25 +41,32 @@ class QuickScanWidget extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'QUICK FOOD SCAN',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                      fontSize: 10,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'QUICK FOOD SCAN',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                        fontSize: 10,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Text(
-                    'Scan product barcode to log food',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.secondary,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Scan product barcode to log food',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -81,14 +74,18 @@ class QuickScanWidget extends ConsumerWidget {
           Row(
             children: [
               Expanded(
+                flex: 3,
                 child: ElevatedButton.icon(
                   onPressed: () => _scan(context, ref),
                   icon: const Icon(Icons.camera_alt, size: 18),
-                  label: const Text('Scan Barcode'),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('Scan Barcode'),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -97,21 +94,27 @@ class QuickScanWidget extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () {
-                  final today = DateUtils.dateOnly(DateTime.now());
-                  FoodPickerSheet.show(context, date: today, mealKey: 'snack');
-                },
-                icon: const Icon(Icons.search, size: 18),
-                label: const Text('Search'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.onSurfaceVariant,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
+              Expanded(
+                flex: 2,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final today = DateUtils.dateOnly(DateTime.now());
+                    FoodPickerSheet.show(context, date: today, mealKey: 'snack');
+                  },
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('Search'),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.onSurfaceVariant,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 13,
+                      horizontal: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
               ),

@@ -1,6 +1,13 @@
 package com.ams.herculex.nutrition
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,9 +24,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +48,8 @@ import androidx.wear.compose.material.rememberPickerState
 import com.ams.herculex.sync.QuickAddFoodItem
 import com.ams.herculex.ui.OneUiPillStyle
 import com.ams.herculex.workout.attachRotaryScroll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /// Tap-to-log list of the user's recent/most-common foods, synced from the
@@ -118,41 +133,136 @@ private fun QuickAddFoodRow(
     onQuickAdd: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    Row(
+    val coroutineScope = rememberCoroutineScope()
+
+    var isAdded by remember { mutableStateOf(false) }
+    val pillScale = remember { Animatable(1f) }
+    val glowAlpha = remember { Animatable(0f) }
+    val buttonScale = remember { Animatable(1f) }
+
+    val containerColor by animateColorAsState(
+        targetValue = if (isAdded) Color(0xFF1B4D3E) else OneUiPillStyle.RoyalBlue.containerColor,
+        animationSpec = tween(durationMillis = 260),
+        label = "containerColor",
+    )
+    val badgeColor by animateColorAsState(
+        targetValue = if (isAdded) Color(0xFF00C853) else OneUiPillStyle.RoyalBlue.badgeColor,
+        animationSpec = tween(durationMillis = 260),
+        label = "badgeColor",
+    )
+
+    fun handleQuickAdd() {
+        if (isAdded) return
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        onQuickAdd()
+
+        coroutineScope.launch {
+            isAdded = true
+            launch {
+                glowAlpha.snapTo(1f)
+                glowAlpha.animateTo(
+                    0f,
+                    animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+                )
+            }
+            launch {
+                pillScale.animateTo(0.95f, animationSpec = tween(durationMillis = 70))
+                pillScale.animateTo(
+                    1.03f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium,
+                    ),
+                )
+                pillScale.animateTo(1f, animationSpec = tween(durationMillis = 140))
+            }
+            launch {
+                buttonScale.animateTo(0.7f, animationSpec = tween(durationMillis = 70))
+                buttonScale.animateTo(
+                    1.28f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioHighBouncy,
+                        stiffness = Spring.StiffnessMedium,
+                    ),
+                )
+                buttonScale.animateTo(1f, animationSpec = tween(durationMillis = 140))
+            }
+            delay(1100)
+            isAdded = false
+        }
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(OneUiPillStyle.RoyalBlue.containerColor, shape = CircleShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+            .graphicsLayer {
+                scaleX = pillScale.value
+                scaleY = pillScale.value
+            },
+        contentAlignment = Alignment.Center,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = food.name,
-                color = OneUiPillStyle.RoyalBlue.contentColor,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                maxLines = 1,
-            )
-            Text(
-                text = "${food.portionLabel} · ${food.kcal} kcal",
-                color = OneUiPillStyle.RoyalBlue.secondaryColor,
-                fontSize = 10.sp,
+        // Animated glowing ring/border pulse around the pill
+        if (glowAlpha.value > 0.01f) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .border(
+                        width = 2.5.dp,
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF00E676).copy(alpha = glowAlpha.value),
+                                Color(0xFF40C4FF).copy(alpha = glowAlpha.value),
+                                Color(0xFF69F0AE).copy(alpha = glowAlpha.value),
+                            ),
+                        ),
+                        shape = CircleShape,
+                    ),
             )
         }
-        Spacer(Modifier.size(8.dp))
-        Box(
+
+        Row(
             modifier = Modifier
-                .size(28.dp)
-                .background(OneUiPillStyle.RoyalBlue.badgeColor, shape = CircleShape)
-                .clickable {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onQuickAdd()
-                },
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .background(containerColor, shape = CircleShape)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("+", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = food.name,
+                    color = OneUiPillStyle.RoyalBlue.contentColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                )
+                Text(
+                    text = if (isAdded) "✓ Added" else "${food.portionLabel} · ${food.kcal} kcal",
+                    color = if (isAdded) Color(0xFFA5D6A7) else OneUiPillStyle.RoyalBlue.secondaryColor,
+                    fontSize = 10.sp,
+                    fontWeight = if (isAdded) FontWeight.SemiBold else FontWeight.Normal,
+                )
+            }
+            Spacer(Modifier.size(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .graphicsLayer {
+                        scaleX = buttonScale.value
+                        scaleY = buttonScale.value
+                    }
+                    .background(badgeColor, shape = CircleShape)
+                    .clickable { handleQuickAdd() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (isAdded) "✓" else "+",
+                    color = Color.White,
+                    fontSize = if (isAdded) 14.sp else 16.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
     }
 }

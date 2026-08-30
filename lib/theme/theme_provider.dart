@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../app/providers.dart';
 import 'colors.dart';
+import 'tokens/tokens.dart';
 
 final themeModeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
@@ -45,3 +46,29 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
     _applyBrightness(mode);
   }
 }
+
+final appColorThemeProvider =
+    StateNotifierProvider<AppColorThemeNotifier, AppColorTheme>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final saved = prefs.getString('app_color_theme') ?? 'classicBlue';
+  final initial = AppColorTheme.values.firstWhere(
+    (t) => t.name == saved,
+    orElse: () => AppColorTheme.classicBlue,
+  );
+
+  AppColors.colorTheme = initial;
+
+  return AppColorThemeNotifier(initial, prefs);
+});
+
+class AppColorThemeNotifier extends StateNotifier<AppColorTheme> {
+  AppColorThemeNotifier(super.initial, this._prefs);
+  final SharedPreferences _prefs;
+
+  void set(AppColorTheme theme) {
+    state = theme;
+    _prefs.setString('app_color_theme', theme.name);
+    AppColors.colorTheme = theme;
+  }
+}
+

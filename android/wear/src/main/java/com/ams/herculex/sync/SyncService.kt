@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.wear.tiles.TileService
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import com.ams.herculex.MainActivity
+import com.ams.herculex.complication.WearComplicationHelper
 import com.ams.herculex.complication.CaloriesComplicationService
 import com.ams.herculex.complication.CarbsComplicationService
 import com.ams.herculex.complication.FastingComplicationService
@@ -16,7 +17,9 @@ import com.ams.herculex.complication.FatsComplicationService
 import com.ams.herculex.complication.ProteinComplicationService
 import com.ams.herculex.complication.WeeklySetsComplicationService
 import com.ams.herculex.complication.WeeklyVolumeComplicationService
+import com.ams.herculex.tile.FastingTileService
 import com.ams.herculex.tile.MacrosTileService
+import com.ams.herculex.tile.WorkoutTileService
 import com.ams.herculex.workout.ExerciseCatalog
 import com.ams.herculex.workout.WorkoutOngoingService
 import com.ams.herculex.workout.WorkoutStore
@@ -54,6 +57,12 @@ class SyncService : WearableListenerService() {
 
     override fun onDataChanged(dataEvents: DataEventBuffer) {
         super.onDataChanged(dataEvents)
+
+        serviceScope.launch {
+            runCatching {
+                WearDataLayerSyncManager(applicationContext).flushPendingRealtimeMessages()
+            }
+        }
 
         for (event in dataEvents) {
             if (event.type != DataEvent.TYPE_CHANGED) continue
@@ -444,6 +453,7 @@ class SyncService : WearableListenerService() {
                 Log.e("SyncService", "Failed to clear watch active session state", e)
             }
         }
+        requestTileUpdate()
     }
 
     /// Stops [WorkoutOngoingService] (foreground notification + Ongoing
@@ -490,22 +500,10 @@ class SyncService : WearableListenerService() {
     }
 
     private fun requestComplicationUpdates() {
-        for (service in listOf(
-            CaloriesComplicationService::class.java,
-            ProteinComplicationService::class.java,
-            CarbsComplicationService::class.java,
-            FatsComplicationService::class.java,
-            FastingComplicationService::class.java,
-            WeeklyVolumeComplicationService::class.java,
-            WeeklySetsComplicationService::class.java,
-        )) {
-            ComplicationDataSourceUpdateRequester
-                .create(this, ComponentName(this, service))
-                .requestUpdateAll()
-        }
+        WearComplicationHelper.requestAllComplicationsUpdate(this)
     }
 
     private fun requestTileUpdate() {
-        TileService.getUpdater(this).requestUpdate(MacrosTileService::class.java)
+        WearComplicationHelper.requestAllComplicationsUpdate(this)
     }
 }

@@ -3,6 +3,7 @@ package com.ams.herculex.nutrition
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.ams.herculex.complication.WearComplicationHelper
 import com.ams.herculex.sync.FastingSnapshot
 import com.ams.herculex.sync.FastingStore
 import com.ams.herculex.sync.MacroStore
@@ -104,6 +105,9 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     fun refreshQuickAdd() {
         _quickAddItems.value = QuickAddStore.items(ctx())
         _quickAddMealSlots.value = QuickAddStore.mealSlots(ctx())
+        viewModelScope.launch {
+            runCatching { syncManager.flushPendingRealtimeMessages() }
+        }
     }
 
     /// Logs a quick-add item against [mealKey]: applies the macro delta
@@ -178,6 +182,7 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
     fun refresh() {
         _data.value  = loadData()
         _goals.value = loadGoals()
+        WearComplicationHelper.requestNutritionComplicationsUpdate(ctx())
     }
 
     fun startFast(targetSeconds: Long = 16L * 60L * 60L) {
@@ -190,6 +195,7 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
         val json = FastingStore.snapshotToJson(ctx(), localSnapshot)
         FastingStore.saveSnapshot(ctx(), json)
         _data.value = _data.value.copy(fastingSnapshot = localSnapshot)
+        WearComplicationHelper.requestFastingComplicationsUpdate(ctx())
         sendFastingCommand(FastingStore.createCommand("start", targetSeconds))
     }
 
@@ -202,6 +208,7 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
         val json = FastingStore.snapshotToJson(ctx(), localSnapshot)
         FastingStore.saveSnapshot(ctx(), json)
         _data.value = _data.value.copy(fastingSnapshot = localSnapshot)
+        WearComplicationHelper.requestFastingComplicationsUpdate(ctx())
         sendFastingCommand(FastingStore.createCommand("stop"))
     }
 

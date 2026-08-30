@@ -401,4 +401,60 @@ class TemplatesRepository {
       return sessionId;
     });
   }
+
+  /// Saves a completed workout session as a template.
+  Future<int> saveSessionAsTemplate(int sessionId, String templateName) async {
+    final session = await (_db.select(_db.workoutSessions)
+          ..where((t) => t.id.equals(sessionId)))
+        .getSingleOrNull();
+    
+    if (session == null) throw Exception('Session not found');
+
+    return _db.transaction(() async {
+      final templateId = await _db.into(_db.workoutTemplates).insert(
+            WorkoutTemplatesCompanion.insert(
+              name: templateName,
+              notes: session.notes != null ? Value(session.notes) : const Value.absent(),
+            ),
+          );
+
+      final exercises = await (_db.select(_db.workoutExercises)
+            ..where((t) => t.sessionId.equals(sessionId))
+            ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+          .get();
+
+      for (final we in exercises) {
+        final sets = await (_db.select(_db.setEntries)
+              ..where((t) => t.workoutExerciseId.equals(we.id))
+              ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
+            .get();
+
+        final teId = await _db.into(_db.templateExercises).insert(
+              TemplateExercisesCompanion.insert(
+                templateId: templateId,
+                exerciseId: we.exerciseId,
+                orderIndex: we.orderIndex,
+                targetSets: Value(sets.length),
+                supersetGroup: Value(we.supersetGroup),
+                targetRestSeconds: Value(we.targetRestSeconds),
+              ),
+            );
+
+        for (var i = 0; i < sets.length; i++) {
+          final s = sets[i];
+          await _db.into(_db.templateSets).insert(
+                TemplateSetsCompanion.insert(
+                  templateExerciseId: teId,
+                  setOrder: i + 1,
+                  setType: Value(s.setType ?? 'standard'),
+                  targetReps: Value(s.reps),
+                  targetWeightKg: Value(s.weightKg),
+                  isWarmup: Value(s.isWarmup ?? false),
+                ),
+              );
+        }
+      }
+      return templateId;
+    });
+  }
 }

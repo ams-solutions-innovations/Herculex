@@ -213,7 +213,8 @@
       "Bash(rm -f assets/images/exercises/*.png)",
       "Bash(python tool/import_exercise_artwork.py)",
       "Bash(adb -s adb-RFAWB1C5DZM-aVTHGC._adb-tls-connect._tcp shell dumpsys package com.ams.herculex)",
-      "Bash(adb -s R5CY12RLCWE shell dumpsys package com.ams.herculex)"
+      "Bash(adb -s R5CY12RLCWE shell dumpsys package com.ams.herculex)",
+      "Bash(git log *)"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",

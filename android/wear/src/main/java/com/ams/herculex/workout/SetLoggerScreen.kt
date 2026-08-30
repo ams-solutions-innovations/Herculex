@@ -132,6 +132,14 @@ fun SetLoggerScreen(
     val plannedOrCurrentSet = remember(exerciseIndex, exercise.sets) {
         exercise.sets.firstOrNull { !it.completed } ?: exercise.sets.lastOrNull()
     }
+    val currentSetIdx = if (exercise.sets.isNotEmpty()) {
+        val openIdx = exercise.sets.indexOfFirst { !it.completed }
+        if (openIdx >= 0) openIdx else (exercise.sets.size - 1)
+    } else 0
+
+    val currentPlannedSet = exercise.template.plannedSets.getOrNull(currentSetIdx)
+        ?: exercise.template.plannedSets.firstOrNull { it.setIndex == plannedOrCurrentSet?.setIndex }
+        ?: exercise.template.plannedSets.firstOrNull()
 
     var setType by remember(exerciseIndex, plannedOrCurrentSet?.setType, plannedOrCurrentSet?.isWarmup) {
         val plannedType = if (plannedOrCurrentSet?.isWarmup == true) {
@@ -160,29 +168,30 @@ fun SetLoggerScreen(
     val showsDistanceInWeightSlot = exercise.template.showsDistanceInWeightSlot()
     val showsDistanceInValueSlot = exercise.template.showsDistanceInValueSlot()
 
-    val initWeightIdx = remember(exerciseIndex, plannedOrCurrentSet?.weight) {
+    val initWeightIdx = remember(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.weight) {
         val initialWeight = plannedOrCurrentSet?.weight?.takeIf { it > 0 }
-            ?: exercise.template.plannedSets.firstOrNull { (it.targetWeightKg ?: 0.0) > 0 }?.targetWeightKg
+            ?: currentPlannedSet?.targetWeightKg?.takeIf { it > 0 }
             ?: exercise.template.prevWeight
         weightOptions.indexOfFirst { it >= initialWeight }.takeIf { it >= 0 } ?: 0
     }
-    val initRepsIdx = remember(exerciseIndex, plannedOrCurrentSet?.reps) {
+    val initRepsIdx = remember(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.reps) {
         val initialReps = plannedOrCurrentSet?.reps?.takeIf { it > 0 }
-            ?: exercise.template.plannedSets.firstOrNull { (it.targetReps ?: 0) > 0 }?.targetReps
+            ?: currentPlannedSet?.targetReps?.takeIf { it > 0 }
+            ?: currentPlannedSet?.targetRepsMin?.takeIf { it > 0 }
             ?: exercise.template.prevReps.takeIf { it > 0 }
-            ?: 0
+            ?: 10
         (initialReps - 1).coerceIn(0, repsOptions.size - 1)
     }
-    val initDurationIdx = remember(exerciseIndex, plannedOrCurrentSet?.durationSeconds) {
+    val initDurationIdx = remember(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.durationSeconds) {
         val initSec = plannedOrCurrentSet?.durationSeconds?.takeIf { it > 0 }
-            ?: exercise.template.plannedSets.firstOrNull { (it.durationSeconds ?: 0) > 0 }?.durationSeconds
+            ?: currentPlannedSet?.durationSeconds?.takeIf { it > 0 }
             ?: 30
         val idx = durationOptions.indexOfFirst { it >= initSec }
         if (idx >= 0) idx else (durationOptions.indexOfFirst { it >= 30 }.takeIf { it >= 0 } ?: 0)
     }
-    val initDistanceIdx = remember(exerciseIndex, plannedOrCurrentSet?.distanceMeters) {
+    val initDistanceIdx = remember(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.distanceMeters) {
         val initialDistance = plannedOrCurrentSet?.distanceMeters?.takeIf { it > 0 }
-            ?: exercise.template.plannedSets.firstOrNull { (it.targetDistanceMeters ?: 0.0) > 0 }?.targetDistanceMeters
+            ?: currentPlannedSet?.targetDistanceMeters?.takeIf { it > 0 }
             ?: 0.0
         distanceOptions.indexOfFirst { it >= initialDistance }.takeIf { it >= 0 } ?: 0
     }
@@ -226,9 +235,9 @@ fun SetLoggerScreen(
         }
     }
 
-    LaunchedEffect(exerciseIndex, plannedOrCurrentSet?.weight, plannedOrCurrentSet?.reps, plannedOrCurrentSet?.durationSeconds) {
+    LaunchedEffect(exerciseIndex, currentSetIdx, plannedOrCurrentSet?.weight, plannedOrCurrentSet?.reps, plannedOrCurrentSet?.durationSeconds, plannedOrCurrentSet?.distanceMeters) {
         val targetWeight = plannedOrCurrentSet?.weight?.takeIf { it > 0 }
-            ?: exercise.template.plannedSets.firstOrNull { (it.targetWeightKg ?: 0.0) > 0 }?.targetWeightKg
+            ?: currentPlannedSet?.targetWeightKg?.takeIf { it > 0 }
             ?: exercise.template.prevWeight
         val wIdx = weightOptions.indexOfFirst { it >= targetWeight }.takeIf { it >= 0 } ?: 0
         if (wIdx != weightState.selectedOption && wIdx in 0 until weightOptions.size) {
@@ -236,16 +245,17 @@ fun SetLoggerScreen(
         }
 
         val targetReps = plannedOrCurrentSet?.reps?.takeIf { it > 0 }
-            ?: exercise.template.plannedSets.firstOrNull { (it.targetReps ?: 0) > 0 }?.targetReps
+            ?: currentPlannedSet?.targetReps?.takeIf { it > 0 }
+            ?: currentPlannedSet?.targetRepsMin?.takeIf { it > 0 }
             ?: exercise.template.prevReps.takeIf { it > 0 }
-            ?: 0
+            ?: 10
         val rIdx = (targetReps - 1).coerceIn(0, repsOptions.size - 1)
         if (rIdx != repsState.selectedOption && rIdx in 0 until repsOptions.size) {
             repsState.scrollToOption(rIdx)
         }
 
         val targetDur = plannedOrCurrentSet?.durationSeconds?.takeIf { it > 0 }
-            ?: exercise.template.plannedSets.firstOrNull { (it.durationSeconds ?: 0) > 0 }?.durationSeconds
+            ?: currentPlannedSet?.durationSeconds?.takeIf { it > 0 }
             ?: 30
         val dIdx = durationOptions.indexOfFirst { it >= targetDur }.takeIf { it >= 0 } ?: 0
         if (dIdx != durationState.selectedOption && dIdx in 0 until durationOptions.size) {
@@ -253,7 +263,7 @@ fun SetLoggerScreen(
         }
 
         val targetDistance = plannedOrCurrentSet?.distanceMeters?.takeIf { it > 0 }
-            ?: exercise.template.plannedSets.firstOrNull { (it.targetDistanceMeters ?: 0.0) > 0 }?.targetDistanceMeters
+            ?: currentPlannedSet?.targetDistanceMeters?.takeIf { it > 0 }
             ?: 0.0
         val distIdx = distanceOptions.indexOfFirst { it >= targetDistance }.takeIf { it >= 0 } ?: 0
         if (distIdx != distanceState.selectedOption && distIdx in 0 until distanceOptions.size) {
@@ -276,11 +286,36 @@ fun SetLoggerScreen(
     }
     val setPickerFocus = remember { FocusRequester() }
 
-    val selectedWeight = weightOptions[weightState.selectedOption]
-    val selectedReps = repsOptions[repsState.selectedOption]
-    val selectedDuration = durationOptions[durationState.selectedOption]
-    val selectedDistance = distanceOptions[distanceState.selectedOption]
+    val selectedWeight = weightOptions.getOrNull(weightState.selectedOption) ?: 0.0
+    val selectedReps = repsOptions.getOrNull(repsState.selectedOption) ?: 1
+    val selectedDuration = durationOptions.getOrNull(durationState.selectedOption) ?: 30
+    val selectedDistance = distanceOptions.getOrNull(distanceState.selectedOption) ?: 0
     val prevWeight = "%.1f".format(exercise.template.prevWeight)
+
+    // Debounced outbound broadcast when user changes values on the watch pickers
+    LaunchedEffect(
+        exerciseIndex,
+        currentSetIdx,
+        selectedWeight,
+        selectedReps,
+        selectedDuration,
+        selectedDistance,
+        setType.id,
+    ) {
+        delay(300L)
+        if (plannedOrCurrentSet != null && !plannedOrCurrentSet.completed) {
+            viewModel.updateActiveSetValues(
+                exerciseIndex = exerciseIndex,
+                setIndex = currentSetIdx,
+                weight = selectedWeight,
+                reps = selectedReps,
+                durationSeconds = if (isTimeBased) selectedDuration else null,
+                distanceMeters = if (showsDistanceInWeightSlot || showsDistanceInValueSlot) selectedDistance.toDouble() else null,
+                setType = setType.id,
+                isWarmup = setType.id == "warmup",
+            )
+        }
+    }
 
     val horizontalPagerState = rememberPagerState(pageCount = { 3 })
     // Vertical pager on page 0: 0 = glance (swipe down), 1 = set logger (default), 2 = media controls (swipe up).
@@ -294,11 +329,20 @@ fun SetLoggerScreen(
 
     // NestedScrollConnection to intercept swipe-right on page 0 and trigger popBackStack()
     val nestedScrollConnection = remember {
+        var accumulatedX = 0f
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if ((horizontalPagerState.currentPage == 0 || verticalPagerState.currentPage != 1) && available.x > 25f && kotlin.math.abs(available.y) < available.x) {
-                    navController.popBackStack()
+                if ((horizontalPagerState.currentPage == 0 || verticalPagerState.currentPage != 1) && available.x > 0 && kotlin.math.abs(available.y) < available.x) {
+                    if (source == NestedScrollSource.Drag) {
+                        accumulatedX += available.x
+                        if (accumulatedX > 80f) {
+                            accumulatedX = -10000f // prevent multiple pops
+                            navController.popBackStack()
+                        }
+                    }
                     return available
+                } else {
+                    accumulatedX = 0f
                 }
                 return Offset.Zero
             }
@@ -704,16 +748,20 @@ fun SetLoggerScreen(
                                             .firstOrNull { (it.targetDistanceMeters ?: 0.0) > 0 }
                                             ?.targetDistanceMeters
                                             ?.let { "%.0f".format(it) } ?: "0"
-                                        val prevText = when {
-                                            isTimeBased && isBodyweight -> "prev. ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
-                                            showsDistanceInWeightSlot -> "prev. ${prevDistanceText}m x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
-                                            isTimeBased -> "prev. $prevWeight kg x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
-                                            isBodyweight -> "prev. BW x ${exercise.template.prevReps}"
-                                            showsDistanceInValueSlot && exercise.template.hasRealWeightSlot() -> "prev. $prevWeight kg x ${prevDistanceText}m"
-                                            showsDistanceInValueSlot -> "prev. ${prevDistanceText}m"
-                                            else -> "prev. $prevWeight kg x ${exercise.template.prevReps}"
+                                        val hintText = exercise.template.performanceHint
+                                            ?: when {
+                                                isTimeBased && isBodyweight -> "prev. ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
+                                                showsDistanceInWeightSlot -> "prev. ${prevDistanceText}m x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
+                                                isTimeBased -> "prev. $prevWeight kg x ${exercise.template.plannedSets.firstOrNull()?.durationSeconds?.let { formatDuration(it) } ?: "30s"}"
+                                                isBodyweight -> if (exercise.template.prevReps > 0) "prev. BW x ${exercise.template.prevReps}" else null
+                                                showsDistanceInValueSlot && exercise.template.hasRealWeightSlot() -> "prev. $prevWeight kg x ${prevDistanceText}m"
+                                                showsDistanceInValueSlot -> "prev. ${prevDistanceText}m"
+                                                exercise.template.prevWeight > 0 || exercise.template.prevReps > 0 -> "prev. $prevWeight kg x ${exercise.template.prevReps}"
+                                                else -> null
+                                            }
+                                        if (hintText != null) {
+                                            Text(hintText, color = Color(0xFF757575), fontSize = 10.sp)
                                         }
-                                        Text(prevText, color = Color(0xFF757575), fontSize = 10.sp)
                                     }
                                     
                                     Spacer(Modifier.height(4.dp))

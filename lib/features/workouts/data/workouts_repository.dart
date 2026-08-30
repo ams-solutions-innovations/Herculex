@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/clock.dart';
+import '../../../core/failures.dart';
 import '../../../data/local/database.dart';
 import '../../../data/local/exercise_biomechanics.dart';
 import '../../programs/domain/schedule_status.dart';
@@ -650,9 +651,17 @@ class WorkoutsRepository {
     )..where((t) => t.sessionId.equals(sessionId))).get();
     final nextIndex = existing.length;
 
+    // `exerciseId` is caller-supplied and can name a merged-away or removed
+    // catalogue row (exercise_merge remaps ids). `getSingle()` throws
+    // `StateError` on zero rows, and one reachable caller is the widget
+    // MethodChannel handler's unawaited post-frame callback — where the throw
+    // has no handler at all.
     final exercise = await (_db.select(
       _db.exerciseCatalog,
-    )..where((t) => t.id.equals(exerciseId))).getSingle();
+    )..where((t) => t.id.equals(exerciseId))).getSingleOrNull();
+    if (exercise == null) {
+      throw NotFoundFailure('No exercise in the catalogue with id $exerciseId');
+    }
 
     final workoutExerciseId = await _db
         .into(_db.workoutExercises)
@@ -714,9 +723,16 @@ class WorkoutsRepository {
     required String settingsJson,
     int? gymId,
   }) async {
+    // Concurrent removal of the exercise (watch sync, buddy apply) makes
+    // `getSingle()` throw rather than return nothing.
     final we = await (_db.select(
       _db.workoutExercises,
-    )..where((t) => t.id.equals(workoutExerciseId))).getSingle();
+    )..where((t) => t.id.equals(workoutExerciseId))).getSingleOrNull();
+    if (we == null) {
+      throw NotFoundFailure(
+        'No workout exercise with id $workoutExerciseId',
+      );
+    }
     await _db.transaction(() async {
       await (_db.update(
         _db.workoutExercises,
@@ -1021,6 +1037,46 @@ class WorkoutsRepository {
     });
   }
 
+  Future<List<SetBandData>> bandsForSet(int setId) {
+    return (_db.select(_db.setBands)..where((t) => t.setEntryId.equals(setId)))
+        .get();
+  }
+
+  Future<List<SetAccessoryData>> accessoriesForSet(int setId) {
+    return (_db.select(_db.setAccessories)
+          ..where((t) => t.setEntryId.equals(setId)))
+        .get();
+  }
+
+  Future<void> restoreSet(
+    SetEntryData set, {
+    List<SetBandData>? bands,
+    List<SetAccessoryData>? accessories,
+  }) async {
+    await _db.transaction(() async {
+      final newSetId = await _db.into(_db.setEntries).insert(
+            set.toCompanion(false),
+            mode: InsertMode.insertOrReplace,
+          );
+      if (bands != null && bands.isNotEmpty) {
+        for (final b in bands) {
+          await _db.into(_db.setBands).insert(
+                b.copyWith(setEntryId: newSetId).toCompanion(false),
+                mode: InsertMode.insertOrReplace,
+              );
+        }
+      }
+      if (accessories != null && accessories.isNotEmpty) {
+        for (final a in accessories) {
+          await _db.into(_db.setAccessories).insert(
+                a.copyWith(setEntryId: newSetId).toCompanion(false),
+                mode: InsertMode.insertOrReplace,
+              );
+        }
+      }
+    });
+  }
+
   // ── Performance lookups ────────────────────────────────────────────────
 
   /// All sets from the most recent *completed* session that included this exercise.
@@ -1108,5 +1164,31 @@ class WorkoutsRepository {
     return recent
         .map((row) => row.read(_db.workoutExercises.exerciseId)!)
         .toSet();
+  }
+
+  /// Map of exerciseId -> number of times logged across all completed workouts.
+  Future<Map<int, int>> getExerciseUsageCounts() async {
+    final rows = await (_db.selectOnly(_db.workoutExercises)
+          ..addColumns([
+            _db.workoutExercises.exerciseId,
+            _db.workoutExercises.id.count(),
+          ])
+          ..join([
+            innerJoin(
+              _db.workoutSessions,
+              _db.workoutSessions.id.equalsExp(
+                _db.workoutExercises.sessionId,
+              ),
+            ),
+          ])
+          ..where(_db.workoutSessions.endedAt.isNotNull())
+          ..groupBy([_db.workoutExercises.exerciseId]))
+        .get();
+
+    return {
+      for (final row in rows)
+        row.read(_db.workoutExercises.exerciseId)!:
+            row.read(_db.workoutExercises.id.count()) ?? 0,
+    };
   }
 }

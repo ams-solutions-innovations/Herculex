@@ -17,7 +17,7 @@ class GoalsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider).asData?.value;
     final startingWeight = ref.watch(startingWeightProvider);
-    final goalWeight = ref.watch(goalWeightProvider);
+    final goalWeight = ref.watch(goalWeightProvider) ?? profile?.targetWeightKg;
     final weeklyGoal = ref.watch(weeklyGoalProvider);
     final fitnessGoals = ref.watch(fitnessGoalsProvider);
     final showNetCarbs = ref.watch(showNetCarbsByMealProvider);
@@ -214,9 +214,17 @@ class GoalsView extends ConsumerWidget {
         title: 'Goal Weight',
         controller: ctrl,
         hint: 'e.g. 75.0',
-        onSave: (v) {
+        onSave: (v) async {
           final kg = double.tryParse(v);
-          if (kg != null) ref.read(goalWeightProvider.notifier).set(kg);
+          if (kg != null) {
+            ref.read(goalWeightProvider.notifier).set(kg);
+            final profile = ref.read(profileProvider).asData?.value;
+            if (profile != null) {
+              await ref
+                  .read(localProfileRepositoryProvider)
+                  .save(profile.copyWith(targetWeightKg: kg));
+            }
+          }
         },
       ),
     );

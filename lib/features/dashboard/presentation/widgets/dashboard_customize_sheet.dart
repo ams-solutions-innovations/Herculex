@@ -19,6 +19,8 @@ class DashboardCustomizeSheet extends ConsumerWidget {
     final hx = context.hx;
     final config = ref.watch(dashboardConfigProvider);
     final notifier = ref.read(dashboardConfigProvider.notifier);
+    final cardShape = ref.watch(dashboardCardShapeProvider);
+    final shapeNotifier = ref.read(dashboardCardShapeProvider.notifier);
     final macroConfig = ref.watch(macroCardPrefsProvider);
     final macroNotifier = ref.read(macroCardPrefsProvider.notifier);
     final macrosVisible = config.widgets.any(
@@ -55,20 +57,29 @@ class DashboardCustomizeSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Drag to reorder · toggle to show/hide · manage stacks',
+              'Reorder · toggle widgets · customize shapes · manage stacks',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: AppColors.secondary),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Expanded(
               child: CustomScrollView(
                 controller: controller,
                 slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: _ShapeSelectorCard(
+                        selectedShape: cardShape,
+                        onSelect: (shape) => shapeNotifier.setShape(shape),
+                      ),
+                    ),
+                  ),
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     sliver: SliverReorderableList(
                       itemCount: config.widgets.length,
-                      onReorder: (oldIdx, newIdx) {
+                      onReorderItem: (oldIdx, newIdx) {
                         Haptics.selection();
                         notifier.reorder(oldIdx, newIdx);
                       },
@@ -143,7 +154,7 @@ class DashboardCustomizeSheet extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                       sliver: SliverReorderableList(
                         itemCount: macroConfig.entries.length,
-                        onReorder: (oldIdx, newIdx) {
+                        onReorderItem: (oldIdx, newIdx) {
                           Haptics.selection();
                           macroNotifier.reorder(oldIdx, newIdx);
                         },
@@ -472,6 +483,165 @@ class _StackSlotCard extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Shape selection card in customize dashboard bottom sheet.
+class _ShapeSelectorCard extends StatelessWidget {
+  const _ShapeSelectorCard({
+    required this.selectedShape,
+    required this.onSelect,
+  });
+
+  final DashboardCardShape selectedShape;
+  final ValueChanged<DashboardCardShape> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hx = context.hx;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: hx.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: hx.outlineVariant.withValues(alpha: 0.25),
+        ),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: hx.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.category_outlined, size: 16, color: hx.primary),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'WIDGET SHAPE',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.secondary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose corner styling for cards and compact pill widgets.',
+            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              for (final shape in DashboardCardShape.values)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: _ShapeOptionChip(
+                      shape: shape,
+                      isSelected: shape == selectedShape,
+                      onTap: () {
+                        Haptics.selection();
+                        onSelect(shape);
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShapeOptionChip extends StatelessWidget {
+  const _ShapeOptionChip({
+    required this.shape,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final DashboardCardShape shape;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    final icon = switch (shape) {
+      DashboardCardShape.squircle => Icons.crop_square_rounded,
+      DashboardCardShape.pill => Icons.linear_scale_rounded,
+      DashboardCardShape.compact => Icons.rounded_corner_rounded,
+    };
+
+    final subtitle = switch (shape) {
+      DashboardCardShape.squircle => 'Squircle',
+      DashboardCardShape.pill => 'Capsule',
+      DashboardCardShape.compact => '16px',
+    };
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: HxMotion.base,
+        curve: HxMotion.emphasized,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? hx.primary.withValues(alpha: 0.15)
+              : hx.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? hx.primary
+                : hx.outlineVariant.withValues(alpha: 0.3),
+            width: isSelected ? 1.8 : 1.0,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected ? hx.primary : AppColors.secondary,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              shape.label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected ? hx.primary : null,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 10,
+                color: isSelected ? hx.primary.withValues(alpha: 0.8) : AppColors.secondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

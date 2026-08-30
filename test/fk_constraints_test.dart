@@ -32,13 +32,18 @@ class _FkEdge {
 
 /// The full, hard-coded inventory of every foreign key declared in
 /// `lib/data/local/tables.dart` (emitted in `database.g.dart`), captured by
-/// `PRAGMA foreign_key_list` against a freshly-migrated database. 20 CASCADE
-/// + 10 RESTRICT + 8 SET NULL = 38 edges. Any future `tables.dart` edit that
+/// `PRAGMA foreign_key_list` against a freshly-migrated database. 21 CASCADE
+/// + 11 RESTRICT + 8 SET NULL = 40 edges. Any future `tables.dart` edit that
 /// adds, removes, or changes the `onDelete` action of an edge must update
 /// this list deliberately — that is the point of the test.
 const _expectedEdges = <_FkEdge>[
   _FkEdge('buddy_sessions_local', 'workout_session_id', 'workout_sessions', 'id', 'CASCADE'),
   _FkEdge('buddy_choreography_slots', 'workout_exercise_id', 'workout_exercises', 'id', 'CASCADE'),
+  // Schema v34 (circuits). Mirrors workout_exercises: cascade from the
+  // owning circuit, restrict from the catalogue so a referenced exercise
+  // cannot be deleted out from under a circuit.
+  _FkEdge('circuit_exercises', 'circuit_id', 'workout_circuits', 'id', 'CASCADE'),
+  _FkEdge('circuit_exercises', 'exercise_id', 'exercise_catalog', 'id', 'RESTRICT'),
   _FkEdge('exercise_aliases', 'exercise_id', 'exercise_catalog', 'id', 'CASCADE'),
   _FkEdge('exercise_muscles', 'exercise_id', 'exercise_catalog', 'id', 'CASCADE'),
   _FkEdge('exercise_progressions', 'exercise_id', 'exercise_catalog', 'id', 'CASCADE'),
@@ -129,13 +134,13 @@ void main() {
     expect(actualEdges.toSet(), _expectedEdges.toSet());
   });
 
-  test('edge action counts are 20 CASCADE / 10 RESTRICT / 8 SET NULL', () {
+  test('edge action counts are 21 CASCADE / 11 RESTRICT / 8 SET NULL', () {
     final byAction = <String, int>{};
     for (final edge in _expectedEdges) {
       byAction[edge.onDelete] = (byAction[edge.onDelete] ?? 0) + 1;
     }
-    expect(byAction['CASCADE'], 20);
-    expect(byAction['RESTRICT'], 10);
+    expect(byAction['CASCADE'], 21);
+    expect(byAction['RESTRICT'], 11);
     expect(byAction['SET NULL'], 8);
   });
 

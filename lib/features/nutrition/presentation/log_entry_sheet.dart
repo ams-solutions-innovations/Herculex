@@ -185,12 +185,11 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       );
       _selectedUnit = _defaultUnit;
     }
-    _quantity.addListener(() => setState(() {}));
   }
 
   /// Portion size × servings, in the selected unit.
   double get _totalAmount {
-    final portion = double.tryParse(_quantity.text.trim()) ?? 0;
+    final portion = double.tryParse(_quantity.text.trim().replaceAll(',', '.')) ?? 0;
     return portion * _servings;
   }
 
@@ -211,8 +210,16 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   }
 
   Future<void> _save() async {
-    final total = _totalAmount;
-    if (total <= 0) return;
+    final textVal = _quantity.text.trim().replaceAll(',', '.');
+    final parsed = double.tryParse(textVal);
+    if (parsed == null || parsed <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+    
+    final total = parsed * _servings;
     Haptics.success();
     setState(() => _saving = true);
     final repo = ref.read(nutritionRepositoryProvider);
@@ -801,16 +808,20 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                   value: _fmtAmount(_servings),
                   onTap: () => _showServingsPicker(context),
                 ),
-                _SettingsRow(
-                  label: 'Serving Size',
-                  value:
-                      '${_quantity.text.isEmpty ? '0' : _quantity.text} ${isFood ? _selectedUnit : 'servings'}',
-                  showDivider: timestampEnabled,
-                  onTap: () => _showServingSizePicker(
-                    context,
-                    isFood,
-                    availableUnits,
-                  ),
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _quantity,
+                  builder: (context, val, child) {
+                    return _SettingsRow(
+                      label: 'Serving Size',
+                      value: '${val.text.isEmpty ? '0' : val.text} ${isFood ? _selectedUnit : 'servings'}',
+                      showDivider: timestampEnabled,
+                      onTap: () => _showServingSizePicker(
+                        context,
+                        isFood,
+                        availableUnits,
+                      ),
+                    );
+                  },
                 ),
                 if (timestampEnabled)
                   _SettingsRow(
@@ -846,12 +857,17 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
           ],
 
           // ── Nutrition Breakdown & Goals Preview ────────────────────────────
-          _NutritionPreview(
-            food: widget.food,
-            recipe: widget.recipe,
-            amount: _totalAmount,
-            unit: isFood ? _selectedUnit : 'servings',
-            date: widget.date,
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _quantity,
+            builder: (context, _, __) {
+              return _NutritionPreview(
+                food: widget.food,
+                recipe: widget.recipe,
+                amount: _totalAmount,
+                unit: isFood ? _selectedUnit : 'servings',
+                date: widget.date,
+              );
+            },
           ),
         ],
       ),

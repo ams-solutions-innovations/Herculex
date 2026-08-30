@@ -27,13 +27,16 @@ class InAppNotificationHost extends ConsumerWidget {
             top: 0,
             left: 0,
             right: 0,
-            child: _InAppNotificationBanner(
-              key: ValueKey(state.current!.id),
-              item: state.current!,
-              isDismissing: state.isDismissing,
-              onDismiss: () => ref
-                  .read(inAppNotificationControllerProvider.notifier)
-                  .dismiss(),
+            child: Material(
+              type: MaterialType.transparency,
+              child: _InAppNotificationBanner(
+                key: ValueKey(state.current!.id),
+                item: state.current!,
+                isDismissing: state.isDismissing,
+                onDismiss: () => ref
+                    .read(inAppNotificationControllerProvider.notifier)
+                    .dismiss(),
+              ),
             ),
           ),
       ],
@@ -57,6 +60,7 @@ const _kLabelStyle = TextStyle(
   letterSpacing: 0.1,
   height: 1.0,
   color: Color(0xFF94A3B8),
+  decoration: TextDecoration.none,
 );
 const _kValueStyle = TextStyle(
   fontFamily: AppTheme.fontDisplay,
@@ -65,12 +69,14 @@ const _kValueStyle = TextStyle(
   letterSpacing: -0.3,
   height: 1.0,
   color: Colors.white,
+  decoration: TextDecoration.none,
 );
 const _kDeltaBaseStyle = TextStyle(
   fontFamily: AppTheme.fontBody,
   fontWeight: FontWeight.w700,
   fontSize: 11.5,
   height: 1.0,
+  decoration: TextDecoration.none,
 );
 
 class _InAppNotificationBanner extends StatefulWidget {

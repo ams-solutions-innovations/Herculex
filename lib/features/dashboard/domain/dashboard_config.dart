@@ -7,6 +7,35 @@ enum DashboardWidgetKind {
   large;
 }
 
+/// User-selectable shape style for dashboard widgets and pills.
+enum DashboardCardShape {
+  /// Modern squircle (28px radius) standardizing all cards and pills into a cohesive layout.
+  squircle('squircle', 'Squircle', 28.0),
+
+  /// Classic capsule pill (999px for pill-type widgets, 28px for standard cards).
+  pill('pill', 'Pill', 999.0),
+
+  /// Subtle compact rounded corners (16px).
+  compact('compact', 'Compact', 16.0);
+
+  const DashboardCardShape(this.id, this.label, this.pillRadius);
+  final String id;
+  final String label;
+  final double pillRadius;
+
+  double get cardRadius => switch (this) {
+        DashboardCardShape.compact => 16.0,
+        _ => 28.0,
+      };
+
+  static DashboardCardShape fromId(String? id) {
+    for (final shape in values) {
+      if (shape.id == id) return shape;
+    }
+    return DashboardCardShape.squircle;
+  }
+}
+
 /// Grid footprint of a dashboard slot: half (1 of 2 columns) or full (both).
 enum DashboardWidgetSize {
   half,
@@ -26,7 +55,6 @@ enum DashboardWidgetType {
   cnsLoad('cns_load', 'CNS Load'),
   weeklyVolume('weekly_volume', 'Weekly Volume'),
   latestPrs('latest_prs', 'Latest PRs'),
-  bodyweight('bodyweight', 'Bodyweight'),
   cycle('cycle', 'Cycle'),
   quickScan('quick_scan', 'Quick Food Scan'),
   supplements('supplements', 'Supplements Tracker'),
@@ -51,7 +79,6 @@ enum DashboardWidgetType {
         DashboardWidgetType.cnsLoad => Icons.bolt_outlined,
         DashboardWidgetType.weeklyVolume => Icons.bar_chart_outlined,
         DashboardWidgetType.latestPrs => Icons.emoji_events_outlined,
-        DashboardWidgetType.bodyweight => Icons.scale_outlined,
         DashboardWidgetType.cycle => Icons.water_drop_outlined,
         DashboardWidgetType.quickScan => Icons.document_scanner_outlined,
         DashboardWidgetType.supplements => Icons.medication_outlined,
@@ -62,19 +89,26 @@ enum DashboardWidgetType {
 
   /// Widget shape classification for stack compatibility.
   DashboardWidgetKind get kind => switch (this) {
+        DashboardWidgetType.cnsLoad ||
+        DashboardWidgetType.weeklyVolume ||
+        DashboardWidgetType.nutritionStreak ||
+        DashboardWidgetType.workoutStreak =>
+          DashboardWidgetKind.pill,
         DashboardWidgetType.calorieTrends ||
         DashboardWidgetType.bodyweightTrends ||
         DashboardWidgetType.recoverySummary ||
-        DashboardWidgetType.cnsLoad ||
-        DashboardWidgetType.weeklyVolume ||
-        DashboardWidgetType.latestPrs =>
+        DashboardWidgetType.latestPrs ||
+        DashboardWidgetType.remainingCalories ||
+        DashboardWidgetType.quickScan ||
+        DashboardWidgetType.cycle =>
           DashboardWidgetKind.card,
+        DashboardWidgetType.fastingTimer ||
         DashboardWidgetType.macros ||
         DashboardWidgetType.todaysPlan ||
         DashboardWidgetType.miniWorkouts ||
-        DashboardWidgetType.workoutCalendar =>
+        DashboardWidgetType.workoutCalendar ||
+        DashboardWidgetType.supplements =>
           DashboardWidgetKind.large,
-        _ => DashboardWidgetKind.pill,
       };
 
   /// Whether this widget's layout tolerates shrinking to half the dashboard
@@ -85,8 +119,8 @@ enum DashboardWidgetType {
         DashboardWidgetType.bodyweightTrends ||
         DashboardWidgetType.recoverySummary ||
         DashboardWidgetType.cnsLoad ||
+        DashboardWidgetType.weeklyVolume ||
         DashboardWidgetType.latestPrs ||
-        DashboardWidgetType.bodyweight ||
         DashboardWidgetType.remainingCalories ||
         DashboardWidgetType.nutritionStreak ||
         DashboardWidgetType.workoutStreak =>
@@ -119,9 +153,7 @@ class DashboardWidgetConfig {
   DashboardWidgetType get type => types.first;
   bool get isStack => types.length > 1;
   String get id => types.map((t) => t.id).join('+');
-  String get label =>
-      isStack ? types.map((t) => t.label).join(' & ') : type.label;
-
+  
   /// Resolved grid span, clamped to full for stacks and non-resizable types
   /// regardless of what [size] happens to hold.
   DashboardWidgetSize get effectiveSize =>
@@ -167,21 +199,10 @@ class DashboardConfig {
     DashboardWidgetConfig([DashboardWidgetType.cnsLoad], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.weeklyVolume], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.latestPrs], visible: false),
-    DashboardWidgetConfig([DashboardWidgetType.bodyweight], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.nutritionStreak], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.workoutStreak], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.cycle]),
   ]);
-
-  List<DashboardWidgetConfig> get visibleWidgets =>
-      [for (final w in widgets) if (w.visible) w];
-
-  DashboardConfig toggle(DashboardWidgetType type, bool visible) {
-    return DashboardConfig([
-      for (final w in widgets)
-        if (w.types.contains(type)) w.copyWith(visible: visible) else w,
-    ]);
-  }
 
   DashboardConfig toggleSlot(int index, bool visible) {
     if (index < 0 || index >= widgets.length) return this;
@@ -244,19 +265,6 @@ class DashboardConfig {
         list.add(w);
       }
     }
-    return DashboardConfig(list);
-  }
-
-  /// Reorders widgets inside a single stacked slot.
-  DashboardConfig reorderInStack(int slotIndex, int oldIndex, int newIndex) {
-    if (slotIndex < 0 || slotIndex >= widgets.length) return this;
-    final slot = widgets[slotIndex];
-    if (!slot.isStack) return this;
-    final innerList = [...slot.types];
-    final item = innerList.removeAt(oldIndex);
-    innerList.insert(newIndex.clamp(0, innerList.length), item);
-    final list = [...widgets];
-    list[slotIndex] = slot.copyWith(types: innerList);
     return DashboardConfig(list);
   }
 

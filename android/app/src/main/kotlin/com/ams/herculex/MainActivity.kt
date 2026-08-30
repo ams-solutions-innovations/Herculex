@@ -496,16 +496,16 @@ class MainActivity : FlutterFragmentActivity() {
                 "onWatchWorkoutStarted",
                 mapOf("session_json" to sessionJson, "jump_to_workout" to jump)
             )
-            return
+        } else {
+            val storedSessionJson = PhoneWearListenerService.pendingWatchWorkout(applicationContext)
+            if (storedSessionJson != null) {
+                methodChannel?.invokeMethod(
+                    "onWatchWorkoutUpdated",
+                    mapOf("session_json" to storedSessionJson)
+                )
+            }
         }
 
-        val storedSessionJson = PhoneWearListenerService.pendingWatchWorkout(applicationContext)
-        if (storedSessionJson != null) {
-            methodChannel?.invokeMethod(
-                "onWatchWorkoutUpdated",
-                mapOf("session_json" to storedSessionJson)
-            )
-        }
         for (commandJson in PhoneWearListenerService.pendingFastingCommands(applicationContext)) {
             methodChannel?.invokeMethod(
                 "onWatchFastingCommand",

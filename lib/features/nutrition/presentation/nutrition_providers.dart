@@ -325,11 +325,12 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   Future<void> syncFastingToWear() async {
     final repo = ref.read(fastingRepositoryProvider);
     final session = await repo.activeSession();
+    final lastSession = session == null ? (await repo.history(limit: 1)).firstOrNull : null;
     final revision = ref.read(wearSyncRevisionAllocatorProvider).next();
     await ref
         .read(wearSyncServiceProvider)
         .syncFastingSnapshot(
-          encodeFastingSnapshot(session: session, revision: revision),
+          encodeFastingSnapshot(session: session, lastSession: lastSession, revision: revision),
         );
   }
 
@@ -436,6 +437,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           .read(wearSyncServiceProvider)
           .markWatchFastingCommandApplied(commandId);
       await syncFastingToWear();
+      ref.read(syncServiceProvider).pushOnce().catchError((_) {});
     } catch (_) {
       // Keep the native pending command until a later retry succeeds. Since
       // commandId is only added to appliedFastingCommands after a
@@ -480,6 +482,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           .read(wearSyncServiceProvider)
           .markWatchQuickAddCommandApplied(commandId);
       await syncAllToWear();
+      ref.read(syncServiceProvider).pushOnce().catchError((_) {});
     } catch (_) {
       // Keep the native pending command until a later retry succeeds. Since
       // commandId is only added to appliedQuickAddCommands after a
@@ -566,6 +569,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           .read(wearSyncServiceProvider)
           .markWatchMacroCommandApplied(commandId);
       await syncAllToWear();
+      ref.read(syncServiceProvider).pushOnce().catchError((_) {});
     } catch (_) {
       // Keep the native pending command until a later retry succeeds. Since
       // commandId is only added to appliedMacroCommands after a successful
@@ -628,6 +632,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           .read(wearSyncServiceProvider)
           .markWatchRamblerCommandApplied(commandId);
       await syncAllToWear();
+      ref.read(syncServiceProvider).pushOnce().catchError((_) {});
     } catch (e) {
       debugPrint('Error processing watch rambler command: $e');
     }
@@ -782,6 +787,7 @@ final nutritionHistoryProvider =
     });
 
 /// Provider for 7-day average intake of a specific macro ('kcal', 'protein', 'carbs', 'fat').
+/// Excludes today (in-progress day) and computes average across the past 7 completed days.
 final averageWeeklyMacroProvider =
     Provider.autoDispose.family<double?, String>((ref, macro) {
   final history = ref.watch(nutritionHistoryProvider).asData?.value;
@@ -793,7 +799,7 @@ final averageWeeklyMacroProvider =
   double total = 0;
   int count = 0;
 
-  for (int i = 0; i < 7; i++) {
+  for (int i = 1; i <= 7; i++) {
     final d = today.subtract(Duration(days: i));
     final iso = DateFormat('yyyy-MM-dd').format(d);
     if (history.containsKey(iso)) {

@@ -70,6 +70,17 @@ class AdminDashboardView extends ConsumerWidget {
           const SizedBox(height: 32),
           Divider(color: Colors.grey.withValues(alpha: 0.2)),
           const SizedBox(height: 32),
+          Text("Diagnostics", style: theme.textTheme.displayMedium),
+          const SizedBox(height: 16),
+          _buildActionCard(
+            context: context,
+            title: "Error Log",
+            icon: Icons.bug_report_outlined,
+            onTap: () => context.push('/diagnostics/errors'),
+          ),
+          const SizedBox(height: 32),
+          Divider(color: Colors.grey.withValues(alpha: 0.2)),
+          const SizedBox(height: 32),
           Text("App Previews", style: theme.textTheme.displayMedium),
           const SizedBox(height: 16),
           _buildActionCard(

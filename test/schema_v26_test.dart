@@ -12,7 +12,7 @@ import 'package:herculex/data/local/database.dart';
 
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v25.dart' as v25;
-import 'generated_migrations/schema_v31.dart' as v31;
+import 'generated_migrations/schema_v34.dart' as v34;
 
 /// The three tables the v26 step creates. Local-only by design (REP-04).
 const _repTables = <String>{
@@ -50,9 +50,9 @@ void main() {
         // pre-existing `gyms` row is untouched. The same trap is waiting for
         // `schema_v27_test.dart` the day anything adds a column to
         // `fasting_schedules`.
-        newVersion: 31,
+        newVersion: 34,
         createOld: v25.DatabaseAtV25.new,
-        createNew: v31.DatabaseAtV31.new,
+        createNew: v34.DatabaseAtV34.new,
         openTestedDatabase: AppDatabase.forTesting,
         createItems: (batch, oldDb) {
           // `gyms` is untouched by v26; it is the canary proving the

@@ -213,7 +213,12 @@ class _TrendChart extends StatelessWidget {
           child: LineChart(
             LineChartData(
               minX: 0,
-              maxX: (points.length - 1).toDouble(),
+              // Never 0: with a single completed session `minX == maxX`, and
+              // fl_chart's x-normalisation divides by `(maxX - minX)` — the
+              // resulting NaN offsets fail a RenderBox assertion. Every user
+              // hits this the first time they open exercise details after one
+              // workout.
+              maxX: points.length > 1 ? (points.length - 1).toDouble() : 1.0,
               minY: (minValue - padding).clamp(0, double.infinity).toDouble(),
               maxY: maxValue + padding,
               gridData: FlGridData(

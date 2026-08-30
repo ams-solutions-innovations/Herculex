@@ -10,6 +10,7 @@ enum VolumeTimeframe {
   thisWeek('This Week'),
   last7Days('Last 7 Days'),
   last30Days('Last 30 Days'),
+  last90Days('Last 90 Days'),
   thisMonth('This Month'),
   allTime('All Time');
 
@@ -28,6 +29,10 @@ enum VolumeTimeframe {
       case VolumeTimeframe.last30Days:
         final start = DateTime(asOf.year, asOf.month, asOf.day)
             .subtract(const Duration(days: 30));
+        return (start, asOf);
+      case VolumeTimeframe.last90Days:
+        final start = DateTime(asOf.year, asOf.month, asOf.day)
+            .subtract(const Duration(days: 90));
         return (start, asOf);
       case VolumeTimeframe.thisMonth:
         final start = DateTime(asOf.year, asOf.month, 1);
@@ -87,6 +92,10 @@ class MuscleGroupOverviewItem {
     required this.lastTrained,
     required this.percentageOfMax,
   });
+
+  double weeklySets(double weeks) => sets / (weeks <= 0 ? 1.0 : weeks);
+  double weeklyTonnageKg(double weeks) => tonnageKg / (weeks <= 0 ? 1.0 : weeks);
+  double weeklyWorkouts(double weeks) => workoutCount / (weeks <= 0 ? 1.0 : weeks);
 }
 
 /// Aggregated volume overview across all muscle groups.
@@ -110,6 +119,36 @@ class MuscleVolumeOverviewData {
     required this.totalExercises,
     required this.groups,
   });
+
+  double get weeksCount {
+    switch (timeframe) {
+      case VolumeTimeframe.thisWeek:
+      case VolumeTimeframe.last7Days:
+        return 1.0;
+      case VolumeTimeframe.last30Days:
+        return 30.0 / 7.0;
+      case VolumeTimeframe.last90Days:
+        return 90.0 / 7.0;
+      case VolumeTimeframe.thisMonth:
+        if (startDate != null && endDate != null) {
+          final days = endDate!.difference(startDate!).inDays + 1;
+          final w = days / 7.0;
+          return w < 1.0 ? 1.0 : w;
+        }
+        return 4.0;
+      case VolumeTimeframe.allTime:
+        if (startDate != null && endDate != null) {
+          final days = endDate!.difference(startDate!).inDays + 1;
+          final w = days / 7.0;
+          return w < 1.0 ? 1.0 : w;
+        }
+        return 1.0;
+    }
+  }
+
+  double get weeklyAverageTonnageKg => totalTonnageKg / weeksCount;
+  double get weeklyAverageSets => totalSets / weeksCount;
+  double get weeklyAverageWorkouts => totalWorkouts / weeksCount;
 }
 
 /// Single set detail inside a workout exercise for a muscle.
@@ -244,11 +283,16 @@ abstract final class MuscleVolumeAnalyticsEngine {
     var totalOverallSets = 0;
     final allDistinctWorkouts = <int>{};
     final allDistinctExercises = <int>{};
+    DateTime? earliestDate;
 
     for (final rs in snapshot.sets) {
       final completedAt = rs.set.completedAt ?? rs.session.startedAt;
       if (start != null && completedAt.isBefore(start)) continue;
       if (end != null && completedAt.isAfter(end)) continue;
+
+      if (earliestDate == null || completedAt.isBefore(earliestDate)) {
+        earliestDate = completedAt;
+      }
 
       totalOverallTonnage += rs.tonnageKg;
       totalOverallSets++;
@@ -293,8 +337,8 @@ abstract final class MuscleVolumeAnalyticsEngine {
 
     return MuscleVolumeOverviewData(
       timeframe: timeframe,
-      startDate: start,
-      endDate: end,
+      startDate: start ?? earliestDate,
+      endDate: end ?? asOf,
       totalTonnageKg: totalOverallTonnage,
       totalSets: totalOverallSets,
       totalWorkouts: allDistinctWorkouts.length,

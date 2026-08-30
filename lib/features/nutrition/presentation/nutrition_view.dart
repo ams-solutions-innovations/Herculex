@@ -8,7 +8,7 @@ import '../../../core/notifications/toast/hx_toast_model.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
-import '../data/nutrition_repository.dart';
+import '../../../ui/ui.dart';
 import '../domain/daily_totals.dart';
 import '../domain/meal_slots.dart';
 import '../domain/nutrient_definitions.dart';
@@ -86,11 +86,16 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
         !_settling) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
+        _settling = true;
         _pageCtrl.animateToPage(
           targetPage,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-        );
+        ).then((_) {
+          if (mounted) {
+            setState(() => _settling = false);
+          }
+        });
       });
     }
 
@@ -449,6 +454,8 @@ class _MealAccordionState extends ConsumerState<_MealAccordion>
                   if (widget.entries.isNotEmpty)
                     _MealMacroSummary(
                       entries: widget.entries,
+                      mealKey: widget.meal.key,
+                      date: widget.date,
                       mode: macroMode,
                       onToggle: () => ref
                           .read(mealMacroDisplayModeProvider.notifier)
@@ -530,43 +537,50 @@ class _MealAccordionState extends ConsumerState<_MealAccordion>
   }
 }
 
+final mealMacroTotalsProvider = FutureProvider.autoDispose
+    .family<DailyTotals, ({DateTime date, String mealKey})>((ref, arg) async {
+  final repo = ref.watch(nutritionRepositoryProvider);
+  final allEntries = await ref.watch(entriesForDateProvider(arg.date).future);
+  final entries = allEntries.where((e) => e.meal == arg.mealKey).toList();
+  var t = DailyTotals.empty;
+  for (final e in entries) {
+    final m = await repo.macrosForEntry(e);
+    t = t.plus(
+      kcal: m.kcal,
+      proteinG: m.proteinG,
+      carbsG: m.carbsG,
+      fatG: m.fatG,
+    );
+  }
+  return t;
+});
+
 /// Resolves per-meal macro totals asynchronously and renders a compact
 /// "P · C · F" chip. Tapping cycles between grams and % of meal kcal.
 class _MealMacroSummary extends ConsumerWidget {
   final List<FoodEntryData> entries;
+  final String mealKey;
+  final DateTime date;
   final MacroDisplayMode mode;
   final VoidCallback onToggle;
 
   const _MealMacroSummary({
     required this.entries,
+    required this.mealKey,
+    required this.date,
     required this.mode,
     required this.onToggle,
   });
 
-  Future<DailyTotals> _sumMacros(NutritionRepository repo) async {
-    var t = DailyTotals.empty;
-    for (final e in entries) {
-      final m = await repo.macrosForEntry(e);
-      t = t.plus(
-        kcal: m.kcal,
-        proteinG: m.proteinG,
-        carbsG: m.carbsG,
-        fatG: m.fatG,
-      );
-    }
-    return t;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(nutritionRepositoryProvider);
     final theme = Theme.of(context);
+    final asyncTotals = ref.watch(
+      mealMacroTotalsProvider((date: date, mealKey: mealKey)),
+    );
 
-    return FutureBuilder<DailyTotals>(
-      future: _sumMacros(repo),
-      builder: (context, snap) {
-        if (!snap.hasData) return const SizedBox.shrink();
-        final t = snap.data!;
+    return asyncTotals.when(
+      data: (t) {
         final totalKcal = t.kcal;
 
         // Percentages are of the meal's own energy, so they always sum to
@@ -605,6 +619,8 @@ class _MealMacroSummary extends ConsumerWidget {
           ),
         );
       },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
@@ -622,14 +638,6 @@ class _MealCalorieGoal extends ConsumerWidget {
     required this.date,
   });
 
-  Future<double> _sumKcal(NutritionRepository repo) async {
-    var kcal = 0.0;
-    for (final e in entries) {
-      kcal += (await repo.macrosForEntry(e)).kcal;
-    }
-    return kcal;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -639,11 +647,13 @@ class _MealCalorieGoal extends ConsumerWidget {
 
     if (entries.isEmpty && goal == null) return const SizedBox.shrink();
 
-    return FutureBuilder<double>(
-      future: _sumKcal(ref.watch(nutritionRepositoryProvider)),
-      builder: (context, snap) {
-        if (!snap.hasData) return const SizedBox(height: 16);
-        final eaten = snap.data!.round();
+    final asyncTotals = ref.watch(
+      mealMacroTotalsProvider((date: date, mealKey: mealKey)),
+    );
+
+    return asyncTotals.when(
+      data: (t) {
+        final eaten = t.kcal.round();
         final label = goal == null ? '$eaten kcal' : '$eaten of $goal kcal';
         final over = goal != null && eaten > goal;
 
@@ -681,6 +691,8 @@ class _MealCalorieGoal extends ConsumerWidget {
           ),
         );
       },
+      loading: () => const SizedBox(height: 16),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
@@ -719,6 +731,58 @@ class _MacroChip extends StatelessWidget {
   }
 }
 
+final entryDisplayProvider = FutureProvider.autoDispose
+    .family<_EntryDisplay, FoodEntryData>((ref, entry) async {
+  final repo = ref.watch(nutritionRepositoryProvider);
+  final macros = await repo.macrosForEntry(entry);
+
+  String name = entry.snapshotName ?? '—';
+  bool isDeleted = false;
+
+  if (entry.foodId != null) {
+    final food = await ref.watch(foodByIdProvider(entry.foodId!).future);
+    name = entry.snapshotName ?? (food ?? _placeholderFood()).name;
+    isDeleted = food?.deletedAt != null;
+  } else if (entry.recipeId != null) {
+    final recipe = await ref.watch(recipeByIdProvider(entry.recipeId!).future);
+    name = entry.snapshotName ?? (recipe ?? _placeholderRecipe()).name;
+    isDeleted = recipe?.deletedAt != null;
+  }
+
+  final portionText = entry.foodId != null
+      ? '${(entry.gramsOverride ?? (entry.portionUnit == 'g' ? entry.portionAmount : null) ?? entry.snapshotServingGrams ?? entry.portionAmount ?? 0).toStringAsFixed(0)} g'
+      : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
+
+  return _EntryDisplay(
+    name: name,
+    isDeleted: isDeleted,
+    portionText: portionText,
+    kcal: macros.kcal,
+    proteinG: macros.proteinG,
+    carbsG: macros.carbsG,
+    fatG: macros.fatG,
+    sodiumMg: macros.sodiumMg,
+    potassiumMg: macros.potassiumMg,
+    cholesterolMg: macros.cholesterolMg,
+  );
+});
+
+FoodData _placeholderFood() => FoodData(
+  id: 0,
+  name: '—',
+  kcalPer100g: 0,
+  proteinPer100g: 0,
+  carbsPer100g: 0,
+  fatPer100g: 0,
+  referenceBasis: '100 g',
+  source: 'local',
+  isCustom: false,
+  createdAt: DateTime.now(),
+);
+
+RecipeData _placeholderRecipe() =>
+    RecipeData(id: 0, name: '—', servings: 1, createdAt: DateTime.now());
+
 class _EntryTile extends ConsumerWidget {
   final FoodEntryData entry;
   const _EntryTile({required this.entry});
@@ -727,34 +791,46 @@ class _EntryTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final repo = ref.watch(nutritionRepositoryProvider);
+    final asyncDisplay = ref.watch(entryDisplayProvider(entry));
 
-    return FutureBuilder<_EntryDisplay>(
-      future: _resolve(ref, repo),
-      builder: (context, snap) {
-        final display = snap.data;
+    return asyncDisplay.when(
+      data: (display) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Dismissible(
+          child: HxStickyDismissible(
             key: ValueKey('entry_${entry.id}'),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.redAccent.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            onDismissed: (_) => repo.deleteEntry(entry.id),
+            borderRadius: BorderRadius.circular(18),
+            onDismissed: () async {
+              final entryToRestore = entry;
+              final itemName = display.name;
+              await repo.deleteEntry(entry.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Deleted "$itemName"'),
+                    duration: const Duration(seconds: 3),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      textColor: AppColors.primary,
+                      onPressed: () async {
+                        await repo.restoreEntry(entryToRestore);
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
             child: Material(
               color: AppColors.surfaceContainer,
               borderRadius: BorderRadius.circular(18),
               child: InkWell(
                 borderRadius: BorderRadius.circular(18),
-                onTap: display == null
-                    ? null
-                    : () => _showEntryDetail(context, theme, display, ref),
+                onTap: () => _showEntryDetail(context, theme, display, ref),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
@@ -783,21 +859,21 @@ class _EntryTile extends ConsumerWidget {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    display?.name ?? 'Loading…',
+                                    display.name,
                                     style: theme.textTheme.bodyMedium
                                         ?.copyWith(fontWeight: FontWeight.w600),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
                                   ),
                                 ),
-                                if (display?.isDeleted ?? false) ...[
+                                if (display.isDeleted) ...[
                                   const SizedBox(width: 6),
                                   const _DeletedBadge(),
                                 ],
                               ],
                             ),
                             Text(
-                              display?.subtitleWithMacros ?? '',
+                              display.subtitleWithMacros,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppColors.secondary,
                               ),
@@ -809,9 +885,7 @@ class _EntryTile extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        display == null
-                            ? ''
-                            : '${display.kcal.toStringAsFixed(0)} kcal',
+                        '${display.kcal.toStringAsFixed(0)} kcal',
                         style: theme.textTheme.bodyMedium
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
@@ -823,29 +897,14 @@ class _EntryTile extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-
-  Future<_EntryDisplay> _resolve(
-    WidgetRef ref,
-    NutritionRepository repo,
-  ) async {
-    final macros = await repo.macrosForEntry(entry);
-    final resolved = await _resolveNameInfo(ref);
-    final portionText = entry.foodId != null
-        ? '${(entry.gramsOverride ?? (entry.portionUnit == 'g' ? entry.portionAmount : null) ?? entry.snapshotServingGrams ?? entry.portionAmount ?? 0).toStringAsFixed(0)} g'
-        : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
-    return _EntryDisplay(
-      name: resolved.name,
-      isDeleted: resolved.isDeleted,
-      portionText: portionText,
-      kcal: macros.kcal,
-      proteinG: macros.proteinG,
-      carbsG: macros.carbsG,
-      fatG: macros.fatG,
-      sodiumMg: macros.sodiumMg,
-      potassiumMg: macros.potassiumMg,
-      cholesterolMg: macros.cholesterolMg,
+      loading: () => const Padding(
+        padding: EdgeInsets.only(bottom: 8),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text('Error loading entry: $e'),
+      ),
     );
   }
 
@@ -1002,8 +1061,30 @@ class _EntryTile extends ConsumerWidget {
                       ),
                       tooltip: 'Delete entry',
                       onPressed: () async {
+                        final entryToRestore = entry;
+                        final itemName = display.name;
                         Navigator.of(modalContext).pop();
                         await repo.deleteEntry(entry.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Deleted "$itemName"'),
+                              duration: const Duration(seconds: 3),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                textColor: AppColors.primary,
+                                onPressed: () async {
+                                  await repo.restoreEntry(entryToRestore);
+                                },
+                              ),
+                            ),
+                          );
+                        }
                       },
                     ),
                   ],
@@ -1116,42 +1197,6 @@ class _EntryTile extends ConsumerWidget {
       },
     );
   }
-
-  /// Resolves both the display name and whether the underlying catalogue row
-  /// is soft-deleted (RB-05). Always resolves the food/recipe — even when
-  /// [entry.snapshotName] already has a name to show — because `deletedAt`
-  /// only lives on the live row, not the entry's snapshot.
-  Future<({String name, bool isDeleted})> _resolveNameInfo(
-    WidgetRef ref,
-  ) async {
-    if (entry.foodId != null) {
-      final food = await ref.read(foodByIdProvider(entry.foodId!).future);
-      final name = entry.snapshotName ?? (food ?? _placeholderFood()).name;
-      return (name: name, isDeleted: food?.deletedAt != null);
-    }
-    if (entry.recipeId != null) {
-      final recipe = await ref.read(recipeByIdProvider(entry.recipeId!).future);
-      final name = entry.snapshotName ?? (recipe ?? _placeholderRecipe()).name;
-      return (name: name, isDeleted: recipe?.deletedAt != null);
-    }
-    return (name: entry.snapshotName ?? '—', isDeleted: false);
-  }
-
-  FoodData _placeholderFood() => FoodData(
-    id: 0,
-    name: '—',
-    kcalPer100g: 0,
-    proteinPer100g: 0,
-    carbsPer100g: 0,
-    fatPer100g: 0,
-    referenceBasis: '100 g',
-    source: 'local',
-    isCustom: false,
-    createdAt: DateTime.now(),
-  );
-
-  RecipeData _placeholderRecipe() =>
-      RecipeData(id: 0, name: '—', servings: 1, createdAt: DateTime.now());
 }
 
 /// RB-05: flags an entry whose food/recipe has been soft-deleted from the

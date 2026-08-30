@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../../theme/tokens/tokens.dart';
+import '../../dashboard/presentation/dashboard_providers.dart';
+import '../../dashboard/presentation/widgets/dashboard_shared.dart';
 import '../domain/supplement.dart';
 import 'supplement_ai_scan_dialog.dart';
 import 'supplement_edit_sheet.dart';
@@ -32,25 +34,11 @@ class SupplementTrackerWidget extends ConsumerWidget {
 
   Widget _buildCard(BuildContext context, ThemeData theme, WidgetRef ref,
       SupplementDayState state) {
-    final hx = context.hx;
     const accent = Color(0xFF9B59B6);
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            accent.withValues(alpha: hx.isDark ? 0.16 : 0.12),
-            hx.surfaceContainerLowest,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.3),
-        ),
-      ),
+    return dashboardCard(
+      accent: accent,
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

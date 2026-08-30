@@ -265,8 +265,15 @@ class MuscleRecoveryV3 {
     return weeklySets;
   }
 
-  static double _fatigueSum(List<FatigueContribution> contributions) =>
-      contributions.fold(0.0, (s, c) => s + c.value).clamp(0.0, 1.0);
+  static double _fatigueSum(List<FatigueContribution> contributions) {
+    final sum = contributions.fold(0.0, (s, c) => s + c.value);
+    // `clamp` passes NaN straight through (NaN fails both comparisons), and
+    // the caller then calls `.round()` on it — which throws `UnsupportedError`
+    // rather than yielding 0. One bad contribution would fail the whole
+    // recovery provider, and its consumers render the score unclamped.
+    if (!sum.isFinite) return 1.0;
+    return sum.clamp(0.0, 1.0);
+  }
 
   static List<MuscleGroupRecovery> compute({
     required TrainingSnapshot snapshot,

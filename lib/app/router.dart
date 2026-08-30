@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/error/app_error_view.dart';
+import '../core/error/error_log_view.dart';
 import '../features/admin/presentation/admin_dashboard_view.dart';
 import '../features/admin/presentation/admin_insert_recipe_view.dart';
 import '../features/admin/presentation/admin_insert_workout_view.dart';
@@ -56,6 +59,18 @@ class _RouterRefresh extends ChangeNotifier {
   }
 }
 
+/// `int.parse` on a path parameter throws *inside a route builder*, which is a
+/// build-phase throw — it used to take the whole screen down. Deep links,
+/// notification payloads and restored routes are all untrusted input here.
+int? _intParam(GoRouterState state, String name) =>
+    int.tryParse(state.pathParameters[name] ?? '');
+
+Widget _badParam(BuildContext context, GoRouterState state, String name) =>
+    AppErrorScreen(
+      message: "'${state.pathParameters[name]}' isn't a valid $name.",
+      onGoHome: () => context.go('/app'),
+    );
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh(ref);
   ref.onDispose(refresh.dispose);
@@ -63,6 +78,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: refresh,
+    // Unmatched paths and malformed deep links used to fall through to
+    // go_router's bare default screen; a throw inside a route builder had no
+    // boundary at all.
+    errorBuilder: (context, state) => AppErrorScreen(
+      message: state.error?.toString() ?? 'No screen matches ${state.uri}.',
+      onGoHome: () => context.go('/app'),
+    ),
     redirect: (context, state) {
       // On-device only: the only gate is whether onboarding has produced a
       // local profile. No accounts, no sign-in.
@@ -91,15 +113,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/app', builder: (_, _) => const MainScaffold()),
       GoRoute(
         path: '/workout-history/:id',
-        builder: (_, state) => WorkoutHistoryView(
-          sessionId: int.parse(state.pathParameters['id']!),
-        ),
+        builder: (context, state) {
+          final id = _intParam(state, 'id');
+          if (id == null) return _badParam(context, state, 'id');
+          return WorkoutHistoryView(sessionId: id);
+        },
       ),
       GoRoute(
         path: '/exercise/:id',
-        builder: (_, state) => ExerciseDetailsView(
-          exerciseId: int.parse(state.pathParameters['id']!),
-        ),
+        builder: (context, state) {
+          final id = _intParam(state, 'id');
+          if (id == null) return _badParam(context, state, 'id');
+          return ExerciseDetailsView(exerciseId: id);
+        },
       ),
       GoRoute(
         path: '/measurements',
@@ -216,6 +242,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/buddy/join',
         builder: (_, _) => const BuddyJoinScannerView(),
+      ),
+      // Deliberately *not* behind kDebugMode: release is where an error is
+      // otherwise invisible (blank ErrorWidget, no reporter), so this has to
+      // be reachable there. Read-only, and holds nothing the user didn't
+      // already generate on their own device.
+      GoRoute(
+        path: '/diagnostics/errors',
+        builder: (_, _) => const ErrorLogView(),
       ),
       // Developer-only content tools. Excluded from release builds entirely.
       if (kDebugMode) ...[

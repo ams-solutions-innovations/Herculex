@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
 import '../../../health/domain/cycle_adjuster.dart';
 import '../../../health/presentation/cycle_providers.dart';
+import 'dashboard_shared.dart';
+
 /// Cycle-phase focus card (§18). Live reactive card showing current phase,
 /// physiological recommendations, volume adjustments, and tap to view cycle tracker.
 class CycleFocusCard extends ConsumerWidget {
@@ -14,7 +15,6 @@ class CycleFocusCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final hx = context.hx;
     final adjustmentAsync = ref.watch(cycleAdjustmentProvider);
 
     return adjustmentAsync.when(
@@ -38,26 +38,13 @@ class CycleFocusCard extends ConsumerWidget {
             break;
         }
 
-        return InkWell(
+        return dashboardCard(
+          accent: phaseColor,
           onTap: () => context.push('/cycle'),
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  phaseColor.withValues(alpha: hx.isDark ? 0.18 : 0.12),
-                  hx.surfaceContainerLowest,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: phaseColor.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 Container(
                   width: 44,
                   height: 44,
@@ -134,7 +121,6 @@ class CycleFocusCard extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
         );
       },
     );

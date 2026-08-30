@@ -13,6 +13,7 @@ data class FastingSnapshot(
     val completed: Boolean = false,
     val revision: Long = 0L,
     val updatedAtEpochMs: Long = 0L,
+    val lastFastDurationSeconds: Long? = null,
 ) {
     fun elapsedSeconds(nowEpochMs: Long = System.currentTimeMillis()): Long {
         val start = startedAtEpochMs ?: return 0L
@@ -54,6 +55,7 @@ object FastingStore {
             completed = p.optBoolean("completed", false),
             revision = envelope.revision,
             updatedAtEpochMs = envelope.updatedAtEpochMs,
+            lastFastDurationSeconds = p.optNullableLong("lastFastDurationSeconds"),
         )
         prefs(context).edit().putString(KEY_SNAPSHOT_JSON, json).apply()
         return snapshot

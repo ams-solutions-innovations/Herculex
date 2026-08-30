@@ -19,6 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,10 +45,16 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
 
     val listState = rememberScalingLazyListState()
 
-    // If session was discarded/finished externally, pop back to home
+    // If session was discarded/finished externally, navigate to summary or pop back to home
     LaunchedEffect(session) {
-        if (session == null && viewModel.finishedWorkoutSummary.value == null) {
-            navController.popBackStack("home", inclusive = false)
+        if (session == null) {
+            if (viewModel.finishedWorkoutSummary.value != null) {
+                navController.navigate("workout_summary") {
+                    popUpTo("home") { inclusive = false }
+                }
+            } else {
+                navController.popBackStack("home", inclusive = false)
+            }
         }
     }
 
@@ -120,9 +128,17 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                 val isBodyweight = exercise.template.isBodyweightOnly()
                 val isTimeBased = exercise.template.isTimeBased()
                 val targetOrLastSet = exercise.sets.firstOrNull { !it.completed } ?: exercise.sets.lastOrNull()
-                val weight = targetOrLastSet?.weight?.takeIf { it > 0 } ?: exercise.template.prevWeight
-                val reps = targetOrLastSet?.reps?.takeIf { it > 0 } ?: exercise.template.prevReps
+                val targetPlannedSet = exercise.template.plannedSets.firstOrNull { it.setIndex == targetOrLastSet?.setIndex }
+                    ?: exercise.template.plannedSets.firstOrNull()
+                val weight = targetOrLastSet?.weight?.takeIf { it > 0 }
+                    ?: targetPlannedSet?.targetWeightKg?.takeIf { it > 0 }
+                    ?: exercise.template.prevWeight
+                val reps = targetOrLastSet?.reps?.takeIf { it > 0 }
+                    ?: targetPlannedSet?.targetReps?.takeIf { it > 0 }
+                    ?: targetPlannedSet?.targetRepsMin?.takeIf { it > 0 }
+                    ?: exercise.template.prevReps
                 val duration = targetOrLastSet?.durationSeconds?.takeIf { it > 0 }
+                    ?: targetPlannedSet?.durationSeconds
                     ?: exercise.template.plannedSets.firstOrNull()?.durationSeconds
 
                 val weightStr = if (weight % 1.0 == 0.0) "${weight.toInt()}" else "$weight"
@@ -140,25 +156,53 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                     weight > 0 && reps > 0 -> "$weightStr kg × $reps"
                     weight > 0 -> "$weightStr kg"
                     reps > 0 -> "$reps reps"
+                    exercise.template.performanceHint != null -> exercise.template.performanceHint
                     else -> null
                 }
 
                 val sGroup = exercise.supersetGroup ?: exercise.template.supersetGroup
-                val groupCount = if (sGroup != null) s.exercises.count { (it.supersetGroup ?: it.template.supersetGroup) == sGroup } else 0
-                val groupPrefix = if (groupCount >= 3) "🔁 " else if (groupCount == 2) "⚡ " else ""
+                val groupRows = if (sGroup != null) s.exercises.filter { (it.supersetGroup ?: it.template.supersetGroup) == sGroup } else emptyList()
+                val isLinked = groupRows.size > 1
+                val groupIndex = groupRows.indexOf(exercise)
+                val isFirst = groupIndex == 0
+                val isLast = groupIndex == groupRows.size - 1
+
                 val statLabelText = if (infoStr != null) "Sets • $infoStr" else "Sets"
 
-                OneUiPill(
-                    title = "$groupPrefix${exercise.template.name}",
-                    statValue = "${exercise.completedSets}/${exercise.template.targetSets}",
-                    statLabel = statLabelText,
-                    icon = null,
-                    style = if (isCurrent) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
-                    onClick = {
-                        viewModel.selectExerciseInSession(index)
-                        navController.navigate("set_logger/$index")
-                    },
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .drawBehind {
+                            if (isLinked) {
+                                val strokeWidth = 3.dp.toPx()
+                                val lineX = strokeWidth / 2f
+                                val extraY = 4.dp.toPx()
+                                val startY = if (isFirst) 16.dp.toPx() else -extraY
+                                val endY = if (isLast) size.height - 16.dp.toPx() else size.height + extraY
+                                drawLine(
+                                    color = Color(0xFF1565C0),
+                                    start = androidx.compose.ui.geometry.Offset(lineX, startY),
+                                    end = androidx.compose.ui.geometry.Offset(lineX, endY),
+                                    strokeWidth = strokeWidth,
+                                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                )
+                            }
+                        }
+                ) {
+                    val fallbackIcon = exercise.template.name.take(1).uppercase()
+                    OneUiPill(
+                        modifier = Modifier.padding(start = if (isLinked) 12.dp else 0.dp),
+                        title = exercise.template.name,
+                        statValue = "${exercise.completedSets}/${exercise.template.targetSets}",
+                        statLabel = statLabelText,
+                        icon = fallbackIcon,
+                        style = if (isCurrent) OneUiPillStyle.RoyalBlue else OneUiPillStyle.SlateNavy,
+                        onClick = {
+                            viewModel.selectExerciseInSession(index)
+                            navController.navigate("set_logger/$index")
+                        },
+                    )
+                }
             }
         }
 
@@ -195,6 +239,7 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
 
     if (showFinishDialog) {
         val finishListState = rememberScalingLazyListState()
+        val prs by viewModel.sessionPrs.collectAsState()
         Dialog(
             showDialog = showFinishDialog,
             onDismissRequest = { showFinishDialog = false },
@@ -218,45 +263,65 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = "Finish Workout?",
+                            text = s.template.name,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            text = "Save and complete session",
+                            text = "%d:%02d".format(minutes, seconds),
                             color = Color(0xFF9E9E9E),
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                         )
+                        if (prs.isNotEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "${prs.size} PRs achieved! 🏆",
+                                color = Color(0xFFFFD60A),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                 }
 
-                // Resume button
                 item {
                     OneUiPill(
-                        title = "Resume",
-                        subtitle = "Continue workout",
-                        icon = "▶",
-                        style = OneUiPillStyle.SlateNavy,
-                        onClick = { showFinishDialog = false },
-                    )
-                }
-
-                // Confirm Finish button
-                item {
-                    OneUiPill(
-                        title = "Finish",
-                        subtitle = "Save workout",
+                        title = "Save Workout",
                         icon = "✓",
                         style = OneUiPillStyle.EmeraldGreen,
                         onClick = {
                             showFinishDialog = false
-                            viewModel.finishWorkout()
+                            viewModel.finishWorkout(saveAsTemplate = false)
                             navController.navigate("workout_summary") {
                                 popUpTo("home") { inclusive = false }
                             }
                         },
+                    )
+                }
+                
+                item {
+                    OneUiPill(
+                        title = "Save as Template",
+                        icon = "💾",
+                        style = OneUiPillStyle.AccentBlue,
+                        onClick = {
+                            showFinishDialog = false
+                            viewModel.finishWorkout(saveAsTemplate = true)
+                            navController.navigate("workout_summary") {
+                                popUpTo("home") { inclusive = false }
+                            }
+                        },
+                    )
+                }
+
+                item {
+                    OneUiPill(
+                        title = "Cancel",
+                        icon = "▶",
+                        style = OneUiPillStyle.SlateNavy,
+                        onClick = { showFinishDialog = false },
                     )
                 }
             }

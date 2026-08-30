@@ -3,11 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:image_picker/image_picker.dart';
-
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
-import '../../../services/ai_service.dart';
 import 'circuit_builder_view.dart';
 import 'circuits_providers.dart';
 import 'custom_exercise_builder_view.dart';

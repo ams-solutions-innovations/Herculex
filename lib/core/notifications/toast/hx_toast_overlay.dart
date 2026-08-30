@@ -28,13 +28,16 @@ class HxToastHost extends ConsumerWidget {
         child,
         if (state.current != null)
           Positioned.fill(
-            child: Center(
-              child: _HxToastCard(
-                key: ValueKey(state.current!.id),
-                item: state.current!,
-                isDismissing: state.isDismissing,
-                onDismiss: () =>
-                    ref.read(hxToastControllerProvider.notifier).dismiss(),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Center(
+                child: _HxToastCard(
+                  key: ValueKey(state.current!.id),
+                  item: state.current!,
+                  isDismissing: state.isDismissing,
+                  onDismiss: () =>
+                      ref.read(hxToastControllerProvider.notifier).dismiss(),
+                ),
               ),
             ),
           ),
@@ -292,6 +295,7 @@ class _HxToastCardState extends State<_HxToastCard>
                                 letterSpacing: -0.2,
                                 height: 1.2,
                                 color: Colors.white,
+                                decoration: TextDecoration.none,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -303,6 +307,7 @@ class _HxToastCardState extends State<_HxToastCard>
                                 fontSize: 13,
                                 height: 1.35,
                                 color: Color(0xFF94A3B8),
+                                decoration: TextDecoration.none,
                               ),
                             ),
                           ],

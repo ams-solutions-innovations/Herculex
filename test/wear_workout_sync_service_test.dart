@@ -97,7 +97,10 @@ void main() {
     db = await openTestDatabase();
     repo = WorkoutsRepository(db, const SystemClock());
     container = ProviderContainer(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        appDatabaseProvider.overrideWithValue(db),
+      ],
     );
   });
 
@@ -869,6 +872,113 @@ void main() {
       expect(sets.first.setTypeMetaJson, '{"miniSets":[3,3,3]}');
       expect(sets.first.weightKg, 30.0);
       expect(sets.first.reps, 12);
+    },
+  );
+
+  test(
+    'pushActiveSessionToWatch populates target weights, reps and performanceHint for uncompleted sets',
+    () async {
+      final service = buildService();
+      final exerciseId = await createExercise('Bench Press');
+
+      // 1. Create a prior completed session with 50kg x 12 reps
+      final priorSessionId = await repo.startSession(
+        sessionUuid: 'prior-uuid-1',
+      );
+      final priorExerciseId = await repo.addExerciseToSession(
+        sessionId: priorSessionId,
+        exerciseId: exerciseId,
+      );
+      final priorSetId = await repo.addSet(
+        workoutExerciseId: priorExerciseId,
+        reps: 12,
+        weightKg: 50.0,
+      );
+      await repo.updateSet(
+        setId: priorSetId,
+        weightKg: 50.0,
+        reps: 12,
+        isCompleted: true,
+      );
+      await repo.endSession(priorSessionId);
+
+      // 2. Start a new active session with 0kg / 0 reps
+      final activeSessionId = await repo.startSession(
+        sessionUuid: 'today-uuid-1',
+      );
+      final activeExerciseId = await repo.addExerciseToSession(
+        sessionId: activeSessionId,
+        exerciseId: exerciseId,
+      );
+      await repo.addSet(
+        workoutExerciseId: activeExerciseId,
+        reps: 0,
+        weightKg: 0.0,
+      );
+
+      final activeSession = (await repo.watchActiveSession().first)!;
+      await service.pushActiveSessionToWatch(activeSession);
+      await pumpEventQueue();
+
+      final syncCalls = dispatchedCalls.where(
+        (c) => c.method == 'syncActiveSession',
+      ).toList();
+      expect(syncCalls, isNotEmpty);
+
+      final callArgs = syncCalls.last.arguments as Map<dynamic, dynamic>;
+      final envelope = WearSyncEnvelope.decode(
+        callArgs['session_json'] as String,
+        fallbackEntity: wearSyncEntityActiveWorkout,
+        fallbackEntityId: 'today-uuid-1',
+        fallbackOrigin: wearSyncOriginPhone,
+      );
+      final payload = envelope.payload;
+      final exList = payload['exercises'] as List<dynamic>;
+      expect(exList, hasLength(1));
+
+      final ex = exList.first as Map<String, dynamic>;
+      final template = ex['template'] as Map<String, dynamic>;
+      expect(template['prevWeight'], 50.0);
+      expect(template['prevReps'], 12);
+      expect(template['performanceHint'], contains('50 kg × 12'));
+
+      final plannedSets = template['plannedSets'] as List<dynamic>;
+      expect(plannedSets, hasLength(2));
+      expect(plannedSets.first['targetWeightKg'], 50.0);
+      expect(plannedSets.first['targetReps'], 12);
+      expect(plannedSets.last['targetWeightKg'], 50.0);
+      expect(plannedSets.last['targetReps'], 12);
+
+      final sets = ex['sets'] as List<dynamic>;
+      expect(sets, hasLength(2));
+      expect(sets.first['weight'], 50.0);
+      expect(sets.first['reps'], 12);
+      expect(sets.last['weight'], 50.0);
+      expect(sets.last['reps'], 12);
+    },
+  );
+
+  test(
+    'scheduleOutboundSync triggers push to watch immediately when not suppressed',
+    () async {
+      final service = buildService();
+      final exerciseId = await createExercise('Squat');
+      final sessionId = await repo.startSession(
+        sessionUuid: 'leg-uuid-1',
+      );
+      await repo.addExerciseToSession(
+        sessionId: sessionId,
+        exerciseId: exerciseId,
+      );
+      final session = (await repo.watchActiveSession().first)!;
+
+      service.scheduleOutboundSync(session);
+      await pumpEventQueue();
+
+      final syncCalls = dispatchedCalls.where(
+        (c) => c.method == 'syncActiveSession',
+      ).toList();
+      expect(syncCalls, isNotEmpty);
     },
   );
 }

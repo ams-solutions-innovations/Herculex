@@ -81,9 +81,11 @@ final nextWorkoutTrainingSuggestionProvider =
   final recovery = await ref.watch(recoveryV3Provider.future);
   final deload = await ref.watch(muscleDeloadSignalsProvider.future);
   final joints = await ref.watch(jointStressResultsProvider.future);
+  final volumeTrends = await ref.watch(muscleVolumeTrendsProvider.future);
   return TrainingSuggestionEngine.suggest(
     recovery: recovery,
     deloadSignals: deload,
     jointStress: joints,
+    volumeTrends: volumeTrends,
   );
 });
