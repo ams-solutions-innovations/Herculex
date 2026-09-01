@@ -239,10 +239,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
                   bottom: bannerAtTop
                       ? 0.0
                       : (60.0 +
-                          (MediaQuery.paddingOf(context).bottom > 0
-                              ? MediaQuery.paddingOf(context).bottom + 8.0
-                              : 16.0) +
-                          8.0),
+                            (MediaQuery.paddingOf(context).bottom > 0
+                                ? MediaQuery.paddingOf(context).bottom + 8.0
+                                : 16.0) +
+                            8.0),
                 ),
                 child: LiveWorkoutBanner(
                   onResume: () =>

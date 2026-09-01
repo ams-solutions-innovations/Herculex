@@ -283,186 +283,177 @@ class _EditBodyState extends ConsumerState<_EditBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _PillField(label: 'Name', controller: nameCtrl, hint: 'Template name'),
+        const SizedBox(height: 14),
         _PillField(
-          label: 'Name',
-          controller: nameCtrl,
-          hint: 'Template name',
+          label: 'Notes',
+          controller: notesCtrl,
+          hint: 'Optional description',
+          maxLines: 2,
         ),
-              const SizedBox(height: 14),
-              _PillField(
-                label: 'Notes',
-                controller: notesCtrl,
-                hint: 'Optional description',
-                maxLines: 2,
-              ),
-              const SizedBox(height: 20),
+        const SizedBox(height: 20),
 
-              // Muscle Group Volume Breakdown Header Card
-              exercisesAsync.maybeWhen(
-                data: (rows) =>
-                    _MuscleGroupHeaderCard(exercises: rows, catalog: catalog),
-                orElse: () => const SizedBox.shrink(),
-              ),
+        // Muscle Group Volume Breakdown Header Card
+        exercisesAsync.maybeWhen(
+          data: (rows) =>
+              _MuscleGroupHeaderCard(exercises: rows, catalog: catalog),
+          orElse: () => const SizedBox.shrink(),
+        ),
 
-              Stack(
-                alignment: Alignment.center,
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              'EXERCISES',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: 1.2,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'EXERCISES',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.secondary,
-                      letterSpacing: 1.2,
-                    ),
+                  _SetsCountChip(
+                    label: 'Sets',
+                    count: _defaultTargetSets,
+                    onTap: () async {
+                      final chosen = await _pickSetCount(
+                        context,
+                        current: _defaultTargetSets,
+                        title: 'Default Sets For New Exercises',
+                      );
+                      if (chosen != null && chosen > 0) {
+                        setState(
+                          () => _defaultTargetSets = chosen.clamp(1, 50),
+                        );
+                      }
+                    },
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _SetsCountChip(
-                          label: 'Sets',
-                          count: _defaultTargetSets,
-                          onTap: () async {
-                            final chosen = await _pickSetCount(
-                              context,
-                              current: _defaultTargetSets,
-                              title: 'Default Sets For New Exercises',
-                            );
-                            if (chosen != null && chosen > 0) {
-                              setState(
-                                () => _defaultTargetSets = chosen.clamp(1, 50),
-                              );
-                            }
-                          },
-                        ),
-                        TextButton.icon(
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Add Exercise'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                          ),
-                          onPressed: () async {
-                            final results = await ExercisePickerSheet.show(
-                              context,
-                            );
-                            if (results == null ||
-                                results.isEmpty ||
-                                !context.mounted)
-                              return;
-                            final circuitIds = <int>{};
-                            for (final picked in results) {
-                              if (picked.circuitId != null) {
-                                if (!circuitIds.contains(picked.circuitId!)) {
-                                  circuitIds.add(picked.circuitId!);
-                                  await ref
-                                      .read(circuitsRepositoryProvider)
-                                      .addCircuitToTemplate(
-                                        templateId: template.id,
-                                        circuitId: picked.circuitId!,
-                                      );
-                                }
-                                continue;
-                              }
-                              await repo.addExerciseToTemplate(
-                                templateId: template.id,
-                                exerciseId: picked.exercise.id,
-                                targetSets: _defaultTargetSets,
-                              );
-                            }
-                          },
-                        ),
-                      ],
+                  TextButton.icon(
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Add Exercise'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
                     ),
+                    onPressed: () async {
+                      final results = await ExercisePickerSheet.show(context);
+                      if (results == null ||
+                          results.isEmpty ||
+                          !context.mounted)
+                        return;
+                      final circuitIds = <int>{};
+                      for (final picked in results) {
+                        if (picked.circuitId != null) {
+                          if (!circuitIds.contains(picked.circuitId!)) {
+                            circuitIds.add(picked.circuitId!);
+                            await ref
+                                .read(circuitsRepositoryProvider)
+                                .addCircuitToTemplate(
+                                  templateId: template.id,
+                                  circuitId: picked.circuitId!,
+                                );
+                          }
+                          continue;
+                        }
+                        await repo.addExerciseToTemplate(
+                          templateId: template.id,
+                          exerciseId: picked.exercise.id,
+                          targetSets: _defaultTargetSets,
+                        );
+                      }
+                    },
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              exercisesAsync.when(
-                data: (rows) {
-                  if (rows.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(28),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.outlineVariant.withValues(
-                            alpha: 0.4,
-                          ),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.fitness_center_outlined,
-                            size: 40,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No exercises yet',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tap Add Exercise to build your template',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.secondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  return Column(
-                    children: [
-                      for (final te in rows)
-                        _TemplateExerciseCard(
-                          key: ValueKey(te.id),
-                          te: te,
-                          exercise: catalog.firstWhere(
-                            (e) => e.id == te.exerciseId,
-                            orElse: () => _placeholder(te.exerciseId),
-                          ),
-                          onRemove: () =>
-                              repo.removeExerciseFromTemplate(te.id),
-                        ),
-                    ],
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Error: $e'),
-              ),
-              const SizedBox(height: 24),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: PremiumButton(
-                    text: 'Done',
-                    icon: Icons.check,
-                    onTap: () async {
-                      final name = nameCtrl.text.trim();
-                      if (name.isNotEmpty) {
-                        await repo.updateTemplate(
-                          template.id,
-                          name: name,
-                          notes: notesCtrl.text.trim().isEmpty
-                              ? null
-                              : notesCtrl.text.trim(),
-                        );
-                      }
-                      if (context.mounted) Navigator.of(context).pop(template);
-                    },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        exercisesAsync.when(
+          data: (rows) {
+            if (rows.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.4),
                   ),
                 ),
-              ),
-            ],
-          );
-        }
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.fitness_center_outlined,
+                      size: 40,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No exercises yet',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap Add Exercise to build your template',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Column(
+              children: [
+                for (final te in rows)
+                  _TemplateExerciseCard(
+                    key: ValueKey(te.id),
+                    te: te,
+                    exercise: catalog.firstWhere(
+                      (e) => e.id == te.exerciseId,
+                      orElse: () => _placeholder(te.exerciseId),
+                    ),
+                    onRemove: () => repo.removeExerciseFromTemplate(te.id),
+                  ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Error: $e'),
+        ),
+        const SizedBox(height: 24),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: PremiumButton(
+              text: 'Done',
+              icon: Icons.check,
+              onTap: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isNotEmpty) {
+                  await repo.updateTemplate(
+                    template.id,
+                    name: name,
+                    notes: notesCtrl.text.trim().isEmpty
+                        ? null
+                        : notesCtrl.text.trim(),
+                  );
+                }
+                if (context.mounted) Navigator.of(context).pop(template);
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   ExerciseCatalogData _placeholder(int id) => ExerciseCatalogData(
     id: id,

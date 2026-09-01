@@ -187,7 +187,9 @@ class _HxScreenShellState extends State<HxScreenShell>
                           ignoring: !_isAtTop,
                           child: Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 56),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 56,
+                              ),
                               child: Text(
                                 widget.title,
                                 maxLines: 1,

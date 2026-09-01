@@ -125,34 +125,37 @@ void main() {
       expect(active.startedAt, DateTime(2026, 8, 14, 18, 0));
     });
 
-    test('does not auto-start if a session was already completed for this window', () async {
-      await repo.createSchedule(
-        planName: FastingPlan.h16.name,
-        daysOfWeek: weekdayBit(DateTime.friday),
-        startTimeMinutes: 20 * 60,
-        enabled: true,
-        autoStart: true,
-      );
+    test(
+      'does not auto-start if a session was already completed for this window',
+      () async {
+        await repo.createSchedule(
+          planName: FastingPlan.h16.name,
+          daysOfWeek: weekdayBit(DateTime.friday),
+          startTimeMinutes: 20 * 60,
+          enabled: true,
+          autoStart: true,
+        );
 
-      // Start and end a fast for today's 20:00 schedule
-      await repo.startSession(
-        16 * 3600,
-        customStartTime: DateTime(2026, 8, 14, 20, 0),
-      );
-      clock.time = DateTime(2026, 8, 14, 20, 20);
-      await repo.endSession(completed: true);
+        // Start and end a fast for today's 20:00 schedule
+        await repo.startSession(
+          16 * 3600,
+          customStartTime: DateTime(2026, 8, 14, 20, 0),
+        );
+        clock.time = DateTime(2026, 8, 14, 20, 20);
+        await repo.endSession(completed: true);
 
-      final now = DateTime(2026, 8, 14, 20, 30, 0);
-      await scheduleService.checkAndAutoStartSchedules(
-        repository: repo,
-        notificationScheduler: mockScheduler,
-        goalNotificationEnabled: true,
-        now: now,
-      );
+        final now = DateTime(2026, 8, 14, 20, 30, 0);
+        await scheduleService.checkAndAutoStartSchedules(
+          repository: repo,
+          notificationScheduler: mockScheduler,
+          goalNotificationEnabled: true,
+          now: now,
+        );
 
-      final active = await repo.activeSession();
-      expect(active, isNull);
-    });
+        final active = await repo.activeSession();
+        expect(active, isNull);
+      },
+    );
 
     test('does not auto-start if autoStart is false', () async {
       await repo.createSchedule(

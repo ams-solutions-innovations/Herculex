@@ -51,8 +51,7 @@ class BlockDetailView extends ConsumerWidget {
               children: [
                 _Summary(program: program),
                 const SizedBox(height: 16),
-                if (volumeAsync.value != null &&
-                    volumeAsync.value!.isNotEmpty)
+                if (volumeAsync.value != null && volumeAsync.value!.isNotEmpty)
                   ProgramMuscleVolumeCard(
                     breakdown: volumeAsync.value!,
                     title: 'Weekly Volume per Muscle Group',

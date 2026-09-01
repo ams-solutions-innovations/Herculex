@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/domain/exercise_substitution.dart';
 
@@ -148,7 +148,10 @@ void main() {
       // Leg extension and lateral raises must be completely excluded!
       expect(ranked.any((r) => r.exercise.name == 'Leg Extension'), isFalse);
       expect(ranked.any((r) => r.exercise.name == 'Lu Raise'), isFalse);
-      expect(ranked.any((r) => r.exercise.name == 'Seated Lateral Raise'), isFalse);
+      expect(
+        ranked.any((r) => r.exercise.name == 'Seated Lateral Raise'),
+        isFalse,
+      );
 
       // Chest exercises must be at the top
       expect(ranked.first.exercise.primaryMuscle, 'Chest');
@@ -157,7 +160,10 @@ void main() {
       expect(names.contains('Dumbbell Fly'), isTrue);
       expect(names.contains('Pec Deck Machine Fly'), isTrue);
       expect(names.contains('Dumbbell Bench Press'), isTrue);
-      expect(names.indexOf('Dumbbell Bench Press'), greaterThan(names.indexOf('Dumbbell Fly')));
+      expect(
+        names.indexOf('Dumbbell Bench Press'),
+        greaterThan(names.indexOf('Dumbbell Fly')),
+      );
     });
 
     test('Strict exclusion of wrong muscles for isolation exercises', () {
@@ -171,53 +177,56 @@ void main() {
       expect(match['score'], 0.0);
     });
 
-    test('Compound exercises allow synergistic compound substitutes but rank primary muscle higher', () {
-      final barbellBench = createExercise(
-        id: 10,
-        name: 'Barbell Bench Press',
-        primaryMuscle: 'Chest',
-        mechanics: 'compound',
-        force: 'push',
-        plane: 'horizontal',
-        equipment: 'Barbell',
-        movementSlug: 'bench-press',
-        movementPattern: 'horizontal_push',
-      );
+    test(
+      'Compound exercises allow synergistic compound substitutes but rank primary muscle higher',
+      () {
+        final barbellBench = createExercise(
+          id: 10,
+          name: 'Barbell Bench Press',
+          primaryMuscle: 'Chest',
+          mechanics: 'compound',
+          force: 'push',
+          plane: 'horizontal',
+          equipment: 'Barbell',
+          movementSlug: 'bench-press',
+          movementPattern: 'horizontal_push',
+        );
 
-      final dips = createExercise(
-        id: 11,
-        name: 'Dips',
-        primaryMuscle: 'Triceps',
-        mechanics: 'compound',
-        force: 'push',
-        plane: 'vertical',
-        equipment: 'Bodyweight',
-        movementPattern: 'vertical_push',
-      );
+        final dips = createExercise(
+          id: 11,
+          name: 'Dips',
+          primaryMuscle: 'Triceps',
+          mechanics: 'compound',
+          force: 'push',
+          plane: 'vertical',
+          equipment: 'Bodyweight',
+          movementPattern: 'vertical_push',
+        );
 
-      final squat = createExercise(
-        id: 12,
-        name: 'Barbell Squat',
-        primaryMuscle: 'Quads',
-        mechanics: 'compound',
-        force: 'push',
-        plane: 'axial',
-        equipment: 'Barbell',
-        movementPattern: 'squat',
-      );
+        final squat = createExercise(
+          id: 12,
+          name: 'Barbell Squat',
+          primaryMuscle: 'Quads',
+          mechanics: 'compound',
+          force: 'push',
+          plane: 'axial',
+          equipment: 'Barbell',
+          movementPattern: 'squat',
+        );
 
-      final ranked = ExerciseSubstitution.getRankedSubstitutes(
-        original: barbellBench,
-        candidates: [squat, dips, dumbbellBench],
-        recentExerciseIds: {},
-      );
+        final ranked = ExerciseSubstitution.getRankedSubstitutes(
+          original: barbellBench,
+          candidates: [squat, dips, dumbbellBench],
+          recentExerciseIds: {},
+        );
 
-      // Squat must be excluded
-      expect(ranked.any((r) => r.exercise.name == 'Barbell Squat'), isFalse);
+        // Squat must be excluded
+        expect(ranked.any((r) => r.exercise.name == 'Barbell Squat'), isFalse);
 
-      // Dumbbell bench (Chest) ranks above Dips (Triceps compound synergy)
-      expect(ranked.first.exercise.name, 'Dumbbell Bench Press');
-      expect(ranked.first.percentage, greaterThan(ranked.last.percentage));
-    });
+        // Dumbbell bench (Chest) ranks above Dips (Triceps compound synergy)
+        expect(ranked.first.exercise.name, 'Dumbbell Bench Press');
+        expect(ranked.first.percentage, greaterThan(ranked.last.percentage));
+      },
+    );
   });
 }

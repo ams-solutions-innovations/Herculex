@@ -71,19 +71,14 @@ class GymsView extends ConsumerWidget {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          subtitle: g.isDefault
-                              ? const Text('Default')
-                              : null,
+                          subtitle: g.isDefault ? const Text('Default') : null,
                           trailing: PopupMenuButton<String>(
                             onSelected: (action) async {
                               switch (action) {
                                 case 'default':
                                   await repo.setDefaultGym(g.id);
                                 case 'rename':
-                                  final name = await _prompt(
-                                    context,
-                                    g.name,
-                                  );
+                                  final name = await _prompt(context, g.name);
                                   if (name != null) {
                                     await repo.renameGym(g.id, name);
                                   }

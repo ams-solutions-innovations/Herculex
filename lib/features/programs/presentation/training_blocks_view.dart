@@ -181,9 +181,7 @@ class _BlockHeader extends ConsumerWidget {
                 ),
               );
               if (enable != true) return;
-              await ref
-                  .read(calendarSyncEnabledProvider.notifier)
-                  .toggle(true);
+              await ref.read(calendarSyncEnabledProvider.notifier).toggle(true);
             }
             final res = await ref
                 .read(calendarSyncControllerProvider.notifier)

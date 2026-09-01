@@ -51,7 +51,11 @@ class HxCircleButton extends StatelessWidget {
             fill: tintColor,
             borderColor: borderColor,
             child: Center(
-              child: Icon(icon, size: iconSize, color: iconColor ?? hx.onSurface),
+              child: Icon(
+                icon,
+                size: iconSize,
+                color: iconColor ?? hx.onSurface,
+              ),
             ),
           ),
         ),

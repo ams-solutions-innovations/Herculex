@@ -70,9 +70,72 @@ class ProgressionEngine {
     required ProgressionGoal goal,
     required String equipmentVariant,
     double? weeklyIncreasePctOverride,
+    // New parameters for Double Progression
+    List<({double weightKg, int reps})>? allLastSets,
+    String progressionModel = 'linear',
+    int? targetSets,
+    int? targetRepsMin,
+    int? targetRepsMax,
   }) {
     final step = stepFor(equipmentVariant);
 
+    // Evaluate Double Progression rules if enabled
+    if (progressionModel == 'double' &&
+        allLastSets != null &&
+        allLastSets.isNotEmpty) {
+      final reqSets = targetSets ?? 3;
+      final reqRepsMax = targetRepsMax ?? goal.repsMax;
+      final reqRepsMin = targetRepsMin ?? goal.repsMin;
+      final pct = weeklyIncreasePctOverride ?? goal.weeklyIncreasePct;
+
+      // Determine max weight used across all sets
+      double maxWeight = 0;
+      for (final s in allLastSets) {
+        if (s.weightKg > maxWeight) maxWeight = s.weightKg;
+      }
+
+      // Check if they met the criteria on ALL required sets at that max weight
+      int qualifyingSets = 0;
+      for (final s in allLastSets) {
+        if (s.weightKg >= maxWeight && s.reps >= reqRepsMax) {
+          qualifyingSets++;
+        }
+      }
+
+      if (qualifyingSets >= reqSets) {
+        // They beat the game, time to add weight
+        final raw = maxWeight * (1 + pct / 100);
+        var nextWeight = roundToNearest(raw, step);
+        if (nextWeight <= maxWeight) nextWeight = maxWeight + step;
+
+        return SuggestedTarget(
+          weightKg: nextWeight,
+          reps: reqRepsMin,
+          rationale:
+              'Hit $reqRepsMax reps on $reqSets+ sets — load increased, back to $reqRepsMin reps.',
+        );
+      } else {
+        // Did not meet double progression criteria across all sets yet, push reps
+        int bestRepsAtMaxWeight = 0;
+        for (final s in allLastSets) {
+          if (s.weightKg >= maxWeight && s.reps > bestRepsAtMaxWeight) {
+            bestRepsAtMaxWeight = s.reps;
+          }
+        }
+
+        final targetReps = bestRepsAtMaxWeight < reqRepsMax
+            ? bestRepsAtMaxWeight + 1
+            : reqRepsMax;
+        return SuggestedTarget(
+          weightKg: maxWeight,
+          reps: targetReps,
+          rationale:
+              'Hit $targetReps reps across $reqSets sets before increasing load.',
+        );
+      }
+    }
+
+    // Default Linear Progression logic
     if (lastWeightKg <= 0) {
       return SuggestedTarget(
         weightKg: 0,

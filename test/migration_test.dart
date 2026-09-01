@@ -1,6 +1,6 @@
 // RB-04 Phase 4: schema tooling. Verifies the hand-written `tables.dart`
 // declarations (as materialized by `AppDatabase`) match the schema drift_dev
-// dumped to `drift_schemas/drift_schema_v34.json`. `schema dump` only
+// dumped to `drift_schemas/drift_schema_v37.json`. `schema dump` only
 // captures the *current* version — there is no retroactive v1-v22 snapshot —
 // so this only proves "the code matches what was dumped", not a full
 // migration-chain replay. Re-run `dart run drift_dev schema dump
@@ -17,10 +17,10 @@ import 'support/test_database.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('current schema matches the v34 drift_schemas snapshot', () async {
+  test('current schema matches the v37 drift_schemas snapshot', () async {
     final db = await openTestDatabase();
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // With two dumped snapshots (v23, v24) now on disk, startAt(23) has real
@@ -31,7 +31,7 @@ void main() {
     final connection = await verifier.startAt(23);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // Phase 10 sync (v25) touches every synced table at once — this is the
@@ -41,7 +41,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // Phase 10 assisted rep tracking (v26) adds three local-only tables. Same
@@ -50,7 +50,7 @@ void main() {
     final connection = await verifier.startAt(25);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // UI rework Phase 6 (v27) adds the fasting_schedules table. Same
@@ -59,7 +59,7 @@ void main() {
     final connection = await verifier.startAt(26);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // UI rework Phase 8 (v28) adds start_time_minutes to program_days and
@@ -69,7 +69,7 @@ void main() {
     final connection = await verifier.startAt(27);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // Phase 11 Gym Buddy (v29) adds two local-only buddy mirror tables plus
@@ -79,7 +79,7 @@ void main() {
     final connection = await verifier.startAt(28);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // Assisted rep tracking's global switch (v30): rep_tracking_settings gains
@@ -89,7 +89,7 @@ void main() {
     final connection = await verifier.startAt(29);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // GSD 12-04 (v31): set_entries gains duration_seconds, distance_m and
@@ -99,7 +99,7 @@ void main() {
     final connection = await verifier.startAt(30);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // Recovery page (v32): joint_pain_logs, a new synced table. Same
@@ -108,7 +108,7 @@ void main() {
     final connection = await verifier.startAt(31);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
   });
 
   // v33 (workout_sessions.photo_path + calories_burned) and v34 (the two
@@ -128,6 +128,22 @@ void main() {
     final connection = await verifier.startAt(32);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 34);
+    await verifier.migrateAndValidate(db, 37);
+  });
+
+  // v35 (achievements + the two Hercul tables), v36 (fasting_stages) and v37
+  // (double progression) shipped without their own dumps, so v34 is the
+  // newest fixture that can be replayed from — this one replay covers all
+  // three steps at once. Same reason there is no v33 snapshot above.
+  //
+  // v37 is the first of the three that is an addColumn rather than a
+  // createTable, which is the case worth pinning: the six columns land on an
+  // exercise_progressions table that already has rows, so a mistake here
+  // surfaces as a migration failure rather than an empty-table no-op.
+  test('upgrades cleanly from a generated v34 fixture', () async {
+    final connection = await verifier.startAt(34);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 37);
   });
 }

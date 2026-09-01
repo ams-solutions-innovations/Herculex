@@ -29,7 +29,10 @@ void main() {
   /// Opacity the title in the header is currently rendered at.
   double titleOpacity(WidgetTester tester) {
     final finder = find
-        .ancestor(of: find.text('Calorie Trends'), matching: find.byType(AnimatedOpacity))
+        .ancestor(
+          of: find.text('Calorie Trends'),
+          matching: find.byType(AnimatedOpacity),
+        )
         .first;
     return tester.widget<AnimatedOpacity>(finder).opacity;
   }
@@ -91,7 +94,9 @@ void main() {
     expect(headerOpacity(tester), 1.0);
   });
 
-  testWidgets('returning to the top always shows the header and title', (tester) async {
+  testWidgets('returning to the top always shows the header and title', (
+    tester,
+  ) async {
     await tester.pumpWidget(harness());
 
     await scroll(tester, -600);

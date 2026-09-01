@@ -195,7 +195,8 @@ class WorkoutHistoryView extends ConsumerWidget {
                 : '${duration.inMinutes}m';
 
             final profile = ref.watch(profileProvider).valueOrNull;
-            final weight = (profile?.weightKg != null && profile!.weightKg! > 20)
+            final weight =
+                (profile?.weightKg != null && profile!.weightKg! > 20)
                 ? profile.weightKg!
                 : 75.0;
             final minutes = duration?.inMinutes ?? 45;
@@ -227,79 +228,189 @@ class WorkoutHistoryView extends ConsumerWidget {
                                 color: AppColors.secondary,
                               ),
                             ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '$calories kcal',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                InkWell(
+                                  onTap: () async {
+                                    final currentDur =
+                                        session.endedAt?.difference(
+                                          session.startedAt,
+                                        ) ??
+                                        const Duration(minutes: 45);
+                                    final newMins =
+                                        await DurationPickerDialog.show(
+                                          context,
+                                          initialMinutes:
+                                              currentDur.inMinutes > 0
+                                              ? currentDur.inMinutes
+                                              : 45,
+                                        );
+                                    if (newMins != null && newMins > 0) {
+                                      final newEndedAt = session.startedAt.add(
+                                        Duration(minutes: newMins),
+                                      );
+                                      await ref
+                                          .read(workoutsRepositoryProvider)
+                                          .endSession(
+                                            session.id,
+                                            endedAt: newEndedAt,
+                                          );
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 2,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          durationStr.isNotEmpty
+                                              ? durationStr
+                                              : 'Set duration',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.edit_outlined,
+                                          size: 12,
+                                          color: AppColors.primary,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        if (hasPhoto) ...[
+                          const SizedBox(height: 10),
+                          Stack(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '$calories kcal',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  File(photo),
+                                  height: 130,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              InkWell(
-                                onTap: () async {
-                                  final currentDur =
-                                      session.endedAt?.difference(
-                                        session.startedAt,
-                                      ) ??
-                                      const Duration(minutes: 45);
-                                  final newMins =
-                                      await DurationPickerDialog.show(
-                                        context,
-                                        initialMinutes: currentDur.inMinutes > 0
-                                            ? currentDur.inMinutes
-                                            : 45,
-                                      );
-                                  if (newMins != null && newMins > 0) {
-                                    final newEndedAt = session.startedAt.add(
-                                      Duration(minutes: newMins),
-                                    );
-                                    await ref
-                                        .read(workoutsRepositoryProvider)
-                                        .endSession(
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: Colors.black54,
+                                      child: IconButton(
+                                        padding: EdgeInsets.zero,
+                                        icon: const Icon(
+                                          Icons.camera_alt_rounded,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
+                                        onPressed: () => _pickPhoto(
+                                          context,
+                                          ref,
                                           session.id,
-                                          endedAt: newEndedAt,
-                                        );
-                                  }
-                                },
-                                borderRadius: BorderRadius.circular(4),
+                                          ImageSource.camera,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: Colors.black54,
+                                      child: IconButton(
+                                        padding: EdgeInsets.zero,
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          size: 14,
+                                          color: Colors.redAccent,
+                                        ),
+                                        onPressed: () async {
+                                          await ref
+                                              .read(workoutsRepositoryProvider)
+                                              .updateSessionPhoto(
+                                                session.id,
+                                                null,
+                                              );
+                                          ref.invalidate(
+                                            workoutSessionProvider(session.id),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              InkWell(
+                                onTap: () => _pickPhoto(
+                                  context,
+                                  ref,
+                                  session.id,
+                                  ImageSource.gallery,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
+                                    horizontal: 6,
                                     vertical: 2,
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(
-                                        durationStr.isNotEmpty
-                                            ? durationStr
-                                            : 'Set duration',
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: AppColors.primary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                      Icon(
+                                        Icons.add_a_photo_outlined,
+                                        size: 13,
+                                        color: AppColors.secondary,
                                       ),
                                       const SizedBox(width: 4),
-                                      Icon(
-                                        Icons.edit_outlined,
-                                        size: 12,
-                                        color: AppColors.primary,
+                                      Text(
+                                        'Add photo',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.secondary,
+                                              fontSize: 11,
+                                            ),
                                       ),
                                     ],
                                   ),
@@ -308,143 +419,34 @@ class WorkoutHistoryView extends ConsumerWidget {
                             ],
                           ),
                         ],
-                      ),
-                      if (hasPhoto) ...[
-                        const SizedBox(height: 10),
-                        Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                File(photo),
-                                height: 130,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Positioned(
-                              top: 6,
-                              right: 6,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: Colors.black54,
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: const Icon(
-                                        Icons.camera_alt_rounded,
-                                        size: 14,
-                                        color: Colors.white,
-                                      ),
-                                      onPressed: () => _pickPhoto(
-                                        context,
-                                        ref,
-                                        session.id,
-                                        ImageSource.camera,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: Colors.black54,
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: const Icon(
-                                        Icons.delete_outline_rounded,
-                                        size: 14,
-                                        color: Colors.redAccent,
-                                      ),
-                                      onPressed: () async {
-                                        await ref
-                                            .read(workoutsRepositoryProvider)
-                                            .updateSessionPhoto(
-                                              session.id,
-                                              null,
-                                            );
-                                        ref.invalidate(
-                                          workoutSessionProvider(session.id),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            InkWell(
-                              onTap: () => _pickPhoto(
-                                context,
-                                ref,
-                                session.id,
-                                ImageSource.gallery,
-                              ),
-                              borderRadius: BorderRadius.circular(6),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.add_a_photo_outlined,
-                                      size: 13,
-                                      color: AppColors.secondary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Add photo',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: AppColors.secondary,
-                                            fontSize: 11,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                  itemCount: rows.length,
-                  itemBuilder: (_, i) {
-                    final we = rows[i];
-                    final exercise = catalog.asData?.value.firstWhere(
-                      (e) => e.id == we.exerciseId,
-                      orElse: () => _placeholder(we.exerciseId),
-                    );
-                    final isWeightedBw =
-                        (we.equipmentVariant ?? exercise?.modality) ==
-                        'weighted';
-                    return _ExerciseBlock(
-                      workoutExercise: we,
-                      exerciseName: exercise?.name ?? '',
-                      metric: exercise != null
-                          ? effectiveLoggingMetric(
-                              exercise: exercise,
-                              equipmentVariant: we.equipmentVariant,
-                            )
-                          : LoggingMetric.weightReps,
-                      isWeightedBodyweight: isWeightedBw,
-                    );
-                  },
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                    itemCount: rows.length,
+                    itemBuilder: (_, i) {
+                      final we = rows[i];
+                      final exercise = catalog.asData?.value.firstWhere(
+                        (e) => e.id == we.exerciseId,
+                        orElse: () => _placeholder(we.exerciseId),
+                      );
+                      final isWeightedBw =
+                          (we.equipmentVariant ?? exercise?.modality) ==
+                          'weighted';
+                      return _ExerciseBlock(
+                        workoutExercise: we,
+                        exerciseName: exercise?.name ?? '',
+                        metric: exercise != null
+                            ? effectiveLoggingMetric(
+                                exercise: exercise,
+                                equipmentVariant: we.equipmentVariant,
+                              )
+                            : LoggingMetric.weightReps,
+                        isWeightedBodyweight: isWeightedBw,
+                      );
+                    },
                   ),
                 ),
               ],

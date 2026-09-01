@@ -41,6 +41,12 @@ class _ProgressionOverrideSheetState
   ProgressionGoal _goal = ProgressionGoal.muscleGain;
   double _weeklyPct = 5.0;
   bool _enabled = true;
+  String _progressionModel = 'linear';
+  int _targetSets = 3;
+  int _targetRepsMin = 8;
+  int _targetRepsMax = 12;
+  bool _autoAddSets = false;
+  int _autoAddSetsCount = 3;
   bool _loaded = false;
 
   @override
@@ -61,6 +67,12 @@ class _ProgressionOverrideSheetState
         );
         _weeklyPct = existing.weeklyIncreasePct;
         _enabled = existing.enabled;
+        _progressionModel = existing.progressionModel;
+        _targetSets = existing.targetSets ?? 3;
+        _targetRepsMin = existing.targetRepsMin ?? _goal.repsMin;
+        _targetRepsMax = existing.targetRepsMax ?? _goal.repsMax;
+        _autoAddSets = existing.autoAddSets;
+        _autoAddSetsCount = existing.autoAddSetsCount;
       });
     }
     if (mounted) setState(() => _loaded = true);
@@ -74,6 +86,12 @@ class _ProgressionOverrideSheetState
           goal: _goal,
           weeklyIncreasePct: _weeklyPct,
           enabled: _enabled,
+          progressionModel: _progressionModel,
+          targetSets: _targetSets,
+          targetRepsMin: _targetRepsMin,
+          targetRepsMax: _targetRepsMax,
+          autoAddSets: _autoAddSets,
+          autoAddSetsCount: _autoAddSetsCount,
         );
     ref.invalidate(exerciseProgressionProvider(widget.exerciseId));
     if (mounted) Navigator.of(context).pop();
@@ -211,7 +229,152 @@ class _ProgressionOverrideSheetState
                 ? (v) => setState(() => _weeklyPct = v)
                 : null,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
+          Text(
+            'PROGRESSION MODEL',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.secondary,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: ['linear', 'double'].map((m) {
+              final selected = _progressionModel == m;
+              return ChoiceChip(
+                label: Text(m == 'double' ? 'Double Progression' : 'Linear'),
+                selected: selected,
+                onSelected: _loaded && _enabled
+                    ? (_) => setState(() => _progressionModel = m)
+                    : null,
+                selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                side: BorderSide(
+                  color: selected
+                      ? AppColors.primary
+                      : AppColors.outlineVariant,
+                ),
+                labelStyle: theme.textTheme.bodySmall?.copyWith(
+                  color: selected ? AppColors.primary : null,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
+              );
+            }).toList(),
+          ),
+          if (_progressionModel == 'double') ...[
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'TARGET SETS',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                Text(
+                  '$_targetSets',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Slider(
+              value: _targetSets.toDouble(),
+              min: 1,
+              max: 10,
+              divisions: 9,
+              onChanged: _loaded && _enabled
+                  ? (v) => setState(() => _targetSets = v.toInt())
+                  : null,
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'TARGET REPS (MAX)',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                Text(
+                  '$_targetRepsMax',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Slider(
+              value: _targetRepsMax.toDouble(),
+              min: 1,
+              max: 30,
+              divisions: 29,
+              onChanged: _loaded && _enabled
+                  ? (v) => setState(() {
+                      _targetRepsMax = v.toInt();
+                      if (_targetRepsMin > _targetRepsMax) {
+                        _targetRepsMin = _targetRepsMax;
+                      }
+                    })
+                  : null,
+            ),
+          ],
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'AUTO-ADD SETS ON LOG',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.secondary,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              Switch(
+                value: _autoAddSets,
+                onChanged: _loaded && _enabled
+                    ? (v) => setState(() => _autoAddSets = v)
+                    : null,
+              ),
+            ],
+          ),
+          if (_autoAddSets) ...[
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'SETS TO ADD',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                Text(
+                  '$_autoAddSetsCount',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Slider(
+              value: _autoAddSetsCount.toDouble(),
+              min: 1,
+              max: 10,
+              divisions: 9,
+              onChanged: _loaded && _enabled && _autoAddSets
+                  ? (v) => setState(() => _autoAddSetsCount = v.toInt())
+                  : null,
+            ),
+          ],
+          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(

@@ -46,18 +46,24 @@ class _MiniWorkoutCheckButtonState extends State<MiniWorkoutCheckButton>
 
     _scaleAnim = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.72)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.72,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 20,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.72, end: 1.25)
-            .chain(CurveTween(curve: Curves.easeOutBack)),
+        tween: Tween<double>(
+          begin: 0.72,
+          end: 1.25,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
         weight: 45,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.25, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
+        tween: Tween<double>(
+          begin: 1.25,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
         weight: 35,
       ),
     ]).animate(_ctrl);
@@ -118,7 +124,8 @@ class _MiniWorkoutCheckButtonState extends State<MiniWorkoutCheckButton>
     ];
 
     for (int i = 0; i < count; i++) {
-      final angle = (i / count) * 2 * math.pi + (_random.nextDouble() * 0.4 - 0.2);
+      final angle =
+          (i / count) * 2 * math.pi + (_random.nextDouble() * 0.4 - 0.2);
       final speed = 26.0 + _random.nextDouble() * 28.0;
       final size = 3.0 + _random.nextDouble() * 3.5;
       final color = colors[_random.nextInt(colors.length)];
@@ -223,20 +230,21 @@ class _MiniWorkoutCheckButtonState extends State<MiniWorkoutCheckButton>
                           size: widget.size * 0.6,
                           color: successColor,
                         )
-                      : (widget.completedCount != null && widget.targetCount != null)
-                          ? Text(
-                              '+1',
-                              style: TextStyle(
-                                color: primaryColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: widget.size * 0.36,
-                              ),
-                            )
-                          : Icon(
-                              Icons.add_rounded,
-                              size: widget.size * 0.58,
-                              color: primaryColor,
-                            ),
+                      : (widget.completedCount != null &&
+                            widget.targetCount != null)
+                      ? Text(
+                          '+1',
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: widget.size * 0.36,
+                          ),
+                        )
+                      : Icon(
+                          Icons.add_rounded,
+                          size: widget.size * 0.58,
+                          color: primaryColor,
+                        ),
                 ),
               ),
             ),
@@ -307,14 +315,14 @@ class MiniWorkoutSegmentedProgress extends StatelessWidget {
         color: isDone
             ? activeColor
             : (isCurrent
-                ? activeColor.withValues(alpha: 0.22)
-                : Colors.transparent),
+                  ? activeColor.withValues(alpha: 0.22)
+                  : Colors.transparent),
         border: Border.all(
           color: isDone
               ? activeColor
               : (isCurrent
-                  ? activeColor.withValues(alpha: 0.75)
-                  : outlineColor),
+                    ? activeColor.withValues(alpha: 0.75)
+                    : outlineColor),
           width: isDone ? 0 : 1.4,
         ),
         boxShadow: isDone
@@ -328,13 +336,7 @@ class MiniWorkoutSegmentedProgress extends StatelessWidget {
             : null,
       ),
       child: isDone && dotSize >= 12
-          ? const Center(
-              child: Icon(
-                Icons.check,
-                size: 9,
-                color: Colors.white,
-              ),
-            )
+          ? const Center(child: Icon(Icons.check, size: 9, color: Colors.white))
           : null,
     );
   }

@@ -27,7 +27,8 @@ void main() {
         hour: 6,
         stageName: 'Faza zgodnje presnove',
         stageCategory: 'Prebava & Stabilizacija',
-        shortMessage: 'Krvni sladkor se stabilizira, raven inzulina začne upadati.',
+        shortMessage:
+            'Krvni sladkor se stabilizira, raven inzulina začne upadati.',
       ),
       const FastingStage(
         hour: 12,
@@ -39,7 +40,8 @@ void main() {
         hour: 16,
         stageName: 'Optimalno kurjenje maščob (16:8)',
         stageCategory: 'Ketoza & Maščobe',
-        shortMessage: 'Raven inzulina je na dnu, raven rastnega hormona (HGH) raste.',
+        shortMessage:
+            'Raven inzulina je na dnu, raven rastnega hormona (HGH) raste.',
       ),
       const FastingStage(
         hour: 18,
@@ -57,22 +59,80 @@ void main() {
         hour: 72,
         stageName: 'Popolna regeneracija imunskega sistema & matičnih celic',
         stageCategory: 'Matične celice & Imunost',
-        shortMessage: 'Matične celice se prebudijo in tvorijo popolnoma nove bele krvničke.',
+        shortMessage:
+            'Matične celice se prebudijo in tvorijo popolnoma nove bele krvničke.',
       ),
     ];
 
-    test('resolveForElapsed returns stage for exact or nearest preceding hour', () {
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 3), stages).hour, 6);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 6), stages).hour, 6);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 11), stages).hour, 6);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 12), stages).hour, 12);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 15), stages).hour, 12);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 16), stages).hour, 16);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 17), stages).hour, 16);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 18), stages).hour, 18);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 25), stages).hour, 24);
-      expect(FastingStage.resolveForElapsed(const Duration(hours: 80), stages).hour, 72);
-    });
+    test(
+      'resolveForElapsed returns stage for exact or nearest preceding hour',
+      () {
+        expect(
+          FastingStage.resolveForElapsed(const Duration(hours: 3), stages).hour,
+          6,
+        );
+        expect(
+          FastingStage.resolveForElapsed(const Duration(hours: 6), stages).hour,
+          6,
+        );
+        expect(
+          FastingStage.resolveForElapsed(
+            const Duration(hours: 11),
+            stages,
+          ).hour,
+          6,
+        );
+        expect(
+          FastingStage.resolveForElapsed(
+            const Duration(hours: 12),
+            stages,
+          ).hour,
+          12,
+        );
+        expect(
+          FastingStage.resolveForElapsed(
+            const Duration(hours: 15),
+            stages,
+          ).hour,
+          12,
+        );
+        expect(
+          FastingStage.resolveForElapsed(
+            const Duration(hours: 16),
+            stages,
+          ).hour,
+          16,
+        );
+        expect(
+          FastingStage.resolveForElapsed(
+            const Duration(hours: 17),
+            stages,
+          ).hour,
+          16,
+        );
+        expect(
+          FastingStage.resolveForElapsed(
+            const Duration(hours: 18),
+            stages,
+          ).hour,
+          18,
+        );
+        expect(
+          FastingStage.resolveForElapsed(
+            const Duration(hours: 25),
+            stages,
+          ).hour,
+          24,
+        );
+        expect(
+          FastingStage.resolveForElapsed(
+            const Duration(hours: 80),
+            stages,
+          ).hour,
+          72,
+        );
+      },
+    );
 
     test('parseFromJson parses JSON string into FastingStage instances', () {
       const jsonStr = '''
@@ -137,7 +197,7 @@ void main() {
   group('Next scheduled fast occurrence calculation', () {
     test('calculates correct next occurrence today or next week', () {
       final monday10am = DateTime(2026, 8, 10, 10, 0); // Monday (weekday = 1)
-      
+
       // Schedule for Monday 20:00 (startTimeMinutes = 20 * 60 = 1200)
       final nextToday = nextOccurrence(
         daysOfWeek: weekdayBit(DateTime.monday),

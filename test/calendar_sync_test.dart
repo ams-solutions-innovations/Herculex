@@ -50,21 +50,24 @@ void main() {
 
     test('Inbound change logic updates ScheduledWorkout in database', () async {
       // 1. Create a dummy program, week, and program day
-      final programId = await db.into(db.programs).insert(
+      final programId = await db
+          .into(db.programs)
+          .insert(
             ProgramsCompanion.insert(
               name: 'Hypertrophy Block',
               weeks: const Value(4),
             ),
           );
 
-      final weekId = await db.into(db.programWeeks).insert(
-            ProgramWeeksCompanion.insert(
-              programId: programId,
-              weekIndex: 1,
-            ),
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 1),
           );
 
-      final dayId = await db.into(db.programDays).insert(
+      final dayId = await db
+          .into(db.programDays)
+          .insert(
             ProgramDaysCompanion.insert(
               programWeekId: weekId,
               dayOfWeek: 1,
@@ -73,7 +76,9 @@ void main() {
           );
 
       // 2. Insert a scheduled workout
-      final workoutId = await db.into(db.scheduledWorkouts).insert(
+      final workoutId = await db
+          .into(db.scheduledWorkouts)
+          .insert(
             ScheduledWorkoutsCompanion.insert(
               dateIso: '2026-09-05',
               programDayId: dayId,
@@ -84,9 +89,9 @@ void main() {
           );
 
       // Verify inserted
-      var row = await (db.select(db.scheduledWorkouts)
-            ..where((t) => t.id.equals(workoutId)))
-          .getSingle();
+      var row = await (db.select(
+        db.scheduledWorkouts,
+      )..where((t) => t.id.equals(workoutId))).getSingle();
       expect(row.dateIso, '2026-09-05');
       expect(row.status, 'planned');
       expect(row.startTimeMinutes, 540);
@@ -95,9 +100,9 @@ void main() {
       const newDateIso = '2026-09-06';
       const newMinutes = 630;
 
-      await (db.update(db.scheduledWorkouts)
-            ..where((t) => t.id.equals(workoutId)))
-          .write(
+      await (db.update(
+        db.scheduledWorkouts,
+      )..where((t) => t.id.equals(workoutId))).write(
         const ScheduledWorkoutsCompanion(
           dateIso: Value(newDateIso),
           startTimeMinutes: Value(newMinutes),
@@ -106,9 +111,9 @@ void main() {
       );
 
       // 4. Verify that local database reflects the moved date and updated start time
-      row = await (db.select(db.scheduledWorkouts)
-            ..where((t) => t.id.equals(workoutId)))
-          .getSingle();
+      row = await (db.select(
+        db.scheduledWorkouts,
+      )..where((t) => t.id.equals(workoutId))).getSingle();
       expect(row.dateIso, '2026-09-06');
       expect(row.status, 'moved');
       expect(row.startTimeMinutes, 630);

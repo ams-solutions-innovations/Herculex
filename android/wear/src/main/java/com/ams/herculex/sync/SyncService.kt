@@ -417,6 +417,7 @@ class SyncService : WearableListenerService() {
         // Commit only now that the write above has actually run (Phase 4).
         appliedRevisions.commit(envelope)
         logWearSync(envelope, path, delivery, "accepted")
+        activeNutritionViewModel?.refresh()
         requestComplicationUpdates()
         requestTileUpdate()
     }

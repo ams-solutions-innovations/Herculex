@@ -776,6 +776,15 @@ class ExerciseProgressions extends Table with SyncColumns, SyncTombstone {
   RealColumn get weeklyIncreasePct => real().withDefault(const Constant(5.0))();
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
 
+  // ── New Double Progression / Overrides (v40) ──
+  TextColumn get progressionModel =>
+      text().withDefault(const Constant('linear'))(); // linear | double
+  IntColumn get targetSets => integer().nullable()();
+  IntColumn get targetRepsMin => integer().nullable()();
+  IntColumn get targetRepsMax => integer().nullable()();
+  BoolColumn get autoAddSets => boolean().withDefault(const Constant(false))();
+  IntColumn get autoAddSetsCount => integer().withDefault(const Constant(3))();
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {exerciseId},

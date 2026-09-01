@@ -1,4 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
+import 'package:herculex/features/workouts/presentation/exercise_analytics_cards.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/units.dart';
@@ -101,9 +102,13 @@ class _ExerciseDetailsBody extends ConsumerWidget {
         // rather than plotting a flat line through their placeholder zeros
         // (EXR-05).
         if (metric.isRepBased && metric.isLoaded) ...[
-          _TrendCard(exerciseId: exercise.id),
+          AdvancedTrendCard(exerciseId: exercise.id, metric: metric),
+          const SizedBox(height: 14),
+          ResistanceProfileCard(exerciseId: exercise.id, metric: metric),
           const SizedBox(height: 14),
         ],
+        CalisthenicsStatsCard(exercise: exercise, metric: metric),
+        const SizedBox(height: 14),
         _PerformanceCard(
           title: 'By equipment',
           async: byEquipment,
@@ -121,6 +126,8 @@ class _ExerciseDetailsBody extends ConsumerWidget {
         ),
         const SizedBox(height: 14),
         _ProgressionGoalCard(exercise: exercise),
+        const SizedBox(height: 14),
+        ExerciseTimelineCard(exerciseId: exercise.id),
         const SizedBox(height: 14),
         HxCard(
           child: Column(

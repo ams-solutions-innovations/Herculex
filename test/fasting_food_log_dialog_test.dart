@@ -80,7 +80,9 @@ void main() {
     'confirmEndFastOnFoodLog returns true immediately when no active fast',
     (tester) async {
       bool? dialogResult;
-      await tester.pumpWidget(buildTestApp(onResult: (res) => dialogResult = res));
+      await tester.pumpWidget(
+        buildTestApp(onResult: (res) => dialogResult = res),
+      );
       await tester.tap(find.text('TRIGGER'));
       await tester.pumpAndSettle();
 
@@ -111,7 +113,9 @@ void main() {
       await repo.startSession(16 * 3600);
 
       bool? dialogResult;
-      await tester.pumpWidget(buildTestApp(onResult: (res) => dialogResult = res));
+      await tester.pumpWidget(
+        buildTestApp(onResult: (res) => dialogResult = res),
+      );
       await tester.tap(find.text('TRIGGER'));
       await tester.pumpAndSettle();
 
@@ -136,7 +140,9 @@ void main() {
       final id = await repo.startSession(16 * 3600);
 
       bool? dialogResult;
-      await tester.pumpWidget(buildTestApp(onResult: (res) => dialogResult = res));
+      await tester.pumpWidget(
+        buildTestApp(onResult: (res) => dialogResult = res),
+      );
       await tester.tap(find.text('TRIGGER'));
       await tester.pumpAndSettle();
 
@@ -151,24 +157,25 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Tapping Cancel keeps active fast running and returns false',
-    (tester) async {
-      final id = await repo.startSession(16 * 3600);
+  testWidgets('Tapping Cancel keeps active fast running and returns false', (
+    tester,
+  ) async {
+    final id = await repo.startSession(16 * 3600);
 
-      bool? dialogResult;
-      await tester.pumpWidget(buildTestApp(onResult: (res) => dialogResult = res));
-      await tester.tap(find.text('TRIGGER'));
-      await tester.pumpAndSettle();
+    bool? dialogResult;
+    await tester.pumpWidget(
+      buildTestApp(onResult: (res) => dialogResult = res),
+    );
+    await tester.tap(find.text('TRIGGER'));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
 
-      expect(dialogResult, isFalse);
+    expect(dialogResult, isFalse);
 
-      final active = await repo.activeSession();
-      expect(active, isNotNull);
-      expect(active!.id, id);
-    },
-  );
+    final active = await repo.activeSession();
+    expect(active, isNotNull);
+    expect(active!.id, id);
+  });
 }

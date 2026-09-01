@@ -75,156 +75,108 @@ class _HealthIntegrationsViewState
       title: 'Health & Sync',
       children: [
         // ── Activity impact card ───────────────────────────────────────
-          adjustmentAsync.when(
-            data: (adj) => _buildImpactCard(
-              theme,
-              adj.message,
-              adj.statusLabel,
-              adj.volumeFactor < 1.0,
-            ),
-            loading: () => const Center(child: LinearProgressIndicator()),
-            error: (err, stack) => const SizedBox.shrink(),
+        adjustmentAsync.when(
+          data: (adj) => _buildImpactCard(
+            theme,
+            adj.message,
+            adj.statusLabel,
+            adj.volumeFactor < 1.0,
           ),
-          const SizedBox(height: 32),
+          loading: () => const Center(child: LinearProgressIndicator()),
+          error: (err, stack) => const SizedBox.shrink(),
+        ),
+        const SizedBox(height: 32),
 
-          // ── Biological sex ────────────────────────────────────────────
-          Center(
-            child: Text(
-              'BIOLOGICAL SEX',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.secondary,
-                letterSpacing: 1.0,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _buildSexSelectorCard(theme, profile),
-          const SizedBox(height: 32),
-
-          // ── Integrations header ───────────────────────────────────────
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Text(
-                'INTEGRACIJE',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.secondary,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: _isSyncing
-                    ? const SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: Center(
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      )
-                    : IconButton(
-                        icon: Icon(
-                          Icons.sync_rounded,
-                          size: 20,
-                          color: AppColors.primary,
-                        ),
-                        onPressed: _syncAllData,
-                        tooltip: 'Sync all',
-                      ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // ── Platform cards ─────────────────────────────────────────────
-          _buildPlatformCard(
-            theme: theme,
-            platform: HealthPlatform.apple,
-            name: 'Apple Health',
-            subtitle: 'HealthKit API · iOS / watchOS',
-            icon: Icons.health_and_safety_rounded,
-            accentColor: const Color(0xFFFF375F),
-            isConnected: permissions['apple'] ?? false,
-            permKey: 'apple',
-            lastSync: lastSyncTime,
-            route: '/health/apple',
-          ),
-          const SizedBox(height: 12),
-          _buildPlatformCard(
-            theme: theme,
-            platform: HealthPlatform.google,
-            name: 'Google Health Connect',
-            subtitle: 'Health Connect API · Android',
-            icon: Icons.monitor_heart_rounded,
-            accentColor: const Color(0xFF4285F4),
-            isConnected: permissions['google'] ?? false,
-            permKey: 'google',
-            lastSync: lastSyncTime,
-            route: '/health/google',
-          ),
-          const SizedBox(height: 12),
-          _buildCalendarSyncCard(theme),
-          const SizedBox(height: 32),
-
-          // ── Cycle sync (females only) ──────────────────────────────────
-          if (isFemale) ...[
-            Center(
-              child: Text(
-                'CYCLE SYNC',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.secondary,
-                  letterSpacing: 1.0,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildCycleSyncSection(theme),
-            const SizedBox(height: 32),
-          ],
-
-          // ── Auto-adjustments ──────────────────────────────────────────
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Text(
-                'AUTO-ADJUSTMENTS',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.secondary,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Switch(
-                  value: autoAdjust,
-                  onChanged: (val) {
-                    ref.read(autoAdjustGymVolumeProvider.notifier).state = val;
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'When enabled, Herculex adjusts daily set recommendations based on sleep depth, resting heart rate, and cardiovascular stress.',
-            style: theme.textTheme.bodySmall?.copyWith(
+        // ── Biological sex ────────────────────────────────────────────
+        Center(
+          child: Text(
+            'BIOLOGICAL SEX',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.secondary,
+              letterSpacing: 1.0,
             ),
           ),
-          const SizedBox(height: 32),
+        ),
+        const SizedBox(height: 12),
+        _buildSexSelectorCard(theme, profile),
+        const SizedBox(height: 32),
 
-          // ── Today's biometrics ────────────────────────────────────────
+        // ── Integrations header ───────────────────────────────────────
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              'INTEGRACIJE',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: 1.0,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _isSyncing
+                  ? const SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Center(
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    )
+                  : IconButton(
+                      icon: Icon(
+                        Icons.sync_rounded,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: _syncAllData,
+                      tooltip: 'Sync all',
+                    ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // ── Platform cards ─────────────────────────────────────────────
+        _buildPlatformCard(
+          theme: theme,
+          platform: HealthPlatform.apple,
+          name: 'Apple Health',
+          subtitle: 'HealthKit API · iOS / watchOS',
+          icon: Icons.health_and_safety_rounded,
+          accentColor: const Color(0xFFFF375F),
+          isConnected: permissions['apple'] ?? false,
+          permKey: 'apple',
+          lastSync: lastSyncTime,
+          route: '/health/apple',
+        ),
+        const SizedBox(height: 12),
+        _buildPlatformCard(
+          theme: theme,
+          platform: HealthPlatform.google,
+          name: 'Google Health Connect',
+          subtitle: 'Health Connect API · Android',
+          icon: Icons.monitor_heart_rounded,
+          accentColor: const Color(0xFF4285F4),
+          isConnected: permissions['google'] ?? false,
+          permKey: 'google',
+          lastSync: lastSyncTime,
+          route: '/health/google',
+        ),
+        const SizedBox(height: 12),
+        _buildCalendarSyncCard(theme),
+        const SizedBox(height: 32),
+
+        // ── Cycle sync (females only) ──────────────────────────────────
+        if (isFemale) ...[
           Center(
             child: Text(
-              "TODAY'S BIOMETRICS",
+              'CYCLE SYNC',
               textAlign: TextAlign.center,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: AppColors.secondary,
@@ -233,19 +185,67 @@ class _HealthIntegrationsViewState
             ),
           ),
           const SizedBox(height: 16),
-          samplesAsync.when(
-            data: (samples) {
-              if (samples.isEmpty && lastDailyRead == null) {
-                return _buildEmptyBiometricsCard(theme);
-              }
-              return _buildBiometricsGrid(theme, samples, lastDailyRead);
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text('Error: $err')),
-          ),
+          _buildCycleSyncSection(theme),
+          const SizedBox(height: 32),
         ],
-      );
-    }
+
+        // ── Auto-adjustments ──────────────────────────────────────────
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              'AUTO-ADJUSTMENTS',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: 1.0,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Switch(
+                value: autoAdjust,
+                onChanged: (val) {
+                  ref.read(autoAdjustGymVolumeProvider.notifier).state = val;
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'When enabled, Herculex adjusts daily set recommendations based on sleep depth, resting heart rate, and cardiovascular stress.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.secondary,
+          ),
+        ),
+        const SizedBox(height: 32),
+
+        // ── Today's biometrics ────────────────────────────────────────
+        Center(
+          child: Text(
+            "TODAY'S BIOMETRICS",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.secondary,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        samplesAsync.when(
+          data: (samples) {
+            if (samples.isEmpty && lastDailyRead == null) {
+              return _buildEmptyBiometricsCard(theme);
+            }
+            return _buildBiometricsGrid(theme, samples, lastDailyRead);
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error: $err')),
+        ),
+      ],
+    );
+  }
 
   // ─── Platform card ────────────────────────────────────────────────────────
 
@@ -366,10 +366,8 @@ class _HealthIntegrationsViewState
 
     final selectedCalName = selectedCalId == null
         ? 'Herculex Training'
-        : (availableCals
-                .firstWhereOrNull((c) => c.id == selectedCalId)
-                ?.name ??
-            'Selected Calendar');
+        : (availableCals.firstWhereOrNull((c) => c.id == selectedCalId)?.name ??
+              'Selected Calendar');
 
     const accentColor = Color(0xFF6750A4);
 
@@ -424,8 +422,8 @@ class _HealthIntegrationsViewState
                           child: Text(
                             isSyncEnabled
                                 ? (lastSync != null
-                                    ? 'Sync ${_formatTime(lastSync)}'
-                                    : '2-Way Sync Active')
+                                      ? 'Sync ${_formatTime(lastSync)}'
+                                      : '2-Way Sync Active')
                                 : 'Disabled',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -589,8 +587,9 @@ class _HealthIntegrationsViewState
             return Container(
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
               child: Column(
@@ -660,8 +659,9 @@ class _HealthIntegrationsViewState
                               borderRadius: BorderRadius.circular(12),
                             ),
                             tileColor: isSelected
-                                ? theme.colorScheme.primary
-                                    .withValues(alpha: 0.12)
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.12,
+                                  )
                                 : null,
                             leading: Icon(
                               Icons.calendar_today_rounded,
@@ -670,8 +670,7 @@ class _HealthIntegrationsViewState
                                   : AppColors.secondary,
                             ),
                             title: Text(cal.name ?? 'Unnamed Calendar'),
-                            subtitle:
-                                Text(cal.accountName ?? 'Local Account'),
+                            subtitle: Text(cal.accountName ?? 'Local Account'),
                             trailing: isSelected
                                 ? const Icon(
                                     Icons.check_circle,

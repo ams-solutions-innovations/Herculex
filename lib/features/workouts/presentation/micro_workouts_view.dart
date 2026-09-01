@@ -142,7 +142,9 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
                     CircularProgressIndicator(
                       value: overallProgress,
                       strokeWidth: 6,
-                      backgroundColor: hx.outlineVariant.withValues(alpha: 0.25),
+                      backgroundColor: hx.outlineVariant.withValues(
+                        alpha: 0.25,
+                      ),
                       valueColor: AlwaysStoppedAnimation(
                         isAllDone ? const Color(0xFF10B981) : trainingColor,
                       ),
@@ -257,13 +259,10 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
                           color: setsCount > 0
                               ? const Color(0xFF10B981)
                               : (isCurrentDay
-                                  ? hx.domainTraining.withValues(alpha: 0.15)
-                                  : hx.surfaceVariant),
+                                    ? hx.domainTraining.withValues(alpha: 0.15)
+                                    : hx.surfaceVariant),
                           border: isCurrentDay
-                              ? Border.all(
-                                  color: hx.domainTraining,
-                                  width: 1.5,
-                                )
+                              ? Border.all(color: hx.domainTraining, width: 1.5)
                               : null,
                         ),
                         child: Center(
@@ -274,15 +273,15 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
                                   color: Colors.white,
                                 )
                               : (isCurrentDay
-                                  ? Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: hx.domainTraining,
-                                      ),
-                                    )
-                                  : null),
+                                    ? Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: hx.domainTraining,
+                                        ),
+                                      )
+                                    : null),
                         ),
                       ),
                     ],
@@ -394,10 +393,12 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
           );
         }
 
-        final activeList =
-            list.where((item) => item.microWorkout.active).toList();
-        final pausedList =
-            list.where((item) => !item.microWorkout.active).toList();
+        final activeList = list
+            .where((item) => item.microWorkout.active)
+            .toList();
+        final pausedList = list
+            .where((item) => !item.microWorkout.active)
+            .toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,10 +526,7 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        size: 20,
-                      ),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 20),
                       color: hx.onSurfaceVariant,
                       tooltip: 'Remove log entry',
                       onPressed: () async {
@@ -593,8 +591,8 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
         color: isDone
             ? const Color(0xFF10B981).withValues(alpha: 0.12)
             : (isPaused
-                ? hx.surfaceContainerLowest.withValues(alpha: 0.5)
-                : hx.surfaceContainerLowest),
+                  ? hx.surfaceContainerLowest.withValues(alpha: 0.5)
+                  : hx.surfaceContainerLowest),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDone
@@ -612,11 +610,7 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
             children: [
               // Exercise artwork or icon
               if (item.exercise != null)
-                ExerciseArtwork(
-                  exercise: item.exercise!,
-                  size: 44,
-                  radius: 12,
-                )
+                ExerciseArtwork(exercise: item.exercise!, size: 44, radius: 12)
               else
                 Container(
                   width: 44,
@@ -747,11 +741,7 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
   }
 
   // ── Empty State ──
-  Widget _buildEmptyState(
-    BuildContext context,
-    String title,
-    String subtitle,
-  ) {
+  Widget _buildEmptyState(BuildContext context, String title, String subtitle) {
     final hx = context.hx;
 
     return Container(
@@ -760,9 +750,7 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
       decoration: BoxDecoration(
         color: hx.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -823,18 +811,14 @@ class _MicroWorkoutsViewState extends ConsumerState<MicroWorkoutsView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _MicroWorkoutEditorSheet(
-        existing: existing,
-      ),
+      builder: (ctx) => _MicroWorkoutEditorSheet(existing: existing),
     );
   }
 }
 
 /// Modal Bottom Sheet for Creating and Editing Mini Workouts
 class _MicroWorkoutEditorSheet extends ConsumerStatefulWidget {
-  const _MicroWorkoutEditorSheet({
-    this.existing,
-  });
+  const _MicroWorkoutEditorSheet({this.existing});
 
   final MicroWorkoutData? existing;
 
@@ -1197,13 +1181,9 @@ class _MicroWorkoutEditorSheetState
         decoration: BoxDecoration(
           color: hx.surfaceContainer,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: hx.outlineVariant.withValues(alpha: 0.4),
-          ),
+          border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.4)),
         ),
-        child: Center(
-          child: Icon(icon, size: 18, color: hx.onSurface),
-        ),
+        child: Center(child: Icon(icon, size: 18, color: hx.onSurface)),
       ),
     );
   }

@@ -147,196 +147,200 @@ void main() {
       final remainingSlot = unstacked.widgets.firstWhere(
         (w) => w.types.contains(DashboardWidgetType.workoutStreak),
       );
-      expect(remainingSlot.types.contains(DashboardWidgetType.cnsLoad), isFalse);
+      expect(
+        remainingSlot.types.contains(DashboardWidgetType.cnsLoad),
+        isFalse,
+      );
     });
   });
 
-  testWidgets('DashboardCustomizeSheet renders in bottom sheet without Material error', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+  testWidgets(
+    'DashboardCustomizeSheet renders in bottom sheet without Material error',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    final prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => const DashboardCustomizeSheet(),
-                  );
-                },
-                child: const Text('Customize'),
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const DashboardCustomizeSheet(),
+                    );
+                  },
+                  child: const Text('Customize'),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    // Tap Customize to open the bottom sheet
-    await tester.tap(find.text('Customize'));
-    await tester.pumpAndSettle();
+      // Tap Customize to open the bottom sheet
+      await tester.tap(find.text('Customize'));
+      await tester.pumpAndSettle();
 
-    // Verify header and shape cards exist
-    expect(find.text('Customize Dashboard'), findsOneWidget);
-    expect(find.text('WIDGET SHAPE'), findsOneWidget);
-    expect(find.text('Squircle'), findsWidgets);
-    expect(find.text('Pill'), findsWidgets);
-    expect(find.text('Compact'), findsWidgets);
+      // Verify header and shape cards exist
+      expect(find.text('Customize Dashboard'), findsOneWidget);
+      expect(find.text('WIDGET SHAPE'), findsOneWidget);
+      expect(find.text('Squircle'), findsWidgets);
+      expect(find.text('Pill'), findsWidgets);
+      expect(find.text('Compact'), findsWidgets);
 
-    // Verify widgets in the reorderable list are present
-    expect(find.text('Fasting Timer'), findsOneWidget);
-    expect(find.text('Supplements Tracker'), findsOneWidget);
-    expect(find.text('Calories Remaining'), findsOneWidget);
-    expect(find.text('STACK (2)'), findsOneWidget);
+      // Verify widgets in the reorderable list are present
+      expect(find.text('Fasting Timer'), findsOneWidget);
+      expect(find.text('Supplements Tracker'), findsOneWidget);
+      expect(find.text('Calories Remaining'), findsOneWidget);
+      expect(find.text('STACK (2)'), findsOneWidget);
 
-    // Tap a different shape chip
-    await tester.tap(find.text('Compact'));
-    await tester.pumpAndSettle();
+      // Tap a different shape chip
+      await tester.tap(find.text('Compact'));
+      await tester.pumpAndSettle();
 
-    // Tap unstack on one of the stacked items
-    final unstackButtons = find.byTooltip('Unstack widget');
-    expect(unstackButtons, findsWidgets);
-    await tester.tap(unstackButtons.first);
-    await tester.pumpAndSettle();
+      // Tap unstack on one of the stacked items
+      final unstackButtons = find.byTooltip('Unstack widget');
+      expect(unstackButtons, findsWidgets);
+      await tester.tap(unstackButtons.first);
+      await tester.pumpAndSettle();
 
-    // Verify no Flutter error widgets or Material exceptions were thrown
-    expect(tester.takeException(), isNull);
-  });
+      // Verify no Flutter error widgets or Material exceptions were thrown
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('Dashboard stacked widgets support horizontal swiping through multi-card stack', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+  testWidgets(
+    'Dashboard stacked widgets support horizontal swiping through multi-card stack',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    final prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return StackedDashboardWidget(
-                  types: const [
-                    DashboardWidgetType.bodyweightTrends,
-                    DashboardWidgetType.herculInsights,
-                    DashboardWidgetType.recoverySummary,
-                    DashboardWidgetType.supplements,
-                    DashboardWidgetType.quickScan,
-                    DashboardWidgetType.miniWorkouts,
-                    DashboardWidgetType.latestPrs,
-                  ],
-                  theme: Theme.of(context),
-                  renderWidget: (type) => Center(
-                    child: Text('WIDGET_${type.name}'),
-                  ),
-                  onLongPress: () {},
-                );
-              },
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  return StackedDashboardWidget(
+                    types: const [
+                      DashboardWidgetType.bodyweightTrends,
+                      DashboardWidgetType.herculInsights,
+                      DashboardWidgetType.recoverySummary,
+                      DashboardWidgetType.supplements,
+                      DashboardWidgetType.quickScan,
+                      DashboardWidgetType.miniWorkouts,
+                      DashboardWidgetType.latestPrs,
+                    ],
+                    theme: Theme.of(context),
+                    renderWidget: (type) =>
+                        Center(child: Text('WIDGET_${type.name}')),
+                    onLongPress: () {},
+                  );
+                },
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    // Initial page shows bodyweight trends widget
-    expect(find.text('WIDGET_bodyweightTrends'), findsOneWidget);
-    expect(find.text('WIDGET_herculInsights'), findsNothing);
+      // Initial page shows bodyweight trends widget
+      expect(find.text('WIDGET_bodyweightTrends'), findsOneWidget);
+      expect(find.text('WIDGET_herculInsights'), findsNothing);
 
-    // Swipe left to go to next page
-    await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
-    await tester.pumpAndSettle();
+      // Swipe left to go to next page
+      await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
+      await tester.pumpAndSettle();
 
-    // Now hercul insights widget is visible
-    expect(find.text('WIDGET_herculInsights'), findsOneWidget);
-    expect(find.text('WIDGET_bodyweightTrends'), findsNothing);
+      // Now hercul insights widget is visible
+      expect(find.text('WIDGET_herculInsights'), findsOneWidget);
+      expect(find.text('WIDGET_bodyweightTrends'), findsNothing);
 
-    // Swipe left again -> recovery
-    await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
-    await tester.pumpAndSettle();
-    expect(find.text('WIDGET_recoverySummary'), findsOneWidget);
+      // Swipe left again -> recovery
+      await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('WIDGET_recoverySummary'), findsOneWidget);
 
-    // Swipe left again -> supplements
-    await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
-    await tester.pumpAndSettle();
-    expect(find.text('WIDGET_supplements'), findsOneWidget);
+      // Swipe left again -> supplements
+      await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('WIDGET_supplements'), findsOneWidget);
 
-    // Swipe right to go back
-    await tester.fling(find.byType(PageView), const Offset(600, 0), 1000);
-    await tester.pumpAndSettle();
-    expect(find.text('WIDGET_recoverySummary'), findsOneWidget);
-  });
+      // Swipe right to go back
+      await tester.fling(find.byType(PageView), const Offset(600, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('WIDGET_recoverySummary'), findsOneWidget);
+    },
+  );
 
-  testWidgets('Dashboard stacked widgets support horizontal swiping through pill stack', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+  testWidgets(
+    'Dashboard stacked widgets support horizontal swiping through pill stack',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    final prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return StackedDashboardWidget(
-                  types: const [
-                    DashboardWidgetType.workoutStreak,
-                    DashboardWidgetType.cnsLoad,
-                    DashboardWidgetType.nutritionStreak,
-                  ],
-                  theme: Theme.of(context),
-                  renderWidget: (type) => Center(
-                    child: Text('PILL_${type.name}'),
-                  ),
-                  onLongPress: () {},
-                );
-              },
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  return StackedDashboardWidget(
+                    types: const [
+                      DashboardWidgetType.workoutStreak,
+                      DashboardWidgetType.cnsLoad,
+                      DashboardWidgetType.nutritionStreak,
+                    ],
+                    theme: Theme.of(context),
+                    renderWidget: (type) =>
+                        Center(child: Text('PILL_${type.name}')),
+                    onLongPress: () {},
+                  );
+                },
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('PILL_workoutStreak'), findsOneWidget);
-    expect(find.text('PILL_cnsLoad'), findsNothing);
+      expect(find.text('PILL_workoutStreak'), findsOneWidget);
+      expect(find.text('PILL_cnsLoad'), findsNothing);
 
-    await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
-    await tester.pumpAndSettle();
+      await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
+      await tester.pumpAndSettle();
 
-    expect(find.text('PILL_cnsLoad'), findsOneWidget);
-    expect(find.text('PILL_workoutStreak'), findsNothing);
+      expect(find.text('PILL_cnsLoad'), findsOneWidget);
+      expect(find.text('PILL_workoutStreak'), findsNothing);
 
-    await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
-    await tester.pumpAndSettle();
+      await tester.fling(find.byType(PageView), const Offset(-600, 0), 1000);
+      await tester.pumpAndSettle();
 
-    expect(find.text('PILL_nutritionStreak'), findsOneWidget);
-  });
+      expect(find.text('PILL_nutritionStreak'), findsOneWidget);
+    },
+  );
 }

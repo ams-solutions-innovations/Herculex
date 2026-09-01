@@ -582,21 +582,13 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
             color: hx.secondary.withValues(alpha: 0.85),
           ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            size: 22,
-            color: hx.primary,
-          ),
+          prefixIcon: Icon(Icons.search_rounded, size: 22, color: hx.primary),
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (hasQuery)
                 IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    size: 20,
-                    color: hx.secondary,
-                  ),
+                  icon: Icon(Icons.close, size: 20, color: hx.secondary),
                   onPressed: () {
                     _queryCtrl.clear();
                     setState(() => _query = null);

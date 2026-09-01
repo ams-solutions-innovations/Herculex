@@ -46,7 +46,8 @@ class FastingStage {
         hour: 1,
         stageName: 'Prebava in absorpcija',
         stageCategory: 'Prebava',
-        shortMessage: 'Telo prebavlja zadnji obrok; glukoza in inzulin v krvi narasteta.',
+        shortMessage:
+            'Telo prebavlja zadnji obrok; glukoza in inzulin v krvi narasteta.',
       );
     }
 

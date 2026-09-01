@@ -354,6 +354,9 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   }
 
   Future<void> syncAllToWear() async {
+    await syncFastingToWear();
+    await syncQuickAddToWear();
+
     final totals = ref.read(dailyTotalsProvider(today)).asData?.value;
     if (totals == null) return;
 
@@ -418,8 +421,6 @@ final wearSyncControllerProvider = Provider<void>((ref) {
           fatGoal: fatGoal,
           waterGoal: waterGoal,
         );
-    await syncFastingToWear();
-    await syncQuickAddToWear();
   }
 
   WearSyncService.onWatchFastingCommand = (commandJson) async {
@@ -437,12 +438,42 @@ final wearSyncControllerProvider = Provider<void>((ref) {
 
       final action = (decoded['action'] as String? ?? '').toLowerCase();
       final repo = ref.read(fastingRepositoryProvider);
+      final startedAtEpochMs = (decoded['startedAtEpochMs'] as num?)?.toInt();
+      final endedAtEpochMs = (decoded['endedAtEpochMs'] as num?)?.toInt();
+      final targetSeconds =
+          (decoded['targetSeconds'] as num?)?.toInt() ?? 16 * 60 * 60;
+
       if (action == 'start') {
+        final customStartTime = startedAtEpochMs != null
+            ? DateTime.fromMillisecondsSinceEpoch(startedAtEpochMs)
+            : null;
         await repo.startSession(
-          (decoded['targetSeconds'] as num?)?.toInt() ?? 16 * 60 * 60,
+          targetSeconds,
+          customStartTime: customStartTime,
         );
       } else if (action == 'stop') {
-        await repo.endSession(completed: decoded['completed'] as bool? ?? true);
+        await ref
+            .read(fastingNotificationSchedulerProvider)
+            .cancelFastingGoal();
+        final active = await repo.activeSession();
+        if (active != null) {
+          await repo.endSession(
+            completed: decoded['completed'] as bool? ?? true,
+          );
+        } else if (startedAtEpochMs != null) {
+          final startedAt = DateTime.fromMillisecondsSinceEpoch(
+            startedAtEpochMs,
+          );
+          final endedAt = endedAtEpochMs != null
+              ? DateTime.fromMillisecondsSinceEpoch(endedAtEpochMs)
+              : DateTime.now();
+          await repo.insertCompletedSession(
+            startedAt: startedAt,
+            endedAt: endedAt,
+            targetSeconds: targetSeconds,
+            completed: decoded['completed'] as bool? ?? true,
+          );
+        }
       }
 
       // Only mark this command "seen" once the write above has actually
@@ -677,6 +708,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue) {
+      syncFastingToWear();
       syncAllToWear();
     }
   });

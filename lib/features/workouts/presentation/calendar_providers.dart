@@ -12,14 +12,14 @@ const _kCalendarLastSyncKey = 'herculex_calendar_last_sync_timestamp';
 /// Whether Google / Device Calendar 2-Way Sync is enabled.
 final calendarSyncEnabledProvider =
     StateNotifierProvider<CalendarSyncEnabledNotifier, bool>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return CalendarSyncEnabledNotifier(prefs);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return CalendarSyncEnabledNotifier(prefs);
+    });
 
 class CalendarSyncEnabledNotifier extends StateNotifier<bool> {
   final SharedPreferences _prefs;
   CalendarSyncEnabledNotifier(this._prefs)
-      : super(_prefs.getBool(_kCalendarSyncEnabledKey) ?? false);
+    : super(_prefs.getBool(_kCalendarSyncEnabledKey) ?? false);
 
   Future<void> toggle(bool enabled) async {
     state = enabled;
@@ -30,14 +30,14 @@ class CalendarSyncEnabledNotifier extends StateNotifier<bool> {
 /// The selected device calendar ID (null = automatic "Herculex Training").
 final selectedCalendarIdProvider =
     StateNotifierProvider<SelectedCalendarIdNotifier, String?>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return SelectedCalendarIdNotifier(prefs);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return SelectedCalendarIdNotifier(prefs);
+    });
 
 class SelectedCalendarIdNotifier extends StateNotifier<String?> {
   final SharedPreferences _prefs;
   SelectedCalendarIdNotifier(this._prefs)
-      : super(_prefs.getString(_kCalendarIdKey));
+    : super(_prefs.getString(_kCalendarIdKey));
 
   Future<void> setCalendarId(String? id) async {
     state = id;
@@ -52,20 +52,20 @@ class SelectedCalendarIdNotifier extends StateNotifier<String?> {
 /// Last timestamp when calendar sync completed.
 final lastCalendarSyncTimestampProvider =
     StateNotifierProvider<LastCalendarSyncNotifier, DateTime?>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return LastCalendarSyncNotifier(prefs);
-});
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return LastCalendarSyncNotifier(prefs);
+    });
 
 class LastCalendarSyncNotifier extends StateNotifier<DateTime?> {
   final SharedPreferences _prefs;
   LastCalendarSyncNotifier(this._prefs)
-      : super(
-          _prefs.getInt(_kCalendarLastSyncKey) != null
-              ? DateTime.fromMillisecondsSinceEpoch(
-                  _prefs.getInt(_kCalendarLastSyncKey)!,
-                )
-              : null,
-        );
+    : super(
+        _prefs.getInt(_kCalendarLastSyncKey) != null
+            ? DateTime.fromMillisecondsSinceEpoch(
+                _prefs.getInt(_kCalendarLastSyncKey)!,
+              )
+            : null,
+      );
 
   Future<void> recordSync() async {
     final now = DateTime.now();
@@ -99,10 +99,10 @@ class CalendarSyncState {
 
 final calendarSyncControllerProvider =
     StateNotifierProvider<CalendarSyncController, CalendarSyncState>((ref) {
-  final service = ref.watch(calendarServiceProvider);
-  final calendarId = ref.watch(selectedCalendarIdProvider);
-  return CalendarSyncController(ref, service, calendarId);
-});
+      final service = ref.watch(calendarServiceProvider);
+      final calendarId = ref.watch(selectedCalendarIdProvider);
+      return CalendarSyncController(ref, service, calendarId);
+    });
 
 class CalendarSyncController extends StateNotifier<CalendarSyncState> {
   final Ref _ref;
@@ -110,7 +110,7 @@ class CalendarSyncController extends StateNotifier<CalendarSyncState> {
   final String? _calendarId;
 
   CalendarSyncController(this._ref, this._service, this._calendarId)
-      : super(const CalendarSyncState());
+    : super(const CalendarSyncState());
 
   Future<CalendarSyncResult> syncNow() async {
     state = const CalendarSyncState(status: CalendarSyncStateStatus.syncing);

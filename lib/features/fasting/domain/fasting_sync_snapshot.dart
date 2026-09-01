@@ -39,7 +39,7 @@ String encodeFastingSnapshot({
   String? currentStageMessage,
   required int revision,
 }) {
-  final entityId = session?.id.toString() ?? 'fasting';
+  const entityId = 'fasting';
   return WearSyncEnvelope.wrap(
     entity: wearSyncEntityFasting,
     entityId: entityId,

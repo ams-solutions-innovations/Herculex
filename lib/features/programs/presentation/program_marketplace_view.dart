@@ -95,9 +95,8 @@ class _ProgramMarketplaceViewState
                 _FilterChip(
                   label: level,
                   selected: _level == level,
-                  onTap: () => setState(
-                    () => _level = _level == level ? null : level,
-                  ),
+                  onTap: () =>
+                      setState(() => _level = _level == level ? null : level),
                 ),
               const SizedBox(width: 8),
               Container(width: 1, color: AppColors.outlineVariant),

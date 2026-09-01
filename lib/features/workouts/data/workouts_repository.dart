@@ -644,13 +644,16 @@ class WorkoutsRepository {
     });
   }
 
-  Stream<ActiveWorkoutNotificationTarget?> watchActiveNotificationTargetForSession(
-    int sessionId,
-  ) {
+  Stream<ActiveWorkoutNotificationTarget?>
+  watchActiveNotificationTargetForSession(int sessionId) {
     return _db
         .customSelect(
           'SELECT 1',
-          readsFrom: {_db.workoutExercises, _db.setEntries, _db.exerciseCatalog},
+          readsFrom: {
+            _db.workoutExercises,
+            _db.setEntries,
+            _db.exerciseCatalog,
+          },
         )
         .watch()
         .asyncMap((_) => activeNotificationTargetForSession(sessionId));
@@ -708,17 +711,27 @@ class WorkoutsRepository {
       bodyweight = bwRow?.value;
     }
 
-    await _db
-        .into(_db.setEntries)
-        .insert(
-          SetEntriesCompanion.insert(
-            workoutExerciseId: workoutExerciseId,
-            setIndex: 0,
-            weightKg: 0,
-            reps: 0,
-            bodyweightKg: Value(bodyweight),
-          ),
-        );
+    final progression = await (_db.select(
+      _db.exerciseProgressions,
+    )..where((t) => t.exerciseId.equals(exerciseId))).getSingleOrNull();
+
+    final int setsToCreate = (progression?.autoAddSets ?? false)
+        ? (progression?.autoAddSetsCount ?? 3)
+        : 1;
+
+    for (int i = 0; i < (setsToCreate > 0 ? setsToCreate : 1); i++) {
+      await _db
+          .into(_db.setEntries)
+          .insert(
+            SetEntriesCompanion.insert(
+              workoutExerciseId: workoutExerciseId,
+              setIndex: i,
+              weightKg: 0,
+              reps: 0,
+              bodyweightKg: Value(bodyweight),
+            ),
+          );
+    }
 
     return workoutExerciseId;
   }
@@ -911,9 +924,9 @@ class WorkoutsRepository {
     required int newExerciseId,
     bool permanently = false,
   }) async {
-    final we = await (_db.select(_db.workoutExercises)
-          ..where((t) => t.id.equals(workoutExerciseId)))
-        .getSingle();
+    final we = await (_db.select(
+      _db.workoutExercises,
+    )..where((t) => t.id.equals(workoutExerciseId))).getSingle();
     final oldExerciseId = we.exerciseId;
 
     await (_db.update(_db.workoutExercises)
@@ -921,27 +934,37 @@ class WorkoutsRepository {
         .write(WorkoutExercisesCompanion(exerciseId: Value(newExerciseId)));
 
     if (permanently) {
-      final schedule = await (_db.select(_db.scheduledWorkouts)
-            ..where((t) => t.completedSessionId.equals(we.sessionId)))
-          .getSingleOrNull();
+      final schedule =
+          await (_db.select(_db.scheduledWorkouts)
+                ..where((t) => t.completedSessionId.equals(we.sessionId)))
+              .getSingleOrNull();
       if (schedule != null) {
-        final day = await (_db.select(_db.programDays)
-              ..where((t) => t.id.equals(schedule.programDayId)))
-            .getSingleOrNull();
+        final day = await (_db.select(
+          _db.programDays,
+        )..where((t) => t.id.equals(schedule.programDayId))).getSingleOrNull();
         if (day != null) {
-          final effectiveTemplateId = schedule.templateIdOverride ?? day.templateId;
+          final effectiveTemplateId =
+              schedule.templateIdOverride ?? day.templateId;
           if (effectiveTemplateId != null) {
-            await (_db.update(_db.templateExercises)
-                  ..where((t) =>
+            await (_db.update(_db.templateExercises)..where(
+                  (t) =>
                       t.templateId.equals(effectiveTemplateId) &
-                      t.exerciseId.equals(oldExerciseId)))
-                .write(TemplateExercisesCompanion(exerciseId: Value(newExerciseId)));
+                      t.exerciseId.equals(oldExerciseId),
+                ))
+                .write(
+                  TemplateExercisesCompanion(exerciseId: Value(newExerciseId)),
+                );
           } else {
-            await (_db.update(_db.programDayExercises)
-                  ..where((t) =>
+            await (_db.update(_db.programDayExercises)..where(
+                  (t) =>
                       t.programDayId.equals(day.id) &
-                      t.exerciseId.equals(oldExerciseId)))
-                .write(ProgramDayExercisesCompanion(exerciseId: Value(newExerciseId)));
+                      t.exerciseId.equals(oldExerciseId),
+                ))
+                .write(
+                  ProgramDayExercisesCompanion(
+                    exerciseId: Value(newExerciseId),
+                  ),
+                );
           }
         }
       }

@@ -93,7 +93,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 36;
+  int get schemaVersion => 37;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -878,6 +878,51 @@ class AppDatabase extends _$AppDatabase {
       if (from < 36) {
         await m.createTable(fastingStages);
         await FastingStageImporter.runFromAsset(this);
+      }
+      if (from < 37) {
+        // Double progression + per-exercise overrides. All six columns are
+        // added rather than the table recreated, so existing progression
+        // rows keep their goal/weeklyIncreasePct settings. The three
+        // non-nullable ones carry defaults ('linear', false, 3), which is
+        // exactly the previous behaviour, so untouched rows keep progressing
+        // the way they did before the upgrade.
+        //
+        // Added column-by-column against what the table actually has, rather
+        // than unconditionally, because the hand-written migration fixtures
+        // land on both sides of this step:
+        //
+        //  - schema_v21_test.dart and friends build a *narrow* v20/v23
+        //    database containing only the tables that test cares about, so
+        //    `exercise_progressions` (created by the v11 step) is absent
+        //    entirely — an unguarded ALTER there turns "this fixture is
+        //    narrow" into "the database cannot be opened".
+        //  - fk_repair_test.dart builds its fixture from the *current* table
+        //    definitions, so the six columns are already present before
+        //    onUpgrade runs, and a plain ALTER fails with "duplicate column".
+        //
+        // pragma_table_info returns no rows for a table that does not exist,
+        // so the empty case covers the first bullet without a second query.
+        // Still specific rather than a blanket try/catch, so a genuinely
+        // failed ALTER on a real device surfaces instead of being swallowed.
+        final progressionCols = await customSelect(
+          "SELECT name FROM pragma_table_info('exercise_progressions')",
+        ).get();
+        final have = progressionCols.map((r) => r.read<String>('name')).toSet();
+        if (have.isNotEmpty) {
+          final newColumns = <String, GeneratedColumn<Object>>{
+            'progression_model': exerciseProgressions.progressionModel,
+            'target_sets': exerciseProgressions.targetSets,
+            'target_reps_min': exerciseProgressions.targetRepsMin,
+            'target_reps_max': exerciseProgressions.targetRepsMax,
+            'auto_add_sets': exerciseProgressions.autoAddSets,
+            'auto_add_sets_count': exerciseProgressions.autoAddSetsCount,
+          };
+          for (final entry in newColumns.entries) {
+            if (!have.contains(entry.key)) {
+              await m.addColumn(exerciseProgressions, entry.value);
+            }
+          }
+        }
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is

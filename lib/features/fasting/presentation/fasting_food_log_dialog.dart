@@ -68,15 +68,17 @@ Future<bool> confirmEndFastOnFoodLog(
               ),
               onTap: () async {
                 Navigator.pop(dialogContext, true);
-                final scheduler =
-                    ref.read(fastingNotificationSchedulerProvider);
+                final scheduler = ref.read(
+                  fastingNotificationSchedulerProvider,
+                );
                 await scheduler.cancelFastingGoal();
                 final currentActive = await repo.activeSession();
                 final pastSessions = await repo.history();
                 await repo.endSession(completed: true);
                 if (currentActive != null) {
-                  final duration =
-                      DateTime.now().difference(currentActive.startedAt);
+                  final duration = DateTime.now().difference(
+                    currentActive.startedAt,
+                  );
                   final evaluator = ref.read(achievementEvaluatorProvider);
                   final items = evaluator.evaluateFinishedFast(
                     fastDuration: duration,
@@ -116,10 +118,7 @@ Future<bool> confirmEndFastOnFoodLog(
                 borderRadius: BorderRadius.circular(16),
               ),
               tileColor: Colors.red.withValues(alpha: 0.1),
-              leading: const Icon(
-                Icons.close_rounded,
-                color: Colors.redAccent,
-              ),
+              leading: const Icon(Icons.close_rounded, color: Colors.redAccent),
               title: const Text(
                 "Cancel",
                 style: TextStyle(

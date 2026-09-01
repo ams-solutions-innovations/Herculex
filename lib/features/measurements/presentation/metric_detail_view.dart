@@ -75,7 +75,10 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
             if (rows.isEmpty) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 48,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -111,7 +114,9 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
 
             final latest = rows.last;
             final first = rows.first;
-            final diffTotal = rows.length >= 2 ? latest.value - first.value : 0.0;
+            final diffTotal = rows.length >= 2
+                ? latest.value - first.value
+                : 0.0;
             final values = rows.map((r) => r.value).toList();
             final minVal = values.reduce((a, b) => a < b ? a : b);
             final maxVal = values.reduce((a, b) => a > b ? a : b);
@@ -120,147 +125,145 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
             return Column(
               children: [
                 // ── Summary Cards Grid ──
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            title: 'Latest',
-                            value: '${latest.value.toStringAsFixed(1)} $_unit',
-                            subtitle: _formatShortDate(latest.dateIso),
-                            icon: Icons.speed,
-                            accentColor: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _StatCard(
-                            title: 'Net Change',
-                            value: rows.length < 2
-                                ? '—'
-                                : '${diffTotal >= 0 ? "+" : ""}${diffTotal.toStringAsFixed(1)} $_unit',
-                            subtitle: rows.length < 2
-                                ? 'Need 2+ logs'
-                                : 'Since start',
-                            icon: diffTotal >= 0
-                                ? Icons.trending_up
-                                : Icons.trending_down,
-                            accentColor: diffTotal == 0
-                                ? AppColors.secondary
-                                : ((widget.metric == 'bodyweight' ||
-                                          widget.metric == 'body_fat')
-                                      ? (diffTotal < 0
-                                            ? Colors.green
-                                            : Colors.orange)
-                                      : (diffTotal > 0
-                                            ? Colors.green
-                                            : Colors.blue)),
-                          ),
-                        ),
-                      ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Latest',
+                        value: '${latest.value.toStringAsFixed(1)} $_unit',
+                        subtitle: _formatShortDate(latest.dateIso),
+                        icon: Icons.speed,
+                        accentColor: AppColors.primary,
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _MiniStatTile(
-                            label: 'Min',
-                            value: '${minVal.toStringAsFixed(1)} $_unit',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _MiniStatTile(
-                            label: 'Avg',
-                            value: '${avgVal.toStringAsFixed(1)} $_unit',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _MiniStatTile(
-                            label: 'Max',
-                            value: '${maxVal.toStringAsFixed(1)} $_unit',
-                          ),
-                        ),
-                      ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Net Change',
+                        value: rows.length < 2
+                            ? '—'
+                            : '${diffTotal >= 0 ? "+" : ""}${diffTotal.toStringAsFixed(1)} $_unit',
+                        subtitle: rows.length < 2
+                            ? 'Need 2+ logs'
+                            : 'Since start',
+                        icon: diffTotal >= 0
+                            ? Icons.trending_up
+                            : Icons.trending_down,
+                        accentColor: diffTotal == 0
+                            ? AppColors.secondary
+                            : ((widget.metric == 'bodyweight' ||
+                                      widget.metric == 'body_fat')
+                                  ? (diffTotal < 0
+                                        ? Colors.green
+                                        : Colors.orange)
+                                  : (diffTotal > 0
+                                        ? Colors.green
+                                        : Colors.blue)),
+                      ),
                     ),
-                    if (widget.metric == 'bodyweight') ...[
-                      const SizedBox(height: 14),
-                      _TargetWeightSection(latestKg: latest.value, unit: _unit),
-                    ],
-                    const SizedBox(height: 20),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MiniStatTile(
+                        label: 'Min',
+                        value: '${minVal.toStringAsFixed(1)} $_unit',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _MiniStatTile(
+                        label: 'Avg',
+                        value: '${avgVal.toStringAsFixed(1)} $_unit',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _MiniStatTile(
+                        label: 'Max',
+                        value: '${maxVal.toStringAsFixed(1)} $_unit',
+                      ),
+                    ),
+                  ],
+                ),
+                if (widget.metric == 'bodyweight') ...[
+                  const SizedBox(height: 14),
+                  _TargetWeightSection(latestKg: latest.value, unit: _unit),
+                ],
+                const SizedBox(height: 20),
 
-                    // ── Chart Section ──
+                // ── Chart Section ──
+                Text(
+                  'Progress Trend',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 20, 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainer,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildChart(
+                        rows,
+                        widget.metric == 'bodyweight'
+                            ? (ref
+                                      .watch(profileProvider)
+                                      .valueOrNull
+                                      ?.targetWeightKg ??
+                                  ref.watch(goalWeightProvider))
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── History Section ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                     Text(
-                      'Progress Trend',
+                      'History (${rows.length})',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(16, 20, 20, 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.outlineVariant.withValues(
-                            alpha: 0.3,
-                          ),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildChart(
-                            rows,
-                            widget.metric == 'bodyweight'
-                                ? (ref
-                                          .watch(profileProvider)
-                                          .valueOrNull
-                                          ?.targetWeightKg ??
-                                      ref.watch(goalWeightProvider))
-                                : null,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── History Section ──
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'History (${rows.length})',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    for (final r in rows.reversed)
-                      _HistoryTile(
-                        row: r,
-                        unit: _unit,
-                        onDelete: () async {
-                          Haptics.medium();
-                          await ref
-                              .read(measurementsRepositoryProvider)
-                              .deleteMeasurement(r.id);
-                        },
-                      ),
                   ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            ),
-          ],
-        );
-      }
+                ),
+                const SizedBox(height: 12),
+                for (final r in rows.reversed)
+                  _HistoryTile(
+                    row: r,
+                    unit: _unit,
+                    onDelete: () async {
+                      Haptics.medium();
+                      await ref
+                          .read(measurementsRepositoryProvider)
+                          .deleteMeasurement(r.id);
+                    },
+                  ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+        ),
+      ],
+    );
+  }
 
   Widget _buildChart(List<BodyMeasurementData> rows, [double? targetValue]) {
     if (rows.isEmpty) return const SizedBox.shrink();

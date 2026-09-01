@@ -28,20 +28,21 @@ class ExerciseSubstitution {
       return {'score': 0.0, 'percentage': 0.0, 'isHistoryMatch': false};
     }
 
-    final origCoarse =
-        ExerciseBiomechanics.coarseMuscle(original.primaryMuscle);
-    final candCoarse =
-        ExerciseBiomechanics.coarseMuscle(candidate.primaryMuscle);
+    final origCoarse = ExerciseBiomechanics.coarseMuscle(
+      original.primaryMuscle,
+    );
+    final candCoarse = ExerciseBiomechanics.coarseMuscle(
+      candidate.primaryMuscle,
+    );
 
-    final isSameExactMuscle = original.primaryMuscle.toLowerCase() ==
+    final isSameExactMuscle =
+        original.primaryMuscle.toLowerCase() ==
         candidate.primaryMuscle.toLowerCase();
     final isSameCoarseMuscle =
         origCoarse.toLowerCase() == candCoarse.toLowerCase();
 
-    final origIsCompound =
-        original.mechanics.toLowerCase() == 'compound';
-    final candIsCompound =
-        candidate.mechanics.toLowerCase() == 'compound';
+    final origIsCompound = original.mechanics.toLowerCase() == 'compound';
+    final candIsCompound = candidate.mechanics.toLowerCase() == 'compound';
     final isPushPullMatch =
         original.force.toLowerCase() == candidate.force.toLowerCase();
 
@@ -94,8 +95,7 @@ class ExerciseSubstitution {
     }
 
     // C. Mechanics Match (Compound vs Isolation) (Up to 15 points)
-    if (original.mechanics.toLowerCase() ==
-        candidate.mechanics.toLowerCase()) {
+    if (original.mechanics.toLowerCase() == candidate.mechanics.toLowerCase()) {
       baseScore += 15.0;
     } else {
       baseScore += 5.0;

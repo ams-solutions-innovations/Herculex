@@ -168,7 +168,9 @@ class FastingScheduleService {
     final pastSessions = await repository.history(limit: 10);
 
     for (final schedule in schedules) {
-      if (!schedule.enabled || !schedule.autoStart || schedule.daysOfWeek == 0) {
+      if (!schedule.enabled ||
+          !schedule.autoStart ||
+          schedule.daysOfWeek == 0) {
         continue;
       }
 
@@ -186,7 +188,8 @@ class FastingScheduleService {
       final scheduledEnd = mostRecent.add(Duration(seconds: targetSeconds));
 
       // Check if currentTime is within [mostRecent, scheduledEnd)
-      final isCurrentlyInWindow = (currentTime.isAfter(mostRecent) ||
+      final isCurrentlyInWindow =
+          (currentTime.isAfter(mostRecent) ||
               currentTime.isAtSameMomentAs(mostRecent)) &&
           currentTime.isBefore(scheduledEnd);
 
@@ -210,10 +213,7 @@ class FastingScheduleService {
       if (alreadyCovered) continue;
 
       // Auto-start the fast with the scheduled start time
-      await repository.startSession(
-        targetSeconds,
-        customStartTime: mostRecent,
-      );
+      await repository.startSession(targetSeconds, customStartTime: mostRecent);
 
       final plan = resolveSchedulePlan(schedule.planName);
       final planLabel = plan == FastingPlan.custom
@@ -231,4 +231,3 @@ class FastingScheduleService {
     }
   }
 }
-

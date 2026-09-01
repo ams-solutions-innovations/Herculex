@@ -158,34 +158,62 @@ void main() {
       expect(target!.lastCompletedSet, isNull);
     });
 
-    test('advances to next exercise when first exercise has all sets completed', () {
-      final target = selectActiveWorkoutNotificationTarget(
-        exercises: [
-          _exercise(id: 10, exerciseId: 1, orderIndex: 0),
-          _exercise(id: 20, exerciseId: 2, orderIndex: 1),
-        ],
-        setsByWorkoutExerciseId: {
-          10: [
-            _set(id: 100, workoutExerciseId: 10, setIndex: 0, completed: true),
-            _set(id: 101, workoutExerciseId: 10, setIndex: 1, completed: true),
-            _set(id: 102, workoutExerciseId: 10, setIndex: 2, completed: true),
+    test(
+      'advances to next exercise when first exercise has all sets completed',
+      () {
+        final target = selectActiveWorkoutNotificationTarget(
+          exercises: [
+            _exercise(id: 10, exerciseId: 1, orderIndex: 0),
+            _exercise(id: 20, exerciseId: 2, orderIndex: 1),
           ],
-          20: [
-            _set(id: 200, workoutExerciseId: 20, setIndex: 0, completed: false),
-            _set(id: 201, workoutExerciseId: 20, setIndex: 1, completed: false),
+          setsByWorkoutExerciseId: {
+            10: [
+              _set(
+                id: 100,
+                workoutExerciseId: 10,
+                setIndex: 0,
+                completed: true,
+              ),
+              _set(
+                id: 101,
+                workoutExerciseId: 10,
+                setIndex: 1,
+                completed: true,
+              ),
+              _set(
+                id: 102,
+                workoutExerciseId: 10,
+                setIndex: 2,
+                completed: true,
+              ),
+            ],
+            20: [
+              _set(
+                id: 200,
+                workoutExerciseId: 20,
+                setIndex: 0,
+                completed: false,
+              ),
+              _set(
+                id: 201,
+                workoutExerciseId: 20,
+                setIndex: 1,
+                completed: false,
+              ),
+            ],
+          },
+          catalog: [
+            _catalog(id: 1, name: 'Squat'),
+            _catalog(id: 2, name: 'Bench Press'),
           ],
-        },
-        catalog: [
-          _catalog(id: 1, name: 'Squat'),
-          _catalog(id: 2, name: 'Bench Press'),
-        ],
-      );
+        );
 
-      expect(target, isNotNull);
-      expect(target!.exerciseName, 'Bench Press');
-      expect(target.set.id, 200);
-      expect(target.totalSets, 2);
-    });
+        expect(target, isNotNull);
+        expect(target!.exerciseName, 'Bench Press');
+        expect(target.set.id, 200);
+        expect(target.totalSets, 2);
+      },
+    );
 
     test('advances to next exercise even if next exercise has no sets yet', () {
       final target = selectActiveWorkoutNotificationTarget(

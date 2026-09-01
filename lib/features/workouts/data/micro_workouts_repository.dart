@@ -21,8 +21,10 @@ class MicroWorkoutStatus {
       ? (completedToday / microWorkout.timesPerDay).clamp(0.0, 1.0)
       : 0.0;
 
-  int get remainingToday =>
-      (microWorkout.timesPerDay - completedToday).clamp(0, microWorkout.timesPerDay);
+  int get remainingToday => (microWorkout.timesPerDay - completedToday).clamp(
+    0,
+    microWorkout.timesPerDay,
+  );
 
   int get repsCompletedToday => completedToday * microWorkout.targetReps;
 
@@ -87,9 +89,9 @@ class MicroWorkoutsRepository {
   }
 
   Stream<List<MicroWorkoutData>> watchAll() {
-    return (_db.select(_db.microWorkouts)
-          ..orderBy([(t) => OrderingTerm(expression: t.createdAt)]))
-        .watch();
+    return (_db.select(
+      _db.microWorkouts,
+    )..orderBy([(t) => OrderingTerm(expression: t.createdAt)])).watch();
   }
 
   Future<int> create({
@@ -121,10 +123,15 @@ class MicroWorkoutsRepository {
     await (_db.update(_db.microWorkouts)..where((t) => t.id.equals(id))).write(
       MicroWorkoutsCompanion(
         name: name != null ? Value(name) : const Value.absent(),
-        exerciseId: exerciseId != null ? Value(exerciseId) : const Value.absent(),
-        targetReps: targetReps != null ? Value(targetReps) : const Value.absent(),
-        timesPerDay:
-            timesPerDay != null ? Value(timesPerDay) : const Value.absent(),
+        exerciseId: exerciseId != null
+            ? Value(exerciseId)
+            : const Value.absent(),
+        targetReps: targetReps != null
+            ? Value(targetReps)
+            : const Value.absent(),
+        timesPerDay: timesPerDay != null
+            ? Value(timesPerDay)
+            : const Value.absent(),
         active: active != null ? Value(active) : const Value.absent(),
       ),
     );
@@ -199,14 +206,22 @@ class MicroWorkoutsRepository {
     final dayStart = DateTime(now.year, now.month, now.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
 
-    final sessions = await (_db.select(_db.workoutSessions)
-          ..where((t) =>
-              t.microWorkoutId.equals(microWorkoutId) &
-              t.startedAt.isBiggerOrEqualValue(dayStart) &
-              t.startedAt.isSmallerThanValue(dayEnd))
-          ..orderBy([(t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc)])
-          ..limit(1))
-        .get();
+    final sessions =
+        await (_db.select(_db.workoutSessions)
+              ..where(
+                (t) =>
+                    t.microWorkoutId.equals(microWorkoutId) &
+                    t.startedAt.isBiggerOrEqualValue(dayStart) &
+                    t.startedAt.isSmallerThanValue(dayEnd),
+              )
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.startedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ])
+              ..limit(1))
+            .get();
 
     if (sessions.isEmpty) return false;
     await deleteSession(sessions.first.id);
@@ -216,20 +231,20 @@ class MicroWorkoutsRepository {
   /// Deletes a logged workout session along with its workoutExercises and setEntries.
   Future<void> deleteSession(int sessionId) async {
     await _db.transaction(() async {
-      final exercises = await (_db.select(_db.workoutExercises)
-            ..where((t) => t.sessionId.equals(sessionId)))
-          .get();
+      final exercises = await (_db.select(
+        _db.workoutExercises,
+      )..where((t) => t.sessionId.equals(sessionId))).get();
       for (final e in exercises) {
-        await (_db.delete(_db.setEntries)
-              ..where((t) => t.workoutExerciseId.equals(e.id)))
-            .go();
+        await (_db.delete(
+          _db.setEntries,
+        )..where((t) => t.workoutExerciseId.equals(e.id))).go();
       }
-      await (_db.delete(_db.workoutExercises)
-            ..where((t) => t.sessionId.equals(sessionId)))
-          .go();
-      await (_db.delete(_db.workoutSessions)
-            ..where((t) => t.id.equals(sessionId)))
-          .go();
+      await (_db.delete(
+        _db.workoutExercises,
+      )..where((t) => t.sessionId.equals(sessionId))).go();
+      await (_db.delete(
+        _db.workoutSessions,
+      )..where((t) => t.id.equals(sessionId))).go();
     });
   }
 
@@ -258,9 +273,9 @@ class MicroWorkoutsRepository {
       final counts = await completionsOn(_clock.now());
       final result = <MicroWorkoutStatus>[];
       for (final m in micros) {
-        final ex = await (_db.select(_db.exerciseCatalog)
-              ..where((t) => t.id.equals(m.exerciseId)))
-            .getSingleOrNull();
+        final ex = await (_db.select(
+          _db.exerciseCatalog,
+        )..where((t) => t.id.equals(m.exerciseId))).getSingleOrNull();
         result.add(MicroWorkoutStatus(m, counts[m.id] ?? 0, exercise: ex));
       }
       return result;
@@ -273,9 +288,9 @@ class MicroWorkoutsRepository {
       final counts = await completionsOn(_clock.now());
       final result = <MicroWorkoutStatus>[];
       for (final m in micros) {
-        final ex = await (_db.select(_db.exerciseCatalog)
-              ..where((t) => t.id.equals(m.exerciseId)))
-            .getSingleOrNull();
+        final ex = await (_db.select(
+          _db.exerciseCatalog,
+        )..where((t) => t.id.equals(m.exerciseId))).getSingleOrNull();
         result.add(MicroWorkoutStatus(m, counts[m.id] ?? 0, exercise: ex));
       }
       return result;
@@ -289,11 +304,16 @@ class MicroWorkoutsRepository {
     final tomorrow = today.add(const Duration(days: 1));
 
     return (_db.select(_db.workoutSessions)
-          ..where((t) =>
-              t.microWorkoutId.isNotNull() &
-              t.startedAt.isBiggerOrEqualValue(today) &
-              t.startedAt.isSmallerThanValue(tomorrow))
-          ..orderBy([(t) => OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc)]))
+          ..where(
+            (t) =>
+                t.microWorkoutId.isNotNull() &
+                t.startedAt.isBiggerOrEqualValue(today) &
+                t.startedAt.isSmallerThanValue(tomorrow),
+          )
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
+          ]))
         .watch()
         .asyncMap((sessions) async {
           if (sessions.isEmpty) return <MicroWorkoutLogEntry>[];
@@ -307,31 +327,32 @@ class MicroWorkoutsRepository {
             if (microId == null) continue;
 
             if (!microMap.containsKey(microId)) {
-              final m = await (_db.select(_db.microWorkouts)
-                    ..where((t) => t.id.equals(microId)))
-                  .getSingleOrNull();
+              final m = await (_db.select(
+                _db.microWorkouts,
+              )..where((t) => t.id.equals(microId))).getSingleOrNull();
               if (m != null) microMap[microId] = m;
             }
             final micro = microMap[microId];
             if (micro == null) continue;
 
             if (!exerciseMap.containsKey(micro.exerciseId)) {
-              final ex = await (_db.select(_db.exerciseCatalog)
-                    ..where((t) => t.id.equals(micro.exerciseId)))
-                  .getSingleOrNull();
+              final ex = await (_db.select(
+                _db.exerciseCatalog,
+              )..where((t) => t.id.equals(micro.exerciseId))).getSingleOrNull();
               if (ex != null) exerciseMap[micro.exerciseId] = ex;
             }
             final exercise = exerciseMap[micro.exerciseId];
 
-            final we = await (_db.select(_db.workoutExercises)
-                  ..where((t) => t.sessionId.equals(s.id)))
-                .getSingleOrNull();
+            final we = await (_db.select(
+              _db.workoutExercises,
+            )..where((t) => t.sessionId.equals(s.id))).getSingleOrNull();
             int reps = micro.targetReps;
             double weightKg = 0;
             if (we != null) {
-              final set = await (_db.select(_db.setEntries)
-                    ..where((t) => t.workoutExerciseId.equals(we.id)))
-                  .getSingleOrNull();
+              final set =
+                  await (_db.select(_db.setEntries)
+                        ..where((t) => t.workoutExerciseId.equals(we.id)))
+                      .getSingleOrNull();
               if (set != null) {
                 reps = set.reps;
                 weightKg = set.weightKg;
@@ -361,9 +382,11 @@ class MicroWorkoutsRepository {
     final weekStart = today.subtract(const Duration(days: 6));
 
     return (_db.select(_db.workoutSessions)
-          ..where((t) =>
-              t.microWorkoutId.isNotNull() &
-              t.startedAt.isBiggerOrEqualValue(weekStart))
+          ..where(
+            (t) =>
+                t.microWorkoutId.isNotNull() &
+                t.startedAt.isBiggerOrEqualValue(weekStart),
+          )
           ..orderBy([(t) => OrderingTerm(expression: t.startedAt)]))
         .watch()
         .asyncMap((sessions) async {
@@ -376,14 +399,14 @@ class MicroWorkoutsRepository {
           int totalReps = 0;
           final sessionIds = sessions.map((s) => s.id).toList();
           if (sessionIds.isNotEmpty) {
-            final weRows = await (_db.select(_db.workoutExercises)
-                  ..where((t) => t.sessionId.isIn(sessionIds)))
-                .get();
+            final weRows = await (_db.select(
+              _db.workoutExercises,
+            )..where((t) => t.sessionId.isIn(sessionIds))).get();
             final weIds = weRows.map((e) => e.id).toList();
             if (weIds.isNotEmpty) {
-              final sets = await (_db.select(_db.setEntries)
-                    ..where((t) => t.workoutExerciseId.isIn(weIds)))
-                  .get();
+              final sets = await (_db.select(
+                _db.setEntries,
+              )..where((t) => t.workoutExerciseId.isIn(weIds))).get();
               for (final set in sets) {
                 totalReps += set.reps;
               }

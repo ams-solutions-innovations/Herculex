@@ -64,8 +64,11 @@ class RotationPoolsView extends ConsumerWidget {
                   Builder(
                     builder: (context) {
                       final pool = pools[i];
-                      final membersAsync = ref.watch(rotationMembersProvider(pool.id));
-                      final memberCount = membersAsync.asData?.value.length ?? 0;
+                      final membersAsync = ref.watch(
+                        rotationMembersProvider(pool.id),
+                      );
+                      final memberCount =
+                          membersAsync.asData?.value.length ?? 0;
 
                       return Container(
                         padding: const EdgeInsets.symmetric(
@@ -76,7 +79,9 @@ class RotationPoolsView extends ConsumerWidget {
                           color: AppColors.surfaceContainerLowest,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                            color: AppColors.outlineVariant.withValues(
+                              alpha: 0.3,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -99,7 +104,10 @@ class RotationPoolsView extends ConsumerWidget {
                                         '$memberCount exercise${memberCount == 1 ? '' : 's'}',
                                       ),
                                       const SizedBox(width: 8),
-                                      _chip(theme, 'Every ${pool.rotateEveryWeeks}w'),
+                                      _chip(
+                                        theme,
+                                        'Every ${pool.rotateEveryWeeks}w',
+                                      ),
                                       if (pool.movementPattern != null) ...[
                                         const SizedBox(width: 8),
                                         _chip(theme, pool.movementPattern!),
@@ -112,8 +120,10 @@ class RotationPoolsView extends ConsumerWidget {
                             IconButton(
                               icon: const Icon(Icons.edit_outlined, size: 20),
                               tooltip: 'Edit',
-                              onPressed: () =>
-                                  RotationPoolSheet.show(context, existing: pool),
+                              onPressed: () => RotationPoolSheet.show(
+                                context,
+                                existing: pool,
+                              ),
                             ),
                             IconButton(
                               icon: const Icon(
@@ -122,8 +132,12 @@ class RotationPoolsView extends ConsumerWidget {
                                 color: Colors.redAccent,
                               ),
                               tooltip: 'Delete',
-                              onPressed: () =>
-                                  _confirmDelete(context, ref, pool.id, pool.name),
+                              onPressed: () => _confirmDelete(
+                                context,
+                                ref,
+                                pool.id,
+                                pool.name,
+                              ),
                             ),
                           ],
                         ),

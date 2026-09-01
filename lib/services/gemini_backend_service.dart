@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/env.dart';
@@ -322,6 +324,14 @@ class SupabaseGeminiBackend implements GeminiBackend {
       if (data is Map<String, dynamic>) return data;
       if (data is Map) return Map<String, dynamic>.from(data);
       throw Exception('AI analysis returned an invalid response.');
+    } on TimeoutException {
+      throw Exception(
+        'AI analysis timed out. Please check your internet connection and try again.',
+      );
+    } on SocketException {
+      throw Exception(
+        'Cannot connect to the server. Please check your internet connection.',
+      );
     } on FunctionException catch (error) {
       final details = error.details;
       if (details is Map && details['error'] is String) {

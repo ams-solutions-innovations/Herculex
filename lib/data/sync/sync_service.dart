@@ -5,7 +5,8 @@ import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:herculex/data/local/migrations/sync_backfill.dart' show isCustomFilteredTableNames;
+import 'package:herculex/data/local/migrations/sync_backfill.dart'
+    show isCustomFilteredTableNames;
 import 'package:herculex/data/sync/sync_backend_service.dart';
 import 'package:herculex/data/sync/sync_id_resolver.dart';
 import 'package:herculex/data/sync/sync_table_specs.dart';

@@ -1,6 +1,8 @@
 package com.ams.herculex.nutrition
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +10,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,14 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.Text
 import kotlinx.coroutines.delay
@@ -192,37 +198,63 @@ fun FastingScreen(
             Spacer(Modifier.height(8.dp))
 
             // Action Button: Stop Fast / Start Fast
-            Button(
-                onClick = {
-                    if (fasting.hasActiveFast) {
-                        nutritionViewModel.stopFast()
-                    } else {
-                        nutritionViewModel.startFast()
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = if (fasting.hasActiveFast) Color(0xFF7A2434) else Color(0xFF0B6E4F)
-                ),
+            val isFasting = fasting.hasActiveFast
+            val buttonColor = if (isFasting) Color(0xFF7A2434) else Color(0xFF0B6E4F)
+            val buttonBadgeColor = if (isFasting) Color(0xFF4D141F) else Color(0xFF074531)
+            val buttonText = if (isFasting) "Stop Fast" else "Start Fast"
+
+            Row(
                 modifier = Modifier
-                    .height(34.dp)
-                    .padding(horizontal = 6.dp),
-                shape = RoundedCornerShape(17.dp),
+                    .wrapContentWidth()
+                    .height(36.dp)
+                    .background(buttonColor, shape = CircleShape)
+                    .clickable {
+                        if (isFasting) {
+                            nutritionViewModel.stopFast()
+                        } else {
+                            nutritionViewModel.startFast()
+                        }
+                    }
+                    .padding(start = 6.dp, end = 14.dp, top = 3.dp, bottom = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(buttonBadgeColor, shape = CircleShape),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = if (fasting.hasActiveFast) "⏹" else "▶",
-                        fontSize = 11.sp,
-                    )
-                    Text(
-                        text = if (fasting.hasActiveFast) "Stop Fast" else "Start Fast",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    if (isFasting) {
+                        Box(
+                            modifier = Modifier
+                                .size(9.dp)
+                                .background(Color.White, shape = RoundedCornerShape(2.dp)),
+                        )
+                    } else {
+                        Canvas(
+                            modifier = Modifier
+                                .size(9.dp)
+                                .offset(x = 1.dp),
+                        ) {
+                            val path = Path().apply {
+                                moveTo(0f, 0f)
+                                lineTo(size.width, size.height / 2f)
+                                lineTo(0f, size.height)
+                                close()
+                            }
+                            drawPath(path, Color.White)
+                        }
+                    }
                 }
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = buttonText,
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
             }
         }
     }

@@ -424,9 +424,11 @@ class _SmartSubstitutionSheetState
                     size: 20,
                   ),
                   const SizedBox(width: 8),
-                  Text(permanently 
-                      ? "Permanently replaced with ${candidate.name}"
-                      : "Substituted to ${candidate.name}"),
+                  Text(
+                    permanently
+                        ? "Permanently replaced with ${candidate.name}"
+                        : "Substituted to ${candidate.name}",
+                  ),
                 ],
               ),
               backgroundColor: AppColors.primary,

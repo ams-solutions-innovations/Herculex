@@ -36,7 +36,8 @@ class FastingInsights extends ConsumerWidget {
             context,
             title: "Avg. Fasting Window",
             value: avgEatingAsync.when(
-              data: (hrs) => "${(24.0 - hrs).clamp(0.0, 24.0).toStringAsFixed(1)} hrs",
+              data: (hrs) =>
+                  "${(24.0 - hrs).clamp(0.0, 24.0).toStringAsFixed(1)} hrs",
               loading: () => "...",
               error: (e, s) => "16.0 hrs",
             ),

@@ -543,7 +543,9 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     final planLabel = plan == FastingPlan.custom
         ? '${targetSeconds ~/ 3600}h'
         : plan.nameString;
-    await ref.read(fastingNotificationSchedulerProvider).scheduleFastingGoal(
+    await ref
+        .read(fastingNotificationSchedulerProvider)
+        .scheduleFastingGoal(
           DateTime.now().add(Duration(seconds: targetSeconds)),
           planName: planLabel,
           enabled: notifEnabled,
@@ -671,14 +673,14 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
     final activeSession = ref.watch(activeSessionProvider).asData?.value;
     if (activeSession != null) {
-      ref.listen(
-        activeWorkoutNotificationTargetProvider(activeSession.id),
-        (_, next) {
-          if (next.hasValue) {
-            _syncNotification();
-          }
-        },
-      );
+      ref.listen(activeWorkoutNotificationTargetProvider(activeSession.id), (
+        _,
+        next,
+      ) {
+        if (next.hasValue) {
+          _syncNotification();
+        }
+      });
     }
 
     final themeMode = ref.watch(themeModeProvider);

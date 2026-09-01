@@ -26595,6 +26595,78 @@ class $ExerciseProgressionsTable extends ExerciseProgressions
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _progressionModelMeta = const VerificationMeta(
+    'progressionModel',
+  );
+  @override
+  late final GeneratedColumn<String> progressionModel = GeneratedColumn<String>(
+    'progression_model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('linear'),
+  );
+  static const VerificationMeta _targetSetsMeta = const VerificationMeta(
+    'targetSets',
+  );
+  @override
+  late final GeneratedColumn<int> targetSets = GeneratedColumn<int>(
+    'target_sets',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetRepsMinMeta = const VerificationMeta(
+    'targetRepsMin',
+  );
+  @override
+  late final GeneratedColumn<int> targetRepsMin = GeneratedColumn<int>(
+    'target_reps_min',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetRepsMaxMeta = const VerificationMeta(
+    'targetRepsMax',
+  );
+  @override
+  late final GeneratedColumn<int> targetRepsMax = GeneratedColumn<int>(
+    'target_reps_max',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _autoAddSetsMeta = const VerificationMeta(
+    'autoAddSets',
+  );
+  @override
+  late final GeneratedColumn<bool> autoAddSets = GeneratedColumn<bool>(
+    'auto_add_sets',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_add_sets" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _autoAddSetsCountMeta = const VerificationMeta(
+    'autoAddSetsCount',
+  );
+  @override
+  late final GeneratedColumn<int> autoAddSetsCount = GeneratedColumn<int>(
+    'auto_add_sets_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(3),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     syncUuid,
@@ -26606,6 +26678,12 @@ class $ExerciseProgressionsTable extends ExerciseProgressions
     goal,
     weeklyIncreasePct,
     enabled,
+    progressionModel,
+    targetSets,
+    targetRepsMin,
+    targetRepsMax,
+    autoAddSets,
+    autoAddSetsCount,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -26675,6 +26753,57 @@ class $ExerciseProgressionsTable extends ExerciseProgressions
         enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
       );
     }
+    if (data.containsKey('progression_model')) {
+      context.handle(
+        _progressionModelMeta,
+        progressionModel.isAcceptableOrUnknown(
+          data['progression_model']!,
+          _progressionModelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_sets')) {
+      context.handle(
+        _targetSetsMeta,
+        targetSets.isAcceptableOrUnknown(data['target_sets']!, _targetSetsMeta),
+      );
+    }
+    if (data.containsKey('target_reps_min')) {
+      context.handle(
+        _targetRepsMinMeta,
+        targetRepsMin.isAcceptableOrUnknown(
+          data['target_reps_min']!,
+          _targetRepsMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_reps_max')) {
+      context.handle(
+        _targetRepsMaxMeta,
+        targetRepsMax.isAcceptableOrUnknown(
+          data['target_reps_max']!,
+          _targetRepsMaxMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_add_sets')) {
+      context.handle(
+        _autoAddSetsMeta,
+        autoAddSets.isAcceptableOrUnknown(
+          data['auto_add_sets']!,
+          _autoAddSetsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('auto_add_sets_count')) {
+      context.handle(
+        _autoAddSetsCountMeta,
+        autoAddSetsCount.isAcceptableOrUnknown(
+          data['auto_add_sets_count']!,
+          _autoAddSetsCountMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -26727,6 +26856,30 @@ class $ExerciseProgressionsTable extends ExerciseProgressions
         DriftSqlType.bool,
         data['${effectivePrefix}enabled'],
       )!,
+      progressionModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}progression_model'],
+      )!,
+      targetSets: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_sets'],
+      ),
+      targetRepsMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_reps_min'],
+      ),
+      targetRepsMax: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_reps_max'],
+      ),
+      autoAddSets: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_add_sets'],
+      )!,
+      autoAddSetsCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}auto_add_sets_count'],
+      )!,
     );
   }
 
@@ -26747,6 +26900,12 @@ class ExerciseProgressionData extends DataClass
   final String goal;
   final double weeklyIncreasePct;
   final bool enabled;
+  final String progressionModel;
+  final int? targetSets;
+  final int? targetRepsMin;
+  final int? targetRepsMax;
+  final bool autoAddSets;
+  final int autoAddSetsCount;
   const ExerciseProgressionData({
     this.syncUuid,
     this.updatedAt,
@@ -26757,6 +26916,12 @@ class ExerciseProgressionData extends DataClass
     required this.goal,
     required this.weeklyIncreasePct,
     required this.enabled,
+    required this.progressionModel,
+    this.targetSets,
+    this.targetRepsMin,
+    this.targetRepsMax,
+    required this.autoAddSets,
+    required this.autoAddSetsCount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -26778,6 +26943,18 @@ class ExerciseProgressionData extends DataClass
     map['goal'] = Variable<String>(goal);
     map['weekly_increase_pct'] = Variable<double>(weeklyIncreasePct);
     map['enabled'] = Variable<bool>(enabled);
+    map['progression_model'] = Variable<String>(progressionModel);
+    if (!nullToAbsent || targetSets != null) {
+      map['target_sets'] = Variable<int>(targetSets);
+    }
+    if (!nullToAbsent || targetRepsMin != null) {
+      map['target_reps_min'] = Variable<int>(targetRepsMin);
+    }
+    if (!nullToAbsent || targetRepsMax != null) {
+      map['target_reps_max'] = Variable<int>(targetRepsMax);
+    }
+    map['auto_add_sets'] = Variable<bool>(autoAddSets);
+    map['auto_add_sets_count'] = Variable<int>(autoAddSetsCount);
     return map;
   }
 
@@ -26800,6 +26977,18 @@ class ExerciseProgressionData extends DataClass
       goal: Value(goal),
       weeklyIncreasePct: Value(weeklyIncreasePct),
       enabled: Value(enabled),
+      progressionModel: Value(progressionModel),
+      targetSets: targetSets == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetSets),
+      targetRepsMin: targetRepsMin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetRepsMin),
+      targetRepsMax: targetRepsMax == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetRepsMax),
+      autoAddSets: Value(autoAddSets),
+      autoAddSetsCount: Value(autoAddSetsCount),
     );
   }
 
@@ -26818,6 +27007,12 @@ class ExerciseProgressionData extends DataClass
       goal: serializer.fromJson<String>(json['goal']),
       weeklyIncreasePct: serializer.fromJson<double>(json['weeklyIncreasePct']),
       enabled: serializer.fromJson<bool>(json['enabled']),
+      progressionModel: serializer.fromJson<String>(json['progressionModel']),
+      targetSets: serializer.fromJson<int?>(json['targetSets']),
+      targetRepsMin: serializer.fromJson<int?>(json['targetRepsMin']),
+      targetRepsMax: serializer.fromJson<int?>(json['targetRepsMax']),
+      autoAddSets: serializer.fromJson<bool>(json['autoAddSets']),
+      autoAddSetsCount: serializer.fromJson<int>(json['autoAddSetsCount']),
     );
   }
   @override
@@ -26833,6 +27028,12 @@ class ExerciseProgressionData extends DataClass
       'goal': serializer.toJson<String>(goal),
       'weeklyIncreasePct': serializer.toJson<double>(weeklyIncreasePct),
       'enabled': serializer.toJson<bool>(enabled),
+      'progressionModel': serializer.toJson<String>(progressionModel),
+      'targetSets': serializer.toJson<int?>(targetSets),
+      'targetRepsMin': serializer.toJson<int?>(targetRepsMin),
+      'targetRepsMax': serializer.toJson<int?>(targetRepsMax),
+      'autoAddSets': serializer.toJson<bool>(autoAddSets),
+      'autoAddSetsCount': serializer.toJson<int>(autoAddSetsCount),
     };
   }
 
@@ -26846,6 +27047,12 @@ class ExerciseProgressionData extends DataClass
     String? goal,
     double? weeklyIncreasePct,
     bool? enabled,
+    String? progressionModel,
+    Value<int?> targetSets = const Value.absent(),
+    Value<int?> targetRepsMin = const Value.absent(),
+    Value<int?> targetRepsMax = const Value.absent(),
+    bool? autoAddSets,
+    int? autoAddSetsCount,
   }) => ExerciseProgressionData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -26856,6 +27063,16 @@ class ExerciseProgressionData extends DataClass
     goal: goal ?? this.goal,
     weeklyIncreasePct: weeklyIncreasePct ?? this.weeklyIncreasePct,
     enabled: enabled ?? this.enabled,
+    progressionModel: progressionModel ?? this.progressionModel,
+    targetSets: targetSets.present ? targetSets.value : this.targetSets,
+    targetRepsMin: targetRepsMin.present
+        ? targetRepsMin.value
+        : this.targetRepsMin,
+    targetRepsMax: targetRepsMax.present
+        ? targetRepsMax.value
+        : this.targetRepsMax,
+    autoAddSets: autoAddSets ?? this.autoAddSets,
+    autoAddSetsCount: autoAddSetsCount ?? this.autoAddSetsCount,
   );
   ExerciseProgressionData copyWithCompanion(
     ExerciseProgressionsCompanion data,
@@ -26874,6 +27091,24 @@ class ExerciseProgressionData extends DataClass
           ? data.weeklyIncreasePct.value
           : this.weeklyIncreasePct,
       enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      progressionModel: data.progressionModel.present
+          ? data.progressionModel.value
+          : this.progressionModel,
+      targetSets: data.targetSets.present
+          ? data.targetSets.value
+          : this.targetSets,
+      targetRepsMin: data.targetRepsMin.present
+          ? data.targetRepsMin.value
+          : this.targetRepsMin,
+      targetRepsMax: data.targetRepsMax.present
+          ? data.targetRepsMax.value
+          : this.targetRepsMax,
+      autoAddSets: data.autoAddSets.present
+          ? data.autoAddSets.value
+          : this.autoAddSets,
+      autoAddSetsCount: data.autoAddSetsCount.present
+          ? data.autoAddSetsCount.value
+          : this.autoAddSetsCount,
     );
   }
 
@@ -26888,7 +27123,13 @@ class ExerciseProgressionData extends DataClass
           ..write('exerciseId: $exerciseId, ')
           ..write('goal: $goal, ')
           ..write('weeklyIncreasePct: $weeklyIncreasePct, ')
-          ..write('enabled: $enabled')
+          ..write('enabled: $enabled, ')
+          ..write('progressionModel: $progressionModel, ')
+          ..write('targetSets: $targetSets, ')
+          ..write('targetRepsMin: $targetRepsMin, ')
+          ..write('targetRepsMax: $targetRepsMax, ')
+          ..write('autoAddSets: $autoAddSets, ')
+          ..write('autoAddSetsCount: $autoAddSetsCount')
           ..write(')'))
         .toString();
   }
@@ -26904,6 +27145,12 @@ class ExerciseProgressionData extends DataClass
     goal,
     weeklyIncreasePct,
     enabled,
+    progressionModel,
+    targetSets,
+    targetRepsMin,
+    targetRepsMax,
+    autoAddSets,
+    autoAddSetsCount,
   );
   @override
   bool operator ==(Object other) =>
@@ -26917,7 +27164,13 @@ class ExerciseProgressionData extends DataClass
           other.exerciseId == this.exerciseId &&
           other.goal == this.goal &&
           other.weeklyIncreasePct == this.weeklyIncreasePct &&
-          other.enabled == this.enabled);
+          other.enabled == this.enabled &&
+          other.progressionModel == this.progressionModel &&
+          other.targetSets == this.targetSets &&
+          other.targetRepsMin == this.targetRepsMin &&
+          other.targetRepsMax == this.targetRepsMax &&
+          other.autoAddSets == this.autoAddSets &&
+          other.autoAddSetsCount == this.autoAddSetsCount);
 }
 
 class ExerciseProgressionsCompanion
@@ -26931,6 +27184,12 @@ class ExerciseProgressionsCompanion
   final Value<String> goal;
   final Value<double> weeklyIncreasePct;
   final Value<bool> enabled;
+  final Value<String> progressionModel;
+  final Value<int?> targetSets;
+  final Value<int?> targetRepsMin;
+  final Value<int?> targetRepsMax;
+  final Value<bool> autoAddSets;
+  final Value<int> autoAddSetsCount;
   const ExerciseProgressionsCompanion({
     this.syncUuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -26941,6 +27200,12 @@ class ExerciseProgressionsCompanion
     this.goal = const Value.absent(),
     this.weeklyIncreasePct = const Value.absent(),
     this.enabled = const Value.absent(),
+    this.progressionModel = const Value.absent(),
+    this.targetSets = const Value.absent(),
+    this.targetRepsMin = const Value.absent(),
+    this.targetRepsMax = const Value.absent(),
+    this.autoAddSets = const Value.absent(),
+    this.autoAddSetsCount = const Value.absent(),
   });
   ExerciseProgressionsCompanion.insert({
     this.syncUuid = const Value.absent(),
@@ -26952,6 +27217,12 @@ class ExerciseProgressionsCompanion
     this.goal = const Value.absent(),
     this.weeklyIncreasePct = const Value.absent(),
     this.enabled = const Value.absent(),
+    this.progressionModel = const Value.absent(),
+    this.targetSets = const Value.absent(),
+    this.targetRepsMin = const Value.absent(),
+    this.targetRepsMax = const Value.absent(),
+    this.autoAddSets = const Value.absent(),
+    this.autoAddSetsCount = const Value.absent(),
   }) : exerciseId = Value(exerciseId);
   static Insertable<ExerciseProgressionData> custom({
     Expression<String>? syncUuid,
@@ -26963,6 +27234,12 @@ class ExerciseProgressionsCompanion
     Expression<String>? goal,
     Expression<double>? weeklyIncreasePct,
     Expression<bool>? enabled,
+    Expression<String>? progressionModel,
+    Expression<int>? targetSets,
+    Expression<int>? targetRepsMin,
+    Expression<int>? targetRepsMax,
+    Expression<bool>? autoAddSets,
+    Expression<int>? autoAddSetsCount,
   }) {
     return RawValuesInsertable({
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -26974,6 +27251,12 @@ class ExerciseProgressionsCompanion
       if (goal != null) 'goal': goal,
       if (weeklyIncreasePct != null) 'weekly_increase_pct': weeklyIncreasePct,
       if (enabled != null) 'enabled': enabled,
+      if (progressionModel != null) 'progression_model': progressionModel,
+      if (targetSets != null) 'target_sets': targetSets,
+      if (targetRepsMin != null) 'target_reps_min': targetRepsMin,
+      if (targetRepsMax != null) 'target_reps_max': targetRepsMax,
+      if (autoAddSets != null) 'auto_add_sets': autoAddSets,
+      if (autoAddSetsCount != null) 'auto_add_sets_count': autoAddSetsCount,
     });
   }
 
@@ -26987,6 +27270,12 @@ class ExerciseProgressionsCompanion
     Value<String>? goal,
     Value<double>? weeklyIncreasePct,
     Value<bool>? enabled,
+    Value<String>? progressionModel,
+    Value<int?>? targetSets,
+    Value<int?>? targetRepsMin,
+    Value<int?>? targetRepsMax,
+    Value<bool>? autoAddSets,
+    Value<int>? autoAddSetsCount,
   }) {
     return ExerciseProgressionsCompanion(
       syncUuid: syncUuid ?? this.syncUuid,
@@ -26998,6 +27287,12 @@ class ExerciseProgressionsCompanion
       goal: goal ?? this.goal,
       weeklyIncreasePct: weeklyIncreasePct ?? this.weeklyIncreasePct,
       enabled: enabled ?? this.enabled,
+      progressionModel: progressionModel ?? this.progressionModel,
+      targetSets: targetSets ?? this.targetSets,
+      targetRepsMin: targetRepsMin ?? this.targetRepsMin,
+      targetRepsMax: targetRepsMax ?? this.targetRepsMax,
+      autoAddSets: autoAddSets ?? this.autoAddSets,
+      autoAddSetsCount: autoAddSetsCount ?? this.autoAddSetsCount,
     );
   }
 
@@ -27031,6 +27326,24 @@ class ExerciseProgressionsCompanion
     if (enabled.present) {
       map['enabled'] = Variable<bool>(enabled.value);
     }
+    if (progressionModel.present) {
+      map['progression_model'] = Variable<String>(progressionModel.value);
+    }
+    if (targetSets.present) {
+      map['target_sets'] = Variable<int>(targetSets.value);
+    }
+    if (targetRepsMin.present) {
+      map['target_reps_min'] = Variable<int>(targetRepsMin.value);
+    }
+    if (targetRepsMax.present) {
+      map['target_reps_max'] = Variable<int>(targetRepsMax.value);
+    }
+    if (autoAddSets.present) {
+      map['auto_add_sets'] = Variable<bool>(autoAddSets.value);
+    }
+    if (autoAddSetsCount.present) {
+      map['auto_add_sets_count'] = Variable<int>(autoAddSetsCount.value);
+    }
     return map;
   }
 
@@ -27045,7 +27358,13 @@ class ExerciseProgressionsCompanion
           ..write('exerciseId: $exerciseId, ')
           ..write('goal: $goal, ')
           ..write('weeklyIncreasePct: $weeklyIncreasePct, ')
-          ..write('enabled: $enabled')
+          ..write('enabled: $enabled, ')
+          ..write('progressionModel: $progressionModel, ')
+          ..write('targetSets: $targetSets, ')
+          ..write('targetRepsMin: $targetRepsMin, ')
+          ..write('targetRepsMax: $targetRepsMax, ')
+          ..write('autoAddSets: $autoAddSets, ')
+          ..write('autoAddSetsCount: $autoAddSetsCount')
           ..write(')'))
         .toString();
   }
@@ -56678,6 +56997,12 @@ typedef $$ExerciseProgressionsTableCreateCompanionBuilder =
       Value<String> goal,
       Value<double> weeklyIncreasePct,
       Value<bool> enabled,
+      Value<String> progressionModel,
+      Value<int?> targetSets,
+      Value<int?> targetRepsMin,
+      Value<int?> targetRepsMax,
+      Value<bool> autoAddSets,
+      Value<int> autoAddSetsCount,
     });
 typedef $$ExerciseProgressionsTableUpdateCompanionBuilder =
     ExerciseProgressionsCompanion Function({
@@ -56690,6 +57015,12 @@ typedef $$ExerciseProgressionsTableUpdateCompanionBuilder =
       Value<String> goal,
       Value<double> weeklyIncreasePct,
       Value<bool> enabled,
+      Value<String> progressionModel,
+      Value<int?> targetSets,
+      Value<int?> targetRepsMin,
+      Value<int?> targetRepsMax,
+      Value<bool> autoAddSets,
+      Value<int> autoAddSetsCount,
     });
 
 final class $$ExerciseProgressionsTableReferences
@@ -56777,6 +57108,36 @@ class $$ExerciseProgressionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get progressionModel => $composableBuilder(
+    column: $table.progressionModel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetRepsMin => $composableBuilder(
+    column: $table.targetRepsMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetRepsMax => $composableBuilder(
+    column: $table.targetRepsMax,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoAddSets => $composableBuilder(
+    column: $table.autoAddSets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get autoAddSetsCount => $composableBuilder(
+    column: $table.autoAddSetsCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$ExerciseCatalogTableFilterComposer get exerciseId {
     final $$ExerciseCatalogTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -56850,6 +57211,36 @@ class $$ExerciseProgressionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get progressionModel => $composableBuilder(
+    column: $table.progressionModel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetRepsMin => $composableBuilder(
+    column: $table.targetRepsMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetRepsMax => $composableBuilder(
+    column: $table.targetRepsMax,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoAddSets => $composableBuilder(
+    column: $table.autoAddSets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get autoAddSetsCount => $composableBuilder(
+    column: $table.autoAddSetsCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ExerciseCatalogTableOrderingComposer get exerciseId {
     final $$ExerciseCatalogTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -56908,6 +57299,36 @@ class $$ExerciseProgressionsTableAnnotationComposer
 
   GeneratedColumn<bool> get enabled =>
       $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<String> get progressionModel => $composableBuilder(
+    column: $table.progressionModel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetSets => $composableBuilder(
+    column: $table.targetSets,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetRepsMin => $composableBuilder(
+    column: $table.targetRepsMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetRepsMax => $composableBuilder(
+    column: $table.targetRepsMax,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get autoAddSets => $composableBuilder(
+    column: $table.autoAddSets,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get autoAddSetsCount => $composableBuilder(
+    column: $table.autoAddSetsCount,
+    builder: (column) => column,
+  );
 
   $$ExerciseCatalogTableAnnotationComposer get exerciseId {
     final $$ExerciseCatalogTableAnnotationComposer composer = $composerBuilder(
@@ -56978,6 +57399,12 @@ class $$ExerciseProgressionsTableTableManager
                 Value<String> goal = const Value.absent(),
                 Value<double> weeklyIncreasePct = const Value.absent(),
                 Value<bool> enabled = const Value.absent(),
+                Value<String> progressionModel = const Value.absent(),
+                Value<int?> targetSets = const Value.absent(),
+                Value<int?> targetRepsMin = const Value.absent(),
+                Value<int?> targetRepsMax = const Value.absent(),
+                Value<bool> autoAddSets = const Value.absent(),
+                Value<int> autoAddSetsCount = const Value.absent(),
               }) => ExerciseProgressionsCompanion(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -56988,6 +57415,12 @@ class $$ExerciseProgressionsTableTableManager
                 goal: goal,
                 weeklyIncreasePct: weeklyIncreasePct,
                 enabled: enabled,
+                progressionModel: progressionModel,
+                targetSets: targetSets,
+                targetRepsMin: targetRepsMin,
+                targetRepsMax: targetRepsMax,
+                autoAddSets: autoAddSets,
+                autoAddSetsCount: autoAddSetsCount,
               ),
           createCompanionCallback:
               ({
@@ -57000,6 +57433,12 @@ class $$ExerciseProgressionsTableTableManager
                 Value<String> goal = const Value.absent(),
                 Value<double> weeklyIncreasePct = const Value.absent(),
                 Value<bool> enabled = const Value.absent(),
+                Value<String> progressionModel = const Value.absent(),
+                Value<int?> targetSets = const Value.absent(),
+                Value<int?> targetRepsMin = const Value.absent(),
+                Value<int?> targetRepsMax = const Value.absent(),
+                Value<bool> autoAddSets = const Value.absent(),
+                Value<int> autoAddSetsCount = const Value.absent(),
               }) => ExerciseProgressionsCompanion.insert(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -57010,6 +57449,12 @@ class $$ExerciseProgressionsTableTableManager
                 goal: goal,
                 weeklyIncreasePct: weeklyIncreasePct,
                 enabled: enabled,
+                progressionModel: progressionModel,
+                targetSets: targetSets,
+                targetRepsMin: targetRepsMin,
+                targetRepsMax: targetRepsMax,
+                autoAddSets: autoAddSets,
+                autoAddSetsCount: autoAddSetsCount,
               ),
           withReferenceMapper: (p0) => p0
               .map(

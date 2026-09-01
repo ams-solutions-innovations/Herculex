@@ -22,6 +22,12 @@ class ExerciseProgressionsRepository {
     required ProgressionGoal goal,
     required double weeklyIncreasePct,
     required bool enabled,
+    String progressionModel = 'linear',
+    int? targetSets,
+    int? targetRepsMin,
+    int? targetRepsMax,
+    bool autoAddSets = false,
+    int autoAddSetsCount = 3,
   }) async {
     await _db
         .into(_db.exerciseProgressions)
@@ -31,12 +37,24 @@ class ExerciseProgressionsRepository {
             goal: Value(goal.name),
             weeklyIncreasePct: Value(weeklyIncreasePct),
             enabled: Value(enabled),
+            progressionModel: Value(progressionModel),
+            targetSets: Value(targetSets),
+            targetRepsMin: Value(targetRepsMin),
+            targetRepsMax: Value(targetRepsMax),
+            autoAddSets: Value(autoAddSets),
+            autoAddSetsCount: Value(autoAddSetsCount),
           ),
           onConflict: DoUpdate(
             (old) => ExerciseProgressionsCompanion.custom(
               goal: Constant(goal.name),
               weeklyIncreasePct: Constant(weeklyIncreasePct),
               enabled: Constant(enabled),
+              progressionModel: Constant(progressionModel),
+              targetSets: Constant(targetSets),
+              targetRepsMin: Constant(targetRepsMin),
+              targetRepsMax: Constant(targetRepsMax),
+              autoAddSets: Constant(autoAddSets),
+              autoAddSetsCount: Constant(autoAddSetsCount),
             ),
             target: [_db.exerciseProgressions.exerciseId],
           ),

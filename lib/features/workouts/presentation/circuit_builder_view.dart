@@ -177,292 +177,283 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
             controller: _nameCtrl,
             hint: 'e.g. Core Burner Circuit, Arm Blast',
           ),
-                const SizedBox(height: 12),
-                _PillField(
-                  label: 'Notes',
-                  controller: _notesCtrl,
-                  hint: 'Optional circuit description',
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 20),
+          const SizedBox(height: 12),
+          _PillField(
+            label: 'Notes',
+            controller: _notesCtrl,
+            hint: 'Optional circuit description',
+            maxLines: 2,
+          ),
+          const SizedBox(height: 20),
 
-                // Rounds Selector
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'CIRCUIT ROUNDS',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: AppColors.secondary,
-                                  letterSpacing: 1.2,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Number of times all exercises are performed',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.secondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              _RoundStepperButton(
-                                icon: Icons.remove,
-                                onTap: _rounds > 1
-                                    ? () => setState(() => _rounds--)
-                                    : null,
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                ),
-                                child: Text(
-                                  '$_rounds',
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                              _RoundStepperButton(
-                                icon: Icons.add,
-                                onTap: _rounds < 20
-                                    ? () => setState(() => _rounds++)
-                                    : null,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Rest Between Rounds Selector
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'PAUSE BETWEEN ROUNDS',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: AppColors.secondary,
-                                  letterSpacing: 1.2,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Rest time after completing all exercises in round',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.secondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryContainer.withValues(
-                                alpha: 0.35,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              _formatSeconds(_restSeconds),
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [30, 45, 60, 90, 120, 180].map((sec) {
-                          final isSelected = _restSeconds == sec;
-                          return ChoiceChip(
-                            label: Text(_formatSeconds(sec)),
-                            selected: isSelected,
-                            onSelected: (_) =>
-                                setState(() => _restSeconds = sec),
-                            selectedColor: AppColors.primary,
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : AppColors.secondary,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 12,
-                            ),
-                            backgroundColor: AppColors.surfaceContainer,
-                            side: BorderSide.none,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Exercises in Circuit Section
+          // Rounds Selector
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'CIRCUIT EXERCISES (${_draftExercises.length})',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondary,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add Exercise'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                      ),
-                      onPressed: () async {
-                        final results = await ExercisePickerSheet.show(context);
-                        if (results == null ||
-                            results.isEmpty ||
-                            !context.mounted)
-                          return;
-                        setState(() {
-                          for (final picked in results) {
-                            _draftExercises.add(
-                              _CircuitExerciseDraft(
-                                exercise: picked.exercise,
-                                targetReps: 10,
-                              ),
-                            );
-                          }
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                if (_draftExercises.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Column(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.repeat_rounded,
-                          size: 40,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(height: 12),
                         Text(
-                          'No exercises in circuit',
-                          style: theme.textTheme.titleSmall?.copyWith(
+                          'CIRCUIT ROUNDS',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.secondary,
+                            letterSpacing: 1.2,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
-                          'Add 2 or more exercises to build your circuit',
+                          'Number of times all exercises are performed',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.secondary,
                           ),
                         ),
                       ],
                     ),
-                  )
-                else
-                  ReorderableListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _draftExercises.length,
-                    onReorderItem: (oldIndex, newIndex) {
-                      setState(() {
-                        if (oldIndex < newIndex) newIndex -= 1;
-                        final item = _draftExercises.removeAt(oldIndex);
-                        _draftExercises.insert(newIndex, item);
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      final item = _draftExercises[index];
-                      return _CircuitExerciseTile(
-                        key: ValueKey('${item.exercise.id}_$index'),
-                        index: index,
-                        draft: item,
-                        onUpdateReps: (reps) =>
-                            setState(() => item.targetReps = reps),
-                        onUpdateWeight: (weight) =>
-                            setState(() => item.targetWeightKg = weight),
-                        onRemove: () =>
-                            setState(() => _draftExercises.removeAt(index)),
-                      );
-                    },
-                  ),
-
-                const SizedBox(height: 32),
-                PremiumButton(
-                  text: _saving
-                      ? 'Saving Circuit…'
-                      : (isEdit ? 'Update Circuit' : 'Create Circuit'),
-                  icon: isEdit ? Icons.check : Icons.add,
-                  onTap: _saving ? () {} : _save,
+                    Row(
+                      children: [
+                        _RoundStepperButton(
+                          icon: Icons.remove,
+                          onTap: _rounds > 1
+                              ? () => setState(() => _rounds--)
+                              : null,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          child: Text(
+                            '$_rounds',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        _RoundStepperButton(
+                          icon: Icons.add,
+                          onTap: _rounds < 20
+                              ? () => setState(() => _rounds++)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Rest Between Rounds Selector
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PAUSE BETWEEN ROUNDS',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.secondary,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Rest time after completing all exercises in round',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer.withValues(
+                          alpha: 0.35,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _formatSeconds(_restSeconds),
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [30, 45, 60, 90, 120, 180].map((sec) {
+                    final isSelected = _restSeconds == sec;
+                    return ChoiceChip(
+                      label: Text(_formatSeconds(sec)),
+                      selected: isSelected,
+                      onSelected: (_) => setState(() => _restSeconds = sec),
+                      selectedColor: AppColors.primary,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : AppColors.secondary,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontSize: 12,
+                      ),
+                      backgroundColor: AppColors.surfaceContainer,
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Exercises in Circuit Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'CIRCUIT EXERCISES (${_draftExercises.length})',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.secondary,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add Exercise'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                onPressed: () async {
+                  final results = await ExercisePickerSheet.show(context);
+                  if (results == null || results.isEmpty || !context.mounted)
+                    return;
+                  setState(() {
+                    for (final picked in results) {
+                      _draftExercises.add(
+                        _CircuitExerciseDraft(
+                          exercise: picked.exercise,
+                          targetReps: 10,
+                        ),
+                      );
+                    }
+                  });
+                },
+              ),
             ],
-          );
-        }
+          ),
+          const SizedBox(height: 8),
+
+          if (_draftExercises.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.repeat_rounded,
+                    size: 40,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No exercises in circuit',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Add 2 or more exercises to build your circuit',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _draftExercises.length,
+              onReorderItem: (oldIndex, newIndex) {
+                setState(() {
+                  if (oldIndex < newIndex) newIndex -= 1;
+                  final item = _draftExercises.removeAt(oldIndex);
+                  _draftExercises.insert(newIndex, item);
+                });
+              },
+              itemBuilder: (context, index) {
+                final item = _draftExercises[index];
+                return _CircuitExerciseTile(
+                  key: ValueKey('${item.exercise.id}_$index'),
+                  index: index,
+                  draft: item,
+                  onUpdateReps: (reps) =>
+                      setState(() => item.targetReps = reps),
+                  onUpdateWeight: (weight) =>
+                      setState(() => item.targetWeightKg = weight),
+                  onRemove: () =>
+                      setState(() => _draftExercises.removeAt(index)),
+                );
+              },
+            ),
+
+          const SizedBox(height: 32),
+          PremiumButton(
+            text: _saving
+                ? 'Saving Circuit…'
+                : (isEdit ? 'Update Circuit' : 'Create Circuit'),
+            icon: isEdit ? Icons.check : Icons.add,
+            onTap: _saving ? () {} : _save,
+          ),
+        ],
+      ],
+    );
+  }
 
   String _formatSeconds(int seconds) {
     if (seconds < 60) return '${seconds}s';

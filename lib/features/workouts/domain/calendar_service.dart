@@ -51,9 +51,7 @@ class CalendarService {
 
     final calendarsResult = await _deviceCalendarPlugin.retrieveCalendars();
     if (calendarsResult.isSuccess && calendarsResult.data != null) {
-      return calendarsResult.data!
-          .where((c) => c.isReadOnly == false)
-          .toList();
+      return calendarsResult.data!.where((c) => c.isReadOnly == false).toList();
     }
     return [];
   }
@@ -120,10 +118,7 @@ class CalendarService {
       // 1. Retrieve all calendar events in the window
       final eventsResult = await _deviceCalendarPlugin.retrieveEvents(
         targetCalendarId,
-        RetrieveEventsParams(
-          startDate: windowStart,
-          endDate: windowEnd,
-        ),
+        RetrieveEventsParams(startDate: windowStart, endDate: windowEnd),
       );
 
       final calendarEvents = eventsResult.isSuccess && eventsResult.data != null
@@ -191,9 +186,9 @@ class CalendarService {
           }
 
           if (needsDbUpdate) {
-            await (_db.update(_db.scheduledWorkouts)
-                  ..where((tbl) => tbl.id.equals(workout.id)))
-                .write(
+            await (_db.update(
+              _db.scheduledWorkouts,
+            )..where((tbl) => tbl.id.equals(workout.id))).write(
               ScheduledWorkoutsCompanion(
                 dateIso: Value(newDateIso),
                 startTimeMinutes: Value(newStartMinutes),
@@ -250,7 +245,8 @@ class CalendarService {
 
         if (existingEvent != null) {
           final eventStartLocal = existingEvent.start?.toLocal();
-          final sameStart = eventStartLocal != null &&
+          final sameStart =
+              eventStartLocal != null &&
               eventStartLocal.year == startDateTime.year &&
               eventStartLocal.month == startDateTime.month &&
               eventStartLocal.day == startDateTime.day &&
@@ -287,10 +283,7 @@ class CalendarService {
       );
     } catch (e) {
       debugPrint("Calendar 2-way sync error: $e");
-      return CalendarSyncResult(
-        success: false,
-        error: e.toString(),
-      );
+      return CalendarSyncResult(success: false, error: e.toString());
     }
   }
 
@@ -374,7 +367,9 @@ class CalendarService {
         targetEvent.start = startDateTime;
         targetEvent.end = endDateTime;
         targetEvent.description = description;
-        final res = await _deviceCalendarPlugin.createOrUpdateEvent(targetEvent);
+        final res = await _deviceCalendarPlugin.createOrUpdateEvent(
+          targetEvent,
+        );
         return res?.isSuccess == true;
       } else {
         final newEvent = Event(
@@ -450,15 +445,16 @@ class CalendarService {
     String startIso,
     String endIso,
   ) async {
-    final query = _db.select(_db.scheduledWorkouts).join([
-      innerJoin(
-        _db.programDays,
-        _db.programDays.id.equalsExp(_db.scheduledWorkouts.programDayId),
-      ),
-    ])..where(
-        _db.scheduledWorkouts.dateIso.isBiggerOrEqualValue(startIso) &
-            _db.scheduledWorkouts.dateIso.isSmallerOrEqualValue(endIso),
-      );
+    final query =
+        _db.select(_db.scheduledWorkouts).join([
+          innerJoin(
+            _db.programDays,
+            _db.programDays.id.equalsExp(_db.scheduledWorkouts.programDayId),
+          ),
+        ])..where(
+          _db.scheduledWorkouts.dateIso.isBiggerOrEqualValue(startIso) &
+              _db.scheduledWorkouts.dateIso.isSmallerOrEqualValue(endIso),
+        );
 
     final rows = await query.get();
     return rows.map((row) {

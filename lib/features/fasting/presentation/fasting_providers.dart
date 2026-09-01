@@ -167,4 +167,3 @@ final currentFastingStageProvider = Provider<FastingStageData?>((ref) {
   }
   return match ?? stages.first;
 });
-

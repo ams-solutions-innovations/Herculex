@@ -136,7 +136,7 @@ abstract final class HerculSignals {
 
   /// Best estimated 1RM in kg. Argument: exercise slug.
   static const e1rmKg = 'exercise.e1rmKg';
-  
+
   /// Change in estimated 1RM over the last 14 days. Argument: exercise slug.
   static const e1rmDeltaKg14d = 'exercise.e1rmDeltaKg14d';
 

@@ -39,7 +39,9 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
               child: PremiumButton(
                 text: _importing ? 'Adding…' : 'Add to my blocks',
                 icon: Icons.add_circle_outline_rounded,
-                onTap: _importing ? () {} : () => _onAddToMyBlocks(context, doc),
+                onTap: _importing
+                    ? () {}
+                    : () => _onAddToMyBlocks(context, doc),
               ),
             )
           : null,

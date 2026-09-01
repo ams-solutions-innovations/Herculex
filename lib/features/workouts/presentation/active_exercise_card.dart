@@ -656,9 +656,15 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   /// Progression goal + weekly-increase override to feed [ProgressionEngine],
   /// shared by the card-level and per-row "Next" hints. Per-exercise override
   /// takes priority over the profile goal.
-  ({ProgressionGoal goal, double? weeklyPctOverride}) _progressionGoal(
-    WidgetRef ref,
-  ) {
+  ({
+    ProgressionGoal goal,
+    double? weeklyPctOverride,
+    String progressionModel,
+    int? targetSets,
+    int? targetRepsMin,
+    int? targetRepsMax,
+  })
+  _progressionGoal(WidgetRef ref) {
     final override = ref
         .watch(exerciseProgressionProvider(widget.exercise.id))
         .asData
@@ -668,7 +674,14 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
         (g) => g.name == override.goal,
         orElse: () => ProgressionGoal.muscleGain,
       );
-      return (goal: goal, weeklyPctOverride: override.weeklyIncreasePct);
+      return (
+        goal: goal,
+        weeklyPctOverride: override.weeklyIncreasePct,
+        progressionModel: override.progressionModel,
+        targetSets: override.targetSets,
+        targetRepsMin: override.targetRepsMin,
+        targetRepsMax: override.targetRepsMax,
+      );
     }
     final fitnessGoal =
         ref.watch(profileProvider).asData?.value?.goal ??
@@ -679,7 +692,14 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       FitnessGoal.maintenance => ProgressionGoal.muscleGain,
       FitnessGoal.improveHealth => ProgressionGoal.endurance,
     };
-    return (goal: goal, weeklyPctOverride: null);
+    return (
+      goal: goal,
+      weeklyPctOverride: null,
+      progressionModel: 'linear',
+      targetSets: null,
+      targetRepsMin: null,
+      targetRepsMax: null,
+    );
   }
 
   String _nextLabel(
@@ -776,6 +796,11 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     if (prior == null || prior.isWarmup) return null;
 
     final settings = _progressionGoal(ref);
+    final allPastSets = allLastSets
+        .where((s) => !s.isWarmup)
+        .map((s) => (weightKg: s.weightKg, reps: s.reps))
+        .toList();
+
     final target = ProgressionEngine.suggestNext(
       lastWeightKg: prior.weightKg,
       lastReps: prior.reps,
@@ -783,6 +808,11 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       equipmentVariant:
           widget.workoutExercise.equipmentVariant ?? widget.exercise.modality,
       weeklyIncreasePctOverride: settings.weeklyPctOverride,
+      allLastSets: allPastSets,
+      progressionModel: settings.progressionModel,
+      targetSets: settings.targetSets,
+      targetRepsMin: settings.targetRepsMin,
+      targetRepsMax: settings.targetRepsMax,
     );
 
     if (target.weightKg <= 0 && prior.weightKg <= 0) return null;

@@ -164,211 +164,207 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
         // ── Hero Photo Header Box (Matching Screenshot 1) ─────────────────
         Container(
           height: 140,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.15),
-                  AppColors.surfaceContainer,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.outlineVariant.withValues(alpha: 0.4),
-              ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary.withValues(alpha: 0.15),
+                AppColors.surfaceContainer,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
-            child: InkWell(
-              onTap: () {
-                Haptics.selection();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Add photo feature coming soon'),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.camera_alt,
-                      size: 28,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Add Photo',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
             ),
           ),
-          const SizedBox(height: 20),
-
-          // ── Meal Name Input Field ──────────────────────────────────────────
-          TextField(
-            controller: _name,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            decoration: InputDecoration(
-              labelText: widget.isMeal ? 'Meal Name' : 'Recipe Name',
-              hintText: 'Enter name…',
-              border: const UnderlineInputBorder(),
-              focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // ── Share Setting Row ──────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Share with',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              DropdownButton<String>(
-                value: _shareSetting,
-                underline: const SizedBox.shrink(),
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'Public', child: Text('Public')),
-                  DropdownMenuItem(value: 'Private', child: Text('Private')),
-                ],
-                onChanged: (val) {
-                  if (val != null) setState(() => _shareSetting = val);
-                },
-              ),
-            ],
-          ),
-          Divider(
-            height: 1,
-            color: AppColors.outlineVariant.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 20),
-
-          // ── Live Macro Donut Chart & Daily Goal Breakdown ──────────────────
-          if (macros != null)
-            macros.when(
-              data: (per) => _MacroBreakdownCard(per: per, targets: targets),
-              loading: () => const SizedBox.shrink(),
-              error: (_, _) => const SizedBox.shrink(),
-            )
-          else
-            _MacroBreakdownCard(per: DailyTotals.empty, targets: targets),
-
-          const SizedBox(height: 24),
-
-          // ── Ingredients Section ────────────────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                widget.isMeal ? 'Meal Items' : 'Ingredients',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton.icon(
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                onPressed: _addIngredient,
-              ),
-            ],
-          ),
-          ingredients.when(
-            data: (list) {
-              if (list.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    widget.isMeal
-                        ? 'No items added yet.'
-                        : 'No ingredients added yet.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                );
-              }
-              return Column(
-                children: list
-                    .map(
-                      (ing) => _IngredientTile(
-                        ingredient: ing,
-                        recipeId: _recipeId!,
-                      ),
-                    )
-                    .toList(),
+          child: InkWell(
+            onTap: () {
+              Haptics.selection();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Add photo feature coming soon')),
               );
             },
-            loading: () => const SizedBox.shrink(),
-            error: (e, _) => Text('Error: $e'),
-          ),
-          const SizedBox(height: 20),
-
-          // ── Directions / Instructions Section ─────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Directions',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+            borderRadius: BorderRadius.circular(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.camera_alt,
+                    size: 28,
+                    color: AppColors.primary,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _notes,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Add instructions for making this meal…',
-              hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.secondary,
-              ),
-              filled: true,
-              fillColor: AppColors.surfaceVariant,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: AppColors.outlineVariant),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: AppColors.outlineVariant),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  'Add Photo',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 32),
-        ],
-      );
-    }
+        ),
+        const SizedBox(height: 20),
+
+        // ── Meal Name Input Field ──────────────────────────────────────────
+        TextField(
+          controller: _name,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+          decoration: InputDecoration(
+            labelText: widget.isMeal ? 'Meal Name' : 'Recipe Name',
+            hintText: 'Enter name…',
+            border: const UnderlineInputBorder(),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Share Setting Row ──────────────────────────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Share with',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: AppColors.onSurface,
+              ),
+            ),
+            DropdownButton<String>(
+              value: _shareSetting,
+              underline: const SizedBox.shrink(),
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Public', child: Text('Public')),
+                DropdownMenuItem(value: 'Private', child: Text('Private')),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _shareSetting = val);
+              },
+            ),
+          ],
+        ),
+        Divider(
+          height: 1,
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
+        const SizedBox(height: 20),
+
+        // ── Live Macro Donut Chart & Daily Goal Breakdown ──────────────────
+        if (macros != null)
+          macros.when(
+            data: (per) => _MacroBreakdownCard(per: per, targets: targets),
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+          )
+        else
+          _MacroBreakdownCard(per: DailyTotals.empty, targets: targets),
+
+        const SizedBox(height: 24),
+
+        // ── Ingredients Section ────────────────────────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              widget.isMeal ? 'Meal Items' : 'Ingredients',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              onPressed: _addIngredient,
+            ),
+          ],
+        ),
+        ingredients.when(
+          data: (list) {
+            if (list.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  widget.isMeal
+                      ? 'No items added yet.'
+                      : 'No ingredients added yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.secondary,
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: list
+                  .map(
+                    (ing) =>
+                        _IngredientTile(ingredient: ing, recipeId: _recipeId!),
+                  )
+                  .toList(),
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (e, _) => Text('Error: $e'),
+        ),
+        const SizedBox(height: 20),
+
+        // ── Directions / Instructions Section ─────────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Directions',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _notes,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: 'Add instructions for making this meal…',
+            hintStyle: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.secondary,
+            ),
+            filled: true,
+            fillColor: AppColors.surfaceVariant,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.outlineVariant),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.outlineVariant),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
   }
+}
 
 final _recipeMacrosProvider = FutureProvider.family<DailyTotals, int>((
   ref,
@@ -1219,18 +1215,10 @@ class _IngredientPickerSheetState
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
             color: hx.secondary.withValues(alpha: 0.85),
           ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            size: 22,
-            color: hx.primary,
-          ),
+          prefixIcon: Icon(Icons.search_rounded, size: 22, color: hx.primary),
           suffixIcon: hasQuery
               ? IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    size: 20,
-                    color: hx.secondary,
-                  ),
+                  icon: Icon(Icons.close, size: 20, color: hx.secondary),
                   onPressed: () {
                     _ctrl.clear();
                     setState(() => _query = null);

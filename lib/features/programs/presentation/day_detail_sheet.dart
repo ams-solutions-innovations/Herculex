@@ -232,10 +232,12 @@ class _SessionCard extends ConsumerWidget {
                   if (ref.read(calendarSyncEnabledProvider)) {
                     final calService = ref.read(calendarServiceProvider);
                     final calId = ref.read(selectedCalendarIdProvider);
-                    unawaited(calService.deleteWorkoutFromCalendar(
-                      row.id,
-                      targetCalendarId: calId,
-                    ));
+                    unawaited(
+                      calService.deleteWorkoutFromCalendar(
+                        row.id,
+                        targetCalendarId: calId,
+                      ),
+                    );
                   }
                 },
               ),

@@ -49,8 +49,7 @@ class DashboardCustomizeSheet extends ConsumerWidget {
       expand: false,
       builder: (_, controller) => Material(
         color:
-            theme.bottomSheetTheme.backgroundColor ??
-            hx.surfaceContainerLowest,
+            theme.bottomSheetTheme.backgroundColor ?? hx.surfaceContainerLowest,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -380,10 +379,7 @@ class _StackSlotCard extends StatelessWidget {
       color: hx.surfaceContainer,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: hx.primary.withValues(alpha: 0.35),
-          width: 1.5,
-        ),
+        side: BorderSide(color: hx.primary.withValues(alpha: 0.35), width: 1.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -400,7 +396,10 @@ class _StackSlotCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: hx.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),

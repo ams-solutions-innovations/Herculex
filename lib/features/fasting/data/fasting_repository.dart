@@ -57,6 +57,24 @@ class FastingRepository {
     );
   }
 
+  Future<int> insertCompletedSession({
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required int targetSeconds,
+    bool completed = true,
+  }) async {
+    return _db
+        .into(_db.fastingSessions)
+        .insert(
+          FastingSessionsCompanion.insert(
+            startedAt: startedAt,
+            endedAt: Value(endedAt),
+            targetSeconds: targetSeconds,
+            completed: Value(completed),
+          ),
+        );
+  }
+
   Future<void> deleteSession(int id) async {
     await (_db.delete(_db.fastingSessions)..where((t) => t.id.equals(id))).go();
   }

@@ -603,7 +603,11 @@ class _FolderDetailView extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.folder_open, size: 48, color: AppColors.primary),
+                      Icon(
+                        Icons.folder_open,
+                        size: 48,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'No templates yet',

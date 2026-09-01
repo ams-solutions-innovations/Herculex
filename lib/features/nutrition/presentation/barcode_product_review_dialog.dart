@@ -331,6 +331,25 @@ class _BarcodeProductReviewDialogState
                         ),
                       ],
                     ),
+                  ] else if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _analyze,
+                            child: const Text('Try again'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Enter manually'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ] else if (_result != null) ...[
                     Text(
                       'Product details',

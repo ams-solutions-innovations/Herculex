@@ -36,7 +36,7 @@ type GeminiRequest = {
 };
 
 const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash";
+const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -274,6 +274,7 @@ async function generate({
           ...(responseMimeType ? { response_mime_type: responseMimeType } : {}),
         },
       }),
+      signal: AbortSignal.timeout(35000),
     },
   );
 

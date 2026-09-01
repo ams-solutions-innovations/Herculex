@@ -110,6 +110,7 @@ object FastingStore {
             .put("startedAtEpochMs", snapshot.startedAtEpochMs)
             .put("targetSeconds", snapshot.targetSeconds)
             .put("completed", snapshot.completed)
+            .put("lastFastDurationSeconds", snapshot.lastFastDurationSeconds)
         return WearSyncContract.encodeEnvelope(
             entity = WearSyncContract.ENTITY_FASTING,
             entityId = "fasting",
@@ -119,12 +120,21 @@ object FastingStore {
         )
     }
 
-    fun createCommand(action: String, targetSeconds: Long = 16L * 60L * 60L): String {
+    fun createCommand(
+        action: String,
+        targetSeconds: Long = 16L * 60L * 60L,
+        startedAtEpochMs: Long? = null,
+        endedAtEpochMs: Long? = null,
+    ): String {
         return JSONObject()
             .put("commandId", UUID.randomUUID().toString())
             .put("action", action)
             .put("targetSeconds", targetSeconds)
             .put("completed", action == "stop")
+            .apply {
+                if (startedAtEpochMs != null) put("startedAtEpochMs", startedAtEpochMs)
+                if (endedAtEpochMs != null) put("endedAtEpochMs", endedAtEpochMs)
+            }
             .put("createdAtEpochMs", System.currentTimeMillis())
             .toString()
     }

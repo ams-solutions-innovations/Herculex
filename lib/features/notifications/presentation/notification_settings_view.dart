@@ -86,189 +86,187 @@ class NotificationSettingsView extends ConsumerWidget {
               value: settings.mealRemindersEnabled,
               onChanged: notifier.setMealRemindersEnabled,
             ),
-              if (settings.mealRemindersEnabled) ...[
-                _SettingsDivider(),
-                for (final slot in mealSlots) ...[
-                  _MealSlotRow(
-                    icon: slot.icon,
-                    label: slot.label,
-                    timeHHMM: settings.mealTimeFor(slot.key),
-                    isEnabled: settings.isMealEnabled(slot.key),
-                    onToggle: (val) =>
-                        notifier.setMealSlotEnabled(slot.key, val),
-                    onPickTime: () => _pickMealTime(
-                      context,
-                      ref,
-                      slot.key,
-                      settings.mealTimeFor(slot.key),
-                    ),
-                  ),
-                  if (slot != mealSlots.last) _SettingsDivider(),
-                ],
-              ],
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // ── Fasting Section ────────────────────────────────────────────────
-          _SectionHeader('Fasting'),
-          const SizedBox(height: 10),
-          _SettingsCard(
-            children: [
-              _SettingsSwitchTile(
-                icon: Icons.timer_outlined,
-                title: 'Fasting Goal Reached',
-                subtitle: 'Alert when your target fast window is achieved',
-                value: settings.fastingGoalReachedEnabled,
-                onChanged: notifier.setFastingGoalReachedEnabled,
-              ),
+            if (settings.mealRemindersEnabled) ...[
               _SettingsDivider(),
-              _SettingsSwitchTile(
-                icon: Icons.calendar_month_outlined,
-                title: 'Fasting Schedule Reminders',
-                subtitle: 'Reminders when scheduled fast windows begin',
-                value: settings.fastingScheduleRemindersEnabled,
-                onChanged: notifier.setFastingScheduleRemindersEnabled,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // ── Supplements Section ────────────────────────────────────────────
-          _SectionHeader('Supplements'),
-          const SizedBox(height: 10),
-          _SettingsCard(
-            children: [
-              _SettingsSwitchTile(
-                icon: Icons.medication_outlined,
-                title: 'Daily Supplement Reminders',
-                subtitle: 'Remind at times configured on your supplements',
-                value: settings.supplementRemindersEnabled,
-                onChanged: notifier.setSupplementRemindersEnabled,
-              ),
-              _SettingsDivider(),
-              _SettingsSwitchTile(
-                icon: Icons.fitness_center_rounded,
-                title: 'Post-Workout Supplements',
-                subtitle:
-                    'Prompt for post-workout supplements when workout ends',
-                value: settings.postWorkoutSupplementEnabled,
-                onChanged: notifier.setPostWorkoutSupplementEnabled,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // ── Workouts Section ───────────────────────────────────────────────
-          _SectionHeader('Workouts'),
-          const SizedBox(height: 10),
-          _SettingsCard(
-            children: [
-              _SettingsSwitchTile(
-                icon: Icons.play_circle_outline_rounded,
-                title: 'Live Workout Notification',
-                subtitle:
-                    'Ongoing tray notification with live timer & quick logging',
-                value: settings.activeWorkoutBannerEnabled,
-                onChanged: notifier.setActiveWorkoutBannerEnabled,
-              ),
-              _SettingsDivider(),
-              _SettingsSwitchTile(
-                icon: Icons.hourglass_bottom_rounded,
-                title: 'Rest Timer Alerts',
-                subtitle: 'Alert and sound when rest interval ends',
-                value: settings.restTimerAlertsEnabled,
-                onChanged: notifier.setRestTimerAlertsEnabled,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // ── Daily Habits Section ───────────────────────────────────────────
-          _SectionHeader('Daily Habits & Log'),
-          const SizedBox(height: 10),
-          _SettingsCard(
-            children: [
-              _SettingsSwitchTile(
-                icon: Icons.fact_check_outlined,
-                title: 'Evening Log Reminder',
-                subtitle: 'Remind to log missing meals and review daily stats',
-                value: settings.dailyLogReminderEnabled,
-                onChanged: notifier.setDailyLogReminderEnabled,
-              ),
-              if (settings.dailyLogReminderEnabled) ...[
-                _SettingsDivider(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.access_time_rounded,
-                        size: 20,
-                        color: context.hx.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Reminder Time',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              'When to trigger the evening reminder',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: context.hx.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () => _pickDailyLogTime(
-                          context,
-                          ref,
-                          settings.dailyLogTimeHHMM,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.hx.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: context.hx.primary.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Text(
-                            settings.dailyLogTimeHHMM,
-                            style: TextStyle(
-                              color: context.hx.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+              for (final slot in mealSlots) ...[
+                _MealSlotRow(
+                  icon: slot.icon,
+                  label: slot.label,
+                  timeHHMM: settings.mealTimeFor(slot.key),
+                  isEnabled: settings.isMealEnabled(slot.key),
+                  onToggle: (val) => notifier.setMealSlotEnabled(slot.key, val),
+                  onPickTime: () => _pickMealTime(
+                    context,
+                    ref,
+                    slot.key,
+                    settings.mealTimeFor(slot.key),
                   ),
                 ),
+                if (slot != mealSlots.last) _SettingsDivider(),
               ],
             ],
-          ),
-        ],
-      );
-    }
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // ── Fasting Section ────────────────────────────────────────────────
+        _SectionHeader('Fasting'),
+        const SizedBox(height: 10),
+        _SettingsCard(
+          children: [
+            _SettingsSwitchTile(
+              icon: Icons.timer_outlined,
+              title: 'Fasting Goal Reached',
+              subtitle: 'Alert when your target fast window is achieved',
+              value: settings.fastingGoalReachedEnabled,
+              onChanged: notifier.setFastingGoalReachedEnabled,
+            ),
+            _SettingsDivider(),
+            _SettingsSwitchTile(
+              icon: Icons.calendar_month_outlined,
+              title: 'Fasting Schedule Reminders',
+              subtitle: 'Reminders when scheduled fast windows begin',
+              value: settings.fastingScheduleRemindersEnabled,
+              onChanged: notifier.setFastingScheduleRemindersEnabled,
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // ── Supplements Section ────────────────────────────────────────────
+        _SectionHeader('Supplements'),
+        const SizedBox(height: 10),
+        _SettingsCard(
+          children: [
+            _SettingsSwitchTile(
+              icon: Icons.medication_outlined,
+              title: 'Daily Supplement Reminders',
+              subtitle: 'Remind at times configured on your supplements',
+              value: settings.supplementRemindersEnabled,
+              onChanged: notifier.setSupplementRemindersEnabled,
+            ),
+            _SettingsDivider(),
+            _SettingsSwitchTile(
+              icon: Icons.fitness_center_rounded,
+              title: 'Post-Workout Supplements',
+              subtitle: 'Prompt for post-workout supplements when workout ends',
+              value: settings.postWorkoutSupplementEnabled,
+              onChanged: notifier.setPostWorkoutSupplementEnabled,
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // ── Workouts Section ───────────────────────────────────────────────
+        _SectionHeader('Workouts'),
+        const SizedBox(height: 10),
+        _SettingsCard(
+          children: [
+            _SettingsSwitchTile(
+              icon: Icons.play_circle_outline_rounded,
+              title: 'Live Workout Notification',
+              subtitle:
+                  'Ongoing tray notification with live timer & quick logging',
+              value: settings.activeWorkoutBannerEnabled,
+              onChanged: notifier.setActiveWorkoutBannerEnabled,
+            ),
+            _SettingsDivider(),
+            _SettingsSwitchTile(
+              icon: Icons.hourglass_bottom_rounded,
+              title: 'Rest Timer Alerts',
+              subtitle: 'Alert and sound when rest interval ends',
+              value: settings.restTimerAlertsEnabled,
+              onChanged: notifier.setRestTimerAlertsEnabled,
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // ── Daily Habits Section ───────────────────────────────────────────
+        _SectionHeader('Daily Habits & Log'),
+        const SizedBox(height: 10),
+        _SettingsCard(
+          children: [
+            _SettingsSwitchTile(
+              icon: Icons.fact_check_outlined,
+              title: 'Evening Log Reminder',
+              subtitle: 'Remind to log missing meals and review daily stats',
+              value: settings.dailyLogReminderEnabled,
+              onChanged: notifier.setDailyLogReminderEnabled,
+            ),
+            if (settings.dailyLogReminderEnabled) ...[
+              _SettingsDivider(),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 20,
+                      color: context.hx.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Reminder Time',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'When to trigger the evening reminder',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: context.hx.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => _pickDailyLogTime(
+                        context,
+                        ref,
+                        settings.dailyLogTimeHHMM,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.hx.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: context.hx.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          settings.dailyLogTimeHHMM,
+                          style: TextStyle(
+                            color: context.hx.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
   }
+}
 
 // ── Helper Widgets ────────────────────────────────────────────────────────────
 

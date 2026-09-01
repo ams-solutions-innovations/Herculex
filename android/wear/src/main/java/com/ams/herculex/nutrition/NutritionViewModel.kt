@@ -196,20 +196,40 @@ class NutritionViewModel(application: Application) : AndroidViewModel(applicatio
         FastingStore.saveSnapshot(ctx(), json)
         _data.value = _data.value.copy(fastingSnapshot = localSnapshot)
         WearComplicationHelper.requestFastingComplicationsUpdate(ctx())
-        sendFastingCommand(FastingStore.createCommand("start", targetSeconds))
+        sendFastingCommand(
+            FastingStore.createCommand(
+                action = "start",
+                targetSeconds = targetSeconds,
+                startedAtEpochMs = now,
+            )
+        )
     }
 
     fun stopFast() {
+        val current = _data.value.fastingSnapshot
+        val startedAt = current.startedAtEpochMs
+        val targetSeconds = current.targetSeconds
+        val now = System.currentTimeMillis()
+        val durationSeconds = current.elapsedSeconds(now)
+
         val localSnapshot = FastingSnapshot(
             hasActiveFast = false,
             startedAtEpochMs = null,
-            targetSeconds = 16L * 60L * 60L,
+            targetSeconds = targetSeconds,
+            lastFastDurationSeconds = if (startedAt != null) durationSeconds else null,
         )
         val json = FastingStore.snapshotToJson(ctx(), localSnapshot)
         FastingStore.saveSnapshot(ctx(), json)
         _data.value = _data.value.copy(fastingSnapshot = localSnapshot)
         WearComplicationHelper.requestFastingComplicationsUpdate(ctx())
-        sendFastingCommand(FastingStore.createCommand("stop"))
+        sendFastingCommand(
+            FastingStore.createCommand(
+                action = "stop",
+                targetSeconds = targetSeconds,
+                startedAtEpochMs = startedAt,
+                endedAtEpochMs = now,
+            )
+        )
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

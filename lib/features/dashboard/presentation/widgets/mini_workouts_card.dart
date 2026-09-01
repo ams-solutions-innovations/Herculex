@@ -79,14 +79,16 @@ class MiniWorkoutsCard extends ConsumerWidget {
                           ),
                           decoration: BoxDecoration(
                             color: isAllDone
-                                ? const Color(0xFF10B981)
-                                    .withValues(alpha: 0.18)
+                                ? const Color(
+                                    0xFF10B981,
+                                  ).withValues(alpha: 0.18)
                                 : hx.domainTraining.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: isAllDone
-                                  ? const Color(0xFF10B981)
-                                      .withValues(alpha: 0.5)
+                                  ? const Color(
+                                      0xFF10B981,
+                                    ).withValues(alpha: 0.5)
                                   : hx.domainTraining.withValues(alpha: 0.35),
                               width: 1,
                             ),
@@ -276,10 +278,7 @@ class MiniWorkoutsCard extends ConsumerWidget {
                   const SizedBox(height: 1),
                   Text(
                     '${item.microWorkout.targetReps} reps/round • ${item.completedToday}/${item.microWorkout.timesPerDay}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: hx.onSurfaceVariant,
-                    ),
+                    style: TextStyle(fontSize: 10, color: hx.onSurfaceVariant),
                   ),
                   const SizedBox(height: 4),
                   MiniWorkoutSegmentedProgress(
@@ -310,29 +309,19 @@ class MiniWorkoutsCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(
-    BuildContext context,
-    WidgetRef ref,
-    HxColors hx,
-  ) {
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref, HxColors hx) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       decoration: BoxDecoration(
         color: hx.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.checklist_rtl_rounded,
-            color: hx.domainTraining,
-            size: 24,
-          ),
+          Icon(Icons.checklist_rtl_rounded, color: hx.domainTraining, size: 24),
           const SizedBox(height: 4),
           Text(
             'No mini workouts for today',
@@ -345,10 +334,7 @@ class MiniWorkoutsCard extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             'Add daily micro-habits to accumulate volume effortlessly.',
-            style: TextStyle(
-              fontSize: 11,
-              color: hx.onSurfaceVariant,
-            ),
+            style: TextStyle(fontSize: 11, color: hx.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -422,4 +408,3 @@ class MiniWorkoutsCard extends ConsumerWidget {
     Haptics.success();
   }
 }
-
