@@ -383,19 +383,36 @@ void main() {
       expect(second, greaterThan(first));
     });
 
-    test('allocators with different keys do not collide', () async {
+    test('allocators with different keys keep independent sequences', () async {
       final prefs = await SharedPreferences.getInstance();
+
+      // Pre-seed workout's key far enough ahead that the wall clock cannot
+      // catch it. Every allocation for that key then takes the
+      // `persistedLast + 1` branch, which makes the arithmetic below exact.
+      //
+      // This replaces an earlier `fastingFirst != workoutSecond` assertion
+      // that was genuinely racy: next() returns a millisecond timestamp, so
+      // two allocators are *allowed* to return equal values, and the old test
+      // failed whenever a millisecond boundary happened to land between its
+      // first two calls (hence: green alone, red in the full suite).
+      final farFuture = DateTime.now().millisecondsSinceEpoch + 1000000;
+      await prefs.setInt('wear_sync_revision_workout', farFuture);
+
       final workout = WearRevisionAllocator(prefs, 'workout');
       final fasting = WearRevisionAllocator(prefs, 'fasting');
 
-      final workoutFirst = workout.next();
+      final workoutNext = workout.next();
       final fastingFirst = fasting.next();
-      final workoutSecond = workout.next();
 
-      expect(workoutSecond, greaterThan(workoutFirst));
-      // Independent sequences: fasting's first value is unaffected by
-      // workout's calls, i.e. it isn't offset by workout's own counter.
-      expect(fastingFirst, isNot(equals(workoutSecond)));
+      expect(workoutNext, farFuture + 1);
+
+      // The point of the test: fasting starts from the clock, so it is not
+      // dragged up by workout's key. A shared counter would put these level.
+      expect(fastingFirst, lessThan(workoutNext));
+
+      // Each key stays monotonic on its own.
+      expect(fasting.next(), greaterThan(fastingFirst));
+      expect(workout.next(), greaterThan(workoutNext));
     });
   });
 

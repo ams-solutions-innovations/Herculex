@@ -33,10 +33,10 @@ void main() {
     final doc = ProgramCsv.decode(csv);
 
     expect(doc.name, 'Natural Superman');
-    expect(doc.weeks, 4);
+    expect(doc.weeks, 12);
     expect(doc.periodizationModel, 'linear');
 
-    // 4 weeks, 4 days per week (Upper, Lower, Full Body, Active Recovery)
+    // 12 weeks, 4 days per week (Upper, Lower, Full Body, Active Recovery)
     expect(doc.rows, isNotEmpty);
 
     final week0Rows = doc.rows.where((r) => r.weekIndex == 0).toList();
@@ -65,14 +65,21 @@ void main() {
       final program = await programsRepo.getProgram(programId);
       expect(program, isNotNull);
       expect(program!.name, 'Natural Superman');
-      expect(program.weeks, 4);
+      expect(program.weeks, 12);
       expect(program.periodizationModel, 'linear');
 
       final weeks = await programsRepo.getProgramWeeks(programId);
-      expect(weeks, hasLength(4));
+      expect(weeks, hasLength(12));
 
-      // Week 4 should be deload in linear periodization
-      expect(weeks[3].intensityFactor, lessThan(weeks[2].intensityFactor));
+      // Linear periodization deloads every 4th week — so weeks 4, 8 and 12
+      // (indices 3, 7, 11) each ease off relative to the week before them.
+      for (final deloadIndex in [3, 7, 11]) {
+        expect(
+          weeks[deloadIndex].intensityFactor,
+          lessThan(weeks[deloadIndex - 1].intensityFactor),
+          reason: 'week ${deloadIndex + 1} should be a deload',
+        );
+      }
 
       // Check days for week 0
       final week0Days = await programsRepo.getProgramDaysForWeek(weeks[0].id);
@@ -110,8 +117,8 @@ void main() {
       await programsRepo.materializeProgram(programId, startDate);
 
       final scheduled = await db.select(db.scheduledWorkouts).get();
-      // 4 weeks * 4 days = 16 scheduled sessions
-      expect(scheduled, hasLength(16));
+      // 12 weeks * 4 days = 48 scheduled sessions
+      expect(scheduled, hasLength(48));
       expect(
         scheduled.every((s) => s.status == ScheduleStatus.planned),
         isTrue,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import '../core/units.dart';
 import '../data/local/database.dart';
 import '../features/analytics/presentation/analytics_providers.dart';
 import '../features/fasting/data/fasting_schedule_action_queue.dart';
+import '../features/fasting/domain/fasting_plan.dart';
 import '../features/fasting/domain/fasting_schedule_occurrence.dart';
 import '../features/fasting/presentation/fasting_providers.dart';
 import '../features/notifications/data/notification_sync_service.dart';

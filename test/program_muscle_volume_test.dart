@@ -23,7 +23,7 @@ void main() {
       final breakdown = ProgramVolumeCalculator.computeFromCsv(doc);
 
       expect(breakdown.isNotEmpty, isTrue);
-      expect(breakdown.weeks, hasLength(4));
+      expect(breakdown.weeks, hasLength(12));
 
       // Check average weekly volume
       final avgVolumes = {
@@ -100,7 +100,7 @@ week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equi
       );
 
       expect(breakdown.isNotEmpty, isTrue);
-      expect(breakdown.weeks, hasLength(4));
+      expect(breakdown.weeks, hasLength(12));
 
       final avgMap = {
         for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets,

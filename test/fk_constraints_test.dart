@@ -92,6 +92,12 @@ const _expectedEdges = <_FkEdge>[
   _FkEdge('food_entries', 'recipe_id', 'recipes', 'id', 'RESTRICT'),
   _FkEdge('food_entries', 'food_id', 'foods', 'id', 'RESTRICT'),
   _FkEdge('food_micros', 'food_id', 'foods', 'id', 'CASCADE'),
+  // NOTE: the only edge in the schema without an explicit onDelete —
+  // HerculMessageLog.ruleId uses a bare .references(HerculRules, #id), so
+  // drift emits NO ACTION. Recorded here as-is rather than silently
+  // "corrected", because changing it means a schemaVersion bump + migration.
+  // Deleting a rule with a log row will fail instead of cascading.
+  _FkEdge('hercul_message_log', 'rule_id', 'hercul_rules', 'id', 'NO ACTION'),
   _FkEdge('machine_settings', 'gym_id', 'gyms', 'id', 'SET NULL'),
   _FkEdge(
     'machine_settings',
