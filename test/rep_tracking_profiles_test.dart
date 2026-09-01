@@ -21,13 +21,18 @@ void main() {
   late List<Map<String, dynamic>> profiles;
 
   setUpAll(() {
-    catalog = (jsonDecode(File('assets/data/exercises.json').readAsStringSync())
-            as List<dynamic>)
-        .cast<Map<String, dynamic>>();
-    profiles = (jsonDecode(
-      File('assets/data/rep_tracking_profiles.json').readAsStringSync(),
-    ) as List<dynamic>)
-        .cast<Map<String, dynamic>>();
+    catalog =
+        (jsonDecode(File('assets/data/exercises.json').readAsStringSync())
+                as List<dynamic>)
+            .cast<Map<String, dynamic>>();
+    profiles =
+        (jsonDecode(
+                  File(
+                    'assets/data/rep_tracking_profiles.json',
+                  ).readAsStringSync(),
+                )
+                as List<dynamic>)
+            .cast<Map<String, dynamic>>();
   });
 
   group('coverage', () {
@@ -43,7 +48,8 @@ void main() {
       expect(
         catalogSlugs.difference(profileSlugs.toSet()),
         isEmpty,
-        reason: 'catalogue rows with no profile — run tool/derive_rep_profiles.py --write',
+        reason:
+            'catalogue rows with no profile — run tool/derive_rep_profiles.py --write',
       );
       expect(
         profileSlugs.length,
@@ -126,7 +132,9 @@ void main() {
     test('nothing that is not rep-based is trackable', () {
       final metricBySlug = {
         for (final e in catalog)
-          e['slug'] as String: LoggingMetric.fromId(e['loggingMetric'] as String?),
+          e['slug'] as String: LoggingMetric.fromId(
+            e['loggingMetric'] as String?,
+          ),
       };
 
       for (final raw in profiles) {
@@ -164,33 +172,40 @@ void main() {
       }
     });
 
-    test('exercises where neither segment moves are permanently unsupported', () {
-      // Each of these is a physical exclusion, not a backlog item. A seated
-      // leg curl straps the femur down and moves only the shin; the hands
-      // rest on the handles. There is no sensor site that sees the rep.
-      const impossible = {
-        'seated-leg-curl',
-        'lying-leg-curl',
-        'leg-extension',
-        'seated-calf-raise',
-        'machine-abductor',
-        'machine-adductor',
-        'machine-neck-curl',
-        'dumbbell-wrist-curl',
-        'plank',
-      };
+    test(
+      'exercises where neither segment moves are permanently unsupported',
+      () {
+        // Each of these is a physical exclusion, not a backlog item. A seated
+        // leg curl straps the femur down and moves only the shin; the hands
+        // rest on the handles. There is no sensor site that sees the rep.
+        const impossible = {
+          'seated-leg-curl',
+          'lying-leg-curl',
+          'leg-extension',
+          'seated-calf-raise',
+          'machine-abductor',
+          'machine-adductor',
+          'machine-neck-curl',
+          'dumbbell-wrist-curl',
+          'plank',
+        };
 
-      for (final slug in impossible) {
-        final profile = RepTrackingProfile.fromJson(
-          profiles.firstWhere((p) => p['slug'] == slug),
-        );
-        expect(profile.tier, RepTrackingTier.unsupported, reason: slug);
-        expect(profile.reason, isNotEmpty, reason: slug);
-      }
-    });
+        for (final slug in impossible) {
+          final profile = RepTrackingProfile.fromJson(
+            profiles.firstWhere((p) => p['slug'] == slug),
+          );
+          expect(profile.tier, RepTrackingTier.unsupported, reason: slug);
+          expect(profile.reason, isNotEmpty, reason: slug);
+        }
+      },
+    );
 
     test('short-range work is countOnly, so it can never carry an RPE', () {
-      for (final slug in ['barbell-shrug', 'standing-calf-raise', 'rack-pull-above-knee']) {
+      for (final slug in [
+        'barbell-shrug',
+        'standing-calf-raise',
+        'rack-pull-above-knee',
+      ]) {
         final profile = RepTrackingProfile.fromJson(
           profiles.firstWhere((p) => p['slug'] == slug),
         );
@@ -200,19 +215,22 @@ void main() {
       }
     });
 
-    test('a name containing "neck" does not by itself disqualify an exercise', () {
-      // Regression pin. A name-regex draft of the classifier put
-      // behind-neck-pulldown and behind-the-neck-ohp in the unsupported
-      // bucket purely on the substring, which is why classification runs over
-      // movementPattern/modality/primaryMuscle and never over the name.
-      for (final slug in ['behind-neck-pulldown', 'behind-the-neck-ohp']) {
-        final profile = RepTrackingProfile.fromJson(
-          profiles.firstWhere((p) => p['slug'] == slug),
-        );
-        expect(profile.tier, RepTrackingTier.supported, reason: slug);
-        expect(profile.site, SensorSite.wrist, reason: slug);
-      }
-    });
+    test(
+      'a name containing "neck" does not by itself disqualify an exercise',
+      () {
+        // Regression pin. A name-regex draft of the classifier put
+        // behind-neck-pulldown and behind-the-neck-ohp in the unsupported
+        // bucket purely on the substring, which is why classification runs over
+        // movementPattern/modality/primaryMuscle and never over the name.
+        for (final slug in ['behind-neck-pulldown', 'behind-the-neck-ohp']) {
+          final profile = RepTrackingProfile.fromJson(
+            profiles.firstWhere((p) => p['slug'] == slug),
+          );
+          expect(profile.tier, RepTrackingTier.supported, reason: slug);
+          expect(profile.site, SensorSite.wrist, reason: slug);
+        }
+      },
+    );
   });
 
   group('detector defaults agree with the asset', () {
@@ -234,13 +252,18 @@ void main() {
         final expectedAmplitude = profile.channels.first == RepChannel.dyn
             ? profile.minCycleAmplitudeMs2
             : profile.minCycleAmplitudeDeg;
-        expect(fallback.minCycleAmplitude, expectedAmplitude, reason: family.id);
+        expect(
+          fallback.minCycleAmplitude,
+          expectedAmplitude,
+          reason: family.id,
+        );
       }
 
       expect(
         seen,
         hasLength(RepMovement.values.length),
-        reason: 'a RepMovement value no catalogue row uses — drop it or map to it',
+        reason:
+            'a RepMovement value no catalogue row uses — drop it or map to it',
       );
     });
 
@@ -251,8 +274,14 @@ void main() {
         profiles.firstWhere((p) => p['slug'] == 'barbell-bench-press'),
       );
 
-      final onTilt = RepDetectorConfig.forProfile(bench, channel: RepChannel.tilt);
-      final onDyn = RepDetectorConfig.forProfile(bench, channel: RepChannel.dyn);
+      final onTilt = RepDetectorConfig.forProfile(
+        bench,
+        channel: RepChannel.tilt,
+      );
+      final onDyn = RepDetectorConfig.forProfile(
+        bench,
+        channel: RepChannel.dyn,
+      );
 
       expect(onTilt.minCycleAmplitude, bench.minCycleAmplitudeDeg);
       expect(onDyn.minCycleAmplitude, bench.minCycleAmplitudeMs2);
@@ -302,11 +331,14 @@ void main() {
       expect(profileFor('some-custom-exercise'), isNull);
     });
 
-    test('a malformed asset throws rather than installing a partial registry', () {
-      expect(
-        () => RepProfileRegistry.loadFromJson('{"not": "a list"}'),
-        throwsFormatException,
-      );
-    });
+    test(
+      'a malformed asset throws rather than installing a partial registry',
+      () {
+        expect(
+          () => RepProfileRegistry.loadFromJson('{"not": "a list"}'),
+          throwsFormatException,
+        );
+      },
+    );
   });
 }

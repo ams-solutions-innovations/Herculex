@@ -84,13 +84,13 @@ class RepFeatures {
   }
 
   Map<String, dynamic> toJson() => {
-        'v': version,
-        'meanPeriodMs': meanPeriodMs,
-        'periodCv': periodCv,
-        'normalisedAmplitude': normalisedAmplitude,
-        'finalRepPeriodRatio': finalRepPeriodRatio,
-        'amplitudeDecayRatio': amplitudeDecayRatio,
-      };
+    'v': version,
+    'meanPeriodMs': meanPeriodMs,
+    'periodCv': periodCv,
+    'normalisedAmplitude': normalisedAmplitude,
+    'finalRepPeriodRatio': finalRepPeriodRatio,
+    'amplitudeDecayRatio': amplitudeDecayRatio,
+  };
 
   /// Returns null when [j] was written by a different detector version, so a
   /// stale vector is dropped rather than silently mixed into a fit.

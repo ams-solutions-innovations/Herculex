@@ -42,9 +42,15 @@ enum EquipmentType {
   /// Normalizes any raw equipment or modality string into an [EquipmentType].
   static EquipmentType resolve(String? raw) {
     if (raw == null || raw.trim().isEmpty) return EquipmentType.other;
-    final s = raw.toLowerCase().trim().replaceAll('-', ' ').replaceAll('_', ' ');
+    final s = raw
+        .toLowerCase()
+        .trim()
+        .replaceAll('-', ' ')
+        .replaceAll('_', ' ');
 
-    if (s.contains('swiss') || s.contains('football bar') || s.contains('multi grip')) {
+    if (s.contains('swiss') ||
+        s.contains('football bar') ||
+        s.contains('multi grip')) {
       return EquipmentType.swissBar;
     }
     if (s.contains('ez') || s.contains('curl bar')) {
@@ -74,10 +80,14 @@ enum EquipmentType {
     if (s.contains('cable') || s.contains('pulley')) {
       return EquipmentType.cable;
     }
-    if (s.contains('plate loaded') || s.contains('machine plate') || s.contains('hammer')) {
+    if (s.contains('plate loaded') ||
+        s.contains('machine plate') ||
+        s.contains('hammer')) {
       return EquipmentType.machinePlate;
     }
-    if (s.contains('selectorized') || s.contains('stack') || s.contains('pin loaded')) {
+    if (s.contains('selectorized') ||
+        s.contains('stack') ||
+        s.contains('pin loaded')) {
       return EquipmentType.machineSelectorized;
     }
     if (s.contains('machine')) {
@@ -92,7 +102,9 @@ enum EquipmentType {
     if (s.contains('trx') || s.contains('suspension')) {
       return EquipmentType.trx;
     }
-    if (s.contains('medicine') || s.contains('slam ball') || s.contains('wall ball')) {
+    if (s.contains('medicine') ||
+        s.contains('slam ball') ||
+        s.contains('wall ball')) {
       return EquipmentType.medicineBall;
     }
     if (s.contains('sandbag')) {
@@ -119,10 +131,15 @@ enum EquipmentType {
     if (s.contains('rower') || s.contains('rowing') || s.contains('row erg')) {
       return EquipmentType.rower;
     }
-    if (s.contains('air bike') || s.contains('assault') || s.contains('echo bike')) {
+    if (s.contains('air bike') ||
+        s.contains('assault') ||
+        s.contains('echo bike')) {
       return EquipmentType.airBike;
     }
-    if (s.contains('stationary bike') || s.contains('spin bike') || s.contains('bike') || s.contains('cycle')) {
+    if (s.contains('stationary bike') ||
+        s.contains('spin bike') ||
+        s.contains('bike') ||
+        s.contains('cycle')) {
       return EquipmentType.stationaryBike;
     }
     if (s.contains('ski erg') || s.contains('skierg') || s.contains('ski')) {
@@ -215,9 +232,19 @@ class _EquipmentGlyphPainter extends CustomPainter {
       canvas.drawLine(Offset(x1, y1), Offset(x2, y2), p ?? stroke);
     }
 
-    void rrect(double x, double y, double width, double height, double r, [Paint? p]) {
+    void rrect(
+      double x,
+      double y,
+      double width,
+      double height,
+      double r, [
+      Paint? p,
+    ]) {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(x, y, width, height), Radius.circular(r)),
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, y, width, height),
+          Radius.circular(r),
+        ),
         p ?? fill,
       );
     }
@@ -427,11 +454,24 @@ class _EquipmentGlyphPainter extends CustomPainter {
         final dHandle = Path()
           ..moveTo(w * 0.62, cy - h * 0.18)
           ..lineTo(w * 0.78, cy - h * 0.18)
-          ..cubicTo(w * 0.88, cy - h * 0.18, w * 0.88, cy + h * 0.18, w * 0.78, cy + h * 0.18)
+          ..cubicTo(
+            w * 0.88,
+            cy - h * 0.18,
+            w * 0.88,
+            cy + h * 0.18,
+            w * 0.78,
+            cy + h * 0.18,
+          )
           ..lineTo(w * 0.62, cy + h * 0.18)
           ..close();
         canvas.drawPath(dHandle, stroke);
-        line(w * 0.62, cy - h * 0.18, w * 0.62, cy + h * 0.18, stroke..strokeWidth = sw * 1.3);
+        line(
+          w * 0.62,
+          cy - h * 0.18,
+          w * 0.62,
+          cy + h * 0.18,
+          stroke..strokeWidth = sw * 1.3,
+        );
         break;
 
       case EquipmentType.machinePlate:
@@ -571,8 +611,20 @@ class _EquipmentGlyphPainter extends CustomPainter {
         line(cx, h * 0.16, w * 0.28, h * 0.65, stroke);
         line(cx, h * 0.16, w * 0.72, h * 0.65, stroke);
         // Handles
-        line(w * 0.20, h * 0.65, w * 0.36, h * 0.65, stroke..strokeWidth = sw * 1.5);
-        line(w * 0.64, h * 0.65, w * 0.80, h * 0.65, stroke..strokeWidth = sw * 1.5);
+        line(
+          w * 0.20,
+          h * 0.65,
+          w * 0.36,
+          h * 0.65,
+          stroke..strokeWidth = sw * 1.5,
+        );
+        line(
+          w * 0.64,
+          h * 0.65,
+          w * 0.80,
+          h * 0.65,
+          stroke..strokeWidth = sw * 1.5,
+        );
         // Foot cradles
         final leftCradle = Path()
           ..moveTo(w * 0.20, h * 0.65)
@@ -590,16 +642,42 @@ class _EquipmentGlyphPainter extends CustomPainter {
         // Curved side seams
         final leftSeam = Path()
           ..moveTo(cx - w * 0.18, h * 0.18)
-          ..cubicTo(cx - w * 0.32, cy, cx - w * 0.32, cy, cx - w * 0.18, h * 0.82);
+          ..cubicTo(
+            cx - w * 0.32,
+            cy,
+            cx - w * 0.32,
+            cy,
+            cx - w * 0.18,
+            h * 0.82,
+          );
         canvas.drawPath(leftSeam, thinStroke);
         final rightSeam = Path()
           ..moveTo(cx + w * 0.18, h * 0.18)
-          ..cubicTo(cx + w * 0.32, cy, cx + w * 0.32, cy, cx + w * 0.18, h * 0.82);
+          ..cubicTo(
+            cx + w * 0.32,
+            cy,
+            cx + w * 0.32,
+            cy,
+            cx + w * 0.18,
+            h * 0.82,
+          );
         canvas.drawPath(rightSeam, thinStroke);
         // Center cross-lacing
-        line(cx - w * 0.08, cy - h * 0.08, cx + w * 0.08, cy - h * 0.08, stroke);
+        line(
+          cx - w * 0.08,
+          cy - h * 0.08,
+          cx + w * 0.08,
+          cy - h * 0.08,
+          stroke,
+        );
         line(cx - w * 0.08, cy, cx + w * 0.08, cy, stroke);
-        line(cx - w * 0.08, cy + h * 0.08, cx + w * 0.08, cy + h * 0.08, stroke);
+        line(
+          cx - w * 0.08,
+          cy + h * 0.08,
+          cx + w * 0.08,
+          cy + h * 0.08,
+          stroke,
+        );
         break;
 
       case EquipmentType.sandbag:
@@ -611,8 +689,20 @@ class _EquipmentGlyphPainter extends CustomPainter {
           ..cubicTo(w * 0.36, h * 0.18, w * 0.64, h * 0.18, w * 0.64, h * 0.34);
         canvas.drawPath(topHandle, stroke);
         // End handles
-        line(w * 0.16, h * 0.42, w * 0.16, h * 0.64, stroke..strokeWidth = sw * 1.5);
-        line(w * 0.84, h * 0.42, w * 0.84, h * 0.64, stroke..strokeWidth = sw * 1.5);
+        line(
+          w * 0.16,
+          h * 0.42,
+          w * 0.16,
+          h * 0.64,
+          stroke..strokeWidth = sw * 1.5,
+        );
+        line(
+          w * 0.84,
+          h * 0.42,
+          w * 0.84,
+          h * 0.64,
+          stroke..strokeWidth = sw * 1.5,
+        );
         // Transverse strap lines
         line(w * 0.38, h * 0.34, w * 0.38, h * 0.72, thinStroke);
         line(w * 0.62, h * 0.34, w * 0.62, h * 0.72, thinStroke);
@@ -638,13 +728,41 @@ class _EquipmentGlyphPainter extends CustomPainter {
         // Dual undulating harmonic wave paths
         final wave1 = Path()
           ..moveTo(w * 0.08, cy - h * 0.10)
-          ..cubicTo(w * 0.28, cy - h * 0.40, w * 0.45, cy + h * 0.20, w * 0.65, cy - h * 0.10)
-          ..cubicTo(w * 0.75, cy - h * 0.25, w * 0.85, cy + h * 0.05, w * 0.92, cy);
+          ..cubicTo(
+            w * 0.28,
+            cy - h * 0.40,
+            w * 0.45,
+            cy + h * 0.20,
+            w * 0.65,
+            cy - h * 0.10,
+          )
+          ..cubicTo(
+            w * 0.75,
+            cy - h * 0.25,
+            w * 0.85,
+            cy + h * 0.05,
+            w * 0.92,
+            cy,
+          );
         canvas.drawPath(wave1, stroke..strokeWidth = sw * 1.4);
         final wave2 = Path()
           ..moveTo(w * 0.08, cy + h * 0.10)
-          ..cubicTo(w * 0.28, cy + h * 0.40, w * 0.45, cy - h * 0.20, w * 0.65, cy + h * 0.10)
-          ..cubicTo(w * 0.75, cy + h * 0.25, w * 0.85, cy - h * 0.05, w * 0.92, cy + h * 0.18);
+          ..cubicTo(
+            w * 0.28,
+            cy + h * 0.40,
+            w * 0.45,
+            cy - h * 0.20,
+            w * 0.65,
+            cy + h * 0.10,
+          )
+          ..cubicTo(
+            w * 0.75,
+            cy + h * 0.25,
+            w * 0.85,
+            cy - h * 0.05,
+            w * 0.92,
+            cy + h * 0.18,
+          );
         canvas.drawPath(wave2, stroke..strokeWidth = sw * 1.4);
         break;
 
@@ -653,7 +771,13 @@ class _EquipmentGlyphPainter extends CustomPainter {
         line(cx, h * 0.08, cx, h * 0.74, stroke..strokeWidth = sw * 1.8);
         for (var i = 0; i < 5; i++) {
           final y = h * (0.16 + i * 0.12);
-          line(cx - w * 0.06, y - h * 0.03, cx + w * 0.06, y + h * 0.03, thinStroke);
+          line(
+            cx - w * 0.06,
+            y - h * 0.03,
+            cx + w * 0.06,
+            y + h * 0.03,
+            thinStroke,
+          );
         }
         // Stopper knot at bottom
         circle(cx, h * 0.82, w * 0.10, fill);

@@ -6,23 +6,11 @@ import '../../../data/local/database.dart';
 import '../domain/fasting_plan.dart';
 import '../domain/fasting_schedule_occurrence.dart';
 import '../domain/fasting_schedule_payload.dart';
+import 'fasting_notification_scheduler.dart';
+import 'fasting_repository.dart';
 
-/// Schedules and cancels the recurring "notify to start" reminders for
-/// [FastingScheduleData] rows. One `zonedSchedule` call per enabled weekday
-/// per schedule, using `matchDateTimeComponents:
-/// DateTimeComponents.dayOfWeekAndTime` so the platform itself re-derives
-/// the next matching wall-clock instant week over week — including across
-/// DST — with no manual reschedule-tomorrow bookkeeping. That correctness
-/// depends on `tz.local` actually being the device's zone (wired in
-/// `main.dart`); without it every fire time would be off by the device's
-/// UTC offset.
-///
-/// True silent background auto-start does not exist here: neither platform
-/// runs Dart code when a scheduled notification is merely *delivered* while
-/// the app isn't running, only when the user taps it. [FastingScheduleData.
-/// autoStart] means "tapping this notification starts the fast immediately"
-/// rather than "opens the Fasting page for review" — see the dispatch
-/// wiring in `services/workout_notification_service.dart` and `app/app.dart`.
+/// Schedules and cancels recurring notifications for [FastingScheduleData]
+/// rows, and handles auto-starting fasts when their scheduled window begins.
 class FastingScheduleService {
   static const channelId = 'fasting_schedule';
 
@@ -138,8 +126,110 @@ class FastingScheduleService {
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         payload: fastingSchedulePayload(schedule.id),
       );
-    } catch (e) {
-      debugPrint('FastingScheduleService: schedule failed ($e)');
+    } catch (_) {
+      try {
+        await _plugin.zonedSchedule(
+          notifId(schedule.id, weekday),
+          '⏱️ Time to start fasting',
+          schedule.autoStart
+              ? 'Tap to start your $planLabel fast now.'
+              : '$planLabel fast scheduled now — tap to review and start.',
+          scheduled,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+          payload: fastingSchedulePayload(schedule.id),
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('FastingScheduleService: schedule failed ($e)');
+        }
+      }
+    }
+  }
+
+  /// Checks all enabled schedules with `autoStart == true`. If the current
+  /// time is within a schedule's active fasting window, and no active fast
+  /// is currently running and no past fast in history already covers this
+  /// scheduled start, starts the session automatically and schedules the
+  /// goal reached notification.
+  Future<void> checkAndAutoStartSchedules({
+    required FastingRepository repository,
+    required FastingNotificationScheduler notificationScheduler,
+    required bool goalNotificationEnabled,
+    DateTime? now,
+  }) async {
+    final active = await repository.activeSession();
+    if (active != null) return;
+
+    final currentTime = now ?? DateTime.now();
+    final schedules = await repository.watchSchedules().first;
+    final pastSessions = await repository.history(limit: 10);
+
+    for (final schedule in schedules) {
+      if (!schedule.enabled || !schedule.autoStart || schedule.daysOfWeek == 0) {
+        continue;
+      }
+
+      final mostRecent = mostRecentOccurrence(
+        daysOfWeek: schedule.daysOfWeek,
+        startTimeMinutes: schedule.startTimeMinutes,
+        from: currentTime,
+      );
+      if (mostRecent == null) continue;
+
+      final targetSeconds = resolveScheduleTargetSeconds(
+        schedule.planName,
+        schedule.customTargetSeconds,
+      );
+      final scheduledEnd = mostRecent.add(Duration(seconds: targetSeconds));
+
+      // Check if currentTime is within [mostRecent, scheduledEnd)
+      final isCurrentlyInWindow = (currentTime.isAfter(mostRecent) ||
+              currentTime.isAtSameMomentAs(mostRecent)) &&
+          currentTime.isBefore(scheduledEnd);
+
+      if (!isCurrentlyInWindow) continue;
+
+      // Check if a session already exists that covers this start time:
+      // i.e., started within 45 minutes of scheduled start, or ended after scheduled start.
+      final alreadyCovered = pastSessions.any((s) {
+        final startedDiff = s.startedAt.difference(mostRecent).inMinutes.abs();
+        if (startedDiff <= 45) return true;
+        if (s.startedAt.isAfter(mostRecent) &&
+            s.startedAt.isBefore(scheduledEnd)) {
+          return true;
+        }
+        if (s.endedAt != null && s.endedAt!.isAfter(mostRecent)) {
+          return true;
+        }
+        return false;
+      });
+
+      if (alreadyCovered) continue;
+
+      // Auto-start the fast with the scheduled start time
+      await repository.startSession(
+        targetSeconds,
+        customStartTime: mostRecent,
+      );
+
+      final plan = resolveSchedulePlan(schedule.planName);
+      final planLabel = plan == FastingPlan.custom
+          ? '${targetSeconds ~/ 3600}h'
+          : plan.nameString;
+
+      await notificationScheduler.scheduleFastingGoal(
+        scheduledEnd,
+        planName: planLabel,
+        enabled: goalNotificationEnabled,
+      );
+
+      // Successfully started one fast, stop checking further schedules.
+      break;
     }
   }
 }
+

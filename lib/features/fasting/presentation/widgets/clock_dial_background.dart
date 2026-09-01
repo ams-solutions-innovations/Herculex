@@ -6,10 +6,7 @@ import '../../../../theme/tokens/tokens.dart';
 /// A minimalist clock dial background with radial hour and minute tick marks,
 /// giving the fasting screen an authentic, sleek chronograph feel.
 class ClockDialBackground extends StatelessWidget {
-  const ClockDialBackground({
-    super.key,
-    this.size = 320,
-  });
+  const ClockDialBackground({super.key, this.size = 320});
 
   final double size;
 
@@ -37,10 +34,7 @@ class ClockDialBackground extends StatelessWidget {
 }
 
 class _ClockDialPainter extends CustomPainter {
-  const _ClockDialPainter({
-    required this.accentColor,
-    required this.isDark,
-  });
+  const _ClockDialPainter({required this.accentColor, required this.isDark});
 
   final Color accentColor;
   final bool isDark;
@@ -114,6 +108,7 @@ class _ClockDialPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ClockDialPainter oldDelegate) {
-    return oldDelegate.accentColor != accentColor || oldDelegate.isDark != isDark;
+    return oldDelegate.accentColor != accentColor ||
+        oldDelegate.isDark != isDark;
   }
 }

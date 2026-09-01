@@ -182,8 +182,8 @@ class CnsBreakdownEngine {
         final rpeFactor = rpe >= 9
             ? 1.5
             : rpe >= 8
-                ? 1.3
-                : 1.0;
+            ? 1.3
+            : 1.0;
         final setFactor = rs.setType.cnsFactor;
         final setLoad = intensity * rpeFactor * setFactor;
 
@@ -192,39 +192,44 @@ class CnsBreakdownEngine {
         final hours = asOf.difference(completedAt).inHours;
         var residual = 0.0;
         if (hours >= 0 && hours <= _gaugeWindowHours) {
-          residual = _perSetBase * setLoad * exp(-hours * ln2 / _gaugeHalfLifeHours);
+          residual =
+              _perSetBase * setLoad * exp(-hours * ln2 / _gaugeHalfLifeHours);
           sessionResidualFatigue += residual;
         }
 
-        setDetails.add(SetCnsImpact(
-          exerciseId: rs.exercise.id,
-          exerciseName: rs.exercise.name,
-          targetMuscle: rs.exercise.primaryMuscle,
-          baseCnsScore: rs.exercise.cnsScore,
-          effectiveCnsScore: rs.cnsScore,
-          hasWeightedBonus: rs.cnsScore > rs.exercise.cnsScore,
-          setType: rs.setType,
-          rpe: rpe,
-          rpeFactor: rpeFactor,
-          setFactor: setFactor,
-          setLoad: setLoad,
-          residualFatigue: residual,
-          completedAt: rs.set.completedAt,
-        ));
+        setDetails.add(
+          SetCnsImpact(
+            exerciseId: rs.exercise.id,
+            exerciseName: rs.exercise.name,
+            targetMuscle: rs.exercise.primaryMuscle,
+            baseCnsScore: rs.exercise.cnsScore,
+            effectiveCnsScore: rs.cnsScore,
+            hasWeightedBonus: rs.cnsScore > rs.exercise.cnsScore,
+            setType: rs.setType,
+            rpe: rpe,
+            rpeFactor: rpeFactor,
+            setFactor: setFactor,
+            setLoad: setLoad,
+            residualFatigue: residual,
+            completedAt: rs.set.completedAt,
+          ),
+        );
       }
 
       final avgRpe = rpeCount > 0 ? totalRpe / rpeCount : 7.0;
 
-      sessionImpacts.add(SessionCnsImpact(
-        sessionId: session.id,
-        workoutName: session.name ?? 'Workout Session',
-        sessionDate: sessionDate,
-        totalLoad: sessionTotalLoad,
-        currentResidualFatigue: sessionResidualFatigue,
-        setCount: sets.length,
-        avgRpe: avgRpe,
-        sets: setDetails,
-      ));
+      sessionImpacts.add(
+        SessionCnsImpact(
+          sessionId: session.id,
+          workoutName: session.name ?? 'Workout Session',
+          sessionDate: sessionDate,
+          totalLoad: sessionTotalLoad,
+          currentResidualFatigue: sessionResidualFatigue,
+          setCount: sets.length,
+          avgRpe: avgRpe,
+          sets: setDetails,
+        ),
+      );
     }
 
     // Sort sessions most recent first
@@ -252,28 +257,32 @@ class CnsBreakdownEngine {
         final rpeFactor = rpe >= 9
             ? 1.5
             : rpe >= 8
-                ? 1.3
-                : 1.0;
+            ? 1.3
+            : 1.0;
         final setLoad = intensity * rpeFactor * rs.setType.cnsFactor;
         totalLoad += setLoad;
       }
 
       final avgRpe = rpeCount > 0 ? totalRpe / rpeCount : 7.0;
 
-      exerciseImpacts.add(ExerciseCnsImpact(
-        exerciseId: firstEx.id,
-        exerciseName: firstEx.name,
-        targetMuscle: firstEx.primaryMuscle,
-        cnsScore: firstEx.cnsScore,
-        totalSets: sets.length,
-        totalLoadContribution: totalLoad,
-        avgRpe: avgRpe,
-        isWeightedBodyweight: firstEx.supportsWeightedBodyweight,
-      ));
+      exerciseImpacts.add(
+        ExerciseCnsImpact(
+          exerciseId: firstEx.id,
+          exerciseName: firstEx.name,
+          targetMuscle: firstEx.primaryMuscle,
+          cnsScore: firstEx.cnsScore,
+          totalSets: sets.length,
+          totalLoadContribution: totalLoad,
+          avgRpe: avgRpe,
+          isWeightedBodyweight: firstEx.supportsWeightedBodyweight,
+        ),
+      );
     }
 
     // Sort exercises by highest total CNS load
-    exerciseImpacts.sort((a, b) => b.totalLoadContribution.compareTo(a.totalLoadContribution));
+    exerciseImpacts.sort(
+      (a, b) => b.totalLoadContribution.compareTo(a.totalLoadContribution),
+    );
 
     // 5. ACWR (Acute / Chronic Workload Ratio)
     final acute = trends.acuteWeeklyLoad;
@@ -283,7 +292,8 @@ class CnsBreakdownEngine {
     // 6. Recovery ETA estimation (hours to reach <= 5% fatigue / 95% readiness)
     double? etaHours;
     if (trends.currentLoad > 0.05) {
-      final hours = _gaugeHalfLifeHours * (log(trends.currentLoad / 0.05) / ln2);
+      final hours =
+          _gaugeHalfLifeHours * (log(trends.currentLoad / 0.05) / ln2);
       etaHours = hours.clamp(0.0, _gaugeWindowHours.toDouble());
     } else {
       etaHours = 0.0;

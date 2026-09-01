@@ -197,7 +197,10 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
     final theme = Theme.of(context);
     final exercises = ref.watch(
       exerciseSearchProvider(
-        ExerciseCatalogFilter(query: _query, category: _category == 'Circuits' ? null : _category),
+        ExerciseCatalogFilter(
+          query: _query,
+          category: _category == 'Circuits' ? null : _category,
+        ),
       ),
     );
     final recentIdsAsync = ref.watch(recentExerciseIdsProvider);
@@ -276,7 +279,9 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                         ),
                         tooltip: 'Gemini AI: Skeniraj napravo / vajo',
                         onPressed: () async {
-                          final match = await ExerciseAiScanDialog.show(context);
+                          final match = await ExerciseAiScanDialog.show(
+                            context,
+                          );
                           if (context.mounted && match != null) {
                             Navigator.of(context).pop([
                               ExercisePickResult(
@@ -348,7 +353,8 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                         )
                       : exercises.when(
                           data: (list) {
-                            final recentIds = recentIdsAsync.asData?.value ?? <int>{};
+                            final recentIds =
+                                recentIdsAsync.asData?.value ?? <int>{};
                             var filteredList = list;
                             if (_category == 'Recent') {
                               filteredList = list
@@ -393,28 +399,33 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                                   return _ExerciseTile(
                                     exercise: g.first,
                                     isSelected: isSelected,
-                                    onTap: () => _toggleSelection(g.first, false),
+                                    onTap: () =>
+                                        _toggleSelection(g.first, false),
                                   );
                                 }
                                 final selectedCount = g
-                                    .where((v) => _selectedMap.containsKey(v.id))
+                                    .where(
+                                      (v) => _selectedMap.containsKey(v.id),
+                                    )
                                     .length;
                                 return _FamilyTile(
                                   variants: g,
                                   selectedCount: selectedCount,
-                            onPick: (picked, {variant}) => _toggleSelection(
-                              picked,
-                              true,
-                              equipmentVariant: variant,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    error: (e, _) => Center(child: Text('Failed to load: $e')),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                  ),
+                                  onPick: (picked, {variant}) =>
+                                      _toggleSelection(
+                                        picked,
+                                        true,
+                                        equipmentVariant: variant,
+                                      ),
+                                );
+                              },
+                            );
+                          },
+                          error: (e, _) =>
+                              Center(child: Text('Failed to load: $e')),
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                        ),
                 ),
               ],
             ),
@@ -670,7 +681,9 @@ class _StyleChooserSheet extends StatelessWidget {
     String movement,
     List<ExerciseCatalogData> variants,
   ) {
-    return showModalBottomSheet<({ExerciseCatalogData exercise, String? variant})>(
+    return showModalBottomSheet<
+      ({ExerciseCatalogData exercise, String? variant})
+    >(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -710,7 +723,7 @@ class _StyleChooserSheet extends StatelessWidget {
           color:
               theme.bottomSheetTheme.backgroundColor ??
               AppColors.surfaceContainerLowest,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: SafeArea(
           top: false,
@@ -754,10 +767,9 @@ class _StyleChooserSheet extends StatelessWidget {
                               exercise: v,
                               label: v.equipment,
                               subtitle: v.name,
-                              onTap: () => Navigator.of(context).pop((
-                                exercise: v,
-                                variant: v.modality,
-                              )),
+                              onTap: () => Navigator.of(
+                                context,
+                              ).pop((exercise: v, variant: v.modality)),
                             ),
                           ),
                         if (weightedBase != null)
@@ -787,9 +799,9 @@ class _StyleChooserSheet extends StatelessWidget {
   }
 }
 
-
 class _StyleOption extends StatelessWidget {
   final String equipmentVariant;
+
   /// The catalog row behind this style, so the thumbnail shows the illustration
   /// for *this* equipment rather than a generic glyph.
   final ExerciseCatalogData? exercise;
@@ -999,10 +1011,7 @@ class _CircuitsPickerList extends ConsumerWidget {
   final ScrollController controller;
   final String query;
 
-  const _CircuitsPickerList({
-    required this.controller,
-    required this.query,
-  });
+  const _CircuitsPickerList({required this.controller, required this.query});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1014,8 +1023,10 @@ class _CircuitsPickerList extends ConsumerWidget {
         final filtered = query.trim().isEmpty
             ? circuits
             : circuits
-                .where((c) => c.name.toLowerCase().contains(query.toLowerCase()))
-                .toList();
+                  .where(
+                    (c) => c.name.toLowerCase().contains(query.toLowerCase()),
+                  )
+                  .toList();
 
         if (filtered.isEmpty) {
           return Center(
@@ -1024,17 +1035,27 @@ class _CircuitsPickerList extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.repeat_rounded, size: 48, color: AppColors.primary),
+                  Icon(
+                    Icons.repeat_rounded,
+                    size: 48,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(height: 12),
                   Text(
-                    circuits.isEmpty ? 'No circuits created yet' : 'No circuits match "$query"',
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    circuits.isEmpty
+                        ? 'No circuits created yet'
+                        : 'No circuits match "$query"',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Create circuits to perform sequential giant supersets with round pauses.',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
@@ -1051,14 +1072,19 @@ class _CircuitsPickerList extends ConsumerWidget {
                       final created = await CircuitBuilderView.show(context);
                       if (created != null && context.mounted) {
                         final repo = ref.read(circuitsRepositoryProvider);
-                        final exList = await repo.getCircuitExercises(created.id);
+                        final exList = await repo.getCircuitExercises(
+                          created.id,
+                        );
                         final snapshot = await ref
                             .read(workoutsRepositoryProvider)
                             .watchExerciseCatalog()
                             .first;
-                        final catMap = {for (final c in snapshot.exercises) c.id: c};
+                        final catMap = {
+                          for (final c in snapshot.exercises) c.id: c,
+                        };
                         final results = exList.map((ce) {
-                          final cat = catMap[ce.exerciseId] ??
+                          final cat =
+                              catMap[ce.exerciseId] ??
                               ExerciseCatalogData(
                                 id: ce.exerciseId,
                                 name: 'Exercise #${ce.exerciseId}',
@@ -1149,7 +1175,11 @@ class _CircuitPickerCard extends ConsumerWidget {
                   color: AppColors.primaryContainer.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.repeat_rounded, color: AppColors.primary, size: 22),
+                child: Icon(
+                  Icons.repeat_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1169,7 +1199,10 @@ class _CircuitPickerCard extends ConsumerWidget {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
@@ -1189,7 +1222,9 @@ class _CircuitPickerCard extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${exercises.length} exercises • ${circuit.rounds} rounds • $restFormatted pause',
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
                   ],
                 ),
@@ -1198,7 +1233,10 @@ class _CircuitPickerCard extends ConsumerWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -1213,7 +1251,8 @@ class _CircuitPickerCard extends ConsumerWidget {
                       .first;
                   final catMap = {for (final c in snapshot.exercises) c.id: c};
                   final results = exList.map((ce) {
-                    final cat = catMap[ce.exerciseId] ??
+                    final cat =
+                        catMap[ce.exerciseId] ??
                         ExerciseCatalogData(
                           id: ce.exerciseId,
                           name: 'Exercise #${ce.exerciseId}',
@@ -1245,7 +1284,10 @@ class _CircuitPickerCard extends ConsumerWidget {
                     Navigator.of(context).pop(results);
                   }
                 },
-                child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                child: const Text(
+                  'Add',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
               ),
             ],
           ),
@@ -1253,7 +1295,10 @@ class _CircuitPickerCard extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               circuit.notes!,
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary, fontStyle: FontStyle.italic),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ],

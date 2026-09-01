@@ -77,7 +77,8 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     setState(() {
       _exerciseIndex = newIndex;
     });
-    if (_pageController.hasClients && _pageController.page?.round() != newIndex) {
+    if (_pageController.hasClients &&
+        _pageController.page?.round() != newIndex) {
       _pageController.animateToPage(
         newIndex,
         duration: const Duration(milliseconds: 300),
@@ -97,9 +98,13 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     final theme = Theme.of(context);
     final exercises =
         ref.watch(sessionExercisesProvider(widget.session.id)).asData?.value ??
-            const <WorkoutExerciseData>[];
+        const <WorkoutExerciseData>[];
     final catalog =
-        ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter())).asData?.value ?? const [];
+        ref
+            .watch(exerciseCatalogProvider(const ExerciseCatalogFilter()))
+            .asData
+            ?.value ??
+        const [];
     final restTimer = ref.watch(restTimerProvider);
 
     // Auto-focus the first exercise with incomplete sets on initial load
@@ -109,7 +114,12 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
         if (!mounted) return;
         int targetIdx = -1;
         for (int i = 0; i < exercises.length; i++) {
-          final sets = ref.read(setsForWorkoutExerciseProvider(exercises[i].id)).asData?.value ?? [];
+          final sets =
+              ref
+                  .read(setsForWorkoutExerciseProvider(exercises[i].id))
+                  .asData
+                  ?.value ??
+              [];
           final hasIncomplete = sets.any((s) => !s.isCompleted);
           if (hasIncomplete) {
             targetIdx = i;
@@ -136,7 +146,8 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                   icon: const Icon(Icons.fullscreen_exit),
                   tooltip: 'Exit fullscreen',
                   onPressed: () =>
-                      ref.read(dynamicWorkoutModeProvider.notifier).state = false,
+                      ref.read(dynamicWorkoutModeProvider.notifier).state =
+                          false,
                 ),
                 const Spacer(),
               ],
@@ -155,22 +166,29 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
     }
 
     final currentWe = exercises[_exerciseIndex];
-    final currentExercise = catalog.firstWhereOrNull((e) => e.id == currentWe.exerciseId);
+    final currentExercise = catalog.firstWhereOrNull(
+      (e) => e.id == currentWe.exerciseId,
+    );
     final currentSets =
         ref.watch(setsForWorkoutExerciseProvider(currentWe.id)).asData?.value ??
-            const <SetEntryData>[];
+        const <SetEntryData>[];
 
     // Determine currently focused set for current exercise
     final manualSetIdx = _selectedSetIndexByExercise[currentWe.id];
     final nextUncompletedIdx = currentSets.indexWhere((s) => !s.isCompleted);
-    final effectiveSetIdx = manualSetIdx != null && manualSetIdx < currentSets.length
+    final effectiveSetIdx =
+        manualSetIdx != null && manualSetIdx < currentSets.length
         ? manualSetIdx
-        : (nextUncompletedIdx >= 0 ? nextUncompletedIdx : (currentSets.isNotEmpty ? currentSets.length - 1 : 0));
+        : (nextUncompletedIdx >= 0
+              ? nextUncompletedIdx
+              : (currentSets.isNotEmpty ? currentSets.length - 1 : 0));
 
     final activeSet = currentSets.elementAtOrNull(effectiveSetIdx);
     final isSuperset = currentWe.supersetGroup != null;
     final linkedCount = isSuperset
-        ? exercises.where((e) => e.supersetGroup == currentWe.supersetGroup).length
+        ? exercises
+              .where((e) => e.supersetGroup == currentWe.supersetGroup)
+              .length
         : 0;
     final linkedLabel = linkedCount == 2
         ? 'SUPERSET'
@@ -188,21 +206,32 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                   icon: const Icon(Icons.fullscreen_exit, size: 28),
                   tooltip: 'Classic mode',
                   onPressed: () =>
-                      ref.read(dynamicWorkoutModeProvider.notifier).state = false,
+                      ref.read(dynamicWorkoutModeProvider.notifier).state =
+                          false,
                 ),
                 const Spacer(),
                 if (isSuperset) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF26C6DA).withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF26C6DA), width: 1.2),
+                      border: Border.all(
+                        color: const Color(0xFF26C6DA),
+                        width: 1.2,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.link, size: 14, color: Color(0xFF26C6DA)),
+                        const Icon(
+                          Icons.link,
+                          size: 14,
+                          color: Color(0xFF26C6DA),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           linkedLabel,
@@ -244,14 +273,25 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                     itemCount: exercises.length,
                     itemBuilder: (context, exIdx) {
                       final we = exercises[exIdx];
-                      final catalogEx = catalog.firstWhereOrNull((e) => e.id == we.exerciseId);
-                      final sets = ref.watch(setsForWorkoutExerciseProvider(we.id)).asData?.value ??
+                      final catalogEx = catalog.firstWhereOrNull(
+                        (e) => e.id == we.exerciseId,
+                      );
+                      final sets =
+                          ref
+                              .watch(setsForWorkoutExerciseProvider(we.id))
+                              .asData
+                              ?.value ??
                           const <SetEntryData>[];
-                      final setIdxForThisEx = _selectedSetIndexByExercise[we.id];
+                      final setIdxForThisEx =
+                          _selectedSetIndexByExercise[we.id];
                       final nextUncomp = sets.indexWhere((s) => !s.isCompleted);
-                      final activeIdx = setIdxForThisEx != null && setIdxForThisEx < sets.length
+                      final activeIdx =
+                          setIdxForThisEx != null &&
+                              setIdxForThisEx < sets.length
                           ? setIdxForThisEx
-                          : (nextUncomp >= 0 ? nextUncomp : (sets.isNotEmpty ? sets.length - 1 : 0));
+                          : (nextUncomp >= 0
+                                ? nextUncomp
+                                : (sets.isNotEmpty ? sets.length - 1 : 0));
                       final selectedSet = sets.elementAtOrNull(activeIdx);
 
                       return _buildExerciseScreen(
@@ -285,7 +325,10 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
   }
 
   /// Big Rest Timer Screen
-  Widget _buildRestTimerDisplay(BuildContext context, RestTimerState restTimer) {
+  Widget _buildRestTimerDisplay(
+    BuildContext context,
+    RestTimerState restTimer,
+  ) {
     final theme = Theme.of(context);
     final remaining = restTimer.remainingSecondsFrom(DateTime.now());
     return Center(
@@ -403,7 +446,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Text(
                 'No sets added for this exercise',
-                style: theme.textTheme.titleMedium?.copyWith(color: AppColors.secondary),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: AppColors.secondary,
+                ),
               ),
             )
           else ...[
@@ -445,7 +490,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                       max: 999.0,
                       displayFormatter: (val) => weightFmt.formatValue(val),
                       onChanged: (newWeight) async {
-                        await ref.read(workoutsRepositoryProvider).updateSet(
+                        await ref
+                            .read(workoutsRepositoryProvider)
+                            .updateSet(
                               setId: activeSet.id,
                               weightKg: newWeight.clamp(0.0, 999.0),
                             );
@@ -472,7 +519,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                       isInteger: true,
                       displayFormatter: (val) => val.toInt().toString(),
                       onChanged: (newReps) async {
-                        await ref.read(workoutsRepositoryProvider).updateSet(
+                        await ref
+                            .read(workoutsRepositoryProvider)
+                            .updateSet(
                               setId: activeSet.id,
                               reps: newReps.toInt().clamp(1, 999),
                             );
@@ -482,7 +531,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                   // Duration for timed metrics
                   if (metric.has(SetField.duration))
                     _WatchCrownNumberWheel(
-                      key: ValueKey('d_${activeSet.id}_${activeSet.durationSeconds}'),
+                      key: ValueKey(
+                        'd_${activeSet.id}_${activeSet.durationSeconds}',
+                      ),
                       label: 'SEC',
                       value: (activeSet.durationSeconds ?? 30).toDouble(),
                       step: 5.0,
@@ -491,7 +542,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                       isInteger: true,
                       displayFormatter: (val) => val.toInt().toString(),
                       onChanged: (newSec) async {
-                        await ref.read(workoutsRepositoryProvider).updateSet(
+                        await ref
+                            .read(workoutsRepositoryProvider)
+                            .updateSet(
                               setId: activeSet.id,
                               durationSeconds: newSec.toInt().clamp(1, 3600),
                             );
@@ -524,16 +577,25 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             if (allDone) ...[
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 18),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'All sets done 🎉',
@@ -581,7 +643,11 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (set.isWarmup) ...[
-                const Icon(Icons.local_fire_department, size: 16, color: Colors.orange),
+                const Icon(
+                  Icons.local_fire_department,
+                  size: 16,
+                  color: Colors.orange,
+                ),
                 const SizedBox(width: 4),
                 const Text(
                   'WARMUP • ',
@@ -604,7 +670,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
               Text(
                 'SET $setIndex/$totalSets',
                 style: TextStyle(
-                  color: set.isCompleted ? AppColors.primary : AppColors.onSurface,
+                  color: set.isCompleted
+                      ? AppColors.primary
+                      : AppColors.onSurface,
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
                 ),
@@ -648,15 +716,15 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                 color: isSelected
                     ? (isDone ? AppColors.primary : AppColors.primaryContainer)
                     : (isDone
-                        ? AppColors.primary.withValues(alpha: 0.2)
-                        : AppColors.surfaceContainerLowest),
+                          ? AppColors.primary.withValues(alpha: 0.2)
+                          : AppColors.surfaceContainerLowest),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected
                       ? AppColors.primary
                       : (isDone
-                          ? AppColors.primary.withValues(alpha: 0.5)
-                          : AppColors.outlineVariant.withValues(alpha: 0.3)),
+                            ? AppColors.primary.withValues(alpha: 0.5)
+                            : AppColors.outlineVariant.withValues(alpha: 0.3)),
                   width: isSelected ? 1.5 : 1.0,
                 ),
               ),
@@ -675,10 +743,16 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                     '${idx + 1}',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       color: isSelected
-                          ? (isDone ? Colors.black : theme.colorScheme.onPrimaryContainer)
-                          : (isDone ? AppColors.primary : AppColors.onSurfaceVariant),
+                          ? (isDone
+                                ? Colors.black
+                                : theme.colorScheme.onPrimaryContainer)
+                          : (isDone
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant),
                     ),
                   ),
                 ],
@@ -691,9 +765,14 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
   }
 
   /// Extra Reps Section for Myo / Forced / Cheat reps
-  Widget _buildExtraRepsSection(BuildContext context, {required SetEntryData set}) {
+  Widget _buildExtraRepsSection(
+    BuildContext context, {
+    required SetEntryData set,
+  }) {
     final setType = SetType.fromId(set.setType);
-    if (setType != SetType.myoReps && setType != SetType.forced && setType != SetType.cheat) {
+    if (setType != SetType.myoReps &&
+        setType != SetType.forced &&
+        setType != SetType.cheat) {
       return const SizedBox.shrink();
     }
 
@@ -742,7 +821,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
               Text(
                 setType == SetType.myoReps
                     ? 'MYO MINI-SETS'
-                    : (setType == SetType.forced ? 'FORCED REPS' : 'CHEAT REPS'),
+                    : (setType == SetType.forced
+                          ? 'FORCED REPS'
+                          : 'CHEAT REPS'),
                 style: TextStyle(
                   color: accentColor,
                   fontWeight: FontWeight.bold,
@@ -764,14 +845,19 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                   onTap: () async {
                     final newItems = List<int>.from(extraItems)..removeAt(i);
                     meta[metaKey] = newItems;
-                    await ref.read(workoutsRepositoryProvider).updateSet(
+                    await ref
+                        .read(workoutsRepositoryProvider)
+                        .updateSet(
                           setId: set.id,
                           setTypeMetaJson: jsonEncode(meta),
                         );
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: accentColor,
                       borderRadius: BorderRadius.circular(12),
@@ -787,7 +873,11 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.close, size: 12, color: Colors.white70),
+                        const Icon(
+                          Icons.close,
+                          size: 12,
+                          color: Colors.white70,
+                        ),
                       ],
                     ),
                   ),
@@ -799,28 +889,32 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                     title: setType == SetType.myoReps
                         ? 'Add Mini-Set'
                         : (setType == SetType.forced
-                            ? 'Add forced reps'
-                            : 'Add cheat reps'),
+                              ? 'Add forced reps'
+                              : 'Add cheat reps'),
                     hint: 'Number of extra reps (e.g. 2)',
                   );
                   if (reps != null && reps > 0) {
                     final newItems = List<int>.from(extraItems)..add(reps);
                     meta[metaKey] = newItems;
-                    await ref.read(workoutsRepositoryProvider).updateSet(
+                    await ref
+                        .read(workoutsRepositoryProvider)
+                        .updateSet(
                           setId: set.id,
                           setTypeMetaJson: jsonEncode(meta),
                         );
                     if (setType == SetType.myoReps) {
-                      ref.read(restTimerProvider.notifier).start(
-                            seconds: 15,
-                            exerciseName: 'Myo-rep Rest',
-                          );
+                      ref
+                          .read(restTimerProvider.notifier)
+                          .start(seconds: 15, exerciseName: 'Myo-rep Rest');
                     }
                   }
                 },
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
@@ -870,9 +964,12 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: AppColors.primary, width: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
+                    ),
                   ),
-                  onPressed: () => ref.read(restTimerProvider.notifier).cancel(),
+                  onPressed: () =>
+                      ref.read(restTimerProvider.notifier).cancel(),
                   child: const Text(
                     'SKIP REST',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -884,9 +981,12 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                 child: FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
+                    ),
                   ),
-                  onPressed: () => ref.read(restTimerProvider.notifier).addSeconds(30),
+                  onPressed: () =>
+                      ref.read(restTimerProvider.notifier).addSeconds(30),
                   child: const Text(
                     '+30s',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -899,8 +999,10 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
       );
     }
 
-    final targetSet = activeSet ?? currentSets.firstWhereOrNull((s) => !s.isCompleted);
-    final allCurrentSetsCompleted = currentSets.isNotEmpty && currentSets.every((s) => s.isCompleted);
+    final targetSet =
+        activeSet ?? currentSets.firstWhereOrNull((s) => !s.isCompleted);
+    final allCurrentSetsCompleted =
+        currentSets.isNotEmpty && currentSets.every((s) => s.isCompleted);
     final hasNextExercise = _exerciseIndex < exercises.length - 1;
 
     // If all sets for this exercise are finished
@@ -912,8 +1014,12 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
           height: 64,
           child: FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: hasNextExercise ? AppColors.primary : const Color(0xFF43A047),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+              backgroundColor: hasNextExercise
+                  ? AppColors.primary
+                  : const Color(0xFF43A047),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(22),
+              ),
             ),
             onPressed: () {
               if (hasNextExercise) {
@@ -940,7 +1046,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
         child: FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
           ),
           onPressed: () async {
             Haptics.medium();
@@ -949,10 +1057,13 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             await repo.updateSet(setId: targetSet.id, isCompleted: true);
 
             if (ex != null && !targetSet.isWarmup) {
-              final effectiveKg = targetSet.weightKg +
+              final effectiveKg =
+                  targetSet.weightKg +
                   (targetSet.bodyweightKg ?? 0.0) +
                   (targetSet.chainsKg ?? 0.0);
-              ref.read(gamificationServiceProvider).onSetCompleted(
+              ref
+                  .read(gamificationServiceProvider)
+                  .onSetCompleted(
                     sessionId: widget.session.id,
                     exerciseId: ex.id,
                     exerciseName: ex.name,
@@ -975,25 +1086,41 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                   .where((e) => e.supersetGroup == currentWe.supersetGroup)
                   .toList();
               if (groupExercises.length > 1) {
-                final currentPosInGroup = groupExercises.indexWhere((e) => e.id == currentWe.id);
-                final isLastInRound = currentPosInGroup == groupExercises.length - 1;
+                final currentPosInGroup = groupExercises.indexWhere(
+                  (e) => e.id == currentWe.id,
+                );
+                final isLastInRound =
+                    currentPosInGroup == groupExercises.length - 1;
 
                 if (isLastInRound) {
-                  final restSec = currentWe.targetRestSeconds ?? (ex?.defaultRestSeconds ?? 90);
-                  ref.read(restTimerProvider.notifier).start(
+                  final restSec =
+                      currentWe.targetRestSeconds ??
+                      (ex?.defaultRestSeconds ?? 90);
+                  ref
+                      .read(restTimerProvider.notifier)
+                      .start(
                         seconds: restSec,
-                        exerciseName: 'Circuit Rest (Round ${targetSet.setIndex})',
+                        exerciseName:
+                            'Circuit Rest (Round ${targetSet.setIndex})',
                       );
                 }
 
                 // Look for the next exercise in the superset with incomplete sets
                 bool foundNextInSuperset = false;
                 for (int step = 1; step <= groupExercises.length; step++) {
-                  final candidateEx = groupExercises[(currentPosInGroup + step) % groupExercises.length];
-                  final candidateSets = await repo.watchSetsForWorkoutExercise(candidateEx.id).first;
-                  final nextOpenSetIdx = candidateSets.indexWhere((s) => !s.isCompleted);
+                  final candidateEx =
+                      groupExercises[(currentPosInGroup + step) %
+                          groupExercises.length];
+                  final candidateSets = await repo
+                      .watchSetsForWorkoutExercise(candidateEx.id)
+                      .first;
+                  final nextOpenSetIdx = candidateSets.indexWhere(
+                    (s) => !s.isCompleted,
+                  );
                   if (nextOpenSetIdx >= 0) {
-                    final candidateOverallIdx = exercises.indexWhere((e) => e.id == candidateEx.id);
+                    final candidateOverallIdx = exercises.indexWhere(
+                      (e) => e.id == candidateEx.id,
+                    );
                     if (candidateOverallIdx >= 0 && mounted) {
                       _goToExercise(candidateOverallIdx, exercises);
                       foundNextInSuperset = true;
@@ -1004,18 +1131,22 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
                 if (foundNextInSuperset) return;
               }
             } else {
-              final restSec = currentWe.targetRestSeconds ?? (ex?.defaultRestSeconds ?? 90);
-              ref.read(restTimerProvider.notifier).start(
-                    seconds: restSec,
-                    exerciseName: ex?.name,
-                  );
+              final restSec =
+                  currentWe.targetRestSeconds ?? (ex?.defaultRestSeconds ?? 90);
+              ref
+                  .read(restTimerProvider.notifier)
+                  .start(seconds: restSec, exerciseName: ex?.name);
             }
 
             // Normal progression: check if all sets are done for this exercise
-            final remainingSets = await repo.watchSetsForWorkoutExercise(currentWe.id).first;
+            final remainingSets = await repo
+                .watchSetsForWorkoutExercise(currentWe.id)
+                .first;
             final hasPendingSets = remainingSets.any((s) => !s.isCompleted);
 
-            if (!hasPendingSets && _exerciseIndex < exercises.length - 1 && mounted) {
+            if (!hasPendingSets &&
+                _exerciseIndex < exercises.length - 1 &&
+                mounted) {
               // Automatically navigate to next exercise if this one is done
               _goToExercise(_exerciseIndex + 1, exercises);
             }
@@ -1030,7 +1161,10 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
   }
 
   /// Bottom exercise stepping navigation bar
-  Widget _buildBottomExerciseNav(BuildContext context, List<WorkoutExerciseData> exercises) {
+  Widget _buildBottomExerciseNav(
+    BuildContext context,
+    List<WorkoutExerciseData> exercises,
+  ) {
     final theme = Theme.of(context);
     final hasPrev = _exerciseIndex > 0;
     final hasNext = _exerciseIndex < exercises.length - 1;
@@ -1040,7 +1174,9 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         border: Border(
-          top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.25)),
+          top: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.25),
+          ),
         ),
       ),
       child: Row(
@@ -1054,10 +1190,14 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             ),
             icon: Icon(
               Icons.chevron_left_rounded,
-              color: hasPrev ? AppColors.onSurface : AppColors.outlineVariant.withValues(alpha: 0.4),
+              color: hasPrev
+                  ? AppColors.onSurface
+                  : AppColors.outlineVariant.withValues(alpha: 0.4),
               size: 28,
             ),
-            onPressed: hasPrev ? () => _goToExercise(_exerciseIndex - 1, exercises) : null,
+            onPressed: hasPrev
+                ? () => _goToExercise(_exerciseIndex - 1, exercises)
+                : null,
           ),
 
           const SizedBox(width: 8),
@@ -1097,10 +1237,14 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
             ),
             icon: Icon(
               Icons.chevron_right_rounded,
-              color: hasNext ? AppColors.onSurface : AppColors.outlineVariant.withValues(alpha: 0.4),
+              color: hasNext
+                  ? AppColors.onSurface
+                  : AppColors.outlineVariant.withValues(alpha: 0.4),
               size: 28,
             ),
-            onPressed: hasNext ? () => _goToExercise(_exerciseIndex + 1, exercises) : null,
+            onPressed: hasNext
+                ? () => _goToExercise(_exerciseIndex + 1, exercises)
+                : null,
           ),
         ],
       ),
@@ -1298,7 +1442,9 @@ class _WatchCrownNumberWheelState extends State<_WatchCrownNumberWheel> {
               title: Text('Set ${widget.label}'),
               content: TextField(
                 controller: ctrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 autofocus: true,
                 decoration: InputDecoration(hintText: widget.label),
                 onSubmitted: (v) => Navigator.of(ctx).pop(double.tryParse(v)),
@@ -1309,13 +1455,16 @@ class _WatchCrownNumberWheelState extends State<_WatchCrownNumberWheel> {
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop(double.tryParse(ctrl.text)),
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(double.tryParse(ctrl.text)),
                   child: const Text('Save'),
                 ),
               ],
             ),
           );
-          if (entered != null && entered >= widget.min && entered <= widget.max) {
+          if (entered != null &&
+              entered >= widget.min &&
+              entered <= widget.max) {
             setState(() {
               _localValue = entered;
             });
@@ -1393,9 +1542,12 @@ class _DynamicSetAccessoryPills extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final attachedAccs = ref.watch(setAccessoriesProvider(setId)).asData?.value ?? const [];
-    final attachedBands = ref.watch(setBandsProvider(setId)).asData?.value ?? const [];
-    final catalogAccs = ref.watch(accessoriesProvider).asData?.value ?? const [];
+    final attachedAccs =
+        ref.watch(setAccessoriesProvider(setId)).asData?.value ?? const [];
+    final attachedBands =
+        ref.watch(setBandsProvider(setId)).asData?.value ?? const [];
+    final catalogAccs =
+        ref.watch(accessoriesProvider).asData?.value ?? const [];
     final catalogBands = ref.watch(bandsProvider).asData?.value ?? const [];
 
     final activeTags = <String>[];
@@ -1426,7 +1578,9 @@ class _DynamicSetAccessoryPills extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.primaryContainer.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

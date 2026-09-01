@@ -20,7 +20,11 @@ class HxSheet extends StatelessWidget {
     this.maxSize = 0.92,
     this.minSize = 0.3,
     this.padding = const EdgeInsets.fromLTRB(
-        HxSpace.x5, 0, HxSpace.x5, HxSpace.x5),
+      HxSpace.x5,
+      0,
+      HxSpace.x5,
+      HxSpace.x5,
+    ),
     this.pinnedBottom,
   });
 
@@ -86,70 +90,83 @@ class HxSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final hx = context.hx;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: hx.surfaceContainer,
-        borderRadius: HxRadius.sheetTop,
-        border: Border(
-          top: BorderSide(color: hx.outlineVariant.withValues(alpha: 0.4)),
+    return Material(
+      color: hx.surfaceContainer,
+      borderRadius: HxRadius.sheetTop,
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: hx.outlineVariant.withValues(alpha: 0.4)),
+          ),
         ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
-          children: [
-            const SizedBox(height: HxSpace.x2 + 2),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: hx.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            if (title != null) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    HxSpace.x5, HxSpace.x4, HxSpace.x5, 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title!,
-                            style: theme.textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          if (subtitle != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle!,
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: hx.secondary),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    ?trailing,
-                  ],
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
+            children: [
+              const SizedBox(height: HxSpace.x2 + 2),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: hx.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: HxSpace.x4),
-            ] else
-              const SizedBox(height: HxSpace.x4),
-            if (shrinkWrap) Flexible(child: body) else Expanded(child: body),
-            if (pinnedBottom != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    HxSpace.x5, HxSpace.x3, HxSpace.x5, HxSpace.x2),
-                child: pinnedBottom,
-              ),
-          ],
+              if (title != null) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    HxSpace.x5,
+                    HxSpace.x4,
+                    HxSpace.x5,
+                    0,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title!,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (subtitle != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                subtitle!,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: hx.secondary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      ?trailing,
+                    ],
+                  ),
+                ),
+                const SizedBox(height: HxSpace.x4),
+              ] else
+                const SizedBox(height: HxSpace.x4),
+              if (shrinkWrap) Flexible(child: body) else Expanded(child: body),
+              if (pinnedBottom != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    HxSpace.x5,
+                    HxSpace.x3,
+                    HxSpace.x5,
+                    HxSpace.x2,
+                  ),
+                  child: pinnedBottom,
+                ),
+            ],
+          ),
         ),
       ),
     );

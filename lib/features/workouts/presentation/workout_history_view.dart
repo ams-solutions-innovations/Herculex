@@ -12,6 +12,7 @@ import '../../../core/units.dart';
 import '../../../data/local/database.dart';
 import '../../../services/pending_ai_scan_service.dart';
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../../health/presentation/health_providers.dart';
 import '../domain/equipment_variants.dart';
 import '../domain/logging_metric.dart';
@@ -29,7 +30,9 @@ class WorkoutHistoryView extends ConsumerWidget {
     int sessionId,
     ImageSource source,
   ) async {
-    await ref.read(pendingAiScanServiceProvider).setPendingContext(
+    await ref
+        .read(pendingAiScanServiceProvider)
+        .setPendingContext(
           PendingAiScanContext(
             type: AiScanContextType.workoutPhoto,
             extra: {'sessionId': sessionId},
@@ -63,10 +66,13 @@ class WorkoutHistoryView extends ConsumerWidget {
         ? profile.weightKg!
         : 75.0;
     final minutes = dur.inMinutes > 0 ? dur.inMinutes : 1;
-    final kcal = session.caloriesBurned ??
+    final kcal =
+        session.caloriesBurned ??
         (5.0 * weight * (minutes / 60.0)).round().clamp(10, 3000);
 
-    final success = await ref.read(healthServiceProvider).writeWorkoutToHealth(
+    final success = await ref
+        .read(healthServiceProvider)
+        .writeWorkoutToHealth(
           activityName: _titleFor(session),
           startTime: session.startedAt,
           endTime: end,
@@ -81,8 +87,7 @@ class WorkoutHistoryView extends ConsumerWidget {
                 ? 'Workout "${_titleFor(session)}" ($kcal kcal) sent to Health Connect / Samsung Health!'
                 : 'Sync failed. Please check Health Connect permissions in settings.',
           ),
-          backgroundColor:
-              success ? const Color(0xFF30D158) : Colors.redAccent,
+          backgroundColor: success ? const Color(0xFF30D158) : Colors.redAccent,
         ),
       );
     }
@@ -92,125 +97,150 @@ class WorkoutHistoryView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final exercises = ref.watch(sessionExercisesProvider(sessionId));
-    final catalog = ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
+    final catalog = ref.watch(
+      exerciseCatalogProvider(const ExerciseCatalogFilter()),
+    );
     final sessionAsync = ref.watch(workoutSessionProvider(sessionId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_titleFor(sessionAsync.asData?.value)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sync_rounded),
-            tooltip: 'Sync with Health Connect',
-            onPressed: () {
-              final session = sessionAsync.asData?.value;
-              if (session != null) _syncToHealth(context, ref, session);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Edit Workout',
-            onPressed: () async {
-              final session = sessionAsync.asData?.value;
-              final originalEndedAt = session?.endedAt;
-              if (originalEndedAt != null) {
-                ref.read(editingSessionOriginalEndedAtProvider.notifier).update(
-                  (state) => {...state, sessionId: originalEndedAt},
-                );
-              }
-              // Resume workout by clearing endedAt
-              final stmt = ref.read(appDatabaseProvider).update(ref.read(appDatabaseProvider).workoutSessions)
-                ..where((t) => t.id.equals(sessionId));
-              await stmt.write(const WorkoutSessionsCompanion(endedAt: drift.Value(null)));
+    return HxScreenShell(
+      title: _titleFor(sessionAsync.asData?.value),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.sync_rounded),
+          tooltip: 'Sync with Health Connect',
+          onPressed: () {
+            final session = sessionAsync.asData?.value;
+            if (session != null) _syncToHealth(context, ref, session);
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.edit),
+          tooltip: 'Edit Workout',
+          onPressed: () async {
+            final session = sessionAsync.asData?.value;
+            final originalEndedAt = session?.endedAt;
+            if (originalEndedAt != null) {
+              ref
+                  .read(editingSessionOriginalEndedAtProvider.notifier)
+                  .update((state) => {...state, sessionId: originalEndedAt});
+            }
+            // Resume workout by clearing endedAt
+            final stmt =
+                ref
+                    .read(appDatabaseProvider)
+                    .update(ref.read(appDatabaseProvider).workoutSessions)
+                  ..where((t) => t.id.equals(sessionId));
+            await stmt.write(
+              const WorkoutSessionsCompanion(endedAt: drift.Value(null)),
+            );
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+          tooltip: 'Delete Workout',
+          onPressed: () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Delete workout?'),
+                content: const Text(
+                  'This permanently deletes this workout and all logged sets.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            if (confirmed == true && context.mounted) {
+              await ref
+                  .read(workoutsRepositoryProvider)
+                  .deleteSession(sessionId);
               if (context.mounted) {
                 Navigator.of(context).pop();
               }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-            tooltip: 'Delete Workout',
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Delete workout?'),
-                  content: const Text(
-                      'This permanently deletes this workout and all logged sets.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text(
-                        'Delete',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    ),
-                  ],
+            }
+          },
+        ),
+      ],
+      children: [
+        exercises.when(
+          data: (rows) {
+            if (rows.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text('No exercises recorded for this session.'),
                 ),
               );
-              if (confirmed == true && context.mounted) {
-                await ref.read(workoutsRepositoryProvider).deleteSession(sessionId);
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              }
-            },
-          ),
-        ],
-      ),
-      body: exercises.when(
-        data: (rows) {
-          if (rows.isEmpty) {
-            return const Center(child: Text('No exercises recorded for this session.'));
-          }
-          final session = sessionAsync.asData?.value;
-          final duration = session?.endedAt != null
-              ? session!.endedAt!.difference(session.startedAt)
-              : null;
-          final durationStr = duration == null
-              ? ''
-              : duration.inHours > 0
-                  ? '${duration.inHours}h ${duration.inMinutes.remainder(60)}m'
-                  : '${duration.inMinutes}m';
+            }
+            final session = sessionAsync.asData?.value;
+            final duration = session?.endedAt != null
+                ? session!.endedAt!.difference(session.startedAt)
+                : null;
+            final durationStr = duration == null
+                ? ''
+                : duration.inHours > 0
+                ? '${duration.inHours}h ${duration.inMinutes.remainder(60)}m'
+                : '${duration.inMinutes}m';
 
-          final profile = ref.watch(profileProvider).valueOrNull;
-          final weight = (profile?.weightKg != null && profile!.weightKg! > 20)
-              ? profile.weightKg!
-              : 75.0;
-          final minutes = duration?.inMinutes ?? 45;
-          final calories = session?.caloriesBurned ??
-              (5.0 * weight * (minutes / 60.0)).round().clamp(10, 3000);
+            final profile = ref.watch(profileProvider).valueOrNull;
+            final weight = (profile?.weightKg != null && profile!.weightKg! > 20)
+                ? profile.weightKg!
+                : 75.0;
+            final minutes = duration?.inMinutes ?? 45;
+            final calories =
+                session?.caloriesBurned ??
+                (5.0 * weight * (minutes / 60.0)).round().clamp(10, 3000);
 
-          final photo = session?.photoPath;
-          final hasPhoto = photo != null && File(photo).existsSync();
+            final photo = session?.photoPath;
+            final hasPhoto = photo != null && File(photo).existsSync();
 
-          return Column(
-            children: [
-              if (session != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            DateFormat('EEEE, MMM d, yyyy · HH:mm').format(session.startedAt),
-                            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
-                          ),
+            return Column(
+              children: [
+                if (session != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              DateFormat(
+                                'EEEE, MMM d, yyyy · HH:mm',
+                              ).format(session.startedAt),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                            ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.12),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.12,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -224,34 +254,55 @@ class WorkoutHistoryView extends ConsumerWidget {
                               const SizedBox(width: 8),
                               InkWell(
                                 onTap: () async {
-                                  final currentDur = session.endedAt?.difference(session.startedAt) ??
+                                  final currentDur =
+                                      session.endedAt?.difference(
+                                        session.startedAt,
+                                      ) ??
                                       const Duration(minutes: 45);
-                                  final newMins = await DurationPickerDialog.show(
-                                    context,
-                                    initialMinutes: currentDur.inMinutes > 0 ? currentDur.inMinutes : 45,
-                                  );
+                                  final newMins =
+                                      await DurationPickerDialog.show(
+                                        context,
+                                        initialMinutes: currentDur.inMinutes > 0
+                                            ? currentDur.inMinutes
+                                            : 45,
+                                      );
                                   if (newMins != null && newMins > 0) {
-                                    final newEndedAt = session.startedAt.add(Duration(minutes: newMins));
+                                    final newEndedAt = session.startedAt.add(
+                                      Duration(minutes: newMins),
+                                    );
                                     await ref
                                         .read(workoutsRepositoryProvider)
-                                        .endSession(session.id, endedAt: newEndedAt);
+                                        .endSession(
+                                          session.id,
+                                          endedAt: newEndedAt,
+                                        );
                                   }
                                 },
                                 borderRadius: BorderRadius.circular(4),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        durationStr.isNotEmpty ? durationStr : 'Set duration',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                        durationStr.isNotEmpty
+                                            ? durationStr
+                                            : 'Set duration',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                       ),
                                       const SizedBox(width: 4),
-                                      Icon(Icons.edit_outlined, size: 12, color: AppColors.primary),
+                                      Icon(
+                                        Icons.edit_outlined,
+                                        size: 12,
+                                        color: AppColors.primary,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -284,8 +335,17 @@ class WorkoutHistoryView extends ConsumerWidget {
                                     backgroundColor: Colors.black54,
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      icon: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
-                                      onPressed: () => _pickPhoto(context, ref, session.id, ImageSource.camera),
+                                      icon: const Icon(
+                                        Icons.camera_alt_rounded,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                                      onPressed: () => _pickPhoto(
+                                        context,
+                                        ref,
+                                        session.id,
+                                        ImageSource.camera,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
@@ -294,12 +354,21 @@ class WorkoutHistoryView extends ConsumerWidget {
                                     backgroundColor: Colors.black54,
                                     child: IconButton(
                                       padding: EdgeInsets.zero,
-                                      icon: const Icon(Icons.delete_outline_rounded, size: 14, color: Colors.redAccent),
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 14,
+                                        color: Colors.redAccent,
+                                      ),
                                       onPressed: () async {
                                         await ref
                                             .read(workoutsRepositoryProvider)
-                                            .updateSessionPhoto(session.id, null);
-                                        ref.invalidate(workoutSessionProvider(session.id));
+                                            .updateSessionPhoto(
+                                              session.id,
+                                              null,
+                                            );
+                                        ref.invalidate(
+                                          workoutSessionProvider(session.id),
+                                        );
                                       },
                                     ),
                                   ),
@@ -314,21 +383,34 @@ class WorkoutHistoryView extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             InkWell(
-                              onTap: () => _pickPhoto(context, ref, session.id, ImageSource.gallery),
+                              onTap: () => _pickPhoto(
+                                context,
+                                ref,
+                                session.id,
+                                ImageSource.gallery,
+                              ),
                               borderRadius: BorderRadius.circular(6),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.add_a_photo_outlined, size: 13, color: AppColors.secondary),
+                                    Icon(
+                                      Icons.add_a_photo_outlined,
+                                      size: 13,
+                                      color: AppColors.secondary,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       'Add photo',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: AppColors.secondary,
-                                        fontSize: 11,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.secondary,
+                                            fontSize: 11,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -350,24 +432,30 @@ class WorkoutHistoryView extends ConsumerWidget {
                       (e) => e.id == we.exerciseId,
                       orElse: () => _placeholder(we.exerciseId),
                     );
-                    final isWeightedBw = (we.equipmentVariant ?? exercise?.modality) == 'weighted';
+                    final isWeightedBw =
+                        (we.equipmentVariant ?? exercise?.modality) ==
+                        'weighted';
                     return _ExerciseBlock(
                       workoutExercise: we,
                       exerciseName: exercise?.name ?? '',
                       metric: exercise != null
-                          ? effectiveLoggingMetric(exercise: exercise, equipmentVariant: we.equipmentVariant)
+                          ? effectiveLoggingMetric(
+                              exercise: exercise,
+                              equipmentVariant: we.equipmentVariant,
+                            )
                           : LoggingMetric.weightReps,
                       isWeightedBodyweight: isWeightedBw,
                     );
                   },
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-      ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+        ),
+      ],
     );
   }
 
@@ -380,23 +468,23 @@ class WorkoutHistoryView extends ConsumerWidget {
   }
 
   ExerciseCatalogData _placeholder(int id) => ExerciseCatalogData(
-        id: id,
-        name: 'Unknown',
-        primaryMuscle: '',
-        equipment: '',
-        mechanics: '',
-        force: '',
-        plane: '',
-        defaultRestSeconds: 120,
-        isCustom: false,
-        category: 'strength',
-        modality: 'barbell',
-        cnsScore: 3,
-        recoveryImpact: 3,
-        loggingMetric: 'weight_reps',
-        supportsWeightedBodyweight: false,
-        isReviewed: false,
-      );
+    id: id,
+    name: 'Unknown',
+    primaryMuscle: '',
+    equipment: '',
+    mechanics: '',
+    force: '',
+    plane: '',
+    defaultRestSeconds: 120,
+    isCustom: false,
+    category: 'strength',
+    modality: 'barbell',
+    cnsScore: 3,
+    recoveryImpact: 3,
+    loggingMetric: 'weight_reps',
+    supportsWeightedBodyweight: false,
+    isReviewed: false,
+  );
 }
 
 class _ExerciseBlock extends ConsumerWidget {
@@ -426,12 +514,19 @@ class _ExerciseBlock extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(exerciseName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            exerciseName,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
           sets.when(
             data: (rows) => Column(
@@ -449,25 +544,31 @@ class _ExerciseBlock extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(SetMetricFormat.summariseSet(
-                          rows[i],
-                          metric: metric,
-                          weight: ref.watch(weightFormatProvider),
-                          distance: ref.watch(distanceFormatProvider),
-                          isWeightedBodyweight: isWeightedBodyweight,
-                        )),
+                        Text(
+                          SetMetricFormat.summariseSet(
+                            rows[i],
+                            metric: metric,
+                            weight: ref.watch(weightFormatProvider),
+                            distance: ref.watch(distanceFormatProvider),
+                            isWeightedBodyweight: isWeightedBodyweight,
+                          ),
+                        ),
                         if (rows[i].rpeX10 != null) ...[
                           const SizedBox(width: 12),
                           Text(
                             '@${(rows[i].rpeX10! / 10).toStringAsFixed(1)}',
-                            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.primary),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.primary,
+                            ),
                           ),
                         ],
                         if (rows[i].completedAt != null) ...[
                           const Spacer(),
                           Text(
                             DateFormat('HH:mm').format(rows[i].completedAt!),
-                            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                            ),
                           ),
                         ],
                       ],

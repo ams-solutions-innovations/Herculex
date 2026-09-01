@@ -135,7 +135,10 @@ class SetSegmenter {
   }) {
     if (trace.samples.length < 3) return const [];
 
-    final dyn = ChannelExtractor.extract(trace, preferred: const [RepChannel.dyn]);
+    final dyn = ChannelExtractor.extract(
+      trace,
+      preferred: const [RepChannel.dyn],
+    );
     if (dyn.isEmpty) return const [];
 
     final values = dyn.first.values;
@@ -163,7 +166,9 @@ class SetSegmenter {
     // a periodic signal inflates the very statistic it is being measured
     // against. The fix there is to stop adapting once the rhythm is
     // established; the fix here is to stop adapting once the set is open.
-    final restEnvelope = _RestingBaseline(capacity: win(config.baselineWindowMs));
+    final restEnvelope = _RestingBaseline(
+      capacity: win(config.baselineWindowMs),
+    );
 
     final windows = <SetWindow>[];
     var inSet = false;

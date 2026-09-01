@@ -21,8 +21,7 @@ class OneRepMax {
 double roundToNearest(double value, double step) =>
     (value / step).round() * step;
 
-double roundDownTo(double value, double step) =>
-    (value / step).floor() * step;
+double roundDownTo(double value, double step) => (value / step).floor() * step;
 
 double floorPlateLoad(double targetKg, {double smallestPlatePairKg = 2.5}) =>
     math.max(20, roundDownTo(targetKg, smallestPlatePairKg));

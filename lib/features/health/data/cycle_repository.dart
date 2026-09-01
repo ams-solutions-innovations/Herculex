@@ -23,7 +23,9 @@ class CycleRepository {
     required int avgPeriodDays,
     required DateTime lastPeriodStart,
   }) async {
-    await _db.into(_db.cycleSettings).insertOnConflictUpdate(
+    await _db
+        .into(_db.cycleSettings)
+        .insertOnConflictUpdate(
           CycleSettingsCompanion.insert(
             id: const Value(1),
             avgCycleDays: Value(avgCycleDays),
@@ -42,8 +44,12 @@ class CycleRepository {
   }) async {
     final dateStr = _formatDateIso(date);
     await _db.transaction(() async {
-      await (_db.delete(_db.cycleLogs)..where((t) => t.dateIso.equals(dateStr))).go();
-      await _db.into(_db.cycleLogs).insert(
+      await (_db.delete(
+        _db.cycleLogs,
+      )..where((t) => t.dateIso.equals(dateStr))).go();
+      await _db
+          .into(_db.cycleLogs)
+          .insert(
             CycleLogsCompanion.insert(
               dateIso: dateStr,
               phase: phase,
@@ -56,17 +62,23 @@ class CycleRepository {
 
   Future<void> clearManualOverride(DateTime date) async {
     final dateStr = _formatDateIso(date);
-    await (_db.delete(_db.cycleLogs)..where((t) => t.dateIso.equals(dateStr))).go();
+    await (_db.delete(
+      _db.cycleLogs,
+    )..where((t) => t.dateIso.equals(dateStr))).go();
   }
 
   Future<CycleLogData?> getManualOverride(DateTime date) {
     final dateStr = _formatDateIso(date);
-    return (_db.select(_db.cycleLogs)..where((t) => t.dateIso.equals(dateStr))).getSingleOrNull();
+    return (_db.select(
+      _db.cycleLogs,
+    )..where((t) => t.dateIso.equals(dateStr))).getSingleOrNull();
   }
 
   Stream<CycleLogData?> watchLogForDate(DateTime date) {
     final dateStr = _formatDateIso(date);
-    return (_db.select(_db.cycleLogs)..where((t) => t.dateIso.equals(dateStr))).watchSingleOrNull();
+    return (_db.select(
+      _db.cycleLogs,
+    )..where((t) => t.dateIso.equals(dateStr))).watchSingleOrNull();
   }
 
   Stream<List<CycleLogData>> watchRecentLogs({int limit = 60}) {
@@ -84,7 +96,8 @@ class CycleRepository {
     if (periodDates.isEmpty) return;
 
     // Sort ascending
-    final sorted = List<DateTime>.from(periodDates)..sort((a, b) => a.compareTo(b));
+    final sorted = List<DateTime>.from(periodDates)
+      ..sort((a, b) => a.compareTo(b));
     final latestPeriod = sorted.last;
 
     final currentSettings = await getSettings();
@@ -101,8 +114,12 @@ class CycleRepository {
     await _db.transaction(() async {
       for (final date in sorted) {
         final dateStr = _formatDateIso(date);
-        await (_db.delete(_db.cycleLogs)..where((t) => t.dateIso.equals(dateStr))).go();
-        await _db.into(_db.cycleLogs).insert(
+        await (_db.delete(
+          _db.cycleLogs,
+        )..where((t) => t.dateIso.equals(dateStr))).go();
+        await _db
+            .into(_db.cycleLogs)
+            .insert(
               CycleLogsCompanion.insert(
                 dateIso: dateStr,
                 phase: 'menstrual',

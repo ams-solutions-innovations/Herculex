@@ -54,8 +54,9 @@ void main() {
             loggingMetric: Value(loggingMetric),
           ),
         );
-    return (db.select(db.exerciseCatalog)..where((t) => t.id.equals(id)))
-        .getSingle();
+    return (db.select(
+      db.exerciseCatalog,
+    )..where((t) => t.id.equals(id))).getSingle();
   }
 
   /// A session with one exercise and one empty set, ready to be logged into.
@@ -286,27 +287,30 @@ void main() {
       }
     });
 
-    test('a weight_reps summary is unchanged from the old hardcoded string', () {
-      final set = SetEntryData(
-        id: 1,
-        workoutExerciseId: 1,
-        setIndex: 0,
-        weightKg: 60,
-        reps: 8,
-        isWarmup: false,
-        isCompleted: true,
-        setType: 'standard',
-      );
-      expect(
-        SetMetricFormat.summariseSet(
-          set,
-          metric: LoggingMetric.weightReps,
-          weight: const WeightFormat(MeasurementUnit.metric),
-          distance: const DistanceFormat(MeasurementUnit.metric),
-        ),
-        '60 kg × 8',
-      );
-    });
+    test(
+      'a weight_reps summary is unchanged from the old hardcoded string',
+      () {
+        final set = SetEntryData(
+          id: 1,
+          workoutExerciseId: 1,
+          setIndex: 0,
+          weightKg: 60,
+          reps: 8,
+          isWarmup: false,
+          isCompleted: true,
+          setType: 'standard',
+        );
+        expect(
+          SetMetricFormat.summariseSet(
+            set,
+            metric: LoggingMetric.weightReps,
+            weight: const WeightFormat(MeasurementUnit.metric),
+            distance: const DistanceFormat(MeasurementUnit.metric),
+          ),
+          '60 kg × 8',
+        );
+      },
+    );
 
     test('a non-rep summary reads in its own units', () {
       final sled = SetEntryData(

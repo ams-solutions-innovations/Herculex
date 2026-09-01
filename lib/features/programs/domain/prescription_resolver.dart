@@ -22,8 +22,7 @@ class ResolvedPrescription {
   /// True for unilateral work — the set count is per side.
   final bool perSide;
 
-  String format() =>
-      '${prescription.format()}${perSide ? ' per side' : ''}';
+  String format() => '${prescription.format()}${perSide ? ' per side' : ''}';
 }
 
 /// The one place a prescribed set is turned into numbers.
@@ -108,32 +107,33 @@ abstract final class PrescriptionResolver {
     switch (role) {
       case SlotRole.main:
         return switch (model) {
-          PeriodizationModel.maxEffort => SlotPrescription.builtIns
-              .firstWhere((p) => p.name == 'Westside ME'),
+          PeriodizationModel.maxEffort => SlotPrescription.builtIns.firstWhere(
+            (p) => p.name == 'Westside ME',
+          ),
           PeriodizationModel.block => _blockMain(week.blockPhase),
           PeriodizationModel.concurrent => const SlotPrescription(
-              name: 'Concurrent main',
-              segments: [
-                WorkSegment(
-                  sets: 5,
-                  repsMin: 5,
-                  intent: Intent.rir2,
-                  percentOf1Rm: 0.8,
-                ),
-              ],
-            ),
-          PeriodizationModel.linear || PeriodizationModel.none =>
-            const SlotPrescription(
-              name: 'Linear main',
-              segments: [
-                WorkSegment(
-                  sets: 3,
-                  repsMin: 5,
-                  intent: Intent.rir2,
-                  percentOf1Rm: 0.8,
-                ),
-              ],
-            ),
+            name: 'Concurrent main',
+            segments: [
+              WorkSegment(
+                sets: 5,
+                repsMin: 5,
+                intent: Intent.rir2,
+                percentOf1Rm: 0.8,
+              ),
+            ],
+          ),
+          PeriodizationModel.linear ||
+          PeriodizationModel.none => const SlotPrescription(
+            name: 'Linear main',
+            segments: [
+              WorkSegment(
+                sets: 3,
+                repsMin: 5,
+                intent: Intent.rir2,
+                percentOf1Rm: 0.8,
+              ),
+            ],
+          ),
         };
 
       case SlotRole.supplemental:
@@ -167,12 +167,7 @@ abstract final class PrescriptionResolver {
         return const SlotPrescription(
           name: 'Accessory',
           segments: [
-            WorkSegment(
-              sets: 3,
-              repsMin: 8,
-              repsMax: 12,
-              intent: Intent.rir2,
-            ),
+            WorkSegment(sets: 3, repsMin: 8, repsMax: 12, intent: Intent.rir2),
           ],
         );
 
@@ -180,12 +175,7 @@ abstract final class PrescriptionResolver {
         return const SlotPrescription(
           name: 'Isolation',
           segments: [
-            WorkSegment(
-              sets: 3,
-              repsMin: 12,
-              repsMax: 15,
-              intent: Intent.rir1,
-            ),
+            WorkSegment(sets: 3, repsMin: 12, repsMax: 15, intent: Intent.rir1),
           ],
         );
 
@@ -207,41 +197,41 @@ abstract final class PrescriptionResolver {
   }
 
   static SlotPrescription _blockMain(String? phase) => switch (phase) {
-        'accumulation' => const SlotPrescription(
-            name: 'Accumulation main',
-            segments: [
-              WorkSegment(
-                sets: 4,
-                repsMin: 8,
-                intent: Intent.rir3,
-                percentOf1Rm: 0.7,
-              ),
-            ],
-          ),
-        'realization' => const SlotPrescription(
-            name: 'Realization main',
-            segments: [
-              WorkSegment(
-                sets: 3,
-                repsMin: 2,
-                intent: Intent.rir1,
-                percentOf1Rm: 0.92,
-              ),
-            ],
-          ),
-        // transmutation and anything unlabelled
-        _ => const SlotPrescription(
-            name: 'Transmutation main',
-            segments: [
-              WorkSegment(
-                sets: 5,
-                repsMin: 5,
-                intent: Intent.rir2,
-                percentOf1Rm: 0.82,
-              ),
-            ],
-          ),
-      };
+    'accumulation' => const SlotPrescription(
+      name: 'Accumulation main',
+      segments: [
+        WorkSegment(
+          sets: 4,
+          repsMin: 8,
+          intent: Intent.rir3,
+          percentOf1Rm: 0.7,
+        ),
+      ],
+    ),
+    'realization' => const SlotPrescription(
+      name: 'Realization main',
+      segments: [
+        WorkSegment(
+          sets: 3,
+          repsMin: 2,
+          intent: Intent.rir1,
+          percentOf1Rm: 0.92,
+        ),
+      ],
+    ),
+    // transmutation and anything unlabelled
+    _ => const SlotPrescription(
+      name: 'Transmutation main',
+      segments: [
+        WorkSegment(
+          sets: 5,
+          repsMin: 5,
+          intent: Intent.rir2,
+          percentOf1Rm: 0.82,
+        ),
+      ],
+    ),
+  };
 
   /// Machines and isolation work do not take a percentage prescription well,
   /// and single-joint work belongs at higher reps.

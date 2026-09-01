@@ -22,7 +22,7 @@ class RemainingCaloriesCard extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 220;
-        if (r == null) {
+        if (r == null) {
           return dashboardCard(
             accent: AppColors.macroKcal,
             onTap: () => context.push('/nutrition-targets'),
@@ -56,13 +56,12 @@ class RemainingCaloriesCard extends ConsumerWidget {
                   )
                 : Row(
                     children: [
-                      Expanded(
-                        child: dashboardTitle(context, 'Remaining'),
-                      ),
+                      Expanded(child: dashboardTitle(context, 'Remaining')),
                       Text(
                         'Set a goal',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.secondary),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.secondary,
+                        ),
                       ),
                     ],
                   ),
@@ -75,10 +74,7 @@ class RemainingCaloriesCard extends ConsumerWidget {
           return dashboardCard(
             accent: color,
             onTap: () => ref.read(mainTabIndexProvider.notifier).state = 1,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -149,8 +145,9 @@ class RemainingCaloriesCard extends ConsumerWidget {
                   child: LinearProgressIndicator(
                     value: r.consumedFraction.clamp(0.0, 1.0),
                     minHeight: 4,
-                    backgroundColor:
-                        AppColors.surfaceVariant.withValues(alpha: 0.5),
+                    backgroundColor: AppColors.surfaceVariant.withValues(
+                      alpha: 0.5,
+                    ),
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                   ),
                 ),
@@ -200,8 +197,9 @@ class RemainingCaloriesCard extends ConsumerWidget {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       'kcal',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
                   ),
                 ],
@@ -212,8 +210,9 @@ class RemainingCaloriesCard extends ConsumerWidget {
                 child: LinearProgressIndicator(
                   value: r.consumedFraction.clamp(0.0, 1.0),
                   minHeight: 6,
-                  backgroundColor:
-                      AppColors.surfaceVariant.withValues(alpha: 0.5),
+                  backgroundColor: AppColors.surfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               ),
@@ -261,8 +260,10 @@ class RemainingCaloriesCard extends ConsumerWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 '$value',
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.bold, color: color),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
             ),
           ],
@@ -270,26 +271,26 @@ class RemainingCaloriesCard extends ConsumerWidget {
       );
 
   Widget _op(ThemeData theme, String symbol) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            ' ',
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 9,
-              letterSpacing: 0.8,
-            ),
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Text(
+        ' ',
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontSize: 9,
+          letterSpacing: 0.8,
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Text(
+          symbol,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: AppColors.secondary,
+            fontWeight: FontWeight.bold,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              symbol,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.secondary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }

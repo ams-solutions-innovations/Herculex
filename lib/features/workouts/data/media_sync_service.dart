@@ -35,24 +35,32 @@ class MediaSyncService {
       final artist = (info['artist'] as String?) ?? '';
       final isPlaying = (info['isPlaying'] as bool?) ?? false;
       final packageName = (info['packageName'] as String?) ?? '';
+      final hasPermission = (info['hasPermission'] as bool?) ?? false;
       final isSpotify = packageName.contains('spotify');
       final hasTrack = track.isNotEmpty;
 
-      final payloadMap = {
+      final stateMap = {
         'title': hasTrack ? track : '',
         'artist': hasTrack ? artist : '',
         'album': '',
         'isPlaying': isPlaying,
         'appName': isSpotify ? 'Spotify' : (hasTrack ? 'Music' : ''),
         'isSpotify': isSpotify,
-        'updatedAtEpochMs': DateTime.now().millisecondsSinceEpoch,
+        'hasPermission': hasPermission,
       };
 
-      final payloadJson = jsonEncode(payloadMap);
-      if (payloadJson != _lastSyncedPayload) {
-        _lastSyncedPayload = payloadJson;
+      final stateJson = jsonEncode(stateMap);
+      if (stateJson != _lastSyncedPayload) {
+        _lastSyncedPayload = stateJson;
+
+        final payloadMap = Map<String, dynamic>.from(stateMap);
+        payloadMap['updatedAtEpochMs'] = DateTime.now().millisecondsSinceEpoch;
+        final payloadJson = jsonEncode(payloadMap);
+
         await _wearSyncService.syncMediaState(payloadJson);
-        debugPrint('MediaSyncService: Synced media state -> $track (${isPlaying ? "playing" : "paused"})');
+        debugPrint(
+          'MediaSyncService: Synced media state -> $track (${isPlaying ? "playing" : "paused"})',
+        );
       }
     } catch (e) {
       // Best-effort polling: e.g. permission not granted or emulator environment

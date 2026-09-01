@@ -20,137 +20,131 @@ class CalorieMealGoalsView extends ConsumerWidget {
       title: 'Calorie Goals by Meal',
       padding: EdgeInsets.zero,
       children: [
-          // ── Enable Meal Goals toggle ─────────────────────────────────────
-          _ToggleRow(
-            label: 'Enable Meal Goals',
-            value: meal.enabled,
+        // ── Enable Meal Goals toggle ─────────────────────────────────────
+        _ToggleRow(
+          label: 'Enable Meal Goals',
+          value: meal.enabled,
+          onChanged: (v) => ref.read(mealGoalsProvider.notifier).setEnabled(v),
+        ),
+
+        const SizedBox(height: 32),
+
+        // ── Set Meal Goals section ───────────────────────────────────────
+        const _SectionHeader('Set Meal Goals'),
+        const _Divider(),
+
+        // Calories / % segmented control
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: _ModeSegmentedControl(
+            showAsCalories: meal.showAsCalories,
             onChanged: (v) =>
-                ref.read(mealGoalsProvider.notifier).setEnabled(v),
+                ref.read(mealGoalsProvider.notifier).setShowAsCalories(v),
           ),
+        ),
 
-          const SizedBox(height: 32),
+        const _Divider(),
 
-          // ── Set Meal Goals section ───────────────────────────────────────
-          const _SectionHeader('Set Meal Goals'),
-          const _Divider(),
-
-          // Calories / % segmented control
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: _ModeSegmentedControl(
-              showAsCalories: meal.showAsCalories,
-              onChanged: (v) =>
-                  ref.read(mealGoalsProvider.notifier).setShowAsCalories(v),
-            ),
-          ),
-
-          const _Divider(),
-
-          // Total Daily Goal row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Total Daily Goal',
-                    style: TextStyle(color: AppColors.onSurface, fontSize: 16),
-                  ),
+        // Total Daily Goal row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Total Daily Goal',
+                  style: TextStyle(color: AppColors.onSurface, fontSize: 16),
                 ),
-                Text(
-                  meal.showAsCalories
-                      ? _fmtKcal(totalKcal)
-                      : '100%',
-                  style: TextStyle(
-                    color: AppColors.onSurface,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              Text(
+                meal.showAsCalories ? _fmtKcal(totalKcal) : '100%',
+                style: TextStyle(
+                  color: AppColors.onSurface,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
 
-          const _Divider(),
+        const _Divider(),
 
-          // Meal rows
-          _MealRow(
-            label: 'Breakfast',
-            pct: meal.breakfastPct,
-            kcal: meal.mealCalories(totalKcal, meal.breakfastPct),
-            showAsCalories: meal.showAsCalories,
-            onTap: meal.enabled
-                ? () => _editMealPct(
-                      context,
-                      ref,
-                      meal: 'Breakfast',
-                      current: meal.breakfastPct,
-                      onSave: (v) => ref
-                          .read(mealGoalsProvider.notifier)
-                          .setBreakfastPct(v),
-                    )
-                : null,
-          ),
-          const _Divider(),
+        // Meal rows
+        _MealRow(
+          label: 'Breakfast',
+          pct: meal.breakfastPct,
+          kcal: meal.mealCalories(totalKcal, meal.breakfastPct),
+          showAsCalories: meal.showAsCalories,
+          onTap: meal.enabled
+              ? () => _editMealPct(
+                  context,
+                  ref,
+                  meal: 'Breakfast',
+                  current: meal.breakfastPct,
+                  onSave: (v) =>
+                      ref.read(mealGoalsProvider.notifier).setBreakfastPct(v),
+                )
+              : null,
+        ),
+        const _Divider(),
 
-          _MealRow(
-            label: 'Lunch',
-            pct: meal.lunchPct,
-            kcal: meal.mealCalories(totalKcal, meal.lunchPct),
-            showAsCalories: meal.showAsCalories,
-            onTap: meal.enabled
-                ? () => _editMealPct(
-                      context,
-                      ref,
-                      meal: 'Lunch',
-                      current: meal.lunchPct,
-                      onSave: (v) =>
-                          ref.read(mealGoalsProvider.notifier).setLunchPct(v),
-                    )
-                : null,
-          ),
-          const _Divider(),
+        _MealRow(
+          label: 'Lunch',
+          pct: meal.lunchPct,
+          kcal: meal.mealCalories(totalKcal, meal.lunchPct),
+          showAsCalories: meal.showAsCalories,
+          onTap: meal.enabled
+              ? () => _editMealPct(
+                  context,
+                  ref,
+                  meal: 'Lunch',
+                  current: meal.lunchPct,
+                  onSave: (v) =>
+                      ref.read(mealGoalsProvider.notifier).setLunchPct(v),
+                )
+              : null,
+        ),
+        const _Divider(),
 
-          _MealRow(
-            label: 'Dinner',
-            pct: meal.dinnerPct,
-            kcal: meal.mealCalories(totalKcal, meal.dinnerPct),
-            showAsCalories: meal.showAsCalories,
-            onTap: meal.enabled
-                ? () => _editMealPct(
-                      context,
-                      ref,
-                      meal: 'Dinner',
-                      current: meal.dinnerPct,
-                      onSave: (v) => ref
-                          .read(mealGoalsProvider.notifier)
-                          .setDinnerPct(v),
-                    )
-                : null,
-          ),
-          const _Divider(),
+        _MealRow(
+          label: 'Dinner',
+          pct: meal.dinnerPct,
+          kcal: meal.mealCalories(totalKcal, meal.dinnerPct),
+          showAsCalories: meal.showAsCalories,
+          onTap: meal.enabled
+              ? () => _editMealPct(
+                  context,
+                  ref,
+                  meal: 'Dinner',
+                  current: meal.dinnerPct,
+                  onSave: (v) =>
+                      ref.read(mealGoalsProvider.notifier).setDinnerPct(v),
+                )
+              : null,
+        ),
+        const _Divider(),
 
-          _MealRow(
-            label: 'Snacks',
-            pct: meal.snacksPct,
-            kcal: meal.mealCalories(totalKcal, meal.snacksPct),
-            showAsCalories: meal.showAsCalories,
-            onTap: meal.enabled
-                ? () => _editMealPct(
-                      context,
-                      ref,
-                      meal: 'Snacks',
-                      current: meal.snacksPct,
-                      onSave: (v) => ref
-                          .read(mealGoalsProvider.notifier)
-                          .setSnacksPct(v),
-                    )
-                : null,
-          ),
+        _MealRow(
+          label: 'Snacks',
+          pct: meal.snacksPct,
+          kcal: meal.mealCalories(totalKcal, meal.snacksPct),
+          showAsCalories: meal.showAsCalories,
+          onTap: meal.enabled
+              ? () => _editMealPct(
+                  context,
+                  ref,
+                  meal: 'Snacks',
+                  current: meal.snacksPct,
+                  onSave: (v) =>
+                      ref.read(mealGoalsProvider.notifier).setSnacksPct(v),
+                )
+              : null,
+        ),
 
-          const SizedBox(height: 100),
-        ],
-      );
+        const SizedBox(height: 100),
+      ],
+    );
   }
 
   Future<void> _editMealPct(
@@ -180,12 +174,10 @@ class CalorieMealGoalsView extends ConsumerWidget {
     );
   }
 
-  static String _fmtKcal(int v) => v
-      .toString()
-      .replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-        (m) => '${m[1]},',
-      );
+  static String _fmtKcal(int v) => v.toString().replaceAllMapped(
+    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+    (m) => '${m[1]},',
+  );
 }
 
 // ── Widgets ───────────────────────────────────────────────────────────────────
@@ -362,10 +354,7 @@ class _MealRow extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               pctStr,
-              style: TextStyle(
-                color: AppColors.secondary,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: AppColors.secondary, fontSize: 16),
             ),
             const Spacer(),
             Text(
@@ -384,11 +373,7 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Divider(
-      height: 0,
-      thickness: 0.5,
-      color: AppColors.outlineVariant,
-    );
+    return Divider(height: 0, thickness: 0.5, color: AppColors.outlineVariant);
   }
 }
 
@@ -443,8 +428,9 @@ class _MealPctSheet extends StatelessWidget {
             TextField(
               controller: controller,
               autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
               ],
@@ -462,8 +448,7 @@ class _MealPctSheet extends StatelessWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,

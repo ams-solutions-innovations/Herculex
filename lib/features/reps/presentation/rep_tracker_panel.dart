@@ -104,7 +104,9 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
       final settings = await ref.read(repTrackingRepositoryProvider).settings();
       final placement = settings?.phonePlacement;
       if (placement == null) return;
-      final suggestion = ref.read(repCaptureServiceProvider).buildPhoneSuggestion(
+      final suggestion = ref
+          .read(repCaptureServiceProvider)
+          .buildPhoneSuggestion(
             captureId: 'phone-${DateTime.now().millisecondsSinceEpoch}',
             exerciseSlug: widget.exerciseSlug,
             trace: result.trace,
@@ -174,18 +176,22 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
     if (_site == SensorSite.pocket) {
       ref.read(phoneMotionSourceProvider).stop();
     } else {
-      final captureId =
-          ref.read(repCaptureServiceProvider).activeCaptureIdFor(widget.exerciseSlug);
+      final captureId = ref
+          .read(repCaptureServiceProvider)
+          .activeCaptureIdFor(widget.exerciseSlug);
       if (captureId != null) {
-        ref.read(repCaptureServiceProvider).abort(captureId, reason: 'stopped from phone');
+        ref
+            .read(repCaptureServiceProvider)
+            .abort(captureId, reason: 'stopped from phone');
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final enabledAsync =
-        ref.watch(repTrackingEnabledForProvider(widget.exerciseSlug));
+    final enabledAsync = ref.watch(
+      repTrackingEnabledForProvider(widget.exerciseSlug),
+    );
     final enabled = enabledAsync.asData?.value ?? false;
     final effectiveState = enabled ? _captureState : TrackerState.disabled;
 
@@ -211,10 +217,7 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
-              TextButton(
-                onPressed: _onStartTap,
-                child: const Text('Start'),
-              ),
+              TextButton(onPressed: _onStartTap, child: const Text('Start')),
             ],
           ),
         );
@@ -232,15 +235,12 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
               Expanded(
                 child: Text(
                   'Tracking…',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
-              TextButton(
-                onPressed: _onStopTap,
-                child: const Text('Stop'),
-              ),
+              TextButton(onPressed: _onStopTap, child: const Text('Stop')),
             ],
           ),
         );
@@ -262,15 +262,15 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
                           ? '$_lastProposedReps reps proposed — no RPE suggestion'
                           : 'Reps proposed — no RPE suggestion',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     if (_reason != null)
                       Text(
                         _reason!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.secondary,
-                            ),
+                          color: AppColors.secondary,
+                        ),
                       ),
                   ],
                 ),
@@ -294,15 +294,15 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
                     Text(
                       'Log this set manually',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     if (_reason != null)
                       Text(
                         _reason!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.secondary,
-                            ),
+                          color: AppColors.secondary,
+                        ),
                       ),
                   ],
                 ),
@@ -317,7 +317,11 @@ class _RepTrackerPanelState extends ConsumerState<RepTrackerPanel> {
   /// expected states, not failures, so they never get the error/warning
   /// treatment (10-CONTEXT) — `neutral` only changes the border tone, never
   /// to red/amber.
-  Widget _shell(BuildContext context, {required Widget child, bool neutral = false}) {
+  Widget _shell(
+    BuildContext context, {
+    required Widget child,
+    bool neutral = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 4),
       child: Container(

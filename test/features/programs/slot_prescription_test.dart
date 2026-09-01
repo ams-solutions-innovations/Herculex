@@ -77,28 +77,33 @@ void main() {
 
   group('SlotPrescription', () {
     test('"2 to failure" is a primer plus two all-out sets', () {
-      final p =
-          SlotPrescription.builtIns.firstWhere((p) => p.name == '2 to failure');
+      final p = SlotPrescription.builtIns.firstWhere(
+        (p) => p.name == '2 to failure',
+      );
       expect(p.hasFailureWork, isTrue);
       expect(p.totalSets, 3);
       expect(p.format(), '1x6-8 @RIR2 + 2x6-12→F');
     });
 
     test('failure composes with an advanced set type', () {
-      final myo = SlotPrescription.builtIns.firstWhere((p) => p.name == 'Myo 1+3');
+      final myo = SlotPrescription.builtIns.firstWhere(
+        (p) => p.name == 'Myo 1+3',
+      );
       expect(myo.hasFailureWork, isTrue);
       expect(myo.segments.single.setType, SetType.myoReps);
     });
 
     test('a ramp contributes one set to weekly volume', () {
-      final me =
-          SlotPrescription.builtIns.firstWhere((p) => p.name == 'Westside ME');
+      final me = SlotPrescription.builtIns.firstWhere(
+        (p) => p.name == 'Westside ME',
+      );
       expect(me.totalSets, 3);
     });
 
     test('scaling cuts sets and load but never scales a ramp', () {
-      final me =
-          SlotPrescription.builtIns.firstWhere((p) => p.name == 'Westside ME');
+      final me = SlotPrescription.builtIns.firstWhere(
+        (p) => p.name == 'Westside ME',
+      );
       final deloaded = me.scaled(intensityFactor: 0.8, volumeFactor: 0.7);
 
       expect(deloaded.segments.first.isRamp, isTrue);
@@ -124,9 +129,7 @@ void main() {
       );
       const hard = SlotPrescription(
         name: 'hard',
-        segments: [
-          WorkSegment(sets: 4, repsMin: 8, intent: Intent.toFailure),
-        ],
+        segments: [WorkSegment(sets: 4, repsMin: 8, intent: Intent.toFailure)],
       );
       expect(plain.cnsUnits, 4);
       expect(hard.cnsUnits, greaterThan(plain.cnsUnits));

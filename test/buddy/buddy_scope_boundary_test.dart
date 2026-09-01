@@ -42,24 +42,20 @@ void main() {
           'run from repo root.',
     );
 
-    transportFiles =
-        [
-            ...dataDir
-                .listSync(recursive: true)
-                .whereType<File>()
-                .where((f) => f.path.endsWith('.dart')),
-            eventFile,
-          ]
-          ..sort((a, b) => a.path.compareTo(b.path));
+    transportFiles = [
+      ...dataDir
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart')),
+      eventFile,
+    ]..sort((a, b) => a.path.compareTo(b.path));
 
     // Non-vacuity guard (check 1): the set must be non-empty and must
     // actually include the publisher seam, or this gate could pass on an
     // empty or accidentally-narrowed file list.
     expect(transportFiles, isNotEmpty);
     expect(
-      transportFiles.any(
-        (f) => f.path.endsWith('buddy_event_publisher.dart'),
-      ),
+      transportFiles.any((f) => f.path.endsWith('buddy_event_publisher.dart')),
       isTrue,
       reason:
           'Expected the buddy transport module to include '
@@ -92,7 +88,11 @@ void main() {
         }
       }
     }
-    expect(violations, isEmpty, reason: '$failureReason${violations.join('\n')}');
+    expect(
+      violations,
+      isEmpty,
+      reason: '$failureReason${violations.join('\n')}',
+    );
   });
 
   test(
@@ -117,25 +117,22 @@ void main() {
     },
   );
 
-  test(
-    'no file in the buddy transport module imports buddy_scope.dart',
-    () {
-      final violations = <String>[];
-      for (final file in transportFiles) {
-        final lines = codeLines(file.readAsStringSync());
-        for (var i = 0; i < lines.length; i++) {
-          final line = lines[i];
-          final isImport = line.trim().startsWith('import ');
-          if (isImport && line.trim().endsWith("buddy_scope.dart';")) {
-            violations.add('${file.path}:${i + 1}: ${line.trim()}');
-          }
+  test('no file in the buddy transport module imports buddy_scope.dart', () {
+    final violations = <String>[];
+    for (final file in transportFiles) {
+      final lines = codeLines(file.readAsStringSync());
+      for (var i = 0; i < lines.length; i++) {
+        final line = lines[i];
+        final isImport = line.trim().startsWith('import ');
+        if (isImport && line.trim().endsWith("buddy_scope.dart';")) {
+          violations.add('${file.path}:${i + 1}: ${line.trim()}');
         }
       }
-      expect(
-        violations,
-        isEmpty,
-        reason: '$failureReason${violations.join('\n')}',
-      );
-    },
-  );
+    }
+    expect(
+      violations,
+      isEmpty,
+      reason: '$failureReason${violations.join('\n')}',
+    );
+  });
 }

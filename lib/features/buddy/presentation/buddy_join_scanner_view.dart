@@ -190,10 +190,7 @@ class _BuddyJoinScannerViewState extends ConsumerState<BuddyJoinScannerView>
       body: Stack(
         children: [
           if (_controller != null)
-            MobileScanner(
-              controller: _controller!,
-              onDetect: _onDetect,
-            ),
+            MobileScanner(controller: _controller!, onDetect: _onDetect),
           Center(
             child: Container(
               width: 240,

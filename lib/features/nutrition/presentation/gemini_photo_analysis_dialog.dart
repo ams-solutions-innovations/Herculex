@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../../fasting/presentation/fasting_food_log_dialog.dart';
 import '../data/gemini_food_analyzer_service.dart';
 import '../domain/meal.dart';
 import 'nutrition_providers.dart';
@@ -119,6 +120,9 @@ class _GeminiPhotoAnalysisDialogState
     final proteinPer100g = double.tryParse(_proteinCtrl.text) ?? 0;
     final carbsPer100g = double.tryParse(_carbsCtrl.text) ?? 0;
     final fatPer100g = double.tryParse(_fatCtrl.text) ?? 0;
+
+    final proceed = await confirmEndFastOnFoodLog(context, ref);
+    if (!proceed || !mounted) return;
 
     setState(() => _saving = true);
 

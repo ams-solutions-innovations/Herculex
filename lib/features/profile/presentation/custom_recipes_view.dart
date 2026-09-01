@@ -13,7 +13,10 @@ class CustomRecipesView extends ConsumerWidget {
   const CustomRecipesView({super.key});
 
   Future<void> _deleteRecipe(
-      BuildContext context, WidgetRef ref, RecipeData recipe) async {
+    BuildContext context,
+    WidgetRef ref,
+    RecipeData recipe,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -85,8 +88,10 @@ class CustomRecipesView extends ConsumerWidget {
             if (recipes.isEmpty) {
               return Center(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 48,
+                    horizontal: 24,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -133,16 +138,17 @@ class CustomRecipesView extends ConsumerWidget {
             padding: EdgeInsets.all(32),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, stack) =>
-              Center(child: Text('Error loading recipes: $e')),
+          error: (e, stack) => Center(child: Text('Error loading recipes: $e')),
         ),
       ],
     );
   }
 }
 
-final _recipeMacrosViewProvider =
-    FutureProvider.family<DailyTotals, int>((ref, recipeId) async {
+final _recipeMacrosViewProvider = FutureProvider.family<DailyTotals, int>((
+  ref,
+  recipeId,
+) async {
   ref.watch(recipeIngredientsProvider(recipeId));
   return ref.read(nutritionRepositoryProvider).recipeMacrosPerServing(recipeId);
 });
@@ -170,10 +176,15 @@ class _RecipeTile extends ConsumerWidget {
       decoration: BoxDecoration(
         color: context.hx.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: context.hx.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: context.hx.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         onTap: onTap,
         title: Row(
           children: [
@@ -189,7 +200,10 @@ class _RecipeTile extends ConsumerWidget {
               data: (per) {
                 final kcal = per.kcal.round();
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: context.hx.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -214,11 +228,17 @@ class _RecipeTile extends ConsumerWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.room_service_outlined, size: 14, color: context.hx.secondary),
+                Icon(
+                  Icons.room_service_outlined,
+                  size: 14,
+                  color: context.hx.secondary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${recipe.servings} ${recipe.servings == 1 ? 'serving' : 'servings'} • $count ${count == 1 ? 'ingredient' : 'ingredients'}',
-                  style: theme.textTheme.bodySmall?.copyWith(color: context.hx.secondary),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.hx.secondary,
+                  ),
                 ),
               ],
             ),
@@ -242,11 +262,23 @@ class _RecipeTile extends ConsumerWidget {
                 final f = per.fatG.toStringAsFixed(1);
                 return Row(
                   children: [
-                    _MacroBadge(label: 'P', value: '${p}g', color: Colors.blue.shade600),
+                    _MacroBadge(
+                      label: 'P',
+                      value: '${p}g',
+                      color: Colors.blue.shade600,
+                    ),
                     const SizedBox(width: 8),
-                    _MacroBadge(label: 'C', value: '${c}g', color: Colors.amber.shade700),
+                    _MacroBadge(
+                      label: 'C',
+                      value: '${c}g',
+                      color: Colors.amber.shade700,
+                    ),
                     const SizedBox(width: 8),
-                    _MacroBadge(label: 'F', value: '${f}g', color: Colors.pink.shade600),
+                    _MacroBadge(
+                      label: 'F',
+                      value: '${f}g',
+                      color: Colors.pink.shade600,
+                    ),
                   ],
                 );
               },

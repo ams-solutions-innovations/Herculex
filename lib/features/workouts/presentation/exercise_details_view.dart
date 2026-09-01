@@ -571,7 +571,9 @@ class _ProgressionGoalCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final progressionAsync = ref.watch(exerciseProgressionProvider(exercise.id));
+    final progressionAsync = ref.watch(
+      exerciseProgressionProvider(exercise.id),
+    );
     final theme = Theme.of(context);
     final hx = context.hx;
 
@@ -694,4 +696,3 @@ class _ProgressionGoalCard extends ConsumerWidget {
     );
   }
 }
-

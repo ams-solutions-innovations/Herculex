@@ -56,6 +56,5 @@ class EffectiveLoad {
     required double effectiveKg,
     required int reps,
     SetType setType = SetType.standard,
-  }) =>
-      effectiveKg * reps * setType.volumeFactor;
+  }) => effectiveKg * reps * setType.volumeFactor;
 }

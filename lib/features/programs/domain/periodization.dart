@@ -13,8 +13,10 @@ enum PeriodizationModel {
   final String id;
   final String label;
 
-  static PeriodizationModel fromId(String? id) => values
-      .firstWhere((m) => m.id == id, orElse: () => PeriodizationModel.none);
+  static PeriodizationModel fromId(String? id) => values.firstWhere(
+    (m) => m.id == id,
+    orElse: () => PeriodizationModel.none,
+  );
 }
 
 class WeekPrescription {
@@ -43,9 +45,9 @@ class Periodization {
     assert(weeks > 0);
     return switch (model) {
       PeriodizationModel.none => [
-          for (var w = 0; w < weeks; w++)
-            WeekPrescription(weekIndex: w, intensityFactor: 1, volumeFactor: 1),
-        ],
+        for (var w = 0; w < weeks; w++)
+          WeekPrescription(weekIndex: w, intensityFactor: 1, volumeFactor: 1),
+      ],
       PeriodizationModel.linear => _linear(weeks),
       PeriodizationModel.concurrent => _concurrent(weeks),
       PeriodizationModel.block => _block(weeks),
@@ -61,17 +63,22 @@ class Periodization {
     for (var w = 0; w < weeks; w++) {
       final deload = (w + 1) % 4 == 0;
       if (deload) {
-        result.add(WeekPrescription(
+        result.add(
+          WeekPrescription(
             weekIndex: w,
             intensityFactor: 0.85,
             volumeFactor: 0.6,
-            isDeload: true));
+            isDeload: true,
+          ),
+        );
       } else {
-        result.add(WeekPrescription(
-          weekIndex: w,
-          intensityFactor: 1.0 + 0.025 * ramp,
-          volumeFactor: (1.0 - 0.05 * ramp).clamp(0.7, 1.0),
-        ));
+        result.add(
+          WeekPrescription(
+            weekIndex: w,
+            intensityFactor: 1.0 + 0.025 * ramp,
+            volumeFactor: (1.0 - 0.05 * ramp).clamp(0.7, 1.0),
+          ),
+        );
         ramp++;
       }
     }
@@ -99,8 +106,10 @@ class Periodization {
     final accWeeks = (weeks * 0.4).ceil().clamp(1, weeks);
     // Realization always gets at least one week (when the program has ≥3).
     final transCap = weeks - accWeeks - (weeks >= 3 ? 1 : 0);
-    final transWeeks =
-        (weeks * 0.4).ceil().clamp(0, transCap < 0 ? 0 : transCap);
+    final transWeeks = (weeks * 0.4).ceil().clamp(
+      0,
+      transCap < 0 ? 0 : transCap,
+    );
     return [
       for (var w = 0; w < weeks; w++)
         () {
@@ -142,9 +151,13 @@ class Periodization {
                 weekIndex: w,
                 intensityFactor: 0.8,
                 volumeFactor: 0.7,
-                isDeload: true)
+                isDeload: true,
+              )
             : WeekPrescription(
-                weekIndex: w, intensityFactor: 1.0, volumeFactor: 1.0),
+                weekIndex: w,
+                intensityFactor: 1.0,
+                volumeFactor: 1.0,
+              ),
     ];
   }
 }

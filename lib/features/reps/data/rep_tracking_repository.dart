@@ -39,9 +39,7 @@ class RepTrackingRepository {
   /// reached. `consentGrantedAt == null` on a present row means the same
   /// thing as no row at all: consent has not been given.
   Future<RepTrackingSettingData?> settings() {
-    return (_db.select(
-      _db.repTrackingSettings,
-    )..limit(1)).getSingleOrNull();
+    return (_db.select(_db.repTrackingSettings)..limit(1)).getSingleOrNull();
   }
 
   /// Records that the user completed the consent screen at [version].
@@ -83,17 +81,19 @@ class RepTrackingRepository {
   /// exercise off rather than from a stale opt-in the user has forgotten.
   Future<void> revokeConsent() async {
     await _db.transaction(() async {
-      await _db.update(_db.repTrackingSettings).write(
-        // The global switch is cleared alongside consent, not left standing.
-        // Leaving it set would mean a later re-grant silently resumed
-        // sensing — the user would tap "I agree" on a data-handling screen
-        // and the accelerometer would start, with no second decision in
-        // between and nothing on screen saying so.
-        const RepTrackingSettingsCompanion(
-          consentGrantedAt: Value(null),
-          autoCountEnabled: Value(false),
-        ),
-      );
+      await _db
+          .update(_db.repTrackingSettings)
+          .write(
+            // The global switch is cleared alongside consent, not left standing.
+            // Leaving it set would mean a later re-grant silently resumed
+            // sensing — the user would tap "I agree" on a data-handling screen
+            // and the accelerometer would start, with no second decision in
+            // between and nothing on screen saying so.
+            const RepTrackingSettingsCompanion(
+              consentGrantedAt: Value(null),
+              autoCountEnabled: Value(false),
+            ),
+          );
       await _db.delete(_db.repTrackingExercisePrefs).go();
       await _db.delete(_db.repSetObservations).go();
     });

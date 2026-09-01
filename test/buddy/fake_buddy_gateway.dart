@@ -58,11 +58,7 @@ class FakeBuddyGateway implements BuddyGateway {
       payload: payload,
     );
     events.add(event);
-    appends.add((
-      buddySessionId: buddySessionId,
-      kind: kind,
-      payload: payload,
-    ));
+    appends.add((buddySessionId: buddySessionId, kind: kind, payload: payload));
     return seq;
   }
 

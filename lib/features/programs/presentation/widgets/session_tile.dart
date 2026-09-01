@@ -151,7 +151,9 @@ class _Subtitle extends StatelessWidget {
     }
     if (!row.isEmpty) {
       parts.add(
-        row.exerciseCount == 1 ? '1 exercise' : '${row.exerciseCount} exercises',
+        row.exerciseCount == 1
+            ? '1 exercise'
+            : '${row.exerciseCount} exercises',
       );
     }
     if (row.status != ScheduleStatus.planned) parts.add(row.statusLabel);

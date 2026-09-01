@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../domain/logging_metric.dart';
 import 'workouts_providers.dart';
 
@@ -24,23 +25,64 @@ class CustomExerciseBuilderView extends ConsumerStatefulWidget {
 }
 
 const _muscles = [
-  'Chest', 'Lats', 'Rhomboids', 'Traps', 'Erectors',
-  'Front Delts', 'Side Delts', 'Rear Delts',
-  'Biceps', 'Brachialis', 'Triceps', 'Forearms',
-  'Quads', 'Hamstrings', 'Glutes', 'Adductors', 'Abductors',
-  'Calves', 'Tibialis', 'Abs', 'Obliques', 'Hip Flexors', 'Neck', 'Serratus',
+  'Chest',
+  'Lats',
+  'Rhomboids',
+  'Traps',
+  'Erectors',
+  'Front Delts',
+  'Side Delts',
+  'Rear Delts',
+  'Biceps',
+  'Brachialis',
+  'Triceps',
+  'Forearms',
+  'Quads',
+  'Hamstrings',
+  'Glutes',
+  'Adductors',
+  'Abductors',
+  'Calves',
+  'Tibialis',
+  'Abs',
+  'Obliques',
+  'Hip Flexors',
+  'Neck',
+  'Serratus',
 ];
 const _categories = [
-  'strength', 'hypertrophy', 'powerlifting', 'calisthenics', 'crossfit',
-  'cardio', 'mobility',
+  'strength',
+  'hypertrophy',
+  'powerlifting',
+  'calisthenics',
+  'crossfit',
+  'cardio',
+  'mobility',
 ];
 const _modalities = [
-  'barbell', 'dumbbell', 'machine_plate', 'machine_selectorized', 'cable',
-  'smith', 'kettlebell', 'band', 'bodyweight', 'other',
+  'barbell',
+  'dumbbell',
+  'machine_plate',
+  'machine_selectorized',
+  'cable',
+  'smith',
+  'kettlebell',
+  'band',
+  'bodyweight',
+  'other',
 ];
 const _patterns = [
-  'squat', 'hinge', 'horizontal_push', 'vertical_push', 'horizontal_pull',
-  'vertical_pull', 'lunge', 'carry', 'core', 'isolation', 'other',
+  'squat',
+  'hinge',
+  'horizontal_push',
+  'vertical_push',
+  'horizontal_pull',
+  'vertical_pull',
+  'lunge',
+  'carry',
+  'core',
+  'isolation',
+  'other',
 ];
 // Derived from the registry rather than restated, because this list had
 // already drifted from it: `weight_distance` shipped on Sled Push without ever
@@ -48,8 +90,20 @@ const _patterns = [
 // seeded counterpart uses.
 final _metrics = [for (final m in LoggingMetric.values) m.id];
 const _equipmentOptions = [
-  'Barbell', 'Dumbbell', 'Cable', 'Machine', 'Smith Machine', 'Bodyweight',
-  'Kettlebell', 'Band', 'Plate', 'Rings', 'TRX', 'EZ Bar', 'Trap Bar', 'Other',
+  'Barbell',
+  'Dumbbell',
+  'Cable',
+  'Machine',
+  'Smith Machine',
+  'Bodyweight',
+  'Kettlebell',
+  'Band',
+  'Plate',
+  'Rings',
+  'TRX',
+  'EZ Bar',
+  'Trap Bar',
+  'Other',
 ];
 
 class _CustomExerciseBuilderViewState
@@ -96,24 +150,25 @@ class _CustomExerciseBuilderViewState
     }
     setState(() => _saving = true);
     try {
-      final created =
-          await ref.read(workoutsRepositoryProvider).createCustomExercise(
-                name: name,
-                primaryMuscles: _primary.toList(),
-                secondaryMuscles: _secondary.toList(),
-                stabilizers: _stabilizers.toList(),
-                category: _category,
-                movementPattern: _pattern,
-                modality: _modality,
-                equipment: _equipment,
-                cnsScore: _cns,
-                recoveryImpact: _recovery,
-                loggingMetric: _metric,
-                supportsWeightedBodyweight: _weightedBw,
-                attachments: _split(_attachments.text),
-                aliases: _split(_aliases.text),
-                defaultRestSeconds: _rest,
-              );
+      final created = await ref
+          .read(workoutsRepositoryProvider)
+          .createCustomExercise(
+            name: name,
+            primaryMuscles: _primary.toList(),
+            secondaryMuscles: _secondary.toList(),
+            stabilizers: _stabilizers.toList(),
+            category: _category,
+            movementPattern: _pattern,
+            modality: _modality,
+            equipment: _equipment,
+            cnsScore: _cns,
+            recoveryImpact: _recovery,
+            loggingMetric: _metric,
+            supportsWeightedBodyweight: _weightedBw,
+            attachments: _split(_attachments.text),
+            aliases: _split(_aliases.text),
+            defaultRestSeconds: _rest,
+          );
       if (mounted) Navigator.of(context).pop(created);
     } catch (e) {
       setState(() => _saving = false);
@@ -123,58 +178,15 @@ class _CustomExerciseBuilderViewState
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Custom Exercise')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          children: [
-            _field(_name, 'Name', Icons.fitness_center),
-            const SizedBox(height: 12),
-            _field(_aliases, 'Alternate names (comma-separated)', Icons.search),
-            const SizedBox(height: 20),
-            _muscleSection('Primary muscles', _primary, theme),
-            _muscleSection('Secondary muscles', _secondary, theme),
-            _muscleSection('Stabilizers', _stabilizers, theme),
-            const SizedBox(height: 8),
-            _dropdown('Category', _category, _categories,
-                (v) => setState(() => _category = v!)),
-            _dropdown('Modality', _modality, _modalities,
-                (v) => setState(() => _modality = v!)),
-            _dropdown('Equipment', _equipment, _equipmentOptions,
-                (v) => setState(() => _equipment = v!)),
-            _dropdown('Movement pattern', _pattern ?? '', ['', ..._patterns],
-                (v) => setState(() => _pattern = v!.isEmpty ? null : v),
-                labelFor: (v) => v.isEmpty ? '—' : v),
-            _dropdown('Logging metric', _metric, _metrics,
-                (v) => setState(() => _metric = v!)),
-            const SizedBox(height: 8),
-            _slider('CNS score', _cns, 1, 10, (v) => setState(() => _cns = v)),
-            _slider('Recovery impact', _recovery, 1, 5,
-                (v) => setState(() => _recovery = v)),
-            _slider('Default rest (sec)', _rest, 30, 300,
-                (v) => setState(() => _rest = v),
-                divisions: 18, step: 15),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Supports weighted bodyweight'),
-              subtitle: const Text('Enables a "+ added weight" field'),
-              value: _weightedBw,
-              onChanged: (v) => setState(() => _weightedBw = v),
-            ),
-            const SizedBox(height: 8),
-            _field(_attachments, 'Attachments (comma-separated)', Icons.link),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Padding(
+    return HxScreenShell(
+      title: 'Custom Exercise',
+      pinnedBottom: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
         child: FilledButton(
           onPressed: _saving ? null : _save,
@@ -187,10 +199,86 @@ class _CustomExerciseBuilderViewState
                   height: 20,
                   width: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
               : const Text('Save exercise'),
         ),
       ),
+      children: [
+        _field(_name, 'Name', Icons.fitness_center),
+        const SizedBox(height: 12),
+        _field(_aliases, 'Alternate names (comma-separated)', Icons.search),
+        const SizedBox(height: 20),
+        _muscleSection('Primary muscles', _primary, theme),
+        _muscleSection('Secondary muscles', _secondary, theme),
+        _muscleSection('Stabilizers', _stabilizers, theme),
+        const SizedBox(height: 8),
+        _dropdown(
+          'Category',
+          _category,
+          _categories,
+          (v) => setState(() => _category = v!),
+        ),
+        _dropdown(
+          'Movement pattern',
+          _pattern ?? 'none',
+          ['none', ..._patterns],
+          (v) => setState(() => _pattern = v == 'none' ? null : v),
+        ),
+        _dropdown(
+          'Modality',
+          _modality,
+          _modalities,
+          (v) => setState(() => _modality = v!),
+        ),
+        _dropdown(
+          'Equipment',
+          _equipment,
+          _equipmentOptions,
+          (v) => setState(() => _equipment = v!),
+        ),
+        _dropdown(
+          'Logging metric',
+          _metric,
+          _metrics,
+          (v) => setState(() => _metric = v!),
+        ),
+        const SizedBox(height: 8),
+        _slider(
+          'CNS fatigue score (1-5)',
+          _cns,
+          1,
+          5,
+          (v) => setState(() => _cns = v),
+        ),
+        _slider(
+          'Local recovery impact (1-5)',
+          _recovery,
+          1,
+          5,
+          (v) => setState(() => _recovery = v),
+        ),
+        _slider(
+          'Default rest (sec)',
+          _rest,
+          30,
+          300,
+          (v) => setState(() => _rest = v),
+          divisions: 18,
+          step: 15,
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Supports weighted bodyweight'),
+          subtitle: const Text('Enables a "+ added weight" field'),
+          value: _weightedBw,
+          onChanged: (v) => setState(() => _weightedBw = v),
+        ),
+        const SizedBox(height: 8),
+        _field(_attachments, 'Attachments (comma-separated)', Icons.link),
+      ],
     );
   }
 
@@ -216,9 +304,12 @@ class _CustomExerciseBuilderViewState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: theme.textTheme.titleSmall
-                  ?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
@@ -238,9 +329,13 @@ class _CustomExerciseBuilderViewState
     );
   }
 
-  Widget _dropdown(String label, String value, List<String> options,
-      ValueChanged<String?> onChanged,
-      {String Function(String)? labelFor}) {
+  Widget _dropdown(
+    String label,
+    String value,
+    List<String> options,
+    ValueChanged<String?> onChanged, {
+    String Function(String)? labelFor,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<String>(
@@ -264,9 +359,15 @@ class _CustomExerciseBuilderViewState
     );
   }
 
-  Widget _slider(String label, int value, int min, int max,
-      ValueChanged<int> onChanged,
-      {int? divisions, int step = 1}) {
+  Widget _slider(
+    String label,
+    int value,
+    int min,
+    int max,
+    ValueChanged<int> onChanged, {
+    int? divisions,
+    int step = 1,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

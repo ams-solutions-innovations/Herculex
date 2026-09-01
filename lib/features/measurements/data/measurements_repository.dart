@@ -43,8 +43,19 @@ class MeasurementsRepository {
 
   /// Built-in measurement metrics; UI may add `custom:<name>` keys.
   static const builtInMetrics = [
-    'bodyweight', 'body_fat', 'neck', 'chest', 'arms_l', 'arms_r', 'waist', 'hips',
-    'thigh_l', 'thigh_r', 'calf_l', 'calf_r', 'back',
+    'bodyweight',
+    'body_fat',
+    'neck',
+    'chest',
+    'arms_l',
+    'arms_r',
+    'waist',
+    'hips',
+    'thigh_l',
+    'thigh_r',
+    'calf_l',
+    'calf_r',
+    'back',
   ];
 
   Stream<List<BodyMeasurementData>> watchMetric(String metric) {
@@ -56,16 +67,16 @@ class MeasurementsRepository {
 
   /// Latest sample per metric (for the measurements overview screen).
   Stream<List<BodyMeasurementData>> watchAll() {
-    return (_db.select(_db.bodyMeasurements)
-          ..orderBy([(t) => OrderingTerm(expression: t.dateIso)]))
-        .watch();
+    return (_db.select(
+      _db.bodyMeasurements,
+    )..orderBy([(t) => OrderingTerm(expression: t.dateIso)])).watch();
   }
 
   /// Get the most recent value for each metric as a map (e.g. {'waist': 82.0, 'neck': 38.0}).
   Future<Map<String, double>> getLatestMeasurements() async {
-    final rows = await (_db.select(_db.bodyMeasurements)
-          ..orderBy([(t) => OrderingTerm(expression: t.dateIso)]))
-        .get();
+    final rows = await (_db.select(
+      _db.bodyMeasurements,
+    )..orderBy([(t) => OrderingTerm(expression: t.dateIso)])).get();
     final map = <String, double>{};
     for (final r in rows) {
       map[r.metric] = r.value;
@@ -83,9 +94,14 @@ class MeasurementsRepository {
       await (_db.delete(_db.bodyMeasurements)
             ..where((t) => t.dateIso.equals(dateIso) & t.metric.equals(metric)))
           .go();
-      await _db.into(_db.bodyMeasurements).insert(
+      await _db
+          .into(_db.bodyMeasurements)
+          .insert(
             BodyMeasurementsCompanion.insert(
-                dateIso: dateIso, metric: metric, value: value),
+              dateIso: dateIso,
+              metric: metric,
+              value: value,
+            ),
           );
     });
     if (metric == 'bodyweight') {
@@ -94,9 +110,12 @@ class MeasurementsRepository {
   }
 
   Future<void> deleteMeasurement(int id) async {
-    final row = await (_db.select(_db.bodyMeasurements)..where((t) => t.id.equals(id))).getSingleOrNull();
-    await (_db.delete(_db.bodyMeasurements)..where((t) => t.id.equals(id)))
-        .go();
+    final row = await (_db.select(
+      _db.bodyMeasurements,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    await (_db.delete(
+      _db.bodyMeasurements,
+    )..where((t) => t.id.equals(id))).go();
     if (row?.metric == 'bodyweight') {
       await _syncProfileWithLatestWeight();
     }
@@ -106,29 +125,31 @@ class MeasurementsRepository {
     final repo = _profileRepo;
     if (repo == null) return;
     final latest = await latestBodyweightKg();
-    final profile = repo.currentProfile ??
+    final profile =
+        repo.currentProfile ??
         Profile(
           goal: FitnessGoal.maintenance,
           activityLevel: ActivityLevel.lightlyActive,
         );
     if (profile.weightKg != latest) {
-      await repo.save(
-        profile.copyWith(weightKg: latest),
-        syncToLog: false,
-      );
+      await repo.save(profile.copyWith(weightKg: latest), syncToLog: false);
     }
   }
 
   /// Most recent bodyweight, used to snapshot `set_entries.bodyweight_kg`
   /// when logging weighted-bodyweight sets (V2 §9).
   Future<double?> latestBodyweightKg() async {
-    final row = await (_db.select(_db.bodyMeasurements)
-          ..where((t) => t.metric.equals('bodyweight'))
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.dateIso, mode: OrderingMode.desc)
-          ])
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (_db.select(_db.bodyMeasurements)
+              ..where((t) => t.metric.equals('bodyweight'))
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.dateIso,
+                  mode: OrderingMode.desc,
+                ),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
     return row?.value;
   }
 
@@ -136,16 +157,21 @@ class MeasurementsRepository {
 
   Stream<List<ProgressPhotoData>> watchPhotos({String? pose}) {
     final q = _db.select(_db.progressPhotos)
-      ..orderBy(
-          [(t) => OrderingTerm(expression: t.dateIso, mode: OrderingMode.desc)]);
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.dateIso, mode: OrderingMode.desc),
+      ]);
     if (pose != null) q.where((t) => t.pose.equals(pose));
     return q.watch();
   }
 
-  Future<List<ProgressPhotoData>> getRecentPhotos({int limit = 20, String? pose}) async {
+  Future<List<ProgressPhotoData>> getRecentPhotos({
+    int limit = 20,
+    String? pose,
+  }) async {
     final q = _db.select(_db.progressPhotos)
-      ..orderBy(
-          [(t) => OrderingTerm(expression: t.dateIso, mode: OrderingMode.desc)])
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.dateIso, mode: OrderingMode.desc),
+      ])
       ..limit(limit);
     if (pose != null) q.where((t) => t.pose.equals(pose));
     return q.get();
@@ -157,12 +183,16 @@ class MeasurementsRepository {
     required String filePath,
     String? notes,
   }) {
-    return _db.into(_db.progressPhotos).insert(ProgressPhotosCompanion.insert(
-          dateIso: dateIso,
-          pose: pose,
-          filePath: filePath,
-          notes: Value(notes),
-        ));
+    return _db
+        .into(_db.progressPhotos)
+        .insert(
+          ProgressPhotosCompanion.insert(
+            dateIso: dateIso,
+            pose: pose,
+            filePath: filePath,
+            notes: Value(notes),
+          ),
+        );
   }
 
   Future<void> deletePhoto(int id) async {

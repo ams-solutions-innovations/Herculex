@@ -50,84 +50,93 @@ void main() {
       expect(notifier.state.queue.first.id, item2.id);
     });
 
-    test('InAppNotificationNotifier dismiss removes current item and sets isDismissing', () {
+    test(
+      'InAppNotificationNotifier dismiss removes current item and sets isDismissing',
+      () {
+        final notifier = InAppNotificationNotifier();
+        final item = InAppNotificationItem.weightPr(
+          exerciseName: 'Bench Press',
+          weightFormatted: '140 kg',
+        );
+
+        notifier.show(item);
+        expect(notifier.state.current?.id, item.id);
+        expect(notifier.state.isDismissing, isFalse);
+
+        notifier.dismiss();
+        expect(notifier.state.isDismissing, isTrue);
+      },
+    );
+  });
+
+  testWidgets(
+    'InAppNotificationHost renders pill HUD without overflow for long content',
+    (tester) async {
+      final notifier = InAppNotificationNotifier();
+      final item = InAppNotificationItem.exerciseTonnagePr(
+        exerciseName:
+            'Extra Long Incline Dumbbell Bench Press with Chains and Bands',
+        volumeFormatted: '18,450 kg',
+        diffFormatted: '2,400 kg',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            inAppNotificationControllerProvider.overrideWith((ref) => notifier),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: InAppNotificationHost(
+                child: Center(child: Text('Content')),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      notifier.show(item);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1200));
+
+      expect(find.textContaining('new volume PR'), findsOneWidget);
+      expect(find.textContaining('18,450 kg'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'InAppNotificationHost renders text without underline when mounted above Navigator',
+    (tester) async {
       final notifier = InAppNotificationNotifier();
       final item = InAppNotificationItem.weightPr(
         exerciseName: 'Bench Press',
         weightFormatted: '140 kg',
       );
 
+      // Mounted at builder level outside Scaffold/Navigator
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            inAppNotificationControllerProvider.overrideWith((ref) => notifier),
+          ],
+          child: MaterialApp(
+            builder: (context, child) =>
+                InAppNotificationHost(child: child ?? const SizedBox.shrink()),
+            home: const SizedBox.shrink(),
+          ),
+        ),
+      );
+
       notifier.show(item);
-      expect(notifier.state.current?.id, item.id);
-      expect(notifier.state.isDismissing, isFalse);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1200));
 
-      notifier.dismiss();
-      expect(notifier.state.isDismissing, isTrue);
-    });
-  });
-
-  testWidgets('InAppNotificationHost renders pill HUD without overflow for long content', (tester) async {
-    final notifier = InAppNotificationNotifier();
-    final item = InAppNotificationItem.exerciseTonnagePr(
-      exerciseName: 'Extra Long Incline Dumbbell Bench Press with Chains and Bands',
-      volumeFormatted: '18,450 kg',
-      diffFormatted: '2,400 kg',
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          inAppNotificationControllerProvider.overrideWith((ref) => notifier),
-        ],
-        child: const MaterialApp(
-          home: Scaffold(
-            body: InAppNotificationHost(
-              child: Center(child: Text('Content')),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    notifier.show(item);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 1200));
-
-    expect(find.textContaining('new volume PR'), findsOneWidget);
-    expect(find.textContaining('18,450 kg'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('InAppNotificationHost renders text without underline when mounted above Navigator', (tester) async {
-    final notifier = InAppNotificationNotifier();
-    final item = InAppNotificationItem.weightPr(
-      exerciseName: 'Bench Press',
-      weightFormatted: '140 kg',
-    );
-
-    // Mounted at builder level outside Scaffold/Navigator
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          inAppNotificationControllerProvider.overrideWith((ref) => notifier),
-        ],
-        child: MaterialApp(
-          builder: (context, child) => InAppNotificationHost(
-            child: child ?? const SizedBox.shrink(),
-          ),
-          home: const SizedBox.shrink(),
-        ),
-      ),
-    );
-
-    notifier.show(item);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 1200));
-
-    final textWidgets = tester.widgetList<Text>(find.byType(Text));
-    expect(textWidgets, isNotEmpty);
-    for (final tw in textWidgets) {
-      expect(tw.style?.decoration, equals(TextDecoration.none));
-    }
-  });
+      final textWidgets = tester.widgetList<Text>(find.byType(Text));
+      expect(textWidgets, isNotEmpty);
+      for (final tw in textWidgets) {
+        expect(tw.style?.decoration, equals(TextDecoration.none));
+      }
+    },
+  );
 }

@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Visual and compatibility kind for dashboard widgets.
-enum DashboardWidgetKind {
-  pill,
-  card,
-  large;
-}
+enum DashboardWidgetKind { pill, card, large }
 
 /// User-selectable shape style for dashboard widgets and pills.
 enum DashboardCardShape {
@@ -24,9 +20,9 @@ enum DashboardCardShape {
   final double pillRadius;
 
   double get cardRadius => switch (this) {
-        DashboardCardShape.compact => 16.0,
-        _ => 28.0,
-      };
+    DashboardCardShape.compact => 16.0,
+    _ => 28.0,
+  };
 
   static DashboardCardShape fromId(String? id) {
     for (final shape in values) {
@@ -37,10 +33,7 @@ enum DashboardCardShape {
 }
 
 /// Grid footprint of a dashboard slot: half (1 of 2 columns) or full (both).
-enum DashboardWidgetSize {
-  half,
-  full;
-}
+enum DashboardWidgetSize { half, full }
 
 /// The widgets that can appear on the editable dashboard (V2 §18).
 enum DashboardWidgetType {
@@ -60,7 +53,8 @@ enum DashboardWidgetType {
   supplements('supplements', 'Supplements Tracker'),
   remainingCalories('remaining_calories', 'Calories Remaining'),
   nutritionStreak('nutrition_streak', 'Nutrition Streak'),
-  workoutStreak('workout_streak', 'Workout Streak');
+  workoutStreak('workout_streak', 'Workout Streak'),
+  herculInsights('hercul_insights', 'Hercul Insights');
 
   const DashboardWidgetType(this.id, this.label);
   final String id;
@@ -68,65 +62,63 @@ enum DashboardWidgetType {
 
   /// Dedicated icon for the customization sheet and widget header badges.
   IconData get icon => switch (this) {
-        DashboardWidgetType.fastingTimer => Icons.timer_outlined,
-        DashboardWidgetType.macros => Icons.pie_chart_outline,
-        DashboardWidgetType.calorieTrends => Icons.local_fire_department_outlined,
-        DashboardWidgetType.bodyweightTrends => Icons.show_chart_rounded,
-        DashboardWidgetType.todaysPlan => Icons.fitness_center_outlined,
-        DashboardWidgetType.miniWorkouts => Icons.checklist_outlined,
-        DashboardWidgetType.workoutCalendar => Icons.calendar_month_outlined,
-        DashboardWidgetType.recoverySummary => Icons.battery_charging_full_outlined,
-        DashboardWidgetType.cnsLoad => Icons.bolt_outlined,
-        DashboardWidgetType.weeklyVolume => Icons.bar_chart_outlined,
-        DashboardWidgetType.latestPrs => Icons.emoji_events_outlined,
-        DashboardWidgetType.cycle => Icons.water_drop_outlined,
-        DashboardWidgetType.quickScan => Icons.document_scanner_outlined,
-        DashboardWidgetType.supplements => Icons.medication_outlined,
-        DashboardWidgetType.remainingCalories => Icons.calculate_outlined,
-        DashboardWidgetType.nutritionStreak => Icons.local_fire_department,
-        DashboardWidgetType.workoutStreak => Icons.military_tech_outlined,
-      };
+    DashboardWidgetType.fastingTimer => Icons.timer_outlined,
+    DashboardWidgetType.macros => Icons.pie_chart_outline,
+    DashboardWidgetType.calorieTrends => Icons.show_chart,
+    DashboardWidgetType.bodyweightTrends => Icons.monitor_weight_outlined,
+    DashboardWidgetType.todaysPlan => Icons.assignment_outlined,
+    DashboardWidgetType.miniWorkouts => Icons.checklist_outlined,
+    DashboardWidgetType.workoutCalendar => Icons.calendar_today_outlined,
+    DashboardWidgetType.recoverySummary => Icons.battery_charging_full,
+    DashboardWidgetType.cnsLoad => Icons.bolt_outlined,
+    DashboardWidgetType.weeklyVolume => Icons.bar_chart,
+    DashboardWidgetType.latestPrs => Icons.emoji_events_outlined,
+    DashboardWidgetType.cycle => Icons.water_drop_outlined,
+    DashboardWidgetType.quickScan => Icons.document_scanner_outlined,
+    DashboardWidgetType.supplements => Icons.medication_outlined,
+    DashboardWidgetType.remainingCalories => Icons.restaurant_menu,
+    DashboardWidgetType.nutritionStreak => Icons.local_fire_department,
+    DashboardWidgetType.workoutStreak => Icons.directions_run,
+    DashboardWidgetType.herculInsights => Icons.psychology_outlined,
+  };
 
   /// Widget shape classification for stack compatibility.
   DashboardWidgetKind get kind => switch (this) {
-        DashboardWidgetType.cnsLoad ||
-        DashboardWidgetType.weeklyVolume ||
-        DashboardWidgetType.nutritionStreak ||
-        DashboardWidgetType.workoutStreak =>
-          DashboardWidgetKind.pill,
-        DashboardWidgetType.calorieTrends ||
-        DashboardWidgetType.bodyweightTrends ||
-        DashboardWidgetType.recoverySummary ||
-        DashboardWidgetType.latestPrs ||
-        DashboardWidgetType.remainingCalories ||
-        DashboardWidgetType.quickScan ||
-        DashboardWidgetType.cycle =>
-          DashboardWidgetKind.card,
-        DashboardWidgetType.fastingTimer ||
-        DashboardWidgetType.macros ||
-        DashboardWidgetType.todaysPlan ||
-        DashboardWidgetType.miniWorkouts ||
-        DashboardWidgetType.workoutCalendar ||
-        DashboardWidgetType.supplements =>
-          DashboardWidgetKind.large,
-      };
+    DashboardWidgetType.cnsLoad ||
+    DashboardWidgetType.weeklyVolume ||
+    DashboardWidgetType.nutritionStreak ||
+    DashboardWidgetType.workoutStreak => DashboardWidgetKind.pill,
+    DashboardWidgetType.calorieTrends ||
+    DashboardWidgetType.bodyweightTrends ||
+    DashboardWidgetType.recoverySummary ||
+    DashboardWidgetType.latestPrs ||
+    DashboardWidgetType.remainingCalories ||
+    DashboardWidgetType.quickScan ||
+    DashboardWidgetType.herculInsights ||
+    DashboardWidgetType.supplements ||
+    DashboardWidgetType.miniWorkouts ||
+    DashboardWidgetType.todaysPlan ||
+    DashboardWidgetType.cycle => DashboardWidgetKind.card,
+    DashboardWidgetType.fastingTimer ||
+    DashboardWidgetType.macros ||
+    DashboardWidgetType.workoutCalendar => DashboardWidgetKind.large,
+  };
 
   /// Whether this widget's layout tolerates shrinking to half the dashboard
   /// width. Full-bleed feature widgets (fasting timer, macros, calendar…)
   /// aren't built for it, so they never show a resize handle.
   bool get resizable => switch (this) {
-        DashboardWidgetType.calorieTrends ||
-        DashboardWidgetType.bodyweightTrends ||
-        DashboardWidgetType.recoverySummary ||
-        DashboardWidgetType.cnsLoad ||
-        DashboardWidgetType.weeklyVolume ||
-        DashboardWidgetType.latestPrs ||
-        DashboardWidgetType.remainingCalories ||
-        DashboardWidgetType.nutritionStreak ||
-        DashboardWidgetType.workoutStreak =>
-          true,
-        _ => false,
-      };
+    DashboardWidgetType.calorieTrends ||
+    DashboardWidgetType.bodyweightTrends ||
+    DashboardWidgetType.recoverySummary ||
+    DashboardWidgetType.cnsLoad ||
+    DashboardWidgetType.weeklyVolume ||
+    DashboardWidgetType.latestPrs ||
+    DashboardWidgetType.remainingCalories ||
+    DashboardWidgetType.nutritionStreak ||
+    DashboardWidgetType.workoutStreak => true,
+    _ => false,
+  };
 
   static DashboardWidgetType? fromId(String id) {
     if (id == 'trends') return DashboardWidgetType.calorieTrends;
@@ -153,7 +145,7 @@ class DashboardWidgetConfig {
   DashboardWidgetType get type => types.first;
   bool get isStack => types.length > 1;
   String get id => types.map((t) => t.id).join('+');
-  
+
   /// Resolved grid span, clamped to full for stacks and non-resizable types
   /// regardless of what [size] happens to hold.
   DashboardWidgetSize get effectiveSize =>
@@ -163,12 +155,11 @@ class DashboardWidgetConfig {
     List<DashboardWidgetType>? types,
     bool? visible,
     DashboardWidgetSize? size,
-  }) =>
-      DashboardWidgetConfig(
-        types ?? this.types,
-        visible: visible ?? this.visible,
-        size: size ?? this.size,
-      );
+  }) => DashboardWidgetConfig(
+    types ?? this.types,
+    visible: visible ?? this.visible,
+    size: size ?? this.size,
+  );
 }
 
 /// Ordered, toggleable dashboard layout (V2 §18). Pure value type with
@@ -188,6 +179,7 @@ class DashboardConfig {
     DashboardWidgetConfig([DashboardWidgetType.quickScan]),
     DashboardWidgetConfig([DashboardWidgetType.remainingCalories]),
     DashboardWidgetConfig([DashboardWidgetType.macros]),
+    DashboardWidgetConfig([DashboardWidgetType.herculInsights]),
     DashboardWidgetConfig([
       DashboardWidgetType.calorieTrends,
       DashboardWidgetType.bodyweightTrends,
@@ -199,7 +191,9 @@ class DashboardConfig {
     DashboardWidgetConfig([DashboardWidgetType.cnsLoad], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.weeklyVolume], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.latestPrs], visible: false),
-    DashboardWidgetConfig([DashboardWidgetType.nutritionStreak], visible: false),
+    DashboardWidgetConfig([
+      DashboardWidgetType.nutritionStreak,
+    ], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.workoutStreak], visible: false),
     DashboardWidgetConfig([DashboardWidgetType.cycle]),
   ]);
@@ -327,7 +321,7 @@ class DashboardConfig {
     for (final d in defaults.widgets) {
       for (final type in d.types) {
         if (!seen.contains(type)) {
-          parsed.add(DashboardWidgetConfig([type], visible: false));
+          parsed.add(DashboardWidgetConfig([type], visible: d.visible));
           seen.add(type);
         }
       }

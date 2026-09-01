@@ -214,7 +214,13 @@
       "Bash(python tool/import_exercise_artwork.py)",
       "Bash(adb -s adb-RFAWB1C5DZM-aVTHGC._adb-tls-connect._tcp shell dumpsys package com.ams.herculex)",
       "Bash(adb -s R5CY12RLCWE shell dumpsys package com.ams.herculex)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(awk '$1+$2>0')",
+      "Bash(awk '$1+$2>0 {print $1+$2, $3}')",
+      "Bash([ -s \"$out\" ])",
+      "Bash(dart --version)",
+      "Bash(dart fix *)"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",

@@ -72,7 +72,9 @@ class _Ring extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = target == null || target == 0 ? null : (current / target!).clamp(0.0, 1.0);
+    final pct = target == null || target == 0
+        ? null
+        : (current / target!).clamp(0.0, 1.0);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -96,7 +98,10 @@ class _Ring extends StatelessWidget {
               children: [
                 Text(
                   '$current$unit',
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 if (target != null)
                   Text(

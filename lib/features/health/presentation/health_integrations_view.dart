@@ -7,6 +7,7 @@ import 'package:collection/collection.dart';
 
 import '../../../app/providers.dart';
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/glass_container.dart';
 import 'health_providers.dart';
 import 'cycle_providers.dart';
@@ -14,6 +15,8 @@ import 'health_platform_detail_view.dart';
 import '../../../data/local/database.dart';
 import '../../profile/domain/profile.dart';
 import '../domain/health_read_state.dart';
+import '../../workouts/presentation/calendar_providers.dart';
+import '../../workouts/presentation/workouts_providers.dart';
 
 class HealthIntegrationsView extends ConsumerStatefulWidget {
   const HealthIntegrationsView({super.key});
@@ -30,7 +33,9 @@ class _HealthIntegrationsViewState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _hydratePermissionStatus());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _hydratePermissionStatus(),
+    );
   }
 
   /// Reconciles the "connected" toggles with the real OS grant. The status
@@ -67,24 +72,10 @@ class _HealthIntegrationsViewState
     final profile = profileAsync.valueOrNull;
     final isFemale = profile?.sex == BiologicalSex.female;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'HEALTH & SYNC',
-          style: theme.textTheme.titleMedium?.copyWith(
-            letterSpacing: 2.0,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
-        children: [
-          // ── Activity impact card ───────────────────────────────────────
+    return HxScreenShell(
+      title: 'Health & Sync',
+      children: [
+        // ── Activity impact card ───────────────────────────────────────
           adjustmentAsync.when(
             data: (adj) => _buildImpactCard(
               theme,
@@ -178,6 +169,8 @@ class _HealthIntegrationsViewState
             lastSync: lastSyncTime,
             route: '/health/google',
           ),
+          const SizedBox(height: 12),
+          _buildCalendarSyncCard(theme),
           const SizedBox(height: 32),
 
           // ── Cycle sync (females only) ──────────────────────────────────
@@ -252,9 +245,8 @@ class _HealthIntegrationsViewState
             error: (err, stack) => Center(child: Text('Error: $err')),
           ),
         ],
-      ),
-    );
-  }
+      );
+    }
 
   // ─── Platform card ────────────────────────────────────────────────────────
 
@@ -360,6 +352,357 @@ class _HealthIntegrationsViewState
           ],
         ),
       ),
+    );
+  }
+
+  // ─── Calendar Sync Card ───────────────────────────────────────────────────
+
+  Widget _buildCalendarSyncCard(ThemeData theme) {
+    final isSyncEnabled = ref.watch(calendarSyncEnabledProvider);
+    final lastSync = ref.watch(lastCalendarSyncTimestampProvider);
+    final syncState = ref.watch(calendarSyncControllerProvider);
+    final selectedCalId = ref.watch(selectedCalendarIdProvider);
+    final availableCals =
+        ref.watch(availableCalendarsProvider).valueOrNull ?? [];
+
+    final selectedCalName = selectedCalId == null
+        ? 'Herculex Training'
+        : (availableCals
+                .firstWhereOrNull((c) => c.id == selectedCalId)
+                ?.name ??
+            'Selected Calendar');
+
+    const accentColor = Color(0xFF6750A4);
+
+    return GlassContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  color: accentColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Name + status
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Google / Device Calendar',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: isSyncEnabled
+                                ? Colors.green
+                                : AppColors.secondary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            isSyncEnabled
+                                ? (lastSync != null
+                                    ? 'Sync ${_formatTime(lastSync)}'
+                                    : '2-Way Sync Active')
+                                : 'Disabled',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '· 2-Way Sync',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.tertiary,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Toggle
+              Switch(
+                value: isSyncEnabled,
+                activeThumbColor: accentColor,
+                onChanged: (val) async {
+                  if (val) {
+                    final granted = await ref
+                        .read(calendarServiceProvider)
+                        .requestPermissions();
+                    if (granted) {
+                      await ref
+                          .read(calendarSyncEnabledProvider.notifier)
+                          .toggle(true);
+                      await ref
+                          .read(calendarSyncControllerProvider.notifier)
+                          .syncNow();
+                    }
+                  } else {
+                    await ref
+                        .read(calendarSyncEnabledProvider.notifier)
+                        .toggle(false);
+                  }
+                },
+              ),
+            ],
+          ),
+          if (isSyncEnabled) ...[
+            const SizedBox(height: 14),
+            const Divider(height: 1, color: Colors.white12),
+            const SizedBox(height: 12),
+            // Target calendar selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Target Calendar',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      selectedCalName,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton.icon(
+                  onPressed: () => _showCalendarPickerSheet(context),
+                  icon: const Icon(Icons.edit_calendar_rounded, size: 16),
+                  label: const Text('Change'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: accentColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Sync now button & info
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Moving workouts in Google Calendar updates Herculex and vice-versa.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.tertiary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.tonalIcon(
+                  onPressed: syncState.isSyncing
+                      ? null
+                      : () async {
+                          final res = await ref
+                              .read(calendarSyncControllerProvider.notifier)
+                              .syncNow();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  res.success
+                                      ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
+                                      : 'Sync error: ${res.error}',
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                  icon: syncState.isSyncing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.sync_rounded, size: 16),
+                  label: Text(syncState.isSyncing ? 'Syncing...' : 'Sync Now'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showCalendarPickerSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Consumer(
+          builder: (ctx, ref, _) {
+            final theme = Theme.of(ctx);
+            final calsAsync = ref.watch(availableCalendarsProvider);
+            final currentSelected = ref.watch(selectedCalendarIdProvider);
+
+            return Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Select Calendar for Workouts',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Choose which calendar on your device should hold Herculex workouts.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    tileColor: currentSelected == null
+                        ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                        : null,
+                    leading: const Icon(
+                      Icons.auto_awesome,
+                      color: Color(0xFF6750A4),
+                    ),
+                    title: const Text('Herculex Training (Dedicated)'),
+                    subtitle: const Text('Creates a separate clean calendar'),
+                    trailing: currentSelected == null
+                        ? const Icon(
+                            Icons.check_circle,
+                            color: Color(0xFF6750A4),
+                          )
+                        : null,
+                    onTap: () {
+                      ref
+                          .read(selectedCalendarIdProvider.notifier)
+                          .setCalendarId(null);
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  const Divider(height: 16),
+                  calsAsync.when(
+                    data: (cals) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: cals.map((cal) {
+                          final isSelected = currentSelected == cal.id;
+                          return ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            tileColor: isSelected
+                                ? theme.colorScheme.primary
+                                    .withValues(alpha: 0.12)
+                                : null,
+                            leading: Icon(
+                              Icons.calendar_today_rounded,
+                              color: cal.color != null
+                                  ? Color(cal.color!)
+                                  : AppColors.secondary,
+                            ),
+                            title: Text(cal.name ?? 'Unnamed Calendar'),
+                            subtitle:
+                                Text(cal.accountName ?? 'Local Account'),
+                            trailing: isSelected
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: Color(0xFF6750A4),
+                                  )
+                                : null,
+                            onTap: () {
+                              ref
+                                  .read(selectedCalendarIdProvider.notifier)
+                                  .setCalendarId(cal.id);
+                              Navigator.pop(ctx);
+                            },
+                          );
+                        }).toList(),
+                      );
+                    },
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (e, _) => Text('Could not load calendars: $e'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -515,7 +858,9 @@ class _HealthIntegrationsViewState
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Text(
                     adj.phase.id.toUpperCase(),

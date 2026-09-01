@@ -7,18 +7,18 @@ enum Meal {
   snack;
 
   String get label => switch (this) {
-        Meal.breakfast => 'Breakfast',
-        Meal.lunch => 'Lunch',
-        Meal.dinner => 'Dinner',
-        Meal.snack => 'Snacks',
-      };
+    Meal.breakfast => 'Breakfast',
+    Meal.lunch => 'Lunch',
+    Meal.dinner => 'Dinner',
+    Meal.snack => 'Snacks',
+  };
 
   IconData get icon => switch (this) {
-        Meal.breakfast => Icons.free_breakfast_outlined,
-        Meal.lunch => Icons.lunch_dining,
-        Meal.dinner => Icons.dinner_dining,
-        Meal.snack => Icons.cookie_outlined,
-      };
+    Meal.breakfast => Icons.free_breakfast_outlined,
+    Meal.lunch => Icons.lunch_dining,
+    Meal.dinner => Icons.dinner_dining,
+    Meal.snack => Icons.cookie_outlined,
+  };
 
   static Meal fromName(String name) =>
       Meal.values.firstWhere((m) => m.name == name, orElse: () => Meal.snack);
@@ -48,4 +48,3 @@ DateTime parseDateIso(String s) {
   } catch (_) {}
   return DateTime.now();
 }
-

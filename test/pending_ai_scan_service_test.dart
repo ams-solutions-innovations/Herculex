@@ -16,9 +16,7 @@ void main() {
     });
 
     test('stores and retrieves supplement scan context', () async {
-      final context = PendingAiScanContext(
-        type: AiScanContextType.supplement,
-      );
+      final context = PendingAiScanContext(type: AiScanContextType.supplement);
 
       await service.setPendingContext(context);
       final retrieved = service.getPendingContext();
@@ -48,9 +46,7 @@ void main() {
     });
 
     test('clears pending context', () async {
-      final context = PendingAiScanContext(
-        type: AiScanContextType.exercise,
-      );
+      final context = PendingAiScanContext(type: AiScanContextType.exercise);
 
       await service.setPendingContext(context);
       expect(service.getPendingContext(), isNotNull);

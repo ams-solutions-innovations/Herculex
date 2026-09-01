@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 import '../../workouts/presentation/workouts_providers.dart';
 import '../domain/split_template.dart';
@@ -23,55 +24,47 @@ class BlockDetailView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final programs = ref.watch(programsListProvider).value ?? const [];
     final program = programs.where((p) => p.id == programId).firstOrNull;
     final weeks = ref.watch(programWeeksProvider(programId));
     final volumeAsync = ref.watch(programVolumeBreakdownProvider(programId));
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          program?.name ?? 'Block',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+    return HxScreenShell(
+      title: program?.name ?? 'Block',
+      actions: [
+        if (program != null)
+          PopupMenuButton<String>(
+            onSelected: (value) => _menu(context, ref, program, value),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'archive', child: Text('Archive block')),
+              PopupMenuItem(value: 'delete', child: Text('Delete block')),
+            ],
           ),
-        ),
-        actions: [
-          if (program != null)
-            PopupMenuButton<String>(
-              onSelected: (value) => _menu(context, ref, program, value),
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'archive', child: Text('Archive block')),
-                PopupMenuItem(value: 'delete', child: Text('Delete block')),
+      ],
+      children: [
+        if (program == null)
+          const Center(child: CircularProgressIndicator())
+        else
+          weeks.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Could not load weeks.\n$e')),
+            data: (list) => Column(
+              children: [
+                _Summary(program: program),
+                const SizedBox(height: 16),
+                if (volumeAsync.value != null &&
+                    volumeAsync.value!.isNotEmpty)
+                  ProgramMuscleVolumeCard(
+                    breakdown: volumeAsync.value!,
+                    title: 'Weekly Volume per Muscle Group',
+                  ),
+                const SizedBox(height: 4),
+                for (final week in list)
+                  _WeekCard(program: program, week: week),
               ],
             ),
-        ],
-      ),
-      body: program == null
-          ? const Center(child: CircularProgressIndicator())
-          : weeks.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Could not load weeks.\n$e')),
-              data: (list) => ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
-                children: [
-                  _Summary(program: program),
-                  const SizedBox(height: 16),
-                  if (volumeAsync.value != null && volumeAsync.value!.isNotEmpty)
-                    ProgramMuscleVolumeCard(
-                      breakdown: volumeAsync.value!,
-                      title: 'Weekly Volume per Muscle Group',
-                    ),
-                  const SizedBox(height: 4),
-                  for (final week in list)
-                    _WeekCard(program: program, week: week),
-                ],
-              ),
-            ),
+          ),
+      ],
     );
   }
 
@@ -286,7 +279,8 @@ class _WeekCardState extends ConsumerState<_WeekCard> {
             error: (e, _) => const SizedBox.shrink(),
             data: (list) => Column(
               children: [
-                for (final day in list) _DayRow(program: widget.program, day: day),
+                for (final day in list)
+                  _DayRow(program: widget.program, day: day),
                 const SizedBox(height: 8),
                 TextButton.icon(
                   onPressed: () => _addDay(list),
@@ -458,11 +452,10 @@ class _DayRow extends ConsumerWidget {
 
 /// One template by id, or null — used to label a program day's link.
 /// `-1` is TemplatesRepository's "every folder" sentinel.
-final workoutTemplateByIdProvider = Provider.family<WorkoutTemplateData?, int?>((
-  ref,
-  id,
-) {
-  if (id == null) return null;
-  final all = ref.watch(workoutTemplatesProvider(-1)).value;
-  return all?.where((t) => t.id == id).firstOrNull;
-});
+final workoutTemplateByIdProvider = Provider.family<WorkoutTemplateData?, int?>(
+  (ref, id) {
+    if (id == null) return null;
+    final all = ref.watch(workoutTemplatesProvider(-1)).value;
+    return all?.where((t) => t.id == id).firstOrNull;
+  },
+);

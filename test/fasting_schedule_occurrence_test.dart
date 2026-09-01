@@ -61,7 +61,8 @@ void main() {
       // Friday 2026-08-14; Mon+Wed selected -> next is Monday 2026-08-17.
       final from = DateTime(2026, 8, 14, 9, 0);
       final result = nextOccurrence(
-        daysOfWeek: weekdayBit(DateTime.monday) | weekdayBit(DateTime.wednesday),
+        daysOfWeek:
+            weekdayBit(DateTime.monday) | weekdayBit(DateTime.wednesday),
         startTimeMinutes: 7 * 60,
         from: from,
       );
@@ -80,21 +81,69 @@ void main() {
     });
   });
 
-  group('nextOccurrences', () {
-    test('returns count consecutive matches, each a week apart for a single day', () {
-      final from = DateTime(2026, 8, 14, 9, 0); // Friday
-      final results = nextOccurrences(
+  group('mostRecentOccurrence', () {
+    test('returns null when no days are selected', () {
+      final result = mostRecentOccurrence(
+        daysOfWeek: 0,
+        startTimeMinutes: 20 * 60,
+        from: DateTime(2026, 8, 14, 21, 0),
+      );
+      expect(result, isNull);
+    });
+
+    test('returns same-day match when time has already passed today', () {
+      // 2026-08-14 is Friday. 21:00 is after 20:00.
+      final from = DateTime(2026, 8, 14, 21, 0);
+      final result = mostRecentOccurrence(
         daysOfWeek: weekdayBit(DateTime.friday),
         startTimeMinutes: 20 * 60,
         from: from,
-        count: 3,
       );
-      expect(results, [
-        DateTime(2026, 8, 14, 20, 0),
-        DateTime(2026, 8, 21, 20, 0),
-        DateTime(2026, 8, 28, 20, 0),
-      ]);
+      expect(result, DateTime(2026, 8, 14, 20, 0));
     });
+
+    test('returns previous occurrence when time has not arrived yet today', () {
+      // 2026-08-14 is Friday. 19:00 is before 20:00.
+      // Friday only -> most recent is previous Friday (2026-08-07 20:00).
+      final from = DateTime(2026, 8, 14, 19, 0);
+      final result = mostRecentOccurrence(
+        daysOfWeek: weekdayBit(DateTime.friday),
+        startTimeMinutes: 20 * 60,
+        from: from,
+      );
+      expect(result, DateTime(2026, 8, 7, 20, 0));
+    });
+
+    test('returns yesterday when every day is selected', () {
+      // Friday 08:00 before 20:00 -> returns Thursday 20:00.
+      final from = DateTime(2026, 8, 14, 8, 0);
+      final result = mostRecentOccurrence(
+        daysOfWeek: kAllWeekdays,
+        startTimeMinutes: 20 * 60,
+        from: from,
+      );
+      expect(result, DateTime(2026, 8, 13, 20, 0));
+    });
+  });
+
+  group('nextOccurrences', () {
+    test(
+      'returns count consecutive matches, each a week apart for a single day',
+      () {
+        final from = DateTime(2026, 8, 14, 9, 0); // Friday
+        final results = nextOccurrences(
+          daysOfWeek: weekdayBit(DateTime.friday),
+          startTimeMinutes: 20 * 60,
+          from: from,
+          count: 3,
+        );
+        expect(results, [
+          DateTime(2026, 8, 14, 20, 0),
+          DateTime(2026, 8, 21, 20, 0),
+          DateTime(2026, 8, 28, 20, 0),
+        ]);
+      },
+    );
 
     test('returns an empty list when no days are selected', () {
       final results = nextOccurrences(
@@ -119,10 +168,13 @@ void main() {
       expect(formatDaysOfWeek(kWeekendBits), 'Weekends');
     });
 
-    test('formatDaysOfWeek lists an arbitrary combination in Mon..Sun order', () {
-      final mask = weekdayBit(DateTime.friday) | weekdayBit(DateTime.monday);
-      expect(formatDaysOfWeek(mask), 'Mon · Fri');
-    });
+    test(
+      'formatDaysOfWeek lists an arbitrary combination in Mon..Sun order',
+      () {
+        final mask = weekdayBit(DateTime.friday) | weekdayBit(DateTime.monday);
+        expect(formatDaysOfWeek(mask), 'Mon · Fri');
+      },
+    );
   });
 
   group('plan resolution', () {
@@ -143,18 +195,24 @@ void main() {
       );
     });
 
-    test('resolveScheduleTargetSeconds uses customTargetSeconds for custom', () {
-      expect(
-        resolveScheduleTargetSeconds(FastingPlan.custom.name, 20 * 3600),
-        20 * 3600,
-      );
-    });
+    test(
+      'resolveScheduleTargetSeconds uses customTargetSeconds for custom',
+      () {
+        expect(
+          resolveScheduleTargetSeconds(FastingPlan.custom.name, 20 * 3600),
+          20 * 3600,
+        );
+      },
+    );
 
-    test('resolveScheduleTargetSeconds falls back to 16h when custom has no value', () {
-      expect(
-        resolveScheduleTargetSeconds(FastingPlan.custom.name, null),
-        16 * 3600,
-      );
-    });
+    test(
+      'resolveScheduleTargetSeconds falls back to 16h when custom has no value',
+      () {
+        expect(
+          resolveScheduleTargetSeconds(FastingPlan.custom.name, null),
+          16 * 3600,
+        );
+      },
+    );
   });
 }

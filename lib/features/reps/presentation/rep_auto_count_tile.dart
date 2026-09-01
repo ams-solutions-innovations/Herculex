@@ -81,8 +81,8 @@ class RepAutoCountTile extends ConsumerWidget {
               'push-ups and other hands-fixed moves need your phone in a '
               'pocket — your hands barely move, so the watch cannot see them.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  ),
+                color: AppColors.onSurfaceVariant,
+              ),
             ),
           ),
       ],

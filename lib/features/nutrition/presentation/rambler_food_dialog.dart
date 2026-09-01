@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../fasting/presentation/fasting_food_log_dialog.dart';
 import '../data/gemini_food_analyzer_service.dart';
 import '../data/speech_to_text_service.dart';
 import '../domain/meal_slots.dart';
@@ -13,11 +14,7 @@ class RamblerFoodDialog extends ConsumerStatefulWidget {
   final DateTime date;
   final String? initialMealKey;
 
-  const RamblerFoodDialog({
-    super.key,
-    required this.date,
-    this.initialMealKey,
-  });
+  const RamblerFoodDialog({super.key, required this.date, this.initialMealKey});
 
   static Future<bool?> show(
     BuildContext context, {
@@ -28,10 +25,8 @@ class RamblerFoodDialog extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => RamblerFoodDialog(
-        date: date,
-        initialMealKey: initialMealKey,
-      ),
+      builder: (_) =>
+          RamblerFoodDialog(date: date, initialMealKey: initialMealKey),
     );
   }
 
@@ -62,9 +57,10 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.25).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 1.0,
+      end: 1.25,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     // Pre-initialize STT
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -150,6 +146,9 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
 
   Future<void> _logAllItems() async {
     if (_editableItems.isEmpty) return;
+
+    final proceed = await confirmEndFastOnFoodLog(context, ref);
+    if (!proceed || !mounted) return;
 
     setState(() {
       _isSaving = true;
@@ -532,14 +531,8 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
   }
 
   Widget _buildResultsSection(ThemeData theme) {
-    final totalKcal = _editableItems.fold<double>(
-      0,
-      (s, i) => s + i.totalKcal,
-    );
-    final totalP = _editableItems.fold<double>(
-      0,
-      (s, i) => s + i.totalProtein,
-    );
+    final totalKcal = _editableItems.fold<double>(0, (s, i) => s + i.totalKcal);
+    final totalP = _editableItems.fold<double>(0, (s, i) => s + i.totalProtein);
     final totalC = _editableItems.fold<double>(0, (s, i) => s + i.totalCarbs);
     final totalF = _editableItems.fold<double>(0, (s, i) => s + i.totalFat);
 
@@ -758,10 +751,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.macroKcal.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),

@@ -30,12 +30,9 @@ class ProteinWidgetProvider : AppWidgetProvider() {
     }
 
     private fun buildViews(context: Context, current: Int, target: Int): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_pill_macro)
-        val accentColor = Color.parseColor("#FF9F0A") // Gold/orange — matches app's protein ring
+        val views = RemoteViews(context.packageName, R.layout.widget_pill_protein)
 
         views.setTextViewText(R.id.macro_label, "PROTEIN")
-        views.setInt(R.id.macro_dot, "setColorFilter", accentColor)
-        views.setInt(R.id.macro_progress, "setProgressTintList", accentColor)
 
         if (current < 0) {
             views.setTextViewText(R.id.macro_current, "—")

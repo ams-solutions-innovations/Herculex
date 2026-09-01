@@ -43,7 +43,9 @@ class JointPainRepository {
     DateTime? at,
   }) async {
     final now = at ?? DateTime.now();
-    await _db.into(_db.jointPainLogs).insert(
+    await _db
+        .into(_db.jointPainLogs)
+        .insert(
           JointPainLogsCompanion.insert(
             dateIso: _formatDateIso(now),
             loggedAt: Value(now),

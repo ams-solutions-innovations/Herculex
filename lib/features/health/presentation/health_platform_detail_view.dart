@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/glass_container.dart';
 import '../domain/health_read_state.dart';
 import 'health_providers.dart';
@@ -26,7 +27,9 @@ class _HealthPlatformDetailViewState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _hydratePermissionStatus());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _hydratePermissionStatus(),
+    );
   }
 
   /// Reconciles this platform's "connected" toggle with the real OS grant,
@@ -319,28 +322,10 @@ class _HealthPlatformDetailViewState
     final bidirectional = ref.watch(_bidirectionalProvider);
     final lastSync = ref.watch(lastHealthSyncTimestampProvider);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          _title.toUpperCase(),
-          style: theme.textTheme.titleMedium?.copyWith(
-            letterSpacing: 2.0,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 120),
-        children: [
-          // ── Header card ───────────────────────────────────────────────────
+    return HxScreenShell(
+      title: _title,
+      children: [
+        // ── Header card ───────────────────────────────────────────────────
           _buildHeaderCard(theme, isConnected, lastSync, platformKey),
           const SizedBox(height: 24),
 
@@ -400,8 +385,11 @@ class _HealthPlatformDetailViewState
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.watch_rounded,
-                            size: 18, color: AppColors.primary),
+                        Icon(
+                          Icons.watch_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'WATCH SYNC (GALAXY WATCH)',
@@ -465,9 +453,8 @@ class _HealthPlatformDetailViewState
             ),
           ],
         ],
-      ),
-    );
-  }
+      );
+    }
 
   // ─── Sub-widgets ──────────────────────────────────────────────────────────
 

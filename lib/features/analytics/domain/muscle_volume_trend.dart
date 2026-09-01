@@ -72,7 +72,10 @@ abstract final class MuscleVolumeTrends {
       final weekIndex = completedAt.difference(firstWeekStart).inDays ~/ 7;
       if (weekIndex < 0 || weekIndex >= weekCount) continue;
 
-      final involvement = MuscleRecoveryV3.involvementFor(rs, musclesByExercise);
+      final involvement = MuscleRecoveryV3.involvementFor(
+        rs,
+        musclesByExercise,
+      );
       for (final (muscle, w) in involvement) {
         final bucket = setsByMuscle[muscle];
         if (bucket == null) continue;
@@ -95,8 +98,9 @@ abstract final class MuscleVolumeTrends {
       for (var i = 0; i < weekStarts.length; i++)
         WeeklyMuscleSets(weekStart: weekStarts[i], sets: setCounts[i]),
     ];
-    final average =
-        setCounts.isEmpty ? 0.0 : setCounts.reduce((a, b) => a + b) / setCounts.length;
+    final average = setCounts.isEmpty
+        ? 0.0
+        : setCounts.reduce((a, b) => a + b) / setCounts.length;
 
     return MuscleVolumeTrend(
       muscle: muscle,

@@ -26,13 +26,17 @@ final activeProgramsProvider = FutureProvider<List<ProgramData>>((ref) {
   return ref.watch(programsRepositoryProvider).getActivePrograms();
 });
 
-final programWeeksProvider =
-    StreamProvider.family<List<ProgramWeekData>, int>((ref, programId) {
+final programWeeksProvider = StreamProvider.family<List<ProgramWeekData>, int>((
+  ref,
+  programId,
+) {
   return ref.watch(programsRepositoryProvider).watchProgramWeeks(programId);
 });
 
-final programDaysProvider =
-    StreamProvider.family<List<ProgramDayData>, int>((ref, weekId) {
+final programDaysProvider = StreamProvider.family<List<ProgramDayData>, int>((
+  ref,
+  weekId,
+) {
   return ref.watch(programsRepositoryProvider).watchProgramDaysForWeek(weekId);
 });
 
@@ -115,25 +119,26 @@ final scheduleRangeProvider =
     });
 
 /// The same rows bucketed by `dateIso`, for the week board and month grid.
-final scheduleByDateProvider = StreamProvider.family<
-  Map<String, List<ScheduledWorkoutRow>>,
-  ScheduleRange
->((ref, range) {
-  return ref
-      .watch(programsRepositoryProvider)
-      .watchScheduleRange(
-        fromIso: range.fromIso,
-        toIso: range.toIso,
-        programId: range.programId,
-      )
-      .map((rows) {
-        final byDate = <String, List<ScheduledWorkoutRow>>{};
-        for (final row in rows) {
-          (byDate[row.dateIso] ??= []).add(row);
-        }
-        return byDate;
-      });
-});
+final scheduleByDateProvider =
+    StreamProvider.family<
+      Map<String, List<ScheduledWorkoutRow>>,
+      ScheduleRange
+    >((ref, range) {
+      return ref
+          .watch(programsRepositoryProvider)
+          .watchScheduleRange(
+            fromIso: range.fromIso,
+            toIso: range.toIso,
+            programId: range.programId,
+          )
+          .map((rows) {
+            final byDate = <String, List<ScheduledWorkoutRow>>{};
+            for (final row in rows) {
+              (byDate[row.dateIso] ??= []).add(row);
+            }
+            return byDate;
+          });
+    });
 
 final externalEventsProvider = StreamProvider<List<ExternalEventData>>((ref) {
   return ref.watch(programsRepositoryProvider).watchExternalEvents();
@@ -209,9 +214,8 @@ final rotationMembersProvider =
 /// Computes the per-muscle weekly set volume breakdown for any program in the database.
 final programVolumeBreakdownProvider =
     FutureProvider.family<ProgramVolumeBreakdown, int>((ref, programId) {
-  final db = ref.watch(appDatabaseProvider);
-  // Invalidate / re-compute when weeks change
-  ref.watch(programWeeksProvider(programId));
-  return ProgramVolumeCalculator.computeFromDatabase(db, programId);
-});
-
+      final db = ref.watch(appDatabaseProvider);
+      // Invalidate / re-compute when weeks change
+      ref.watch(programWeeksProvider(programId));
+      return ProgramVolumeCalculator.computeFromDatabase(db, programId);
+    });

@@ -25,14 +25,17 @@ class NutrientOverviewView extends ConsumerWidget {
     final date = ref.watch(selectedDateProvider);
     final foodTotals =
         ref.watch(dailyTotalsProvider(date)).asData?.value ?? DailyTotals.empty;
-    final targets = ref.watch(effectiveTargetsProvider(date)).asData?.value ??
+    final targets =
+        ref.watch(effectiveTargetsProvider(date)).asData?.value ??
         ref.watch(baselineTargetsProvider);
 
     // Supplement doses count towards micronutrients (§4), but only for today —
     // the taken-set is stored per day and pruned after a week.
     final now = ref.watch(clockProvider).now();
-    final isToday =
-        DateUtils.isSameDay(date, DateTime(now.year, now.month, now.day));
+    final isToday = DateUtils.isSameDay(
+      date,
+      DateTime(now.year, now.month, now.day),
+    );
     final intake = isToday
         ? ref.watch(supplementIntakeTodayProvider)
         : SupplementIntake.empty;
@@ -47,13 +50,17 @@ class NutrientOverviewView extends ConsumerWidget {
       children: isEmpty
           ? [
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 48,
+                  horizontal: 24,
+                ),
                 child: Center(
                   child: Text(
                     'Nothing logged on ${DateFormat('EEE, MMM d').format(date)} yet.',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: AppColors.secondary),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.secondary,
+                    ),
                   ),
                 ),
               ),
@@ -61,8 +68,9 @@ class NutrientOverviewView extends ConsumerWidget {
           : [
               Text(
                 DateFormat('EEEE, d MMMM').format(date),
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.secondary),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.secondary,
+                ),
               ),
               const SizedBox(height: 20),
               _EnergySplitCard(totals: totals, targets: targets),
@@ -76,12 +84,13 @@ class NutrientOverviewView extends ConsumerWidget {
               Text(
                 intake.nutrients.isEmpty
                     ? 'Shown as a share of the daily reference intake. Bars '
-                        'are capped at 100%; foods without data contribute '
-                        'nothing.'
+                          'are capped at 100%; foods without data contribute '
+                          'nothing.'
                     : 'Includes today\'s ticked supplements. Shown as a '
-                        'share of the daily reference intake.',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: AppColors.secondary),
+                          'share of the daily reference intake.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
               ),
               if (intake.untrackedNames.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -90,8 +99,9 @@ class NutrientOverviewView extends ConsumerWidget {
                   '${intake.untrackedNames.length == 1 ? 'has' : 'have'} no '
                   'per-dose nutrients set, so nothing is counted for '
                   '${intake.untrackedNames.length == 1 ? 'it' : 'them'}.',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: AppColors.secondary),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
                 ),
               ],
               const SizedBox(height: 12),
@@ -107,12 +117,11 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text,
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.bold),
-      );
+    text,
+    style: Theme.of(
+      context,
+    ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+  );
 }
 
 /// Donut-free energy split: a single stacked bar plus the three shares, which
@@ -145,21 +154,30 @@ class _EnergySplitCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                child: Text('ENERGY',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondary, letterSpacing: 1.2)),
+                child: Text(
+                  'ENERGY',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.2,
+                  ),
+                ),
               ),
-              Text('${totals.kcal.round()}',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.macroKcal)),
+              Text(
+                '${totals.kcal.round()}',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.macroKcal,
+                ),
+              ),
               const SizedBox(width: 5),
               Padding(
                 padding: const EdgeInsets.only(bottom: 5),
                 child: Text(
-                    targets == null ? 'kcal' : 'of ${targets!.kcal} kcal',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: AppColors.secondary)),
+                  targets == null ? 'kcal' : 'of ${targets!.kcal} kcal',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -175,12 +193,17 @@ class _EnergySplitCard extends StatelessWidget {
                   : Row(
                       children: [
                         Expanded(
-                          flex:
-                              (split.proteinShare * 1000).round().clamp(0, 1000),
+                          flex: (split.proteinShare * 1000).round().clamp(
+                            0,
+                            1000,
+                          ),
                           child: ColoredBox(color: AppColors.macroProtein),
                         ),
                         Expanded(
-                          flex: (split.carbsShare * 1000).round().clamp(0, 1000),
+                          flex: (split.carbsShare * 1000).round().clamp(
+                            0,
+                            1000,
+                          ),
                           child: ColoredBox(color: AppColors.macroCarbs),
                         ),
                         Expanded(
@@ -194,8 +217,12 @@ class _EnergySplitCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              _legend(theme, 'Protein', split.proteinShare,
-                  AppColors.macroProtein),
+              _legend(
+                theme,
+                'Protein',
+                split.proteinShare,
+                AppColors.macroProtein,
+              ),
               _legend(theme, 'Carbs', split.carbsShare, AppColors.macroCarbs),
               _legend(theme, 'Fat', split.fatShare, AppColors.macroFat),
             ],
@@ -210,15 +237,17 @@ class _EnergySplitCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-                width: 9,
-                height: 9,
-                decoration:
-                    BoxDecoration(color: color, shape: BoxShape.circle)),
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
             const SizedBox(width: 6),
             Flexible(
-              child: Text('$label ${(share * 100).round()}%',
-                  style: theme.textTheme.bodySmall,
-                  overflow: TextOverflow.ellipsis),
+              child: Text(
+                '$label ${(share * 100).round()}%',
+                style: theme.textTheme.bodySmall,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -268,17 +297,19 @@ class _NutrientBars extends StatelessWidget {
   /// Resolves a tracked nutrient's total, preferring the dedicated column
   /// where one exists and falling back to the free-form micros map.
   double? _valueFor(NutrientDefinition d) => switch (d.id) {
-        'fiber' => totals.fiberG > 0 ? totals.fiberG : totals.nutrient('fiber'),
-        'sodium' =>
-          totals.sodiumMg > 0 ? totals.sodiumMg : totals.nutrient('sodium'),
-        'potassium' => totals.potassiumMg > 0
-            ? totals.potassiumMg
-            : totals.nutrient('potassium'),
-        'cholesterol' => totals.cholesterolMg > 0
-            ? totals.cholesterolMg
-            : totals.nutrient('cholesterol'),
-        _ => totals.nutrient(d.id),
-      };
+    'fiber' => totals.fiberG > 0 ? totals.fiberG : totals.nutrient('fiber'),
+    'sodium' =>
+      totals.sodiumMg > 0 ? totals.sodiumMg : totals.nutrient('sodium'),
+    'potassium' =>
+      totals.potassiumMg > 0
+          ? totals.potassiumMg
+          : totals.nutrient('potassium'),
+    'cholesterol' =>
+      totals.cholesterolMg > 0
+          ? totals.cholesterolMg
+          : totals.nutrient('cholesterol'),
+    _ => totals.nutrient(d.id),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -346,17 +377,22 @@ class _NutrientBar extends StatelessWidget {
               Text(
                 '${_fmt(value)} $unit'
                 '${t == null ? '' : ' / ${_fmt(t)} $unit'}',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: AppColors.secondary),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
               ),
               if (pct != null) ...[
                 const SizedBox(width: 8),
                 SizedBox(
                   width: 42,
-                  child: Text('${(pct * 100).round()}%',
-                      textAlign: TextAlign.right,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold, color: barColor)),
+                  child: Text(
+                    '${(pct * 100).round()}%',
+                    textAlign: TextAlign.right,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: barColor,
+                    ),
+                  ),
                 ),
               ],
             ],

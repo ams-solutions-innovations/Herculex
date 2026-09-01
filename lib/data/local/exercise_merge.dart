@@ -137,16 +137,16 @@ class ExerciseMergeEngine {
 
       // 6. The importer rewrites the winner's muscle and alias rows anyway;
       //    the loser's would be orphaned.
-      await (_db.delete(_db.exerciseMuscles)
-            ..where((t) => t.exerciseId.equals(loser.id)))
-          .go();
-      await (_db.delete(_db.exerciseAliases)
-            ..where((t) => t.exerciseId.equals(loser.id)))
-          .go();
+      await (_db.delete(
+        _db.exerciseMuscles,
+      )..where((t) => t.exerciseId.equals(loser.id))).go();
+      await (_db.delete(
+        _db.exerciseAliases,
+      )..where((t) => t.exerciseId.equals(loser.id))).go();
 
-      await (_db.delete(_db.exerciseCatalog)
-            ..where((t) => t.id.equals(loser.id)))
-          .go();
+      await (_db.delete(
+        _db.exerciseCatalog,
+      )..where((t) => t.id.equals(loser.id))).go();
 
       return ExerciseMergeOutcome(
         merge: merge,
@@ -158,13 +158,13 @@ class ExerciseMergeEngine {
 
   /// Looks up by slug first, then by exact name.
   Future<ExerciseCatalogData?> _resolve(String slugOrName) async {
-    final bySlug = await (_db.select(_db.exerciseCatalog)
-          ..where((t) => t.slug.equals(slugOrName)))
-        .getSingleOrNull();
+    final bySlug = await (_db.select(
+      _db.exerciseCatalog,
+    )..where((t) => t.slug.equals(slugOrName))).getSingleOrNull();
     if (bySlug != null) return bySlug;
-    return (_db.select(_db.exerciseCatalog)
-          ..where((t) => t.name.equals(slugOrName)))
-        .getSingleOrNull();
+    return (_db.select(
+      _db.exerciseCatalog,
+    )..where((t) => t.name.equals(slugOrName))).getSingleOrNull();
   }
 
   Future<int> _repointWithVariant(
@@ -209,10 +209,12 @@ class ExerciseMergeEngine {
   }
 
   Future<int> _countReferences(String table, int exerciseId) async {
-    final rows = await _db.customSelect(
-      'SELECT COUNT(*) AS c FROM $table WHERE exercise_id = ?',
-      variables: [Variable<int>(exerciseId)],
-    ).get();
+    final rows = await _db
+        .customSelect(
+          'SELECT COUNT(*) AS c FROM $table WHERE exercise_id = ?',
+          variables: [Variable<int>(exerciseId)],
+        )
+        .get();
     return rows.first.read<int>('c');
   }
 
@@ -220,10 +222,9 @@ class ExerciseMergeEngine {
     final trimmed = alias.trim();
     if (trimmed.isEmpty) return;
     final existing =
-        await (_db.select(_db.exerciseAliases)
-              ..where(
-                (t) => t.exerciseId.equals(exerciseId) & t.alias.equals(trimmed),
-              ))
+        await (_db.select(_db.exerciseAliases)..where(
+              (t) => t.exerciseId.equals(exerciseId) & t.alias.equals(trimmed),
+            ))
             .getSingleOrNull();
     if (existing != null) return;
     await _db

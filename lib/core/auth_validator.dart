@@ -46,7 +46,10 @@ class AuthValidator {
   }
 
   /// Validates a password. Returns an error message if invalid, or null if valid.
-  static String? validatePassword(String? value, {bool isRegistration = false}) {
+  static String? validatePassword(
+    String? value, {
+    bool isRegistration = false,
+  }) {
     if (value == null || value.isEmpty) {
       return 'Please enter your password.';
     }
@@ -113,7 +116,10 @@ class AuthRateLimiter {
     _failedAttempts++;
     if (_failedAttempts >= maxConsecutiveFailures) {
       // Exponential backoff factor for repeated lockout triggers: 30s, 60s, 120s...
-      final multiplier = pow(2, min(_failedAttempts - maxConsecutiveFailures, 3)).toInt();
+      final multiplier = pow(
+        2,
+        min(_failedAttempts - maxConsecutiveFailures, 3),
+      ).toInt();
       final cooldown = baseCooldownSeconds * multiplier;
       _lockoutUntil = DateTime.now().add(Duration(seconds: cooldown));
     }

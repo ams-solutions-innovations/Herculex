@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../domain/preset_program.dart';
 import 'marketplace_providers.dart';
 import 'program_preview_view.dart';
@@ -19,7 +20,8 @@ class ProgramMarketplaceView extends ConsumerStatefulWidget {
       _ProgramMarketplaceViewState();
 }
 
-class _ProgramMarketplaceViewState extends ConsumerState<ProgramMarketplaceView> {
+class _ProgramMarketplaceViewState
+    extends ConsumerState<ProgramMarketplaceView> {
   String _query = '';
   String? _level;
   String? _goal;
@@ -65,88 +67,82 @@ class _ProgramMarketplaceViewState extends ConsumerState<ProgramMarketplaceView>
     final theme = Theme.of(context);
     final catalogAsync = ref.watch(presetCatalogProvider);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'SEARCH PROGRAMS',
-          style: theme.textTheme.titleMedium?.copyWith(letterSpacing: 2.0),
+    return HxScreenShell(
+      title: 'Search Programs',
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: TextField(
+            controller: _ctrl,
+            onChanged: _onQueryChanged,
+            decoration: InputDecoration(
+              hintText: 'Search programs…',
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: AppColors.surfaceContainerLowest,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: TextField(
-                controller: _ctrl,
-                onChanged: _onQueryChanged,
-                decoration: InputDecoration(
-                  hintText: 'Search programs…',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  filled: true,
-                  fillColor: AppColors.surfaceContainerLowest,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+        SizedBox(
+          height: 36,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final level in _levelChips)
+                _FilterChip(
+                  label: level,
+                  selected: _level == level,
+                  onTap: () => setState(
+                    () => _level = _level == level ? null : level,
                   ),
                 ),
-              ),
-            ),
-            SizedBox(
-              height: 36,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  for (final level in _levelChips)
-                    _FilterChip(
-                      label: level,
-                      selected: _level == level,
-                      onTap: () => setState(() => _level = _level == level ? null : level),
-                    ),
-                  const SizedBox(width: 8),
-                  Container(width: 1, color: AppColors.outlineVariant),
-                  const SizedBox(width: 8),
-                  for (final goal in _goalChips)
-                    _FilterChip(
-                      label: goal,
-                      selected: _goal == goal,
-                      onTap: () => setState(() => _goal = _goal == goal ? null : goal),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: catalogAsync.when(
-                data: (programs) {
-                  final filtered = _filter(programs);
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'No programs match your search.',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
-                      ),
-                    );
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) => _ProgramCard(meta: filtered[i]),
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(child: Text('Error: $err')),
-              ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Container(width: 1, color: AppColors.outlineVariant),
+              const SizedBox(width: 8),
+              for (final goal in _goalChips)
+                _FilterChip(
+                  label: goal,
+                  selected: _goal == goal,
+                  onTap: () =>
+                      setState(() => _goal = _goal == goal ? null : goal),
+                ),
+            ],
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        catalogAsync.when(
+          data: (programs) {
+            final filtered = _filter(programs);
+            if (filtered.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(
+                    'No programs match your search.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: [
+                for (var i = 0; i < filtered.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  _ProgramCard(meta: filtered[i]),
+                ],
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error: $err')),
+        ),
+      ],
     );
   }
 }
@@ -156,7 +152,11 @@ class _FilterChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +167,9 @@ class _FilterChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
+            color: selected
+                ? AppColors.primary
+                : AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: selected ? AppColors.primary : AppColors.outlineVariant,
@@ -206,16 +208,25 @@ class _ProgramCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(meta.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              meta.name,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 6),
             Text(
               meta.description,
-              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.secondary,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -234,5 +245,6 @@ class _ProgramCard extends StatelessWidget {
     );
   }
 
-  String _capitalize(String s) => s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+  String _capitalize(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 }

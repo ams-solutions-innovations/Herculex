@@ -30,12 +30,9 @@ class CarbsWidgetProvider : AppWidgetProvider() {
     }
 
     private fun buildViews(context: Context, current: Int, target: Int): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_pill_macro)
-        val accentColor = Color.parseColor("#64D2FF") // Teal — matches app's carb ring
+        val views = RemoteViews(context.packageName, R.layout.widget_pill_carbs)
 
         views.setTextViewText(R.id.macro_label, "NET CARBS")
-        views.setInt(R.id.macro_dot, "setColorFilter", accentColor)
-        views.setInt(R.id.macro_progress, "setProgressTintList", accentColor)
 
         if (current < 0) {
             views.setTextViewText(R.id.macro_current, "—")

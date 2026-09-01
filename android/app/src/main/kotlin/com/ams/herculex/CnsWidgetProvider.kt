@@ -43,12 +43,13 @@ class CnsWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.cns_readiness, "$readiness%")
             views.setTextViewText(R.id.cns_status, status)
 
-            val (textColor, _) = when (status) {
-                "FRESH" -> Pair(Color.parseColor("#30D158"), Color.parseColor("#1A30D158"))
-                "MODERATE" -> Pair(Color.parseColor("#FFD60A"), Color.parseColor("#1AFFD60A"))
-                else -> Pair(Color.parseColor("#FF453A"), Color.parseColor("#1AFF453A"))
+            val (textColor, bgResId) = when (status) {
+                "FRESH" -> Pair(Color.parseColor("#30D158"), R.drawable.widget_badge_green)
+                "MODERATE" -> Pair(Color.parseColor("#FFD60A"), R.drawable.widget_badge_amber)
+                else -> Pair(Color.parseColor("#FF453A"), R.drawable.widget_badge_red)
             }
             views.setTextColor(R.id.cns_status, textColor)
+            views.setInt(R.id.cns_status, "setBackgroundResource", bgResId)
         }
 
         // Tap opens the app

@@ -7,7 +7,9 @@ import '../app/providers.dart';
 import 'colors.dart';
 import 'tokens/tokens.dart';
 
-final themeModeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
+final themeModeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   final saved = prefs.getString('theme_mode') ?? 'system';
   final initial = switch (saved) {
@@ -15,7 +17,7 @@ final themeModeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) 
     'light' => ThemeMode.light,
     _ => ThemeMode.system,
   };
-  
+
   // `main()` already resolved the brightness (including the platform value for
   // `system`) before the first frame, so only an explicit mode overrides it.
   _applyBrightness(initial);
@@ -42,24 +44,24 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
       ThemeMode.light => 'light',
       _ => 'system',
     });
-    
+
     _applyBrightness(mode);
   }
 }
 
 final appColorThemeProvider =
     StateNotifierProvider<AppColorThemeNotifier, AppColorTheme>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  final saved = prefs.getString('app_color_theme') ?? 'classicBlue';
-  final initial = AppColorTheme.values.firstWhere(
-    (t) => t.name == saved,
-    orElse: () => AppColorTheme.classicBlue,
-  );
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final saved = prefs.getString('app_color_theme') ?? 'classicBlue';
+      final initial = AppColorTheme.values.firstWhere(
+        (t) => t.name == saved,
+        orElse: () => AppColorTheme.classicBlue,
+      );
 
-  AppColors.colorTheme = initial;
+      AppColors.colorTheme = initial;
 
-  return AppColorThemeNotifier(initial, prefs);
-});
+      return AppColorThemeNotifier(initial, prefs);
+    });
 
 class AppColorThemeNotifier extends StateNotifier<AppColorTheme> {
   AppColorThemeNotifier(super.initial, this._prefs);
@@ -71,4 +73,3 @@ class AppColorThemeNotifier extends StateNotifier<AppColorTheme> {
     AppColors.colorTheme = theme;
   }
 }
-

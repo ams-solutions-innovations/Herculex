@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -7,7 +9,9 @@ import '../../../theme/haptics.dart';
 import '../../../ui/ui.dart';
 import '../../../widgets/premium_button.dart';
 import '../../dashboard/presentation/dashboard_providers.dart';
+import '../../workouts/presentation/calendar_providers.dart';
 import '../../workouts/presentation/template_builder_view.dart';
+import '../../workouts/presentation/workouts_providers.dart';
 import '../domain/schedule_status.dart';
 import '../domain/scheduled_workout_row.dart';
 import 'programs_providers.dart';
@@ -17,7 +21,11 @@ import 'template_picker_sheet.dart';
 /// Everything you can do to one day of a block: see its sessions, attach or
 /// swap templates, start, skip, move or delete.
 class DayDetailSheet extends ConsumerWidget {
-  const DayDetailSheet({super.key, required this.date, required this.programId});
+  const DayDetailSheet({
+    super.key,
+    required this.date,
+    required this.programId,
+  });
 
   final DateTime date;
   final int? programId;
@@ -39,7 +47,9 @@ class DayDetailSheet extends ConsumerWidget {
     final range = ScheduleRange.week(date, programId: programId);
     final byDate = ref.watch(scheduleByDateProvider(range));
     final iso = _iso(date);
-    final rows = sortedByStartTime(byDate.value?[iso] ?? const <ScheduledWorkoutRow>[]);
+    final rows = sortedByStartTime(
+      byDate.value?[iso] ?? const <ScheduledWorkoutRow>[],
+    );
 
     return HxSheet(
       title: DateFormat('EEEE, MMMM d').format(date),
@@ -175,7 +185,9 @@ class _SessionCard extends ConsumerWidget {
             children: [
               _ActionChip(
                 icon: Icons.library_books_outlined,
-                label: row.isTemplateBacked ? 'Change template' : 'Use template',
+                label: row.isTemplateBacked
+                    ? 'Change template'
+                    : 'Use template',
                 onTap: () => _assignTemplate(context, ref),
               ),
               _ActionChip(
@@ -214,9 +226,19 @@ class _SessionCard extends ConsumerWidget {
                 icon: Icons.delete_outline_rounded,
                 label: 'Delete',
                 destructive: true,
-                onTap: () => ref
-                    .read(programsRepositoryProvider)
-                    .deleteScheduledWorkout(row.id),
+                onTap: () async {
+                  await ref
+                      .read(programsRepositoryProvider)
+                      .deleteScheduledWorkout(row.id);
+                  if (ref.read(calendarSyncEnabledProvider)) {
+                    final calService = ref.read(calendarServiceProvider);
+                    final calId = ref.read(selectedCalendarIdProvider);
+                    unawaited(calService.deleteWorkoutFromCalendar(
+                      row.id,
+                      targetCalendarId: calId,
+                    ));
+                  }
+                },
               ),
             ],
           ),
@@ -322,7 +344,11 @@ class _SessionCard extends ConsumerWidget {
             if (row.hasStartTime)
               IconButton(
                 visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.close_rounded, size: 16, color: AppColors.secondary),
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: AppColors.secondary,
+                ),
                 tooltip: 'Clear start time',
                 onPressed: () => ref
                     .read(programsRepositoryProvider)
@@ -356,7 +382,9 @@ class _SessionCard extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You can only start a session on the day it is scheduled.'),
+          content: Text(
+            'You can only start a session on the day it is scheduled.',
+          ),
         ),
       );
       return;
@@ -407,7 +435,8 @@ class _SessionCard extends ConsumerWidget {
             _ScopeOption(
               icon: Icons.repeat_rounded,
               title: 'Every future ${row.title} day',
-              subtitle: 'Re-links the program day; past sessions are untouched.',
+              subtitle:
+                  'Re-links the program day; past sessions are untouched.',
               onTap: () => Navigator.pop(context, _TemplateScope.everyFuture),
             ),
           ],
@@ -448,6 +477,11 @@ class _SessionCard extends ConsumerWidget {
     await ref
         .read(programsRepositoryProvider)
         .moveScheduledWorkout(scheduleId: row.id, newDate: picked);
+    if (ref.read(calendarSyncEnabledProvider)) {
+      final calService = ref.read(calendarServiceProvider);
+      final calId = ref.read(selectedCalendarIdProvider);
+      unawaited(calService.syncWorkoutNow(row.id, targetCalendarId: calId));
+    }
   }
 }
 

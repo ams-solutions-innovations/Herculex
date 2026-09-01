@@ -63,8 +63,9 @@ void main() {
       final firstImportRow = (await db.select(db.foods).get()).single;
 
       // Force a re-import: reset the marker so runIfNeeded doesn't short-circuit.
-      await (db.delete(db.foodCatalogueMeta)..where((t) => t.id.equals(1)))
-          .go();
+      await (db.delete(
+        db.foodCatalogueMeta,
+      )..where((t) => t.id.equals(1))).go();
 
       // Log an entry against the seeded catalogue food before re-importing —
       // this is the exact scenario that used to throw and roll back the
@@ -98,7 +99,11 @@ void main() {
 
       final rows = await db.select(db.foods).get();
       expect(rows, hasLength(1));
-      expect(rows.single.id, firstImportRow.id, reason: 'updated in place, not replaced');
+      expect(
+        rows.single.id,
+        firstImportRow.id,
+        reason: 'updated in place, not replaced',
+      );
       expect(rows.single.name, 'Test soup (updated)');
       expect(rows.single.kcalPer100g, 130);
 

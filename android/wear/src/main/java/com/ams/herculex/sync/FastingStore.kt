@@ -14,6 +14,11 @@ data class FastingSnapshot(
     val revision: Long = 0L,
     val updatedAtEpochMs: Long = 0L,
     val lastFastDurationSeconds: Long? = null,
+    val nextFastEpochMs: Long? = null,
+    val nextFastPlanName: String? = null,
+    val nextFastTargetSeconds: Long? = null,
+    val hasSchedule: Boolean = false,
+    val currentStageMessage: String? = null,
 ) {
     fun elapsedSeconds(nowEpochMs: Long = System.currentTimeMillis()): Long {
         val start = startedAtEpochMs ?: return 0L
@@ -30,6 +35,34 @@ data class FastingSnapshot(
     fun progress(nowEpochMs: Long = System.currentTimeMillis()): Float {
         if (!hasActiveFast || targetSeconds <= 0L) return 0f
         return (elapsedSeconds(nowEpochMs).toFloat() / targetSeconds.toFloat()).coerceIn(0f, 1f)
+    }
+
+    fun nextFastFormatted(nowEpochMs: Long = System.currentTimeMillis()): String? {
+        val nextMs = nextFastEpochMs ?: return null
+        val calNow = java.util.Calendar.getInstance().apply { timeInMillis = nowEpochMs }
+        val calNext = java.util.Calendar.getInstance().apply { timeInMillis = nextMs }
+
+        val isToday = calNow.get(java.util.Calendar.YEAR) == calNext.get(java.util.Calendar.YEAR) &&
+                calNow.get(java.util.Calendar.DAY_OF_YEAR) == calNext.get(java.util.Calendar.DAY_OF_YEAR)
+        val isTomorrow = calNow.get(java.util.Calendar.YEAR) == calNext.get(java.util.Calendar.YEAR) &&
+                calNow.get(java.util.Calendar.DAY_OF_YEAR) + 1 == calNext.get(java.util.Calendar.DAY_OF_YEAR)
+
+        val timeStr = "%02d:%02d".format(calNext.get(java.util.Calendar.HOUR_OF_DAY), calNext.get(java.util.Calendar.MINUTE))
+        return when {
+            isToday -> "Today $timeStr"
+            isTomorrow -> "Tomorrow $timeStr"
+            else -> timeStr
+        }
+    }
+
+    fun timeUntilNextFast(nowEpochMs: Long = System.currentTimeMillis()): String? {
+        val nextMs = nextFastEpochMs ?: return null
+        val diffMs = nextMs - nowEpochMs
+        if (diffMs <= 0) return "now"
+        val totalMins = diffMs / 60000L
+        val h = totalMins / 60L
+        val m = totalMins % 60L
+        return if (h > 0) "${h}h ${m}m" else "${m}m"
     }
 }
 
@@ -56,6 +89,11 @@ object FastingStore {
             revision = envelope.revision,
             updatedAtEpochMs = envelope.updatedAtEpochMs,
             lastFastDurationSeconds = p.optNullableLong("lastFastDurationSeconds"),
+            nextFastEpochMs = p.optNullableLong("nextFastEpochMs"),
+            nextFastPlanName = p.optString("nextFastPlanName").takeIf { it.isNotBlank() && it != "null" },
+            nextFastTargetSeconds = p.optNullableLong("nextFastTargetSeconds"),
+            hasSchedule = p.optBoolean("hasSchedule", false),
+            currentStageMessage = p.optString("currentStageMessage").takeIf { it.isNotBlank() && it != "null" },
         )
         prefs(context).edit().putString(KEY_SNAPSHOT_JSON, json).apply()
         return snapshot

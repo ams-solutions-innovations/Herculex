@@ -130,11 +130,10 @@ class ChannelSelector {
   static List<ExtractedChannel> allowedBy(
     RepTrackingProfile profile,
     List<ExtractedChannel> available,
-  ) =>
-      [
-        for (final wanted in profile.channels)
-          ...available.where((c) => c.channel == wanted),
-      ];
+  ) => [
+    for (final wanted in profile.channels)
+      ...available.where((c) => c.channel == wanted),
+  ];
 
   // ── primitives ────────────────────────────────────────────────────────────
 

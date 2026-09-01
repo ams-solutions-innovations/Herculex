@@ -8,5 +8,5 @@ import 'package:flutter/services.dart';
 /// light mode.
 SystemUiOverlayStyle overlayStyleFor(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark
-        ? SystemUiOverlayStyle.light
-        : SystemUiOverlayStyle.dark;
+    ? SystemUiOverlayStyle.light
+    : SystemUiOverlayStyle.dark;

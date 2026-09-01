@@ -32,9 +32,8 @@ class PhoneMotionStartRefusal {
     'phone battery too low — count not verified',
   );
 
-  static const PhoneMotionStartRefusal alreadyRunning = PhoneMotionStartRefusal._(
-    'a phone capture is already running',
-  );
+  static const PhoneMotionStartRefusal alreadyRunning =
+      PhoneMotionStartRefusal._('a phone capture is already running');
 
   @override
   String toString() => 'PhoneMotionStartRefusal($reason)';
@@ -70,14 +69,15 @@ class PhoneMotionSource {
     Stream<MotionSample> Function()? accelerometerStream,
     Duration captureCap = const Duration(minutes: 5),
     int minimumBatteryPercent = 15,
-  })  : _repository = repository,
-        _clock = clock,
-        _batteryLevel = batteryLevel,
-        _linearAccelerationStream =
-            linearAccelerationStream ?? _defaultLinearAccelerationStream,
-        _accelerometerStream = accelerometerStream ?? _defaultAccelerometerStream,
-        _captureCap = captureCap,
-        _minimumBatteryPercent = minimumBatteryPercent;
+  }) : _repository = repository,
+       _clock = clock,
+       _batteryLevel = batteryLevel,
+       _linearAccelerationStream =
+           linearAccelerationStream ?? _defaultLinearAccelerationStream,
+       _accelerometerStream =
+           accelerometerStream ?? _defaultAccelerometerStream,
+       _captureCap = captureCap,
+       _minimumBatteryPercent = minimumBatteryPercent;
 
   final RepTrackingRepository _repository;
   final MonotonicClockMs _clock;
@@ -102,7 +102,8 @@ class PhoneMotionSource {
   /// ended the set).
   final StreamController<PhoneMotionCaptureResult> _captureEndedController =
       StreamController<PhoneMotionCaptureResult>.broadcast();
-  Stream<PhoneMotionCaptureResult> get captureEnded => _captureEndedController.stream;
+  Stream<PhoneMotionCaptureResult> get captureEnded =>
+      _captureEndedController.stream;
 
   String? get stateReason => _stateReason;
   String? _stateReason;
@@ -110,12 +111,14 @@ class PhoneMotionSource {
   bool get isCapturing => _subscription != null;
 
   static Stream<MotionSample> _defaultLinearAccelerationStream() =>
-      userAccelerometerEventStream(samplingPeriod: SensorInterval.gameInterval)
-          .map((e) => MotionSample(0, e.x, e.y, e.z));
+      userAccelerometerEventStream(
+        samplingPeriod: SensorInterval.gameInterval,
+      ).map((e) => MotionSample(0, e.x, e.y, e.z));
 
   static Stream<MotionSample> _defaultAccelerometerStream() =>
-      accelerometerEventStream(samplingPeriod: SensorInterval.gameInterval)
-          .map((e) => MotionSample(0, e.x, e.y, e.z));
+      accelerometerEventStream(
+        samplingPeriod: SensorInterval.gameInterval,
+      ).map((e) => MotionSample(0, e.x, e.y, e.z));
 
   /// Attempts to start a capture. Returns a [PhoneMotionStartRefusal] and
   /// registers **no** subscription when refused; returns null on success.
@@ -183,7 +186,8 @@ class PhoneMotionSource {
 
   /// Ends capture normally (`reason == 'user'`) and returns the collected
   /// trace, or null if nothing was running.
-  PhoneMotionCaptureResult? stop({String reason = 'user'}) => _stop(reason: reason);
+  PhoneMotionCaptureResult? stop({String reason = 'user'}) =>
+      _stop(reason: reason);
 
   PhoneMotionCaptureResult? _stop({required String reason}) {
     if (_subscription == null) return null;
@@ -194,7 +198,10 @@ class PhoneMotionSource {
       sensorType: _sensorType!,
     );
     _samples = [];
-    final result = PhoneMotionCaptureResult(trace: trace, stoppedReason: reason);
+    final result = PhoneMotionCaptureResult(
+      trace: trace,
+      stoppedReason: reason,
+    );
     _captureEndedController.add(result);
     return result;
   }

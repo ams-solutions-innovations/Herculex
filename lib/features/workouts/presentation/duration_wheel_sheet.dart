@@ -143,7 +143,9 @@ class _DurationWheelSheetState extends State<DurationWheelSheet> {
         color: AppColors.surfaceContainer,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: Border(
-          top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+          top: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
         ),
       ),
       child: Column(
@@ -217,10 +219,14 @@ class _DurationWheelSheetState extends State<DurationWheelSheet> {
             builder: (context, constraints) {
               final dialSize = math.min(constraints.maxWidth * 0.72, 240.0);
               return GestureDetector(
-                onPanStart: (details) =>
-                    _onPanStart(details.localPosition, Size(dialSize, dialSize)),
-                onPanUpdate: (details) =>
-                    _onPanUpdate(details.localPosition, Size(dialSize, dialSize)),
+                onPanStart: (details) => _onPanStart(
+                  details.localPosition,
+                  Size(dialSize, dialSize),
+                ),
+                onPanUpdate: (details) => _onPanUpdate(
+                  details.localPosition,
+                  Size(dialSize, dialSize),
+                ),
                 onPanEnd: (_) => _onPanEnd(),
                 child: SizedBox(
                   width: dialSize,
@@ -299,35 +305,17 @@ class _DurationWheelSheetState extends State<DurationWheelSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _StepButton(
-                  label: '-1m',
-                  onTap: () => _adjustSeconds(-60),
-                ),
+                _StepButton(label: '-1m', onTap: () => _adjustSeconds(-60)),
                 const SizedBox(width: 8),
-                _StepButton(
-                  label: '-15s',
-                  onTap: () => _adjustSeconds(-15),
-                ),
+                _StepButton(label: '-15s', onTap: () => _adjustSeconds(-15)),
                 const SizedBox(width: 8),
-                _StepButton(
-                  label: '-5s',
-                  onTap: () => _adjustSeconds(-5),
-                ),
+                _StepButton(label: '-5s', onTap: () => _adjustSeconds(-5)),
                 const SizedBox(width: 8),
-                _StepButton(
-                  label: '+5s',
-                  onTap: () => _adjustSeconds(5),
-                ),
+                _StepButton(label: '+5s', onTap: () => _adjustSeconds(5)),
                 const SizedBox(width: 8),
-                _StepButton(
-                  label: '+15s',
-                  onTap: () => _adjustSeconds(15),
-                ),
+                _StepButton(label: '+15s', onTap: () => _adjustSeconds(15)),
                 const SizedBox(width: 8),
-                _StepButton(
-                  label: '+1m',
-                  onTap: () => _adjustSeconds(60),
-                ),
+                _StepButton(label: '+1m', onTap: () => _adjustSeconds(60)),
               ],
             ),
           ),
@@ -353,8 +341,12 @@ class _DurationWheelSheetState extends State<DurationWheelSheet> {
                         : AppColors.outlineVariant.withValues(alpha: 0.5),
                   ),
                   labelStyle: TextStyle(
-                    color: isSelected ? Colors.tealAccent.shade400 : AppColors.onSurface,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected
+                        ? Colors.tealAccent.shade400
+                        : AppColors.onSurface,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                     fontSize: 12,
                   ),
                   onSelected: (_) => _setExactSeconds(sec),

@@ -39,7 +39,8 @@ class HxToastNotifier extends StateNotifier<HxToastState> {
     if (state.current == null) {
       _display(item);
     } else {
-      if (!state.queue.any((q) => q.id == item.id) && state.current?.id != item.id) {
+      if (!state.queue.any((q) => q.id == item.id) &&
+          state.current?.id != item.id) {
         state = state.copyWith(queue: [...state.queue, item]);
       }
     }
@@ -88,5 +89,5 @@ class HxToastNotifier extends StateNotifier<HxToastState> {
 
 final hxToastControllerProvider =
     StateNotifierProvider<HxToastNotifier, HxToastState>((ref) {
-  return HxToastNotifier();
-});
+      return HxToastNotifier();
+    });

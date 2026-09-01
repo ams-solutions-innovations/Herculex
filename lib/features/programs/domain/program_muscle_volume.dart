@@ -146,30 +146,63 @@ class ProgramVolumeCalculator {
     final lower = exerciseName.toLowerCase();
     if (lower.contains('shrug')) return 'Traps';
     if (lower.contains('neck')) return 'Neck';
-    if (lower.contains('bench') || lower.contains('chest') || lower.contains('fly') || lower.contains('push-up') || lower.contains('pushup') || lower.contains('pec')) {
+    if (lower.contains('bench') ||
+        lower.contains('chest') ||
+        lower.contains('fly') ||
+        lower.contains('push-up') ||
+        lower.contains('pushup') ||
+        lower.contains('pec')) {
       return 'Chest';
     }
-    if (lower.contains('row') || lower.contains('pull-up') || lower.contains('pullup') || lower.contains('pulldown') || lower.contains('chin-up') || lower.contains('deadlift') || lower.contains('lat')) {
+    if (lower.contains('row') ||
+        lower.contains('pull-up') ||
+        lower.contains('pullup') ||
+        lower.contains('pulldown') ||
+        lower.contains('chin-up') ||
+        lower.contains('deadlift') ||
+        lower.contains('lat')) {
       if (lower.contains('upright row')) return 'Shoulders';
-      if (lower.contains('romanian deadlift') || lower.contains('rdl')) return 'Hamstrings';
+      if (lower.contains('romanian deadlift') || lower.contains('rdl'))
+        return 'Hamstrings';
       return 'Back';
     }
-    if (lower.contains('overhead press') || lower.contains('military press') || lower.contains('shoulder') || lower.contains('lateral raise') || lower.contains('front raise') || lower.contains('upright row')) {
+    if (lower.contains('overhead press') ||
+        lower.contains('military press') ||
+        lower.contains('shoulder') ||
+        lower.contains('lateral raise') ||
+        lower.contains('front raise') ||
+        lower.contains('upright row')) {
       return 'Shoulders';
     }
-    if (lower.contains('bicep') || (lower.contains('curl') && !lower.contains('leg curl') && !lower.contains('wrist curl') && !lower.contains('neck curl'))) {
+    if (lower.contains('bicep') ||
+        (lower.contains('curl') &&
+            !lower.contains('leg curl') &&
+            !lower.contains('wrist curl') &&
+            !lower.contains('neck curl'))) {
       if (lower.contains('reverse curl') || lower.contains('hammer curl')) {
         return 'Biceps';
       }
       return 'Biceps';
     }
-    if (lower.contains('tricep') || lower.contains('french press') || lower.contains('skull crusher') || lower.contains('skullcrusher') || lower.contains('dip')) {
+    if (lower.contains('tricep') ||
+        lower.contains('french press') ||
+        lower.contains('skull crusher') ||
+        lower.contains('skullcrusher') ||
+        lower.contains('dip')) {
       return 'Triceps';
     }
-    if (lower.contains('squat') || lower.contains('leg press') || lower.contains('leg extension') || lower.contains('lunge') || lower.contains('split squat')) {
+    if (lower.contains('squat') ||
+        lower.contains('leg press') ||
+        lower.contains('leg extension') ||
+        lower.contains('lunge') ||
+        lower.contains('split squat')) {
       return 'Quads';
     }
-    if (lower.contains('leg curl') || lower.contains('romanian') || lower.contains('rdl') || lower.contains('good morning') || lower.contains('hamstring')) {
+    if (lower.contains('leg curl') ||
+        lower.contains('romanian') ||
+        lower.contains('rdl') ||
+        lower.contains('good morning') ||
+        lower.contains('hamstring')) {
       return 'Hamstrings';
     }
     if (lower.contains('hip thrust') || lower.contains('glute')) {
@@ -178,10 +211,19 @@ class ProgramVolumeCalculator {
     if (lower.contains('calf') || lower.contains('calves')) {
       return 'Calves';
     }
-    if (lower.contains('crunch') || lower.contains('sit-up') || lower.contains('situp') || lower.contains('plank') || lower.contains('leg raise') || lower.contains('russian twist') || lower.contains('ab ')) {
+    if (lower.contains('crunch') ||
+        lower.contains('sit-up') ||
+        lower.contains('situp') ||
+        lower.contains('plank') ||
+        lower.contains('leg raise') ||
+        lower.contains('russian twist') ||
+        lower.contains('ab ')) {
       return 'Abs';
     }
-    if (lower.contains('wrist') || lower.contains('forearm') || lower.contains('farmer') || lower.contains('carry')) {
+    if (lower.contains('wrist') ||
+        lower.contains('forearm') ||
+        lower.contains('farmer') ||
+        lower.contains('carry')) {
       return 'Forearms';
     }
 
@@ -221,7 +263,8 @@ class ProgramVolumeCalculator {
   }) {
     if (doc.rows.isEmpty) return ProgramVolumeBreakdown.empty;
 
-    final weekIndices = doc.rows.map((r) => r.weekIndex).toSet().toList()..sort();
+    final weekIndices = doc.rows.map((r) => r.weekIndex).toSet().toList()
+      ..sort();
     final totalWeeks = doc.weeks > 0 ? doc.weeks : weekIndices.length;
     final model = PeriodizationModel.fromId(doc.periodizationModel);
     final plan = Periodization.plan(model, totalWeeks);
@@ -238,12 +281,15 @@ class ProgramVolumeCalculator {
       if (isDeload) {
         label = 'Week ${w + 1} (Deload)';
       } else if (phase != null && phase.isNotEmpty) {
-        label = 'Week ${w + 1} (${phase[0].toUpperCase()}${phase.substring(1)})';
+        label =
+            'Week ${w + 1} (${phase[0].toUpperCase()}${phase.substring(1)})';
       }
 
       final weekRows = doc.rows.where((r) => r.weekIndex == w).toList();
       // If the CSV only defines week 0, use week 0 template for remaining weeks
-      final rowsToUse = weekRows.isNotEmpty ? weekRows : doc.rows.where((r) => r.weekIndex == 0).toList();
+      final rowsToUse = weekRows.isNotEmpty
+          ? weekRows
+          : doc.rows.where((r) => r.weekIndex == 0).toList();
 
       final muscleSets = <String, double>{};
       double weekTotalSets = 0;
@@ -261,36 +307,31 @@ class ProgramVolumeCalculator {
 
       final entries = muscleSets.entries.map((e) {
         final pct = weekTotalSets > 0 ? (e.value / weekTotalSets) * 100 : 0.0;
-        return MuscleVolumeEntry(
-          muscle: e.key,
-          sets: e.value,
-          percentage: pct,
-        );
-      }).toList()
-        ..sort((a, b) => b.sets.compareTo(a.sets));
+        return MuscleVolumeEntry(muscle: e.key, sets: e.value, percentage: pct);
+      }).toList()..sort((a, b) => b.sets.compareTo(a.sets));
 
-      weeklyBreakdowns.add(WeeklyMuscleBreakdown(
-        weekIndex: w,
-        weekLabel: label,
-        totalSets: weekTotalSets,
-        volumes: entries,
-      ));
+      weeklyBreakdowns.add(
+        WeeklyMuscleBreakdown(
+          weekIndex: w,
+          weekLabel: label,
+          totalSets: weekTotalSets,
+          volumes: entries,
+        ),
+      );
     }
 
     final averageTotalSets = weeklyBreakdowns.isEmpty
         ? 0.0
-        : weeklyBreakdowns.map((w) => w.totalSets).reduce((a, b) => a + b) / totalWeeks;
+        : weeklyBreakdowns.map((w) => w.totalSets).reduce((a, b) => a + b) /
+              totalWeeks;
 
     final avgEntries = allMuscleSums.entries.map((e) {
       final avgSets = e.value / totalWeeks;
-      final pct = averageTotalSets > 0 ? (avgSets / averageTotalSets) * 100 : 0.0;
-      return MuscleVolumeEntry(
-        muscle: e.key,
-        sets: avgSets,
-        percentage: pct,
-      );
-    }).toList()
-      ..sort((a, b) => b.sets.compareTo(a.sets));
+      final pct = averageTotalSets > 0
+          ? (avgSets / averageTotalSets) * 100
+          : 0.0;
+      return MuscleVolumeEntry(muscle: e.key, sets: avgSets, percentage: pct);
+    }).toList()..sort((a, b) => b.sets.compareTo(a.sets));
 
     return ProgramVolumeBreakdown(
       weeks: weeklyBreakdowns,
@@ -304,13 +345,16 @@ class ProgramVolumeCalculator {
     AppDatabase db,
     int programId,
   ) async {
-    final program = await (db.select(db.programs)..where((t) => t.id.equals(programId))).getSingleOrNull();
+    final program = await (db.select(
+      db.programs,
+    )..where((t) => t.id.equals(programId))).getSingleOrNull();
     if (program == null) return ProgramVolumeBreakdown.empty;
 
-    final weeks = await (db.select(db.programWeeks)
-          ..where((t) => t.programId.equals(programId))
-          ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
-        .get();
+    final weeks =
+        await (db.select(db.programWeeks)
+              ..where((t) => t.programId.equals(programId))
+              ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
+            .get();
 
     final catalog = await db.select(db.exerciseCatalog).get();
     final muscles = await db.select(db.exerciseMuscles).get();
@@ -332,10 +376,13 @@ class ProgramVolumeCalculator {
       if (isDeload) {
         label = 'Week ${week.weekIndex + 1} (Deload)';
       } else if (phase != null && phase.isNotEmpty) {
-        label = 'Week ${week.weekIndex + 1} (${phase[0].toUpperCase()}${phase.substring(1)})';
+        label =
+            'Week ${week.weekIndex + 1} (${phase[0].toUpperCase()}${phase.substring(1)})';
       }
 
-      final days = await (db.select(db.programDays)..where((t) => t.programWeekId.equals(week.id))).get();
+      final days = await (db.select(
+        db.programDays,
+      )..where((t) => t.programWeekId.equals(week.id))).get();
       final muscleSets = <String, double>{};
       double weekTotalSets = 0;
 
@@ -344,13 +391,16 @@ class ProgramVolumeCalculator {
 
         // Either inline exercises or template exercises
         if (day.templateId != null) {
-          final tExercises = await (db.select(db.templateExercises)
-                ..where((t) => t.templateId.equals(day.templateId!)))
-              .get();
+          final tExercises = await (db.select(
+            db.templateExercises,
+          )..where((t) => t.templateId.equals(day.templateId!))).get();
           for (final te in tExercises) {
             final cat = catalogById[te.exerciseId];
             final mRows = musclesByExercise[te.exerciseId] ?? const [];
-            final primaryMuscle = mRows.where((m) => m.role == 'primary').firstOrNull?.muscle ?? cat?.primaryMuscle ?? 'Other';
+            final primaryMuscle =
+                mRows.where((m) => m.role == 'primary').firstOrNull?.muscle ??
+                cat?.primaryMuscle ??
+                'Other';
             final muscle = normalizeMuscle(primaryMuscle);
             final sets = te.targetSets.toDouble();
             muscleSets[muscle] = (muscleSets[muscle] ?? 0.0) + sets;
@@ -358,13 +408,16 @@ class ProgramVolumeCalculator {
             allMuscleSums[muscle] = (allMuscleSums[muscle] ?? 0.0) + sets;
           }
         } else {
-          final pExercises = await (db.select(db.programDayExercises)
-                ..where((t) => t.programDayId.equals(day.id)))
-              .get();
+          final pExercises = await (db.select(
+            db.programDayExercises,
+          )..where((t) => t.programDayId.equals(day.id))).get();
           for (final pe in pExercises) {
             final cat = catalogById[pe.exerciseId];
             final mRows = musclesByExercise[pe.exerciseId] ?? const [];
-            final primaryMuscle = mRows.where((m) => m.role == 'primary').firstOrNull?.muscle ?? cat?.primaryMuscle ?? 'Other';
+            final primaryMuscle =
+                mRows.where((m) => m.role == 'primary').firstOrNull?.muscle ??
+                cat?.primaryMuscle ??
+                'Other';
             final muscle = normalizeMuscle(primaryMuscle);
             final sets = pe.targetSets.toDouble();
             muscleSets[muscle] = (muscleSets[muscle] ?? 0.0) + sets;
@@ -376,36 +429,31 @@ class ProgramVolumeCalculator {
 
       final entries = muscleSets.entries.map((e) {
         final pct = weekTotalSets > 0 ? (e.value / weekTotalSets) * 100 : 0.0;
-        return MuscleVolumeEntry(
-          muscle: e.key,
-          sets: e.value,
-          percentage: pct,
-        );
-      }).toList()
-        ..sort((a, b) => b.sets.compareTo(a.sets));
+        return MuscleVolumeEntry(muscle: e.key, sets: e.value, percentage: pct);
+      }).toList()..sort((a, b) => b.sets.compareTo(a.sets));
 
-      weeklyBreakdowns.add(WeeklyMuscleBreakdown(
-        weekIndex: week.weekIndex,
-        weekLabel: label,
-        totalSets: weekTotalSets,
-        volumes: entries,
-      ));
+      weeklyBreakdowns.add(
+        WeeklyMuscleBreakdown(
+          weekIndex: week.weekIndex,
+          weekLabel: label,
+          totalSets: weekTotalSets,
+          volumes: entries,
+        ),
+      );
     }
 
     final averageTotalSets = weeklyBreakdowns.isEmpty
         ? 0.0
-        : weeklyBreakdowns.map((w) => w.totalSets).reduce((a, b) => a + b) / (totalWeeks > 0 ? totalWeeks : 1);
+        : weeklyBreakdowns.map((w) => w.totalSets).reduce((a, b) => a + b) /
+              (totalWeeks > 0 ? totalWeeks : 1);
 
     final avgEntries = allMuscleSums.entries.map((e) {
       final avgSets = e.value / (totalWeeks > 0 ? totalWeeks : 1);
-      final pct = averageTotalSets > 0 ? (avgSets / averageTotalSets) * 100 : 0.0;
-      return MuscleVolumeEntry(
-        muscle: e.key,
-        sets: avgSets,
-        percentage: pct,
-      );
-    }).toList()
-      ..sort((a, b) => b.sets.compareTo(a.sets));
+      final pct = averageTotalSets > 0
+          ? (avgSets / averageTotalSets) * 100
+          : 0.0;
+      return MuscleVolumeEntry(muscle: e.key, sets: avgSets, percentage: pct);
+    }).toList()..sort((a, b) => b.sets.compareTo(a.sets));
 
     return ProgramVolumeBreakdown(
       weeks: weeklyBreakdowns,
@@ -436,9 +484,9 @@ class ProgramVolumeCalculator {
     for (final entry in templatesBySlot.entries) {
       final templateId = entry.value;
       if (templateId == null) continue;
-      final tExercises = await (db.select(db.templateExercises)
-            ..where((t) => t.templateId.equals(templateId)))
-          .get();
+      final tExercises = await (db.select(
+        db.templateExercises,
+      )..where((t) => t.templateId.equals(templateId))).get();
       slotExercises[entry.key] = tExercises;
     }
 
@@ -447,14 +495,17 @@ class ProgramVolumeCalculator {
     final allMuscleSums = <String, double>{};
 
     for (var w = 0; w < weeks; w++) {
-      final prescription = w < periodizationPlan.length ? periodizationPlan[w] : null;
+      final prescription = w < periodizationPlan.length
+          ? periodizationPlan[w]
+          : null;
       final isDeload = prescription?.isDeload ?? false;
       final phase = prescription?.blockPhase;
       String label = 'Week ${w + 1}';
       if (isDeload) {
         label = 'Week ${w + 1} (Deload)';
       } else if (phase != null && phase.isNotEmpty) {
-        label = 'Week ${w + 1} (${phase[0].toUpperCase()}${phase.substring(1)})';
+        label =
+            'Week ${w + 1} (${phase[0].toUpperCase()}${phase.substring(1)})';
       }
 
       final muscleSets = <String, double>{};
@@ -465,7 +516,10 @@ class ProgramVolumeCalculator {
         for (final te in tExercises) {
           final cat = catalogById[te.exerciseId];
           final mRows = musclesByExercise[te.exerciseId] ?? const [];
-          final primaryMuscle = mRows.where((m) => m.role == 'primary').firstOrNull?.muscle ?? cat?.primaryMuscle ?? 'Other';
+          final primaryMuscle =
+              mRows.where((m) => m.role == 'primary').firstOrNull?.muscle ??
+              cat?.primaryMuscle ??
+              'Other';
           final muscle = normalizeMuscle(primaryMuscle);
           final sets = te.targetSets.toDouble();
           muscleSets[muscle] = (muscleSets[muscle] ?? 0.0) + sets;
@@ -476,36 +530,31 @@ class ProgramVolumeCalculator {
 
       final entries = muscleSets.entries.map((e) {
         final pct = weekTotalSets > 0 ? (e.value / weekTotalSets) * 100 : 0.0;
-        return MuscleVolumeEntry(
-          muscle: e.key,
-          sets: e.value,
-          percentage: pct,
-        );
-      }).toList()
-        ..sort((a, b) => b.sets.compareTo(a.sets));
+        return MuscleVolumeEntry(muscle: e.key, sets: e.value, percentage: pct);
+      }).toList()..sort((a, b) => b.sets.compareTo(a.sets));
 
-      weeklyBreakdowns.add(WeeklyMuscleBreakdown(
-        weekIndex: w,
-        weekLabel: label,
-        totalSets: weekTotalSets,
-        volumes: entries,
-      ));
+      weeklyBreakdowns.add(
+        WeeklyMuscleBreakdown(
+          weekIndex: w,
+          weekLabel: label,
+          totalSets: weekTotalSets,
+          volumes: entries,
+        ),
+      );
     }
 
     final averageTotalSets = weeklyBreakdowns.isEmpty
         ? 0.0
-        : weeklyBreakdowns.map((w) => w.totalSets).reduce((a, b) => a + b) / (weeks > 0 ? weeks : 1);
+        : weeklyBreakdowns.map((w) => w.totalSets).reduce((a, b) => a + b) /
+              (weeks > 0 ? weeks : 1);
 
     final avgEntries = allMuscleSums.entries.map((e) {
       final avgSets = e.value / (weeks > 0 ? weeks : 1);
-      final pct = averageTotalSets > 0 ? (avgSets / averageTotalSets) * 100 : 0.0;
-      return MuscleVolumeEntry(
-        muscle: e.key,
-        sets: avgSets,
-        percentage: pct,
-      );
-    }).toList()
-      ..sort((a, b) => b.sets.compareTo(a.sets));
+      final pct = averageTotalSets > 0
+          ? (avgSets / averageTotalSets) * 100
+          : 0.0;
+      return MuscleVolumeEntry(muscle: e.key, sets: avgSets, percentage: pct);
+    }).toList()..sort((a, b) => b.sets.compareTo(a.sets));
 
     return ProgramVolumeBreakdown(
       weeks: weeklyBreakdowns,

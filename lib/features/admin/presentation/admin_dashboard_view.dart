@@ -24,7 +24,7 @@ class AdminDashboardView extends ConsumerWidget {
             icon: const Icon(Icons.exit_to_app),
             tooltip: 'Back to app',
             onPressed: () => context.go('/app'),
-          )
+          ),
         ],
       ),
       body: ListView(
@@ -155,9 +155,16 @@ class AdminDashboardView extends ConsumerWidget {
             Icon(icon, size: 32, color: theme.colorScheme.primary),
             const SizedBox(width: 24),
             Expanded(
-              child: Text(title, style: theme.textTheme.labelLarge?.copyWith(fontSize: 16)),
+              child: Text(
+                title,
+                style: theme.textTheme.labelLarge?.copyWith(fontSize: 16),
+              ),
             ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: theme.textTheme.bodyMedium?.color),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: theme.textTheme.bodyMedium?.color,
+            ),
           ],
         ),
       ),

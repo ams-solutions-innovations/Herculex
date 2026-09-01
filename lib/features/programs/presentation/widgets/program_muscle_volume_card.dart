@@ -17,7 +17,8 @@ class ProgramMuscleVolumeCard extends StatefulWidget {
   });
 
   @override
-  State<ProgramMuscleVolumeCard> createState() => _ProgramMuscleVolumeCardState();
+  State<ProgramMuscleVolumeCard> createState() =>
+      _ProgramMuscleVolumeCardState();
 }
 
 class _ProgramMuscleVolumeCardState extends State<ProgramMuscleVolumeCard> {
@@ -110,7 +111,10 @@ class _ProgramMuscleVolumeCardState extends State<ProgramMuscleVolumeCard> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(16),
@@ -125,7 +129,9 @@ class _ProgramMuscleVolumeCardState extends State<ProgramMuscleVolumeCard> {
                   ),
                   const SizedBox(width: 4),
                   Icon(
-                    _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
                     color: AppColors.secondary,
                     size: 20,
                   ),
@@ -212,7 +218,11 @@ class _ProgramMuscleVolumeCardState extends State<ProgramMuscleVolumeCard> {
     );
   }
 
-  Widget _buildMuscleRow(ThemeData theme, MuscleVolumeEntry item, double maxSets) {
+  Widget _buildMuscleRow(
+    ThemeData theme,
+    MuscleVolumeEntry item,
+    double maxSets,
+  ) {
     final ratio = maxSets > 0 ? (item.sets / maxSets).clamp(0.05, 1.0) : 0.0;
 
     return Padding(

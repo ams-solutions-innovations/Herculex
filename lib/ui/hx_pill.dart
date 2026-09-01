@@ -12,8 +12,10 @@ class HxPill extends StatelessWidget {
     super.key,
     required this.child,
     this.onTap,
-    this.padding =
-        const EdgeInsets.symmetric(horizontal: HxSpace.x4, vertical: HxSpace.x2),
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: HxSpace.x4,
+      vertical: HxSpace.x2,
+    ),
     this.selected = false,
     this.accent,
     this.fill,
@@ -38,15 +40,14 @@ class HxPill extends StatelessWidget {
       curve: HxMotion.standard,
       padding: padding,
       decoration: BoxDecoration(
-        color: fill ??
+        color:
+            fill ??
             (selected
                 ? accent.withValues(alpha: 0.15)
                 : hx.surfaceContainerLowest),
         borderRadius: HxRadius.pillAll,
         border: Border.all(
-          color: selected
-              ? accent
-              : hx.outlineVariant.withValues(alpha: 0.3),
+          color: selected ? accent : hx.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: DefaultTextStyle.merge(
@@ -93,7 +94,9 @@ class HxTextPill extends StatelessWidget {
       selected: selected,
       accent: accent,
       padding: const EdgeInsets.symmetric(
-          horizontal: HxSpace.x3, vertical: HxSpace.x1 + 2),
+        horizontal: HxSpace.x3,
+        vertical: HxSpace.x1 + 2,
+      ),
       child: Text(label, style: Theme.of(context).textTheme.labelSmall),
     );
   }

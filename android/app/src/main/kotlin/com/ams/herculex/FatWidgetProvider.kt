@@ -30,12 +30,9 @@ class FatWidgetProvider : AppWidgetProvider() {
     }
 
     private fun buildViews(context: Context, current: Int, target: Int): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_pill_macro)
-        val accentColor = Color.parseColor("#BF5AF2") // Purple — matches app's fat ring
+        val views = RemoteViews(context.packageName, R.layout.widget_pill_fat)
 
         views.setTextViewText(R.id.macro_label, "FAT")
-        views.setInt(R.id.macro_dot, "setColorFilter", accentColor)
-        views.setInt(R.id.macro_progress, "setProgressTintList", accentColor)
 
         if (current < 0) {
             views.setTextViewText(R.id.macro_current, "—")

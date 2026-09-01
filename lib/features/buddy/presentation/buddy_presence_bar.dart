@@ -59,8 +59,8 @@ class BuddyPresenceBar extends ConsumerWidget {
                         partner != null
                             ? 'Training with ${partner.displayName}'
                             : (state.isHost
-                                ? 'Gym Buddy: Waiting for partner...'
-                                : 'Gym Buddy Live Workout'),
+                                  ? 'Gym Buddy: Waiting for partner...'
+                                  : 'Gym Buddy Live Workout'),
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -80,10 +80,7 @@ class BuddyPresenceBar extends ConsumerWidget {
           if (notice != null && notice.isNotEmpty) ...[
             const SizedBox(height: 6),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: AppColors.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),

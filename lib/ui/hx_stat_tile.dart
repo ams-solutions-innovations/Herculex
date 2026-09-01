@@ -56,8 +56,10 @@ class HxStatTile extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: hx.secondary,
+                  letterSpacing: 1.0,
+                ),
               ),
               Container(
                 padding: const EdgeInsets.all(6),
@@ -78,15 +80,17 @@ class HxStatTile extends StatelessWidget {
                 children: [
                   Text(
                     value,
-                    style: theme.textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   if (secondaryValue != null) ...[
                     const SizedBox(width: HxSpace.x1),
                     Text(
                       secondaryValue!,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: hx.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
                     ),
                   ],
                 ],

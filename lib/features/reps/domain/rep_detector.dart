@@ -144,12 +144,12 @@ class RepDetectorConfig {
 
   /// Pull-up family: a full hang-to-chin-to-hang cycle is slow.
   const RepDetectorConfig.pullUp()
-      : this(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 2.5);
+    : this(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 2.5);
 
   /// Dip family: shorter range of motion and a faster cadence, so the
   /// refractory floor has to come down or fast dips are silently dropped.
   const RepDetectorConfig.dip()
-      : this(minPeriodMs: 600, maxPeriodMs: 6000, minCycleAmplitude: 2.0);
+    : this(minPeriodMs: 600, maxPeriodMs: 6000, minCycleAmplitude: 2.0);
 
   /// Thresholds taken straight from the exercise's capability profile.
   ///
@@ -191,36 +191,75 @@ class RepDetectorConfig {
     // Hands anchored, sensed at the hip: the `dyn` channel in m/s².
     RepMovement.verticalPull: RepDetectorConfig.pullUp(),
     RepMovement.bodyweightPush: RepDetectorConfig.dip(),
-    RepMovement.bodyweightPull:
-        RepDetectorConfig(minPeriodMs: 700, maxPeriodMs: 7000, minCycleAmplitude: 2.0),
+    RepMovement.bodyweightPull: RepDetectorConfig(
+      minPeriodMs: 700,
+      maxPeriodMs: 7000,
+      minCycleAmplitude: 2.0,
+    ),
 
     // Hands travel, sensed at the wrist. The amplitude here is a *tilt* floor
     // in degrees wherever the tilt channel wins, which is why these numbers
     // are an order of magnitude larger than the m/s² ones above.
-    RepMovement.horizontalPush:
-        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 25),
-    RepMovement.verticalPush:
-        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 35),
-    RepMovement.horizontalPull:
-        RepDetectorConfig(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 30),
-    RepMovement.verticalPullDown:
-        RepDetectorConfig(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 35),
-    RepMovement.elbowFlexion:
-        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 45),
-    RepMovement.elbowExtension:
-        RepDetectorConfig(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 40),
-    RepMovement.shoulderRaise:
-        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 50),
-    RepMovement.squat:
-        RepDetectorConfig(minPeriodMs: 1000, maxPeriodMs: 10000, minCycleAmplitude: 15),
-    RepMovement.hinge:
-        RepDetectorConfig(minPeriodMs: 1000, maxPeriodMs: 10000, minCycleAmplitude: 30),
-    RepMovement.lunge:
-        RepDetectorConfig(minPeriodMs: 900, maxPeriodMs: 9000, minCycleAmplitude: 20),
-    RepMovement.coreFlexion:
-        RepDetectorConfig(minPeriodMs: 800, maxPeriodMs: 8000, minCycleAmplitude: 30),
-    RepMovement.smallRom:
-        RepDetectorConfig(minPeriodMs: 600, maxPeriodMs: 6000, minCycleAmplitude: 10),
+    RepMovement.horizontalPush: RepDetectorConfig(
+      minPeriodMs: 900,
+      maxPeriodMs: 9000,
+      minCycleAmplitude: 25,
+    ),
+    RepMovement.verticalPush: RepDetectorConfig(
+      minPeriodMs: 900,
+      maxPeriodMs: 9000,
+      minCycleAmplitude: 35,
+    ),
+    RepMovement.horizontalPull: RepDetectorConfig(
+      minPeriodMs: 800,
+      maxPeriodMs: 8000,
+      minCycleAmplitude: 30,
+    ),
+    RepMovement.verticalPullDown: RepDetectorConfig(
+      minPeriodMs: 800,
+      maxPeriodMs: 8000,
+      minCycleAmplitude: 35,
+    ),
+    RepMovement.elbowFlexion: RepDetectorConfig(
+      minPeriodMs: 900,
+      maxPeriodMs: 9000,
+      minCycleAmplitude: 45,
+    ),
+    RepMovement.elbowExtension: RepDetectorConfig(
+      minPeriodMs: 800,
+      maxPeriodMs: 8000,
+      minCycleAmplitude: 40,
+    ),
+    RepMovement.shoulderRaise: RepDetectorConfig(
+      minPeriodMs: 900,
+      maxPeriodMs: 9000,
+      minCycleAmplitude: 50,
+    ),
+    RepMovement.squat: RepDetectorConfig(
+      minPeriodMs: 1000,
+      maxPeriodMs: 10000,
+      minCycleAmplitude: 15,
+    ),
+    RepMovement.hinge: RepDetectorConfig(
+      minPeriodMs: 1000,
+      maxPeriodMs: 10000,
+      minCycleAmplitude: 30,
+    ),
+    RepMovement.lunge: RepDetectorConfig(
+      minPeriodMs: 900,
+      maxPeriodMs: 9000,
+      minCycleAmplitude: 20,
+    ),
+    RepMovement.coreFlexion: RepDetectorConfig(
+      minPeriodMs: 800,
+      maxPeriodMs: 8000,
+      minCycleAmplitude: 30,
+    ),
+    RepMovement.smallRom: RepDetectorConfig(
+      minPeriodMs: 600,
+      maxPeriodMs: 6000,
+      minCycleAmplitude: 10,
+    ),
   };
 
   RepDetectorConfig copyWith({
@@ -240,29 +279,26 @@ class RepDetectorConfig {
     double? perRepConfidenceFloor,
     double? missedRepGapFactor,
     double? missedRepPenalty,
-  }) =>
-      RepDetectorConfig(
-        resampleHz: resampleHz ?? this.resampleHz,
-        gravityWindowMs: gravityWindowMs ?? this.gravityWindowMs,
-        smoothingTaps: smoothingTaps ?? this.smoothingTaps,
-        detrendWindowMs: detrendWindowMs ?? this.detrendWindowMs,
-        thresholdWindowMs: thresholdWindowMs ?? this.thresholdWindowMs,
-        thresholdK: thresholdK ?? this.thresholdK,
-        amplitudeGateFraction:
-            amplitudeGateFraction ?? this.amplitudeGateFraction,
-        minCycleAmplitude: minCycleAmplitude ?? this.minCycleAmplitude,
-        minPeriodMs: minPeriodMs ?? this.minPeriodMs,
-        maxPeriodMs: maxPeriodMs ?? this.maxPeriodMs,
-        peakMergeFraction: peakMergeFraction ?? this.peakMergeFraction,
-        amplitudeBootstrapCycles:
-            amplitudeBootstrapCycles ?? this.amplitudeBootstrapCycles,
-        confidenceAmplitudeWeight:
-            confidenceAmplitudeWeight ?? this.confidenceAmplitudeWeight,
-        perRepConfidenceFloor:
-            perRepConfidenceFloor ?? this.perRepConfidenceFloor,
-        missedRepGapFactor: missedRepGapFactor ?? this.missedRepGapFactor,
-        missedRepPenalty: missedRepPenalty ?? this.missedRepPenalty,
-      );
+  }) => RepDetectorConfig(
+    resampleHz: resampleHz ?? this.resampleHz,
+    gravityWindowMs: gravityWindowMs ?? this.gravityWindowMs,
+    smoothingTaps: smoothingTaps ?? this.smoothingTaps,
+    detrendWindowMs: detrendWindowMs ?? this.detrendWindowMs,
+    thresholdWindowMs: thresholdWindowMs ?? this.thresholdWindowMs,
+    thresholdK: thresholdK ?? this.thresholdK,
+    amplitudeGateFraction: amplitudeGateFraction ?? this.amplitudeGateFraction,
+    minCycleAmplitude: minCycleAmplitude ?? this.minCycleAmplitude,
+    minPeriodMs: minPeriodMs ?? this.minPeriodMs,
+    maxPeriodMs: maxPeriodMs ?? this.maxPeriodMs,
+    peakMergeFraction: peakMergeFraction ?? this.peakMergeFraction,
+    amplitudeBootstrapCycles:
+        amplitudeBootstrapCycles ?? this.amplitudeBootstrapCycles,
+    confidenceAmplitudeWeight:
+        confidenceAmplitudeWeight ?? this.confidenceAmplitudeWeight,
+    perRepConfidenceFloor: perRepConfidenceFloor ?? this.perRepConfidenceFloor,
+    missedRepGapFactor: missedRepGapFactor ?? this.missedRepGapFactor,
+    missedRepPenalty: missedRepPenalty ?? this.missedRepPenalty,
+  );
 }
 
 /// The single authoritative rep-cycle detector.
@@ -384,8 +420,8 @@ class RepDetector {
 
     // Timestamps are implied by the grid unless the caller supplies real ones
     // — the resample step is fixed, so index * stepMs is exact.
-    final times = timestampsMs ??
-        [for (var i = 0; i < n; i++) (i * stepMs).round()];
+    final times =
+        timestampsMs ?? [for (var i = 0; i < n; i++) (i * stepMs).round()];
 
     var signal = values;
 
@@ -393,8 +429,10 @@ class RepDetector {
     signal = _centredMovingAverage(signal, config.smoothingTaps);
 
     // (c) Detrend against a trailing average to get the activity signal.
-    final activity =
-        _subtract(signal, _trailingMovingAverage(signal, win(config.detrendWindowMs)));
+    final activity = _subtract(
+      signal,
+      _trailingMovingAverage(signal, win(config.detrendWindowMs)),
+    );
 
     // (d) Adaptive threshold from the trailing mean and stddev of the activity
     // signal. A fixed threshold cannot survive both a light watch on a wrist
@@ -447,10 +485,12 @@ class RepDetector {
     // Bootstrap the running median from the leading *supra-threshold*
     // candidates, so the first rep of a set is gated against something rather
     // than waved through, and so baseline noise never seeds the median.
-    final bootstrap = _median([
-      for (var k = 0; k < peaks.length; k++)
-        if (supra[k]) candAmp[k],
-    ].take(config.amplitudeBootstrapCycles).toList());
+    final bootstrap = _median(
+      [
+        for (var k = 0; k < peaks.length; k++)
+          if (supra[k]) candAmp[k],
+      ].take(config.amplitudeBootstrapCycles).toList(),
+    );
 
     final acceptedAmp = <double>[];
     final acceptedPeriod = <int>[];
@@ -467,8 +507,9 @@ class RepDetector {
       if (!supra[k] && acceptedAmp.length < config.amplitudeBootstrapCycles) {
         continue;
       }
-      final running =
-          acceptedAmp.isEmpty ? bootstrap : _median(List.of(acceptedAmp));
+      final running = acceptedAmp.isEmpty
+          ? bootstrap
+          : _median(List.of(acceptedAmp));
       final gate = max(
         running * config.amplitudeGateFraction,
         config.minCycleAmplitude,
@@ -493,13 +534,14 @@ class RepDetector {
       final ampScore = setMedianAmp <= 0
           ? 0.0
           : (acceptedAmp[k] / setMedianAmp).clamp(0.0, 1.0).toDouble();
-      final runningPeriod =
-          _median(acceptedPeriod.take(k + 1).map((e) => e.toDouble()).toList());
+      final runningPeriod = _median(
+        acceptedPeriod.take(k + 1).map((e) => e.toDouble()).toList(),
+      );
       final periodScore = runningPeriod <= 0
           ? 0.0
           : (1 - (acceptedPeriod[k] - runningPeriod).abs() / runningPeriod)
-              .clamp(0.0, 1.0)
-              .toDouble();
+                .clamp(0.0, 1.0)
+                .toDouble();
       perRep.add(
         config.confidenceAmplitudeWeight * ampScore +
             (1 - config.confidenceAmplitudeWeight) * periodScore,
@@ -508,8 +550,9 @@ class RepDetector {
 
     // (h) Set confidence: how much of the set cleared the per-rep floor,
     // penalised once per suspected hole in the sequence.
-    final medianPeriod =
-        _median(acceptedPeriod.map((e) => e.toDouble()).toList());
+    final medianPeriod = _median(
+      acceptedPeriod.map((e) => e.toDouble()).toList(),
+    );
     var gaps = 0;
     for (var k = 1; k < acceptedPeakTMs.length; k++) {
       final gap = acceptedPeakTMs[k] - acceptedPeakTMs[k - 1];
@@ -517,8 +560,9 @@ class RepDetector {
         gaps++;
       }
     }
-    final cleared =
-        perRep.where((c) => c >= config.perRepConfidenceFloor).length;
+    final cleared = perRep
+        .where((c) => c >= config.perRepConfidenceFloor)
+        .length;
     var setConfidence = cleared / perRep.length;
     for (var i = 0; i < gaps; i++) {
       setConfidence *= config.missedRepPenalty;
@@ -536,8 +580,9 @@ class RepDetector {
 
   // --- primitives -----------------------------------------------------------
 
-  static List<double> _subtract(List<double> a, List<double> b) =>
-      [for (var i = 0; i < a.length; i++) a[i] - b[i]];
+  static List<double> _subtract(List<double> a, List<double> b) => [
+    for (var i = 0; i < a.length; i++) a[i] - b[i],
+  ];
 
   /// Centred moving average over [taps] samples, edge-clamped so the output is
   /// the same length as the input.
@@ -569,11 +614,7 @@ class RepDetector {
   }
 
   /// `mean + k * stddev` of the trailing [window] samples, per index.
-  static List<double> _trailingThreshold(
-    List<double> v,
-    int window,
-    double k,
-  ) {
+  static List<double> _trailingThreshold(List<double> v, int window, double k) {
     final prefix = _prefixSum(v);
     final prefixSq = _prefixSum([for (final x in v) x * x]);
     return [

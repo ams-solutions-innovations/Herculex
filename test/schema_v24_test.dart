@@ -232,74 +232,65 @@ void main() {
       },
     );
 
-    test(
-      'backfilled snapshot reproduces the live legacy-serving math for '
-      'both a serving-unit and a gramsOverride entry',
-      () async {
-        final servingEntry = await (db.select(
-          db.foodEntries,
-        )..where((t) => t.id.equals(2))).getSingle();
-        expect(servingEntry.snapshotBasis, 'Legacy serving (unverified)');
-        expect(servingEntry.snapshotKcal, 250);
-        expect(servingEntry.snapshotServingGrams, 50);
-        expect(servingEntry.snapshotServingAmount, 1);
-        expect(servingEntry.snapshotServingUnit, 'serving');
-        expect(servingEntry.snapshotMicrosJson, '{"magnesium":20.0}');
-        final servingTotals = await repo.macrosForEntry(servingEntry);
-        expect(servingTotals.kcal, 500);
-        expect(servingTotals.micros['magnesium'], 40);
+    test('backfilled snapshot reproduces the live legacy-serving math for '
+        'both a serving-unit and a gramsOverride entry', () async {
+      final servingEntry = await (db.select(
+        db.foodEntries,
+      )..where((t) => t.id.equals(2))).getSingle();
+      expect(servingEntry.snapshotBasis, 'Legacy serving (unverified)');
+      expect(servingEntry.snapshotKcal, 250);
+      expect(servingEntry.snapshotServingGrams, 50);
+      expect(servingEntry.snapshotServingAmount, 1);
+      expect(servingEntry.snapshotServingUnit, 'serving');
+      expect(servingEntry.snapshotMicrosJson, '{"magnesium":20.0}');
+      final servingTotals = await repo.macrosForEntry(servingEntry);
+      expect(servingTotals.kcal, 500);
+      expect(servingTotals.micros['magnesium'], 40);
 
-        final gramsEntry = await (db.select(
-          db.foodEntries,
-        )..where((t) => t.id.equals(3))).getSingle();
-        // Same underlying food -> identical basis snapshot regardless of
-        // how this particular entry was portioned.
-        expect(gramsEntry.snapshotKcal, 250);
-        final gramsTotals = await repo.macrosForEntry(gramsEntry);
-        expect(gramsTotals.kcal, 500);
-        expect(gramsTotals.micros['magnesium'], 40);
-      },
-    );
+      final gramsEntry = await (db.select(
+        db.foodEntries,
+      )..where((t) => t.id.equals(3))).getSingle();
+      // Same underlying food -> identical basis snapshot regardless of
+      // how this particular entry was portioned.
+      expect(gramsEntry.snapshotKcal, 250);
+      final gramsTotals = await repo.macrosForEntry(gramsEntry);
+      expect(gramsTotals.kcal, 500);
+      expect(gramsTotals.micros['magnesium'], 40);
+    });
 
-    test(
-      'recipe entry snapshot holds per-serving totals, scaled at read time '
-      'by entry.servings',
-      () async {
-        final entry = await (db.select(
-          db.foodEntries,
-        )..where((t) => t.id.equals(4))).getSingle();
-        expect(entry.snapshotBasis, 'recipe serving');
-        expect(entry.snapshotName, 'Test Recipe');
-        expect(entry.snapshotKcal, 225);
-        expect(entry.snapshotProteinG, 5);
-        expect(entry.snapshotCarbsG, 0);
-        expect(entry.snapshotFatG, 0);
-        // Recipe entries never carry a serving-grams/amount/unit snapshot —
-        // the read path scales by entry.servings, not a portion factor.
-        expect(entry.snapshotServingGrams, isNull);
-        expect(entry.snapshotMicrosJson, isNull);
+    test('recipe entry snapshot holds per-serving totals, scaled at read time '
+        'by entry.servings', () async {
+      final entry = await (db.select(
+        db.foodEntries,
+      )..where((t) => t.id.equals(4))).getSingle();
+      expect(entry.snapshotBasis, 'recipe serving');
+      expect(entry.snapshotName, 'Test Recipe');
+      expect(entry.snapshotKcal, 225);
+      expect(entry.snapshotProteinG, 5);
+      expect(entry.snapshotCarbsG, 0);
+      expect(entry.snapshotFatG, 0);
+      // Recipe entries never carry a serving-grams/amount/unit snapshot —
+      // the read path scales by entry.servings, not a portion factor.
+      expect(entry.snapshotServingGrams, isNull);
+      expect(entry.snapshotMicrosJson, isNull);
 
-        final totals = await repo.macrosForEntry(entry);
-        expect(totals.kcal, 450); // 225 per serving * 2 logged servings
-        expect(totals.proteinG, 10);
-      },
-    );
+      final totals = await repo.macrosForEntry(entry);
+      expect(totals.kcal, 450); // 225 per serving * 2 logged servings
+      expect(totals.proteinG, 10);
+    });
 
-    test(
-      'an entry with no food_id and no recipe_id stays unsnapshotted and '
-      'does not crash the backfill',
-      () async {
-        final entry = await (db.select(
-          db.foodEntries,
-        )..where((t) => t.id.equals(5))).getSingle();
-        expect(entry.snapshotBasis, isNull);
-        expect(entry.foodId, isNull);
-        expect(entry.recipeId, isNull);
+    test('an entry with no food_id and no recipe_id stays unsnapshotted and '
+        'does not crash the backfill', () async {
+      final entry = await (db.select(
+        db.foodEntries,
+      )..where((t) => t.id.equals(5))).getSingle();
+      expect(entry.snapshotBasis, isNull);
+      expect(entry.foodId, isNull);
+      expect(entry.recipeId, isNull);
 
-        final totals = await repo.macrosForEntry(entry);
-        expect(totals.kcal, 0);
-      },
-    );
+      final totals = await repo.macrosForEntry(entry);
+      expect(totals.kcal, 0);
+    });
 
     test('foods and recipes gained a nullable deletedAt column', () async {
       final food = await (db.select(

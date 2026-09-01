@@ -54,8 +54,9 @@ void main() {
       expect(before.sets, hasLength(1));
       expect(before.sets.single.set.id, setId);
 
-      await (db.update(db.setEntries)..where((t) => t.id.equals(setId)))
-          .write(SetEntriesCompanion(deletedAt: Value(DateTime.now())));
+      await (db.update(db.setEntries)..where((t) => t.id.equals(setId))).write(
+        SetEntriesCompanion(deletedAt: Value(DateTime.now())),
+      );
 
       final after = await TrainingSnapshot.load(db);
       expect(after.sets, isEmpty);
@@ -68,9 +69,7 @@ void main() {
 
       final sessionId = await db
           .into(db.workoutSessions)
-          .insert(
-            WorkoutSessionsCompanion.insert(startedAt: DateTime.now()),
-          );
+          .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime.now()));
       final weId = await db
           .into(db.workoutExercises)
           .insert(
@@ -96,8 +95,9 @@ void main() {
       final before = await repo.weeklyTonnage();
       expect(before.last.tonnageKg, 300);
 
-      await (db.update(db.setEntries)..where((t) => t.id.equals(setId)))
-          .write(SetEntriesCompanion(deletedAt: Value(DateTime.now())));
+      await (db.update(db.setEntries)..where((t) => t.id.equals(setId))).write(
+        SetEntriesCompanion(deletedAt: Value(DateTime.now())),
+      );
 
       final after = await repo.weeklyTonnage();
       expect(after.last.tonnageKg, 0);
@@ -136,8 +136,9 @@ void main() {
       final before = await repo.topOneRms();
       expect(before.map((p) => p.exerciseId), contains(exerciseId));
 
-      await (db.update(db.setEntries)..where((t) => t.id.equals(setId)))
-          .write(SetEntriesCompanion(deletedAt: Value(DateTime.now())));
+      await (db.update(db.setEntries)..where((t) => t.id.equals(setId))).write(
+        SetEntriesCompanion(deletedAt: Value(DateTime.now())),
+      );
 
       final after = await repo.topOneRms();
       expect(after.map((p) => p.exerciseId), isNot(contains(exerciseId)));

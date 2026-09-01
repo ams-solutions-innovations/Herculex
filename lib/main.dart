@@ -48,10 +48,7 @@ Future<void> main() async {
   // arrives first. Flutter's default per-channel buffer holds a single message
   // and warns on overflow, so a second event during the same startup would
   // discard the first. Same idiom `WearSyncService.initialize` uses.
-  ServicesBinding.instance.channelBuffers.resize(
-    'com.ams.herculex/widget',
-    16,
-  );
+  ServicesBinding.instance.channelBuffers.resize('com.ams.herculex/widget', 16);
 
   // Assisted rep tracking reads its per-exercise capability profiles from an
   // asset into an in-memory registry, so this has to run on every launch —
@@ -97,20 +94,21 @@ Future<void> main() async {
   AppColors.colorTheme = effectiveColorTheme;
 
   final isDark = effectiveBrightness == Brightness.dark;
-  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-    statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarIconBrightness:
-        isDark ? Brightness.light : Brightness.dark,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: isDark
+          ? Brightness.light
+          : Brightness.dark,
+    ),
+  );
 
   runApp(
     ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       child: const HerculexApp(),
     ),
   );

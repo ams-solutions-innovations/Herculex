@@ -224,7 +224,9 @@ class ChannelExtractor {
         column.length.isOdd ? column[mid] : (column[mid - 1] + column[mid]) / 2,
       );
     }
-    final norm = sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
+    final norm = sqrt(
+      axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2],
+    );
     if (norm <= 0) return null;
     return [axis[0] / norm, axis[1] / norm, axis[2] / norm];
   }

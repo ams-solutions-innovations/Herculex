@@ -129,10 +129,10 @@ class RepSuggestion {
     required this.state,
     this.stateReason,
   }) : assert(
-          (state != TrackerState.manual && state != TrackerState.countOnly) ||
-              stateReason != null,
-          'stateReason must be non-null whenever state is manual or countOnly',
-        );
+         (state != TrackerState.manual && state != TrackerState.countOnly) ||
+             stateReason != null,
+         'stateReason must be non-null whenever state is manual or countOnly',
+       );
 
   /// Whether this suggestion is trustworthy enough to fill the reps field
   /// directly instead of asking the user to review it.

@@ -81,7 +81,8 @@ void main(List<String> argv) {
   final source = args['source'] ?? 'wrist';
   final placement = args['placement'];
   final sensorType = args['sensor-type'] ?? 'linear_acceleration';
-  final description = args['description'] ??
+  final description =
+      args['description'] ??
       'synthetic $movement trace: $reps reps @ ${periodMs}ms, '
           'amplitude $amplitude, jitter $jitter, noise $noiseFloor, seed $seed';
 
@@ -106,7 +107,10 @@ void main(List<String> argv) {
   // Rep cycles. Each cycle gets its own jittered period and amplitude, so the
   // trace is periodic but not metronomic.
   for (var r = 0; r < reps; r++) {
-    final p = (periodMs * (1 + _uniform(rnd, jitter))).round().clamp(1, 1 << 30);
+    final p = (periodMs * (1 + _uniform(rnd, jitter))).round().clamp(
+      1,
+      1 << 30,
+    );
     final a = amplitude * (1 + _uniform(rnd, jitter));
     final cycleStart = tMs;
     while (tMs - cycleStart < p) {
@@ -182,8 +186,9 @@ void main(List<String> argv) {
 }
 
 /// Three independent gaussian noise values with stddev [sigma].
-List<double> _noise(Random rnd, double sigma) =>
-    [for (var i = 0; i < 3; i++) _gaussian(rnd) * sigma];
+List<double> _noise(Random rnd, double sigma) => [
+  for (var i = 0; i < 3; i++) _gaussian(rnd) * sigma,
+];
 
 /// Box-Muller, so the noise floor is gaussian rather than uniform — uniform
 /// noise has hard bounds a threshold detector can exploit.
@@ -194,7 +199,8 @@ double _gaussian(Random rnd) {
 }
 
 /// Uniform in [-spread, spread].
-double _uniform(Random rnd, double spread) => (rnd.nextDouble() * 2 - 1) * spread;
+double _uniform(Random rnd, double spread) =>
+    (rnd.nextDouble() * 2 - 1) * spread;
 
 Map<String, String> _parseArgs(List<String> argv) {
   // Hand-rolled rather than package:args: this plan deliberately adds no

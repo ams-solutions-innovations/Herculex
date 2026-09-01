@@ -18,115 +18,111 @@ class CalorieMacroGoalsView extends ConsumerWidget {
       title: 'Calorie & Macro Goals',
       padding: EdgeInsets.zero,
       children: [
-          // ── Default Goal section ─────────────────────────────────────────
-          const _SectionHeader('Default Goal'),
+        // ── Default Goal section ─────────────────────────────────────────
+        const _SectionHeader('Default Goal'),
+        const _Divider(),
+
+        if (targets != null) ...[
+          _CalorieRow(kcal: targets.kcal),
           const _Divider(),
-
-          if (targets != null) ...[
-            _CalorieRow(kcal: targets.kcal),
-            const _Divider(),
-            _MacroRow(
-              label: 'Net Carbs',
-              grams: targets.carbsG,
-              pct: _pct(targets.carbsG * 4, targets.kcal),
-            ),
-            const _Divider(),
-            _MacroRow(
-              label: 'Protein',
-              grams: targets.proteinG,
-              pct: _pct(targets.proteinG * 4, targets.kcal),
-            ),
-            const _Divider(),
-            _MacroRow(
-              label: 'Fat',
-              grams: targets.fatG,
-              pct: _pct(targets.fatG * 9, targets.kcal),
-            ),
-          ] else ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Text(
-                'Complete your profile (weight, height, age) to see '
-                'calculated goals.',
-                style: TextStyle(
-                  color: AppColors.secondary,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 32),
-
-          // ── Set Daily Goals section ──────────────────────────────────────
-          const _SectionHeader('Set Daily Goals'),
+          _MacroRow(
+            label: 'Net Carbs',
+            grams: targets.carbsG,
+            pct: _pct(targets.carbsG * 4, targets.kcal),
+          ),
           const _Divider(),
+          _MacroRow(
+            label: 'Protein',
+            grams: targets.proteinG,
+            pct: _pct(targets.proteinG * 4, targets.kcal),
+          ),
+          const _Divider(),
+          _MacroRow(
+            label: 'Fat',
+            grams: targets.fatG,
+            pct: _pct(targets.fatG * 9, targets.kcal),
+          ),
+        ] else ...[
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Text(
-              'Create custom goals for different days of the week',
+              'Complete your profile (weight, height, age) to see '
+              'calculated goals.',
               style: TextStyle(color: AppColors.secondary, fontSize: 14),
             ),
           ),
-
-          // Custom target rows
-          customTargets.when(
-            data: (rows) => rows.isEmpty
-                ? const SizedBox.shrink()
-                : Column(
-                    children: [
-                      for (final t in rows) ...[
-                        _CustomTargetRow(
-                          label: t.label,
-                          kcal: t.kcal,
-                          onDelete: () => ref
-                              .read(nutritionRepositoryProvider)
-                              .deleteTarget(t.id),
-                        ),
-                        const _Divider(),
-                      ],
-                    ],
-                  ),
-            loading: () => const SizedBox.shrink(),
-            error: (e, st) => const SizedBox.shrink(),
-          ),
-
-          // Add Daily Goal
-          InkWell(
-            onTap: () => _showAddTargetSheet(context, ref),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
-              child: Text(
-                'Add Daily Goal',
-                style: TextStyle(color: AppColors.primary, fontSize: 16),
-              ),
-            ),
-          ),
-
-          const _Divider(),
-
-          // How we make recommendations
-          GestureDetector(
-            onTap: () => _showRecommendationsInfo(context),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline,
-                      color: AppColors.secondary, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'How we make recommendations',
-                    style: TextStyle(color: AppColors.secondary, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 100),
         ],
-      );
+
+        const SizedBox(height: 32),
+
+        // ── Set Daily Goals section ──────────────────────────────────────
+        const _SectionHeader('Set Daily Goals'),
+        const _Divider(),
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Text(
+            'Create custom goals for different days of the week',
+            style: TextStyle(color: AppColors.secondary, fontSize: 14),
+          ),
+        ),
+
+        // Custom target rows
+        customTargets.when(
+          data: (rows) => rows.isEmpty
+              ? const SizedBox.shrink()
+              : Column(
+                  children: [
+                    for (final t in rows) ...[
+                      _CustomTargetRow(
+                        label: t.label,
+                        kcal: t.kcal,
+                        onDelete: () => ref
+                            .read(nutritionRepositoryProvider)
+                            .deleteTarget(t.id),
+                      ),
+                      const _Divider(),
+                    ],
+                  ],
+                ),
+          loading: () => const SizedBox.shrink(),
+          error: (e, st) => const SizedBox.shrink(),
+        ),
+
+        // Add Daily Goal
+        InkWell(
+          onTap: () => _showAddTargetSheet(context, ref),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Text(
+              'Add Daily Goal',
+              style: TextStyle(color: AppColors.primary, fontSize: 16),
+            ),
+          ),
+        ),
+
+        const _Divider(),
+
+        // How we make recommendations
+        GestureDetector(
+          onTap: () => _showRecommendationsInfo(context),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.secondary, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'How we make recommendations',
+                  style: TextStyle(color: AppColors.secondary, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 100),
+      ],
+    );
   }
 
   static int _pct(int numeratorKcal, int totalKcal) {
@@ -136,9 +132,9 @@ class CalorieMacroGoalsView extends ConsumerWidget {
 
   /// The target editor is a full screen now (§5), not a bottom sheet.
   Future<void> _showAddTargetSheet(BuildContext context, WidgetRef ref) {
-    return Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const TargetEditorView()),
-    );
+    return Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const TargetEditorView()));
   }
 
   void _showRecommendationsInfo(BuildContext context) {
@@ -150,7 +146,9 @@ class CalorieMacroGoalsView extends ConsumerWidget {
         title: Text(
           'How we calculate goals',
           style: TextStyle(
-              color: AppColors.onSurface, fontWeight: FontWeight.bold),
+            color: AppColors.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           'Calorie targets are calculated using the Mifflin-St Jeor BMR formula '
@@ -158,13 +156,16 @@ class CalorieMacroGoalsView extends ConsumerWidget {
           'Protein: 1.8 g/kg bodyweight\n'
           'Fat: 27.5% of total calories\n'
           'Carbs: remaining calories',
-          style: TextStyle(color: AppColors.secondary, fontSize: 14, height: 1.5),
+          style: TextStyle(
+            color: AppColors.secondary,
+            fontSize: 14,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Got it',
-                style: TextStyle(color: AppColors.primary)),
+            child: Text('Got it', style: TextStyle(color: AppColors.primary)),
           ),
         ],
       ),
@@ -199,12 +200,10 @@ class _CalorieRow extends StatelessWidget {
     );
   }
 
-  static String _fmtKcal(int v) => v
-      .toString()
-      .replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-        (m) => '${m[1]},',
-      );
+  static String _fmtKcal(int v) => v.toString().replaceAllMapped(
+    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+    (m) => '${m[1]},',
+  );
 }
 
 class _MacroRow extends StatelessWidget {
@@ -271,17 +270,17 @@ class _CustomTargetRow extends StatelessWidget {
                 ),
                 Text(
                   '$kcal kcal',
-                  style: TextStyle(
-                    color: AppColors.secondary,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: AppColors.secondary, fontSize: 13),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.delete_outline,
-                color: AppColors.secondary, size: 20),
+            icon: Icon(
+              Icons.delete_outline,
+              color: AppColors.secondary,
+              size: 20,
+            ),
             onPressed: onDelete,
           ),
         ],
@@ -318,10 +317,6 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Divider(
-      height: 0,
-      thickness: 0.5,
-      color: AppColors.outlineVariant,
-    );
+    return Divider(height: 0, thickness: 0.5, color: AppColors.outlineVariant);
   }
 }

@@ -46,7 +46,9 @@ void main() {
     await db.close();
   });
 
-  testWidgets('BuddyPresenceBar renders nothing when not sharing', (tester) async {
+  testWidgets('BuddyPresenceBar renders nothing when not sharing', (
+    tester,
+  ) async {
     final controller = SettableBuddyController(
       db: db,
       gateway: gateway,
@@ -62,11 +64,7 @@ void main() {
         overrides: [
           buddySessionControllerProvider.overrideWith((ref) => controller),
         ],
-        child: const MaterialApp(
-          home: Scaffold(
-            body: BuddyPresenceBar(),
-          ),
-        ),
+        child: const MaterialApp(home: Scaffold(body: BuddyPresenceBar())),
       ),
     );
 
@@ -74,7 +72,9 @@ void main() {
     expect(find.textContaining('Gym Buddy'), findsNothing);
   });
 
-  testWidgets('BuddyPresenceBar renders partner name and notice when sharing', (tester) async {
+  testWidgets('BuddyPresenceBar renders partner name and notice when sharing', (
+    tester,
+  ) async {
     final controller = SettableBuddyController(
       db: db,
       gateway: gateway,
@@ -87,7 +87,8 @@ void main() {
         partner: BuddyParticipant(userId: 'u2', displayName: 'Sam Partner'),
         isHost: false,
         isLive: true,
-        notice: 'Your partner removed Bench Press, but your logged sets were kept',
+        notice:
+            'Your partner removed Bench Press, but your logged sets were kept',
       ),
     );
 
@@ -96,15 +97,16 @@ void main() {
         overrides: [
           buddySessionControllerProvider.overrideWith((ref) => controller),
         ],
-        child: const MaterialApp(
-          home: Scaffold(
-            body: BuddyPresenceBar(),
-          ),
-        ),
+        child: const MaterialApp(home: Scaffold(body: BuddyPresenceBar())),
       ),
     );
 
     expect(find.text('Training with Sam Partner'), findsOneWidget);
-    expect(find.text('Your partner removed Bench Press, but your logged sets were kept'), findsOneWidget);
+    expect(
+      find.text(
+        'Your partner removed Bench Press, but your logged sets were kept',
+      ),
+      findsOneWidget,
+    );
   });
 }

@@ -143,9 +143,9 @@ class AiService {
       final bestMatch = scored.isNotEmpty ? scored.first.exercise : null;
       final alternatives = scored.length > 1
           ? scored
-              .sublist(1, scored.length.clamp(1, 5))
-              .map((s) => s.exercise)
-              .toList()
+                .sublist(1, scored.length.clamp(1, 5))
+                .map((s) => s.exercise)
+                .toList()
           : <ExerciseCatalogData>[];
 
       return ExerciseAiScanResult(

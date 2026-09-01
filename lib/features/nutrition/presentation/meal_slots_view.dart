@@ -59,9 +59,7 @@ class MealSlotsView extends ConsumerWidget {
           decoration: BoxDecoration(
             color: hx.surfaceContainer,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: hx.outlineVariant.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
           ),
           child: SwitchListTile(
             value: ref.watch(logTimestampEnabledProvider),
@@ -109,8 +107,9 @@ class MealSlotsView extends ConsumerWidget {
                       onPressed: () => _edit(context, ref, slot),
                     ),
                     IconButton(
-                      tooltip:
-                          canDelete ? 'Delete' : 'At least one slot required',
+                      tooltip: canDelete
+                          ? 'Delete'
+                          : 'At least one slot required',
                       icon: Icon(
                         Icons.delete_outline_rounded,
                         size: 20,
@@ -120,8 +119,8 @@ class MealSlotsView extends ConsumerWidget {
                       ),
                       onPressed: canDelete
                           ? () => ref
-                              .read(mealSlotsProvider.notifier)
-                              .remove(slot.key)
+                                .read(mealSlotsProvider.notifier)
+                                .remove(slot.key)
                           : null,
                     ),
                     const Icon(Icons.drag_handle_rounded),
@@ -190,53 +189,58 @@ class _AddMealSheetState extends State<_AddMealSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Add meal slot', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Add meal slot',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             Text(
               'Classic slots',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             for (final slot in availableDefaults) ...[
-              Builder(builder: (ctx) {
-                final isAdded = existingKeys.contains(slot.key);
-                return ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    slot.icon,
-                    color: isAdded
-                        ? AppColors.onSurface.withValues(alpha: 0.38)
-                        : AppColors.primary,
-                  ),
-                  title: Text(
-                    slot.label,
-                    style: TextStyle(
+              Builder(
+                builder: (ctx) {
+                  final isAdded = existingKeys.contains(slot.key);
+                  return ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      slot.icon,
                       color: isAdded
                           ? AppColors.onSurface.withValues(alpha: 0.38)
-                          : null,
+                          : AppColors.primary,
                     ),
-                  ),
-                  trailing: isAdded
-                      ? const Icon(Icons.check, size: 20)
-                      : FilledButton.tonal(
-                          onPressed: () => _selectClassic(slot),
-                          child: const Text('Add'),
-                        ),
-                  onTap: isAdded ? null : () => _selectClassic(slot),
-                );
-              }),
+                    title: Text(
+                      slot.label,
+                      style: TextStyle(
+                        color: isAdded
+                            ? AppColors.onSurface.withValues(alpha: 0.38)
+                            : null,
+                      ),
+                    ),
+                    trailing: isAdded
+                        ? const Icon(Icons.check, size: 20)
+                        : FilledButton.tonal(
+                            onPressed: () => _selectClassic(slot),
+                            child: const Text('Add'),
+                          ),
+                    onTap: isAdded ? null : () => _selectClassic(slot),
+                  );
+                },
+              ),
             ],
             const Divider(height: 24),
             Text(
               'Custom slot',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             TextField(

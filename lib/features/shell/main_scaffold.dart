@@ -54,7 +54,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: ref.read(mainTabIndexProvider));
+    _pageController = PageController(
+      initialPage: ref.read(mainTabIndexProvider),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(appShortcutsServiceProvider).initialize(context);
@@ -76,14 +78,15 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       await pendingService.clearPendingContext();
 
       final currentTab = ref.read(mainTabIndexProvider);
-      final type = pendingContext?.type ??
+      final type =
+          pendingContext?.type ??
           (currentTab == 1
               ? AiScanContextType.food
               : currentTab == 2
-                  ? AiScanContextType.exercise
-                  : currentTab == 3
-                      ? AiScanContextType.bodyFat
-                      : AiScanContextType.supplement);
+              ? AiScanContextType.exercise
+              : currentTab == 3
+              ? AiScanContextType.bodyFat
+              : AiScanContextType.supplement);
 
       if (!mounted) return;
 
@@ -143,10 +146,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
         case AiScanContextType.bodyFat:
           if (!mounted) return;
-          await BodyFatAiDialog.show(
-            context,
-            initialImage: file,
-          );
+          await BodyFatAiDialog.show(context, initialImage: file);
           break;
 
         case AiScanContextType.dreamPhysique:
@@ -217,7 +217,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             physics: dashboardEditMode
                 ? const NeverScrollableScrollPhysics()
                 : null,
-            onPageChanged: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
+            onPageChanged: (i) =>
+                ref.read(mainTabIndexProvider.notifier).state = i,
             children: _tabs,
           ),
           // LiveWorkoutBanner placed independently in the Stack to allow smooth alignment animation
@@ -230,13 +231,24 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 350),
                 curve: Curves.easeInOutCubic,
-                alignment: bannerAtTop ? Alignment.topCenter : Alignment.bottomCenter,
+                alignment: bannerAtTop
+                    ? Alignment.topCenter
+                    : Alignment.bottomCenter,
                 padding: EdgeInsets.only(
-                  top: bannerAtTop ? (MediaQuery.of(context).padding.top + 8.0) : 0.0,
-                  bottom: bannerAtTop ? 0.0 : (MediaQuery.of(context).padding.bottom + 92.0),
+                  top: bannerAtTop
+                      ? (MediaQuery.paddingOf(context).top + 8.0)
+                      : 0.0,
+                  bottom: bannerAtTop
+                      ? 0.0
+                      : (60.0 +
+                          (MediaQuery.paddingOf(context).bottom > 0
+                              ? MediaQuery.paddingOf(context).bottom + 8.0
+                              : 16.0) +
+                          8.0),
                 ),
                 child: LiveWorkoutBanner(
-                  onResume: () => ref.read(mainTabIndexProvider.notifier).state = 2,
+                  onResume: () =>
+                      ref.read(mainTabIndexProvider.notifier).state = 2,
                 ),
               ),
             ),

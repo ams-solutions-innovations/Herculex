@@ -15,16 +15,30 @@ void main() {
     expect(decoded, equals(payload));
   });
 
-  test('tryDecode returns null for empty, plain uuid, wrong scheme, or missing token', () {
-    expect(BuddyJoinPayload.tryDecode(''), isNull);
-    expect(BuddyJoinPayload.tryDecode('   '), isNull);
-    expect(BuddyJoinPayload.tryDecode(sampleToken), isNull);
-    expect(BuddyJoinPayload.tryDecode('https://herculex.app/buddy/join?t=$sampleToken'), isNull);
-    expect(BuddyJoinPayload.tryDecode('herculex://other/join?t=$sampleToken'), isNull);
-    expect(BuddyJoinPayload.tryDecode('herculex://buddy/wrong?t=$sampleToken'), isNull);
-    expect(BuddyJoinPayload.tryDecode('herculex://buddy/join'), isNull);
-    expect(BuddyJoinPayload.tryDecode('herculex://buddy/join?t='), isNull);
-  });
+  test(
+    'tryDecode returns null for empty, plain uuid, wrong scheme, or missing token',
+    () {
+      expect(BuddyJoinPayload.tryDecode(''), isNull);
+      expect(BuddyJoinPayload.tryDecode('   '), isNull);
+      expect(BuddyJoinPayload.tryDecode(sampleToken), isNull);
+      expect(
+        BuddyJoinPayload.tryDecode(
+          'https://herculex.app/buddy/join?t=$sampleToken',
+        ),
+        isNull,
+      );
+      expect(
+        BuddyJoinPayload.tryDecode('herculex://other/join?t=$sampleToken'),
+        isNull,
+      );
+      expect(
+        BuddyJoinPayload.tryDecode('herculex://buddy/wrong?t=$sampleToken'),
+        isNull,
+      );
+      expect(BuddyJoinPayload.tryDecode('herculex://buddy/join'), isNull);
+      expect(BuddyJoinPayload.tryDecode('herculex://buddy/join?t='), isNull);
+    },
+  );
 
   test('tryDecode handles fuzz strings without throwing', () {
     final fuzzStrings = [
@@ -54,7 +68,9 @@ void main() {
       expect(() => BuddyJoinPayload.tryDecode(fuzz), returnsNormally);
     }
 
-    final validWithSpaces = BuddyJoinPayload.tryDecode('   herculex://buddy/join?t=$sampleToken   ');
+    final validWithSpaces = BuddyJoinPayload.tryDecode(
+      '   herculex://buddy/join?t=$sampleToken   ',
+    );
     expect(validWithSpaces, isNotNull);
     expect(validWithSpaces!.token, sampleToken);
   });

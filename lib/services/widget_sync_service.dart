@@ -85,9 +85,7 @@ class WidgetSyncService {
   /// [scorePct] is the average recovery across all muscle groups (0–100).
   Future<void> syncRecovery({required int scorePct}) async {
     try {
-      await _channel.invokeMethod('syncRecovery', {
-        'scorePct': scorePct,
-      });
+      await _channel.invokeMethod('syncRecovery', {'scorePct': scorePct});
     } on PlatformException catch (e) {
       debugPrint('[WidgetSync] syncRecovery failed: ${e.message}');
     }

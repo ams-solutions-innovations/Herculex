@@ -93,7 +93,7 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
 
     final usageCounts =
         ref.watch(exerciseUsageCountsProvider).asData?.value ??
-            const <int, int>{};
+        const <int, int>{};
 
     return HxScreenShell(
       title: 'Exercise Library',
@@ -155,7 +155,9 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
                   c,
                   style: TextStyle(
                     color: isSelected ? Colors.white : AppColors.secondary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                     fontSize: 13,
                   ),
                 ),
@@ -285,10 +287,7 @@ class _ExerciseLibraryTile extends StatelessWidget {
   final ExerciseCatalogData exercise;
   final VoidCallback onTap;
 
-  const _ExerciseLibraryTile({
-    required this.exercise,
-    required this.onTap,
-  });
+  const _ExerciseLibraryTile({required this.exercise, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -313,11 +312,7 @@ class _ExerciseLibraryTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
-                ExerciseArtwork(
-                  exercise: exercise,
-                  size: 48,
-                  radius: 12,
-                ),
+                ExerciseArtwork(exercise: exercise, size: 48, radius: 12),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

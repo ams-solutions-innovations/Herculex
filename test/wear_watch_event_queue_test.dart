@@ -29,25 +29,32 @@ void main() {
 
   tearDown(WearSyncService.resetForTesting);
 
-  test('a start that arrives before the handler is registered is replayed', () async {
-    await emit('onWatchWorkoutStarted', <String, Object?>{
-      'session_json': '{"exercises":[]}',
-      'jump_to_workout': true,
-    });
+  test(
+    'a start that arrives before the handler is registered is replayed',
+    () async {
+      await emit('onWatchWorkoutStarted', <String, Object?>{
+        'session_json': '{"exercises":[]}',
+        'jump_to_workout': true,
+      });
 
-    String? seenJson;
-    var seenJump = false;
-    var calls = 0;
-    WearSyncService.onWatchWorkoutStarted = (json, jump) {
-      calls++;
-      seenJson = json;
-      seenJump = jump;
-    };
+      String? seenJson;
+      var seenJump = false;
+      var calls = 0;
+      WearSyncService.onWatchWorkoutStarted = (json, jump) {
+        calls++;
+        seenJson = json;
+        seenJump = jump;
+      };
 
-    expect(calls, 1, reason: 'the queued start must fire on registration');
-    expect(seenJson, '{"exercises":[]}');
-    expect(seenJump, isTrue, reason: 'jump_to_workout must survive the queue');
-  });
+      expect(calls, 1, reason: 'the queued start must fire on registration');
+      expect(seenJson, '{"exercises":[]}');
+      expect(
+        seenJump,
+        isTrue,
+        reason: 'jump_to_workout must survive the queue',
+      );
+    },
+  );
 
   test('queued watch events replay in the order they were emitted', () async {
     await emit('onWatchWorkoutStarted', <String, Object?>{
@@ -60,7 +67,8 @@ void main() {
     await emit('onWatchWorkoutEnded');
 
     final order = <String>[];
-    WearSyncService.onWatchWorkoutStarted = (json, _) => order.add('start:$json');
+    WearSyncService.onWatchWorkoutStarted = (json, _) =>
+        order.add('start:$json');
     // Nothing can drain past the start until every earlier handler exists, so
     // registering out of order must not let a later event overtake it.
     WearSyncService.onWatchWorkoutEnded = (_, _) => order.add('end');
@@ -82,26 +90,29 @@ void main() {
     expect(seen, <String?>['live']);
   });
 
-  test('a later event never overtakes one still waiting for its handler', () async {
-    await emit('onWatchWorkoutStarted', <String, Object?>{
-      'session_json': 'start',
-      'jump_to_workout': false,
-    });
+  test(
+    'a later event never overtakes one still waiting for its handler',
+    () async {
+      await emit('onWatchWorkoutStarted', <String, Object?>{
+        'session_json': 'start',
+        'jump_to_workout': false,
+      });
 
-    final seen = <String?>[];
-    WearSyncService.onWatchWorkoutUpdated = seen.add;
+      final seen = <String?>[];
+      WearSyncService.onWatchWorkoutUpdated = seen.add;
 
-    await emit('onWatchWorkoutUpdated', <String, Object?>{
-      'session_json': 'update',
-    });
+      await emit('onWatchWorkoutUpdated', <String, Object?>{
+        'session_json': 'update',
+      });
 
-    expect(
-      seen,
-      isEmpty,
-      reason: 'the update must stay queued behind the undelivered start',
-    );
+      expect(
+        seen,
+        isEmpty,
+        reason: 'the update must stay queued behind the undelivered start',
+      );
 
-    WearSyncService.onWatchWorkoutStarted = (_, _) {};
-    expect(seen, <String?>['update']);
-  });
+      WearSyncService.onWatchWorkoutStarted = (_, _) {};
+      expect(seen, <String?>['update']);
+    },
+  );
 }

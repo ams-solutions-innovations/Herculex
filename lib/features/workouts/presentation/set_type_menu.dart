@@ -13,18 +13,18 @@ class SetTypeSelection {
   final bool? isWarmup;
 
   const SetTypeSelection(this.type, [this.metaJson, this.isWarmup = false])
-      : delete = false;
+    : delete = false;
 
   const SetTypeSelection.delete()
-      : type = SetType.standard,
-        metaJson = null,
-        delete = true,
-        isWarmup = null;
+    : type = SetType.standard,
+      metaJson = null,
+      delete = true,
+      isWarmup = null;
 
   const SetTypeSelection.warmup([this.isWarmup = true])
-      : type = SetType.standard,
-        metaJson = null,
-        delete = false;
+    : type = SetType.standard,
+      metaJson = null,
+      delete = false;
 }
 
 /// Category grouping for the set types.
@@ -115,7 +115,8 @@ class SetTypeInfo {
       label: 'Drop Set',
       badge: 'D',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Immediate weight reduction (e.g. -20%) with zero rest to new failure.',
+      shortDescription:
+          'Immediate weight reduction (e.g. -20%) with zero rest to new failure.',
       fullExplanation:
           'Upon reaching muscular failure, immediately reduce weight by 10–30% '
           'and continue reps until subsequent failure for maximal metabolic stress.',
@@ -131,7 +132,8 @@ class SetTypeInfo {
       label: 'Down Sets',
       badge: 'DN',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Set chain with identical weight where reps decrease by 1 each set.',
+      shortDescription:
+          'Set chain with identical weight where reps decrease by 1 each set.',
       fullExplanation:
           'Sequential set protocol with constant weight where each successive set performs '
           '1 fewer repetition (e.g. 10 → 9 → 8 → 7...). '
@@ -148,7 +150,8 @@ class SetTypeInfo {
       label: 'Rest-Pause',
       badge: 'RP',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Main set to failure, 15-20s pause, then 2-3 mini-sets.',
+      shortDescription:
+          'Main set to failure, 15-20s pause, then 2-3 mini-sets.',
       fullExplanation:
           'Perform set to failure, take a very brief pause (15 to 20 seconds), '
           'and immediately resume for 2–4 extra repetitions.',
@@ -164,7 +167,8 @@ class SetTypeInfo {
       label: 'Pause Reps',
       badge: 'PA',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Static isometric hold for 2–5s in the hardest portion of the movement.',
+      shortDescription:
+          'Static isometric hold for 2–5s in the hardest portion of the movement.',
       fullExplanation:
           'Each rep incorporates an intentional hold at the bottom/inflection point (2s, 3s, or 5s), '
           'eliminating stretch-shortening cycle elasticity and enhancing motor control.',
@@ -180,7 +184,8 @@ class SetTypeInfo {
       label: 'Myo Reps',
       badge: 'MY',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Activation set + 3-5 micro-sets with 5 deep breaths rest.',
+      shortDescription:
+          'Activation set + 3-5 micro-sets with 5 deep breaths rest.',
       fullExplanation:
           'One activation set (10–15 reps to failure or RPE 9), '
           'followed by brief rest (5 deep breaths) and 3–5 mini-sets of 3–5 reps each.',
@@ -196,7 +201,8 @@ class SetTypeInfo {
       label: 'Partials',
       badge: 'P½',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Partial range-of-motion reps after achieving full range failure.',
+      shortDescription:
+          'Partial range-of-motion reps after achieving full range failure.',
       fullExplanation:
           'Perform partial reps (e.g. top or bottom half only) '
           'when complete full-ROM repetitions can no longer be completed.',
@@ -244,7 +250,8 @@ class SetTypeInfo {
       label: 'Cheat Reps',
       badge: 'CR',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Full reps + extra reps utilizing controlled body momentum.',
+      shortDescription:
+          'Full reps + extra reps utilizing controlled body momentum.',
       fullExplanation:
           'When strict form fails, utilize slight controlled body english '
           'to pass the sticking point while sustaining heavy eccentric resistance.',
@@ -260,10 +267,12 @@ class SetTypeInfo {
       label: 'Pyramid Set',
       badge: 'PY',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Increasing weight and decreasing reps across consecutive sets.',
+      shortDescription:
+          'Increasing weight and decreasing reps across consecutive sets.',
       fullExplanation:
           'Classic pyramid (or reverse pyramid): each sequential set uses higher weight with fewer repetitions.',
-      howMeasuredInApp: 'Standard measurement of weight and reps for each pyramid step.',
+      howMeasuredInApp:
+          'Standard measurement of weight and reps for each pyramid step.',
       volumeTonnageRule: '1.0× Tonnage',
       cnsRule: '1.0× Standard',
       accentColor: Color(0xFF4DD0E1),
@@ -304,7 +313,8 @@ class SetTypeInfo {
       label: 'Pre-Exhaustion',
       badge: 'PE',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'Isolation exercise performed immediately prior to compound lift.',
+      shortDescription:
+          'Isolation exercise performed immediately prior to compound lift.',
       fullExplanation:
           'Fatigue target muscle first with an isolation movement (e.g. pec deck flyes), '
           'then immediately transition to a compound movement (e.g. bench press).',
@@ -319,11 +329,13 @@ class SetTypeInfo {
       label: '20 Sets @ 60%',
       badge: '20x',
       category: SetTypeCategory.hypertrophy,
-      shortDescription: 'German Volume Training variation (20 sets at 60% 1RM).',
+      shortDescription:
+          'German Volume Training variation (20 sets at 60% 1RM).',
       fullExplanation:
           'High-volume density protocol consisting of 20 sets at 60% of 1RM '
           'with strict, timed rest intervals.',
-      howMeasuredInApp: 'App records % of 1RM parameter and total accumulated volume.',
+      howMeasuredInApp:
+          'App records % of 1RM parameter and total accumulated volume.',
       volumeTonnageRule: 'High volume at fixed resistance',
       cnsRule: 'High cumulative fatigue',
       accentColor: Color(0xFF7986CB),
@@ -339,7 +351,8 @@ class SetTypeInfo {
       shortDescription: 'As Many Reps As Possible within a specified time cap.',
       fullExplanation:
           'Complete as many repetitions or rounds as possible within a designated time limit (e.g. 60 seconds).',
-      howMeasuredInApp: 'Stores time cap (capSeconds) and completed reps/rounds.',
+      howMeasuredInApp:
+          'Stores time cap (capSeconds) and completed reps/rounds.',
       volumeTonnageRule: 'Tonnage calculated from all completed repetitions',
       cnsRule: 'Cardiovascular and anaerobic demand',
       accentColor: Color(0xFF26A69A),
@@ -354,7 +367,8 @@ class SetTypeInfo {
       fullExplanation:
           'Start a new set at the top of every minute with prescribed reps; '
           'remaining time in each minute serves as rest.',
-      howMeasuredInApp: 'Tracks total minutes and repetitions per minute interval.',
+      howMeasuredInApp:
+          'Tracks total minutes and repetitions per minute interval.',
       volumeTonnageRule: 'Each minute recorded as completed mini-set',
       cnsRule: 'Pacing and anaerobic work capacity',
       accentColor: Color(0xFF00ACC1),
@@ -365,11 +379,13 @@ class SetTypeInfo {
       label: 'For Time',
       badge: 'FT',
       category: SetTypeCategory.timed,
-      shortDescription: 'Complete prescribed work in the shortest time possible.',
+      shortDescription:
+          'Complete prescribed work in the shortest time possible.',
       fullExplanation:
           'Goal is to complete target repetitions or routine as fast as possible. '
           'Stopwatch tracks total elapsed duration.',
-      howMeasuredInApp: 'Records elapsed time in seconds and completion status.',
+      howMeasuredInApp:
+          'Records elapsed time in seconds and completion status.',
       volumeTonnageRule: '1.0× Tonnage + time score',
       cnsRule: 'Maximal pacing intensity',
       accentColor: Color(0xFF00897B),
@@ -390,11 +406,7 @@ class SetTypeMenu extends StatelessWidget {
   final SetType current;
   final bool isWarmup;
 
-  const SetTypeMenu({
-    super.key,
-    required this.current,
-    this.isWarmup = false,
-  });
+  const SetTypeMenu({super.key, required this.current, this.isWarmup = false});
 
   static Future<SetTypeSelection?> show(
     BuildContext context, {
@@ -506,10 +518,14 @@ class SetTypeMenu extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.12),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.12,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
@@ -572,9 +588,13 @@ class SetTypeMenu extends StatelessWidget {
                           : (!isWarmup && item.type == current),
                       onTap: () {
                         if (item.isWarmup) {
-                          Navigator.of(context).pop(const SetTypeSelection.warmup(true));
+                          Navigator.of(
+                            context,
+                          ).pop(const SetTypeSelection.warmup(true));
                         } else {
-                          Navigator.of(context).pop(SetTypeSelection(item.type!));
+                          Navigator.of(
+                            context,
+                          ).pop(SetTypeSelection(item.type!));
                         }
                       },
                       onHelpTap: () => SetTypeDetailDialog.show(context, item),
@@ -589,7 +609,9 @@ class SetTypeMenu extends StatelessWidget {
                     _SquircleSetTypeTile(
                       info: item,
                       isSelected: !isWarmup && item.type == current,
-                      onTap: () => Navigator.of(context).pop(SetTypeSelection(item.type!)),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(SetTypeSelection(item.type!)),
                       onHelpTap: () => SetTypeDetailDialog.show(context, item),
                     ),
 
@@ -602,7 +624,9 @@ class SetTypeMenu extends StatelessWidget {
                     _SquircleSetTypeTile(
                       info: item,
                       isSelected: !isWarmup && item.type == current,
-                      onTap: () => Navigator.of(context).pop(SetTypeSelection(item.type!)),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(SetTypeSelection(item.type!)),
                       onHelpTap: () => SetTypeDetailDialog.show(context, item),
                     ),
 
@@ -621,9 +645,14 @@ class SetTypeMenu extends StatelessWidget {
                     ),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(18),
-                      onTap: () => Navigator.of(context).pop(const SetTypeSelection.delete()),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(const SetTypeSelection.delete()),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         child: Row(
                           children: [
                             Container(
@@ -744,28 +773,25 @@ class _SquircleSetTypeTileState extends State<_SquircleSetTypeTile> {
 
     final _QuickPickConfig? quickConfig = switch (info.type) {
       SetType.pause => const _QuickPickConfig(
-          metaKey: 'pauseSeconds',
-          defaultValue: 3,
-          defaultLabel: '3s',
-          alternates: [2, 5],
-          alternateLabel: _secondsLabel,
-        ),
+        metaKey: 'pauseSeconds',
+        defaultValue: 3,
+        defaultLabel: '3s',
+        alternates: [2, 5],
+        alternateLabel: _secondsLabel,
+      ),
       SetType.drop => const _QuickPickConfig(
-          metaKey: 'dropPercent',
-          defaultValue: 20,
-          defaultLabel: '20%',
-          alternates: [10, 30],
-          alternateLabel: _dropPercentLabel,
-        ),
+        metaKey: 'dropPercent',
+        defaultValue: 20,
+        defaultLabel: '20%',
+        alternates: [10, 30],
+        alternateLabel: _dropPercentLabel,
+      ),
       _ => null,
     };
 
     void confirmQuick(int value) {
       Navigator.of(context).pop(
-        SetTypeSelection(
-          info.type!,
-          jsonEncode({quickConfig!.metaKey: value}),
-        ),
+        SetTypeSelection(info.type!, jsonEncode({quickConfig!.metaKey: value})),
       );
     }
 
@@ -969,19 +995,21 @@ class _SquircleBadge extends StatelessWidget {
               color: selected ? accentColor : AppColors.onSurfaceVariant,
             )
           : (badge.isEmpty || badge == '—'
-              ? Icon(
-                  Icons.horizontal_rule_rounded,
-                  size: 16,
-                  color: selected ? accentColor : AppColors.secondary,
-                )
-              : Text(
-                  badge,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: selected ? accentColor : AppColors.onSurfaceVariant,
-                  ),
-                )),
+                ? Icon(
+                    Icons.horizontal_rule_rounded,
+                    size: 16,
+                    color: selected ? accentColor : AppColors.secondary,
+                  )
+                : Text(
+                    badge,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: selected
+                          ? accentColor
+                          : AppColors.onSurfaceVariant,
+                    ),
+                  )),
     );
   }
 }
@@ -1073,14 +1101,16 @@ class _SetTypesGuideSheetState extends State<SetTypesGuideSheet> {
     final theme = Theme.of(context);
 
     final filtered = SetTypeInfo.all.where((item) {
-      if (_selectedCategory == 'basic' && item.category != SetTypeCategory.basic) {
+      if (_selectedCategory == 'basic' &&
+          item.category != SetTypeCategory.basic) {
         return false;
       }
       if (_selectedCategory == 'hypertrophy' &&
           item.category != SetTypeCategory.hypertrophy) {
         return false;
       }
-      if (_selectedCategory == 'timed' && item.category != SetTypeCategory.timed) {
+      if (_selectedCategory == 'timed' &&
+          item.category != SetTypeCategory.timed) {
         return false;
       }
       if (_searchQuery.trim().isNotEmpty) {
@@ -1171,12 +1201,19 @@ class _SetTypesGuideSheetState extends State<SetTypesGuideSheet> {
               child: TextField(
                 onChanged: (val) => setState(() => _searchQuery = val),
                 decoration: InputDecoration(
-                  hintText: 'Search set type (e.g. Drop set, Rest-pause, AMRAP)...',
-                  hintStyle: TextStyle(fontSize: 13, color: AppColors.secondary),
+                  hintText:
+                      'Search set type (e.g. Drop set, Rest-pause, AMRAP)...',
+                  hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.secondary,
+                  ),
                   prefixIcon: const Icon(Icons.search, size: 20),
                   filled: true,
                   fillColor: AppColors.surfaceContainer,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -1207,7 +1244,8 @@ class _SetTypesGuideSheetState extends State<SetTypesGuideSheet> {
                   _FilterChip(
                     label: 'Hypertrophy & Intensity',
                     selected: _selectedCategory == 'hypertrophy',
-                    onTap: () => setState(() => _selectedCategory = 'hypertrophy'),
+                    onTap: () =>
+                        setState(() => _selectedCategory = 'hypertrophy'),
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
@@ -1229,9 +1267,11 @@ class _SetTypesGuideSheetState extends State<SetTypesGuideSheet> {
                 itemCount: filtered.length,
                 itemBuilder: (context, index) {
                   final info = filtered[index];
-                  final isInitial = widget.initialHighlight != null &&
+                  final isInitial =
+                      widget.initialHighlight != null &&
                       (widget.initialHighlight == info.id ||
-                          (widget.initialHighlight == 'warmup' && info.isWarmup));
+                          (widget.initialHighlight == 'warmup' &&
+                              info.isWarmup));
 
                   return _GuideDetailCard(info: info, isHighlighted: isInitial);
                 },
@@ -1258,9 +1298,7 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? AppColors.primary
-          : AppColors.surfaceContainer,
+      color: selected ? AppColors.primary : AppColors.surfaceContainer,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -1287,10 +1325,7 @@ class _GuideDetailCard extends StatelessWidget {
   final SetTypeInfo info;
   final bool isHighlighted;
 
-  const _GuideDetailCard({
-    required this.info,
-    this.isHighlighted = false,
-  });
+  const _GuideDetailCard({required this.info, this.isHighlighted = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1357,7 +1392,10 @@ class _GuideDetailCard extends StatelessWidget {
               ),
               if (info.badge.isNotEmpty && info.badge != '—')
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: info.accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -1458,7 +1496,11 @@ class _GuideDetailCard extends StatelessWidget {
           // 3. Native Visual UI Mockup (Simulating in-app Set Row)
           Row(
             children: [
-              Icon(Icons.remove_red_eye_outlined, size: 14, color: AppColors.secondary),
+              Icon(
+                Icons.remove_red_eye_outlined,
+                size: 14,
+                color: AppColors.secondary,
+              ),
               const SizedBox(width: 6),
               Text(
                 'In-workout visual preview:',
@@ -1483,11 +1525,7 @@ class _TagChip extends StatelessWidget {
   final String text;
   final Color color;
 
-  const _TagChip({
-    required this.icon,
-    required this.text,
-    required this.color,
-  });
+  const _TagChip({required this.icon, required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -1544,7 +1582,9 @@ class _NativeSetRowMockup extends StatelessWidget {
       'for_time' => '20 reps (45s)',
       _ => '8 reps',
     };
-    final rpeText = isWarmup ? 'RPE 5.0' : (info.id == 'forced' ? 'RPE 10' : 'RPE 8.5');
+    final rpeText = isWarmup
+        ? 'RPE 5.0'
+        : (info.id == 'forced' ? 'RPE 10' : 'RPE 8.5');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1555,8 +1595,8 @@ class _NativeSetRowMockup extends StatelessWidget {
           color: isWarmup
               ? Colors.orange.withValues(alpha: 0.4)
               : (info.type != SetType.standard
-                  ? info.accentColor.withValues(alpha: 0.4)
-                  : AppColors.outlineVariant.withValues(alpha: 0.3)),
+                    ? info.accentColor.withValues(alpha: 0.4)
+                    : AppColors.outlineVariant.withValues(alpha: 0.3)),
           width: 1.2,
         ),
       ),
@@ -1571,12 +1611,16 @@ class _NativeSetRowMockup extends StatelessWidget {
               color: isWarmup
                   ? Colors.orange.withValues(alpha: 0.18)
                   : (info.type != SetType.standard
-                      ? info.accentColor.withValues(alpha: 0.18)
-                      : AppColors.surfaceVariant),
+                        ? info.accentColor.withValues(alpha: 0.18)
+                        : AppColors.surfaceVariant),
               borderRadius: BorderRadius.circular(8),
             ),
             child: isWarmup
-                ? const Icon(Icons.local_fire_department, size: 16, color: Colors.orange)
+                ? const Icon(
+                    Icons.local_fire_department,
+                    size: 16,
+                    color: Colors.orange,
+                  )
                 : Text(
                     badgeText,
                     style: TextStyle(
@@ -1691,9 +1735,7 @@ class SetTypeDetailDialog extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: AppColors.surfaceContainer,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
       child: Padding(
@@ -1771,7 +1813,9 @@ class SetTypeDetailDialog extends StatelessWidget {
                         color: AppColors.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: AppColors.outlineVariant.withValues(alpha: 0.2),
+                          color: AppColors.outlineVariant.withValues(
+                            alpha: 0.2,
+                          ),
                         ),
                       ),
                       child: Column(
@@ -1804,7 +1848,8 @@ class SetTypeDetailDialog extends StatelessWidget {
                               color: AppColors.onSurfaceVariant,
                             ),
                           ),
-                          if (info.volumeTonnageRule != null || info.cnsRule != null) ...[
+                          if (info.volumeTonnageRule != null ||
+                              info.cnsRule != null) ...[
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 6,
@@ -1833,7 +1878,11 @@ class SetTypeDetailDialog extends StatelessWidget {
                     // Visual UI Mockup
                     Row(
                       children: [
-                        Icon(Icons.remove_red_eye_outlined, size: 14, color: AppColors.secondary),
+                        Icon(
+                          Icons.remove_red_eye_outlined,
+                          size: 14,
+                          color: AppColors.secondary,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'In-workout visual preview:',

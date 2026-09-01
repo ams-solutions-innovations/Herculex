@@ -31,22 +31,24 @@ class OpenFoodFactsClient {
   Future<List<RemoteFood>> search(String query, {int pageSize = 20}) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
-    final uri = Uri.parse('$_base/cgi/search.pl').replace(queryParameters: {
-      'search_terms': trimmed,
-      'search_simple': '1',
-      'action': 'process',
-      'json': '1',
-      'page_size': pageSize.toString(),
-      'fields': [
-        'code',
-        'product_name',
-        'brands',
-        'nutriments',
-        'serving_quantity',
-        'serving_size',
-        'image_small_url',
-      ].join(','),
-    });
+    final uri = Uri.parse('$_base/cgi/search.pl').replace(
+      queryParameters: {
+        'search_terms': trimmed,
+        'search_simple': '1',
+        'action': 'process',
+        'json': '1',
+        'page_size': pageSize.toString(),
+        'fields': [
+          'code',
+          'product_name',
+          'brands',
+          'nutriments',
+          'serving_quantity',
+          'serving_size',
+          'image_small_url',
+        ].join(','),
+      },
+    );
     final resp = await _http.get(uri, headers: {'User-Agent': _userAgent});
     if (resp.statusCode != 200) return const [];
 
@@ -62,8 +64,10 @@ class OpenFoodFactsClient {
     final name = (p['product_name'] as String?)?.trim();
     if (name == null || name.isEmpty) return null;
 
-    final nutriments = (p['nutriments'] as Map?)?.cast<String, dynamic>() ?? const {};
-    final kcal = _toDouble(nutriments['energy-kcal_100g']) ??
+    final nutriments =
+        (p['nutriments'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final kcal =
+        _toDouble(nutriments['energy-kcal_100g']) ??
         // some products only report kJ
         ((_toDouble(nutriments['energy-kj_100g']) ?? 0) / 4.184);
     if (kcal <= 0) return null;

@@ -14,8 +14,8 @@ class BuddyChannelService {
   BuddyChannelService({
     required SupabaseClient? client,
     required BuddyGateway gateway,
-  })  : _client = client,
-        _gateway = gateway;
+  }) : _client = client,
+       _gateway = gateway;
 
   /// Null in builds without Supabase credentials. [connect] refuses in that
   /// case; everything else — the streams, [disconnect], [dispose] — stays

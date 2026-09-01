@@ -78,31 +78,37 @@ void main() {
       expect(index.resolve(name: 'press up')!.exerciseId, 2);
     });
 
-    test('an old build\'s synthetic equipment suffix resolves to the base row',
-        () {
-      // Watches that predate this change persist "Barbell Back Squat
-      // (Dumbbell)" in their session store and will keep sending it.
-      final match = index.resolve(name: 'Barbell Back Squat (Dumbbell)');
-      expect(match!.exerciseId, 1);
-      expect(match.source, ResolutionSource.normalizedName);
-    });
+    test(
+      'an old build\'s synthetic equipment suffix resolves to the base row',
+      () {
+        // Watches that predate this change persist "Barbell Back Squat
+        // (Dumbbell)" in their session store and will keep sending it.
+        final match = index.resolve(name: 'Barbell Back Squat (Dumbbell)');
+        expect(match!.exerciseId, 1);
+        expect(match.source, ResolutionSource.normalizedName);
+      },
+    );
 
     test('a real parenthetical qualifier is never stripped', () {
       // "(Wide Grip)" is not equipment; stripping it would silently log a
       // wide-grip pulldown against whatever row "Lat Pulldown" resolves to.
       expect(index.resolve(name: 'Lat Pulldown (Wide Grip)')!.exerciseId, 3);
-      expect(stripEquipmentSuffix('Lat Pulldown (Wide Grip)'),
-          'Lat Pulldown (Wide Grip)');
+      expect(
+        stripEquipmentSuffix('Lat Pulldown (Wide Grip)'),
+        'Lat Pulldown (Wide Grip)',
+      );
       expect(stripEquipmentSuffix('Squat (Barbell)'), 'Squat');
     });
 
-    test('a genuinely unknown exercise returns null so a custom row is made',
-        () {
-      expect(index.resolve(name: 'Zercher Kettlebell Windmill'), isNull);
-      expect(index.resolve(catalogExerciseId: 12345), isNull);
-      expect(index.resolve(name: '   '), isNull);
-      expect(index.resolve(), isNull);
-    });
+    test(
+      'a genuinely unknown exercise returns null so a custom row is made',
+      () {
+        expect(index.resolve(name: 'Zercher Kettlebell Windmill'), isNull);
+        expect(index.resolve(catalogExerciseId: 12345), isNull);
+        expect(index.resolve(name: '   '), isNull);
+        expect(index.resolve(), isNull);
+      },
+    );
 
     test('an unknown slug falls through to the name rungs', () {
       final match = index.resolve(slug: 'gone-in-v20', name: 'Dumbbell Curl');
@@ -116,10 +122,10 @@ void main() {
     late List<Map<String, dynamic>> catalogRows;
 
     setUpAll(() {
-      catalogRows = (jsonDecode(
-        File('assets/data/exercises.json').readAsStringSync(),
-      ) as List)
-          .cast<Map<String, dynamic>>();
+      catalogRows =
+          (jsonDecode(File('assets/data/exercises.json').readAsStringSync())
+                  as List)
+              .cast<Map<String, dynamic>>();
       catalogIndex = WatchExerciseIndex.build([
         for (var i = 0; i < catalogRows.length; i++)
           ResolvableExercise(

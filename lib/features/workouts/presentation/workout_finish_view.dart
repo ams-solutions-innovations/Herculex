@@ -51,7 +51,8 @@ class WorkoutFinishView extends ConsumerStatefulWidget {
           opacity: animation,
           child: ScaleTransition(
             scale: Tween(begin: 0.94, end: 1.0).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
             child: child,
           ),
         ),
@@ -93,15 +94,20 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
     final start = (0.25 + order * 0.11).clamp(0.0, 0.9);
     final anim = CurvedAnimation(
       parent: _intro,
-      curve: Interval(start, (start + 0.35).clamp(0.0, 1.0),
-          curve: Curves.easeOutCubic),
+      curve: Interval(
+        start,
+        (start + 0.35).clamp(0.0, 1.0),
+        curve: Curves.easeOutCubic,
+      ),
     );
     return AnimatedBuilder(
       animation: anim,
       builder: (_, c) => Opacity(
         opacity: anim.value,
         child: Transform.translate(
-            offset: Offset(0, 18 * (1 - anim.value)), child: c),
+          offset: Offset(0, 18 * (1 - anim.value)),
+          child: c,
+        ),
       ),
       child: child,
     );
@@ -109,7 +115,9 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
 
   Future<void> _pickPhoto(ImageSource source) async {
     try {
-      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+      await ref
+          .read(pendingAiScanServiceProvider)
+          .setPendingContext(
             PendingAiScanContext(
               type: AiScanContextType.workoutPhoto,
               extra: {'sessionId': widget.sessionId},
@@ -132,9 +140,9 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
       ref.invalidate(workoutSessionProvider(widget.sessionId));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error selecting image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error selecting image: $e')));
       }
     }
   }
@@ -152,7 +160,9 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
     setState(() => _syncingHealth = true);
     Haptics.selection();
     try {
-      final success = await ref.read(healthServiceProvider).writeWorkoutToHealth(
+      final success = await ref
+          .read(healthServiceProvider)
+          .writeWorkoutToHealth(
             activityName: s.name,
             startTime: s.startedAt,
             endTime: s.startedAt.add(s.duration),
@@ -201,18 +211,24 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
                 const SizedBox(height: 20),
                 _staggered(
                   0,
-                  Text('Workout Complete',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.displaySmall
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Workout Complete',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 _staggered(
                   1,
-                  Text(s.name,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(color: AppColors.secondary)),
+                  Text(
+                    s.name,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 28),
                 _staggered(
@@ -254,9 +270,12 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
                   7,
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Done',
-                        style: theme.textTheme.titleSmall
-                            ?.copyWith(color: AppColors.secondary)),
+                    child: Text(
+                      'Done',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -277,10 +296,15 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
             groups.putIfAbsent(ex.supersetGroup!, () => []).add(ex);
           }
         }
-        final circuitGroups = groups.values.where((g) => g.length >= 2).toList();
+        final circuitGroups = groups.values
+            .where((g) => g.length >= 2)
+            .toList();
         if (circuitGroups.isEmpty) return const SizedBox.shrink();
 
-        return _CircuitsSummaryCard(sessionId: sessionId, circuitGroups: circuitGroups);
+        return _CircuitsSummaryCard(
+          sessionId: sessionId,
+          circuitGroups: circuitGroups,
+        );
       },
       loading: () => const SizedBox.shrink(),
       error: (e, st) => const SizedBox.shrink(),
@@ -306,8 +330,11 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
         children: [
           Row(
             children: [
-              Icon(Icons.camera_alt_outlined,
-                  size: 16, color: AppColors.primary),
+              Icon(
+                Icons.camera_alt_outlined,
+                size: 16,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 'WORKOUT PHOTO',
@@ -322,7 +349,10 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
                 InkWell(
                   onTap: _removePhoto,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Text(
                       'Remove',
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -366,7 +396,10 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
                   child: OutlinedButton.icon(
                     onPressed: () => _pickPhoto(ImageSource.gallery),
                     icon: const Icon(Icons.photo_library_rounded, size: 16),
-                    label: const Text('Gallery', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'Gallery',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
@@ -386,8 +419,9 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
                     icon: const Icon(Icons.camera_alt_rounded, size: 16),
                     label: const Text('Take photo'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          AppColors.primary.withValues(alpha: 0.15),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.15,
+                      ),
                       foregroundColor: AppColors.primary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -403,8 +437,7 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
                     icon: const Icon(Icons.photo_library_rounded, size: 16),
                     label: const Text('Choose from gallery'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          AppColors.surfaceVariant,
+                      backgroundColor: AppColors.surfaceVariant,
                       foregroundColor: theme.colorScheme.onSurface,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -441,13 +474,16 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (isSynced ? const Color(0xFF30D158) : const Color(0xFF4285F4))
-                  .withValues(alpha: 0.15),
+              color:
+                  (isSynced ? const Color(0xFF30D158) : const Color(0xFF4285F4))
+                      .withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
               isSynced ? Icons.check_circle_rounded : Icons.favorite_rounded,
-              color: isSynced ? const Color(0xFF30D158) : const Color(0xFF4285F4),
+              color: isSynced
+                  ? const Color(0xFF30D158)
+                  : const Color(0xFF4285F4),
               size: 20,
             ),
           ),
@@ -492,9 +528,7 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
                 : Text(
                     isSynced ? 'Retry' : 'Sync',
                     style: TextStyle(
-                      color: isSynced
-                          ? AppColors.secondary
-                          : AppColors.primary,
+                      color: isSynced ? AppColors.secondary : AppColors.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -508,9 +542,14 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
   Widget _backgroundPicker(ThemeData theme) {
     return Column(
       children: [
-        Text('CARD BACKGROUND',
-            style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.secondary, letterSpacing: 1.2, fontSize: 10)),
+        Text(
+          'CARD BACKGROUND',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.secondary,
+            letterSpacing: 1.2,
+            fontSize: 10,
+          ),
+        ),
         const SizedBox(height: 10),
         Wrap(
           alignment: WrapAlignment.center,
@@ -530,8 +569,9 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
                   color: _background == bg
                       ? AppColors.primary
                       : AppColors.secondary,
-                  fontWeight:
-                      _background == bg ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: _background == bg
+                      ? FontWeight.bold
+                      : FontWeight.normal,
                 ),
                 side: BorderSide(
                   color: _background == bg
@@ -551,8 +591,9 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
   Future<void> _share(SessionSummary s) async {
     setState(() => _sharing = true);
     try {
-      final boundary = _shareCardKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
+      final boundary =
+          _shareCardKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
       if (boundary == null) return;
 
       final image = await boundary.toImage(pixelRatio: 3.0);
@@ -561,8 +602,9 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
       final bytes = byteData.buffer.asUint8List();
 
       final dir = await getTemporaryDirectory();
-      final file = await File('${dir.path}/herculex_workout_${s.sessionId}.png')
-          .writeAsBytes(bytes);
+      final file = await File(
+        '${dir.path}/herculex_workout_${s.sessionId}.png',
+      ).writeAsBytes(bytes);
 
       final files = [XFile(file.path, mimeType: 'image/png')];
       if (s.photoPath != null && File(s.photoPath!).existsSync()) {
@@ -571,7 +613,8 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
 
       await Share.shareXFiles(
         files,
-        text: '${s.name} — ${s.totalSets} sets, '
+        text:
+            '${s.name} — ${s.totalSets} sets, '
             '${ref.read(weightFormatProvider).formatTonnage(s.tonnageKg)} moved, '
             '${s.caloriesBurned} kcal in ${s.durationLabel}. #Herculex',
       );
@@ -589,11 +632,13 @@ class _Burst extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pop = CurvedAnimation(
-        parent: controller,
-        curve: const Interval(0, 0.45, curve: Curves.elasticOut));
+      parent: controller,
+      curve: const Interval(0, 0.45, curve: Curves.elasticOut),
+    );
     final ripple = CurvedAnimation(
-        parent: controller,
-        curve: const Interval(0.05, 0.65, curve: Curves.easeOutCubic));
+      parent: controller,
+      curve: const Interval(0.05, 0.65, curve: Curves.easeOutCubic),
+    );
 
     return SizedBox(
       width: 140,
@@ -605,8 +650,11 @@ class _Burst extends StatelessWidget {
           children: [
             for (final delay in const [0.0, 0.15])
               Opacity(
-                opacity: (1 - ((ripple.value - delay).clamp(0.0, 1.0)))
-                    .clamp(0.0, 1.0) *
+                opacity:
+                    (1 - ((ripple.value - delay).clamp(0.0, 1.0))).clamp(
+                      0.0,
+                      1.0,
+                    ) *
                     0.35,
                 child: Container(
                   width: 80 + 60 * (ripple.value - delay).clamp(0.0, 1.0),
@@ -630,8 +678,11 @@ class _Burst extends StatelessWidget {
                     colors: [AppColors.primary, const Color(0xFF30D158)],
                   ),
                 ),
-                child: const Icon(Icons.check_rounded,
-                    color: Colors.white, size: 44),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 44,
+                ),
               ),
             ),
           ],
@@ -680,20 +731,30 @@ class _ShareCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text('HERCULEX',
-              style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 3)),
+          Text(
+            'HERCULEX',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 3,
+            ),
+          ),
           const SizedBox(height: 14),
-          Text(summary.name,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: _fg, fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(
+            summary.name,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _fg,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(DateFormat('EEEE, d MMM').format(summary.startedAt),
-              style: TextStyle(color: _muted, fontSize: 12)),
+          Text(
+            DateFormat('EEEE, d MMM').format(summary.startedAt),
+            style: TextStyle(color: _muted, fontSize: 12),
+          ),
           const SizedBox(height: 22),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -738,17 +799,22 @@ class _ShareCard extends StatelessWidget {
               children: [
                 for (final m in summary.muscleGroups)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(m,
-                        style: TextStyle(
-                            color: _onDark ? Colors.white : AppColors.primary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600)),
+                    child: Text(
+                      m,
+                      style: TextStyle(
+                        color: _onDark ? Colors.white : AppColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -764,8 +830,9 @@ class _ShareCard extends StatelessWidget {
                     : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFFFFD700)
-                      .withValues(alpha: _onDark ? 0.35 : 0.45),
+                  color: const Color(
+                    0xFFFFD700,
+                  ).withValues(alpha: _onDark ? 0.35 : 0.45),
                   width: 1.0,
                 ),
               ),
@@ -800,11 +867,7 @@ class _ShareCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 2.5),
                       child: Row(
                         children: [
-                          Icon(
-                            ach.icon,
-                            size: 14,
-                            color: ach.primaryColor,
-                          ),
+                          Icon(ach.icon, size: 14, color: ach.primaryColor),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -844,26 +907,27 @@ class _ShareCard extends StatelessWidget {
   }
 
   Widget _stat(String value, String label) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(value,
-              style: TextStyle(
-                  color: _fg, fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(label,
-              style: TextStyle(
-                  color: _muted,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.1)),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        value,
+        style: TextStyle(color: _fg, fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        label,
+        style: TextStyle(
+          color: _muted,
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.1,
+        ),
+      ),
+    ],
+  );
 
-  Widget _divider() => Container(
-        width: 1,
-        height: 30,
-        color: _fg.withValues(alpha: 0.12),
-      );
+  Widget _divider() =>
+      Container(width: 1, height: 30, color: _fg.withValues(alpha: 0.12));
 }
 
 // ── Circuit Summary Section ────────────────────────────────────────────────
@@ -911,10 +975,7 @@ class _CircuitsSummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           for (int i = 0; i < circuitGroups.length; i++) ...[
             if (i > 0) const SizedBox(height: 10),
-            _CircuitSummaryTile(
-              index: i + 1,
-              exercises: circuitGroups[i],
-            ),
+            _CircuitSummaryTile(index: i + 1, exercises: circuitGroups[i]),
           ],
         ],
       ),
@@ -926,10 +987,7 @@ class _CircuitSummaryTile extends ConsumerWidget {
   final int index;
   final List<WorkoutExerciseData> exercises;
 
-  const _CircuitSummaryTile({
-    required this.index,
-    required this.exercises,
-  });
+  const _CircuitSummaryTile({required this.index, required this.exercises});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -983,10 +1041,7 @@ class _CircuitSummaryTile extends ConsumerWidget {
               const SizedBox(width: 8),
               Text(
                 '${sortedExercises.length} exercises',
-                style: TextStyle(
-                  color: AppColors.secondary,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: AppColors.secondary, fontSize: 11),
               ),
             ],
           ),

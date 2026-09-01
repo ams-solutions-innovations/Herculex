@@ -1,19 +1,23 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../notifications/presentation/notification_settings_provider.dart';
 import '../data/fasting_notification_scheduler.dart';
 import '../data/fasting_repository.dart';
 import '../data/fasting_schedule_service.dart';
+import '../domain/fasting_plan.dart';
+import '../domain/fasting_schedule_occurrence.dart';
 import '../../../data/local/database.dart';
 
 final fastingNotificationSchedulerProvider =
     Provider<FastingNotificationScheduler>((ref) {
-  return FastingNotificationScheduler(FlutterLocalNotificationsPlugin());
-});
+      return FastingNotificationScheduler(
+        ref.watch(localNotificationsPluginProvider),
+      );
+    });
 
 final fastingScheduleServiceProvider = Provider<FastingScheduleService>((ref) {
-  return FastingScheduleService(FlutterLocalNotificationsPlugin());
+  return FastingScheduleService(ref.watch(localNotificationsPluginProvider));
 });
 
 final fastingRepositoryProvider = Provider<FastingRepository>((ref) {
@@ -22,7 +26,9 @@ final fastingRepositoryProvider = Provider<FastingRepository>((ref) {
   return FastingRepository(db, clock);
 });
 
-final fastingSchedulesProvider = StreamProvider<List<FastingScheduleData>>((ref) {
+final fastingSchedulesProvider = StreamProvider<List<FastingScheduleData>>((
+  ref,
+) {
   final repo = ref.watch(fastingRepositoryProvider);
   return repo.watchSchedules();
 });
@@ -73,3 +79,93 @@ final fastingTimerTickerProvider = StreamProvider<Duration?>((ref) {
 
   return ticker();
 });
+
+class NextScheduledFastInfo {
+  final FastingScheduleData schedule;
+  final DateTime nextOccurrence;
+  final FastingPlan plan;
+  final String planLabel;
+  final int targetSeconds;
+  final Duration timeUntil;
+
+  const NextScheduledFastInfo({
+    required this.schedule,
+    required this.nextOccurrence,
+    required this.plan,
+    required this.planLabel,
+    required this.targetSeconds,
+    required this.timeUntil,
+  });
+}
+
+final hasActiveFastingScheduleProvider = Provider<bool>((ref) {
+  final schedules = ref.watch(fastingSchedulesProvider).valueOrNull ?? [];
+  return schedules.any((s) => s.enabled && s.daysOfWeek != 0);
+});
+
+final nextScheduledFastProvider = Provider<NextScheduledFastInfo?>((ref) {
+  final schedules = ref.watch(fastingSchedulesProvider).valueOrNull ?? [];
+  final clock = ref.watch(clockProvider);
+  final now = clock.now();
+
+  NextScheduledFastInfo? earliest;
+  for (final s in schedules) {
+    if (!s.enabled || s.daysOfWeek == 0) continue;
+    final next = nextOccurrence(
+      daysOfWeek: s.daysOfWeek,
+      startTimeMinutes: s.startTimeMinutes,
+      from: now,
+    );
+    if (next == null) continue;
+
+    final plan = resolveSchedulePlan(s.planName);
+    final targetSeconds = resolveScheduleTargetSeconds(
+      s.planName,
+      s.customTargetSeconds,
+    );
+    final planLabel = plan == FastingPlan.custom
+        ? '${targetSeconds ~/ 3600}h Custom'
+        : plan.nameString;
+
+    final candidate = NextScheduledFastInfo(
+      schedule: s,
+      nextOccurrence: next,
+      plan: plan,
+      planLabel: planLabel,
+      targetSeconds: targetSeconds,
+      timeUntil: next.difference(now),
+    );
+
+    if (earliest == null ||
+        candidate.nextOccurrence.isBefore(earliest.nextOccurrence)) {
+      earliest = candidate;
+    }
+  }
+
+  return earliest;
+});
+
+final fastingStagesProvider = StreamProvider<List<FastingStageData>>((ref) {
+  final repo = ref.watch(fastingRepositoryProvider);
+  return repo.watchFastingStages();
+});
+
+final currentFastingStageProvider = Provider<FastingStageData?>((ref) {
+  final ticker = ref.watch(fastingTimerTickerProvider).valueOrNull;
+  final stages = ref.watch(fastingStagesProvider).valueOrNull;
+  if (ticker == null || stages == null || stages.isEmpty) return null;
+
+  final elapsedHours = ticker.inHours;
+  final targetHour = elapsedHours.clamp(1, 72);
+
+  FastingStageData? match;
+  for (final s in stages) {
+    if (s.hour <= targetHour) {
+      if (match == null || s.hour > match.hour) {
+        match = s;
+      }
+    }
+  }
+  return match ?? stages.first;
+});
+

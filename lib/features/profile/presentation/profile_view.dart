@@ -68,6 +68,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   late ActivityLevel _activityLevel;
   late BiologicalSex? _sex;
   late bool _countBurnedCalories;
+  late String _herculTone;
 
   final _nameCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
@@ -95,6 +96,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
     _sex = p?.sex;
     _countBurnedCalories = p?.countBurnedCalories ?? false;
+    _herculTone = p?.herculTone ?? 'normal';
     _nameCtrl.text = p?.name ?? '';
     _ageCtrl.text = p?.ageYears?.toString() ?? '';
     // Body stats are stored in metric; the fields show the user's own system.
@@ -122,6 +124,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
       _sex = p?.sex;
       _countBurnedCalories = p?.countBurnedCalories ?? false;
+      _herculTone = p?.herculTone ?? 'normal';
       if (_nameCtrl.text != (p?.name ?? '')) {
         _nameCtrl.text = p?.name ?? '';
       }
@@ -130,12 +133,17 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       }
       final weightFmt = ref.read(weightFormatProvider);
       final heightFmt = ref.read(heightFormatProvider);
-      final weightStr = p?.weightKg == null ? '' : weightFmt.formatValue(p!.weightKg!);
+      final weightStr = p?.weightKg == null
+          ? ''
+          : weightFmt.formatValue(p!.weightKg!);
       final targetKg = p?.targetWeightKg ?? ref.read(goalWeightProvider);
       final targetStr = targetKg == null ? '' : weightFmt.formatValue(targetKg);
-      final heightStr = p?.heightCm == null ? '' : heightFmt.formatValue(p!.heightCm!);
+      final heightStr = p?.heightCm == null
+          ? ''
+          : heightFmt.formatValue(p!.heightCm!);
       if (_weightCtrl.text != weightStr) _weightCtrl.text = weightStr;
-      if (_targetWeightCtrl.text != targetStr) _targetWeightCtrl.text = targetStr;
+      if (_targetWeightCtrl.text != targetStr)
+        _targetWeightCtrl.text = targetStr;
       if (_heightCtrl.text != heightStr) _heightCtrl.text = heightStr;
     }
   }
@@ -160,10 +168,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final weightFmt = ref.read(weightFormatProvider);
     final heightFmt = ref.read(heightFormatProvider);
     final kg = widget.profile?.weightKg;
-    final targetKg = widget.profile?.targetWeightKg ?? ref.read(goalWeightProvider);
+    final targetKg =
+        widget.profile?.targetWeightKg ?? ref.read(goalWeightProvider);
     final cm = widget.profile?.heightCm;
     _weightCtrl.text = kg == null ? '' : weightFmt.formatValue(kg);
-    _targetWeightCtrl.text = targetKg == null ? '' : weightFmt.formatValue(targetKg);
+    _targetWeightCtrl.text = targetKg == null
+        ? ''
+        : weightFmt.formatValue(targetKg);
     _heightCtrl.text = cm == null ? '' : heightFmt.formatValue(cm);
   }
 
@@ -193,6 +204,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       activityLevel: _activityLevel,
       sex: _sex,
       countBurnedCalories: _countBurnedCalories,
+      herculTone: _herculTone,
       ageYears: int.tryParse(_ageCtrl.text.trim()),
       // Fields hold display units; storage is always metric.
       weightKg: weight == null
@@ -218,7 +230,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     }
     if (!mounted) return;
     setState(() => _saving = false);
-    ref.read(hxToastControllerProvider.notifier).show(HxToastItem.profileSaved());
+    ref
+        .read(hxToastControllerProvider.notifier)
+        .show(HxToastItem.profileSaved());
   }
 
   Future<void> _clearData(BuildContext context) async {
@@ -446,6 +460,42 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
             _SettingsDivider(),
             _SettingsTile(
+              icon: Icons.psychology_outlined,
+              label: 'Honest Hercul (18+)',
+              trailing: Switch(
+                value: _herculTone == 'honest',
+                onChanged: (val) async {
+                  if (val) {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: const Text('Enable Honest Hercul?'),
+                        content: const Text(
+                          'Honest Hercul uses blunt, unfiltered language about '
+                          'training and consistency. It may contain profanity. '
+                          'Are you 18 or older?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(c, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(c, true),
+                            child: const Text('Yes, I am 18+'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm != true) return;
+                  }
+                  setState(() => _herculTone = val ? 'honest' : 'normal');
+                  _onFieldChanged();
+                },
+              ),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
               icon: Icons.dark_mode_rounded,
               label: 'Theme',
               trailing: _ThemeToggle(),
@@ -643,19 +693,21 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
               _SettingsTile(
                 icon: Icons.cloud_sync_rounded,
                 label: 'Sign in to Supabase',
-                trailing: Icon(
-                  Icons.chevron_right,
-                  color: context.hx.primary,
-                ),
+                trailing: Icon(Icons.chevron_right, color: context.hx.primary),
                 onTap: () => _showAuthSheet(context),
               ),
               _SettingsDivider(),
             ] else ...[
               _SettingsTile(
                 icon: Icons.person_outline_rounded,
-                label: ref.watch(authSessionProvider).valueOrNull?.email ?? 'Signed in',
+                label:
+                    ref.watch(authSessionProvider).valueOrNull?.email ??
+                    'Signed in',
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: context.hx.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -750,9 +802,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 
     String? error;
     try {
-      await ref.read(accountDeletionServiceProvider).deleteAccountAndWipeDevice();
+      await ref
+          .read(accountDeletionServiceProvider)
+          .deleteAccountAndWipeDevice();
     } catch (e) {
-      error = e is Exception ? e.toString().replaceFirst('Exception: ', '') : '$e';
+      error = e is Exception
+          ? e.toString().replaceFirst('Exception: ', '')
+          : '$e';
     }
 
     if (!context.mounted) return;
@@ -991,7 +1047,8 @@ class _ProfileActiveTargetSquircleCard extends ConsumerWidget {
     final profile = ref.watch(profileProvider).asData?.value;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final targets = ref.watch(effectiveTargetsProvider(today)).asData?.value ??
+    final targets =
+        ref.watch(effectiveTargetsProvider(today)).asData?.value ??
         ref.watch(baselineTargetsProvider);
 
     final phaseColor = switch (activePlan.phase) {
@@ -1078,7 +1135,9 @@ class _ProfileActiveTargetSquircleCard extends ConsumerWidget {
                               Icon(
                                 Icons.arrow_forward_ios_rounded,
                                 size: 14,
-                                color: hx.onSurfaceVariant.withValues(alpha: 0.6),
+                                color: hx.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
                               ),
                             ],
                           ),
@@ -1124,7 +1183,9 @@ class _ProfileActiveTargetSquircleCard extends ConsumerWidget {
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: phaseColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
@@ -1196,11 +1257,7 @@ class _ProfileActiveTargetSquircleCard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right,
-                      size: 14,
-                      color: phaseColor,
-                    ),
+                    Icon(Icons.chevron_right, size: 14, color: phaseColor),
                   ],
                 ),
               ],
@@ -1305,7 +1362,11 @@ class _DreamPhysiqueCard extends StatelessWidget {
                     color: context.hx.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.auto_awesome, size: 22, color: context.hx.primary),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    size: 22,
+                    color: context.hx.primary,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1322,7 +1383,10 @@ class _DreamPhysiqueCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: context.hx.primary,
                               borderRadius: BorderRadius.circular(6),
@@ -1431,9 +1495,7 @@ class _AvatarHeader extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          profile != null
-              ? profile!.activityLevel.label
-              : 'Set your stats',
+          profile != null ? profile!.activityLevel.label : 'Set your stats',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: context.hx.onSurfaceVariant,
@@ -1780,7 +1842,9 @@ class _ActivityTile extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: selected ? context.hx.primary : context.hx.surfaceVariant,
+                color: selected
+                    ? context.hx.primary
+                    : context.hx.surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -1944,7 +2008,11 @@ class _ThemeToggle extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.light_mode_rounded, size: 14, color: context.hx.onSurfaceVariant),
+                  Icon(
+                    Icons.light_mode_rounded,
+                    size: 14,
+                    color: context.hx.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 6),
                   const Text('Light'),
                 ],
@@ -1955,7 +2023,11 @@ class _ThemeToggle extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.brightness_auto_rounded, size: 14, color: context.hx.onSurfaceVariant),
+                  Icon(
+                    Icons.brightness_auto_rounded,
+                    size: 14,
+                    color: context.hx.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 6),
                   const Text('System'),
                 ],
@@ -1966,7 +2038,11 @@ class _ThemeToggle extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.dark_mode_rounded, size: 14, color: context.hx.onSurfaceVariant),
+                  Icon(
+                    Icons.dark_mode_rounded,
+                    size: 14,
+                    color: context.hx.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 6),
                   const Text('Dark'),
                 ],
@@ -1988,12 +2064,12 @@ class _AppColorToggle extends ConsumerWidget {
   const _AppColorToggle();
 
   static Color _previewColor(AppColorTheme theme) => switch (theme) {
-        AppColorTheme.classicBlue => const Color(0xFF0A84FF),
-        AppColorTheme.siriousBlack => const Color(0xFF27272A),
-        AppColorTheme.vividGreen => const Color(0xFF10B981),
-        AppColorTheme.sunnyYellow => const Color(0xFFF59E0B),
-        AppColorTheme.pinky => const Color(0xFFFF2D55),
-      };
+    AppColorTheme.classicBlue => const Color(0xFF0A84FF),
+    AppColorTheme.siriousBlack => const Color(0xFF27272A),
+    AppColorTheme.vividGreen => const Color(0xFF10B981),
+    AppColorTheme.sunnyYellow => const Color(0xFFF59E0B),
+    AppColorTheme.pinky => const Color(0xFFFF2D55),
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2096,13 +2172,15 @@ class SyncStatusBadge extends ConsumerWidget {
 
     return Tooltip(
       message: switch (state.phase) {
-        SyncPhase.disabled => 'This build has no cloud backend configured, or '
-            'you are signed out. Data is saved on this device only.',
+        SyncPhase.disabled =>
+          'This build has no cloud backend configured, or '
+              'you are signed out. Data is saved on this device only.',
         SyncPhase.error =>
           state.lastError ?? 'Some changes could not be uploaded.',
-        _ => state.lastSyncedAt == null
-            ? 'Not yet synced to the cloud.'
-            : 'Last synced ${state.lastSyncedAt}',
+        _ =>
+          state.lastSyncedAt == null
+              ? 'Not yet synced to the cloud.'
+              : 'Last synced ${state.lastSyncedAt}',
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -2168,7 +2246,10 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
   Future<void> _submit() async {
     final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
     if (!allowed) {
-      setState(() => _errorMessage = 'Too many failed attempts. Please wait $secondsRemaining seconds.');
+      setState(
+        () => _errorMessage =
+            'Too many failed attempts. Please wait $secondsRemaining seconds.',
+      );
       return;
     }
 
@@ -2181,7 +2262,10 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
       return;
     }
 
-    final passwordError = AuthValidator.validatePassword(password, isRegistration: _isRegister);
+    final passwordError = AuthValidator.validatePassword(
+      password,
+      isRegistration: _isRegister,
+    );
     if (passwordError != null) {
       setState(() => _errorMessage = passwordError);
       return;
@@ -2205,7 +2289,10 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
       _rateLimiter.recordFailure();
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('AuthException: ', '');
+          _errorMessage = e
+              .toString()
+              .replaceAll('Exception: ', '')
+              .replaceAll('AuthException: ', '');
           _busy = false;
         });
       }
@@ -2224,7 +2311,10 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('AuthException: ', '');
+          _errorMessage = e
+              .toString()
+              .replaceAll('Exception: ', '')
+              .replaceAll('AuthException: ', '');
           _busy = false;
         });
       }
@@ -2243,121 +2333,138 @@ class _AuthSheetState extends ConsumerState<_AuthSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: context.hx.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.cloud_sync_rounded, color: context.hx.primary, size: 24),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: context.hx.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _isRegister ? 'Create Herculex Account' : 'Sign in to Herculex',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Sync your workouts and nutrition across devices',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: context.hx.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: Icon(
+                  Icons.cloud_sync_rounded,
+                  color: context.hx.primary,
+                  size: 24,
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _emailCtrl,
-              keyboardType: TextInputType.emailAddress,
-              autocorrect: false,
-              maxLength: AuthValidator.maxEmailLength,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                counterText: '',
-                prefixIcon: const Icon(Icons.email_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordCtrl,
-              obscureText: true,
-              maxLength: AuthValidator.maxPasswordLength,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                counterText: '',
-                prefixIcon: const Icon(Icons.lock_outline),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-              ),
-            ],
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _busy ? null : _submit,
-              style: FilledButton.styleFrom(
-                backgroundColor: context.hx.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: _busy
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text(
-                      _isRegister ? 'Create Account & Sync' : 'Sign In & Sync',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isRegister
+                          ? 'Create Herculex Account'
+                          : 'Sign in to Herculex',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-            ),
-            if (Env.hasGoogleSignIn) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : _googleSignIn,
-                icon: const Icon(Icons.g_mobiledata_rounded, size: 24),
-                label: const Text('Continue with Google'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    Text(
+                      'Sync your workouts and nutrition across devices',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: context.hx.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            maxLength: AuthValidator.maxEmailLength,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              counterText: '',
+              prefixIcon: const Icon(Icons.email_outlined),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _passwordCtrl,
+            obscureText: true,
+            maxLength: AuthValidator.maxPasswordLength,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              counterText: '',
+              prefixIcon: const Icon(Icons.lock_outline),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          if (_errorMessage != null) ...[
             const SizedBox(height: 12),
-            TextButton(
-              onPressed: _busy
-                  ? null
-                  : () => setState(() {
-                        _isRegister = !_isRegister;
-                        _errorMessage = null;
-                      }),
-              child: Text(
-                _isRegister
-                    ? 'Already have an account? Sign In'
-                    : "Don't have an account? Create one",
-                style: TextStyle(color: context.hx.primary),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+            ),
+          ],
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: _busy ? null : _submit,
+            style: FilledButton.styleFrom(
+              backgroundColor: context.hx.primary,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: _busy
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    _isRegister ? 'Create Account & Sync' : 'Sign In & Sync',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+          ),
+          if (Env.hasGoogleSignIn) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _googleSignIn,
+              icon: const Icon(Icons.g_mobiledata_rounded, size: 24),
+              label: const Text('Continue with Google'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ],
-        ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: _busy
+                ? null
+                : () => setState(() {
+                    _isRegister = !_isRegister;
+                    _errorMessage = null;
+                  }),
+            child: Text(
+              _isRegister
+                  ? 'Already have an account? Sign In'
+                  : "Don't have an account? Create one",
+              style: TextStyle(color: context.hx.primary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2424,7 +2531,8 @@ class _SyncDetailSheetState extends ConsumerState<_SyncDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final syncState = ref.watch(syncStateProvider).valueOrNull ??
+    final syncState =
+        ref.watch(syncStateProvider).valueOrNull ??
         const SyncState(phase: SyncPhase.disabled);
     final session = ref.watch(authSessionProvider).valueOrNull;
 
@@ -2566,17 +2674,26 @@ class _SyncDetailSheetState extends ConsumerState<_SyncDetailSheet> {
               decoration: BoxDecoration(
                 color: Colors.redAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: Colors.redAccent.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.error_outline, size: 18, color: Colors.redAccent),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 18,
+                    color: Colors.redAccent,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       syncState.lastError!,
-                      style: const TextStyle(fontSize: 12, color: Colors.redAccent),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.redAccent,
+                      ),
                     ),
                   ),
                 ],
@@ -2601,14 +2718,19 @@ class _SyncDetailSheetState extends ConsumerState<_SyncDetailSheet> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.sync_rounded),
             label: Text(_busy ? 'Syncing…' : 'Sync Now / Retry'),
             style: FilledButton.styleFrom(
               backgroundColor: context.hx.primary,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -2618,7 +2740,9 @@ class _SyncDetailSheetState extends ConsumerState<_SyncDetailSheet> {
             label: const Text('Re-upload All Local Data'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
         ],
@@ -2626,5 +2750,3 @@ class _SyncDetailSheetState extends ConsumerState<_SyncDetailSheet> {
     );
   }
 }
-
-

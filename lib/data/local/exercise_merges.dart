@@ -26,14 +26,14 @@ const kExerciseMerges = <ExerciseMerge>[
 
   // "Feet on floor" is what a ring push-up already is; only the elevated and
   // knee versions need qualifying.
-  ExerciseMerge(
-    loser: 'ring-push-up-feet-on-floor',
-    winner: 'ring-push-up',
-  ),
+  ExerciseMerge(loser: 'ring-push-up-feet-on-floor', winner: 'ring-push-up'),
 
   // "Weighted" is a loading choice, not a different exercise. The winner
   // carries supportsWeightedBodyweight, so added load still has a home.
-  ExerciseMerge(loser: 'russian-twist-weighted', winner: 'dumbbell-russian-twist'),
+  ExerciseMerge(
+    loser: 'russian-twist-weighted',
+    winner: 'dumbbell-russian-twist',
+  ),
   ExerciseMerge(loser: 'weighted-side-bend', winner: 'dumbbell-side-bend'),
   ExerciseMerge(loser: 'weighted-dip', winner: 'chest-dips'),
 ];

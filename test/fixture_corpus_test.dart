@@ -24,16 +24,21 @@ void main() {
       expect(status.missingSpecs.length, 11);
     });
 
-    test('10 of 11 recorded reports exactly one missing and is not sufficient', () {
-      final names = requiredFixtures.map((f) => f.name).toList()..removeLast();
-      final status = FixtureCorpusStatus.evaluate(names);
+    test(
+      '10 of 11 recorded reports exactly one missing and is not sufficient',
+      () {
+        final names = requiredFixtures.map((f) => f.name).toList()
+          ..removeLast();
+        final status = FixtureCorpusStatus.evaluate(names);
 
-      expect(status.sufficient, isFalse);
-      final missing =
-          status.byName.entries.where((e) => e.value == FixtureRecordState.missing);
-      expect(missing.length, 1);
-      expect(status.missingSpecs.length, 1);
-    });
+        expect(status.sufficient, isFalse);
+        final missing = status.byName.entries.where(
+          (e) => e.value == FixtureRecordState.missing,
+        );
+        expect(missing.length, 1);
+        expect(status.missingSpecs.length, 1);
+      },
+    );
 
     test('all 11 recorded reports sufficient', () {
       final names = requiredFixtures.map((f) => f.name).toList();

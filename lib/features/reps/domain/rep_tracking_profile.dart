@@ -170,14 +170,17 @@ class RepTrackingProfile {
       family: coherent ? family : null,
       channels: coherent
           ? [
-              for (final raw in (json['channels'] as List<dynamic>? ?? const []))
+              for (final raw
+                  in (json['channels'] as List<dynamic>? ?? const []))
                 ?RepChannel.fromId(raw as String?),
             ]
           : const [],
-      minCycleAmplitudeDeg:
-          coherent ? (json['minCycleAmplitudeDeg'] as num?)?.toDouble() : null,
-      minCycleAmplitudeMs2:
-          coherent ? (json['minCycleAmplitudeMs2'] as num?)?.toDouble() : null,
+      minCycleAmplitudeDeg: coherent
+          ? (json['minCycleAmplitudeDeg'] as num?)?.toDouble()
+          : null,
+      minCycleAmplitudeMs2: coherent
+          ? (json['minCycleAmplitudeMs2'] as num?)?.toDouble()
+          : null,
       minPeriodMs: coherent ? (json['minPeriodMs'] as num?)?.toInt() : null,
       maxPeriodMs: coherent ? (json['maxPeriodMs'] as num?)?.toInt() : null,
       reason: json['reason'] as String? ?? '',

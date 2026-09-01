@@ -35,15 +35,18 @@ void main() {
       expect(result.missedRepSuspected, isFalse);
     });
 
-    test('reports high set confidence and per-rep confidence for every rep', () {
-      final result = RepDetector.detect(_repTrace(reps: 8));
+    test(
+      'reports high set confidence and per-rep confidence for every rep',
+      () {
+        final result = RepDetector.detect(_repTrace(reps: 8));
 
-      expect(result.perRepConfidence, hasLength(result.repCount));
-      expect(result.setConfidence, greaterThan(0.75));
-      for (final c in result.perRepConfidence) {
-        expect(c, inInclusiveRange(0.0, 1.0));
-      }
-    });
+        expect(result.perRepConfidence, hasLength(result.repCount));
+        expect(result.setConfidence, greaterThan(0.75));
+        for (final c in result.perRepConfidence) {
+          expect(c, inInclusiveRange(0.0, 1.0));
+        }
+      },
+    );
 
     test('recovers the nominal cycle period', () {
       final result = RepDetector.detect(_repTrace(reps: 6, periodMs: 2000));
@@ -171,7 +174,11 @@ void main() {
       // pedestal swamps every excursion.
       final linear = RepDetector.detect(_repTrace(reps: 8));
       final raw = RepDetector.detect(
-        _repTrace(reps: 8, offset: 5.0 + 9.81, sensorType: MotionSensorType.accelerometer),
+        _repTrace(
+          reps: 8,
+          offset: 5.0 + 9.81,
+          sensorType: MotionSensorType.accelerometer,
+        ),
       );
 
       expect(raw.repCount, linear.repCount);
@@ -180,8 +187,10 @@ void main() {
     test('needsGravityRemoval keys on the trace, not the samples', () {
       expect(_repTrace(reps: 2).needsGravityRemoval, isFalse);
       expect(
-        _repTrace(reps: 2, sensorType: MotionSensorType.accelerometer)
-            .needsGravityRemoval,
+        _repTrace(
+          reps: 2,
+          sensorType: MotionSensorType.accelerometer,
+        ).needsGravityRemoval,
         isTrue,
       );
     });
@@ -190,7 +199,10 @@ void main() {
   group('degenerate input', () {
     test('an empty trace returns the empty result', () {
       final result = RepDetector.detect(
-        const MotionTrace(samples: [], sensorType: MotionSensorType.linearAcceleration),
+        const MotionTrace(
+          samples: [],
+          sensorType: MotionSensorType.linearAcceleration,
+        ),
       );
 
       expect(result.repCount, 0);
@@ -259,7 +271,11 @@ void main() {
       const config = RepDetectorConfig();
 
       expect(config.resampleHz, 50);
-      expect(config.smoothingTaps.isOdd, isTrue, reason: 'must stay phase-neutral');
+      expect(
+        config.smoothingTaps.isOdd,
+        isTrue,
+        reason: 'must stay phase-neutral',
+      );
       expect(config.missedRepPenalty, lessThan(config.perRepConfidenceFloor));
     });
   });
@@ -298,7 +314,9 @@ MotionTrace _repTrace({
       final phase = 2 * pi * (tMs - cycleStart) / periodMs;
       // Starts and ends at the trough, peaks at the midpoint: exactly one
       // closed trough-peak-trough cycle per rep.
-      samples.add(MotionSample(tMs, 0, offset + amplitude * sin(phase - pi / 2), 0));
+      samples.add(
+        MotionSample(tMs, 0, offset + amplitude * sin(phase - pi / 2), 0),
+      );
       tMs += stepMs;
     }
   }
@@ -332,7 +350,9 @@ MotionTrace _repTraceWithGap() {
       final cycleStart = tMs;
       while (tMs - cycleStart < periodMs) {
         final phase = 2 * pi * (tMs - cycleStart) / periodMs;
-        samples.add(MotionSample(tMs, 0, offset + amplitude * sin(phase - pi / 2), 0));
+        samples.add(
+          MotionSample(tMs, 0, offset + amplitude * sin(phase - pi / 2), 0),
+        );
         tMs += stepMs;
       }
     }
@@ -344,7 +364,10 @@ MotionTrace _repTraceWithGap() {
   cycles(4);
   rest(3000);
 
-  return MotionTrace(samples: samples, sensorType: MotionSensorType.linearAcceleration);
+  return MotionTrace(
+    samples: samples,
+    sensorType: MotionSensorType.linearAcceleration,
+  );
 }
 
 /// ~1.1 Hz low-amplitude gait. Periodic, so a bare peak counter finds plenty
@@ -368,11 +391,18 @@ MotionTrace _walkingTrace({required int seconds, int hz = 50}) {
     );
   }
 
-  return MotionTrace(samples: samples, sensorType: MotionSensorType.accelerometer);
+  return MotionTrace(
+    samples: samples,
+    sensorType: MotionSensorType.accelerometer,
+  );
 }
 
 /// Still, with an optional small deterministic tremor.
-MotionTrace _restTrace({required int seconds, double noise = 0.03, int hz = 50}) {
+MotionTrace _restTrace({
+  required int seconds,
+  double noise = 0.03,
+  int hz = 50,
+}) {
   final stepMs = (1000 / hz).round();
   final samples = <MotionSample>[];
 
@@ -382,5 +412,8 @@ MotionTrace _restTrace({required int seconds, double noise = 0.03, int hz = 50})
     samples.add(MotionSample(tMs, n, 5.0 + n, n));
   }
 
-  return MotionTrace(samples: samples, sensorType: MotionSensorType.linearAcceleration);
+  return MotionTrace(
+    samples: samples,
+    sensorType: MotionSensorType.linearAcceleration,
+  );
 }

@@ -23,16 +23,25 @@ enum VolumeTimeframe {
         final start = WeeklyMuscleVolume.weekStartOf(asOf);
         return (start, asOf);
       case VolumeTimeframe.last7Days:
-        final start = DateTime(asOf.year, asOf.month, asOf.day)
-            .subtract(const Duration(days: 7));
+        final start = DateTime(
+          asOf.year,
+          asOf.month,
+          asOf.day,
+        ).subtract(const Duration(days: 7));
         return (start, asOf);
       case VolumeTimeframe.last30Days:
-        final start = DateTime(asOf.year, asOf.month, asOf.day)
-            .subtract(const Duration(days: 30));
+        final start = DateTime(
+          asOf.year,
+          asOf.month,
+          asOf.day,
+        ).subtract(const Duration(days: 30));
         return (start, asOf);
       case VolumeTimeframe.last90Days:
-        final start = DateTime(asOf.year, asOf.month, asOf.day)
-            .subtract(const Duration(days: 90));
+        final start = DateTime(
+          asOf.year,
+          asOf.month,
+          asOf.day,
+        ).subtract(const Duration(days: 90));
         return (start, asOf);
       case VolumeTimeframe.thisMonth:
         final start = DateTime(asOf.year, asOf.month, 1);
@@ -94,8 +103,10 @@ class MuscleGroupOverviewItem {
   });
 
   double weeklySets(double weeks) => sets / (weeks <= 0 ? 1.0 : weeks);
-  double weeklyTonnageKg(double weeks) => tonnageKg / (weeks <= 0 ? 1.0 : weeks);
-  double weeklyWorkouts(double weeks) => workoutCount / (weeks <= 0 ? 1.0 : weeks);
+  double weeklyTonnageKg(double weeks) =>
+      tonnageKg / (weeks <= 0 ? 1.0 : weeks);
+  double weeklyWorkouts(double weeks) =>
+      workoutCount / (weeks <= 0 ? 1.0 : weeks);
 }
 
 /// Aggregated volume overview across all muscle groups.
@@ -277,7 +288,9 @@ abstract final class MuscleVolumeAnalyticsEngine {
     final rawSets = {for (final g in MuscleRecoveryV3.groups) g: 0};
     final exercises = {for (final g in MuscleRecoveryV3.groups) g: <int>{}};
     final workouts = {for (final g in MuscleRecoveryV3.groups) g: <int>{}};
-    final lastTrained = {for (final g in MuscleRecoveryV3.groups) g: <DateTime>[]};
+    final lastTrained = {
+      for (final g in MuscleRecoveryV3.groups) g: <DateTime>[],
+    };
 
     var totalOverallTonnage = 0.0;
     var totalOverallSets = 0;
@@ -299,8 +312,10 @@ abstract final class MuscleVolumeAnalyticsEngine {
       allDistinctWorkouts.add(rs.session.id);
       allDistinctExercises.add(rs.exercise.id);
 
-      final involvement =
-          MuscleRecoveryV3.involvementFor(rs, musclesByExercise);
+      final involvement = MuscleRecoveryV3.involvementFor(
+        rs,
+        musclesByExercise,
+      );
       for (final (muscle, w) in involvement) {
         if (!tonnage.containsKey(muscle)) continue;
         tonnage[muscle] = tonnage[muscle]! + rs.tonnageKg * w;
@@ -331,7 +346,9 @@ abstract final class MuscleVolumeAnalyticsEngine {
           lastTrained: lastTrained[g]!.isEmpty
               ? null
               : (lastTrained[g]!..sort()).last,
-          percentageOfMax: maxTonnage <= 0 ? 0.0 : (tonnage[g]! / maxTonnage).clamp(0.0, 1.0),
+          percentageOfMax: maxTonnage <= 0
+              ? 0.0
+              : (tonnage[g]! / maxTonnage).clamp(0.0, 1.0),
         ),
     ];
 
@@ -376,14 +393,16 @@ abstract final class MuscleVolumeAnalyticsEngine {
         for (final r in rows) {
           final mappedMuscle = MuscleRecoveryV3.alias[r.muscle] ?? r.muscle;
           if (mappedMuscle.toLowerCase() == muscle.toLowerCase()) {
-            final w = (MuscleRecoveryV3.roleWeight[r.role] ?? 0) * r.contribution;
+            final w =
+                (MuscleRecoveryV3.roleWeight[r.role] ?? 0) * r.contribution;
             matchingSets.add((rs, r.role, w));
             matched = true;
             break;
           }
         }
       } else {
-        final mappedMuscle = MuscleRecoveryV3.alias[rs.exercise.primaryMuscle] ??
+        final mappedMuscle =
+            MuscleRecoveryV3.alias[rs.exercise.primaryMuscle] ??
             rs.exercise.primaryMuscle;
         if (mappedMuscle.toLowerCase() == muscle.toLowerCase()) {
           matchingSets.add((rs, 'primary', 1.0));
@@ -425,10 +444,11 @@ abstract final class MuscleVolumeAnalyticsEngine {
       var sessionRawSets = 0;
 
       // Group by WorkoutExercise
-      final exercisesInSession =
-          <int, List<(ResolvedSet, String, double)>>{};
+      final exercisesInSession = <int, List<(ResolvedSet, String, double)>>{};
       for (final s in sessionSets) {
-        exercisesInSession.putIfAbsent(s.$1.workoutExercise.id, () => []).add(s);
+        exercisesInSession
+            .putIfAbsent(s.$1.workoutExercise.id, () => [])
+            .add(s);
       }
 
       final exerciseItems = <MuscleWorkoutExerciseItem>[];
@@ -454,48 +474,54 @@ abstract final class MuscleVolumeAnalyticsEngine {
           totalReps += rs.countedReps;
           distinctExercises.add(rs.exercise.id);
 
-          setList.add(MuscleSetItem(
-            setId: rs.set.id,
-            setIndex: rs.set.setIndex,
-            weightKg: rs.set.weightKg,
-            reps: rs.countedReps,
-            effectiveKg: rs.effectiveKg,
-            tonnageKg: setTonnage,
-            rpeX10: rs.set.rpeX10,
-            setType: rs.setType,
-            completedAt: rs.set.completedAt,
-            accessoryNames: rs.accessoryNames,
-          ));
+          setList.add(
+            MuscleSetItem(
+              setId: rs.set.id,
+              setIndex: rs.set.setIndex,
+              weightKg: rs.set.weightKg,
+              reps: rs.countedReps,
+              effectiveKg: rs.effectiveKg,
+              tonnageKg: setTonnage,
+              rpeX10: rs.set.rpeX10,
+              setType: rs.setType,
+              completedAt: rs.set.completedAt,
+              accessoryNames: rs.accessoryNames,
+            ),
+          );
         }
 
         setList.sort((a, b) => a.setIndex.compareTo(b.setIndex));
 
-        exerciseItems.add(MuscleWorkoutExerciseItem(
-          exerciseId: first.exercise.id,
-          exerciseName: first.exercise.name,
-          role: role,
-          roleWeight: roleWeight,
-          equipmentVariant: first.equipmentVariant,
-          exerciseTonnageKg: exTonnage,
-          exerciseSetsCount: setList.length,
-          sets: setList,
-        ));
+        exerciseItems.add(
+          MuscleWorkoutExerciseItem(
+            exerciseId: first.exercise.id,
+            exerciseName: first.exercise.name,
+            role: role,
+            roleWeight: roleWeight,
+            equipmentVariant: first.equipmentVariant,
+            exerciseTonnageKg: exTonnage,
+            exerciseSetsCount: setList.length,
+            sets: setList,
+          ),
+        );
       }
 
       totalTonnageKg += sessionTonnage;
       totalSets += sessionMuscleSets;
       rawSetsCount += sessionRawSets;
 
-      workoutItems.add(MuscleWorkoutSessionItem(
-        sessionId: sessionId,
-        sessionName: _formatSessionName(session),
-        date: session.startedAt,
-        sessionRpe: session.sessionRpe,
-        muscleTonnageKg: sessionTonnage,
-        muscleSets: sessionMuscleSets,
-        rawSetsCount: sessionRawSets,
-        exercises: exerciseItems,
-      ));
+      workoutItems.add(
+        MuscleWorkoutSessionItem(
+          sessionId: sessionId,
+          sessionName: _formatSessionName(session),
+          date: session.startedAt,
+          sessionRpe: session.sessionRpe,
+          muscleTonnageKg: sessionTonnage,
+          muscleSets: sessionMuscleSets,
+          rawSetsCount: sessionRawSets,
+          exercises: exerciseItems,
+        ),
+      );
     }
 
     // Sort workouts newest first

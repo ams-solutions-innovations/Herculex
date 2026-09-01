@@ -15,8 +15,9 @@ final jointPainRepositoryProvider = Provider<JointPainRepository>((ref) {
   return JointPainRepository(ref.watch(appDatabaseProvider));
 });
 
-final jointPainStatusesProvider =
-    StreamProvider<Map<String, JointPainStatus>>((ref) {
+final jointPainStatusesProvider = StreamProvider<Map<String, JointPainStatus>>((
+  ref,
+) {
   return ref.watch(jointPainRepositoryProvider).watchCurrentStatuses();
 });
 
@@ -37,15 +38,16 @@ final recoveryEtaProvider = FutureProvider<Map<String, double?>>((ref) async {
 /// the deload and joint-stress advisors are built on.
 final muscleVolumeTrendsProvider =
     FutureProvider<Map<String, MuscleVolumeTrend>>((ref) async {
-  final snapshot = await ref.watch(trainingSnapshotProvider.future);
-  return MuscleVolumeTrends.compute(
-    snapshot: snapshot,
-    asOf: ref.watch(clockProvider).now(),
-  );
-});
+      final snapshot = await ref.watch(trainingSnapshotProvider.future);
+      return MuscleVolumeTrends.compute(
+        snapshot: snapshot,
+        asOf: ref.watch(clockProvider).now(),
+      );
+    });
 
-final muscleDeloadSignalsProvider =
-    FutureProvider<List<MuscleDeloadSignal>>((ref) async {
+final muscleDeloadSignalsProvider = FutureProvider<List<MuscleDeloadSignal>>((
+  ref,
+) async {
   final snapshot = await ref.watch(trainingSnapshotProvider.future);
   final workouts = await ref.watch(externalWorkoutsProvider.future);
   final cns = await ref.watch(cnsTrendsProvider.future);
@@ -57,8 +59,9 @@ final muscleDeloadSignalsProvider =
   );
 });
 
-final jointStressResultsProvider =
-    FutureProvider<List<JointStressResult>>((ref) async {
+final jointStressResultsProvider = FutureProvider<List<JointStressResult>>((
+  ref,
+) async {
   final snapshot = await ref.watch(trainingSnapshotProvider.future);
   final wideWorkouts = await ref.watch(wideExternalWorkoutsProvider.future);
   final statuses = await ref.watch(jointPainStatusesProvider.future);
@@ -78,14 +81,14 @@ final jointStressResultsProvider =
 
 final nextWorkoutTrainingSuggestionProvider =
     FutureProvider<TrainingSuggestion>((ref) async {
-  final recovery = await ref.watch(recoveryV3Provider.future);
-  final deload = await ref.watch(muscleDeloadSignalsProvider.future);
-  final joints = await ref.watch(jointStressResultsProvider.future);
-  final volumeTrends = await ref.watch(muscleVolumeTrendsProvider.future);
-  return TrainingSuggestionEngine.suggest(
-    recovery: recovery,
-    deloadSignals: deload,
-    jointStress: joints,
-    volumeTrends: volumeTrends,
-  );
-});
+      final recovery = await ref.watch(recoveryV3Provider.future);
+      final deload = await ref.watch(muscleDeloadSignalsProvider.future);
+      final joints = await ref.watch(jointStressResultsProvider.future);
+      final volumeTrends = await ref.watch(muscleVolumeTrendsProvider.future);
+      return TrainingSuggestionEngine.suggest(
+        recovery: recovery,
+        deloadSignals: deload,
+        jointStress: joints,
+        volumeTrends: volumeTrends,
+      );
+    });

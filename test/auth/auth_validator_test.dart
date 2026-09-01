@@ -41,10 +41,13 @@ void main() {
       expect(AuthValidator.validatePassword('abc'), contains('at least 8'));
     });
 
-    test('rejects oversized passwords (> 72 characters) to prevent CPU DoS', () {
-      final longPass = 'A' * (AuthValidator.maxPasswordLength + 1);
-      expect(AuthValidator.validatePassword(longPass), contains('exceed'));
-    });
+    test(
+      'rejects oversized passwords (> 72 characters) to prevent CPU DoS',
+      () {
+        final longPass = 'A' * (AuthValidator.maxPasswordLength + 1);
+        expect(AuthValidator.validatePassword(longPass), contains('exceed'));
+      },
+    );
 
     test('accepts valid passwords', () {
       expect(AuthValidator.validatePassword('StrongPass123!'), isNull);

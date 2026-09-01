@@ -52,7 +52,9 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
     if (session == null) return const SizedBox.shrink();
 
     final exercisesAsync = ref.watch(sessionExercisesProvider(session.id));
-    final catalog = ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
+    final catalog = ref.watch(
+      exerciseCatalogProvider(const ExerciseCatalogFilter()),
+    );
 
     final exercises = exercisesAsync.asData?.value ?? [];
     String exerciseName = 'Workout in progress';
@@ -67,7 +69,7 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
     final elapsedStr = _formatElapsed(session.startedAt);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(999),
         child: BackdropFilter(
@@ -146,11 +148,16 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
                   const SizedBox(width: 8),
                   // Middle pill info left of the circle button
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Text(
                       elapsedStr,
@@ -166,7 +173,9 @@ class _LiveWorkoutBannerState extends ConsumerState<LiveWorkoutBanner> {
                   GestureDetector(
                     onTap: () {
                       Haptics.selection();
-                      ref.read(liveWorkoutBannerAtTopProvider.notifier).update((state) => !state);
+                      ref
+                          .read(liveWorkoutBannerAtTopProvider.notifier)
+                          .update((state) => !state);
                     },
                     child: Container(
                       width: 40,
@@ -213,9 +222,10 @@ class _PulsingDotState extends State<_PulsingDot>
     duration: const Duration(milliseconds: 900),
   )..repeat(reverse: true);
 
-  late final Animation<double> _opacity = Tween(begin: 0.4, end: 1.0).animate(
-    CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-  );
+  late final Animation<double> _opacity = Tween(
+    begin: 0.4,
+    end: 1.0,
+  ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
 
   @override
   void dispose() {

@@ -37,28 +37,36 @@ class AnalyticsRepository {
     final startOfThisWeek = _weekStart(now);
     final from = startOfThisWeek.subtract(Duration(days: 7 * (weeks - 1)));
 
-    final rows = await (_db.select(_db.setEntries).join([
-      innerJoin(
-        _db.workoutExercises,
-        _db.workoutExercises.id.equalsExp(_db.setEntries.workoutExerciseId),
-      ),
-      innerJoin(
-        _db.workoutSessions,
-        _db.workoutSessions.id.equalsExp(_db.workoutExercises.sessionId),
-      ),
-      innerJoin(
-        _db.exerciseCatalog,
-        _db.exerciseCatalog.id.equalsExp(_db.workoutExercises.exerciseId),
-      ),
-    ])
-          ..where(_db.setEntries.isCompleted.equals(true) &
-              _db.setEntries.isWarmup.equals(false) &
-              _db.workoutSessions.startedAt.isBiggerOrEqualValue(from) &
-              _db.setEntries.deletedAt.isNull() &
-              _db.workoutExercises.deletedAt.isNull() &
-              _db.workoutSessions.deletedAt.isNull() &
-              _db.exerciseCatalog.deletedAt.isNull()))
-        .get();
+    final rows =
+        await (_db.select(_db.setEntries).join([
+              innerJoin(
+                _db.workoutExercises,
+                _db.workoutExercises.id.equalsExp(
+                  _db.setEntries.workoutExerciseId,
+                ),
+              ),
+              innerJoin(
+                _db.workoutSessions,
+                _db.workoutSessions.id.equalsExp(
+                  _db.workoutExercises.sessionId,
+                ),
+              ),
+              innerJoin(
+                _db.exerciseCatalog,
+                _db.exerciseCatalog.id.equalsExp(
+                  _db.workoutExercises.exerciseId,
+                ),
+              ),
+            ])..where(
+              _db.setEntries.isCompleted.equals(true) &
+                  _db.setEntries.isWarmup.equals(false) &
+                  _db.workoutSessions.startedAt.isBiggerOrEqualValue(from) &
+                  _db.setEntries.deletedAt.isNull() &
+                  _db.workoutExercises.deletedAt.isNull() &
+                  _db.workoutSessions.deletedAt.isNull() &
+                  _db.exerciseCatalog.deletedAt.isNull(),
+            ))
+            .get();
 
     final buckets = <DateTime, double>{
       for (var i = 0; i < weeks; i++)
@@ -74,28 +82,35 @@ class AnalyticsRepository {
       buckets[ws] = (buckets[ws] ?? 0) + set.weightKg * set.reps;
     }
 
-    final sorted = buckets.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+    final sorted = buckets.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
     return sorted.map((e) => WeeklyTonnage(e.key, e.value)).toList();
   }
 
   /// Top-N estimated 1RMs across all logged exercises (best working set per exercise).
   Future<List<OneRmProjection>> topOneRms({int limit = 5}) async {
-    final rows = await (_db.select(_db.setEntries).join([
-      innerJoin(
-        _db.workoutExercises,
-        _db.workoutExercises.id.equalsExp(_db.setEntries.workoutExerciseId),
-      ),
-      innerJoin(
-        _db.exerciseCatalog,
-        _db.exerciseCatalog.id.equalsExp(_db.workoutExercises.exerciseId),
-      ),
-    ])
-          ..where(_db.setEntries.isCompleted.equals(true) &
-              _db.setEntries.isWarmup.equals(false) &
-              _db.setEntries.deletedAt.isNull() &
-              _db.workoutExercises.deletedAt.isNull() &
-              _db.exerciseCatalog.deletedAt.isNull()))
-        .get();
+    final rows =
+        await (_db.select(_db.setEntries).join([
+              innerJoin(
+                _db.workoutExercises,
+                _db.workoutExercises.id.equalsExp(
+                  _db.setEntries.workoutExerciseId,
+                ),
+              ),
+              innerJoin(
+                _db.exerciseCatalog,
+                _db.exerciseCatalog.id.equalsExp(
+                  _db.workoutExercises.exerciseId,
+                ),
+              ),
+            ])..where(
+              _db.setEntries.isCompleted.equals(true) &
+                  _db.setEntries.isWarmup.equals(false) &
+                  _db.setEntries.deletedAt.isNull() &
+                  _db.workoutExercises.deletedAt.isNull() &
+                  _db.exerciseCatalog.deletedAt.isNull(),
+            ))
+            .get();
 
     final best = <int, OneRmProjection>{};
     for (final r in rows) {

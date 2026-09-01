@@ -32,24 +32,29 @@ enum VolumeMetricDisplayMode {
 }
 
 /// Display metric mode: Total Volume / Sets vs Average Weekly Volume / Sets.
-final volumeMetricDisplayModeProvider =
-    StateProvider<VolumeMetricDisplayMode>((ref) => VolumeMetricDisplayMode.total);
+final volumeMetricDisplayModeProvider = StateProvider<VolumeMetricDisplayMode>(
+  (ref) => VolumeMetricDisplayMode.total,
+);
 
 /// Active timeframe for both overview and detail volume views.
-final selectedVolumeTimeframeProvider =
-    StateProvider<VolumeTimeframe>((ref) => VolumeTimeframe.thisWeek);
+final selectedVolumeTimeframeProvider = StateProvider<VolumeTimeframe>(
+  (ref) => VolumeTimeframe.thisWeek,
+);
 
 /// Sort option on overview screen.
-final volumeSortByProvider =
-    StateProvider<MuscleVolumeSort>((ref) => MuscleVolumeSort.volumeDesc);
+final volumeSortByProvider = StateProvider<MuscleVolumeSort>(
+  (ref) => MuscleVolumeSort.volumeDesc,
+);
 
 /// Region filter on overview screen.
-final volumeRegionFilterProvider =
-    StateProvider<MuscleRegionFilter>((ref) => MuscleRegionFilter.all);
+final volumeRegionFilterProvider = StateProvider<MuscleRegionFilter>(
+  (ref) => MuscleRegionFilter.all,
+);
 
 /// Overview data for all 19 muscle groups.
-final muscleVolumeOverviewProvider =
-    FutureProvider<MuscleVolumeOverviewData>((ref) async {
+final muscleVolumeOverviewProvider = FutureProvider<MuscleVolumeOverviewData>((
+  ref,
+) async {
   final snapshot = await ref.watch(trainingSnapshotProvider.future);
   final timeframe = ref.watch(selectedVolumeTimeframeProvider);
   final asOf = ref.watch(clockProvider).now();
@@ -64,14 +69,14 @@ final muscleVolumeOverviewProvider =
 /// Detailed session-by-session workout & exercise logs for a specific muscle.
 final muscleVolumeDetailProvider =
     FutureProvider.family<MuscleGroupDetailData, String>((ref, muscle) async {
-  final snapshot = await ref.watch(trainingSnapshotProvider.future);
-  final timeframe = ref.watch(selectedVolumeTimeframeProvider);
-  final asOf = ref.watch(clockProvider).now();
+      final snapshot = await ref.watch(trainingSnapshotProvider.future);
+      final timeframe = ref.watch(selectedVolumeTimeframeProvider);
+      final asOf = ref.watch(clockProvider).now();
 
-  return MuscleVolumeAnalyticsEngine.computeMuscleDetail(
-    snapshot: snapshot,
-    muscle: muscle,
-    asOf: asOf,
-    timeframe: timeframe,
-  );
-});
+      return MuscleVolumeAnalyticsEngine.computeMuscleDetail(
+        snapshot: snapshot,
+        muscle: muscle,
+        asOf: asOf,
+        timeframe: timeframe,
+      );
+    });

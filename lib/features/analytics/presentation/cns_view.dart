@@ -82,7 +82,8 @@ class _CnsReadinessHeaderCard extends StatelessWidget {
       _ => hx.danger,
     };
 
-    final etaText = result.hoursToFullRecovery == null || result.hoursToFullRecovery! <= 0.5
+    final etaText =
+        result.hoursToFullRecovery == null || result.hoursToFullRecovery! <= 0.5
         ? 'Fully Primed & Recovered'
         : 'Full recovery in ~${result.hoursToFullRecovery!.round()}h';
 
@@ -103,7 +104,10 @@ class _CnsReadinessHeaderCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: hx.isDark ? 0.20 : 0.12),
                   borderRadius: BorderRadius.circular(HxRadius.pill),
@@ -187,10 +191,12 @@ class _CnsReadinessHeaderCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(HxSpace.x3 + 2),
             decoration: BoxDecoration(
-              color: (result.deloadSuggested ? hx.danger : hx.primary).withValues(alpha: 0.08),
+              color: (result.deloadSuggested ? hx.danger : hx.primary)
+                  .withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(HxRadius.md),
               border: Border.all(
-                color: (result.deloadSuggested ? hx.danger : hx.primary).withValues(alpha: 0.25),
+                color: (result.deloadSuggested ? hx.danger : hx.primary)
+                    .withValues(alpha: 0.25),
               ),
             ),
             child: Row(
@@ -209,16 +215,22 @@ class _CnsReadinessHeaderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        result.deloadSuggested ? 'Deload Suggested' : 'Training Guidance',
+                        result.deloadSuggested
+                            ? 'Deload Suggested'
+                            : 'Training Guidance',
                         style: theme.textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: result.deloadSuggested ? hx.danger : hx.primary,
+                          color: result.deloadSuggested
+                              ? hx.danger
+                              : hx.primary,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         result.trainingGuidance,
-                        style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          height: 1.35,
+                        ),
                       ),
                     ],
                   ),
@@ -247,7 +259,9 @@ class _AcwrMetricCard extends StatelessWidget {
     final acwr = result.acwr;
     final acwrStatus = acwr > 1.4
         ? 'High Spike'
-        : (acwr >= 0.8 && acwr <= 1.3 ? 'Sweet Spot' : (acwr < 0.8 ? 'Underload' : 'Moderate'));
+        : (acwr >= 0.8 && acwr <= 1.3
+              ? 'Sweet Spot'
+              : (acwr < 0.8 ? 'Underload' : 'Moderate'));
     final acwrColor = acwr > 1.4
         ? hx.danger
         : (acwr >= 0.8 && acwr <= 1.3 ? hx.success : hx.warning);
@@ -326,10 +340,7 @@ class _AcwrMetricCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: Stack(
               children: [
-                Container(
-                  height: 6,
-                  color: hx.surfaceVariant,
-                ),
+                Container(height: 6, color: hx.surfaceVariant),
                 FractionallySizedBox(
                   widthFactor: (acwr / 2.0).clamp(0.0, 1.0),
                   child: Container(
@@ -347,9 +358,22 @@ class _AcwrMetricCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('0.0 (Deload)', style: TextStyle(fontSize: 9, color: hx.secondary)),
-              Text('0.8–1.3 (Optimal)', style: TextStyle(fontSize: 9, color: hx.success, fontWeight: FontWeight.w600)),
-              Text('> 1.4 (Fatigue Spike)', style: TextStyle(fontSize: 9, color: hx.danger)),
+              Text(
+                '0.0 (Deload)',
+                style: TextStyle(fontSize: 9, color: hx.secondary),
+              ),
+              Text(
+                '0.8–1.3 (Optimal)',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: hx.success,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '> 1.4 (Fatigue Spike)',
+                style: TextStyle(fontSize: 9, color: hx.danger),
+              ),
             ],
           ),
         ],
@@ -388,7 +412,11 @@ class _MetricTile extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 10, color: hx.secondary, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 10,
+              color: hx.secondary,
+              fontWeight: FontWeight.w600,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -400,10 +428,7 @@ class _MetricTile extends StatelessWidget {
               color: accent,
             ),
           ),
-          Text(
-            unit,
-            style: TextStyle(fontSize: 9, color: hx.secondary),
-          ),
+          Text(unit, style: TextStyle(fontSize: 9, color: hx.secondary)),
         ],
       ),
     );
@@ -468,9 +493,15 @@ class _CnsLoadChartCard extends StatelessWidget {
                   ),
                 ),
                 titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -478,7 +509,8 @@ class _CnsLoadChartCard extends StatelessWidget {
                       interval: 7,
                       getTitlesWidget: (val, meta) {
                         final idx = val.toInt();
-                        if (idx < 0 || idx >= daily.length) return const SizedBox.shrink();
+                        if (idx < 0 || idx >= daily.length)
+                          return const SizedBox.shrink();
                         final d = daily[idx].day;
                         return Padding(
                           padding: const EdgeInsets.only(top: 4),
@@ -526,8 +558,8 @@ class _CnsLoadChartCard extends StatelessWidget {
                           color: d.load == 0
                               ? hx.outlineVariant.withValues(alpha: 0.25)
                               : (d.load > 3.0
-                                  ? hx.danger
-                                  : (d.load > 1.5 ? hx.warning : hx.primary)),
+                                    ? hx.danger
+                                    : (d.load > 1.5 ? hx.warning : hx.primary)),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ],
@@ -718,7 +750,10 @@ class _SessionImpactTileState extends State<_SessionImpactTile> {
                     children: [
                       if (hasResidual)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: hx.danger.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
@@ -734,7 +769,10 @@ class _SessionImpactTileState extends State<_SessionImpactTile> {
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: hx.success.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(4),
@@ -816,14 +854,25 @@ class _SessionImpactTileState extends State<_SessionImpactTile> {
                                     if (s.hasWeightedBonus) ...[
                                       const SizedBox(width: 4),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 1,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: hx.primary.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(4),
+                                          color: hx.primary.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
                                         child: Text(
                                           '+2 weighted',
-                                          style: TextStyle(fontSize: 8, color: hx.primary, fontWeight: FontWeight.bold),
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            color: hx.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -831,7 +880,10 @@ class _SessionImpactTileState extends State<_SessionImpactTile> {
                                 ),
                                 Text(
                                   'CNS ${s.effectiveCnsScore}/10 · RPE ${s.rpe.toStringAsFixed(1)} (${s.rpeFactor}×) · ${s.setType.label}',
-                                  style: TextStyle(fontSize: 10, color: hx.secondary),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: hx.secondary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -911,7 +963,10 @@ class _TopCnsExercisesCard extends StatelessWidget {
                           height: 32,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: _cnsScoreColor(hx, ex.cnsScore).withValues(alpha: 0.15),
+                            color: _cnsScoreColor(
+                              hx,
+                              ex.cnsScore,
+                            ).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -933,9 +988,10 @@ class _TopCnsExercisesCard extends StatelessWidget {
                                   Expanded(
                                     child: Text(
                                       ex.exerciseName,
-                                      style: theme.textTheme.titleSmall?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: theme.textTheme.titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -943,14 +999,23 @@ class _TopCnsExercisesCard extends StatelessWidget {
                                   if (ex.isWeightedBodyweight) ...[
                                     const SizedBox(width: 4),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 1,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: hx.primary.withValues(alpha: 0.15),
+                                        color: hx.primary.withValues(
+                                          alpha: 0.15,
+                                        ),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         '+2 weighted',
-                                        style: TextStyle(fontSize: 8, color: hx.primary, fontWeight: FontWeight.bold),
+                                        style: TextStyle(
+                                          fontSize: 8,
+                                          color: hx.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -958,7 +1023,10 @@ class _TopCnsExercisesCard extends StatelessWidget {
                               ),
                               Text(
                                 '${ex.targetMuscle} • ${ex.totalSets} sets • Avg RPE ${ex.avgRpe.toStringAsFixed(1)}',
-                                style: TextStyle(fontSize: 11, color: hx.secondary),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: hx.secondary,
+                                ),
                               ),
                             ],
                           ),
@@ -974,7 +1042,13 @@ class _TopCnsExercisesCard extends StatelessWidget {
                                 color: hx.primary,
                               ),
                             ),
-                            Text('total CNS', style: TextStyle(fontSize: 9, color: hx.secondary)),
+                            Text(
+                              'total CNS',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: hx.secondary,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -1067,7 +1141,9 @@ class _CnsEngineExplainerCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: hx.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(HxRadius.md),
-              border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: hx.outlineVariant.withValues(alpha: 0.3),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

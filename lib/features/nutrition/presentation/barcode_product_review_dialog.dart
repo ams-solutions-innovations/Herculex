@@ -35,10 +35,8 @@ class BarcodeProductReviewDialog extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => BarcodeProductReviewDialog(
-        imageFile: imageFile,
-        barcode: barcode,
-      ),
+      builder: (_) =>
+          BarcodeProductReviewDialog(imageFile: imageFile, barcode: barcode),
     );
   }
 
@@ -167,10 +165,8 @@ class _BarcodeProductReviewDialogState
         sourceMetadataJson: jsonEncode({
           'source': 'gemini',
           'confidence': _result?.confidence,
-          'nutrients': {
-            'fiber': fiberPer100g,
-            'sodium': sodiumMgPer100g,
-          }..removeWhere((_, value) => value == null),
+          'nutrients': {'fiber': fiberPer100g, 'sodium': sodiumMgPer100g}
+            ..removeWhere((_, value) => value == null),
         }),
       );
 

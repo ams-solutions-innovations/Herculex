@@ -149,8 +149,8 @@ class SupabaseAuthService implements AuthProviderService {
   }
 
   @override
-  Future<void> sendPasswordReset(String email) =>
-      _client.auth.resetPasswordForEmail(email, redirectTo: Env.authCallbackUrl);
+  Future<void> sendPasswordReset(String email) => _client.auth
+      .resetPasswordForEmail(email, redirectTo: Env.authCallbackUrl);
 
   @override
   Future<void> signOut() async {

@@ -221,232 +221,274 @@ void main() {
       return row.data['sync_uuid'] as String;
     }
 
-    test('a row pushes, lands on the other device, and its delete follows',
-        () async {
-      await a.sync.start(a.uid);
-      final name = 'Live RT ${DateTime.now().microsecondsSinceEpoch}';
-      final gymId = await GymsRepository(a.db).createGym(name);
-      final uuid = await syncUuid(a.db, 'gyms', gymId);
+    test(
+      'a row pushes, lands on the other device, and its delete follows',
+      () async {
+        await a.sync.start(a.uid);
+        final name = 'Live RT ${DateTime.now().microsecondsSinceEpoch}';
+        final gymId = await GymsRepository(a.db).createGym(name);
+        final uuid = await syncUuid(a.db, 'gyms', gymId);
 
-      await a.sync.pushOnce();
+        await a.sync.pushOnce();
 
-      // ── It reached Postgres, owned by the signed-in uid ────────────────
-      // Read raw rather than via `backend.pull`, which filters on
-      // `updated_at` — the very column under test.
-      final remote =
-          (await a.client.from('gyms').select().eq('id', uuid) as List).single
-              as Map<String, dynamic>;
-      expect(remote['user_id'], a.uid);
-      expect(remote['name'], name);
-      final firstStamp = DateTime.parse(remote['updated_at'] as String);
+        // ── It reached Postgres, owned by the signed-in uid ────────────────
+        // Read raw rather than via `backend.pull`, which filters on
+        // `updated_at` — the very column under test.
+        final remote =
+            (await a.client.from('gyms').select().eq('id', uuid) as List).single
+                as Map<String, dynamic>;
+        expect(remote['user_id'], a.uid);
+        expect(remote['name'], name);
+        final firstStamp = DateTime.parse(remote['updated_at'] as String);
 
-      // ── The server owns the clock ──────────────────────────────────────
-      // Rename the row while forcing a nonsense local `updated_at`
-      // (2001-01-01). If the client's value were passed through, the row
-      // would go *backwards* in time and every delta pull would miss it.
-      await a.db.customUpdate(
-        'UPDATE gyms SET name = ?, updated_at = ? WHERE id = ?',
-        variables: [Variable('$name renamed'), Variable(978307200), Variable(gymId)],
-      );
-      await a.sync.pushOnce();
+        // ── The server owns the clock ──────────────────────────────────────
+        // Rename the row while forcing a nonsense local `updated_at`
+        // (2001-01-01). If the client's value were passed through, the row
+        // would go *backwards* in time and every delta pull would miss it.
+        await a.db.customUpdate(
+          'UPDATE gyms SET name = ?, updated_at = ? WHERE id = ?',
+          variables: [
+            Variable('$name renamed'),
+            Variable(978307200),
+            Variable(gymId),
+          ],
+        );
+        await a.sync.pushOnce();
 
-      final restamped =
-          (await a.client.from('gyms').select('name, updated_at').eq('id', uuid)
-                  as List)
-              .single as Map<String, dynamic>;
-      final secondStamp = DateTime.parse(restamped['updated_at'] as String);
-      expect(restamped['name'], '$name renamed');
-      expect(
-        secondStamp.isAfter(firstStamp),
-        isTrue,
-        reason: 't_set_updated_at_gyms must re-stamp, not accept the client value',
-      );
-      expect(secondStamp.year, greaterThan(2001));
+        final restamped =
+            (await a.client
+                            .from('gyms')
+                            .select('name, updated_at')
+                            .eq('id', uuid)
+                        as List)
+                    .single
+                as Map<String, dynamic>;
+        final secondStamp = DateTime.parse(restamped['updated_at'] as String);
+        expect(restamped['name'], '$name renamed');
+        expect(
+          secondStamp.isAfter(firstStamp),
+          isTrue,
+          reason:
+              't_set_updated_at_gyms must re-stamp, not accept the client value',
+        );
+        expect(secondStamp.year, greaterThan(2001));
 
-      // ── It arrives on device B ─────────────────────────────────────────
-      await b.sync.start(b.uid);
-      final onB = await (b.db.select(
-        b.db.gyms,
-      )..where((t) => t.syncUuid.equals(uuid))).getSingle();
-      expect(onB.name, '$name renamed');
-
-      // Rewind B's tombstone cursor to a *server*-derived instant. It seeds
-      // to the local clock on first pull but filters against server-authored
-      // `deleted_at`, so even a second of positive client skew would swallow
-      // the delete below and fail this test for the wrong reason.
-      await b.db.customUpdate(
-        'UPDATE sync_cursors SET cursor_iso = ? WHERE entity_type = ?',
-        variables: [
-          Variable(
-            secondStamp
-                .subtract(const Duration(seconds: 1))
-                .toUtc()
-                .toIso8601String(),
-          ),
-          // Must match `_tombstoneKey` in sync_service.dart.
-          Variable('__tombstones__'),
-        ],
-      );
-
-      // ── A hard delete propagates ───────────────────────────────────────
-      // The case that was impossible before 0005: the row simply stopped
-      // appearing in delta pulls, so B kept it forever.
-      await (a.db.delete(a.db.gyms)..where((t) => t.id.equals(gymId))).go();
-      await a.sync.pushOnce();
-      expect(await a.client.from('gyms').select('id').eq('id', uuid), isEmpty);
-
-      await b.sync.pullAll();
-      expect(
-        await (b.db.select(
+        // ── It arrives on device B ─────────────────────────────────────────
+        await b.sync.start(b.uid);
+        final onB = await (b.db.select(
           b.db.gyms,
-        )..where((t) => t.syncUuid.equals(uuid))).getSingleOrNull(),
-        isNull,
-      );
+        )..where((t) => t.syncUuid.equals(uuid))).getSingle();
+        expect(onB.name, '$name renamed');
 
-      // ── …without ping-ponging ──────────────────────────────────────────
-      // Applying the tombstone fired B's own `trg_outbox_del_gyms`.
-      // `_purgeEchoedDeletes` must have swallowed it, or B would delete the
-      // row again on its next push and resurrect the loop.
-      final echoes = await b.db
-          .customSelect(
-            "SELECT id FROM pending_sync_ops WHERE operation = 'delete'",
-          )
-          .get();
-      expect(echoes, isEmpty);
-      expect(await b.db.select(b.db.pendingSyncOps).get(), isEmpty);
-      expect(b.sync.state.phase, isNot(SyncPhase.error));
-    });
-
-    test('a custom exercise and the child referencing it survive the trip',
-        () async {
-      // The `CatalogueFk` path, and the regression for the defect found while
-      // closing RB-02 (`0007_catalogue_is_custom.sql`): `is_custom` used to be
-      // local-only, so a custom parent arrived on B as a seeded row and every
-      // child B then created pushed a payload the Postgres `check` rejected.
-      await a.sync.start(a.uid);
-      await b.sync.start(b.uid);
-
-      final exerciseId = await a.db
-          .into(a.db.exerciseCatalog)
-          .insert(
-            ExerciseCatalogCompanion.insert(
-              name: 'Live RT Zercher ${DateTime.now().microsecondsSinceEpoch}',
-              primaryMuscle: 'Quads',
-              equipment: 'Barbell',
-              mechanics: 'compound',
-              force: 'push',
-              plane: 'axial',
-              isCustom: const Value(true),
+        // Rewind B's tombstone cursor to a *server*-derived instant. It seeds
+        // to the local clock on first pull but filters against server-authored
+        // `deleted_at`, so even a second of positive client skew would swallow
+        // the delete below and fail this test for the wrong reason.
+        await b.db.customUpdate(
+          'UPDATE sync_cursors SET cursor_iso = ? WHERE entity_type = ?',
+          variables: [
+            Variable(
+              secondStamp
+                  .subtract(const Duration(seconds: 1))
+                  .toUtc()
+                  .toIso8601String(),
             ),
-          );
-      final exerciseUuid = await syncUuid(a.db, 'exercise_catalog', exerciseId);
-      await a.db
-          .into(a.db.microWorkouts)
-          .insert(
-            MicroWorkoutsCompanion.insert(
-              name: 'Live RT micro',
-              exerciseId: exerciseId,
-              targetReps: 30,
-            ),
-          );
-      await a.sync.pushOnce();
-      expect(
-        a.sync.state.phase,
-        isNot(SyncPhase.error),
-        reason: 'the parent must go up before the child, or the FK rejects it',
-      );
+            // Must match `_tombstoneKey` in sync_service.dart.
+            Variable('__tombstones__'),
+          ],
+        );
 
-      final remoteMicro =
-          (await a.client
-                      .from('micro_workouts')
-                      .select('exercise_catalog_id, exercise_slug, target_reps, created_at')
-                      .eq('exercise_catalog_id', exerciseUuid)
-                  as List)
-              .single as Map<String, dynamic>;
-      // Exactly one arm of the `check` constraint, and the epoch→ISO
-      // conversion for `dateTimeColumns`.
-      expect(remoteMicro['exercise_slug'], isNull);
-      expect(remoteMicro['target_reps'], 30);
-      expect(remoteMicro['created_at'], isA<String>());
+        // ── A hard delete propagates ───────────────────────────────────────
+        // The case that was impossible before 0005: the row simply stopped
+        // appearing in delta pulls, so B kept it forever.
+        await (a.db.delete(a.db.gyms)..where((t) => t.id.equals(gymId))).go();
+        await a.sync.pushOnce();
+        expect(
+          await a.client.from('gyms').select('id').eq('id', uuid),
+          isEmpty,
+        );
 
-      await b.sync.pullAll();
-      final onB = await b.db
-          .customSelect(
-            'SELECT id, is_custom FROM exercise_catalog WHERE sync_uuid = ?',
-            variables: [Variable(exerciseUuid)],
-          )
-          .getSingle();
-      expect(
-        onB.data['is_custom'],
-        1,
-        reason: 'a user-created exercise must not arrive as a stock one',
-      );
+        await b.sync.pullAll();
+        expect(
+          await (b.db.select(
+            b.db.gyms,
+          )..where((t) => t.syncUuid.equals(uuid))).getSingleOrNull(),
+          isNull,
+        );
 
-      final microOnB = await b.db
-          .customSelect(
-            "SELECT exercise_id FROM micro_workouts WHERE name = 'Live RT micro'",
-          )
-          .getSingle();
-      // The resolved FK, not raw id equality, is the actual invariant: two
-      // fresh devices seed the same bundled catalogue, so their first custom
-      // insert can legitimately land on the same autoincrement id — that
-      // would only diverge from A's id if the two databases' catalogue
-      // tables had already drifted apart before this test ran.
-      expect(microOnB.data['exercise_id'], onB.data['id']);
-    });
+        // ── …without ping-ponging ──────────────────────────────────────────
+        // Applying the tombstone fired B's own `trg_outbox_del_gyms`.
+        // `_purgeEchoedDeletes` must have swallowed it, or B would delete the
+        // row again on its next push and resurrect the loop.
+        final echoes = await b.db
+            .customSelect(
+              "SELECT id FROM pending_sync_ops WHERE operation = 'delete'",
+            )
+            .get();
+        expect(echoes, isEmpty);
+        expect(await b.db.select(b.db.pendingSyncOps).get(), isEmpty);
+        expect(b.sync.state.phase, isNot(SyncPhase.error));
+      },
+    );
 
-    test('another account cannot see or forge this account\'s rows', () async {
-      final other = outsider;
-      final name = 'Live RT rls ${DateTime.now().microsecondsSinceEpoch}';
-      await a.sync.start(a.uid);
-      final gymId = await GymsRepository(a.db).createGym(name);
-      final uuid = await syncUuid(a.db, 'gyms', gymId);
-      await a.sync.pushOnce();
-      expect(await a.client.from('gyms').select('id').eq('id', uuid), isNotEmpty);
+    test(
+      'a custom exercise and the child referencing it survive the trip',
+      () async {
+        // The `CatalogueFk` path, and the regression for the defect found while
+        // closing RB-02 (`0007_catalogue_is_custom.sql`): `is_custom` used to be
+        // local-only, so a custom parent arrived on B as a seeded row and every
+        // child B then created pushed a payload the Postgres `check` rejected.
+        await a.sync.start(a.uid);
+        await b.sync.start(b.uid);
 
-      // RLS returns an empty set rather than a 403 — the row is invisible,
-      // not merely forbidden.
-      expect(await other!.client.from('gyms').select().eq('id', uuid), isEmpty);
-      expect(await other.client.from('gyms').select(), isEmpty);
-      expect(
-        await other.client.from('sync_tombstones').select().eq('user_id', a.uid),
-        isEmpty,
-      );
+        final exerciseId = await a.db
+            .into(a.db.exerciseCatalog)
+            .insert(
+              ExerciseCatalogCompanion.insert(
+                name:
+                    'Live RT Zercher ${DateTime.now().microsecondsSinceEpoch}',
+                primaryMuscle: 'Quads',
+                equipment: 'Barbell',
+                mechanics: 'compound',
+                force: 'push',
+                plane: 'axial',
+                isCustom: const Value(true),
+              ),
+            );
+        final exerciseUuid = await syncUuid(
+          a.db,
+          'exercise_catalog',
+          exerciseId,
+        );
+        await a.db
+            .into(a.db.microWorkouts)
+            .insert(
+              MicroWorkoutsCompanion.insert(
+                name: 'Live RT micro',
+                exerciseId: exerciseId,
+                targetReps: 30,
+              ),
+            );
+        await a.sync.pushOnce();
+        expect(
+          a.sync.state.phase,
+          isNot(SyncPhase.error),
+          reason:
+              'the parent must go up before the child, or the FK rejects it',
+        );
 
-      // `with check (user_id = auth.uid())` rejects a forged owner.
-      await expectLater(
-        other.client.from('gyms').upsert({
-          'id': const Uuid().v4(),
-          'user_id': a.uid,
-          'name': 'forged',
-        }),
-        throwsA(isA<PostgrestException>()),
-      );
-    }, skip: outsiderSkip());
+        final remoteMicro =
+            (await a.client
+                            .from('micro_workouts')
+                            .select(
+                              'exercise_catalog_id, exercise_slug, target_reps, created_at',
+                            )
+                            .eq('exercise_catalog_id', exerciseUuid)
+                        as List)
+                    .single
+                as Map<String, dynamic>;
+        // Exactly one arm of the `check` constraint, and the epoch→ISO
+        // conversion for `dateTimeColumns`.
+        expect(remoteMicro['exercise_slug'], isNull);
+        expect(remoteMicro['target_reps'], 30);
+        expect(remoteMicro['created_at'], isA<String>());
 
-    test('realtime delivers a hint for a remote write', () async {
-      // Opt-in: the only genuinely timing-dependent assertion here, kept
-      // apart so its flakiness cannot take the rest of the file down. Before
-      // 0005 added the tables to `supabase_realtime`, every subscription the
-      // client opened was silently dead, so this is worth having at all.
-      final backend = SupabaseSyncBackendService(b.client);
-      addTearDown(backend.dispose);
+        await b.sync.pullAll();
+        final onB = await b.db
+            .customSelect(
+              'SELECT id, is_custom FROM exercise_catalog WHERE sync_uuid = ?',
+              variables: [Variable(exerciseUuid)],
+            )
+            .getSingle();
+        expect(
+          onB.data['is_custom'],
+          1,
+          reason: 'a user-created exercise must not arrive as a stock one',
+        );
 
-      final hint = backend
-          .realtimeHints(['gyms'], userId: b.uid)
-          .first
-          .timeout(const Duration(seconds: 30));
-      // A fresh client's first websocket handshake plus Realtime's own RLS
-      // authorization round trip can take a few seconds — this is the
-      // channel actually reaching SUBSCRIBED, not an arbitrary pause.
-      await Future<void>.delayed(const Duration(seconds: 5));
+        final microOnB = await b.db
+            .customSelect(
+              "SELECT exercise_id FROM micro_workouts WHERE name = 'Live RT micro'",
+            )
+            .getSingle();
+        // The resolved FK, not raw id equality, is the actual invariant: two
+        // fresh devices seed the same bundled catalogue, so their first custom
+        // insert can legitimately land on the same autoincrement id — that
+        // would only diverge from A's id if the two databases' catalogue
+        // tables had already drifted apart before this test ran.
+        expect(microOnB.data['exercise_id'], onB.data['id']);
+      },
+    );
 
-      await a.sync.start(a.uid);
-      await GymsRepository(a.db).createGym('Live RT realtime probe');
-      await a.sync.pushOnce();
+    test(
+      'another account cannot see or forge this account\'s rows',
+      () async {
+        final other = outsider;
+        final name = 'Live RT rls ${DateTime.now().microsecondsSinceEpoch}';
+        await a.sync.start(a.uid);
+        final gymId = await GymsRepository(a.db).createGym(name);
+        final uuid = await syncUuid(a.db, 'gyms', gymId);
+        await a.sync.pushOnce();
+        expect(
+          await a.client.from('gyms').select('id').eq('id', uuid),
+          isNotEmpty,
+        );
 
-      expect(await hint, 'gyms');
-    }, skip: _testRealtime ? null : 'Opt in with SUPABASE_TEST_REALTIME=true.');
+        // RLS returns an empty set rather than a 403 — the row is invisible,
+        // not merely forbidden.
+        expect(
+          await other!.client.from('gyms').select().eq('id', uuid),
+          isEmpty,
+        );
+        expect(await other.client.from('gyms').select(), isEmpty);
+        expect(
+          await other.client
+              .from('sync_tombstones')
+              .select()
+              .eq('user_id', a.uid),
+          isEmpty,
+        );
+
+        // `with check (user_id = auth.uid())` rejects a forged owner.
+        await expectLater(
+          other.client.from('gyms').upsert({
+            'id': const Uuid().v4(),
+            'user_id': a.uid,
+            'name': 'forged',
+          }),
+          throwsA(isA<PostgrestException>()),
+        );
+      },
+      skip: outsiderSkip(),
+    );
+
+    test(
+      'realtime delivers a hint for a remote write',
+      () async {
+        // Opt-in: the only genuinely timing-dependent assertion here, kept
+        // apart so its flakiness cannot take the rest of the file down. Before
+        // 0005 added the tables to `supabase_realtime`, every subscription the
+        // client opened was silently dead, so this is worth having at all.
+        final backend = SupabaseSyncBackendService(b.client);
+        addTearDown(backend.dispose);
+
+        final hint = backend
+            .realtimeHints(['gyms'], userId: b.uid)
+            .first
+            .timeout(const Duration(seconds: 30));
+        // A fresh client's first websocket handshake plus Realtime's own RLS
+        // authorization round trip can take a few seconds — this is the
+        // channel actually reaching SUBSCRIBED, not an arbitrary pause.
+        await Future<void>.delayed(const Duration(seconds: 5));
+
+        await a.sync.start(a.uid);
+        await GymsRepository(a.db).createGym('Live RT realtime probe');
+        await a.sync.pushOnce();
+
+        expect(await hint, 'gyms');
+      },
+      skip: _testRealtime ? null : 'Opt in with SUPABASE_TEST_REALTIME=true.',
+    );
   }, skip: skipReason);
 }
 

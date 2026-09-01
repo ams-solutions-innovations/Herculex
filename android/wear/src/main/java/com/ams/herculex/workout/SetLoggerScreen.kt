@@ -403,7 +403,8 @@ fun SetLoggerScreen(
                                         val updatedSession = viewModel.session.value
                                         if (updatedSession != null) {
                                             val lastEx = updatedSession.exercises.last()
-                                            if (updatedSession.currentExerciseIndex == updatedSession.exercises.size - 1 && lastEx.completedSets >= lastEx.template.targetSets) {
+                                            val allDone = lastEx.sets.isNotEmpty() && lastEx.sets.all { it.completed }
+                                            if (updatedSession.currentExerciseIndex == updatedSession.exercises.size - 1 && allDone) {
                                                 navController.popBackStack()
                                             }
                                         }
@@ -445,16 +446,27 @@ fun SetLoggerScreen(
                                         else -> 15.sp
                                     }
 
-                                    Text(
-                                        text = mainName,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = mainNameFontSize,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.padding(horizontal = 10.dp),
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(horizontal = 8.dp),
+                                    ) {
+                                        ExerciseArtwork(
+                                            name = exercise.template.name,
+                                            slug = exercise.template.slug,
+                                            size = 22.dp,
+                                            modifier = Modifier.padding(end = 6.dp),
+                                        )
+                                        Text(
+                                            text = mainName,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = mainNameFontSize,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
                                     if (subName.isNotEmpty()) {
                                         Text(
                                             text = subName,
@@ -775,7 +787,11 @@ fun SetLoggerScreen(
                                         verticalAlignment = Alignment.Bottom,
                                     ) {
                                         Box(modifier = Modifier.offset(y = (-10).dp)) {
-                                            NavCircleButton(label = "<", bg = Color(0xFF2C2C2E), size = 36) {
+                                            NavCircleButton(
+                                                label = "‹",
+                                                bg = Color(0xFF2C2C2E),
+                                                size = 36,
+                                            ) {
                                                 if (exerciseIndex > 0) {
                                                     exerciseIndex -= 1
                                                     viewModel.selectExerciseInSession(exerciseIndex)
@@ -785,13 +801,23 @@ fun SetLoggerScreen(
                                             }
                                         }
                                         Spacer(Modifier.width(12.dp))
-                                        NavCircleButton(label = "OK", bg = Color(0xFF1976D2), size = 44) {
+                                        NavCircleButton(
+                                            label = "OK",
+                                            bg = OneUiPillStyle.RoyalBlue.containerColor,
+                                            size = 44,
+                                        ) {
                                             showRpeDialog = true
                                         }
                                         Spacer(Modifier.width(12.dp))
+                                        val hasNext = exerciseIndex < s.exercises.size - 1
                                         Box(modifier = Modifier.offset(y = (-10).dp)) {
-                                            NavCircleButton(label = ">", bg = Color(0xFF2C2C2E), size = 36) {
-                                                if (exerciseIndex < s.exercises.size - 1) {
+                                            NavCircleButton(
+                                                label = "›",
+                                                bg = Color(0xFF2C2C2E),
+                                                size = 36,
+                                                enabled = hasNext,
+                                            ) {
+                                                if (hasNext) {
                                                     exerciseIndex += 1
                                                     viewModel.selectExerciseInSession(exerciseIndex)
                                                 }
@@ -848,27 +874,21 @@ fun SetLoggerScreen(
                         )
                     }
                     item {
-                        Spacer(Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) {
-                                OneUiPill(
-                                    title = "- Remove",
-                                    style = OneUiPillStyle.DangerTransparent,
-                                    onClick = { viewModel.removeSetFromExercise(exerciseIndex) },
-                                )
-                            }
-                            Box(modifier = Modifier.weight(1f)) {
-                                OneUiPill(
-                                    title = "+ Add Set",
-                                    icon = "+",
-                                    style = OneUiPillStyle.AccentBlue,
-                                    onClick = { viewModel.addSetToExercise(exerciseIndex) },
-                                )
-                            }
-                        }
+                        Spacer(Modifier.height(6.dp))
+                        OneUiPill(
+                            title = "Add Set",
+                            icon = "+",
+                            style = OneUiPillStyle.AccentBlue,
+                            onClick = { viewModel.addSetToExercise(exerciseIndex) },
+                        )
+                    }
+                    item {
+                        OneUiPill(
+                            title = "Remove Set",
+                            icon = "✕",
+                            style = OneUiPillStyle.DangerTransparent,
+                            onClick = { viewModel.removeSetFromExercise(exerciseIndex) },
+                        )
                     }
                 }
             }
@@ -913,6 +933,17 @@ fun SetLoggerScreen(
                                 selectedAccessory = if (acc == "None") null else acc
                             },
                         )
+                    }
+                    if (selectedAccessory != null) {
+                        item {
+                            Spacer(Modifier.height(4.dp))
+                            OneUiPill(
+                                title = "Remove Accessory",
+                                icon = "✕",
+                                style = OneUiPillStyle.DangerTransparent,
+                                onClick = { selectedAccessory = null },
+                            )
+                        }
                     }
                 }
             }
@@ -987,7 +1018,8 @@ fun SetLoggerScreen(
                             val updatedSession = viewModel.session.value
                             if (updatedSession != null) {
                                 val lastEx = updatedSession.exercises.last()
-                                if (updatedSession.currentExerciseIndex == updatedSession.exercises.size - 1 && lastEx.completedSets >= lastEx.template.targetSets) {
+                                val allDone = lastEx.sets.isNotEmpty() && lastEx.sets.all { it.completed }
+                                if (updatedSession.currentExerciseIndex == updatedSession.exercises.size - 1 && allDone) {
                                     navController.popBackStack()
                                 }
                             }
@@ -1216,48 +1248,58 @@ private fun ExtraRepsLogger(
         }
 
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (extraList.isNotEmpty()) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        OneUiPill(
-                            title = "- Undo",
-                            style = OneUiPillStyle.DangerTransparent,
-                            onClick = {
-                                if (isMyo) {
-                                    viewModel.removeLastMiniSet(exerciseIndex, setIndex)
-                                } else {
-                                    viewModel.removeLastExtraReps(exerciseIndex, setIndex)
-                                }
-                            },
-                        )
-                    }
-                }
-                Box(modifier = Modifier.weight(if (extraList.isNotEmpty()) 1.2f else 1f)) {
-                    OneUiPill(
-                        title = "✓ Finish Set",
-                        icon = "✓",
-                        style = OneUiPillStyle.EmeraldGreen,
-                        onClick = onFinishSet,
-                    )
-                }
+            OneUiPill(
+                title = "Finish Set",
+                icon = "✓",
+                style = OneUiPillStyle.EmeraldGreen,
+                onClick = onFinishSet,
+            )
+        }
+
+        if (extraList.isNotEmpty()) {
+            item {
+                OneUiPill(
+                    title = "Undo Last (${extraList.last()} reps)",
+                    icon = "✕",
+                    style = OneUiPillStyle.DangerTransparent,
+                    onClick = {
+                        if (isMyo) {
+                            viewModel.removeLastMiniSet(exerciseIndex, setIndex)
+                        } else {
+                            viewModel.removeLastExtraReps(exerciseIndex, setIndex)
+                        }
+                    },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun NavCircleButton(label: String, bg: Color, size: Int = 40, onClick: () -> Unit) {
+private fun NavCircleButton(
+    label: String,
+    bg: Color,
+    size: Int = 40,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .size(size.dp)
-            .background(bg, shape = CircleShape)
-            .clickable(onClick = onClick),
+            .background(
+                if (enabled) bg else bg.copy(alpha = 0.35f),
+                shape = CircleShape,
+            )
+            .then(
+                if (enabled) Modifier.clickable(onClick = onClick) else Modifier
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = Color.White, fontSize = (size / 2.5).sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = label,
+            color = if (enabled) Color.White else Color.White.copy(alpha = 0.35f),
+            fontSize = (size / 2.4).sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }

@@ -159,9 +159,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/muscle-volume/:muscle',
-        builder: (_, state) => MuscleVolumeDetailView(
-          muscle: state.pathParameters['muscle']!,
-        ),
+        builder: (_, state) =>
+            MuscleVolumeDetailView(muscle: state.pathParameters['muscle']!),
       ),
       GoRoute(
         path: '/health',
@@ -222,9 +221,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/macro-trends/:macro',
-        builder: (_, state) => MacroTrendView(
-          macro: state.pathParameters['macro'] ?? 'kcal',
-        ),
+        builder: (_, state) =>
+            MacroTrendView(macro: state.pathParameters['macro'] ?? 'kcal'),
       ),
       GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
       GoRoute(

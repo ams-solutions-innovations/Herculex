@@ -78,16 +78,17 @@ final buddySessionControllerProvider =
       return controller;
     });
 
-final buddyChoreographySenderProvider = Provider.family<
-  BuddyChoreographySender,
-  ({String buddySessionId, int localWorkoutSessionId})
->((ref, arg) {
-  return BuddyChoreographySender(
-    publisher: ref.watch(buddyGatewayProvider),
-    slots: ref.watch(buddySlotStoreProvider(arg.buddySessionId)),
-    workouts: ref.watch(workoutsRepositoryProvider),
-    resolver: ref.watch(syncIdResolverProvider),
-    buddySessionId: arg.buddySessionId,
-    localWorkoutSessionId: arg.localWorkoutSessionId,
-  );
-});
+final buddyChoreographySenderProvider =
+    Provider.family<
+      BuddyChoreographySender,
+      ({String buddySessionId, int localWorkoutSessionId})
+    >((ref, arg) {
+      return BuddyChoreographySender(
+        publisher: ref.watch(buddyGatewayProvider),
+        slots: ref.watch(buddySlotStoreProvider(arg.buddySessionId)),
+        workouts: ref.watch(workoutsRepositoryProvider),
+        resolver: ref.watch(syncIdResolverProvider),
+        buddySessionId: arg.buddySessionId,
+        localWorkoutSessionId: arg.localWorkoutSessionId,
+      );
+    });

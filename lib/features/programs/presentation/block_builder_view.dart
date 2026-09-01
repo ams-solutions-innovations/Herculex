@@ -6,6 +6,7 @@ import '../../../app/providers.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/glass_container.dart';
 import '../../../widgets/premium_button.dart';
 import '../../../widgets/premium_text_field.dart';
@@ -83,37 +84,19 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'New block',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: Column(
-        children: [
-          _stepIndicator(theme),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              children: [
-                switch (_step) {
-                  1 => _stepBasics(theme),
-                  2 => _stepSplit(theme),
-                  3 => _stepContent(theme),
-                  _ => _stepSchedule(theme),
-                },
-              ],
-            ),
-          ),
-          _footer(theme),
-        ],
-      ),
+    return HxScreenShell(
+      title: 'New block',
+      pinnedBottom: _footer(theme),
+      children: [
+        _stepIndicator(theme),
+        const SizedBox(height: 12),
+        switch (_step) {
+          1 => _stepBasics(theme),
+          2 => _stepSplit(theme),
+          3 => _stepContent(theme),
+          _ => _stepSchedule(theme),
+        },
+      ],
     );
   }
 
@@ -251,8 +234,7 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
             ),
             IconButton(
               icon: const Icon(Icons.add_circle_outline_rounded),
-              onPressed:
-                  _daysPerWeek >= (_mode == ScheduleMode.weekly ? 7 : 10)
+              onPressed: _daysPerWeek >= (_mode == ScheduleMode.weekly ? 7 : 10)
                   ? null
                   : () => setState(() {
                       _daysPerWeek++;
@@ -523,7 +505,8 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
           onTap: () async {
             final picked = await showTimePicker(
               context: context,
-              initialTime: _defaultStartTime ?? const TimeOfDay(hour: 7, minute: 0),
+              initialTime:
+                  _defaultStartTime ?? const TimeOfDay(hour: 7, minute: 0),
             );
             if (picked != null) setState(() => _defaultStartTime = picked);
           },

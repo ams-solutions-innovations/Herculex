@@ -143,7 +143,11 @@ void main() {
     // advisory (a DecoratedBox between the tile and its Material), which is a
     // real but cosmetic pre-existing issue and not what this test guards.
     final raised = <Object>[];
-    for (var e = tester.takeException(); e != null; e = tester.takeException()) {
+    for (
+      var e = tester.takeException();
+      e != null;
+      e = tester.takeException()
+    ) {
       raised.add(e);
     }
     expect(

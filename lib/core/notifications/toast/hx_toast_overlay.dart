@@ -212,11 +212,11 @@ class _HxToastCardState extends State<_HxToastCard>
         final exitT = Curves.easeIn.transform(_exitCtrl.value);
 
         final scale = exiting ? _lerp(1.0, 0.85, exitT) : _scale.value;
-        final opacity = (exiting
-                ? _lerp(1.0, 0.0, exitT)
-                : _opacity.value)
+        final opacity = (exiting ? _lerp(1.0, 0.0, exitT) : _opacity.value)
             .clamp(0.0, 1.0);
-        final textOpacity = exiting ? opacity : _textReveal.value.clamp(0.0, 1.0);
+        final textOpacity = exiting
+            ? opacity
+            : _textReveal.value.clamp(0.0, 1.0);
         final textDy = exiting ? 0.0 : _lerp(8.0, 0.0, _textReveal.value);
 
         return Opacity(

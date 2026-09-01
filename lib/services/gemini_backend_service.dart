@@ -317,10 +317,7 @@ class SupabaseGeminiBackend implements GeminiBackend {
   Future<Map<String, dynamic>> _invoke(Map<String, dynamic> body) async {
     try {
       final response = await _client.functions
-          .invoke(
-            'gemini-analyze',
-            body: body,
-          )
+          .invoke('gemini-analyze', body: body)
           .timeout(const Duration(seconds: 45));
       final data = response.data;
       if (data is Map<String, dynamic>) return data;

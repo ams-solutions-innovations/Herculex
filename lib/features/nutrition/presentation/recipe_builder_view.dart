@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
+import '../../../theme/tokens/hx_colors.dart';
 import '../../../ui/ui.dart';
 import '../../../widgets/premium_button.dart';
 import '../domain/daily_totals.dart';
@@ -79,11 +80,7 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
     if (!mounted) return;
     final food = await _showFoodPicker();
     if (food == null || !mounted) return;
-    await LogEntrySheet.forIngredient(
-      context,
-      food: food,
-      recipeId: _recipeId,
-    );
+    await LogEntrySheet.forIngredient(context, food: food, recipeId: _recipeId);
   }
 
   Future<FoodData?> _showFoodPicker() async {
@@ -143,27 +140,30 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
         : ref.watch(_recipeMacrosProvider(_recipeId!));
     final targets = ref.watch(baselineTargetsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isEditing
-              ? (widget.isMeal ? 'Edit Meal' : 'Edit Recipe')
-              : (widget.isMeal ? 'Create a Meal' : 'Create a Recipe'),
+    return HxScreenShell(
+      title: isEditing
+          ? (widget.isMeal ? 'Edit Meal' : 'Edit Recipe')
+          : (widget.isMeal ? 'Create a Meal' : 'Create a Recipe'),
+      actions: [
+        IconButton(
+          tooltip: 'Add Ingredient',
+          icon: const Icon(Icons.add_rounded),
+          onPressed: _addIngredient,
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      ],
+      pinnedBottom: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: PremiumButton(
+          text: _saving
+              ? 'Saving…'
+              : (widget.isMeal ? 'Save Meal' : 'Save Recipe'),
+          onTap: _saving ? () {} : _save,
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addIngredient,
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-        children: [
-          // ── Hero Photo Header Box (Matching Screenshot 1) ─────────────────
-          Container(
-            height: 140,
+      children: [
+        // ── Hero Photo Header Box (Matching Screenshot 1) ─────────────────
+        Container(
+          height: 140,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -182,7 +182,9 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
               onTap: () {
                 Haptics.selection();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Add photo feature coming soon')),
+                  const SnackBar(
+                    content: Text('Add photo feature coming soon'),
+                  ),
                 );
               },
               borderRadius: BorderRadius.circular(20),
@@ -195,7 +197,11 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
                       color: AppColors.surfaceContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.camera_alt, size: 28, color: AppColors.primary),
+                    child: Icon(
+                      Icons.camera_alt,
+                      size: 28,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -215,7 +221,9 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
           // ── Meal Name Input Field ──────────────────────────────────────────
           TextField(
             controller: _name,
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
             decoration: InputDecoration(
               labelText: widget.isMeal ? 'Meal Name' : 'Recipe Name',
               hintText: 'Enter name…',
@@ -256,7 +264,10 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
               ),
             ],
           ),
-          Divider(height: 1, color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+          Divider(
+            height: 1,
+            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 20),
 
           // ── Live Macro Donut Chart & Daily Goal Breakdown ──────────────────
@@ -295,14 +306,23 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Text(
-                    widget.isMeal ? 'No items added yet.' : 'No ingredients added yet.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+                    widget.isMeal
+                        ? 'No items added yet.'
+                        : 'No ingredients added yet.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.secondary,
+                    ),
                   ),
                 );
               }
               return Column(
                 children: list
-                    .map((ing) => _IngredientTile(ingredient: ing, recipeId: _recipeId!))
+                    .map(
+                      (ing) => _IngredientTile(
+                        ingredient: ing,
+                        recipeId: _recipeId!,
+                      ),
+                    )
                     .toList(),
               );
             },
@@ -329,7 +349,9 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Add instructions for making this meal…',
-              hintStyle: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+              hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.secondary,
+              ),
               filled: true,
               fillColor: AppColors.surfaceVariant,
               border: OutlineInputBorder(
@@ -343,16 +365,10 @@ class _RecipeBuilderViewState extends ConsumerState<RecipeBuilderView> {
             ),
           ),
           const SizedBox(height: 32),
-
-          PremiumButton(
-            text: _saving ? 'Saving…' : (widget.isMeal ? 'Save Meal' : 'Save Recipe'),
-            onTap: _saving ? () {} : _save,
-          ),
         ],
-      ),
-    );
+      );
+    }
   }
-}
 
 final _recipeMacrosProvider = FutureProvider.family<DailyTotals, int>((
   ref,
@@ -407,7 +423,9 @@ class _MacroBreakdownCard extends StatelessWidget {
                         proteinColor: AppColors.macroProtein,
                         carbsColor: AppColors.macroCarbs,
                         fatColor: AppColors.macroFat,
-                        trackColor: AppColors.outlineVariant.withValues(alpha: 0.25),
+                        trackColor: AppColors.outlineVariant.withValues(
+                          alpha: 0.25,
+                        ),
                       ),
                     ),
                     Column(
@@ -437,9 +455,27 @@ class _MacroBreakdownCard extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _macroColumn(theme, share: split.carbsShare, grams: per.carbsG, label: 'Net Carbs', color: AppColors.macroCarbs),
-                    _macroColumn(theme, share: split.fatShare, grams: per.fatG, label: 'Fat', color: AppColors.macroFat),
-                    _macroColumn(theme, share: split.proteinShare, grams: per.proteinG, label: 'Protein', color: AppColors.macroProtein),
+                    _macroColumn(
+                      theme,
+                      share: split.carbsShare,
+                      grams: per.carbsG,
+                      label: 'Net Carbs',
+                      color: AppColors.macroCarbs,
+                    ),
+                    _macroColumn(
+                      theme,
+                      share: split.fatShare,
+                      grams: per.fatG,
+                      label: 'Fat',
+                      color: AppColors.macroFat,
+                    ),
+                    _macroColumn(
+                      theme,
+                      share: split.proteinShare,
+                      grams: per.proteinG,
+                      label: 'Protein',
+                      color: AppColors.macroProtein,
+                    ),
                   ],
                 ),
               ),
@@ -448,18 +484,53 @@ class _MacroBreakdownCard extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             'Percent of Your Daily Goals',
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _goalBarCell(theme, label: 'Calories', value: per.kcal, target: targets?.kcal.toDouble(), color: AppColors.macroKcal, isKcal: true)),
+              Expanded(
+                child: _goalBarCell(
+                  theme,
+                  label: 'Calories',
+                  value: per.kcal,
+                  target: targets?.kcal.toDouble(),
+                  color: AppColors.macroKcal,
+                  isKcal: true,
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _goalBarCell(theme, label: 'Net Carbs', value: per.carbsG, target: targets?.carbsG.toDouble(), color: AppColors.macroCarbs)),
+              Expanded(
+                child: _goalBarCell(
+                  theme,
+                  label: 'Net Carbs',
+                  value: per.carbsG,
+                  target: targets?.carbsG.toDouble(),
+                  color: AppColors.macroCarbs,
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _goalBarCell(theme, label: 'Fat', value: per.fatG, target: targets?.fatG.toDouble(), color: AppColors.macroFat)),
+              Expanded(
+                child: _goalBarCell(
+                  theme,
+                  label: 'Fat',
+                  value: per.fatG,
+                  target: targets?.fatG.toDouble(),
+                  color: AppColors.macroFat,
+                ),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _goalBarCell(theme, label: 'Protein', value: per.proteinG, target: targets?.proteinG.toDouble(), color: AppColors.macroProtein)),
+              Expanded(
+                child: _goalBarCell(
+                  theme,
+                  label: 'Protein',
+                  value: per.proteinG,
+                  target: targets?.proteinG.toDouble(),
+                  color: AppColors.macroProtein,
+                ),
+              ),
             ],
           ),
         ],
@@ -467,26 +538,66 @@ class _MacroBreakdownCard extends StatelessWidget {
     );
   }
 
-  Widget _macroColumn(ThemeData theme, {required double share, required double grams, required String label, required Color color}) {
+  Widget _macroColumn(
+    ThemeData theme, {
+    required double share,
+    required double grams,
+    required String label,
+    required Color color,
+  }) {
     final pct = grams <= 0 ? 0 : (share * 100).round();
     return Column(
       children: [
-        Text('$pct%', style: theme.textTheme.bodySmall?.copyWith(color: color, fontWeight: FontWeight.bold)),
+        Text(
+          '$pct%',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text('${grams.round()}g', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontSize: 10)),
+        Text(
+          '${grams.round()}g',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.secondary,
+            fontSize: 10,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _goalBarCell(ThemeData theme, {required String label, required double value, required double? target, required Color color, bool isKcal = false}) {
-    final pct = (target != null && target > 0) ? (value / target).clamp(0.0, 1.0) : 0.0;
+  Widget _goalBarCell(
+    ThemeData theme, {
+    required String label,
+    required double value,
+    required double? target,
+    required Color color,
+    bool isKcal = false,
+  }) {
+    final pct = (target != null && target > 0)
+        ? (value / target).clamp(0.0, 1.0)
+        : 0.0;
     final pctInt = (pct * 100).round();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontSize: 10)),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.secondary,
+            fontSize: 10,
+          ),
+        ),
         const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
@@ -506,14 +617,23 @@ class _MacroBreakdownCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('$pctInt%', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 10)),
+            Text(
+              '$pctInt%',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+              ),
+            ),
             Text(
               target != null && target > 0
                   ? isKcal
-                      ? '${target.round()}'
-                      : '${target.round()}g'
+                        ? '${target.round()}'
+                        : '${target.round()}g'
                   : '--',
-              style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontSize: 9),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                fontSize: 9,
+              ),
             ),
           ],
         ),
@@ -571,7 +691,13 @@ class _MacroDonutPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round;
-      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+      canvas.drawArc(
+        rect,
+        startAngle + 0.04,
+        math.max(0, sweepAngle - 0.08),
+        false,
+        paint,
+      );
       startAngle += sweepAngle;
     }
 
@@ -582,7 +708,13 @@ class _MacroDonutPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round;
-      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+      canvas.drawArc(
+        rect,
+        startAngle + 0.04,
+        math.max(0, sweepAngle - 0.08),
+        false,
+        paint,
+      );
       startAngle += sweepAngle;
     }
 
@@ -593,7 +725,13 @@ class _MacroDonutPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round;
-      canvas.drawArc(rect, startAngle + 0.04, math.max(0, sweepAngle - 0.08), false, paint);
+      canvas.drawArc(
+        rect,
+        startAngle + 0.04,
+        math.max(0, sweepAngle - 0.08),
+        false,
+        paint,
+      );
     }
   }
 
@@ -608,10 +746,7 @@ class _IngredientTile extends ConsumerWidget {
   final RecipeIngredientData ingredient;
   final int recipeId;
 
-  const _IngredientTile({
-    required this.ingredient,
-    required this.recipeId,
-  });
+  const _IngredientTile({required this.ingredient, required this.recipeId});
 
   Future<void> _editIngredient(
     BuildContext context,
@@ -869,10 +1004,7 @@ class _IngredientPickerSheetState
           Positioned(
             left: 16,
             right: 16,
-            bottom: math.max(
-              24.0,
-              MediaQuery.paddingOf(context).bottom + 14.0,
-            ),
+            bottom: math.max(24.0, MediaQuery.paddingOf(context).bottom + 14.0),
             child: _buildFloatingSearchBar(theme),
           ),
         ],
@@ -938,8 +1070,9 @@ class _IngredientPickerSheetState
     }
 
     final recentIds = recents.map((f) => f.id).toSet();
-    final remainingFoods =
-        allFoods.where((f) => !recentIds.contains(f.id)).toList();
+    final remainingFoods = allFoods
+        .where((f) => !recentIds.contains(f.id))
+        .toList();
 
     return ListView(
       controller: controller,
@@ -1025,44 +1158,52 @@ class _IngredientPickerSheetState
       ),
       subtitle: Text(
         '${food.kcalPer100g.toStringAsFixed(0)} kcal/100g · P: ${food.proteinPer100g.toStringAsFixed(1)}g · C: ${food.carbsPer100g.toStringAsFixed(1)}g · F: ${food.fatPer100g.toStringAsFixed(1)}g',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: AppColors.secondary,
-        ),
+        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
       ),
-      trailing: Icon(
-        Icons.add_circle_outline,
-        color: AppColors.primary,
-      ),
+      trailing: Icon(Icons.add_circle_outline, color: AppColors.primary),
       onTap: () => Navigator.of(context).pop(food),
     );
   }
 
   Widget _buildFloatingSearchBar(ThemeData theme) {
+    final hx = context.hx;
+    final isDark = hx.isDark;
     final hasQuery = _ctrl.text.isNotEmpty;
-    final surfaceColor = Color.alphaBlend(
-      AppColors.primary.withValues(alpha: 0.12),
-      const Color(0xFF1B2433),
-    );
 
     return Container(
       decoration: BoxDecoration(
-        color: surfaceColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.alphaBlend(
+              hx.primary.withValues(alpha: isDark ? 0.16 : 0.08),
+              hx.surfaceContainer,
+            ),
+            Color.alphaBlend(
+              hx.primary.withValues(alpha: isDark ? 0.06 : 0.03),
+              isDark ? hx.surfaceContainerLowest : hx.surfaceVariant,
+            ),
+          ],
+        ),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.40),
+          color: hx.primary.withValues(alpha: isDark ? 0.35 : 0.25),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.15),
-            blurRadius: 18,
+            color: hx.primary.withValues(alpha: isDark ? 0.18 : 0.08),
+            blurRadius: 16,
             offset: const Offset(0, 4),
             spreadRadius: 0.5,
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.50),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.40)
+                : Colors.black.withValues(alpha: 0.08),
+            blurRadius: isDark ? 14 : 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1070,22 +1211,26 @@ class _IngredientPickerSheetState
         controller: _ctrl,
         onChanged: (v) => setState(() => _query = v),
         style: theme.textTheme.bodyMedium?.copyWith(
-          color: Colors.white,
+          color: hx.onSurface,
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
           hintText: 'Search for a food or ingredient',
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.secondary.withValues(alpha: 0.85),
+            color: hx.secondary.withValues(alpha: 0.85),
           ),
           prefixIcon: Icon(
             Icons.search_rounded,
             size: 22,
-            color: AppColors.primary,
+            color: hx.primary,
           ),
           suffixIcon: hasQuery
               ? IconButton(
-                  icon: const Icon(Icons.close, size: 20, color: Colors.white70),
+                  icon: Icon(
+                    Icons.close,
+                    size: 20,
+                    color: hx.secondary,
+                  ),
                   onPressed: () {
                     _ctrl.clear();
                     setState(() => _query = null);
@@ -1107,8 +1252,10 @@ class _IngredientPickerSheetState
             borderRadius: BorderRadius.circular(28),
             borderSide: BorderSide.none,
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
       ),
     );

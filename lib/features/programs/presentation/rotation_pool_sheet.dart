@@ -14,7 +14,10 @@ class RotationPoolSheet extends ConsumerStatefulWidget {
 
   const RotationPoolSheet({super.key, this.existing});
 
-  static Future<void> show(BuildContext context, {ExerciseRotationData? existing}) {
+  static Future<void> show(
+    BuildContext context, {
+    ExerciseRotationData? existing,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -103,11 +106,17 @@ class _RotationPoolSheetState extends ConsumerState<RotationPoolSheet> {
             const SizedBox(height: 20),
             Text(
               widget.existing == null ? 'New Rotation Pool' : 'Edit Pool',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 4),
-            Text('Group exercises that rotate each block week.',
-                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
+            Text(
+              'Group exercises that rotate each block week.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
             const SizedBox(height: 24),
             _label(theme, 'NAME'),
             const SizedBox(height: 6),
@@ -118,7 +127,10 @@ class _RotationPoolSheetState extends ConsumerState<RotationPoolSheet> {
                 filled: true,
                 fillColor: AppColors.surfaceContainer,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 16,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -198,21 +210,29 @@ class _RotationPoolSheetState extends ConsumerState<RotationPoolSheet> {
                 data: (rows) => rows.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Text('No exercises yet.',
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(color: AppColors.secondary)),
+                        child: Text(
+                          'No exercises yet.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.secondary,
+                          ),
+                        ),
                       )
                     : Column(
                         children: rows
-                            .map((m) => _MemberTile(
-                                  member: m,
-                                  onRemove: () => ref
-                                      .read(rotationsRepositoryProvider)
-                                      .removeMember(m.id),
-                                ))
+                            .map(
+                              (m) => _MemberTile(
+                                member: m,
+                                onRemove: () => ref
+                                    .read(rotationsRepositoryProvider)
+                                    .removeMember(m.id),
+                              ),
+                            )
                             .toList(),
                       ),
-                loading: () => const SizedBox(height: 40, child: Center(child: CircularProgressIndicator())),
+                loading: () => const SizedBox(
+                  height: 40,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
                 error: (e, _) => Text('Error: $e'),
               ),
             ],
@@ -221,7 +241,9 @@ class _RotationPoolSheetState extends ConsumerState<RotationPoolSheet> {
               onPressed: _saving ? null : _save,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: Text(_saving ? 'Saving…' : 'Save'),
@@ -233,10 +255,13 @@ class _RotationPoolSheetState extends ConsumerState<RotationPoolSheet> {
   }
 
   Widget _label(ThemeData theme, String text) => Text(
-        text,
-        style: theme.textTheme.labelSmall
-            ?.copyWith(color: AppColors.secondary, letterSpacing: 0.8, fontWeight: FontWeight.w600),
-      );
+    text,
+    style: theme.textTheme.labelSmall?.copyWith(
+      color: AppColors.secondary,
+      letterSpacing: 0.8,
+      fontWeight: FontWeight.w600,
+    ),
+  );
 }
 
 class _MemberTile extends ConsumerWidget {
@@ -250,9 +275,9 @@ class _MemberTile extends ConsumerWidget {
     final db = ref.watch(appDatabaseProvider);
 
     return FutureBuilder<ExerciseCatalogData?>(
-      future: (db.select(db.exerciseCatalog)
-            ..where((t) => t.id.equals(member.exerciseId)))
-          .getSingleOrNull(),
+      future: (db.select(
+        db.exerciseCatalog,
+      )..where((t) => t.id.equals(member.exerciseId))).getSingleOrNull(),
       builder: (context, snap) {
         final name = snap.data?.name ?? '…';
         return ListTile(
@@ -260,7 +285,11 @@ class _MemberTile extends ConsumerWidget {
           dense: true,
           title: Text(name, style: theme.textTheme.bodyMedium),
           trailing: IconButton(
-            icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
+            icon: const Icon(
+              Icons.remove_circle_outline,
+              color: Colors.redAccent,
+              size: 20,
+            ),
             onPressed: onRemove,
           ),
         );

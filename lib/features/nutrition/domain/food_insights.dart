@@ -102,12 +102,11 @@ class MacroSplit {
     required double proteinG,
     required double carbsG,
     required double fatG,
-  }) =>
-      MacroSplit(
-        proteinKcal: proteinG * 4,
-        carbsKcal: carbsG * 4,
-        fatKcal: fatG * 9,
-      );
+  }) => MacroSplit(
+    proteinKcal: proteinG * 4,
+    carbsKcal: carbsG * 4,
+    fatKcal: fatG * 9,
+  );
 
   double get totalKcal => proteinKcal + carbsKcal + fatKcal;
 

@@ -60,10 +60,9 @@ class HxNavBar extends StatelessWidget {
                     const bubbleSize = 44.0;
                     final slotWidth =
                         constraints.maxWidth / destinations.length;
-                    final bubbleLeft = slotWidth * currentIndex +
-                        (slotWidth - bubbleSize) / 2;
-                    final bubbleTop =
-                        (constraints.maxHeight - bubbleSize) / 2;
+                    final bubbleLeft =
+                        slotWidth * currentIndex + (slotWidth - bubbleSize) / 2;
+                    final bubbleTop = (constraints.maxHeight - bubbleSize) / 2;
 
                     return Stack(
                       children: [

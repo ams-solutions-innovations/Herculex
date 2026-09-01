@@ -38,108 +38,108 @@ class GoalsView extends ConsumerWidget {
       title: 'Goals',
       padding: EdgeInsets.zero,
       children: [
-          // ── Weight & activity rows ────────────────────────────────────────
-          _GoalValueRow(
-            label: 'Starting Weight',
-            value: startWeightStr,
-            onTap: () => _editStartingWeight(context, ref, startingWeight),
-          ),
-          const _GoalDivider(),
-          _GoalValueRow(
-            label: 'Current Weight',
-            value: currentWeightStr,
-            onTap: () => _editCurrentWeight(context, ref, profile),
-          ),
-          const _GoalDivider(),
-          _GoalValueRow(
-            label: 'Goal Weight',
-            value: goalWeightStr,
-            onTap: () => _editGoalWeight(context, ref, goalWeight),
-          ),
-          const _GoalDivider(),
-          _GoalValueRow(
-            label: 'Weekly Goal',
-            value: weeklyGoalStr,
-            onTap: () => _editWeeklyGoal(context, ref, weeklyGoal),
-          ),
-          const _GoalDivider(),
-          _GoalValueRow(
-            label: 'Activity Level',
-            value: activityStr,
-            onTap: () => _editActivityLevel(context, ref, profile),
-          ),
+        // ── Weight & activity rows ────────────────────────────────────────
+        _GoalValueRow(
+          label: 'Starting Weight',
+          value: startWeightStr,
+          onTap: () => _editStartingWeight(context, ref, startingWeight),
+        ),
+        const _GoalDivider(),
+        _GoalValueRow(
+          label: 'Current Weight',
+          value: currentWeightStr,
+          onTap: () => _editCurrentWeight(context, ref, profile),
+        ),
+        const _GoalDivider(),
+        _GoalValueRow(
+          label: 'Goal Weight',
+          value: goalWeightStr,
+          onTap: () => _editGoalWeight(context, ref, goalWeight),
+        ),
+        const _GoalDivider(),
+        _GoalValueRow(
+          label: 'Weekly Goal',
+          value: weeklyGoalStr,
+          onTap: () => _editWeeklyGoal(context, ref, weeklyGoal),
+        ),
+        const _GoalDivider(),
+        _GoalValueRow(
+          label: 'Activity Level',
+          value: activityStr,
+          onTap: () => _editActivityLevel(context, ref, profile),
+        ),
 
-          const SizedBox(height: 32),
+        const SizedBox(height: 32),
 
-          // ── Nutrition Goals ───────────────────────────────────────────────
-          const _SectionHeader('Nutrition Goals'),
-          const _GoalDivider(),
-          _GoalNavRow(
-            label: 'Calorie, Net Carbs, Protein and Fat Goals',
-            subtitle: 'Customize your default or daily goals.',
-            onTap: () => context.push('/calorie-macro-goals'),
-          ),
-          const _GoalDivider(),
-          _GoalNavRow(
-            label: 'Calorie Goals by Meal',
-            subtitle: 'Stay on track with a calorie goal for each meal.',
-            onTap: () => context.push('/calorie-meal-goals'),
-          ),
-          const _GoalDivider(),
-          _GoalToggleRow(
-            label: 'Show Net Carbs, Protein and Fat By Meal',
-            subtitle: 'View net carbs, protein and fat by gram or percent.',
-            value: showNetCarbs,
-            onChanged: (_) =>
-                ref.read(showNetCarbsByMealProvider.notifier).toggle(),
-          ),
-          const _GoalDivider(),
-          _GoalNavRow(
-            label: 'Additional Nutrient Goals',
-            subtitle: 'Choose which vitamins and minerals appear in the diary.',
-            onTap: () => context.push('/nutrition-nutrients'),
-          ),
-          const _GoalDivider(),
-          _GoalNavRow(
-            label: 'Edit meal slots',
-            subtitle:
-                'Add, rename and reorder breakfast, lunch and custom meals.',
-            onTap: () => context.push('/nutrition-meal-slots'),
-          ),
+        // ── Nutrition Goals ───────────────────────────────────────────────
+        const _SectionHeader('Nutrition Goals'),
+        const _GoalDivider(),
+        _GoalNavRow(
+          label: 'Calorie, Net Carbs, Protein and Fat Goals',
+          subtitle: 'Customize your default or daily goals.',
+          onTap: () => context.push('/calorie-macro-goals'),
+        ),
+        const _GoalDivider(),
+        _GoalNavRow(
+          label: 'Calorie Goals by Meal',
+          subtitle: 'Stay on track with a calorie goal for each meal.',
+          onTap: () => context.push('/calorie-meal-goals'),
+        ),
+        const _GoalDivider(),
+        _GoalToggleRow(
+          label: 'Show Net Carbs, Protein and Fat By Meal',
+          subtitle: 'View net carbs, protein and fat by gram or percent.',
+          value: showNetCarbs,
+          onChanged: (_) =>
+              ref.read(showNetCarbsByMealProvider.notifier).toggle(),
+        ),
+        const _GoalDivider(),
+        _GoalNavRow(
+          label: 'Additional Nutrient Goals',
+          subtitle: 'Choose which vitamins and minerals appear in the diary.',
+          onTap: () => context.push('/nutrition-nutrients'),
+        ),
+        const _GoalDivider(),
+        _GoalNavRow(
+          label: 'Edit meal slots',
+          subtitle:
+              'Add, rename and reorder breakfast, lunch and custom meals.',
+          onTap: () => context.push('/nutrition-meal-slots'),
+        ),
 
-          const SizedBox(height: 32),
+        const SizedBox(height: 32),
 
-          // ── Fitness Goals ─────────────────────────────────────────────────
-          const _SectionHeader('Fitness Goals'),
-          const _GoalDivider(),
-          _GoalValueRow(
-            label: 'Workouts / Week',
-            value: '${fitnessGoals.workoutsPerWeek}',
-            onTap: () => _editIntGoal(
-              context,
-              title: 'Workouts per Week',
-              current: fitnessGoals.workoutsPerWeek,
-              onSave: (v) =>
-                  ref.read(fitnessGoalsProvider.notifier).setWorkouts(v),
-            ),
+        // ── Fitness Goals ─────────────────────────────────────────────────
+        const _SectionHeader('Fitness Goals'),
+        const _GoalDivider(),
+        _GoalValueRow(
+          label: 'Workouts / Week',
+          value: '${fitnessGoals.workoutsPerWeek}',
+          onTap: () => _editIntGoal(
+            context,
+            title: 'Workouts per Week',
+            current: fitnessGoals.workoutsPerWeek,
+            onSave: (v) =>
+                ref.read(fitnessGoalsProvider.notifier).setWorkouts(v),
           ),
-          const _GoalDivider(),
-          _GoalValueRow(
-            label: 'Minutes / Workout',
-            value: '${fitnessGoals.minutesPerWorkout}',
-            onTap: () => _editIntGoal(
-              context,
-              title: 'Minutes per Workout',
-              current: fitnessGoals.minutesPerWorkout,
-              onSave: (v) =>
-                  ref.read(fitnessGoalsProvider.notifier).setMinutes(v),
-            ),
+        ),
+        const _GoalDivider(),
+        _GoalValueRow(
+          label: 'Minutes / Workout',
+          value: '${fitnessGoals.minutesPerWorkout}',
+          onTap: () => _editIntGoal(
+            context,
+            title: 'Minutes per Workout',
+            current: fitnessGoals.minutesPerWorkout,
+            onSave: (v) =>
+                ref.read(fitnessGoalsProvider.notifier).setMinutes(v),
           ),
-          const _GoalDivider(),
+        ),
+        const _GoalDivider(),
 
-          const SizedBox(height: 100),
-        ],
-      );
+        const SizedBox(height: 100),
+      ],
+    );
   }
 
   // ── Edit weight / activity sheets ─────────────────────────────────────────

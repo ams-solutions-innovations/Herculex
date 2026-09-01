@@ -164,7 +164,9 @@ class WearSyncService {
           );
           break;
         case 'onWatchWorkoutSavedAsTemplate':
-          _onWatchWorkoutSavedAsTemplate?.call(call.arguments?['entityId'] as String?);
+          _onWatchWorkoutSavedAsTemplate?.call(
+            call.arguments?['entityId'] as String?,
+          );
           break;
         case 'onWatchFastingCommand':
           _deliverFastingCommand(call.arguments?['command_json'] as String?);
@@ -179,7 +181,9 @@ class WearSyncService {
           _deliverRamblerCommand(call.arguments?['command_json'] as String?);
           break;
         case 'onWatchMediaCommand':
-          _onWatchMediaCommand?.call(call.arguments?['command_json'] as String?);
+          _onWatchMediaCommand?.call(
+            call.arguments?['command_json'] as String?,
+          );
           break;
         case 'onRequestSync':
           onRequestSync?.call();
@@ -490,9 +494,7 @@ class WearSyncService {
 
   Future<void> syncMediaState(String mediaJson) async {
     try {
-      await _channel.invokeMethod('syncMediaState', {
-        'media_json': mediaJson,
-      });
+      await _channel.invokeMethod('syncMediaState', {'media_json': mediaJson});
     } on PlatformException catch (e) {
       debugPrint('Failed to sync media state to wear: ${e.message}');
     }
@@ -528,9 +530,7 @@ class WearSyncService {
 
   Future<void> endWorkoutOnWatch(String entityId) async {
     try {
-      await _channel.invokeMethod('endWorkoutOnWatch', {
-        'entity_id': entityId,
-      });
+      await _channel.invokeMethod('endWorkoutOnWatch', {'entity_id': entityId});
       debugPrint('Ended workout on watch');
     } on PlatformException catch (e) {
       debugPrint('Failed to end workout on watch: ${e.message}');

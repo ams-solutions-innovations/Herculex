@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/premium_button.dart';
 import '../data/circuits_repository.dart';
 import 'circuits_providers.dart';
@@ -20,9 +21,7 @@ class CircuitBuilderView extends ConsumerStatefulWidget {
   }) {
     return Navigator.push<WorkoutCircuitData>(
       context,
-      MaterialPageRoute(
-        builder: (_) => CircuitBuilderView(existing: existing),
-      ),
+      MaterialPageRoute(builder: (_) => CircuitBuilderView(existing: existing)),
     );
   }
 
@@ -56,7 +55,10 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
     setState(() => _loadingExisting = true);
     final repo = ref.read(circuitsRepositoryProvider);
     final entries = await repo.getCircuitExercises(widget.existing!.id);
-    final snapshot = await ref.read(workoutsRepositoryProvider).watchExerciseCatalog().first;
+    final snapshot = await ref
+        .read(workoutsRepositoryProvider)
+        .watchExerciseCatalog()
+        .first;
     final catalogMap = {for (final e in snapshot.exercises) e.id: e};
 
     if (mounted) {
@@ -96,7 +98,9 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
     }
     if (_draftExercises.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one exercise to the circuit')),
+        const SnackBar(
+          content: Text('Please add at least one exercise to the circuit'),
+        ),
       );
       return;
     }
@@ -149,37 +153,31 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
     final theme = Theme.of(context);
     final isEdit = widget.existing != null;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          isEdit ? 'Edit Circuit' : 'New Circuit',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          if (!_saving)
-            TextButton(
-              onPressed: _save,
-              child: Text(
-                'Save',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+    return HxScreenShell(
+      title: isEdit ? 'Edit Circuit' : 'New Circuit',
+      actions: [
+        if (!_saving)
+          TextButton(
+            onPressed: _save,
+            child: Text(
+              'Save',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
               ),
             ),
-        ],
-      ),
-      body: _loadingExisting
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
-              children: [
-                // Name & Notes
-                _PillField(
-                  label: 'Circuit Name *',
-                  controller: _nameCtrl,
-                  hint: 'e.g. Core Burner Circuit, Arm Blast',
-                ),
+          ),
+      ],
+      children: [
+        if (_loadingExisting)
+          const Center(child: CircularProgressIndicator())
+        else ...[
+          // Name & Notes
+          _PillField(
+            label: 'Circuit Name *',
+            controller: _nameCtrl,
+            hint: 'e.g. Core Burner Circuit, Arm Blast',
+          ),
                 const SizedBox(height: 12),
                 _PillField(
                   label: 'Notes',
@@ -195,7 +193,9 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +217,9 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                               const SizedBox(height: 2),
                               Text(
                                 'Number of times all exercises are performed',
-                                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.secondary,
+                                ),
                               ),
                             ],
                           ),
@@ -225,10 +227,14 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                             children: [
                               _RoundStepperButton(
                                 icon: Icons.remove,
-                                onTap: _rounds > 1 ? () => setState(() => _rounds--) : null,
+                                onTap: _rounds > 1
+                                    ? () => setState(() => _rounds--)
+                                    : null,
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
                                 child: Text(
                                   '$_rounds',
                                   style: theme.textTheme.titleLarge?.copyWith(
@@ -239,7 +245,9 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                               ),
                               _RoundStepperButton(
                                 icon: Icons.add,
-                                onTap: _rounds < 20 ? () => setState(() => _rounds++) : null,
+                                onTap: _rounds < 20
+                                    ? () => setState(() => _rounds++)
+                                    : null,
                               ),
                             ],
                           ),
@@ -256,7 +264,9 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,14 +288,21 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                               const SizedBox(height: 2),
                               Text(
                                 'Rest time after completing all exercises in round',
-                                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.secondary,
+                                ),
                               ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryContainer.withValues(alpha: 0.35),
+                              color: AppColors.primaryContainer.withValues(
+                                alpha: 0.35,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -308,11 +325,16 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                           return ChoiceChip(
                             label: Text(_formatSeconds(sec)),
                             selected: isSelected,
-                            onSelected: (_) => setState(() => _restSeconds = sec),
+                            onSelected: (_) =>
+                                setState(() => _restSeconds = sec),
                             selectedColor: AppColors.primary,
                             labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : AppColors.secondary,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.secondary,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               fontSize: 12,
                             ),
                             backgroundColor: AppColors.surfaceContainer,
@@ -343,10 +365,15 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                     TextButton.icon(
                       icon: const Icon(Icons.add, size: 16),
                       label: const Text('Add Exercise'),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                      ),
                       onPressed: () async {
                         final results = await ExercisePickerSheet.show(context);
-                        if (results == null || results.isEmpty || !context.mounted) return;
+                        if (results == null ||
+                            results.isEmpty ||
+                            !context.mounted)
+                          return;
                         setState(() {
                           for (final picked in results) {
                             _draftExercises.add(
@@ -369,20 +396,30 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                      border: Border.all(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Column(
                       children: [
-                        Icon(Icons.repeat_rounded, size: 40, color: AppColors.primary),
+                        Icon(
+                          Icons.repeat_rounded,
+                          size: 40,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           'No exercises in circuit',
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Add 2 or more exercises to build your circuit',
-                          style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.secondary,
+                          ),
                         ),
                       ],
                     ),
@@ -405,23 +442,28 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
                         key: ValueKey('${item.exercise.id}_$index'),
                         index: index,
                         draft: item,
-                        onUpdateReps: (reps) => setState(() => item.targetReps = reps),
-                        onUpdateWeight: (weight) => setState(() => item.targetWeightKg = weight),
-                        onRemove: () => setState(() => _draftExercises.removeAt(index)),
+                        onUpdateReps: (reps) =>
+                            setState(() => item.targetReps = reps),
+                        onUpdateWeight: (weight) =>
+                            setState(() => item.targetWeightKg = weight),
+                        onRemove: () =>
+                            setState(() => _draftExercises.removeAt(index)),
                       );
                     },
                   ),
 
                 const SizedBox(height: 32),
                 PremiumButton(
-                  text: _saving ? 'Saving Circuit…' : (isEdit ? 'Update Circuit' : 'Create Circuit'),
+                  text: _saving
+                      ? 'Saving Circuit…'
+                      : (isEdit ? 'Update Circuit' : 'Create Circuit'),
                   icon: isEdit ? Icons.check : Icons.add,
                   onTap: _saving ? () {} : _save,
                 ),
               ],
-            ),
-    );
-  }
+            ],
+          );
+        }
 
   String _formatSeconds(int seconds) {
     if (seconds < 60) return '${seconds}s';
@@ -470,7 +512,9 @@ class _CircuitExerciseTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
       child: Row(
         children: [
@@ -499,11 +543,15 @@ class _CircuitExerciseTile extends StatelessWidget {
               children: [
                 Text(
                   ex.name,
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   ex.primaryMuscle.isNotEmpty ? ex.primaryMuscle : ex.category,
-                  style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.secondary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -512,14 +560,20 @@ class _CircuitExerciseTile extends StatelessWidget {
                       label: 'Reps',
                       value: '${draft.targetReps}',
                       onTap: () async {
-                        final val = await _pickNumber(context, current: draft.targetReps, title: 'Target Reps');
+                        final val = await _pickNumber(
+                          context,
+                          current: draft.targetReps,
+                          title: 'Target Reps',
+                        );
                         if (val != null && val > 0) onUpdateReps(val);
                       },
                     ),
                     const SizedBox(width: 12),
                     _InlineMetricInput(
                       label: 'Kg (opt)',
-                      value: draft.targetWeightKg != null && draft.targetWeightKg! > 0
+                      value:
+                          draft.targetWeightKg != null &&
+                              draft.targetWeightKg! > 0
                           ? '${draft.targetWeightKg}kg'
                           : '—',
                       onTap: () async {
@@ -546,7 +600,11 @@ class _CircuitExerciseTile extends StatelessWidget {
     );
   }
 
-  Future<int?> _pickNumber(BuildContext context, {required int current, required String title}) async {
+  Future<int?> _pickNumber(
+    BuildContext context, {
+    required int current,
+    required String title,
+  }) async {
     final ctrl = TextEditingController(text: '$current');
     return showDialog<int>(
       context: context,
@@ -559,7 +617,10 @@ class _CircuitExerciseTile extends StatelessWidget {
           decoration: const InputDecoration(labelText: 'Reps'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)),
             child: const Text('Save'),
@@ -569,7 +630,11 @@ class _CircuitExerciseTile extends StatelessWidget {
     );
   }
 
-  Future<double?> _pickDouble(BuildContext context, {required double current, required String title}) async {
+  Future<double?> _pickDouble(
+    BuildContext context, {
+    required double current,
+    required String title,
+  }) async {
     final ctrl = TextEditingController(text: current > 0 ? '$current' : '');
     return showDialog<double>(
       context: context,
@@ -582,7 +647,10 @@ class _CircuitExerciseTile extends StatelessWidget {
           decoration: const InputDecoration(labelText: 'Weight (kg)'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, double.tryParse(ctrl.text)),
             child: const Text('Save'),
@@ -598,7 +666,11 @@ class _InlineMetricInput extends StatelessWidget {
   final String value;
   final VoidCallback onTap;
 
-  const _InlineMetricInput({required this.label, required this.value, required this.onTap});
+  const _InlineMetricInput({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -616,11 +688,19 @@ class _InlineMetricInput extends StatelessWidget {
           children: [
             Text(
               '$label: ',
-              style: TextStyle(fontSize: 11, color: AppColors.secondary, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.secondary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(
               value,
-              style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -644,10 +724,18 @@ class _RoundStepperButton extends StatelessWidget {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: onTap != null ? AppColors.surfaceContainer : AppColors.surfaceContainer.withValues(alpha: 0.3),
+          color: onTap != null
+              ? AppColors.surfaceContainer
+              : AppColors.surfaceContainer.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, size: 18, color: onTap != null ? AppColors.primary : AppColors.secondary.withValues(alpha: 0.4)),
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap != null
+              ? AppColors.primary
+              : AppColors.secondary.withValues(alpha: 0.4),
+        ),
       ),
     );
   }
@@ -692,13 +780,20 @@ class _PillField extends StatelessWidget {
             fillColor: AppColors.surfaceContainerLowest,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+              borderSide: BorderSide(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+              borderSide: BorderSide(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
         ),
       ],

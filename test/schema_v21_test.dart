@@ -146,9 +146,7 @@ void main() {
       // upgrade chain, which continues on to whatever AppDatabase.schemaVersion
       // currently is, since this test opens the real AppDatabase rather than
       // stopping at v21.
-      final row = await db
-          .customSelect('PRAGMA user_version')
-          .getSingle();
+      final row = await db.customSelect('PRAGMA user_version').getSingle();
       expect(row.data.values.first, db.schemaVersion);
     });
 
@@ -215,9 +213,9 @@ void main() {
 
     test('program days sharing a weekday get dense order indexes', () async {
       final days = await db.select(db.programDays).get();
-      final monday = days.where((d) => d.programWeekId == 1 && d.dayOfWeek == 1)
-          .toList()
-        ..sort((a, b) => a.id.compareTo(b.id));
+      final monday =
+          days.where((d) => d.programWeekId == 1 && d.dayOfWeek == 1).toList()
+            ..sort((a, b) => a.id.compareTo(b.id));
       expect(monday.map((d) => d.orderIndex), [0, 1]);
       expect(days.singleWhere((d) => d.id == 3).orderIndex, 0);
     });
@@ -243,9 +241,9 @@ void main() {
     });
 
     test('the new template FKs are enforced, not just declared', () async {
-      await db.into(db.workoutTemplates).insert(
-        WorkoutTemplatesCompanion.insert(name: 'Push Day'),
-      );
+      await db
+          .into(db.workoutTemplates)
+          .insert(WorkoutTemplatesCompanion.insert(name: 'Push Day'));
       // Valid reference is accepted...
       await (db.update(db.programDays)..where((t) => t.id.equals(1))).write(
         const ProgramDaysCompanion(templateId: Value(1)),

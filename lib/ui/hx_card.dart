@@ -41,7 +41,8 @@ class HxCard extends StatelessWidget {
     final borderRadius = BorderRadius.circular(radius ?? HxRadius.xl);
     final accent = this.accent;
 
-    final cardGradient = gradient ??
+    final cardGradient =
+        gradient ??
         (accent != null && useAccentGradient
             ? LinearGradient(
                 colors: [
@@ -60,16 +61,17 @@ class HxCard extends StatelessWidget {
         gradient: cardGradient,
         color: cardGradient == null
             ? (fill ??
-                (accent == null
-                    ? hx.surfaceContainerLowest
-                    : Color.alphaBlend(
-                        accent.withValues(alpha: hx.isDark ? 0.06 : 0.04),
-                        hx.surfaceContainerLowest,
-                      )))
+                  (accent == null
+                      ? hx.surfaceContainerLowest
+                      : Color.alphaBlend(
+                          accent.withValues(alpha: hx.isDark ? 0.06 : 0.04),
+                          hx.surfaceContainerLowest,
+                        )))
             : null,
         borderRadius: borderRadius,
         border: Border.all(
-          color: accent?.withValues(alpha: 0.3) ??
+          color:
+              accent?.withValues(alpha: 0.3) ??
               hx.outlineVariant.withValues(alpha: 0.3),
         ),
       ),

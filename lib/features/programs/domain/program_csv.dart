@@ -67,22 +67,25 @@ class ProgramCsv {
     final b = StringBuffer()
       ..writeln('# Herculex Program,name,weeks,periodization')
       ..writeln(
-          'program,${_escape(doc.name)},${doc.weeks},${doc.periodizationModel}')
+        'program,${_escape(doc.name)},${doc.weeks},${doc.periodizationModel}',
+      )
       ..writeln(_exerciseHeader);
     for (final r in doc.rows) {
-      b.writeln([
-        r.weekIndex,
-        r.dayOfWeek,
-        _escape(r.dayName),
-        _escape(r.exerciseName),
-        r.sets,
-        r.repsMin ?? '',
-        r.repsMax ?? '',
-        r.rpe ?? '',
-        r.setType,
-        r.percentOf1Rm ?? '',
-        r.equipmentVariant ?? '',
-      ].join(','));
+      b.writeln(
+        [
+          r.weekIndex,
+          r.dayOfWeek,
+          _escape(r.dayName),
+          _escape(r.exerciseName),
+          r.sets,
+          r.repsMin ?? '',
+          r.repsMax ?? '',
+          r.rpe ?? '',
+          r.setType,
+          r.percentOf1Rm ?? '',
+          r.equipmentVariant ?? '',
+        ].join(','),
+      );
     }
     return b.toString();
   }
@@ -99,7 +102,8 @@ class ProgramCsv {
     final programLine = _split(lines.first);
     if (programLine.length < 4 || programLine[0] != 'program') {
       throw const ProgramCsvFormatException(
-          'First data row must be: program,<name>,<weeks>,<periodization>');
+        'First data row must be: program,<name>,<weeks>,<periodization>',
+      );
     }
     final name = programLine[1];
     final weeks = int.tryParse(programLine[2]);
@@ -125,28 +129,29 @@ class ProgramCsv {
       }
       String? cell(int i) =>
           i < cells.length && cells[i].isNotEmpty ? cells[i] : null;
-      rows.add(ProgramCsvRow(
-        weekIndex: week,
-        dayOfWeek: dayOfWeek,
-        dayName: cells[2],
-        exerciseName: cells[3],
-        sets: sets,
-        repsMin: int.tryParse(cell(5) ?? ''),
-        repsMax: int.tryParse(cell(6) ?? ''),
-        rpe: int.tryParse(cell(7) ?? ''),
-        setType: cell(8) ?? 'standard',
-        percentOf1Rm: double.tryParse(cell(9) ?? ''),
-        equipmentVariant: cell(10),
-      ));
+      rows.add(
+        ProgramCsvRow(
+          weekIndex: week,
+          dayOfWeek: dayOfWeek,
+          dayName: cells[2],
+          exerciseName: cells[3],
+          sets: sets,
+          repsMin: int.tryParse(cell(5) ?? ''),
+          repsMax: int.tryParse(cell(6) ?? ''),
+          rpe: int.tryParse(cell(7) ?? ''),
+          setType: cell(8) ?? 'standard',
+          percentOf1Rm: double.tryParse(cell(9) ?? ''),
+          equipmentVariant: cell(10),
+        ),
+      );
     }
 
     return ProgramCsvDocument(
       name: name,
       weeks: weeks,
-      periodizationModel:
-          programLine.length > 3 && programLine[3].isNotEmpty
-              ? programLine[3]
-              : 'none',
+      periodizationModel: programLine.length > 3 && programLine[3].isNotEmpty
+          ? programLine[3]
+          : 'none',
       rows: rows,
     );
   }

@@ -677,12 +677,14 @@ class MainActivity : FlutterFragmentActivity() {
                     "isPlaying" to isPlaying,
                     "packageName" to controller.packageName,
                     "thumbnailUrl" to thumbnailBase64,
+                    "hasPermission" to true,
                 )
             }
         } catch (e: SecurityException) {
             Log.w("MediaInfo", "Notification listener access not granted for MediaNotificationListener", e)
+            return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "", "hasPermission" to false)
         }
-        return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "")
+        return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "", "hasPermission" to true)
     }
 
     /// Replaces the `flutter_media_controller` plugin's own `mediaAction` —

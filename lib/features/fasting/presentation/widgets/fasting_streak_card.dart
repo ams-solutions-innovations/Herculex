@@ -108,11 +108,7 @@ class FastingStreakCard extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.bolt_rounded,
-                    size: 14,
-                    color: hx.warning,
-                  ),
+                  Icon(Icons.bolt_rounded, size: 14, color: hx.warning),
                   const SizedBox(width: 2),
                   Text(
                     "Active",

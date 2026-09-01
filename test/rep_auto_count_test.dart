@@ -87,12 +87,13 @@ void main() {
     tearDown(() async => db.close());
 
     Widget wrap() => ProviderScope(
-          overrides: [repTrackingRepositoryProvider.overrideWithValue(repo)],
-          child: const MaterialApp(home: Scaffold(body: RepAutoCountTile())),
-        );
+      overrides: [repTrackingRepositoryProvider.overrideWithValue(repo)],
+      child: const MaterialApp(home: Scaffold(body: RepAutoCountTile())),
+    );
 
-    testWidgets('without consent it offers the consent screen, not a switch',
-        (tester) async {
+    testWidgets('without consent it offers the consent screen, not a switch', (
+      tester,
+    ) async {
       await tester.pumpWidget(wrap());
       await tester.pumpAndSettle();
 
@@ -110,7 +111,9 @@ void main() {
       expect(toggle.value, isFalse, reason: 'off until the user turns it on');
     });
 
-    testWidgets('turning it on enables every measurable exercise', (tester) async {
+    testWidgets('turning it on enables every measurable exercise', (
+      tester,
+    ) async {
       await repo.grantConsent(version: 1);
 
       await tester.pumpWidget(wrap());
@@ -144,21 +147,20 @@ RepSuggestion _suggestion({
   TrackerState state = TrackerState.tracking,
   int reps = 8,
   String? reason,
-}) =>
-    RepSuggestion(
-      captureId: 'c1',
-      exerciseSlug: 'barbell-bench-press',
-      movement: RepMovement.horizontalPush,
-      source: 'wrist',
-      sensorType: 'linear_acceleration',
-      proposedReps: reps,
-      provisionalDisagrees: false,
-      setConfidence: band == ConfidenceBand.high ? 0.9 : 0.5,
-      confidenceBand: band,
-      missedRepSuspected: false,
-      missedBatches: 0,
-      sampleCount: 500,
-      coverageRatio: 1,
-      state: state,
-      stateReason: reason,
-    );
+}) => RepSuggestion(
+  captureId: 'c1',
+  exerciseSlug: 'barbell-bench-press',
+  movement: RepMovement.horizontalPush,
+  source: 'wrist',
+  sensorType: 'linear_acceleration',
+  proposedReps: reps,
+  provisionalDisagrees: false,
+  setConfidence: band == ConfidenceBand.high ? 0.9 : 0.5,
+  confidenceBand: band,
+  missedRepSuspected: false,
+  missedBatches: 0,
+  sampleCount: 500,
+  coverageRatio: 1,
+  state: state,
+  stateReason: reason,
+);

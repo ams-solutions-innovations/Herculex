@@ -653,121 +653,120 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setStateDialog) {
-          return AlertDialog(
-            title: const Text('Finish Workout'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Name this workout:'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Text(
-                      'Duration: ${_elapsed(session.startedAt, originalEndedAt: currentEndedAt)}',
+          builder: (ctx, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Finish Workout'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Name this workout:'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      isDense: true,
                     ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () async {
-                        final currentDur = _resolvedEndedAt(
-                          session.startedAt,
-                          currentEndedAt,
-                        ).difference(session.startedAt);
-                        final newMins = await DurationPickerDialog.show(
-                          context,
-                          initialMinutes: currentDur.inMinutes > 0
-                              ? currentDur.inMinutes
-                              : 45,
-                        );
-                        if (newMins != null && newMins > 0) {
-                          setStateDialog(() {
-                            currentEndedAt = session.startedAt.add(
-                              Duration(minutes: newMins),
-                            );
-                          });
-                        }
-                      },
-                      child: Text(
-                        'Change',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(
+                        'Duration: ${_elapsed(session.startedAt, originalEndedAt: currentEndedAt)}',
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () async {
+                          final currentDur = _resolvedEndedAt(
+                            session.startedAt,
+                            currentEndedAt,
+                          ).difference(session.startedAt);
+                          final newMins = await DurationPickerDialog.show(
+                            context,
+                            initialMinutes: currentDur.inMinutes > 0
+                                ? currentDur.inMinutes
+                                : 45,
+                          );
+                          if (newMins != null && newMins > 0) {
+                            setStateDialog(() {
+                              currentEndedAt = session.startedAt.add(
+                                Duration(minutes: newMins),
+                              );
+                            });
+                          }
+                        },
+                        child: Text(
+                          'Change',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Resume'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final name = nameCtrl.text.trim();
+                    final finalName = name.isEmpty ? defaultWorkoutName : name;
+                    final finalEndedAt = currentEndedAt;
+
+                    await ref
+                        .read(templatesRepositoryProvider)
+                        .saveSessionAsTemplate(session.id, finalName);
+
+                    await finish.run(
+                      session: session,
+                      name: finalName,
+                      endedAt: finalEndedAt,
+                    );
+
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+
+                    if (!rootNavigator.mounted) return;
+                    await WorkoutFinishView.show(
+                      rootNavigator.context,
+                      session.id,
+                    );
+                  },
+                  child: const Text('Save as template'),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final name = nameCtrl.text.trim();
+                    final finalName = name.isEmpty ? defaultWorkoutName : name;
+                    final finalEndedAt = currentEndedAt;
+
+                    await finish.run(
+                      session: session,
+                      name: finalName,
+                      endedAt: finalEndedAt,
+                    );
+
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+
+                    if (!rootNavigator.mounted) return;
+                    await WorkoutFinishView.show(
+                      rootNavigator.context,
+                      session.id,
+                    );
+                  },
+                  child: const Text('Finish'),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Resume'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final name = nameCtrl.text.trim();
-                  final finalName = name.isEmpty ? defaultWorkoutName : name;
-                  final finalEndedAt = currentEndedAt;
-
-                  await ref.read(templatesRepositoryProvider).saveSessionAsTemplate(
-                        session.id,
-                        finalName,
-                      );
-
-                  await finish.run(
-                    session: session,
-                    name: finalName,
-                    endedAt: finalEndedAt,
-                  );
-
-                  if (!ctx.mounted) return;
-                  Navigator.pop(ctx);
-
-                  if (!rootNavigator.mounted) return;
-                  await WorkoutFinishView.show(
-                    rootNavigator.context,
-                    session.id,
-                  );
-                },
-                child: const Text('Save as template'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  final name = nameCtrl.text.trim();
-                  final finalName = name.isEmpty ? defaultWorkoutName : name;
-                  final finalEndedAt = currentEndedAt;
-
-                  await finish.run(
-                    session: session,
-                    name: finalName,
-                    endedAt: finalEndedAt,
-                  );
-
-                  if (!ctx.mounted) return;
-                  Navigator.pop(ctx);
-
-                  if (!rootNavigator.mounted) return;
-                  await WorkoutFinishView.show(
-                    rootNavigator.context,
-                    session.id,
-                  );
-                },
-                child: const Text('Finish'),
-              ),
-            ],
-          );
-        },
+            );
+          },
         ),
       );
     } finally {
@@ -1142,7 +1141,8 @@ class _HealthActivityAdjustmentBanner extends ConsumerWidget {
 class _WorkoutTimerText extends StatelessWidget {
   final DateTime startedAt;
   final DateTime? originalEndedAt;
-  final String Function(DateTime startedAt, {DateTime? originalEndedAt}) formatElapsed;
+  final String Function(DateTime startedAt, {DateTime? originalEndedAt})
+  formatElapsed;
 
   const _WorkoutTimerText({
     required this.startedAt,
@@ -1187,7 +1187,8 @@ class _WorkoutTimerText extends StatelessWidget {
 class _ActiveWorkoutStatsBar extends StatelessWidget {
   final DateTime startedAt;
   final DateTime? originalEndedAt;
-  final String Function(DateTime startedAt, {DateTime? originalEndedAt}) formatElapsed;
+  final String Function(DateTime startedAt, {DateTime? originalEndedAt})
+  formatElapsed;
   final int totalSets;
   final int completedSets;
   final String tonnageText;
@@ -1237,7 +1238,11 @@ class _ActiveWorkoutStatsBar extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.timer_outlined, size: 12, color: AppColors.primary.withValues(alpha: 0.85)),
+                        Icon(
+                          Icons.timer_outlined,
+                          size: 12,
+                          color: AppColors.primary.withValues(alpha: 0.85),
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'TIME',

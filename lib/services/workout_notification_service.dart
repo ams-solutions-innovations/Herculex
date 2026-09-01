@@ -140,8 +140,20 @@ class WorkoutNotificationService {
     }
   }
 
+  int? _activeSessionId;
+  DateTime? _activeStartedAt;
+  String? _activeExerciseName;
+  String? _activeWorkoutName;
+  int? _activeCurrentSet;
+  int? _activeTotalSets;
+  String? _activeWeightLabel;
+  String? _activeLoadStepLabel;
+  List<OngoingWorkoutSurfaceAction>? _activeActions;
+  int? _activeTargetSetId;
+  int? _activeReps;
+
   /// Start ticking a live notification that updates the elapsed time every
-  /// second. Safe to call multiple times - restarts the ticker if already running.
+  /// 5 seconds. Safe to call multiple times - restarts the ticker if already running.
   Future<void> showOrUpdate({
     required int sessionId,
     required DateTime startedAt,
@@ -156,6 +168,18 @@ class WorkoutNotificationService {
     int? reps,
   }) async {
     _ticker?.cancel();
+    _activeSessionId = sessionId;
+    _activeStartedAt = startedAt;
+    _activeExerciseName = exerciseName;
+    _activeWorkoutName = workoutName;
+    _activeCurrentSet = currentSet;
+    _activeTotalSets = totalSets;
+    _activeWeightLabel = weightLabel;
+    _activeLoadStepLabel = loadStepLabel;
+    _activeActions = actions;
+    _activeTargetSetId = targetSetId;
+    _activeReps = reps;
+
     await _post(
       startedAt: startedAt,
       sessionId: sessionId,
@@ -169,22 +193,24 @@ class WorkoutNotificationService {
       targetSetId: targetSetId,
       reps: reps,
     );
+
     // Elapsed time is drawn by the notification chronometer (`when` +
     // `usesChronometer`), so reposting at 1 Hz bought nothing and Android
     // rate-limits it anyway.
     _ticker = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (_activeStartedAt == null || _activeSessionId == null) return;
       await _post(
-        startedAt: startedAt,
-        sessionId: sessionId,
-        exerciseName: exerciseName,
-        workoutName: workoutName,
-        currentSet: currentSet,
-        totalSets: totalSets,
-        weightLabel: weightLabel,
-        loadStepLabel: loadStepLabel,
-        actions: actions,
-        targetSetId: targetSetId,
-        reps: reps,
+        startedAt: _activeStartedAt!,
+        sessionId: _activeSessionId!,
+        exerciseName: _activeExerciseName ?? '',
+        workoutName: _activeWorkoutName,
+        currentSet: _activeCurrentSet,
+        totalSets: _activeTotalSets,
+        weightLabel: _activeWeightLabel,
+        loadStepLabel: _activeLoadStepLabel,
+        actions: _activeActions,
+        targetSetId: _activeTargetSetId,
+        reps: _activeReps,
       );
     });
   }
@@ -319,37 +345,66 @@ class WorkoutNotificationService {
     final scheduledDate = tz.TZDateTime.now(
       tz.local,
     ).add(Duration(seconds: seconds));
-    await _guard(
-      () => _plugin.zonedSchedule(
-        _restNotifId,
-        'Rest finished',
-        exerciseName,
-        scheduledDate,
-        const NotificationDetails(
-          // Its own channel on purpose: `workout_live` is created at
-          // IMPORTANCE_LOW, and a channel's importance is fixed at creation, so
-          // requesting Importance.max there was silently downgraded and the rest
-          // alert never made a sound.
-          android: AndroidNotificationDetails(
-            _restChannelId,
-            'Rest Timer',
-            channelDescription: 'Alerts when a rest period finishes',
-            importance: Importance.high,
-            priority: Priority.high,
+    await _guard(() async {
+      try {
+        await _plugin.zonedSchedule(
+          _restNotifId,
+          'Rest finished',
+          exerciseName,
+          scheduledDate,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _restChannelId,
+              'Rest Timer',
+              channelDescription: 'Alerts when a rest period finishes',
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(),
           ),
-          iOS: DarwinNotificationDetails(),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-      ),
-    );
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      } catch (_) {
+        await _plugin.zonedSchedule(
+          _restNotifId,
+          'Rest finished',
+          exerciseName,
+          scheduledDate,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _restChannelId,
+              'Rest Timer',
+              channelDescription: 'Alerts when a rest period finishes',
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      }
+    });
   }
 
   /// Stop the ticker and dismiss the notification.
   Future<void> cancel() async {
     _ticker?.cancel();
     _ticker = null;
+    _activeSessionId = null;
+    _activeStartedAt = null;
+    _activeExerciseName = null;
+    _activeWorkoutName = null;
+    _activeCurrentSet = null;
+    _activeTotalSets = null;
+    _activeWeightLabel = null;
+    _activeLoadStepLabel = null;
+    _activeActions = null;
+    _activeTargetSetId = null;
+    _activeReps = null;
     await _guard(() => _plugin.cancel(_notifId));
     await cancelRestTimer();
   }

@@ -252,9 +252,8 @@ abstract final class ExerciseScorer {
 
       if (survivors.isEmpty) continue;
 
-      final scored = [
-        for (final c in survivors) _score(c, context, weights),
-      ]..sort((a, b) => b.score.compareTo(a.score));
+      final scored = [for (final c in survivors) _score(c, context, weights)]
+        ..sort((a, b) => b.score.compareTo(a.score));
 
       return ScorerResult(
         ranked: scored,
@@ -272,7 +271,8 @@ abstract final class ExerciseScorer {
         ScoredExercise(
           candidate: anchor,
           score: 0,
-          why: 'Every alternative was filtered out, so the pool default was '
+          why:
+              'Every alternative was filtered out, so the pool default was '
               'used.',
           breakdown: const {},
         ),
@@ -286,8 +286,7 @@ abstract final class ExerciseScorer {
     required List<ScorerCandidate> pool,
     required SlotScoringContext context,
     ScorerWeights weights = ScorerWeights.standard,
-  }) =>
-      rank(pool: pool, context: context, weights: weights).top;
+  }) => rank(pool: pool, context: context, weights: weights).top;
 
   // ── Hard filters ───────────────────────────────────────────────────────────
 
@@ -306,8 +305,8 @@ abstract final class ExerciseScorer {
       return FilterReason.notAnchor;
     }
 
-    final ignoreEquipment = relaxation == Relaxation.equipment ||
-        relaxation == Relaxation.anchor;
+    final ignoreEquipment =
+        relaxation == Relaxation.equipment || relaxation == Relaxation.anchor;
     if (!c.equipmentAvailable && !ignoreEquipment) {
       return FilterReason.equipmentMissing;
     }
@@ -338,7 +337,7 @@ abstract final class ExerciseScorer {
     final stagnationRelevance = ctx.role.isHeavy ? 1.0 : 0.35;
     final stagnation =
         (c.flatExposures.clamp(0, _stagnationCap) / _stagnationCap) *
-            stagnationRelevance;
+        stagnationRelevance;
     if (stagnation > 0) breakdown['stagnation'] = -w.stagnation * stagnation;
 
     // Staleness. Never performed counts as maximally stale.
@@ -456,9 +455,10 @@ abstract final class ExerciseScorer {
       PoolTier.any => 0.0,
       PoolTier.volumeFriendly =>
         volumeFriendly.contains(c.fingerprint.modality) ? 1.0 : -0.5,
-      PoolTier.competitionAdjacent => specific.contains(c.fingerprint.modality)
-          ? (c.mechanics == 'compound' ? 1.0 : 0.0)
-          : -0.5,
+      PoolTier.competitionAdjacent =>
+        specific.contains(c.fingerprint.modality)
+            ? (c.mechanics == 'compound' ? 1.0 : 0.0)
+            : -0.5,
       // Realization is enforced by the hard filter for heavy roles; for the
       // rest a nudge toward the anchor is enough.
       PoolTier.exactMain => c.isAnchor ? 1.0 : -1.0,

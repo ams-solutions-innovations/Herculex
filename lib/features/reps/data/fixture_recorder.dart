@@ -21,7 +21,7 @@ import '../domain/rep_movement.dart';
 /// and commits them by hand.
 class FixtureRecorder {
   FixtureRecorder({Directory Function()? baseDirOverride})
-      : _baseDirOverride = baseDirOverride;
+    : _baseDirOverride = baseDirOverride;
 
   /// Test seam: when non-null, used instead of
   /// `getApplicationDocumentsDirectory()` so tests can point this at a temp
@@ -76,7 +76,9 @@ class FixtureRecorder {
     };
 
     final jsonFile = File('${dir.path}/$name.json');
-    await jsonFile.writeAsString(const JsonEncoder.withIndent('  ').convert(sidecar));
+    await jsonFile.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(sidecar),
+    );
   }
 
   /// Base names with **both** a `.csv` and a `.json` present under

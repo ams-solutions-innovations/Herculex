@@ -46,7 +46,12 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
 
     final rangeStats = historyAsync.asData?.value == null
         ? null
-        : _RangeStats.compute(historyAsync.asData!.value, macro, _range, target);
+        : _RangeStats.compute(
+            historyAsync.asData!.value,
+            macro,
+            _range,
+            target,
+          );
 
     final title = _titleFor(macro);
     final accent = _accentFor(macro, hx);
@@ -68,9 +73,7 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: accent.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: accent.withValues(alpha: 0.3)),
           ),
           padding: const EdgeInsets.all(HxSpace.x5),
           child: Column(
@@ -151,14 +154,17 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
                 ),
                 loading: () => const SizedBox(
                   height: 200,
-                  child:
-                      Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
                 error: (e, _) => SizedBox(
                   height: 200,
                   child: Center(
-                    child: Text('Error loading trend: $e',
-                        style: theme.textTheme.bodySmall),
+                    child: Text(
+                      'Error loading trend: $e',
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ),
                 ),
               ),
@@ -178,8 +184,9 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
                   children: [
                     Text(
                       '${rangeStats.daysLogged} of ${rangeStats.totalDays} days logged in range',
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Text(
                       'Avg: ${rangeStats.avgValue.round()} $unit',
@@ -239,7 +246,9 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
             decoration: BoxDecoration(
               color: hx.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: hx.outlineVariant.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
@@ -281,48 +290,52 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
         ),
         const SizedBox(width: HxSpace.x2),
         Expanded(
-          child: Text(label,
-              style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary)),
+          child: Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+          ),
         ),
         Text(
           '${DateFormat('MMM d').format(day.date)} · ${day.value.round()} $unit',
-          style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
   }
 
   String _titleFor(String macro) => switch (macro) {
-        'protein' => 'Protein Trends',
-        'carbs' => 'Carb Trends',
-        'fat' => 'Fat Trends',
-        _ => 'Calorie Trends',
-      };
+    'protein' => 'Protein Trends',
+    'carbs' => 'Carb Trends',
+    'fat' => 'Fat Trends',
+    _ => 'Calorie Trends',
+  };
 
   String _macroName(String macro) => switch (macro) {
-        'protein' => 'Protein',
-        'carbs' => 'Carbs',
-        'fat' => 'Fats',
-        _ => 'Calories',
-      };
+    'protein' => 'Protein',
+    'carbs' => 'Carbs',
+    'fat' => 'Fats',
+    _ => 'Calories',
+  };
 
   Color _accentFor(String macro, HxColors hx) => switch (macro) {
-        'protein' => hx.macroProtein,
-        'carbs' => hx.macroCarbs,
-        'fat' => hx.isDark ? hx.macroFat : hx.macroFatText,
-        _ => hx.domainNutrition,
-      };
+    'protein' => hx.macroProtein,
+    'carbs' => hx.macroCarbs,
+    'fat' => hx.isDark ? hx.macroFat : hx.macroFatText,
+    _ => hx.domainNutrition,
+  };
 
   String _descriptionFor(String macro) => switch (macro) {
-        'protein' =>
-          'The mean of your logged protein intake per day over the last 7 days. Essential for muscle repair, recovery, and hypertrophy.',
-        'carbs' =>
-          'The mean of your logged carbohydrate intake per day over the last 7 days. Powers glycogen storage and high-intensity performance.',
-        'fat' =>
-          'The mean of your logged healthy fats per day over the last 7 days. Crucial for hormonal balance, cellular health, and satiety.',
-        _ =>
-          'The mean of your logged calories per day over the last 7 days. Days without any logged food are skipped, so an unlogged day does not drag the average down.',
-      };
+    'protein' =>
+      'The mean of your logged protein intake per day over the last 7 days. Essential for muscle repair, recovery, and hypertrophy.',
+    'carbs' =>
+      'The mean of your logged carbohydrate intake per day over the last 7 days. Powers glycogen storage and high-intensity performance.',
+    'fat' =>
+      'The mean of your logged healthy fats per day over the last 7 days. Crucial for hormonal balance, cellular health, and satiety.',
+    _ =>
+      'The mean of your logged calories per day over the last 7 days. Days without any logged food are skipped, so an unlogged day does not drag the average down.',
+  };
 
   String _vsTargetLabel(double avg, double target, String macro) {
     if (avg.isNaN || target.isNaN) return '';
@@ -382,13 +395,22 @@ class _RangeStats {
 
     final avg = logged.isNotEmpty ? sum / logged.length : 0.0;
 
-    if (logged.isEmpty || target == null || target <= 0 || target.isNaN || target.isInfinite) {
-      return _RangeStats(totalDays: days, daysLogged: logged.length, avgValue: avg);
+    if (logged.isEmpty ||
+        target == null ||
+        target <= 0 ||
+        target.isNaN ||
+        target.isInfinite) {
+      return _RangeStats(
+        totalDays: days,
+        daysLogged: logged.length,
+        avgValue: avg,
+      );
     }
 
     final byCloseness = [...logged]
-      ..sort((a, b) =>
-          (a.value - target).abs().compareTo((b.value - target).abs()));
+      ..sort(
+        (a, b) => (a.value - target).abs().compareTo((b.value - target).abs()),
+      );
 
     return _RangeStats(
       totalDays: days,
@@ -427,7 +449,9 @@ class _MacroInsightCard extends StatelessWidget {
 
     if (macro == 'protein') {
       final perKg = (bw != null && bw > 0) ? (avg / bw) : null;
-      final pctOfKcal = totalKcal > 0 ? ((avg * 4 / totalKcal) * 100).round() : null;
+      final pctOfKcal = totalKcal > 0
+          ? ((avg * 4 / totalKcal) * 100).round()
+          : null;
 
       return HxCard(
         child: Column(
@@ -456,7 +480,10 @@ class _MacroInsightCard extends StatelessWidget {
                             color: accent,
                           ),
                         ),
-                        Text('bodyweight', style: TextStyle(fontSize: 11, color: hx.secondary)),
+                        Text(
+                          'bodyweight',
+                          style: TextStyle(fontSize: 11, color: hx.secondary),
+                        ),
                       ],
                     ),
                   ),
@@ -472,7 +499,10 @@ class _MacroInsightCard extends StatelessWidget {
                             color: accent,
                           ),
                         ),
-                        Text('of daily calories', style: TextStyle(fontSize: 11, color: hx.secondary)),
+                        Text(
+                          'of daily calories',
+                          style: TextStyle(fontSize: 11, color: hx.secondary),
+                        ),
                       ],
                     ),
                   ),
@@ -489,7 +519,9 @@ class _MacroInsightCard extends StatelessWidget {
     }
 
     if (macro == 'carbs') {
-      final pctOfKcal = totalKcal > 0 ? ((avg * 4 / totalKcal) * 100).round() : null;
+      final pctOfKcal = totalKcal > 0
+          ? ((avg * 4 / totalKcal) * 100).round()
+          : null;
       return HxCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -514,7 +546,10 @@ class _MacroInsightCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text('of total caloric energy', style: TextStyle(fontSize: 12, color: hx.secondary)),
+                  Text(
+                    'of total caloric energy',
+                    style: TextStyle(fontSize: 12, color: hx.secondary),
+                  ),
                 ],
               ),
             const SizedBox(height: HxSpace.x2),
@@ -528,7 +563,9 @@ class _MacroInsightCard extends StatelessWidget {
     }
 
     if (macro == 'fat') {
-      final pctOfKcal = totalKcal > 0 ? ((avg * 9 / totalKcal) * 100).round() : null;
+      final pctOfKcal = totalKcal > 0
+          ? ((avg * 9 / totalKcal) * 100).round()
+          : null;
       return HxCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,7 +590,10 @@ class _MacroInsightCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text('of total caloric energy', style: TextStyle(fontSize: 12, color: hx.secondary)),
+                  Text(
+                    'of total caloric energy',
+                    style: TextStyle(fontSize: 12, color: hx.secondary),
+                  ),
                 ],
               ),
             const SizedBox(height: HxSpace.x2),

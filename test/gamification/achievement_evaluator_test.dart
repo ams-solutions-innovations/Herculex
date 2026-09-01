@@ -8,25 +8,28 @@ import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/domain/effective_load.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
-ExerciseCatalogData _ex(int id, {String name = 'Bench Press', String primaryMuscle = 'Chest'}) =>
-    ExerciseCatalogData(
-      id: id,
-      name: name,
-      primaryMuscle: primaryMuscle,
-      equipment: 'Barbell',
-      mechanics: 'compound',
-      force: 'push',
-      plane: 'horizontal',
-      defaultRestSeconds: 120,
-      isCustom: false,
-      category: 'strength',
-      modality: 'barbell',
-      cnsScore: 5,
-      recoveryImpact: 3,
-      loggingMetric: 'weight_reps',
-      supportsWeightedBodyweight: false,
-      isReviewed: true,
-    );
+ExerciseCatalogData _ex(
+  int id, {
+  String name = 'Bench Press',
+  String primaryMuscle = 'Chest',
+}) => ExerciseCatalogData(
+  id: id,
+  name: name,
+  primaryMuscle: primaryMuscle,
+  equipment: 'Barbell',
+  mechanics: 'compound',
+  force: 'push',
+  plane: 'horizontal',
+  defaultRestSeconds: 120,
+  isCustom: false,
+  category: 'strength',
+  modality: 'barbell',
+  cnsScore: 5,
+  recoveryImpact: 3,
+  loggingMetric: 'weight_reps',
+  supportsWeightedBodyweight: false,
+  isReviewed: true,
+);
 
 WorkoutSessionData _session(int id, DateTime startedAt, {DateTime? endedAt}) =>
     WorkoutSessionData(id: id, startedAt: startedAt, endedAt: endedAt);
@@ -39,17 +42,22 @@ WorkoutExerciseData _we(int id, int exerciseId, {int sessionId = 1}) =>
       orderIndex: 0,
     );
 
-SetEntryData _set(int id, int weId, {double weightKg = 100, int reps = 5, bool isCompleted = true}) =>
-    SetEntryData(
-      id: id,
-      workoutExerciseId: weId,
-      setIndex: 0,
-      weightKg: weightKg,
-      reps: reps,
-      isWarmup: false,
-      isCompleted: isCompleted,
-      setType: 'standard',
-    );
+SetEntryData _set(
+  int id,
+  int weId, {
+  double weightKg = 100,
+  int reps = 5,
+  bool isCompleted = true,
+}) => SetEntryData(
+  id: id,
+  workoutExerciseId: weId,
+  setIndex: 0,
+  weightKg: weightKg,
+  reps: reps,
+  isWarmup: false,
+  isCompleted: isCompleted,
+  setType: 'standard',
+);
 
 ResolvedSet _resolved({
   required SetEntryData set,
@@ -57,17 +65,16 @@ ResolvedSet _resolved({
   required ExerciseCatalogData ex,
   WorkoutSessionData? session,
   List<String> accessories = const [],
-}) =>
-    ResolvedSet(
-      set: set,
-      workoutExercise: we,
-      session: session ?? _session(we.sessionId, DateTime(2026, 6, 1)),
-      exercise: ex,
-      setType: SetType.fromId(set.setType),
-      bands: const [],
-      accessoryNames: accessories,
-      forearmMultiplier: 1.0,
-    );
+}) => ResolvedSet(
+  set: set,
+  workoutExercise: we,
+  session: session ?? _session(we.sessionId, DateTime(2026, 6, 1)),
+  exercise: ex,
+  setType: SetType.fromId(set.setType),
+  bands: const [],
+  accessoryNames: accessories,
+  forearmMultiplier: 1.0,
+);
 
 void main() {
   const evaluator = AchievementEvaluator();
@@ -81,11 +88,15 @@ void main() {
       final set1 = _set(1, 1, weightKg: 100, reps: 5); // e1RM ≈ 114kg
 
       final snapshot = TrainingSnapshot(
-        sets: [
-          _resolved(set: set1, we: we1, ex: benchEx, session: session1),
-        ],
+        sets: [_resolved(set: set1, we: we1, ex: benchEx, session: session1)],
         exerciseMuscles: [
-          ExerciseMuscleData(id: 1, exerciseId: 1, muscle: 'Chest', role: 'primary', contribution: 1.0),
+          ExerciseMuscleData(
+            id: 1,
+            exerciseId: 1,
+            muscle: 'Chest',
+            role: 'primary',
+            contribution: 1.0,
+          ),
         ],
       );
 
@@ -105,8 +116,13 @@ void main() {
         weightFormat: weightFormat,
       );
 
-      expect(notifications.any((n) => n.type == AchievementType.weightPr), isTrue);
-      final pr = notifications.firstWhere((n) => n.type == AchievementType.weightPr);
+      expect(
+        notifications.any((n) => n.type == AchievementType.weightPr),
+        isTrue,
+      );
+      final pr = notifications.firstWhere(
+        (n) => n.type == AchievementType.weightPr,
+      );
       expect(pr.title, 'Bench Press');
       expect(pr.badgeText.contains('1RM PR'), isTrue);
     });
@@ -118,9 +134,7 @@ void main() {
       final set1 = _set(2, 2, weightKg: 140, reps: 6);
 
       final snapshot = TrainingSnapshot(
-        sets: [
-          _resolved(set: set1, we: we1, ex: squatEx, session: session1),
-        ],
+        sets: [_resolved(set: set1, we: we1, ex: squatEx, session: session1)],
         exerciseMuscles: [],
       );
 
@@ -141,7 +155,9 @@ void main() {
       );
 
       expect(notifications.any((n) => n.type == AchievementType.repPr), isTrue);
-      final repPr = notifications.firstWhere((n) => n.type == AchievementType.repPr);
+      final repPr = notifications.firstWhere(
+        (n) => n.type == AchievementType.repPr,
+      );
       expect(repPr.valueText.contains('8 reps'), isTrue);
     });
 
@@ -155,8 +171,20 @@ void main() {
 
       final snapshot = TrainingSnapshot(
         sets: [
-          _resolved(set: setBelt, we: we1, ex: deadliftEx, session: session1, accessories: ['Belt']),
-          _resolved(set: setRaw, we: we1, ex: deadliftEx, session: session1, accessories: []),
+          _resolved(
+            set: setBelt,
+            we: we1,
+            ex: deadliftEx,
+            session: session1,
+            accessories: ['Belt'],
+          ),
+          _resolved(
+            set: setRaw,
+            we: we1,
+            ex: deadliftEx,
+            session: session1,
+            accessories: [],
+          ),
         ],
         exerciseMuscles: [],
       );
@@ -177,56 +205,73 @@ void main() {
         weightFormat: weightFormat,
       );
 
-      expect(notifications.any((n) => n.type == AchievementType.accessoryPr), isTrue);
-      final accPr = notifications.firstWhere((n) => n.type == AchievementType.accessoryPr);
+      expect(
+        notifications.any((n) => n.type == AchievementType.accessoryPr),
+        isTrue,
+      );
+      final accPr = notifications.firstWhere(
+        (n) => n.type == AchievementType.accessoryPr,
+      );
       expect(accPr.badgeText.contains('RAW'), isTrue);
     });
 
-    test('detects exercise tonnage PR when single-session volume surpasses historical record', () {
-      final benchEx = _ex(1, name: 'Bench Press', primaryMuscle: 'Chest');
-      final session1 = _session(1, DateTime(2026, 6, 1));
-      final we1 = _we(1, 1, sessionId: 1);
-      // Past session 1: 1,000kg total for bench
-      final set1 = _set(1, 1, weightKg: 100, reps: 10);
+    test(
+      'detects exercise tonnage PR when single-session volume surpasses historical record',
+      () {
+        final benchEx = _ex(1, name: 'Bench Press', primaryMuscle: 'Chest');
+        final session1 = _session(1, DateTime(2026, 6, 1));
+        final we1 = _we(1, 1, sessionId: 1);
+        // Past session 1: 1,000kg total for bench
+        final set1 = _set(1, 1, weightKg: 100, reps: 10);
 
-      // Current session 2: set 2 had 600kg, set 3 adds 500kg => total 1,100kg (> 1,000kg)
-      final session2 = _session(2, DateTime(2026, 6, 8));
-      final we2 = _we(2, 1, sessionId: 2);
-      final set2 = _set(2, 2, weightKg: 100, reps: 6);
+        // Current session 2: set 2 had 600kg, set 3 adds 500kg => total 1,100kg (> 1,000kg)
+        final session2 = _session(2, DateTime(2026, 6, 8));
+        final we2 = _we(2, 1, sessionId: 2);
+        final set2 = _set(2, 2, weightKg: 100, reps: 6);
 
-      final snapshot = TrainingSnapshot(
-        sets: [
-          _resolved(set: set1, we: we1, ex: benchEx, session: session1),
-          _resolved(set: set2, we: we2, ex: benchEx, session: session2),
-        ],
-        exerciseMuscles: [],
-      );
+        final snapshot = TrainingSnapshot(
+          sets: [
+            _resolved(set: set1, we: we1, ex: benchEx, session: session1),
+            _resolved(set: set2, we: we2, ex: benchEx, session: session2),
+          ],
+          exerciseMuscles: [],
+        );
 
-      final notifications = evaluator.evaluateCompletedSet(
-        snapshot: snapshot,
-        currentSessionId: 2,
-        exerciseId: 1,
-        exerciseName: 'Bench Press',
-        primaryMuscle: 'Chest',
-        effectiveKg: 100,
-        weightKg: 100,
-        reps: 5, // 500kg added => 1,100kg total
-        accessoryNames: const [],
-        equipmentVariant: 'barbell',
-        setType: SetType.standard,
-        weightFormat: weightFormat,
-      );
+        final notifications = evaluator.evaluateCompletedSet(
+          snapshot: snapshot,
+          currentSessionId: 2,
+          exerciseId: 1,
+          exerciseName: 'Bench Press',
+          primaryMuscle: 'Chest',
+          effectiveKg: 100,
+          weightKg: 100,
+          reps: 5, // 500kg added => 1,100kg total
+          accessoryNames: const [],
+          equipmentVariant: 'barbell',
+          setType: SetType.standard,
+          weightFormat: weightFormat,
+        );
 
-      expect(notifications.any((n) => n.type == AchievementType.exerciseTonnagePr), isTrue);
-      final volPr = notifications.firstWhere((n) => n.type == AchievementType.exerciseTonnagePr);
-      expect(volPr.badgeText.contains('EXERCISE VOLUME PR'), isTrue);
-    });
+        expect(
+          notifications.any((n) => n.type == AchievementType.exerciseTonnagePr),
+          isTrue,
+        );
+        final volPr = notifications.firstWhere(
+          (n) => n.type == AchievementType.exerciseTonnagePr,
+        );
+        expect(volPr.badgeText.contains('EXERCISE VOLUME PR'), isTrue);
+      },
+    );
   });
 
   group('AchievementEvaluator - Finished Workout', () {
     test('detects Chest Volume PR in workout', () {
       final benchEx = _ex(1, name: 'Bench Press', primaryMuscle: 'Chest');
-      final session1 = _session(1, DateTime(2026, 6, 1), endedAt: DateTime(2026, 6, 1, 10, 30));
+      final session1 = _session(
+        1,
+        DateTime(2026, 6, 1),
+        endedAt: DateTime(2026, 6, 1, 10, 30),
+      );
       final we1 = _we(1, 1, sessionId: 1);
       // Session 1: 3 sets of 100kg x 5 = 1,500kg
       final pastSets = [
@@ -236,7 +281,11 @@ void main() {
       ];
 
       // Session 2: 5 sets of 100kg x 10 = 5,000kg Chest Volume
-      final session2 = _session(2, DateTime(2026, 6, 8, 9, 0), endedAt: DateTime(2026, 6, 8, 10, 0));
+      final session2 = _session(
+        2,
+        DateTime(2026, 6, 8, 9, 0),
+        endedAt: DateTime(2026, 6, 8, 10, 0),
+      );
       final we2 = _we(2, 1, sessionId: 2);
       final currentSets = [
         for (var i = 0; i < 5; i++) _set(10 + i, 2, weightKg: 100, reps: 10),
@@ -244,11 +293,19 @@ void main() {
 
       final snapshot = TrainingSnapshot(
         sets: [
-          for (final s in pastSets) _resolved(set: s, we: we1, ex: benchEx, session: session1),
-          for (final s in currentSets) _resolved(set: s, we: we2, ex: benchEx, session: session2),
+          for (final s in pastSets)
+            _resolved(set: s, we: we1, ex: benchEx, session: session1),
+          for (final s in currentSets)
+            _resolved(set: s, we: we2, ex: benchEx, session: session2),
         ],
         exerciseMuscles: [
-          ExerciseMuscleData(id: 1, exerciseId: 1, muscle: 'Chest', role: 'primary', contribution: 1.0),
+          ExerciseMuscleData(
+            id: 1,
+            exerciseId: 1,
+            muscle: 'Chest',
+            role: 'primary',
+            contribution: 1.0,
+          ),
         ],
       );
 
@@ -262,27 +319,48 @@ void main() {
         totalCompletedWorkouts: 10,
       );
 
-      expect(notifications.any((n) => n.type == AchievementType.muscleGroupVolumePr), isTrue);
-      final musclePr = notifications.firstWhere((n) => n.type == AchievementType.muscleGroupVolumePr);
+      expect(
+        notifications.any((n) => n.type == AchievementType.muscleGroupVolumePr),
+        isTrue,
+      );
+      final musclePr = notifications.firstWhere(
+        (n) => n.type == AchievementType.muscleGroupVolumePr,
+      );
       expect(musclePr.badgeText.contains('CHEST VOLUME PR'), isTrue);
-      expect(notifications.any((n) => n.type == AchievementType.workoutMilestone), isTrue);
+      expect(
+        notifications.any((n) => n.type == AchievementType.workoutMilestone),
+        isTrue,
+      );
     });
 
     test('detects Longest Workout duration record', () {
       final benchEx = _ex(1);
-      final session1 = _session(1, DateTime(2026, 6, 1, 9, 0), endedAt: DateTime(2026, 6, 1, 9, 45)); // 45m
+      final session1 = _session(
+        1,
+        DateTime(2026, 6, 1, 9, 0),
+        endedAt: DateTime(2026, 6, 1, 9, 45),
+      ); // 45m
       final we1 = _we(1, 1, sessionId: 1);
       final pastSets = [_set(1, 1, weightKg: 100, reps: 5)];
 
       // Current session is 1h 20m (80m)
-      final session2 = _session(2, DateTime(2026, 6, 8, 9, 0), endedAt: DateTime(2026, 6, 8, 10, 20));
+      final session2 = _session(
+        2,
+        DateTime(2026, 6, 8, 9, 0),
+        endedAt: DateTime(2026, 6, 8, 10, 20),
+      );
       final we2 = _we(2, 1, sessionId: 2);
       final currentSets = [_set(2, 2, weightKg: 100, reps: 5)];
 
       final snapshot = TrainingSnapshot(
         sets: [
           _resolved(set: pastSets[0], we: we1, ex: benchEx, session: session1),
-          _resolved(set: currentSets[0], we: we2, ex: benchEx, session: session2),
+          _resolved(
+            set: currentSets[0],
+            we: we2,
+            ex: benchEx,
+            session: session2,
+          ),
         ],
         exerciseMuscles: [],
       );
@@ -297,46 +375,82 @@ void main() {
         totalCompletedWorkouts: 4,
       );
 
-      expect(notifications.any((n) => n.type == AchievementType.longestWorkout), isTrue);
+      expect(
+        notifications.any((n) => n.type == AchievementType.longestWorkout),
+        isTrue,
+      );
     });
 
-    test('evaluateSessionSummaryAchievements collects workout and set-level PRs', () {
-      final benchEx = _ex(1, name: 'Bench Press', primaryMuscle: 'Chest');
-      final session1 = _session(1, DateTime(2026, 6, 1), endedAt: DateTime(2026, 6, 1, 10, 0));
-      final we1 = _we(1, 1, sessionId: 1);
-      final pastSets = [_set(1, 1, weightKg: 100, reps: 5)]; // e1RM 114kg
+    test(
+      'evaluateSessionSummaryAchievements collects workout and set-level PRs',
+      () {
+        final benchEx = _ex(1, name: 'Bench Press', primaryMuscle: 'Chest');
+        final session1 = _session(
+          1,
+          DateTime(2026, 6, 1),
+          endedAt: DateTime(2026, 6, 1, 10, 0),
+        );
+        final we1 = _we(1, 1, sessionId: 1);
+        final pastSets = [_set(1, 1, weightKg: 100, reps: 5)]; // e1RM 114kg
 
-      // Session 2: 120kg x 5 (e1RM 137kg => PR) + 6,000kg total volume
-      final session2 = _session(2, DateTime(2026, 6, 8, 9, 0), endedAt: DateTime(2026, 6, 8, 10, 0));
-      final we2 = _we(2, 1, sessionId: 2);
-      final currentSets = [
-        for (var i = 0; i < 10; i++) _set(10 + i, 2, weightKg: 120, reps: 5),
-      ];
+        // Session 2: 120kg x 5 (e1RM 137kg => PR) + 6,000kg total volume
+        final session2 = _session(
+          2,
+          DateTime(2026, 6, 8, 9, 0),
+          endedAt: DateTime(2026, 6, 8, 10, 0),
+        );
+        final we2 = _we(2, 1, sessionId: 2);
+        final currentSets = [
+          for (var i = 0; i < 10; i++) _set(10 + i, 2, weightKg: 120, reps: 5),
+        ];
 
-      final snapshot = TrainingSnapshot(
-        sets: [
-          for (final s in pastSets) _resolved(set: s, we: we1, ex: benchEx, session: session1),
-          for (final s in currentSets) _resolved(set: s, we: we2, ex: benchEx, session: session2),
-        ],
-        exerciseMuscles: [
-          ExerciseMuscleData(id: 1, exerciseId: 1, muscle: 'Chest', role: 'primary', contribution: 1.0),
-        ],
-      );
+        final snapshot = TrainingSnapshot(
+          sets: [
+            for (final s in pastSets)
+              _resolved(set: s, we: we1, ex: benchEx, session: session1),
+            for (final s in currentSets)
+              _resolved(set: s, we: we2, ex: benchEx, session: session2),
+          ],
+          exerciseMuscles: [
+            ExerciseMuscleData(
+              id: 1,
+              exerciseId: 1,
+              muscle: 'Chest',
+              role: 'primary',
+              contribution: 1.0,
+            ),
+          ],
+        );
 
-      final summaryAchievements = evaluator.evaluateSessionSummaryAchievements(
-        snapshot: snapshot,
-        currentSessionId: 2,
-        workoutName: 'Heavy Bench Day',
-        startedAt: DateTime(2026, 6, 8, 9, 0),
-        endedAt: DateTime(2026, 6, 8, 10, 0),
-        weightFormat: weightFormat,
-        totalCompletedWorkouts: 50,
-      );
+        final summaryAchievements = evaluator
+            .evaluateSessionSummaryAchievements(
+              snapshot: snapshot,
+              currentSessionId: 2,
+              workoutName: 'Heavy Bench Day',
+              startedAt: DateTime(2026, 6, 8, 9, 0),
+              endedAt: DateTime(2026, 6, 8, 10, 0),
+              weightFormat: weightFormat,
+              totalCompletedWorkouts: 50,
+            );
 
-      expect(summaryAchievements.any((a) => a.type == AchievementType.workoutTonnagePr), isTrue);
-      expect(summaryAchievements.any((a) => a.type == AchievementType.weightPr), isTrue);
-      expect(summaryAchievements.any((a) => a.type == AchievementType.workoutMilestone), isTrue);
-    });
+        expect(
+          summaryAchievements.any(
+            (a) => a.type == AchievementType.workoutTonnagePr,
+          ),
+          isTrue,
+        );
+        expect(
+          summaryAchievements.any((a) => a.type == AchievementType.weightPr),
+          isTrue,
+        );
+        expect(
+          summaryAchievements.any(
+            (a) => a.type == AchievementType.workoutMilestone,
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 
   group('AchievementEvaluator - Finished Fast', () {
@@ -357,8 +471,14 @@ void main() {
         targetSeconds: 16 * 3600,
       );
 
-      expect(notifications.any((n) => n.type == AchievementType.longestFast), isTrue);
-      expect(notifications.any((n) => n.type == AchievementType.fastingTarget), isTrue);
+      expect(
+        notifications.any((n) => n.type == AchievementType.longestFast),
+        isTrue,
+      );
+      expect(
+        notifications.any((n) => n.type == AchievementType.fastingTarget),
+        isTrue,
+      );
     });
   });
 }

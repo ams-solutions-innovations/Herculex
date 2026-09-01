@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/premium_button.dart';
 import '../domain/periodization.dart';
 import '../domain/preset_program.dart';
@@ -29,20 +30,27 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
     final docAsync = ref.watch(presetProgramDocumentProvider(widget.meta));
     final volumeAsync = ref.watch(presetProgramVolumeProvider(widget.meta));
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(widget.meta.name, style: theme.textTheme.titleMedium),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: docAsync.when(
+    final doc = docAsync.valueOrNull;
+
+    return HxScreenShell(
+      title: widget.meta.name,
+      pinnedBottom: doc != null
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: PremiumButton(
+                text: _importing ? 'Adding…' : 'Add to my blocks',
+                icon: Icons.add_circle_outline_rounded,
+                onTap: _importing ? () {} : () => _onAddToMyBlocks(context, doc),
+              ),
+            )
+          : null,
+      children: [
+        docAsync.when(
           data: (doc) => _buildBody(theme, doc, volumeAsync.value),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(child: Text('Error: $err')),
         ),
-      ),
+      ],
     );
   }
 
@@ -52,44 +60,45 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
     ProgramVolumeBreakdown? volumeBreakdown,
   ) {
     final model = PeriodizationModel.fromId(doc.periodizationModel);
-    final weekIndices = doc.rows.map((r) => r.weekIndex).toSet().toList()..sort();
-    final breakdown = volumeBreakdown ?? ProgramVolumeCalculator.computeFromCsv(doc);
+    final weekIndices = doc.rows.map((r) => r.weekIndex).toSet().toList()
+      ..sort();
+    final breakdown =
+        volumeBreakdown ?? ProgramVolumeCalculator.computeFromCsv(doc);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            children: [
-              Text(widget.meta.description, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary)),
-              const SizedBox(height: 8),
-              Text(
-                '${doc.weeks} weeks · ${model.label} periodization',
-                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 16),
-              ProgramMuscleVolumeCard(
-                breakdown: breakdown,
-                title: 'Weekly Volume per Muscle Group',
-              ),
-              const SizedBox(height: 16),
-              for (final weekIndex in weekIndices) _buildWeekSection(theme, doc, weekIndex),
-            ],
+        Text(
+          widget.meta.description,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.secondary,
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: PremiumButton(
-            text: _importing ? 'Adding…' : 'Add to my blocks',
-            icon: Icons.add_circle_outline_rounded,
-            onTap: _importing ? () {} : () => _onAddToMyBlocks(context, doc),
+        const SizedBox(height: 8),
+        Text(
+          '${doc.weeks} weeks · ${model.label} periodization',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600,
           ),
         ),
+        const SizedBox(height: 16),
+        ProgramMuscleVolumeCard(
+          breakdown: breakdown,
+          title: 'Weekly Volume per Muscle Group',
+        ),
+        const SizedBox(height: 16),
+        for (final weekIndex in weekIndices)
+          _buildWeekSection(theme, doc, weekIndex),
       ],
     );
   }
 
-  Widget _buildWeekSection(ThemeData theme, ProgramCsvDocument doc, int weekIndex) {
+  Widget _buildWeekSection(
+    ThemeData theme,
+    ProgramCsvDocument doc,
+    int weekIndex,
+  ) {
     final weekRows = doc.rows.where((r) => r.weekIndex == weekIndex).toList();
     final dayKeys = <(int, String)>[];
     for (final row in weekRows) {
@@ -103,12 +112,19 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Week ${weekIndex + 1}', style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            'Week ${weekIndex + 1}',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 12),
           for (final dayKey in dayKeys) _buildDay(theme, weekRows, dayKey),
         ],
@@ -116,14 +132,25 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
     );
   }
 
-  Widget _buildDay(ThemeData theme, List<ProgramCsvRow> weekRows, (int, String) dayKey) {
-    final rows = weekRows.where((r) => (r.dayOfWeek, r.dayName) == dayKey).toList();
+  Widget _buildDay(
+    ThemeData theme,
+    List<ProgramCsvRow> weekRows,
+    (int, String) dayKey,
+  ) {
+    final rows = weekRows
+        .where((r) => (r.dayOfWeek, r.dayName) == dayKey)
+        .toList();
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(dayKey.$2, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            dayKey.$2,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 4),
           for (final row in rows)
             Padding(
@@ -132,7 +159,9 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
                 '${row.exerciseName} · ${row.sets}×${_repsLabel(row)}'
                 '${row.rpe != null ? ' @ RPE ${row.rpe}' : ''}'
                 '${row.percentOf1Rm != null ? ' @ ${row.percentOf1Rm!.toStringAsFixed(0)}% 1RM' : ''}',
-                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
               ),
             ),
         ],
@@ -142,11 +171,15 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
 
   String _repsLabel(ProgramCsvRow row) {
     if (row.repsMin == null && row.repsMax == null) return '?';
-    if (row.repsMin == row.repsMax || row.repsMax == null) return '${row.repsMin}';
+    if (row.repsMin == row.repsMax || row.repsMax == null)
+      return '${row.repsMin}';
     return '${row.repsMin}-${row.repsMax}';
   }
 
-  Future<void> _onAddToMyBlocks(BuildContext context, ProgramCsvDocument doc) async {
+  Future<void> _onAddToMyBlocks(
+    BuildContext context,
+    ProgramCsvDocument doc,
+  ) async {
     final programsRepo = ref.read(programsRepositoryProvider);
     final existing = await programsRepo.getActivePrograms();
     final duplicate = existing.any((p) => p.name == doc.name);
@@ -157,10 +190,18 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('You already have this program'),
-          content: const Text('Import it again? This will create a second copy.'),
+          content: const Text(
+            'Import it again? This will create a second copy.',
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Import again')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Import again'),
+            ),
           ],
         ),
       );
@@ -169,10 +210,9 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
 
     if (!context.mounted) return;
     final now = DateTime.now();
-    final nextMonday = now.add(Duration(days: (8 - now.weekday) % 7 == 0 ? 7 : (8 - now.weekday) % 7));
     final startDate = await showDatePicker(
       context: context,
-      initialDate: nextMonday,
+      initialDate: now,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
     );
@@ -187,8 +227,14 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
           'This will replace your currently planned schedule with this program, starting on the date you picked.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Add'),
+          ),
         ],
       ),
     );
@@ -196,8 +242,12 @@ class _ProgramPreviewViewState extends ConsumerState<ProgramPreviewView> {
 
     setState(() => _importing = true);
     try {
-      final csv = await ref.read(presetCatalogRepositoryProvider).loadCsv(widget.meta);
-      final programId = await ref.read(programCsvIoProvider).importProgram(
+      final csv = await ref
+          .read(presetCatalogRepositoryProvider)
+          .loadCsv(widget.meta);
+      final programId = await ref
+          .read(programCsvIoProvider)
+          .importProgram(
             csv,
             createdByUser: false,
             description: widget.meta.description,

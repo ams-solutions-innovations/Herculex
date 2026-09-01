@@ -40,19 +40,15 @@ void main() {
       .into(db.accessories)
       .insert(AccessoriesCompanion.insert(name: 'Belt', kind: 'belt'));
 
-  Future<int> insertBand(AppDatabase db) => db.into(db.bands).insert(
-    BandsCompanion.insert(name: 'Red band', color: 'red', tensionKg: 20),
-  );
+  Future<int> insertBand(AppDatabase db) => db
+      .into(db.bands)
+      .insert(
+        BandsCompanion.insert(name: 'Red band', color: 'red', tensionKg: 20),
+      );
 
   group('deleteSession', () {
     Future<
-      ({
-        int sessionId,
-        int weId,
-        int setId,
-        int scheduleId,
-        int programDayId,
-      })
+      ({int sessionId, int weId, int setId, int scheduleId, int programDayId})
     >
     buildTree(AppDatabase db) async {
       final exerciseId = await anyExerciseId(db);
@@ -91,9 +87,7 @@ void main() {
           );
       await db
           .into(db.setBands)
-          .insert(
-            SetBandsCompanion.insert(setEntryId: setId, bandId: bandId),
-          );
+          .insert(SetBandsCompanion.insert(setEntryId: setId, bandId: bandId));
 
       final programId = await db
           .into(db.programs)
@@ -132,28 +126,31 @@ void main() {
       );
     }
 
-    test('removes the whole subtree and resets the schedule off done', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final repo = WorkoutsRepository(db, const SystemClock());
-      final tree = await buildTree(db);
+    test(
+      'removes the whole subtree and resets the schedule off done',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = WorkoutsRepository(db, const SystemClock());
+        final tree = await buildTree(db);
 
-      await repo.deleteSession(tree.sessionId);
+        await repo.deleteSession(tree.sessionId);
 
-      expect(await db.select(db.workoutSessions).get(), isEmpty);
-      expect(await db.select(db.workoutExercises).get(), isEmpty);
-      expect(await db.select(db.setEntries).get(), isEmpty);
-      expect(await db.select(db.setAccessories).get(), isEmpty);
-      expect(await db.select(db.setBands).get(), isEmpty);
+        expect(await db.select(db.workoutSessions).get(), isEmpty);
+        expect(await db.select(db.workoutExercises).get(), isEmpty);
+        expect(await db.select(db.setEntries).get(), isEmpty);
+        expect(await db.select(db.setAccessories).get(), isEmpty);
+        expect(await db.select(db.setBands).get(), isEmpty);
 
-      final schedule = await (db.select(
-        db.scheduledWorkouts,
-      )..where((t) => t.id.equals(tree.scheduleId))).getSingle();
-      expect(schedule.completedSessionId, isNull);
-      expect(schedule.status, ScheduleStatus.planned);
+        final schedule = await (db.select(
+          db.scheduledWorkouts,
+        )..where((t) => t.id.equals(tree.scheduleId))).getSingle();
+        expect(schedule.completedSessionId, isNull);
+        expect(schedule.status, ScheduleStatus.planned);
 
-      expectNoForeignKeyViolations(await foreignKeyViolations(db));
-    });
+        expectNoForeignKeyViolations(await foreignKeyViolations(db));
+      },
+    );
 
     test('is identical whether FKs are on or off', () async {
       final dbOn = await openTestDatabase();
@@ -164,10 +161,14 @@ void main() {
       final treeOn = await buildTree(dbOn);
       final treeOff = await buildTree(dbOff);
 
-      await WorkoutsRepository(dbOn, const SystemClock())
-          .deleteSession(treeOn.sessionId);
-      await WorkoutsRepository(dbOff, const SystemClock())
-          .deleteSession(treeOff.sessionId);
+      await WorkoutsRepository(
+        dbOn,
+        const SystemClock(),
+      ).deleteSession(treeOn.sessionId);
+      await WorkoutsRepository(
+        dbOff,
+        const SystemClock(),
+      ).deleteSession(treeOff.sessionId);
 
       expect(
         await dbCount(dbOn, 'workout_sessions'),
@@ -286,9 +287,7 @@ void main() {
           );
       await db
           .into(db.setBands)
-          .insert(
-            SetBandsCompanion.insert(setEntryId: setId, bandId: bandId),
-          );
+          .insert(SetBandsCompanion.insert(setEntryId: setId, bandId: bandId));
 
       await WorkoutsRepository(db, const SystemClock()).deleteSet(setId);
 
@@ -368,20 +367,23 @@ void main() {
       );
     }
 
-    test('removes the whole program tree, both schedule edges included', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final tree = await buildTree(db);
+    test(
+      'removes the whole program tree, both schedule edges included',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final tree = await buildTree(db);
 
-      await ProgramsRepository(db).deleteProgram(tree.programId);
+        await ProgramsRepository(db).deleteProgram(tree.programId);
 
-      expect(await db.select(db.programs).get(), isEmpty);
-      expect(await db.select(db.programWeeks).get(), isEmpty);
-      expect(await db.select(db.programDays).get(), isEmpty);
-      expect(await db.select(db.programDayExercises).get(), isEmpty);
-      expect(await db.select(db.scheduledWorkouts).get(), isEmpty);
-      expectNoForeignKeyViolations(await foreignKeyViolations(db));
-    });
+        expect(await db.select(db.programs).get(), isEmpty);
+        expect(await db.select(db.programWeeks).get(), isEmpty);
+        expect(await db.select(db.programDays).get(), isEmpty);
+        expect(await db.select(db.programDayExercises).get(), isEmpty);
+        expect(await db.select(db.scheduledWorkouts).get(), isEmpty);
+        expectNoForeignKeyViolations(await foreignKeyViolations(db));
+      },
+    );
 
     test('is identical whether FKs are on or off', () async {
       final dbOn = await openTestDatabase();
@@ -514,76 +516,79 @@ void main() {
   });
 
   group('templates', () {
-    test('deleteTemplate clears sets, exercises, and unlinks referrers', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final exerciseId = await anyExerciseId(db);
+    test(
+      'deleteTemplate clears sets, exercises, and unlinks referrers',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final exerciseId = await anyExerciseId(db);
 
-      final templateId = await db
-          .into(db.workoutTemplates)
-          .insert(WorkoutTemplatesCompanion.insert(name: 'T'));
-      final templateExerciseId = await db
-          .into(db.templateExercises)
-          .insert(
-            TemplateExercisesCompanion.insert(
-              templateId: templateId,
-              exerciseId: exerciseId,
-              orderIndex: 0,
-            ),
-          );
-      await db
-          .into(db.templateSets)
-          .insert(
-            TemplateSetsCompanion.insert(
-              templateExerciseId: templateExerciseId,
-              setOrder: 1,
-            ),
-          );
+        final templateId = await db
+            .into(db.workoutTemplates)
+            .insert(WorkoutTemplatesCompanion.insert(name: 'T'));
+        final templateExerciseId = await db
+            .into(db.templateExercises)
+            .insert(
+              TemplateExercisesCompanion.insert(
+                templateId: templateId,
+                exerciseId: exerciseId,
+                orderIndex: 0,
+              ),
+            );
+        await db
+            .into(db.templateSets)
+            .insert(
+              TemplateSetsCompanion.insert(
+                templateExerciseId: templateExerciseId,
+                setOrder: 1,
+              ),
+            );
 
-      final programId = await db
-          .into(db.programs)
-          .insert(ProgramsCompanion.insert(name: 'P'));
-      final weekId = await db
-          .into(db.programWeeks)
-          .insert(
-            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
-          );
-      final dayId = await db
-          .into(db.programDays)
-          .insert(
-            ProgramDaysCompanion.insert(
-              programWeekId: weekId,
-              dayOfWeek: 1,
-              name: 'Day 1',
-              templateId: Value(templateId),
-            ),
-          );
-      final scheduleId = await db
-          .into(db.scheduledWorkouts)
-          .insert(
-            ScheduledWorkoutsCompanion.insert(
-              dateIso: '2026-01-01',
-              programDayId: dayId,
-              templateIdOverride: Value(templateId),
-            ),
-          );
+        final programId = await db
+            .into(db.programs)
+            .insert(ProgramsCompanion.insert(name: 'P'));
+        final weekId = await db
+            .into(db.programWeeks)
+            .insert(
+              ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+            );
+        final dayId = await db
+            .into(db.programDays)
+            .insert(
+              ProgramDaysCompanion.insert(
+                programWeekId: weekId,
+                dayOfWeek: 1,
+                name: 'Day 1',
+                templateId: Value(templateId),
+              ),
+            );
+        final scheduleId = await db
+            .into(db.scheduledWorkouts)
+            .insert(
+              ScheduledWorkoutsCompanion.insert(
+                dateIso: '2026-01-01',
+                programDayId: dayId,
+                templateIdOverride: Value(templateId),
+              ),
+            );
 
-      await TemplatesRepository(db).deleteTemplate(templateId);
+        await TemplatesRepository(db).deleteTemplate(templateId);
 
-      expect(await db.select(db.workoutTemplates).get(), isEmpty);
-      expect(await db.select(db.templateExercises).get(), isEmpty);
-      expect(await db.select(db.templateSets).get(), isEmpty);
+        expect(await db.select(db.workoutTemplates).get(), isEmpty);
+        expect(await db.select(db.templateExercises).get(), isEmpty);
+        expect(await db.select(db.templateSets).get(), isEmpty);
 
-      final day = await (db.select(
-        db.programDays,
-      )..where((t) => t.id.equals(dayId))).getSingle();
-      expect(day.templateId, isNull);
-      final schedule = await (db.select(
-        db.scheduledWorkouts,
-      )..where((t) => t.id.equals(scheduleId))).getSingle();
-      expect(schedule.templateIdOverride, isNull);
-      expectNoForeignKeyViolations(await foreignKeyViolations(db));
-    });
+        final day = await (db.select(
+          db.programDays,
+        )..where((t) => t.id.equals(dayId))).getSingle();
+        expect(day.templateId, isNull);
+        final schedule = await (db.select(
+          db.scheduledWorkouts,
+        )..where((t) => t.id.equals(scheduleId))).getSingle();
+        expect(schedule.templateIdOverride, isNull);
+        expectNoForeignKeyViolations(await foreignKeyViolations(db));
+      },
+    );
 
     test('deleteFolder nulls the folder link on its templates', () async {
       final db = await openTestDatabase();
@@ -709,10 +714,7 @@ void main() {
             ),
           );
 
-      await MicroWorkoutsRepository(
-        db,
-        const SystemClock(),
-      ).delete(microId);
+      await MicroWorkoutsRepository(db, const SystemClock()).delete(microId);
 
       expect(await db.select(db.microWorkouts).get(), isEmpty);
       final session = await (db.select(
@@ -741,51 +743,57 @@ void main() {
       return id;
     }
 
-    test('soft-deletes: row and food_micros stay, deletedAt is stamped', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final foodId = await insertFood(db);
-      final clock = _FixedClock(DateTime(2026, 6, 1));
+    test(
+      'soft-deletes: row and food_micros stay, deletedAt is stamped',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final foodId = await insertFood(db);
+        final clock = _FixedClock(DateTime(2026, 6, 1));
 
-      await NutritionRepository(
-        db,
-        OpenFoodFactsClient(),
-        clock,
-      ).deleteFood(foodId);
+        await NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          clock,
+        ).deleteFood(foodId);
 
-      final food = await (db.select(
-        db.foods,
-      )..where((t) => t.id.equals(foodId))).getSingle();
-      expect(food.deletedAt, clock.now());
-      expect(await db.select(db.foodMicros).get(), hasLength(1));
-    });
+        final food = await (db.select(
+          db.foods,
+        )..where((t) => t.id.equals(foodId))).getSingle();
+        expect(food.deletedAt, clock.now());
+        expect(await db.select(db.foodMicros).get(), hasLength(1));
+      },
+    );
 
-    test('soft-deletes without throwing when a food_entry references it', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final foodId = await insertFood(db);
-      await db
-          .into(db.foodEntries)
-          .insert(
-            FoodEntriesCompanion.insert(
-              dateIso: '2026-01-01',
-              meal: 'lunch',
-              foodId: Value(foodId),
-            ),
-          );
+    test(
+      'soft-deletes without throwing when a food_entry references it',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final foodId = await insertFood(db);
+        await db
+            .into(db.foodEntries)
+            .insert(
+              FoodEntriesCompanion.insert(
+                dateIso: '2026-01-01',
+                meal: 'lunch',
+                foodId: Value(foodId),
+              ),
+            );
 
-      await NutritionRepository(
-        db,
-        OpenFoodFactsClient(),
-        const SystemClock(),
-      ).deleteFood(foodId);
+        await NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          const SystemClock(),
+        ).deleteFood(foodId);
 
-      final food = await (db.select(
-        db.foods,
-      )..where((t) => t.id.equals(foodId))).getSingle();
-      expect(food.deletedAt, isNotNull);
-      expectNoForeignKeyViolations(await foreignKeyViolations(db));
-    });
+        final food = await (db.select(
+          db.foods,
+        )..where((t) => t.id.equals(foodId))).getSingle();
+        expect(food.deletedAt, isNotNull);
+        expectNoForeignKeyViolations(await foreignKeyViolations(db));
+      },
+    );
 
     test('soft-deletes without throwing when a recipe references it', () async {
       final db = await openTestDatabase();
@@ -819,67 +827,73 @@ void main() {
   });
 
   group('NutritionRepository.deleteRecipe', () {
-    test('soft-deletes: row and recipe_ingredients stay, deletedAt is stamped', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final foodId = await db
-          .into(db.foods)
-          .insert(FoodsCompanion.insert(name: 'Rice', kcalPer100g: 130));
-      final recipeId = await db
-          .into(db.recipes)
-          .insert(RecipesCompanion.insert(name: 'Bowl'));
-      await db
-          .into(db.recipeIngredients)
-          .insert(
-            RecipeIngredientsCompanion.insert(
-              recipeId: recipeId,
-              foodId: foodId,
-              grams: 100,
-            ),
-          );
-      final clock = _FixedClock(DateTime(2026, 6, 1));
+    test(
+      'soft-deletes: row and recipe_ingredients stay, deletedAt is stamped',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final foodId = await db
+            .into(db.foods)
+            .insert(FoodsCompanion.insert(name: 'Rice', kcalPer100g: 130));
+        final recipeId = await db
+            .into(db.recipes)
+            .insert(RecipesCompanion.insert(name: 'Bowl'));
+        await db
+            .into(db.recipeIngredients)
+            .insert(
+              RecipeIngredientsCompanion.insert(
+                recipeId: recipeId,
+                foodId: foodId,
+                grams: 100,
+              ),
+            );
+        final clock = _FixedClock(DateTime(2026, 6, 1));
 
-      await NutritionRepository(
-        db,
-        OpenFoodFactsClient(),
-        clock,
-      ).deleteRecipe(recipeId);
+        await NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          clock,
+        ).deleteRecipe(recipeId);
 
-      final recipe = await (db.select(
-        db.recipes,
-      )..where((t) => t.id.equals(recipeId))).getSingle();
-      expect(recipe.deletedAt, clock.now());
-      expect(await db.select(db.recipeIngredients).get(), hasLength(1));
-    });
+        final recipe = await (db.select(
+          db.recipes,
+        )..where((t) => t.id.equals(recipeId))).getSingle();
+        expect(recipe.deletedAt, clock.now());
+        expect(await db.select(db.recipeIngredients).get(), hasLength(1));
+      },
+    );
 
-    test('soft-deletes without crashing when a food_entry references it', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final recipeId = await db
-          .into(db.recipes)
-          .insert(RecipesCompanion.insert(name: 'Bowl'));
-      await db
-          .into(db.foodEntries)
-          .insert(
-            FoodEntriesCompanion.insert(
-              dateIso: '2026-01-01',
-              meal: 'lunch',
-              recipeId: Value(recipeId),
-            ),
-          );
+    test(
+      'soft-deletes without crashing when a food_entry references it',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final recipeId = await db
+            .into(db.recipes)
+            .insert(RecipesCompanion.insert(name: 'Bowl'));
+        await db
+            .into(db.foodEntries)
+            .insert(
+              FoodEntriesCompanion.insert(
+                dateIso: '2026-01-01',
+                meal: 'lunch',
+                recipeId: Value(recipeId),
+              ),
+            );
 
-      await NutritionRepository(
-        db,
-        OpenFoodFactsClient(),
-        const SystemClock(),
-      ).deleteRecipe(recipeId);
+        await NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          const SystemClock(),
+        ).deleteRecipe(recipeId);
 
-      final recipe = await (db.select(
-        db.recipes,
-      )..where((t) => t.id.equals(recipeId))).getSingle();
-      expect(recipe.deletedAt, isNotNull);
-      expectNoForeignKeyViolations(await foreignKeyViolations(db));
-    });
+        final recipe = await (db.select(
+          db.recipes,
+        )..where((t) => t.id.equals(recipeId))).getSingle();
+        expect(recipe.deletedAt, isNotNull);
+        expectNoForeignKeyViolations(await foreignKeyViolations(db));
+      },
+    );
   });
 }
 

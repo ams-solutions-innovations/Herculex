@@ -15,6 +15,9 @@ class HxCircleButton extends StatelessWidget {
     this.tooltip,
     this.size = 40,
     this.iconSize = 20,
+    this.iconColor,
+    this.tintColor,
+    this.borderColor,
   });
 
   final IconData icon;
@@ -22,6 +25,9 @@ class HxCircleButton extends StatelessWidget {
   final String? tooltip;
   final double size;
   final double iconSize;
+  final Color? iconColor;
+  final Color? tintColor;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +48,10 @@ class HxCircleButton extends StatelessWidget {
           child: HxGlass(
             shape: BoxShape.circle,
             padding: EdgeInsets.zero,
+            fill: tintColor,
+            borderColor: borderColor,
             child: Center(
-              child: Icon(icon, size: iconSize, color: hx.onSurface),
+              child: Icon(icon, size: iconSize, color: iconColor ?? hx.onSurface),
             ),
           ),
         ),

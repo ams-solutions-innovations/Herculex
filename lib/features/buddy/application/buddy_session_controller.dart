@@ -54,10 +54,12 @@ class BuddySessionState {
     String? Function()? notice,
   }) {
     return BuddySessionState(
-      buddySessionId:
-          buddySessionId != null ? buddySessionId() : this.buddySessionId,
-      pendingJoinToken:
-          pendingJoinToken != null ? pendingJoinToken() : this.pendingJoinToken,
+      buddySessionId: buddySessionId != null
+          ? buddySessionId()
+          : this.buddySessionId,
+      pendingJoinToken: pendingJoinToken != null
+          ? pendingJoinToken()
+          : this.pendingJoinToken,
       partner: partner != null ? partner() : this.partner,
       isHost: isHost ?? this.isHost,
       isLive: isLive ?? this.isLive,
@@ -76,15 +78,15 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
     required String currentUserId,
     String? currentDisplayName,
     String? currentAvatarUrl,
-  })  : _db = db,
-        _gateway = gateway,
-        _channelService = channelService,
-        _workouts = workouts,
-        _resolver = resolver,
-        _currentUserId = currentUserId,
-        _currentDisplayName = currentDisplayName,
-        _currentAvatarUrl = currentAvatarUrl,
-        super(const BuddySessionState());
+  }) : _db = db,
+       _gateway = gateway,
+       _channelService = channelService,
+       _workouts = workouts,
+       _resolver = resolver,
+       _currentUserId = currentUserId,
+       _currentDisplayName = currentDisplayName,
+       _currentAvatarUrl = currentAvatarUrl,
+       super(const BuddySessionState());
 
   final AppDatabase _db;
   final BuddyGateway _gateway;
@@ -98,14 +100,17 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
   StreamSubscription<List<String>>? _presenceSubscription;
 
   Future<String> hostFromActiveWorkout() async {
-    final activeSession = await (_db.select(_db.workoutSessions)
-          ..where((t) => t.endedAt.isNull())
-          ..orderBy([
-            (t) =>
-                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
-          ])
-          ..limit(1))
-        .getSingleOrNull();
+    final activeSession =
+        await (_db.select(_db.workoutSessions)
+              ..where((t) => t.endedAt.isNull())
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.startedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
 
     if (activeSession == null) {
       throw StateError(
@@ -124,24 +129,26 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
     final buddySessionId = created.buddySessionId;
     final joinToken = created.joinToken;
 
-    await (_db.update(_db.workoutSessions)
-          ..where((t) => t.id.equals(activeSession.id)))
-        .write(
-          WorkoutSessionsCompanion(
-            buddySessionId: Value(buddySessionId),
-            sessionUuid: Value(sessionUuid),
-          ),
-        );
-
-    await _db.into(_db.buddySessionsLocal).insertOnConflictUpdate(
-      BuddySessionsLocalCompanion(
+    await (_db.update(
+      _db.workoutSessions,
+    )..where((t) => t.id.equals(activeSession.id))).write(
+      WorkoutSessionsCompanion(
         buddySessionId: Value(buddySessionId),
-        workoutSessionId: Value(activeSession.id),
-        role: const Value('host'),
-        lastSeenSeq: const Value(0),
-        joinedAt: Value(DateTime.now()),
+        sessionUuid: Value(sessionUuid),
       ),
     );
+
+    await _db
+        .into(_db.buddySessionsLocal)
+        .insertOnConflictUpdate(
+          BuddySessionsLocalCompanion(
+            buddySessionId: Value(buddySessionId),
+            workoutSessionId: Value(activeSession.id),
+            role: const Value('host'),
+            lastSeenSeq: const Value(0),
+            joinedAt: Value(DateTime.now()),
+          ),
+        );
 
     final slots = BuddySlotStore(_db, buddySessionId);
     final applier = BuddyChoreographyApplier(
@@ -161,8 +168,10 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
       if (otherIds.isNotEmpty) {
         state = state.copyWith(
           pendingJoinToken: () => null,
-          partner: () =>
-              BuddyParticipant(userId: otherIds.first, displayName: 'Gym Buddy'),
+          partner: () => BuddyParticipant(
+            userId: otherIds.first,
+            displayName: 'Gym Buddy',
+          ),
           isLive: true,
         );
       }
@@ -203,14 +212,17 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
       throw const BuddyJoinRejected('Invalid or expired join code');
     }
 
-    var activeSession = await (_db.select(_db.workoutSessions)
-          ..where((t) => t.endedAt.isNull())
-          ..orderBy([
-            (t) =>
-                OrderingTerm(expression: t.startedAt, mode: OrderingMode.desc),
-          ])
-          ..limit(1))
-        .getSingleOrNull();
+    var activeSession =
+        await (_db.select(_db.workoutSessions)
+              ..where((t) => t.endedAt.isNull())
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.startedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
 
     int workoutSessionId;
     String sessionUuid;
@@ -221,9 +233,9 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
       sessionUuid = activeSession.sessionUuid ?? const Uuid().v4();
     } else {
       workoutSessionId = await _workouts.startSession();
-      activeSession = await (_db.select(_db.workoutSessions)
-            ..where((t) => t.id.equals(workoutSessionId)))
-          .getSingle();
+      activeSession = await (_db.select(
+        _db.workoutSessions,
+      )..where((t) => t.id.equals(workoutSessionId))).getSingle();
       sessionUuid = activeSession.sessionUuid ?? const Uuid().v4();
       autoCreated = true;
     }
@@ -243,24 +255,26 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
       rethrow;
     }
 
-    await (_db.update(_db.workoutSessions)
-          ..where((t) => t.id.equals(workoutSessionId)))
-        .write(
-          WorkoutSessionsCompanion(
-            buddySessionId: Value(buddySessionId),
-            sessionUuid: Value(sessionUuid),
-          ),
-        );
-
-    await _db.into(_db.buddySessionsLocal).insertOnConflictUpdate(
-      BuddySessionsLocalCompanion(
+    await (_db.update(
+      _db.workoutSessions,
+    )..where((t) => t.id.equals(workoutSessionId))).write(
+      WorkoutSessionsCompanion(
         buddySessionId: Value(buddySessionId),
-        workoutSessionId: Value(workoutSessionId),
-        role: const Value('guest'),
-        lastSeenSeq: const Value(0),
-        joinedAt: Value(DateTime.now()),
+        sessionUuid: Value(sessionUuid),
       ),
     );
+
+    await _db
+        .into(_db.buddySessionsLocal)
+        .insertOnConflictUpdate(
+          BuddySessionsLocalCompanion(
+            buddySessionId: Value(buddySessionId),
+            workoutSessionId: Value(workoutSessionId),
+            role: const Value('guest'),
+            lastSeenSeq: const Value(0),
+            joinedAt: Value(DateTime.now()),
+          ),
+        );
 
     final slots = BuddySlotStore(_db, buddySessionId);
     final applier = BuddyChoreographyApplier(
@@ -279,8 +293,10 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
       final otherIds = ids.where((id) => id != _currentUserId).toList();
       if (otherIds.isNotEmpty) {
         state = state.copyWith(
-          partner: () =>
-              BuddyParticipant(userId: otherIds.first, displayName: 'Gym Buddy'),
+          partner: () => BuddyParticipant(
+            userId: otherIds.first,
+            displayName: 'Gym Buddy',
+          ),
           isLive: true,
         );
       }

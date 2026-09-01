@@ -35,8 +35,9 @@ void main() {
 
   /// The uuid the sync layer knows a locally-created gym by.
   Future<String> gymUuid(int id) async {
-    final row = await (db.select(db.gyms)..where((t) => t.id.equals(id)))
-        .getSingle();
+    final row = await (db.select(
+      db.gyms,
+    )..where((t) => t.id.equals(id))).getSingle();
     return row.syncUuid!;
   }
 
@@ -62,7 +63,9 @@ void main() {
       final remaining = await db.select(db.pendingSyncOps).get();
       expect(remaining, isEmpty);
 
-      final gym = await (db.select(db.gyms)..where((t) => t.id.equals(id))).getSingle();
+      final gym = await (db.select(
+        db.gyms,
+      )..where((t) => t.id.equals(id))).getSingle();
       expect(gym.syncedAt, isNotNull);
     });
 
@@ -86,77 +89,90 @@ void main() {
       expect(backend.upsertCalls, isEmpty);
     });
 
-    test('the retry delay doubles and then flattens at the 300s ceiling',
-        () async {
-      await sync.start(userId);
-      gyms = GymsRepository(db);
-      await gyms.createGym('Iron Temple');
-      backend.upsertFailuresRemaining = maxPushAttempts;
+    test(
+      'the retry delay doubles and then flattens at the 300s ceiling',
+      () async {
+        await sync.start(userId);
+        gyms = GymsRepository(db);
+        await gyms.createGym('Iron Temple');
+        backend.upsertFailuresRemaining = maxPushAttempts;
 
-      // `min(300, 5 * (1 << min(attempts, 6)))`. Note it flattens at attempt
-      // *6* — 5 * 2^6 is 320, already over the cap — not at 7. The doc
-      // comment on the constant says `5 * 2^attempts`, which diverges here;
-      // this pins the behaviour the code actually ships.
-      const expectedDelays = [10, 20, 40, 80, 160, 300, 300, 300];
+        // `min(300, 5 * (1 << min(attempts, 6)))`. Note it flattens at attempt
+        // *6* — 5 * 2^6 is 320, already over the cap — not at 7. The doc
+        // comment on the constant says `5 * 2^attempts`, which diverges here;
+        // this pins the behaviour the code actually ships.
+        const expectedDelays = [10, 20, 40, 80, 160, 300, 300, 300];
 
-      for (var attempt = 1; attempt <= maxPushAttempts; attempt++) {
-        final before = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await sync.pushOnce();
+        for (var attempt = 1; attempt <= maxPushAttempts; attempt++) {
+          final before = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+          await sync.pushOnce();
 
-        final op = (await db.select(db.pendingSyncOps).get()).single;
-        expect(op.attempts, attempt, reason: 'attempt $attempt was not counted');
-        final delay =
-            (op.nextRetryAt!.millisecondsSinceEpoch ~/ 1000) - before;
+          final op = (await db.select(db.pendingSyncOps).get()).single;
+          expect(
+            op.attempts,
+            attempt,
+            reason: 'attempt $attempt was not counted',
+          );
+          final delay =
+              (op.nextRetryAt!.millisecondsSinceEpoch ~/ 1000) - before;
+          expect(
+            delay,
+            inInclusiveRange(
+              expectedDelays[attempt - 1] - 1,
+              expectedDelays[attempt - 1] + 1,
+            ),
+            reason: 'attempt $attempt scheduled the wrong retry delay',
+          );
+
+          // Open the gate so the next pushOnce actually picks the op up,
+          // instead of measuring the backoff we just asserted.
+          await db.customUpdate(
+            'UPDATE pending_sync_ops SET next_retry_at = ?',
+            variables: [Variable(before - 1)],
+          );
+        }
+
+        expect(backend.upsertCalls, isEmpty);
+      },
+    );
+
+    test(
+      'next_retry_at gates the op: skipped while future, picked up once past',
+      () async {
+        await sync.start(userId);
+        gyms = GymsRepository(db);
+        await gyms.createGym('Iron Temple');
+
+        // A never-attempted op has a null next_retry_at and goes immediately —
+        // the `next_retry_at IS NULL` arm of the filter.
         expect(
-          delay,
-          inInclusiveRange(
-            expectedDelays[attempt - 1] - 1,
-            expectedDelays[attempt - 1] + 1,
-          ),
-          reason: 'attempt $attempt scheduled the wrong retry delay',
+          (await db.select(db.pendingSyncOps).get()).single.nextRetryAt,
+          isNull,
         );
 
-        // Open the gate so the next pushOnce actually picks the op up,
-        // instead of measuring the backoff we just asserted.
+        backend.upsertFailuresRemaining = 1;
+        await sync.pushOnce();
+        expect(backend.upsertCalls, isEmpty);
+        expect(
+          (await db.select(db.pendingSyncOps).get()).single.nextRetryAt,
+          isNotNull,
+        );
+
+        // Still gated.
+        await sync.pushOnce();
+        expect(backend.upsertCalls, isEmpty);
+
         await db.customUpdate(
           'UPDATE pending_sync_ops SET next_retry_at = ?',
-          variables: [Variable(before - 1)],
+          variables: [
+            Variable(DateTime.now().millisecondsSinceEpoch ~/ 1000 - 1),
+          ],
         );
-      }
-
-      expect(backend.upsertCalls, isEmpty);
-    });
-
-    test('next_retry_at gates the op: skipped while future, picked up once past',
-        () async {
-      await sync.start(userId);
-      gyms = GymsRepository(db);
-      await gyms.createGym('Iron Temple');
-
-      // A never-attempted op has a null next_retry_at and goes immediately —
-      // the `next_retry_at IS NULL` arm of the filter.
-      expect((await db.select(db.pendingSyncOps).get()).single.nextRetryAt, isNull);
-
-      backend.upsertFailuresRemaining = 1;
-      await sync.pushOnce();
-      expect(backend.upsertCalls, isEmpty);
-      expect((await db.select(db.pendingSyncOps).get()).single.nextRetryAt,
-          isNotNull);
-
-      // Still gated.
-      await sync.pushOnce();
-      expect(backend.upsertCalls, isEmpty);
-
-      await db.customUpdate(
-        'UPDATE pending_sync_ops SET next_retry_at = ?',
-        variables: [
-          Variable(DateTime.now().millisecondsSinceEpoch ~/ 1000 - 1),
-        ],
-      );
-      await sync.pushOnce();
-      expect(backend.upsertCalls, hasLength(1));
-      expect(await db.select(db.pendingSyncOps).get(), isEmpty);
-    });
+        await sync.pushOnce();
+        expect(backend.upsertCalls, hasLength(1));
+        expect(await db.select(db.pendingSyncOps).get(), isEmpty);
+      },
+    );
 
     test('a soft delete pushes as an upsert of a tombstoned row', () async {
       await sync.start(userId);
@@ -179,21 +195,26 @@ void main() {
       expect(backend.deleteCalls, isEmpty);
     });
 
-    test('a hard DELETE still reaches the backend via the fallback trigger', () async {
-      await sync.start(userId);
-      gyms = GymsRepository(db);
-      final id = await gyms.createGym('Iron Temple');
-      await sync.pushOnce();
-      backend.upsertCalls.clear();
+    test(
+      'a hard DELETE still reaches the backend via the fallback trigger',
+      () async {
+        await sync.start(userId);
+        gyms = GymsRepository(db);
+        final id = await gyms.createGym('Iron Temple');
+        await sync.pushOnce();
+        backend.upsertCalls.clear();
 
-      final gym = await (db.select(db.gyms)..where((t) => t.id.equals(id))).getSingle();
-      await (db.delete(db.gyms)..where((t) => t.id.equals(id))).go();
+        final gym = await (db.select(
+          db.gyms,
+        )..where((t) => t.id.equals(id))).getSingle();
+        await (db.delete(db.gyms)..where((t) => t.id.equals(id))).go();
 
-      await sync.pushOnce();
+        await sync.pushOnce();
 
-      expect(backend.deleteCalls, hasLength(1));
-      expect(backend.deleteCalls.single.$2, gym.syncUuid);
-    });
+        expect(backend.deleteCalls, hasLength(1));
+        expect(backend.deleteCalls.single.$2, gym.syncUuid);
+      },
+    );
   });
 
   group('pull', () {
@@ -221,7 +242,9 @@ void main() {
       () async {
         gyms = GymsRepository(db);
         final id = await gyms.createGym('Local Name');
-        final row = await (db.select(db.gyms)..where((t) => t.id.equals(id))).getSingle();
+        final row = await (db.select(
+          db.gyms,
+        )..where((t) => t.id.equals(id))).getSingle();
 
         // Remote has a newer-looking row for the same sync_uuid — but the
         // local edit hasn't been pushed yet, so local must win.
@@ -239,7 +262,9 @@ void main() {
 
         await sync.start(userId);
 
-        final after = await (db.select(db.gyms)..where((t) => t.id.equals(id))).getSingle();
+        final after = await (db.select(
+          db.gyms,
+        )..where((t) => t.id.equals(id))).getSingle();
         expect(after.name, 'Local Name');
       },
     );
@@ -254,16 +279,19 @@ void main() {
       return gymUuid(id);
     }
 
-    test('a remote hard delete removes the local row on the next pull', () async {
-      await sync.start(userId);
-      final uuid = await pushedGym();
+    test(
+      'a remote hard delete removes the local row on the next pull',
+      () async {
+        await sync.start(userId);
+        final uuid = await pushedGym();
 
-      // Another device deleted it; the server trigger left a tombstone.
-      await backend.delete('gyms', uuid);
-      await sync.pullAll();
+        // Another device deleted it; the server trigger left a tombstone.
+        await backend.delete('gyms', uuid);
+        await sync.pullAll();
 
-      expect(await db.select(db.gyms).get(), isEmpty);
-    });
+        expect(await db.select(db.gyms).get(), isEmpty);
+      },
+    );
 
     test('applying a tombstone does not enqueue an outbox delete', () async {
       await sync.start(userId);
@@ -294,7 +322,9 @@ void main() {
         'name': 'Back From The Dead',
         'is_default': 0,
         'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
+        'updated_at': DateTime.now()
+            .add(const Duration(days: 1))
+            .toIso8601String(),
         'deleted_at': null,
       });
 
@@ -329,43 +359,40 @@ void main() {
       },
     );
 
-    test(
-      'a row just pulled for the first time can still be deleted by a '
-      "same-cycle tombstone",
-      () async {
-        // Regression: found while proving the round trip against the live
-        // backend. Without the purge above, the outbox echo left behind by
-        // this row's first pull made `_applyTombstoneBatch`'s local-wins
-        // check treat it as a genuine unpushed edit, so a delete from
-        // another device landing in the same pull cycle — or any time before
-        // the next 20s push timer happened to clear the echo — was silently
-        // ignored.
-        await sync.start(userId);
-        const uuid = 'fresh-pull-uuid-2';
-        backend.seedRemoteRow('gyms', {
-          'id': uuid,
-          'user_id': userId,
-          'name': 'Freshly Arrived',
-          'is_default': 0,
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-          'deleted_at': null,
-        });
-        await sync.pullAll();
-        expect(await db.select(db.gyms).get(), hasLength(1));
+    test('a row just pulled for the first time can still be deleted by a '
+        "same-cycle tombstone", () async {
+      // Regression: found while proving the round trip against the live
+      // backend. Without the purge above, the outbox echo left behind by
+      // this row's first pull made `_applyTombstoneBatch`'s local-wins
+      // check treat it as a genuine unpushed edit, so a delete from
+      // another device landing in the same pull cycle — or any time before
+      // the next 20s push timer happened to clear the echo — was silently
+      // ignored.
+      await sync.start(userId);
+      const uuid = 'fresh-pull-uuid-2';
+      backend.seedRemoteRow('gyms', {
+        'id': uuid,
+        'user_id': userId,
+        'name': 'Freshly Arrived',
+        'is_default': 0,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+        'deleted_at': null,
+      });
+      await sync.pullAll();
+      expect(await db.select(db.gyms).get(), hasLength(1));
 
-        // `backend.delete`, not `seedTombstone` directly — this also removes
-        // the row from the fake's remote store, matching a real hard delete.
-        // Leaving it in place would make the *next* pull re-fetch the row at
-        // its own cursor timestamp (the fake's `pull` filter is inclusive at
-        // the boundary; Postgres's `gt()` is not), which is a fake-backend
-        // artifact unrelated to the echo bug this test is about.
-        await backend.delete('gyms', uuid);
-        await sync.pullAll();
+      // `backend.delete`, not `seedTombstone` directly — this also removes
+      // the row from the fake's remote store, matching a real hard delete.
+      // Leaving it in place would make the *next* pull re-fetch the row at
+      // its own cursor timestamp (the fake's `pull` filter is inclusive at
+      // the boundary; Postgres's `gt()` is not), which is a fake-backend
+      // artifact unrelated to the echo bug this test is about.
+      await backend.delete('gyms', uuid);
+      await sync.pullAll();
 
-        expect(await db.select(db.gyms).get(), isEmpty);
-      },
-    );
+      expect(await db.select(db.gyms).get(), isEmpty);
+    });
 
     test('a tombstone is skipped while a local edit is pending', () async {
       await sync.start(userId);
@@ -396,7 +423,9 @@ void main() {
         'name': 'Second Life',
         'is_default': 0,
         'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
+        'updated_at': DateTime.now()
+            .add(const Duration(days: 1))
+            .toIso8601String(),
         'deleted_at': null,
       });
       await sync.pullAll();
@@ -433,9 +462,9 @@ void main() {
         db.syncCursors,
       )..where((t) => t.entityType.equals('__tombstones__'))).getSingle();
       expect(
-        DateTime.parse(cursor.cursorIso).isAfter(
-          DateTime.now().toUtc().subtract(const Duration(minutes: 1)),
-        ),
+        DateTime.parse(
+          cursor.cursorIso,
+        ).isAfter(DateTime.now().toUtc().subtract(const Duration(minutes: 1))),
         isTrue,
       );
     });
@@ -443,11 +472,16 @@ void main() {
     test('a parent tombstone cascades locally without outbox churn', () async {
       await sync.start(userId);
 
-      final exercise = await db.select(db.exerciseCatalog).get().then((r) => r.first);
-      final sessionId = await db.into(db.workoutSessions).insert(
-            WorkoutSessionsCompanion.insert(startedAt: DateTime.now()),
-          );
-      await db.into(db.workoutExercises).insert(
+      final exercise = await db
+          .select(db.exerciseCatalog)
+          .get()
+          .then((r) => r.first);
+      final sessionId = await db
+          .into(db.workoutSessions)
+          .insert(WorkoutSessionsCompanion.insert(startedAt: DateTime.now()));
+      await db
+          .into(db.workoutExercises)
+          .insert(
             WorkoutExercisesCompanion.insert(
               sessionId: sessionId,
               exerciseId: exercise.id,
@@ -457,9 +491,9 @@ void main() {
       await sync.pushOnce();
       backend.deleteCalls.clear();
 
-      final session = await (db.select(db.workoutSessions)
-            ..where((t) => t.id.equals(sessionId)))
-          .getSingle();
+      final session = await (db.select(
+        db.workoutSessions,
+      )..where((t) => t.id.equals(sessionId))).getSingle();
       final child = (await db.select(db.workoutExercises).get()).single;
       // Postgres cascades the delete and fires the tombstone trigger for each
       // row, so both rows are gone remotely and both leave a tombstone.
@@ -497,7 +531,10 @@ void main() {
         'UPDATE sync_cursors SET cursor_iso = ? WHERE entity_type = ?',
         variables: [
           Variable(
-            DateTime.now().toUtc().subtract(const Duration(days: 120)).toIso8601String(),
+            DateTime.now()
+                .toUtc()
+                .subtract(const Duration(days: 120))
+                .toIso8601String(),
           ),
           Variable('__tombstones__'),
         ],
@@ -505,7 +542,9 @@ void main() {
 
       await sync.pullAll();
 
-      final remaining = (await db.select(db.gyms).get()).map((g) => g.id).toSet();
+      final remaining = (await db.select(db.gyms).get())
+          .map((g) => g.id)
+          .toSet();
       expect(remaining, contains(keptId));
       expect(remaining, contains(unsyncedId));
       expect(remaining, isNot(contains(goneId)));
@@ -513,46 +552,57 @@ void main() {
   });
 
   group('quarantine', () {
-    test('an op past the attempt cap stops retrying and stops blocking pulls', () async {
-      await sync.start(userId);
-      gyms = GymsRepository(db);
-      final id = await gyms.createGym('Poison');
-      final uuid = await gymUuid(id);
+    test(
+      'an op past the attempt cap stops retrying and stops blocking pulls',
+      () async {
+        await sync.start(userId);
+        gyms = GymsRepository(db);
+        final id = await gyms.createGym('Poison');
+        final uuid = await gymUuid(id);
 
-      // Fail every attempt, clearing the backoff each round so the cap is what
-      // ends it rather than the retry clock.
-      for (var i = 0; i < maxPushAttempts; i++) {
-        backend.upsertFailuresRemaining = 1;
-        await db.customUpdate('UPDATE pending_sync_ops SET next_retry_at = NULL');
+        // Fail every attempt, clearing the backoff each round so the cap is what
+        // ends it rather than the retry clock.
+        for (var i = 0; i < maxPushAttempts; i++) {
+          backend.upsertFailuresRemaining = 1;
+          await db.customUpdate(
+            'UPDATE pending_sync_ops SET next_retry_at = NULL',
+          );
+          await sync.pushOnce();
+        }
+
+        final op = (await db.select(db.pendingSyncOps).get()).single;
+        expect(op.attempts, maxPushAttempts);
+
+        // Quarantined: no longer attempted at all.
+        backend.upsertCalls.clear();
+        await db.customUpdate(
+          'UPDATE pending_sync_ops SET next_retry_at = NULL',
+        );
         await sync.pushOnce();
-      }
+        expect(backend.upsertCalls, isEmpty);
+        expect(sync.state.phase, SyncPhase.error);
 
-      final op = (await db.select(db.pendingSyncOps).get()).single;
-      expect(op.attempts, maxPushAttempts);
+        // ...and no longer freezes the row's inbound sync, which would otherwise
+        // leave it stuck in both directions forever.
+        backend.seedRemoteRow('gyms', {
+          'id': uuid,
+          'user_id': userId,
+          'name': 'Server Wins',
+          'is_default': 0,
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now()
+              .add(const Duration(days: 1))
+              .toIso8601String(),
+          'deleted_at': null,
+        });
+        await sync.pullAll();
 
-      // Quarantined: no longer attempted at all.
-      backend.upsertCalls.clear();
-      await db.customUpdate('UPDATE pending_sync_ops SET next_retry_at = NULL');
-      await sync.pushOnce();
-      expect(backend.upsertCalls, isEmpty);
-      expect(sync.state.phase, SyncPhase.error);
-
-      // ...and no longer freezes the row's inbound sync, which would otherwise
-      // leave it stuck in both directions forever.
-      backend.seedRemoteRow('gyms', {
-        'id': uuid,
-        'user_id': userId,
-        'name': 'Server Wins',
-        'is_default': 0,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-        'deleted_at': null,
-      });
-      await sync.pullAll();
-
-      final row = await (db.select(db.gyms)..where((t) => t.id.equals(id))).getSingle();
-      expect(row.name, 'Server Wins');
-    });
+        final row = await (db.select(
+          db.gyms,
+        )..where((t) => t.id.equals(id))).getSingle();
+        expect(row.name, 'Server Wins');
+      },
+    );
   });
 
   group('state', () {
@@ -568,30 +618,36 @@ void main() {
       expect(noopSync.state.phase, SyncPhase.disabled);
     });
 
-    test('a clean cycle ends in synced, having passed through syncing', () async {
-      final phases = <SyncPhase>[];
-      final sub = sync.stateStream.listen((s) => phases.add(s.phase));
+    test(
+      'a clean cycle ends in synced, having passed through syncing',
+      () async {
+        final phases = <SyncPhase>[];
+        final sub = sync.stateStream.listen((s) => phases.add(s.phase));
 
-      await sync.start(userId);
-      await Future<void>.delayed(Duration.zero); // let the stream drain
-      await sub.cancel();
+        await sync.start(userId);
+        await Future<void>.delayed(Duration.zero); // let the stream drain
+        await sub.cancel();
 
-      expect(phases.first, SyncPhase.disabled);
-      expect(phases, contains(SyncPhase.syncing));
-      expect(phases.last, SyncPhase.synced);
-      expect(sync.state.lastSyncedAt, isNotNull);
-    });
+        expect(phases.first, SyncPhase.disabled);
+        expect(phases, contains(SyncPhase.syncing));
+        expect(phases.last, SyncPhase.synced);
+        expect(sync.state.lastSyncedAt, isNotNull);
+      },
+    );
 
-    test('a pull failure surfaces as error rather than being swallowed', () async {
-      await sync.start(userId);
-      expect(sync.state.phase, SyncPhase.synced);
+    test(
+      'a pull failure surfaces as error rather than being swallowed',
+      () async {
+        await sync.start(userId);
+        expect(sync.state.phase, SyncPhase.synced);
 
-      backend.failPulls = true;
-      await sync.pullAll();
+        backend.failPulls = true;
+        await sync.pullAll();
 
-      expect(sync.state.phase, SyncPhase.error);
-      expect(sync.state.lastError, isNotNull);
-    });
+        expect(sync.state.phase, SyncPhase.error);
+        expect(sync.state.lastError, isNotNull);
+      },
+    );
 
     test('unpushed local work reads as pending, never synced', () async {
       await sync.start(userId);
@@ -640,25 +696,31 @@ void main() {
       expect(await db.select(db.pendingSyncOps).get(), hasLength(1));
       await db.customUpdate('UPDATE pending_sync_ops SET next_retry_at = NULL');
       await sync.pushOnce();
-      expect(backend.upsertCalls.map((c) => c.$2['name']), contains('Survives'));
+      expect(
+        backend.upsertCalls.map((c) => c.$2['name']),
+        contains('Survives'),
+      );
     });
   });
 
   group('push regressions', () {
-    test('stamping synced_at does not re-enqueue the row it just pushed', () async {
-      await sync.start(userId);
-      gyms = GymsRepository(db);
-      await gyms.createGym('Iron Temple');
+    test(
+      'stamping synced_at does not re-enqueue the row it just pushed',
+      () async {
+        await sync.start(userId);
+        gyms = GymsRepository(db);
+        await gyms.createGym('Iron Temple');
 
-      await sync.pushOnce();
+        await sync.pushOnce();
 
-      // The `UPDATE ... SET synced_at` after a successful upsert fires
-      // trg_outbox_upd_*; if that landed as a new outbox row the layer would
-      // push forever in a loop.
-      expect(await db.select(db.pendingSyncOps).get(), isEmpty);
-      await sync.pushOnce();
-      expect(backend.upsertCalls, hasLength(1));
-    });
+        // The `UPDATE ... SET synced_at` after a successful upsert fires
+        // trg_outbox_upd_*; if that landed as a new outbox row the layer would
+        // push forever in a loop.
+        expect(await db.select(db.pendingSyncOps).get(), isEmpty);
+        await sync.pushOnce();
+        expect(backend.upsertCalls, hasLength(1));
+      },
+    );
   });
 
   group('re-upload', () {
@@ -672,9 +734,9 @@ void main() {
       // normal path would ever send it again.
       expect(backend.upsertCalls, hasLength(1));
       expect(await db.select(db.pendingSyncOps).get(), isEmpty);
-      final before = await (db.select(db.gyms)
-            ..where((t) => t.id.equals(id)))
-          .getSingle();
+      final before = await (db.select(
+        db.gyms,
+      )..where((t) => t.id.equals(id))).getSingle();
       expect(before.syncedAt, isNotNull);
 
       // This is the repoint-to-a-new-backend case: the row's synced_at refers

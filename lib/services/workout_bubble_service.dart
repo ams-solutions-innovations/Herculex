@@ -8,7 +8,12 @@ import 'package:flutter/services.dart';
 /// both surfaces send the same shared `WorkoutNotificationActionIds`.
 /// Applies a control tapped or value edited in the bubble's popup.
 typedef WorkoutBubbleActionHandler =
-    Future<void> Function(String actionId, int? sessionId, int? setId, String? value);
+    Future<void> Function(
+      String actionId,
+      int? sessionId,
+      int? setId,
+      String? value,
+    );
 
 /// Drives the Workout Bubble — the floating chat head that sits over other apps
 /// while a workout is running and expands into a live workout card.

@@ -97,7 +97,10 @@ class _MuscleDetailHeaderCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: hx.outlineVariant.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
@@ -143,7 +146,9 @@ class _MuscleDetailHeaderCard extends ConsumerWidget {
               Expanded(
                 child: _DetailStatTile(
                   label: 'Working Sets',
-                  value: data.totalSets.toStringAsFixed(data.totalSets < 10 ? 1 : 0),
+                  value: data.totalSets.toStringAsFixed(
+                    data.totalSets < 10 ? 1 : 0,
+                  ),
                   icon: Icons.fitness_center,
                 ),
               ),
@@ -225,9 +230,7 @@ class _DetailStatTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: hx.surfaceContainer,
         borderRadius: BorderRadius.circular(HxRadius.md),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +281,10 @@ class _DetailTimeframeSelector extends ConsumerWidget {
               },
               child: AnimatedContainer(
                 duration: HxMotion.base,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: tf == currentTimeframe
                       ? hx.primary
@@ -297,9 +303,7 @@ class _DetailTimeframeSelector extends ConsumerWidget {
                     fontWeight: tf == currentTimeframe
                         ? FontWeight.bold
                         : FontWeight.normal,
-                    color: tf == currentTimeframe
-                        ? Colors.white
-                        : hx.onSurface,
+                    color: tf == currentTimeframe ? Colors.white : hx.onSurface,
                   ),
                 ),
               ),
@@ -352,9 +356,7 @@ class _EmptyWorkoutsCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'No recorded exercises in ${timeframe.label.toLowerCase()}.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: hx.secondary,
-                ),
+                style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
                 textAlign: TextAlign.center,
               ),
               if (timeframe != VolumeTimeframe.allTime) ...[
@@ -418,10 +420,7 @@ class _WorkoutSessionsList extends ConsumerWidget {
 }
 
 class _WorkoutSessionCard extends StatelessWidget {
-  const _WorkoutSessionCard({
-    required this.session,
-    required this.weight,
-  });
+  const _WorkoutSessionCard({required this.session, required this.weight});
 
   final MuscleWorkoutSessionItem session;
   final WeightFormat weight;
@@ -494,8 +493,10 @@ class _WorkoutSessionCard extends StatelessWidget {
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: hx.surfaceContainer,
                     borderRadius: BorderRadius.circular(8),
@@ -554,10 +555,7 @@ class _WorkoutSessionCard extends StatelessWidget {
           // Exercises List
           for (var i = 0; i < session.exercises.length; i++) ...[
             if (i > 0) const Divider(height: 20),
-            _ExerciseSection(
-              exercise: session.exercises[i],
-              weight: weight,
-            ),
+            _ExerciseSection(exercise: session.exercises[i], weight: weight),
           ],
         ],
       ),
@@ -578,10 +576,7 @@ class _WorkoutSessionCard extends StatelessWidget {
 }
 
 class _ExerciseSection extends StatelessWidget {
-  const _ExerciseSection({
-    required this.exercise,
-    required this.weight,
-  });
+  const _ExerciseSection({required this.exercise, required this.weight});
 
   final MuscleWorkoutExerciseItem exercise;
   final WeightFormat weight;
@@ -729,7 +724,10 @@ class _SetRow extends StatelessWidget {
               if (set.rpeX10 != null) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: hx.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(3),
@@ -747,7 +745,10 @@ class _SetRow extends StatelessWidget {
               if (set.setType != SetType.standard) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: hx.outlineVariant.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(3),

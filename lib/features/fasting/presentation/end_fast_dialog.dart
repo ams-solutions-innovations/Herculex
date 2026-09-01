@@ -35,7 +35,10 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
                 borderRadius: BorderRadius.circular(16),
               ),
               tileColor: AppColors.primary.withValues(alpha: 0.12),
-              leading: Icon(Icons.check_circle_outline, color: AppColors.primary),
+              leading: Icon(
+                Icons.check_circle_outline,
+                color: AppColors.primary,
+              ),
               title: Text(
                 "Save",
                 style: TextStyle(
@@ -63,8 +66,7 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
                 final pastSessions = await repo.history();
                 await repo.endSession(completed: true);
                 if (active != null) {
-                  final duration =
-                      DateTime.now().difference(active.startedAt);
+                  final duration = DateTime.now().difference(active.startedAt);
                   final evaluator = ref.read(achievementEvaluatorProvider);
                   final items = evaluator.evaluateFinishedFast(
                     fastDuration: duration,
@@ -72,8 +74,9 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
                     planName: 'Fasting Protocol',
                     targetSeconds: active.targetSeconds,
                   );
-                  final notifier =
-                      ref.read(inAppNotificationControllerProvider.notifier);
+                  final notifier = ref.read(
+                    inAppNotificationControllerProvider.notifier,
+                  );
                   for (final item in items) {
                     notifier.show(item);
                   }
@@ -103,7 +106,10 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
                 borderRadius: BorderRadius.circular(16),
               ),
               tileColor: Colors.red.withValues(alpha: 0.1),
-              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              leading: const Icon(
+                Icons.delete_outline,
+                color: Colors.redAccent,
+              ),
               title: const Text(
                 "Discard",
                 style: TextStyle(
@@ -135,4 +141,3 @@ void confirmEndFast(BuildContext context, WidgetRef ref) {
     },
   );
 }
-

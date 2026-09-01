@@ -172,8 +172,7 @@ List<double> _solveLinearSystem(List<List<double>> a, List<double> b) {
     }
   }
   return [
-    for (var i = 0; i < n; i++)
-      m[i][i].abs() < 1e-12 ? 0.0 : rhs[i] / m[i][i],
+    for (var i = 0; i < n; i++) m[i][i].abs() < 1e-12 ? 0.0 : rhs[i] / m[i][i],
   ];
 }
 
@@ -187,8 +186,14 @@ double? _leaveOneOutMae(List<List<double>> rows, List<double> labels) {
   if (n < 2) return null;
   var totalError = 0.0;
   for (var i = 0; i < n; i++) {
-    final trainRows = [for (var j = 0; j < n; j++) if (j != i) rows[j]];
-    final trainLabels = [for (var j = 0; j < n; j++) if (j != i) labels[j]];
+    final trainRows = [
+      for (var j = 0; j < n; j++)
+        if (j != i) rows[j],
+    ];
+    final trainLabels = [
+      for (var j = 0; j < n; j++)
+        if (j != i) labels[j],
+    ];
     final foldModel = _fit(trainRows, trainLabels);
     final predicted = foldModel.predict(rows[i]);
     totalError += (predicted - labels[i]).abs();

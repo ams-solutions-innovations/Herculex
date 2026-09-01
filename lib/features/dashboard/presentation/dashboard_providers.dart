@@ -243,77 +243,107 @@ class CalendarDaySummary {
 }
 
 /// Stream of calendar day summaries for the 7 days of the week containing [anchorDate].
-final _weekScheduledWorkoutsProvider = StreamProvider.family<List<ScheduledWorkoutData>, DateTime>((ref, anchorDate) {
-  final db = ref.watch(appDatabaseProvider);
-  final monday = anchorDate.subtract(Duration(days: anchorDate.weekday - 1));
-  final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+final _weekScheduledWorkoutsProvider =
+    StreamProvider.family<List<ScheduledWorkoutData>, DateTime>((
+      ref,
+      anchorDate,
+    ) {
+      final db = ref.watch(appDatabaseProvider);
+      final monday = anchorDate.subtract(
+        Duration(days: anchorDate.weekday - 1),
+      );
+      final startOfWeek = DateTime(monday.year, monday.month, monday.day);
 
-  final dateIsos = List.generate(7, (i) {
-    final d = startOfWeek.add(Duration(days: i));
-    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  });
+      final dateIsos = List.generate(7, (i) {
+        final d = startOfWeek.add(Duration(days: i));
+        return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      });
 
-  return (db.select(db.scheduledWorkouts)..where((t) => t.dateIso.isIn(dateIsos))).watch();
-});
+      return (db.select(
+        db.scheduledWorkouts,
+      )..where((t) => t.dateIso.isIn(dateIsos))).watch();
+    });
 
-final _weekCompletedSessionsProvider = StreamProvider.family<List<WorkoutSessionData>, DateTime>((ref, anchorDate) {
-  final db = ref.watch(appDatabaseProvider);
-  final monday = anchorDate.subtract(Duration(days: anchorDate.weekday - 1));
-  final startOfWeek = DateTime(monday.year, monday.month, monday.day);
-  final endOfWeek = startOfWeek.add(const Duration(days: 7));
+final _weekCompletedSessionsProvider =
+    StreamProvider.family<List<WorkoutSessionData>, DateTime>((
+      ref,
+      anchorDate,
+    ) {
+      final db = ref.watch(appDatabaseProvider);
+      final monday = anchorDate.subtract(
+        Duration(days: anchorDate.weekday - 1),
+      );
+      final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+      final endOfWeek = startOfWeek.add(const Duration(days: 7));
 
-  return (db.select(db.workoutSessions)..where((t) => t.startedAt.isBiggerOrEqualValue(startOfWeek) & t.startedAt.isSmallerThanValue(endOfWeek))).watch();
-});
+      return (db.select(db.workoutSessions)..where(
+            (t) =>
+                t.startedAt.isBiggerOrEqualValue(startOfWeek) &
+                t.startedAt.isSmallerThanValue(endOfWeek),
+          ))
+          .watch();
+    });
 
 /// Stream of calendar day summaries for the 7 days of the week containing [anchorDate].
-final weekCalendarSummaryProvider = Provider.family<AsyncValue<List<CalendarDaySummary>>, DateTime>((ref, anchorDate) {
-  final schedulesAsync = ref.watch(_weekScheduledWorkoutsProvider(anchorDate));
-  final sessionsAsync = ref.watch(_weekCompletedSessionsProvider(anchorDate));
+final weekCalendarSummaryProvider =
+    Provider.family<AsyncValue<List<CalendarDaySummary>>, DateTime>((
+      ref,
+      anchorDate,
+    ) {
+      final schedulesAsync = ref.watch(
+        _weekScheduledWorkoutsProvider(anchorDate),
+      );
+      final sessionsAsync = ref.watch(
+        _weekCompletedSessionsProvider(anchorDate),
+      );
 
-  if (schedulesAsync.isLoading || sessionsAsync.isLoading) {
-    return const AsyncLoading();
-  }
-  if (schedulesAsync.hasError) {
-    return AsyncError(schedulesAsync.error!, schedulesAsync.stackTrace!);
-  }
-  if (sessionsAsync.hasError) {
-    return AsyncError(sessionsAsync.error!, sessionsAsync.stackTrace!);
-  }
+      if (schedulesAsync.isLoading || sessionsAsync.isLoading) {
+        return const AsyncLoading();
+      }
+      if (schedulesAsync.hasError) {
+        return AsyncError(schedulesAsync.error!, schedulesAsync.stackTrace!);
+      }
+      if (sessionsAsync.hasError) {
+        return AsyncError(sessionsAsync.error!, sessionsAsync.stackTrace!);
+      }
 
-  final schedules = schedulesAsync.requireValue;
-  final sessions = sessionsAsync.requireValue;
+      final schedules = schedulesAsync.requireValue;
+      final sessions = sessionsAsync.requireValue;
 
-  final monday = anchorDate.subtract(Duration(days: anchorDate.weekday - 1));
-  final startOfWeek = DateTime(monday.year, monday.month, monday.day);
-  final now = DateTime.now();
-  final todayIso = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final monday = anchorDate.subtract(
+        Duration(days: anchorDate.weekday - 1),
+      );
+      final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+      final now = DateTime.now();
+      final todayIso =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-  final dateIsos = List.generate(7, (i) {
-    final d = startOfWeek.add(Duration(days: i));
-    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  });
+      final dateIsos = List.generate(7, (i) {
+        final d = startOfWeek.add(Duration(days: i));
+        return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      });
 
-  final result = List.generate(7, (i) {
-    final date = startOfWeek.add(Duration(days: i));
-    final iso = dateIsos[i];
-    final daySchedules = schedules.where((s) => s.dateIso == iso).toList();
-    final daySessions = sessions
-        .where(
-          (s) =>
-              s.startedAt.year == date.year &&
-              s.startedAt.month == date.month &&
-              s.startedAt.day == date.day,
-        )
-        .toList();
+      final result = List.generate(7, (i) {
+        final date = startOfWeek.add(Duration(days: i));
+        final iso = dateIsos[i];
+        final daySchedules = schedules.where((s) => s.dateIso == iso).toList();
+        final daySessions = sessions
+            .where(
+              (s) =>
+                  s.startedAt.year == date.year &&
+                  s.startedAt.month == date.month &&
+                  s.startedAt.day == date.day,
+            )
+            .toList();
 
-    return CalendarDaySummary(
-      date: date,
-      dateIso: iso,
-      isToday: iso == todayIso,
-      scheduledWorkouts: daySchedules,
-      completedSessions: daySessions,
-    );
-  });
-  
-  return AsyncData(result);
-});
+        return CalendarDaySummary(
+          date: date,
+          dateIso: iso,
+          isToday: iso == todayIso,
+          scheduledWorkouts: daySchedules,
+          completedSessions: daySessions,
+        );
+      });
+
+      return AsyncData(result);
+    });

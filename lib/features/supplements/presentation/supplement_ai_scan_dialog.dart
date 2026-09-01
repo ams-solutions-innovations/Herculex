@@ -63,7 +63,9 @@ class _SupplementAiScanDialogState
   Future<void> _pickImage(ImageSource source) async {
     Haptics.light();
     try {
-      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+      await ref
+          .read(pendingAiScanServiceProvider)
+          .setPendingContext(
             PendingAiScanContext(type: AiScanContextType.supplement),
           );
       final picker = ImagePicker();
@@ -324,13 +326,8 @@ class _SupplementAiScanDialogState
           child: Container(
             height: 180,
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer,
-            ),
-            child: Image.file(
-              _imageFile!,
-              fit: BoxFit.cover,
-            ),
+            decoration: BoxDecoration(color: AppColors.surfaceContainer),
+            child: Image.file(_imageFile!, fit: BoxFit.cover),
           ),
         ),
         Positioned(
@@ -495,9 +492,10 @@ class _SupplementAiScanDialogState
                 'Priporočen opomnik',
                 r.schedule == SupplementSchedule.postWorkout
                     ? 'Po treningu'
-                    : (r.schedule == SupplementSchedule.time && r.timeHHMM != null
-                        ? 'Vsak dan ob ${r.timeHHMM}'
-                        : 'Brez opomnika'),
+                    : (r.schedule == SupplementSchedule.time &&
+                              r.timeHHMM != null
+                          ? 'Vsak dan ob ${r.timeHHMM}'
+                          : 'Brez opomnika'),
                 Icons.notifications_active_outlined,
               ),
             ],
@@ -535,8 +533,10 @@ class _SupplementAiScanDialogState
                     ? e.value.toStringAsFixed(0)
                     : e.value.toStringAsFixed(1);
                 return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF9B59B6).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
@@ -547,7 +547,11 @@ class _SupplementAiScanDialogState
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.check, size: 12, color: Color(0xFF9B59B6)),
+                      const Icon(
+                        Icons.check,
+                        size: 12,
+                        color: Color(0xFF9B59B6),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '$label: ',

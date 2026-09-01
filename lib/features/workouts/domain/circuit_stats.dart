@@ -14,7 +14,8 @@ class CircuitPerformanceStats {
   });
 
   String get formattedAvgRest {
-    if (averageRestBetweenRoundsSeconds == null || averageRestBetweenRoundsSeconds! <= 0) {
+    if (averageRestBetweenRoundsSeconds == null ||
+        averageRestBetweenRoundsSeconds! <= 0) {
       return '—';
     }
     final m = averageRestBetweenRoundsSeconds! ~/ 60;
@@ -69,10 +70,12 @@ CircuitPerformanceStats calculateCircuitStats({
         break;
       }
       if (set.completedAt != null) {
-        if (firstCompletedInRound == null || set.completedAt!.isBefore(firstCompletedInRound)) {
+        if (firstCompletedInRound == null ||
+            set.completedAt!.isBefore(firstCompletedInRound)) {
           firstCompletedInRound = set.completedAt;
         }
-        if (lastCompletedInRound == null || set.completedAt!.isAfter(lastCompletedInRound)) {
+        if (lastCompletedInRound == null ||
+            set.completedAt!.isAfter(lastCompletedInRound)) {
           lastCompletedInRound = set.completedAt;
         }
       }

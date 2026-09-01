@@ -35,12 +35,12 @@ class FinishWorkoutAction {
     required DateTime now,
     required double bodyweightKg,
     required void Function(int sessionId) clearEditedEndedAt,
-  })  : _repository = repository,
-        _healthService = healthService,
-        _wearSync = wearSync,
-        _now = now,
-        _bodyweightKg = bodyweightKg,
-        _clearEditedEndedAt = clearEditedEndedAt;
+  }) : _repository = repository,
+       _healthService = healthService,
+       _wearSync = wearSync,
+       _now = now,
+       _bodyweightKg = bodyweightKg,
+       _clearEditedEndedAt = clearEditedEndedAt;
 
   /// Resolves every dependency eagerly. **Call this before the first `await`**
   /// in the handler that finishes a workout.
@@ -57,7 +57,9 @@ class FinishWorkoutAction {
       wearSync: ref.read(wearWorkoutSyncServiceProvider),
       now: ref.read(clockProvider).now(),
       // The 20 kg floor rejects placeholder/imported junk, not real users.
-      bodyweightKg: (weightKg != null && weightKg > 20) ? weightKg : _fallbackKg,
+      bodyweightKg: (weightKg != null && weightKg > 20)
+          ? weightKg
+          : _fallbackKg,
       clearEditedEndedAt: (sessionId) => editedEndedAt.update((state) {
         final copy = Map<int, DateTime>.from(state);
         copy.remove(sessionId);

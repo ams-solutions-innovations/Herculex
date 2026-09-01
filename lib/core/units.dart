@@ -46,13 +46,16 @@ class UnitsNotifier extends Notifier<MeasurementUnit> {
     state = unit;
   }
 
-  Future<void> toggle() => set(state == MeasurementUnit.metric
-      ? MeasurementUnit.imperial
-      : MeasurementUnit.metric);
+  Future<void> toggle() => set(
+    state == MeasurementUnit.metric
+        ? MeasurementUnit.imperial
+        : MeasurementUnit.metric,
+  );
 }
 
-final unitsProvider =
-    NotifierProvider<UnitsNotifier, MeasurementUnit>(UnitsNotifier.new);
+final unitsProvider = NotifierProvider<UnitsNotifier, MeasurementUnit>(
+  UnitsNotifier.new,
+);
 
 /// Display helpers bound to the active measurement system. Obtained from
 /// [weightFormatProvider] so widgets never convert by hand.

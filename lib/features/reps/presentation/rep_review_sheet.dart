@@ -101,7 +101,9 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
     // The value actually on screen: the user's own edit if they touched the
     // field, otherwise whatever the calibration suggestion last rendered
     // (which is null whenever the profile isn't calibrated).
-    final effectiveRpe = _rpeEditedByUser ? _rpe : (_rpe ?? _lastAutoSuggestedRpe);
+    final effectiveRpe = _rpeEditedByUser
+        ? _rpe
+        : (_rpe ?? _lastAutoSuggestedRpe);
     final rpeX10 = effectiveRpe == null ? null : (effectiveRpe * 10).round();
     final suggestedRpeX10 = _lastAutoSuggestedRpe == null
         ? null
@@ -342,10 +344,7 @@ class _RepReviewSheetState extends ConsumerState<RepReviewSheet> {
                     '${(s.coverageRatio * 100).round()}%'
                         '${s.missedBatches > 0 ? ' (${s.missedBatches} missed batches)' : ''}',
                   ),
-                  _measurementRow(
-                    'Calibration',
-                    _calibrationLabel(profile),
-                  ),
+                  _measurementRow('Calibration', _calibrationLabel(profile)),
                 ],
               ),
               const SizedBox(height: 16),

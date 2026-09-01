@@ -7,10 +7,7 @@ import '../../../theme/colors.dart';
 class DurationPickerDialog extends StatefulWidget {
   final int initialMinutes;
 
-  const DurationPickerDialog({
-    super.key,
-    required this.initialMinutes,
-  });
+  const DurationPickerDialog({super.key, required this.initialMinutes});
 
   static Future<int?> show(BuildContext context, {int initialMinutes = 45}) {
     return showDialog<int>(
@@ -104,7 +101,9 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
                   selectedColor: AppColors.primary.withValues(alpha: 0.2),
                   labelStyle: TextStyle(
                     color: isSelected ? AppColors.primary : AppColors.onSurface,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                   onSelected: (_) => _selectPreset(m),
                 );

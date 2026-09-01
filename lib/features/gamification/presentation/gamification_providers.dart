@@ -95,83 +95,103 @@ class GamificationService {
     final notifier = _ref.read(inAppNotificationControllerProvider.notifier);
     switch (type) {
       case AchievementType.weightPr:
-        notifier.show(InAppNotificationItem.weightPr(
-          exerciseName: 'Bench Press',
-          weightFormatted: '140 kg',
-          diffFormatted: '5 kg',
-        ));
+        notifier.show(
+          InAppNotificationItem.weightPr(
+            exerciseName: 'Bench Press',
+            weightFormatted: '140 kg',
+            diffFormatted: '5 kg',
+          ),
+        );
         break;
       case AchievementType.repPr:
-        notifier.show(InAppNotificationItem.repPr(
-          exerciseName: 'Incline Dumbbell Press',
-          reps: 12,
-          weightFormatted: '42 kg',
-          previousReps: 10,
-        ));
+        notifier.show(
+          InAppNotificationItem.repPr(
+            exerciseName: 'Incline Dumbbell Press',
+            reps: 12,
+            weightFormatted: '42 kg',
+            previousReps: 10,
+          ),
+        );
         break;
       case AchievementType.exerciseTonnagePr:
-        notifier.show(InAppNotificationItem.exerciseTonnagePr(
-          exerciseName: 'Barbell Squat',
-          volumeFormatted: '5,200 kg',
-          diffFormatted: '450 kg',
-        ));
+        notifier.show(
+          InAppNotificationItem.exerciseTonnagePr(
+            exerciseName: 'Barbell Squat',
+            volumeFormatted: '5,200 kg',
+            diffFormatted: '450 kg',
+          ),
+        );
         break;
       case AchievementType.muscleGroupVolumePr:
-        notifier.show(InAppNotificationItem.muscleGroupVolumePr(
-          muscleGroup: 'Chest',
-          volumeFormatted: '6,400 kg',
-          diffFormatted: '800 kg',
-        ));
+        notifier.show(
+          InAppNotificationItem.muscleGroupVolumePr(
+            muscleGroup: 'Chest',
+            volumeFormatted: '6,400 kg',
+            diffFormatted: '800 kg',
+          ),
+        );
         break;
       case AchievementType.accessoryPr:
-        notifier.show(InAppNotificationItem.accessoryPr(
-          exerciseName: 'Deadlift',
-          accessoryLabel: 'Raw (No Belt)',
-          weightFormatted: '210 kg',
-        ));
+        notifier.show(
+          InAppNotificationItem.accessoryPr(
+            exerciseName: 'Deadlift',
+            accessoryLabel: 'Raw (No Belt)',
+            weightFormatted: '210 kg',
+          ),
+        );
         break;
       case AchievementType.workoutTonnagePr:
-        notifier.show(InAppNotificationItem.workoutTonnagePr(
-          workoutName: 'Push Day Hypertrophy',
-          tonnageFormatted: '18.4 t',
-          diffFormatted: '1.2 t',
-        ));
+        notifier.show(
+          InAppNotificationItem.workoutTonnagePr(
+            workoutName: 'Push Day Hypertrophy',
+            tonnageFormatted: '18.4 t',
+            diffFormatted: '1.2 t',
+          ),
+        );
         break;
       case AchievementType.longestWorkout:
-        notifier.show(InAppNotificationItem.longestWorkout(
-          workoutName: 'Full Body Endurance',
-          durationFormatted: '1h 45m',
-        ));
+        notifier.show(
+          InAppNotificationItem.longestWorkout(
+            workoutName: 'Full Body Endurance',
+            durationFormatted: '1h 45m',
+          ),
+        );
         break;
       case AchievementType.longestFast:
-        notifier.show(InAppNotificationItem.longestFast(
-          durationFormatted: '24h 30m',
-          previousBestFormatted: '18h 00m',
-        ));
+        notifier.show(
+          InAppNotificationItem.longestFast(
+            durationFormatted: '24h 30m',
+            previousBestFormatted: '18h 00m',
+          ),
+        );
         break;
       case AchievementType.fastingTarget:
-        notifier.show(InAppNotificationItem.fastingTarget(
-          planName: '16:8 Intermittent Fast',
-          durationFormatted: '16h 05m',
-        ));
+        notifier.show(
+          InAppNotificationItem.fastingTarget(
+            planName: '16:8 Intermittent Fast',
+            durationFormatted: '16h 05m',
+          ),
+        );
         break;
       case AchievementType.workoutMilestone:
-        notifier.show(InAppNotificationItem.workoutMilestone(
-          count: 50,
-        ));
+        notifier.show(InAppNotificationItem.workoutMilestone(count: 50));
         break;
       case AchievementType.proteinGoal:
-        notifier.show(InAppNotificationItem.proteinGoal(
-          currentGrams: 185,
-          targetGrams: 180,
-        ));
+        notifier.show(
+          InAppNotificationItem.proteinGoal(
+            currentGrams: 185,
+            targetGrams: 180,
+          ),
+        );
         break;
       default:
-        notifier.show(InAppNotificationItem.weightPr(
-          exerciseName: 'Overhead Press',
-          weightFormatted: '85 kg',
-          diffFormatted: '2.5 kg',
-        ));
+        notifier.show(
+          InAppNotificationItem.weightPr(
+            exerciseName: 'Overhead Press',
+            weightFormatted: '85 kg',
+            diffFormatted: '2.5 kg',
+          ),
+        );
     }
   }
 }

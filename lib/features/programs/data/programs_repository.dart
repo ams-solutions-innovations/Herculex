@@ -40,7 +40,8 @@ class ProgramsRepository {
     required int weeks,
     required String type, // rotating | block
     required String progressionStrategy, // volume | intensity | dynamic
-    String? periodizationModel, // none | linear | concurrent | block | max_effort
+    String?
+    periodizationModel, // none | linear | concurrent | block | max_effort
     SplitType splitType = SplitType.custom,
     ScheduleMode scheduleMode = ScheduleMode.weekly,
     int? cycleLength,
@@ -86,6 +87,7 @@ class ProgramsRepository {
     required DateTime startDate,
     String? periodizationModel,
     String progressionStrategy = 'volume',
+
     /// Template id per `SplitDaySpec.slotIndex`; a missing or null entry leaves
     /// the day empty for inline exercises.
     Map<int, int?> templateIdsBySlot = const {},
@@ -131,8 +133,7 @@ class ProgramsRepository {
             slotLabel: spec.label,
             orderIndex: order++,
             templateId: templateIdsBySlot[spec.slotIndex],
-            cycleDayIndex:
-                plan.mode == ScheduleMode.cycle ? spec.index : null,
+            cycleDayIndex: plan.mode == ScheduleMode.cycle ? spec.index : null,
             startTimeMinutes: defaultStartTimeMinutes,
           );
         }
@@ -184,7 +185,8 @@ class ProgramsRepository {
     return (_db.select(_db.programs)
           ..where((t) => t.archived.equals(false))
           ..orderBy([
-            (t) => OrderingTerm(expression: t.isActive, mode: OrderingMode.desc),
+            (t) =>
+                OrderingTerm(expression: t.isActive, mode: OrderingMode.desc),
             (t) => OrderingTerm(expression: t.name),
           ]))
         .watch();
@@ -217,31 +219,33 @@ class ProgramsRepository {
   }
 
   Future<void> archiveProgram(int programId, {bool archived = true}) async {
-    await (_db.update(_db.programs)..where((t) => t.id.equals(programId)))
-        .write(
-          ProgramsCompanion(
-            archived: Value(archived),
-            // An archived block can never be the active one.
-            isActive: archived ? const Value(false) : const Value.absent(),
-          ),
-        );
+    await (_db.update(
+      _db.programs,
+    )..where((t) => t.id.equals(programId))).write(
+      ProgramsCompanion(
+        archived: Value(archived),
+        // An archived block can never be the active one.
+        isActive: archived ? const Value(false) : const Value.absent(),
+      ),
+    );
   }
 
   Future<void> deleteProgram(int programId) async {
     await _db.transaction(() async {
-      final weekIds = (await (_db.select(
-        _db.programWeeks,
-      )..where((t) => t.programId.equals(programId))).get())
-          .map((w) => w.id)
-          .toList();
+      final weekIds =
+          (await (_db.select(
+                _db.programWeeks,
+              )..where((t) => t.programId.equals(programId))).get())
+              .map((w) => w.id)
+              .toList();
 
       final dayIds = weekIds.isEmpty
           ? <int>[]
-          : (await (_db.select(_db.programDays)
-                    ..where((t) => t.programWeekId.isIn(weekIds)))
-                .get())
-              .map((d) => d.id)
-              .toList();
+          : (await (_db.select(
+                  _db.programDays,
+                )..where((t) => t.programWeekId.isIn(weekIds))).get())
+                .map((d) => d.id)
+                .toList();
 
       if (dayIds.isNotEmpty) {
         await (_db.delete(
@@ -268,8 +272,9 @@ class ProgramsRepository {
           _db.programWeeks,
         )..where((t) => t.id.isIn(weekIds))).go();
       }
-      await (_db.delete(_db.programs)..where((t) => t.id.equals(programId)))
-          .go();
+      await (_db.delete(
+        _db.programs,
+      )..where((t) => t.id.equals(programId))).go();
     });
   }
 
@@ -376,15 +381,15 @@ class ProgramsRepository {
     int dayOfWeek,
     int? cycleDayIndex,
   ) async {
-    final rows = await (_db.select(_db.programDays)
-          ..where(
-            (t) =>
-                t.programWeekId.equals(programWeekId) &
-                (cycleDayIndex != null
-                    ? t.cycleDayIndex.equals(cycleDayIndex)
-                    : t.dayOfWeek.equals(dayOfWeek)),
-          ))
-        .get();
+    final rows =
+        await (_db.select(_db.programDays)..where(
+              (t) =>
+                  t.programWeekId.equals(programWeekId) &
+                  (cycleDayIndex != null
+                      ? t.cycleDayIndex.equals(cycleDayIndex)
+                      : t.dayOfWeek.equals(dayOfWeek)),
+            ))
+            .get();
     return rows.length;
   }
 
@@ -393,15 +398,14 @@ class ProgramsRepository {
     String? name,
     String? slotLabel,
   }) async {
-    await (_db.update(_db.programDays)..where((t) => t.id.equals(programDayId)))
-        .write(
-          ProgramDaysCompanion(
-            name: name == null ? const Value.absent() : Value(name),
-            slotLabel: slotLabel == null
-                ? const Value.absent()
-                : Value(slotLabel),
-          ),
-        );
+    await (_db.update(
+      _db.programDays,
+    )..where((t) => t.id.equals(programDayId))).write(
+      ProgramDaysCompanion(
+        name: name == null ? const Value.absent() : Value(name),
+        slotLabel: slotLabel == null ? const Value.absent() : Value(slotLabel),
+      ),
+    );
   }
 
   Future<void> deleteProgramDay(int programDayId) async {
@@ -431,9 +435,11 @@ class ProgramsRepository {
     int scheduleId,
     int? templateId,
   ) async {
-    await (_db.update(_db.scheduledWorkouts)
-          ..where((t) => t.id.equals(scheduleId)))
-        .write(ScheduledWorkoutsCompanion(templateIdOverride: Value(templateId)));
+    await (_db.update(
+      _db.scheduledWorkouts,
+    )..where((t) => t.id.equals(scheduleId))).write(
+      ScheduledWorkoutsCompanion(templateIdOverride: Value(templateId)),
+    );
   }
 
   /// Sets the day's default start time. Callers that want this to reach
@@ -454,9 +460,11 @@ class ProgramsRepository {
     int scheduleId,
     int? startTimeMinutes,
   ) async {
-    await (_db.update(_db.scheduledWorkouts)
-          ..where((t) => t.id.equals(scheduleId)))
-        .write(ScheduledWorkoutsCompanion(startTimeMinutes: Value(startTimeMinutes)));
+    await (_db.update(
+      _db.scheduledWorkouts,
+    )..where((t) => t.id.equals(scheduleId))).write(
+      ScheduledWorkoutsCompanion(startTimeMinutes: Value(startTimeMinutes)),
+    );
   }
 
   Future<void> setWeekAdjustment(
@@ -464,18 +472,18 @@ class ProgramsRepository {
     double? adjustmentFactor,
     double? intensityFactor,
   }) async {
-    await (_db.update(_db.programWeeks)
-          ..where((t) => t.id.equals(programWeekId)))
-        .write(
-          ProgramWeeksCompanion(
-            adjustmentFactor: adjustmentFactor == null
-                ? const Value.absent()
-                : Value(adjustmentFactor),
-            intensityFactor: intensityFactor == null
-                ? const Value.absent()
-                : Value(intensityFactor),
-          ),
-        );
+    await (_db.update(
+      _db.programWeeks,
+    )..where((t) => t.id.equals(programWeekId))).write(
+      ProgramWeeksCompanion(
+        adjustmentFactor: adjustmentFactor == null
+            ? const Value.absent()
+            : Value(adjustmentFactor),
+        intensityFactor: intensityFactor == null
+            ? const Value.absent()
+            : Value(intensityFactor),
+      ),
+    );
   }
 
   Future<int> addExerciseToProgramDay({
@@ -679,10 +687,11 @@ class ProgramsRepository {
         }
       }
 
-      await (_db.update(_db.programs)..where((t) => t.id.equals(programId)))
-          .write(
-            ProgramsCompanion(startDateIso: Value(_formatDateIso(startDate))),
-          );
+      await (_db.update(
+        _db.programs,
+      )..where((t) => t.id.equals(programId))).write(
+        ProgramsCompanion(startDateIso: Value(_formatDateIso(startDate))),
+      );
     });
 
     await _reindexDates(programId);
@@ -710,11 +719,12 @@ class ProgramsRepository {
   /// Rewrites `orderIndex` densely for every date the program touches, so the
   /// per-date ordering stays 0..n-1 across programs after a generation pass.
   Future<void> _reindexDates(int programId) async {
-    final dates = await (_db.selectOnly(_db.scheduledWorkouts, distinct: true)
-          ..addColumns([_db.scheduledWorkouts.dateIso])
-          ..where(_db.scheduledWorkouts.programId.equals(programId)))
-        .map((row) => row.read(_db.scheduledWorkouts.dateIso)!)
-        .get();
+    final dates =
+        await (_db.selectOnly(_db.scheduledWorkouts, distinct: true)
+              ..addColumns([_db.scheduledWorkouts.dateIso])
+              ..where(_db.scheduledWorkouts.programId.equals(programId)))
+            .map((row) => row.read(_db.scheduledWorkouts.dateIso)!)
+            .get();
     for (final dateIso in dates) {
       await _reindexDate(dateIso);
     }
@@ -795,24 +805,26 @@ class ProgramsRepository {
     final newDateIso = _formatDateIso(newDate);
 
     await _db.transaction(() async {
-      final targetCount = await (_db.select(_db.scheduledWorkouts)
-            ..where(
-              (t) => t.dateIso.equals(newDateIso) & t.id.equals(scheduleId).not(),
-            ))
-          .get()
-          .then((r) => r.length);
+      final targetCount =
+          await (_db.select(_db.scheduledWorkouts)..where(
+                (t) =>
+                    t.dateIso.equals(newDateIso) &
+                    t.id.equals(scheduleId).not(),
+              ))
+              .get()
+              .then((r) => r.length);
 
-      await (_db.update(_db.scheduledWorkouts)
-            ..where((t) => t.id.equals(scheduleId)))
-          .write(
-            ScheduledWorkoutsCompanion(
-              dateIso: Value(newDateIso),
-              orderIndex: Value(newOrderIndex ?? targetCount),
-              status: row.status == ScheduleStatus.planned
-                  ? const Value(ScheduleStatus.moved)
-                  : const Value.absent(),
-            ),
-          );
+      await (_db.update(
+        _db.scheduledWorkouts,
+      )..where((t) => t.id.equals(scheduleId))).write(
+        ScheduledWorkoutsCompanion(
+          dateIso: Value(newDateIso),
+          orderIndex: Value(newOrderIndex ?? targetCount),
+          status: row.status == ScheduleStatus.planned
+              ? const Value(ScheduleStatus.moved)
+              : const Value.absent(),
+        ),
+      );
     });
 
     await _reindexDate(newDateIso);
@@ -955,8 +967,7 @@ class ProgramsRepository {
                   ..groupBy([pde.programDayId]))
                 .get();
         for (final c in counts) {
-          inlineCounts[c.read(pde.programDayId)!] =
-              c.read(pde.id.count()) ?? 0;
+          inlineCounts[c.read(pde.programDayId)!] = c.read(pde.id.count()) ?? 0;
         }
       }
 
@@ -997,7 +1008,8 @@ class ProgramsRepository {
     if (fromIso != null) {
       query.where((t) => t.dateIso.isBiggerOrEqualValue(fromIso));
     }
-    if (toIso != null) query.where((t) => t.dateIso.isSmallerOrEqualValue(toIso));
+    if (toIso != null)
+      query.where((t) => t.dateIso.isSmallerOrEqualValue(toIso));
     if (programId != null) query.where((t) => t.programId.equals(programId));
     final scheduled = await query.get();
     if (scheduled.length < 2) return const [];
@@ -1089,10 +1101,9 @@ class ProgramsRepository {
   /// Marks planned sessions falling inside a vacation or rest range as skipped.
   /// Sessions the user has already acted on are left alone.
   Future<void> _applyEventAdjustments() async {
-    final events = await (_db.select(_db.externalEvents)..where(
-          (t) => t.type.isIn(const ['vacation', 'rest']),
-        ))
-        .get();
+    final events = await (_db.select(
+      _db.externalEvents,
+    )..where((t) => t.type.isIn(const ['vacation', 'rest']))).get();
     if (events.isEmpty) return;
 
     for (final e in events) {
@@ -1102,16 +1113,18 @@ class ProgramsRepository {
                 t.dateIso.isSmallerOrEqualValue(e.dateToIso) &
                 t.status.equals(ScheduleStatus.planned),
           ))
-          .write(const ScheduledWorkoutsCompanion(
-            status: Value(ScheduleStatus.skipped),
-          ));
+          .write(
+            const ScheduledWorkoutsCompanion(
+              status: Value(ScheduleStatus.skipped),
+            ),
+          );
     }
   }
 
   Stream<List<ExternalEventData>> watchExternalEvents() {
-    return (_db.select(_db.externalEvents)
-          ..orderBy([(t) => OrderingTerm(expression: t.dateFromIso)]))
-        .watch();
+    return (_db.select(
+      _db.externalEvents,
+    )..orderBy([(t) => OrderingTerm(expression: t.dateFromIso)])).watch();
   }
 
   DateTime _todayDate() {

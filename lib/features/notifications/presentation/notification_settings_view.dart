@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/tokens/tokens.dart';
+import '../../../ui/ui.dart';
 import '../../nutrition/presentation/meal_slots_provider.dart';
 import 'notification_settings_provider.dart';
 
@@ -63,38 +64,30 @@ class NotificationSettingsView extends ConsumerWidget {
     final mealSlots = ref.watch(mealSlotsProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        backgroundColor: theme.colorScheme.surface,
-        surfaceTintColor: Colors.transparent,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-        children: [
-          Text(
-            'Control push reminders and background notifications for your meals, fasting, supplements, and workouts.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: context.hx.onSurfaceVariant,
-              height: 1.4,
-            ),
+    return HxScreenShell(
+      title: 'Notifications',
+      children: [
+        Text(
+          'Control push reminders and background notifications for your meals, fasting, supplements, and workouts.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: context.hx.onSurfaceVariant,
+            height: 1.4,
           ),
-          const SizedBox(height: 24),
+        ),
+        const SizedBox(height: 24),
 
-          // ── Meals Section ──────────────────────────────────────────────────
-          _SectionHeader('Meals'),
-          const SizedBox(height: 10),
-          _SettingsCard(
-            children: [
-              _SettingsSwitchTile(
-                icon: Icons.restaurant_menu_rounded,
-                title: 'Meal Reminders',
-                subtitle: 'Send reminders for scheduled meal slots',
-                value: settings.mealRemindersEnabled,
-                onChanged: notifier.setMealRemindersEnabled,
-              ),
+        // ── Meals Section ──────────────────────────────────────────────────
+        _SectionHeader('Meals'),
+        const SizedBox(height: 10),
+        _SettingsCard(
+          children: [
+            _SettingsSwitchTile(
+              icon: Icons.restaurant_menu_rounded,
+              title: 'Meal Reminders',
+              subtitle: 'Send reminders for scheduled meal slots',
+              value: settings.mealRemindersEnabled,
+              onChanged: notifier.setMealRemindersEnabled,
+            ),
               if (settings.mealRemindersEnabled) ...[
                 _SettingsDivider(),
                 for (final slot in mealSlots) ...[
@@ -275,10 +268,9 @@ class NotificationSettingsView extends ConsumerWidget {
             ],
           ),
         ],
-      ),
-    );
+      );
+    }
   }
-}
 
 // ── Helper Widgets ────────────────────────────────────────────────────────────
 
@@ -291,10 +283,10 @@ class _SectionHeader extends StatelessWidget {
     return Text(
       title.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: context.hx.onSurfaceVariant,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.bold,
-          ),
+        color: context.hx.onSurfaceVariant,
+        letterSpacing: 1.2,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 }
@@ -374,10 +366,7 @@ class _SettingsSwitchTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-          ),
+          Switch.adaptive(value: value, onChanged: onChanged),
         ],
       ),
     );
@@ -469,10 +458,7 @@ class _MealSlotRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Switch.adaptive(
-            value: isEnabled,
-            onChanged: onToggle,
-          ),
+          Switch.adaptive(value: isEnabled, onChanged: onToggle),
         ],
       ),
     );

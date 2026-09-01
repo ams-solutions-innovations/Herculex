@@ -16,8 +16,7 @@ class SupplementIntake {
     required this.untrackedNames,
   });
 
-  static const empty =
-      SupplementIntake(nutrients: {}, untrackedNames: []);
+  static const empty = SupplementIntake(nutrients: {}, untrackedNames: []);
 
   bool get isEmpty => nutrients.isEmpty && untrackedNames.isEmpty;
 

@@ -495,14 +495,8 @@ void main() {
 
       final rows = await db.select(db.dailySummaries).get();
       expect(rows, hasLength(2));
-      expect(
-        rows.singleWhere((r) => r.dateIso == '2026-06-15').waterMl,
-        500,
-      );
-      expect(
-        rows.singleWhere((r) => r.dateIso == '2026-06-16').waterMl,
-        200,
-      );
+      expect(rows.singleWhere((r) => r.dateIso == '2026-06-15').waterMl, 500);
+      expect(rows.singleWhere((r) => r.dateIso == '2026-06-16').waterMl, 200);
     });
   });
 
@@ -513,22 +507,27 @@ void main() {
   // search list. They are deliberately unfiltered by `deletedAt` — that
   // filter is Step 4's job.
   group('RB-05 Step 2 — id-lookup primitives', () {
-    test('foodById returns the matching row and null for an unknown id', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final repo = NutritionRepository(
-        db,
-        OpenFoodFactsClient(),
-        _FixedClock(DateTime(2026, 6, 15, 12)),
-      );
+    test(
+      'foodById returns the matching row and null for an unknown id',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          _FixedClock(DateTime(2026, 6, 15, 12)),
+        );
 
-      final foodId = await db
-          .into(db.foods)
-          .insert(FoodsCompanion.insert(name: 'Direct Lookup', kcalPer100g: 90));
+        final foodId = await db
+            .into(db.foods)
+            .insert(
+              FoodsCompanion.insert(name: 'Direct Lookup', kcalPer100g: 90),
+            );
 
-      expect((await repo.foodById(foodId))?.name, 'Direct Lookup');
-      expect(await repo.foodById(foodId + 999), isNull);
-    });
+        expect((await repo.foodById(foodId))?.name, 'Direct Lookup');
+        expect(await repo.foodById(foodId + 999), isNull);
+      },
+    );
 
     test('foodsByIds batches a lookup keyed by id', () async {
       final db = await openTestDatabase();
@@ -567,31 +566,37 @@ void main() {
           .insert(FoodsCompanion.insert(name: 'Watched', kcalPer100g: 50));
 
       final emissions = <String?>[];
-      final sub = repo.watchFoodById(foodId).listen((f) => emissions.add(f?.name));
+      final sub = repo
+          .watchFoodById(foodId)
+          .listen((f) => emissions.add(f?.name));
       await pumpEventQueue();
 
-      await (db.update(db.foods)..where((t) => t.id.equals(foodId)))
-          .write(const FoodsCompanion(name: Value('Renamed')));
+      await (db.update(db.foods)..where((t) => t.id.equals(foodId))).write(
+        const FoodsCompanion(name: Value('Renamed')),
+      );
       await pumpEventQueue();
 
       await sub.cancel();
       expect(emissions, ['Watched', 'Renamed']);
     });
 
-    test('recipeById returns the matching row and null for an unknown id', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final repo = NutritionRepository(
-        db,
-        OpenFoodFactsClient(),
-        _FixedClock(DateTime(2026, 6, 15, 12)),
-      );
+    test(
+      'recipeById returns the matching row and null for an unknown id',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final repo = NutritionRepository(
+          db,
+          OpenFoodFactsClient(),
+          _FixedClock(DateTime(2026, 6, 15, 12)),
+        );
 
-      final recipeId = await repo.createRecipe(name: 'Direct Recipe');
+        final recipeId = await repo.createRecipe(name: 'Direct Recipe');
 
-      expect((await repo.recipeById(recipeId))?.name, 'Direct Recipe');
-      expect(await repo.recipeById(recipeId + 999), isNull);
-    });
+        expect((await repo.recipeById(recipeId))?.name, 'Direct Recipe');
+        expect(await repo.recipeById(recipeId + 999), isNull);
+      },
+    );
 
     test(
       'foodById resolves a food past searchFoods\' 20-row limit '
@@ -702,7 +707,11 @@ void main() {
               ),
             );
         final recipeId = await repo.createRecipe(name: 'Porridge', servings: 1);
-        await repo.addIngredient(recipeId: recipeId, foodId: foodId, grams: 100);
+        await repo.addIngredient(
+          recipeId: recipeId,
+          foodId: foodId,
+          grams: 100,
+        );
 
         await repo.logRecipe(
           date: DateTime(2026, 6, 15),
@@ -734,83 +743,77 @@ void main() {
       },
     );
 
-    test(
-      'a null-snapshot (pre-v24) entry keeps resolving against the live '
-      'catalogue',
-      () async {
-        final db = await openTestDatabase();
-        addTearDown(db.close);
-        final repo = NutritionRepository(
-          db,
-          OpenFoodFactsClient(),
-          _FixedClock(DateTime(2026, 6, 15, 12)),
-        );
+    test('a null-snapshot (pre-v24) entry keeps resolving against the live '
+        'catalogue', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
 
-        final foodId = await db
-            .into(db.foods)
-            .insert(FoodsCompanion.insert(name: 'Legacy Row', kcalPer100g: 150));
+      final foodId = await db
+          .into(db.foods)
+          .insert(FoodsCompanion.insert(name: 'Legacy Row', kcalPer100g: 150));
 
-        // Simulate a pre-v24 row the migration couldn't backfill: written
-        // directly, bypassing logFood, so every snapshot* column is null.
-        await db
-            .into(db.foodEntries)
-            .insert(
-              FoodEntriesCompanion.insert(
-                dateIso: '2026-06-15',
-                meal: Meal.snack.name,
-                foodId: Value(foodId),
-                gramsOverride: const Value(100),
-                portionAmount: const Value(100),
-                portionUnit: const Value('g'),
-              ),
-            );
-        var entry = (await db.select(db.foodEntries).get()).single;
-        expect(entry.snapshotBasis, isNull);
+      // Simulate a pre-v24 row the migration couldn't backfill: written
+      // directly, bypassing logFood, so every snapshot* column is null.
+      await db
+          .into(db.foodEntries)
+          .insert(
+            FoodEntriesCompanion.insert(
+              dateIso: '2026-06-15',
+              meal: Meal.snack.name,
+              foodId: Value(foodId),
+              gramsOverride: const Value(100),
+              portionAmount: const Value(100),
+              portionUnit: const Value('g'),
+            ),
+          );
+      var entry = (await db.select(db.foodEntries).get()).single;
+      expect(entry.snapshotBasis, isNull);
 
-        var totals = await repo.macrosForEntry(entry);
-        expect(totals.kcal, 150);
+      var totals = await repo.macrosForEntry(entry);
+      expect(totals.kcal, 150);
 
-        // Unlike a snapshotted entry, this one is still expected to move
-        // with the catalogue — that's the documented fallback behavior, not
-        // a regression.
-        await repo.updateCustomFood(
-          id: foodId,
-          name: 'Legacy Row',
-          kcalPer100g: 300,
-        );
-        totals = await repo.macrosForEntry(entry);
-        expect(totals.kcal, 300);
-      },
-    );
+      // Unlike a snapshotted entry, this one is still expected to move
+      // with the catalogue — that's the documented fallback behavior, not
+      // a regression.
+      await repo.updateCustomFood(
+        id: foodId,
+        name: 'Legacy Row',
+        kcalPer100g: 300,
+      );
+      totals = await repo.macrosForEntry(entry);
+      expect(totals.kcal, 300);
+    });
 
-    test(
-      'recipeMacrosPerServing no longer drops micronutrients',
-      () async {
-        final db = await openTestDatabase();
-        addTearDown(db.close);
-        final repo = NutritionRepository(
-          db,
-          OpenFoodFactsClient(),
-          _FixedClock(DateTime(2026, 6, 15, 12)),
-        );
+    test('recipeMacrosPerServing no longer drops micronutrients', () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        _FixedClock(DateTime(2026, 6, 15, 12)),
+      );
 
-        final foodId = await db
-            .into(db.foods)
-            .insert(
-              FoodsCompanion.insert(
-                name: 'Spinach',
-                kcalPer100g: 23,
-                potassiumMgPer100g: const Value(550),
-              ),
-            );
-        final recipeId = await repo.createRecipe(name: 'Salad', servings: 1);
-        await repo.addIngredient(recipeId: recipeId, foodId: foodId, grams: 100);
+      final foodId = await db
+          .into(db.foods)
+          .insert(
+            FoodsCompanion.insert(
+              name: 'Spinach',
+              kcalPer100g: 23,
+              potassiumMgPer100g: const Value(550),
+            ),
+          );
+      final recipeId = await repo.createRecipe(name: 'Salad', servings: 1);
+      await repo.addIngredient(recipeId: recipeId, foodId: foodId, grams: 100);
 
-        final per = await repo.recipeMacrosPerServing(recipeId);
-        expect(per.kcal, 23);
-        expect(per.micros['potassium'], 550);
-        expect(per.hasMicros, isTrue);
-      },
-    );
+      final per = await repo.recipeMacrosPerServing(recipeId);
+      expect(per.kcal, 23);
+      expect(per.micros['potassium'], 550);
+      expect(per.hasMicros, isTrue);
+    });
   });
 }

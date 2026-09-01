@@ -25,22 +25,37 @@ class PremiumTextField extends StatelessWidget {
       style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(
         hintText: hintText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Theme.of(context).textTheme.bodyMedium?.color) : null,
+        prefixIcon: prefixIcon != null
+            ? Icon(
+                prefixIcon,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              )
+            : null,
         filled: true,
         fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 1.5,
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 18,
+        ),
       ),
     );
   }

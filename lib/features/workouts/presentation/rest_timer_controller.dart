@@ -21,16 +21,21 @@ class RestTimerEnabledNotifier extends Notifier<bool> {
   }
 }
 
-final restTimerEnabledProvider = NotifierProvider<RestTimerEnabledNotifier, bool>(
-  RestTimerEnabledNotifier.new,
-);
+final restTimerEnabledProvider =
+    NotifierProvider<RestTimerEnabledNotifier, bool>(
+      RestTimerEnabledNotifier.new,
+    );
 
 class RestTimerState {
   final DateTime? endsAt;
   final int targetSeconds;
   final String? exerciseName;
 
-  const RestTimerState({this.endsAt, this.targetSeconds = 0, this.exerciseName});
+  const RestTimerState({
+    this.endsAt,
+    this.targetSeconds = 0,
+    this.exerciseName,
+  });
 
   bool get isRunning => endsAt != null;
 
@@ -70,12 +75,13 @@ class RestTimerController extends Notifier<RestTimerState> {
       targetSeconds: seconds,
       exerciseName: exerciseName,
     );
-    
+
     if (seconds > 0) {
-      final notifEnabled =
-          ref.read(notificationSettingsProvider).restTimerAlertsEnabled;
+      final notifEnabled = ref
+          .read(notificationSettingsProvider)
+          .restTimerAlertsEnabled;
       WorkoutNotificationService.instance.scheduleRestTimer(
-        seconds, 
+        seconds,
         exerciseName ?? 'Time for your next set!',
         enabled: notifEnabled,
       );
@@ -103,15 +109,16 @@ class RestTimerController extends Notifier<RestTimerState> {
       targetSeconds: state.targetSeconds + delta,
       exerciseName: state.exerciseName,
     );
-    
+
     // Reschedule the notification with the new remaining time.
     final clock = ref.read(clockProvider);
     final remaining = state.remainingSecondsFrom(clock.now());
     if (remaining > 0) {
-      final notifEnabled =
-          ref.read(notificationSettingsProvider).restTimerAlertsEnabled;
+      final notifEnabled = ref
+          .read(notificationSettingsProvider)
+          .restTimerAlertsEnabled;
       WorkoutNotificationService.instance.scheduleRestTimer(
-        remaining, 
+        remaining,
         state.exerciseName ?? 'Time for your next set!',
         enabled: notifEnabled,
       );
@@ -126,5 +133,6 @@ class RestTimerController extends Notifier<RestTimerState> {
   }
 }
 
-final restTimerProvider =
-    NotifierProvider<RestTimerController, RestTimerState>(RestTimerController.new);
+final restTimerProvider = NotifierProvider<RestTimerController, RestTimerState>(
+  RestTimerController.new,
+);

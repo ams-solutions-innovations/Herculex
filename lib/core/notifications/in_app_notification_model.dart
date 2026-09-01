@@ -118,7 +118,9 @@ class InAppNotificationItem {
           ? '$exerciseName · new $accessoryTag PR'
           : '$exerciseName · new weight PR',
       value: weightFormatted,
-      delta: diffFormatted != null && diffFormatted.isNotEmpty ? '+$diffFormatted' : null,
+      delta: diffFormatted != null && diffFormatted.isNotEmpty
+          ? '+$diffFormatted'
+          : null,
       icon: Icons.emoji_events_rounded,
       primaryColor: const Color(0xFFFFD60A), // Weight PR yellow
       secondaryColor: const Color(0xFFFFA000),
@@ -170,7 +172,9 @@ class InAppNotificationItem {
       subtitle: 'Highest single-session volume for this exercise!',
       label: '$exerciseName · new volume PR',
       value: volumeFormatted,
-      delta: diffFormatted != null && diffFormatted.isNotEmpty ? '+$diffFormatted' : null,
+      delta: diffFormatted != null && diffFormatted.isNotEmpty
+          ? '+$diffFormatted'
+          : null,
       icon: Icons.local_fire_department_rounded,
       primaryColor: const Color(0xFF0A84FF), // Volume PR blue
       secondaryColor: const Color(0xFFFF1744),
@@ -196,7 +200,9 @@ class InAppNotificationItem {
       subtitle: 'Most volume ever moved for $muscleGroup in one workout!',
       label: '$muscleGroup · new volume PR',
       value: volumeFormatted,
-      delta: diffFormatted != null && diffFormatted.isNotEmpty ? '+$diffFormatted' : null,
+      delta: diffFormatted != null && diffFormatted.isNotEmpty
+          ? '+$diffFormatted'
+          : null,
       icon: Icons.fitness_center_rounded,
       primaryColor: const Color(0xFF0A84FF), // Volume PR blue
       secondaryColor: const Color(0xFF00B0FF),
@@ -243,9 +249,12 @@ class InAppNotificationItem {
           ? '$tonnageFormatted (+$diffFormatted)'
           : tonnageFormatted,
       subtitle: 'All-time heaviest workout session in history!',
-      label: '${workoutName.isNotEmpty ? workoutName : 'Workout'} · new volume PR',
+      label:
+          '${workoutName.isNotEmpty ? workoutName : 'Workout'} · new volume PR',
       value: tonnageFormatted,
-      delta: diffFormatted != null && diffFormatted.isNotEmpty ? '+$diffFormatted' : null,
+      delta: diffFormatted != null && diffFormatted.isNotEmpty
+          ? '+$diffFormatted'
+          : null,
       icon: Icons.diamond_rounded,
       primaryColor: const Color(0xFF0A84FF), // Volume PR blue
       secondaryColor: const Color(0xFF7C4DFF),
@@ -266,7 +275,8 @@ class InAppNotificationItem {
       title: workoutName.isNotEmpty ? workoutName : 'Workout Session',
       valueText: durationFormatted,
       subtitle: 'New personal best for workout duration & stamina!',
-      label: '${workoutName.isNotEmpty ? workoutName : 'Workout'} · new duration PR',
+      label:
+          '${workoutName.isNotEmpty ? workoutName : 'Workout'} · new duration PR',
       value: durationFormatted,
       icon: Icons.timer_rounded,
       primaryColor: const Color(0xFFFF6D00), // Amber flame
@@ -281,7 +291,9 @@ class InAppNotificationItem {
     String? previousBestFormatted,
     VoidCallback? onTap,
   }) {
-    final diff = previousBestFormatted != null ? ' (beat $previousBestFormatted)' : '';
+    final diff = previousBestFormatted != null
+        ? ' (beat $previousBestFormatted)'
+        : '';
     return InAppNotificationItem(
       id: 'longest_fast_${DateTime.now().microsecondsSinceEpoch}',
       type: AchievementType.longestFast,
@@ -291,7 +303,9 @@ class InAppNotificationItem {
       subtitle: 'All-time longest continuous fast in history!',
       label: 'Fasting · new longest fast',
       value: durationFormatted,
-      delta: previousBestFormatted != null ? 'prev $previousBestFormatted' : null,
+      delta: previousBestFormatted != null
+          ? 'prev $previousBestFormatted'
+          : null,
       icon: Icons.whatshot_rounded,
       primaryColor: const Color(0xFFFF9100), // Orange / Flame
       secondaryColor: const Color(0xFFFF5252),

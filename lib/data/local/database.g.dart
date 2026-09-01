@@ -34451,6 +34451,1628 @@ class CircuitExercisesCompanion extends UpdateCompanion<CircuitExerciseData> {
   }
 }
 
+class $AchievementsTable extends Achievements
+    with TableInfo<$AchievementsTable, Achievement> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AchievementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _unlockedAtMeta = const VerificationMeta(
+    'unlockedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> unlockedAt = GeneratedColumn<DateTime>(
+    'unlocked_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    unlockedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'achievements';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Achievement> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('unlocked_at')) {
+      context.handle(
+        _unlockedAtMeta,
+        unlockedAt.isAcceptableOrUnknown(data['unlocked_at']!, _unlockedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_unlockedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Achievement map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Achievement(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      unlockedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}unlocked_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AchievementsTable createAlias(String alias) {
+    return $AchievementsTable(attachedDatabase, alias);
+  }
+}
+
+class Achievement extends DataClass implements Insertable<Achievement> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final String id;
+  final DateTime unlockedAt;
+  const Achievement({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.unlockedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<String>(id);
+    map['unlocked_at'] = Variable<DateTime>(unlockedAt);
+    return map;
+  }
+
+  AchievementsCompanion toCompanion(bool nullToAbsent) {
+    return AchievementsCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      unlockedAt: Value(unlockedAt),
+    );
+  }
+
+  factory Achievement.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Achievement(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<String>(json['id']),
+      unlockedAt: serializer.fromJson<DateTime>(json['unlockedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<String>(id),
+      'unlockedAt': serializer.toJson<DateTime>(unlockedAt),
+    };
+  }
+
+  Achievement copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? id,
+    DateTime? unlockedAt,
+  }) => Achievement(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    unlockedAt: unlockedAt ?? this.unlockedAt,
+  );
+  Achievement copyWithCompanion(AchievementsCompanion data) {
+    return Achievement(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      unlockedAt: data.unlockedAt.present
+          ? data.unlockedAt.value
+          : this.unlockedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Achievement(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('unlockedAt: $unlockedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(syncUuid, updatedAt, syncedAt, deletedAt, id, unlockedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Achievement &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.unlockedAt == this.unlockedAt);
+}
+
+class AchievementsCompanion extends UpdateCompanion<Achievement> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> id;
+  final Value<DateTime> unlockedAt;
+  final Value<int> rowid;
+  const AchievementsCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.unlockedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AchievementsCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String id,
+    required DateTime unlockedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       unlockedAt = Value(unlockedAt);
+  static Insertable<Achievement> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? id,
+    Expression<DateTime>? unlockedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (unlockedAt != null) 'unlocked_at': unlockedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AchievementsCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? id,
+    Value<DateTime>? unlockedAt,
+    Value<int>? rowid,
+  }) {
+    return AchievementsCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      unlockedAt: unlockedAt ?? this.unlockedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (unlockedAt.present) {
+      map['unlocked_at'] = Variable<DateTime>(unlockedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AchievementsCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('unlockedAt: $unlockedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HerculRulesTable extends HerculRules
+    with TableInfo<$HerculRulesTable, HerculRule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HerculRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _domainMeta = const VerificationMeta('domain');
+  @override
+  late final GeneratedColumn<String> domain = GeneratedColumn<String>(
+    'domain',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cooldownDaysMeta = const VerificationMeta(
+    'cooldownDays',
+  );
+  @override
+  late final GeneratedColumn<int> cooldownDays = GeneratedColumn<int>(
+    'cooldown_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _requiresJsonMeta = const VerificationMeta(
+    'requiresJson',
+  );
+  @override
+  late final GeneratedColumn<String> requiresJson = GeneratedColumn<String>(
+    'requires_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _whenJsonMeta = const VerificationMeta(
+    'whenJson',
+  );
+  @override
+  late final GeneratedColumn<String> whenJson = GeneratedColumn<String>(
+    'when_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _copyNormalMeta = const VerificationMeta(
+    'copyNormal',
+  );
+  @override
+  late final GeneratedColumn<String> copyNormal = GeneratedColumn<String>(
+    'copy_normal',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _copyHonestMeta = const VerificationMeta(
+    'copyHonest',
+  );
+  @override
+  late final GeneratedColumn<String> copyHonest = GeneratedColumn<String>(
+    'copy_honest',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ctaJsonMeta = const VerificationMeta(
+    'ctaJson',
+  );
+  @override
+  late final GeneratedColumn<String> ctaJson = GeneratedColumn<String>(
+    'cta_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    domain,
+    priority,
+    cooldownDays,
+    requiresJson,
+    whenJson,
+    copyNormal,
+    copyHonest,
+    ctaJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hercul_rules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HerculRule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('domain')) {
+      context.handle(
+        _domainMeta,
+        domain.isAcceptableOrUnknown(data['domain']!, _domainMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_domainMeta);
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priorityMeta);
+    }
+    if (data.containsKey('cooldown_days')) {
+      context.handle(
+        _cooldownDaysMeta,
+        cooldownDays.isAcceptableOrUnknown(
+          data['cooldown_days']!,
+          _cooldownDaysMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cooldownDaysMeta);
+    }
+    if (data.containsKey('requires_json')) {
+      context.handle(
+        _requiresJsonMeta,
+        requiresJson.isAcceptableOrUnknown(
+          data['requires_json']!,
+          _requiresJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_requiresJsonMeta);
+    }
+    if (data.containsKey('when_json')) {
+      context.handle(
+        _whenJsonMeta,
+        whenJson.isAcceptableOrUnknown(data['when_json']!, _whenJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_whenJsonMeta);
+    }
+    if (data.containsKey('copy_normal')) {
+      context.handle(
+        _copyNormalMeta,
+        copyNormal.isAcceptableOrUnknown(data['copy_normal']!, _copyNormalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_copyNormalMeta);
+    }
+    if (data.containsKey('copy_honest')) {
+      context.handle(
+        _copyHonestMeta,
+        copyHonest.isAcceptableOrUnknown(data['copy_honest']!, _copyHonestMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_copyHonestMeta);
+    }
+    if (data.containsKey('cta_json')) {
+      context.handle(
+        _ctaJsonMeta,
+        ctaJson.isAcceptableOrUnknown(data['cta_json']!, _ctaJsonMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HerculRule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HerculRule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      domain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}domain'],
+      )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      )!,
+      cooldownDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cooldown_days'],
+      )!,
+      requiresJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}requires_json'],
+      )!,
+      whenJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}when_json'],
+      )!,
+      copyNormal: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}copy_normal'],
+      )!,
+      copyHonest: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}copy_honest'],
+      )!,
+      ctaJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cta_json'],
+      ),
+    );
+  }
+
+  @override
+  $HerculRulesTable createAlias(String alias) {
+    return $HerculRulesTable(attachedDatabase, alias);
+  }
+}
+
+class HerculRule extends DataClass implements Insertable<HerculRule> {
+  final String id;
+  final String domain;
+  final int priority;
+  final int cooldownDays;
+  final String requiresJson;
+  final String whenJson;
+  final String copyNormal;
+  final String copyHonest;
+  final String? ctaJson;
+  const HerculRule({
+    required this.id,
+    required this.domain,
+    required this.priority,
+    required this.cooldownDays,
+    required this.requiresJson,
+    required this.whenJson,
+    required this.copyNormal,
+    required this.copyHonest,
+    this.ctaJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['domain'] = Variable<String>(domain);
+    map['priority'] = Variable<int>(priority);
+    map['cooldown_days'] = Variable<int>(cooldownDays);
+    map['requires_json'] = Variable<String>(requiresJson);
+    map['when_json'] = Variable<String>(whenJson);
+    map['copy_normal'] = Variable<String>(copyNormal);
+    map['copy_honest'] = Variable<String>(copyHonest);
+    if (!nullToAbsent || ctaJson != null) {
+      map['cta_json'] = Variable<String>(ctaJson);
+    }
+    return map;
+  }
+
+  HerculRulesCompanion toCompanion(bool nullToAbsent) {
+    return HerculRulesCompanion(
+      id: Value(id),
+      domain: Value(domain),
+      priority: Value(priority),
+      cooldownDays: Value(cooldownDays),
+      requiresJson: Value(requiresJson),
+      whenJson: Value(whenJson),
+      copyNormal: Value(copyNormal),
+      copyHonest: Value(copyHonest),
+      ctaJson: ctaJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ctaJson),
+    );
+  }
+
+  factory HerculRule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HerculRule(
+      id: serializer.fromJson<String>(json['id']),
+      domain: serializer.fromJson<String>(json['domain']),
+      priority: serializer.fromJson<int>(json['priority']),
+      cooldownDays: serializer.fromJson<int>(json['cooldownDays']),
+      requiresJson: serializer.fromJson<String>(json['requiresJson']),
+      whenJson: serializer.fromJson<String>(json['whenJson']),
+      copyNormal: serializer.fromJson<String>(json['copyNormal']),
+      copyHonest: serializer.fromJson<String>(json['copyHonest']),
+      ctaJson: serializer.fromJson<String?>(json['ctaJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'domain': serializer.toJson<String>(domain),
+      'priority': serializer.toJson<int>(priority),
+      'cooldownDays': serializer.toJson<int>(cooldownDays),
+      'requiresJson': serializer.toJson<String>(requiresJson),
+      'whenJson': serializer.toJson<String>(whenJson),
+      'copyNormal': serializer.toJson<String>(copyNormal),
+      'copyHonest': serializer.toJson<String>(copyHonest),
+      'ctaJson': serializer.toJson<String?>(ctaJson),
+    };
+  }
+
+  HerculRule copyWith({
+    String? id,
+    String? domain,
+    int? priority,
+    int? cooldownDays,
+    String? requiresJson,
+    String? whenJson,
+    String? copyNormal,
+    String? copyHonest,
+    Value<String?> ctaJson = const Value.absent(),
+  }) => HerculRule(
+    id: id ?? this.id,
+    domain: domain ?? this.domain,
+    priority: priority ?? this.priority,
+    cooldownDays: cooldownDays ?? this.cooldownDays,
+    requiresJson: requiresJson ?? this.requiresJson,
+    whenJson: whenJson ?? this.whenJson,
+    copyNormal: copyNormal ?? this.copyNormal,
+    copyHonest: copyHonest ?? this.copyHonest,
+    ctaJson: ctaJson.present ? ctaJson.value : this.ctaJson,
+  );
+  HerculRule copyWithCompanion(HerculRulesCompanion data) {
+    return HerculRule(
+      id: data.id.present ? data.id.value : this.id,
+      domain: data.domain.present ? data.domain.value : this.domain,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      cooldownDays: data.cooldownDays.present
+          ? data.cooldownDays.value
+          : this.cooldownDays,
+      requiresJson: data.requiresJson.present
+          ? data.requiresJson.value
+          : this.requiresJson,
+      whenJson: data.whenJson.present ? data.whenJson.value : this.whenJson,
+      copyNormal: data.copyNormal.present
+          ? data.copyNormal.value
+          : this.copyNormal,
+      copyHonest: data.copyHonest.present
+          ? data.copyHonest.value
+          : this.copyHonest,
+      ctaJson: data.ctaJson.present ? data.ctaJson.value : this.ctaJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculRule(')
+          ..write('id: $id, ')
+          ..write('domain: $domain, ')
+          ..write('priority: $priority, ')
+          ..write('cooldownDays: $cooldownDays, ')
+          ..write('requiresJson: $requiresJson, ')
+          ..write('whenJson: $whenJson, ')
+          ..write('copyNormal: $copyNormal, ')
+          ..write('copyHonest: $copyHonest, ')
+          ..write('ctaJson: $ctaJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    domain,
+    priority,
+    cooldownDays,
+    requiresJson,
+    whenJson,
+    copyNormal,
+    copyHonest,
+    ctaJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HerculRule &&
+          other.id == this.id &&
+          other.domain == this.domain &&
+          other.priority == this.priority &&
+          other.cooldownDays == this.cooldownDays &&
+          other.requiresJson == this.requiresJson &&
+          other.whenJson == this.whenJson &&
+          other.copyNormal == this.copyNormal &&
+          other.copyHonest == this.copyHonest &&
+          other.ctaJson == this.ctaJson);
+}
+
+class HerculRulesCompanion extends UpdateCompanion<HerculRule> {
+  final Value<String> id;
+  final Value<String> domain;
+  final Value<int> priority;
+  final Value<int> cooldownDays;
+  final Value<String> requiresJson;
+  final Value<String> whenJson;
+  final Value<String> copyNormal;
+  final Value<String> copyHonest;
+  final Value<String?> ctaJson;
+  final Value<int> rowid;
+  const HerculRulesCompanion({
+    this.id = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.cooldownDays = const Value.absent(),
+    this.requiresJson = const Value.absent(),
+    this.whenJson = const Value.absent(),
+    this.copyNormal = const Value.absent(),
+    this.copyHonest = const Value.absent(),
+    this.ctaJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HerculRulesCompanion.insert({
+    required String id,
+    required String domain,
+    required int priority,
+    required int cooldownDays,
+    required String requiresJson,
+    required String whenJson,
+    required String copyNormal,
+    required String copyHonest,
+    this.ctaJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       domain = Value(domain),
+       priority = Value(priority),
+       cooldownDays = Value(cooldownDays),
+       requiresJson = Value(requiresJson),
+       whenJson = Value(whenJson),
+       copyNormal = Value(copyNormal),
+       copyHonest = Value(copyHonest);
+  static Insertable<HerculRule> custom({
+    Expression<String>? id,
+    Expression<String>? domain,
+    Expression<int>? priority,
+    Expression<int>? cooldownDays,
+    Expression<String>? requiresJson,
+    Expression<String>? whenJson,
+    Expression<String>? copyNormal,
+    Expression<String>? copyHonest,
+    Expression<String>? ctaJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (domain != null) 'domain': domain,
+      if (priority != null) 'priority': priority,
+      if (cooldownDays != null) 'cooldown_days': cooldownDays,
+      if (requiresJson != null) 'requires_json': requiresJson,
+      if (whenJson != null) 'when_json': whenJson,
+      if (copyNormal != null) 'copy_normal': copyNormal,
+      if (copyHonest != null) 'copy_honest': copyHonest,
+      if (ctaJson != null) 'cta_json': ctaJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HerculRulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? domain,
+    Value<int>? priority,
+    Value<int>? cooldownDays,
+    Value<String>? requiresJson,
+    Value<String>? whenJson,
+    Value<String>? copyNormal,
+    Value<String>? copyHonest,
+    Value<String?>? ctaJson,
+    Value<int>? rowid,
+  }) {
+    return HerculRulesCompanion(
+      id: id ?? this.id,
+      domain: domain ?? this.domain,
+      priority: priority ?? this.priority,
+      cooldownDays: cooldownDays ?? this.cooldownDays,
+      requiresJson: requiresJson ?? this.requiresJson,
+      whenJson: whenJson ?? this.whenJson,
+      copyNormal: copyNormal ?? this.copyNormal,
+      copyHonest: copyHonest ?? this.copyHonest,
+      ctaJson: ctaJson ?? this.ctaJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(domain.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (cooldownDays.present) {
+      map['cooldown_days'] = Variable<int>(cooldownDays.value);
+    }
+    if (requiresJson.present) {
+      map['requires_json'] = Variable<String>(requiresJson.value);
+    }
+    if (whenJson.present) {
+      map['when_json'] = Variable<String>(whenJson.value);
+    }
+    if (copyNormal.present) {
+      map['copy_normal'] = Variable<String>(copyNormal.value);
+    }
+    if (copyHonest.present) {
+      map['copy_honest'] = Variable<String>(copyHonest.value);
+    }
+    if (ctaJson.present) {
+      map['cta_json'] = Variable<String>(ctaJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculRulesCompanion(')
+          ..write('id: $id, ')
+          ..write('domain: $domain, ')
+          ..write('priority: $priority, ')
+          ..write('cooldownDays: $cooldownDays, ')
+          ..write('requiresJson: $requiresJson, ')
+          ..write('whenJson: $whenJson, ')
+          ..write('copyNormal: $copyNormal, ')
+          ..write('copyHonest: $copyHonest, ')
+          ..write('ctaJson: $ctaJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $HerculMessageLogTable extends HerculMessageLog
+    with TableInfo<$HerculMessageLogTable, HerculMessageLogData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HerculMessageLogTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _ruleIdMeta = const VerificationMeta('ruleId');
+  @override
+  late final GeneratedColumn<String> ruleId = GeneratedColumn<String>(
+    'rule_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES hercul_rules (id)',
+    ),
+  );
+  static const VerificationMeta _lastFiredAtMeta = const VerificationMeta(
+    'lastFiredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastFiredAt = GeneratedColumn<DateTime>(
+    'last_fired_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [ruleId, lastFiredAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hercul_message_log';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HerculMessageLogData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('rule_id')) {
+      context.handle(
+        _ruleIdMeta,
+        ruleId.isAcceptableOrUnknown(data['rule_id']!, _ruleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ruleIdMeta);
+    }
+    if (data.containsKey('last_fired_at')) {
+      context.handle(
+        _lastFiredAtMeta,
+        lastFiredAt.isAcceptableOrUnknown(
+          data['last_fired_at']!,
+          _lastFiredAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastFiredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ruleId};
+  @override
+  HerculMessageLogData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HerculMessageLogData(
+      ruleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rule_id'],
+      )!,
+      lastFiredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_fired_at'],
+      )!,
+    );
+  }
+
+  @override
+  $HerculMessageLogTable createAlias(String alias) {
+    return $HerculMessageLogTable(attachedDatabase, alias);
+  }
+}
+
+class HerculMessageLogData extends DataClass
+    implements Insertable<HerculMessageLogData> {
+  final String ruleId;
+  final DateTime lastFiredAt;
+  const HerculMessageLogData({required this.ruleId, required this.lastFiredAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['rule_id'] = Variable<String>(ruleId);
+    map['last_fired_at'] = Variable<DateTime>(lastFiredAt);
+    return map;
+  }
+
+  HerculMessageLogCompanion toCompanion(bool nullToAbsent) {
+    return HerculMessageLogCompanion(
+      ruleId: Value(ruleId),
+      lastFiredAt: Value(lastFiredAt),
+    );
+  }
+
+  factory HerculMessageLogData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HerculMessageLogData(
+      ruleId: serializer.fromJson<String>(json['ruleId']),
+      lastFiredAt: serializer.fromJson<DateTime>(json['lastFiredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ruleId': serializer.toJson<String>(ruleId),
+      'lastFiredAt': serializer.toJson<DateTime>(lastFiredAt),
+    };
+  }
+
+  HerculMessageLogData copyWith({String? ruleId, DateTime? lastFiredAt}) =>
+      HerculMessageLogData(
+        ruleId: ruleId ?? this.ruleId,
+        lastFiredAt: lastFiredAt ?? this.lastFiredAt,
+      );
+  HerculMessageLogData copyWithCompanion(HerculMessageLogCompanion data) {
+    return HerculMessageLogData(
+      ruleId: data.ruleId.present ? data.ruleId.value : this.ruleId,
+      lastFiredAt: data.lastFiredAt.present
+          ? data.lastFiredAt.value
+          : this.lastFiredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculMessageLogData(')
+          ..write('ruleId: $ruleId, ')
+          ..write('lastFiredAt: $lastFiredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(ruleId, lastFiredAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HerculMessageLogData &&
+          other.ruleId == this.ruleId &&
+          other.lastFiredAt == this.lastFiredAt);
+}
+
+class HerculMessageLogCompanion extends UpdateCompanion<HerculMessageLogData> {
+  final Value<String> ruleId;
+  final Value<DateTime> lastFiredAt;
+  final Value<int> rowid;
+  const HerculMessageLogCompanion({
+    this.ruleId = const Value.absent(),
+    this.lastFiredAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HerculMessageLogCompanion.insert({
+    required String ruleId,
+    required DateTime lastFiredAt,
+    this.rowid = const Value.absent(),
+  }) : ruleId = Value(ruleId),
+       lastFiredAt = Value(lastFiredAt);
+  static Insertable<HerculMessageLogData> custom({
+    Expression<String>? ruleId,
+    Expression<DateTime>? lastFiredAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (ruleId != null) 'rule_id': ruleId,
+      if (lastFiredAt != null) 'last_fired_at': lastFiredAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HerculMessageLogCompanion copyWith({
+    Value<String>? ruleId,
+    Value<DateTime>? lastFiredAt,
+    Value<int>? rowid,
+  }) {
+    return HerculMessageLogCompanion(
+      ruleId: ruleId ?? this.ruleId,
+      lastFiredAt: lastFiredAt ?? this.lastFiredAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ruleId.present) {
+      map['rule_id'] = Variable<String>(ruleId.value);
+    }
+    if (lastFiredAt.present) {
+      map['last_fired_at'] = Variable<DateTime>(lastFiredAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculMessageLogCompanion(')
+          ..write('ruleId: $ruleId, ')
+          ..write('lastFiredAt: $lastFiredAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FastingStagesTable extends FastingStages
+    with TableInfo<$FastingStagesTable, FastingStageData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FastingStagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _hourMeta = const VerificationMeta('hour');
+  @override
+  late final GeneratedColumn<int> hour = GeneratedColumn<int>(
+    'hour',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stageNameMeta = const VerificationMeta(
+    'stageName',
+  );
+  @override
+  late final GeneratedColumn<String> stageName = GeneratedColumn<String>(
+    'stage_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stageCategoryMeta = const VerificationMeta(
+    'stageCategory',
+  );
+  @override
+  late final GeneratedColumn<String> stageCategory = GeneratedColumn<String>(
+    'stage_category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _shortMessageMeta = const VerificationMeta(
+    'shortMessage',
+  );
+  @override
+  late final GeneratedColumn<String> shortMessage = GeneratedColumn<String>(
+    'short_message',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _detailMeta = const VerificationMeta('detail');
+  @override
+  late final GeneratedColumn<String> detail = GeneratedColumn<String>(
+    'detail',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    hour,
+    stageName,
+    stageCategory,
+    shortMessage,
+    detail,
+    icon,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'fasting_stages';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FastingStageData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('hour')) {
+      context.handle(
+        _hourMeta,
+        hour.isAcceptableOrUnknown(data['hour']!, _hourMeta),
+      );
+    }
+    if (data.containsKey('stage_name')) {
+      context.handle(
+        _stageNameMeta,
+        stageName.isAcceptableOrUnknown(data['stage_name']!, _stageNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stageNameMeta);
+    }
+    if (data.containsKey('stage_category')) {
+      context.handle(
+        _stageCategoryMeta,
+        stageCategory.isAcceptableOrUnknown(
+          data['stage_category']!,
+          _stageCategoryMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_stageCategoryMeta);
+    }
+    if (data.containsKey('short_message')) {
+      context.handle(
+        _shortMessageMeta,
+        shortMessage.isAcceptableOrUnknown(
+          data['short_message']!,
+          _shortMessageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_shortMessageMeta);
+    }
+    if (data.containsKey('detail')) {
+      context.handle(
+        _detailMeta,
+        detail.isAcceptableOrUnknown(data['detail']!, _detailMeta),
+      );
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {hour};
+  @override
+  FastingStageData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FastingStageData(
+      hour: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hour'],
+      )!,
+      stageName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage_name'],
+      )!,
+      stageCategory: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage_category'],
+      )!,
+      shortMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}short_message'],
+      )!,
+      detail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}detail'],
+      ),
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      ),
+    );
+  }
+
+  @override
+  $FastingStagesTable createAlias(String alias) {
+    return $FastingStagesTable(attachedDatabase, alias);
+  }
+}
+
+class FastingStageData extends DataClass
+    implements Insertable<FastingStageData> {
+  final int hour;
+  final String stageName;
+  final String stageCategory;
+  final String shortMessage;
+  final String? detail;
+  final String? icon;
+  const FastingStageData({
+    required this.hour,
+    required this.stageName,
+    required this.stageCategory,
+    required this.shortMessage,
+    this.detail,
+    this.icon,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['hour'] = Variable<int>(hour);
+    map['stage_name'] = Variable<String>(stageName);
+    map['stage_category'] = Variable<String>(stageCategory);
+    map['short_message'] = Variable<String>(shortMessage);
+    if (!nullToAbsent || detail != null) {
+      map['detail'] = Variable<String>(detail);
+    }
+    if (!nullToAbsent || icon != null) {
+      map['icon'] = Variable<String>(icon);
+    }
+    return map;
+  }
+
+  FastingStagesCompanion toCompanion(bool nullToAbsent) {
+    return FastingStagesCompanion(
+      hour: Value(hour),
+      stageName: Value(stageName),
+      stageCategory: Value(stageCategory),
+      shortMessage: Value(shortMessage),
+      detail: detail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(detail),
+      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
+    );
+  }
+
+  factory FastingStageData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FastingStageData(
+      hour: serializer.fromJson<int>(json['hour']),
+      stageName: serializer.fromJson<String>(json['stageName']),
+      stageCategory: serializer.fromJson<String>(json['stageCategory']),
+      shortMessage: serializer.fromJson<String>(json['shortMessage']),
+      detail: serializer.fromJson<String?>(json['detail']),
+      icon: serializer.fromJson<String?>(json['icon']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'hour': serializer.toJson<int>(hour),
+      'stageName': serializer.toJson<String>(stageName),
+      'stageCategory': serializer.toJson<String>(stageCategory),
+      'shortMessage': serializer.toJson<String>(shortMessage),
+      'detail': serializer.toJson<String?>(detail),
+      'icon': serializer.toJson<String?>(icon),
+    };
+  }
+
+  FastingStageData copyWith({
+    int? hour,
+    String? stageName,
+    String? stageCategory,
+    String? shortMessage,
+    Value<String?> detail = const Value.absent(),
+    Value<String?> icon = const Value.absent(),
+  }) => FastingStageData(
+    hour: hour ?? this.hour,
+    stageName: stageName ?? this.stageName,
+    stageCategory: stageCategory ?? this.stageCategory,
+    shortMessage: shortMessage ?? this.shortMessage,
+    detail: detail.present ? detail.value : this.detail,
+    icon: icon.present ? icon.value : this.icon,
+  );
+  FastingStageData copyWithCompanion(FastingStagesCompanion data) {
+    return FastingStageData(
+      hour: data.hour.present ? data.hour.value : this.hour,
+      stageName: data.stageName.present ? data.stageName.value : this.stageName,
+      stageCategory: data.stageCategory.present
+          ? data.stageCategory.value
+          : this.stageCategory,
+      shortMessage: data.shortMessage.present
+          ? data.shortMessage.value
+          : this.shortMessage,
+      detail: data.detail.present ? data.detail.value : this.detail,
+      icon: data.icon.present ? data.icon.value : this.icon,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FastingStageData(')
+          ..write('hour: $hour, ')
+          ..write('stageName: $stageName, ')
+          ..write('stageCategory: $stageCategory, ')
+          ..write('shortMessage: $shortMessage, ')
+          ..write('detail: $detail, ')
+          ..write('icon: $icon')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(hour, stageName, stageCategory, shortMessage, detail, icon);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FastingStageData &&
+          other.hour == this.hour &&
+          other.stageName == this.stageName &&
+          other.stageCategory == this.stageCategory &&
+          other.shortMessage == this.shortMessage &&
+          other.detail == this.detail &&
+          other.icon == this.icon);
+}
+
+class FastingStagesCompanion extends UpdateCompanion<FastingStageData> {
+  final Value<int> hour;
+  final Value<String> stageName;
+  final Value<String> stageCategory;
+  final Value<String> shortMessage;
+  final Value<String?> detail;
+  final Value<String?> icon;
+  const FastingStagesCompanion({
+    this.hour = const Value.absent(),
+    this.stageName = const Value.absent(),
+    this.stageCategory = const Value.absent(),
+    this.shortMessage = const Value.absent(),
+    this.detail = const Value.absent(),
+    this.icon = const Value.absent(),
+  });
+  FastingStagesCompanion.insert({
+    this.hour = const Value.absent(),
+    required String stageName,
+    required String stageCategory,
+    required String shortMessage,
+    this.detail = const Value.absent(),
+    this.icon = const Value.absent(),
+  }) : stageName = Value(stageName),
+       stageCategory = Value(stageCategory),
+       shortMessage = Value(shortMessage);
+  static Insertable<FastingStageData> custom({
+    Expression<int>? hour,
+    Expression<String>? stageName,
+    Expression<String>? stageCategory,
+    Expression<String>? shortMessage,
+    Expression<String>? detail,
+    Expression<String>? icon,
+  }) {
+    return RawValuesInsertable({
+      if (hour != null) 'hour': hour,
+      if (stageName != null) 'stage_name': stageName,
+      if (stageCategory != null) 'stage_category': stageCategory,
+      if (shortMessage != null) 'short_message': shortMessage,
+      if (detail != null) 'detail': detail,
+      if (icon != null) 'icon': icon,
+    });
+  }
+
+  FastingStagesCompanion copyWith({
+    Value<int>? hour,
+    Value<String>? stageName,
+    Value<String>? stageCategory,
+    Value<String>? shortMessage,
+    Value<String?>? detail,
+    Value<String?>? icon,
+  }) {
+    return FastingStagesCompanion(
+      hour: hour ?? this.hour,
+      stageName: stageName ?? this.stageName,
+      stageCategory: stageCategory ?? this.stageCategory,
+      shortMessage: shortMessage ?? this.shortMessage,
+      detail: detail ?? this.detail,
+      icon: icon ?? this.icon,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (hour.present) {
+      map['hour'] = Variable<int>(hour.value);
+    }
+    if (stageName.present) {
+      map['stage_name'] = Variable<String>(stageName.value);
+    }
+    if (stageCategory.present) {
+      map['stage_category'] = Variable<String>(stageCategory.value);
+    }
+    if (shortMessage.present) {
+      map['short_message'] = Variable<String>(shortMessage.value);
+    }
+    if (detail.present) {
+      map['detail'] = Variable<String>(detail.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FastingStagesCompanion(')
+          ..write('hour: $hour, ')
+          ..write('stageName: $stageName, ')
+          ..write('stageCategory: $stageCategory, ')
+          ..write('shortMessage: $shortMessage, ')
+          ..write('detail: $detail, ')
+          ..write('icon: $icon')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -34547,6 +36169,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CircuitExercisesTable circuitExercises = $CircuitExercisesTable(
     this,
   );
+  late final $AchievementsTable achievements = $AchievementsTable(this);
+  late final $HerculRulesTable herculRules = $HerculRulesTable(this);
+  late final $HerculMessageLogTable herculMessageLog = $HerculMessageLogTable(
+    this,
+  );
+  late final $FastingStagesTable fastingStages = $FastingStagesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -34605,6 +36233,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     buddyChoreographySlots,
     workoutCircuits,
     circuitExercises,
+    achievements,
+    herculRules,
+    herculMessageLog,
+    fastingStages,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -59902,6 +61534,1117 @@ typedef $$CircuitExercisesTableProcessedTableManager =
       CircuitExerciseData,
       PrefetchHooks Function({bool circuitId, bool exerciseId})
     >;
+typedef $$AchievementsTableCreateCompanionBuilder =
+    AchievementsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      required String id,
+      required DateTime unlockedAt,
+      Value<int> rowid,
+    });
+typedef $$AchievementsTableUpdateCompanionBuilder =
+    AchievementsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<String> id,
+      Value<DateTime> unlockedAt,
+      Value<int> rowid,
+    });
+
+class $$AchievementsTableFilterComposer
+    extends Composer<_$AppDatabase, $AchievementsTable> {
+  $$AchievementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AchievementsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AchievementsTable> {
+  $$AchievementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AchievementsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AchievementsTable> {
+  $$AchievementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$AchievementsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AchievementsTable,
+          Achievement,
+          $$AchievementsTableFilterComposer,
+          $$AchievementsTableOrderingComposer,
+          $$AchievementsTableAnnotationComposer,
+          $$AchievementsTableCreateCompanionBuilder,
+          $$AchievementsTableUpdateCompanionBuilder,
+          (
+            Achievement,
+            BaseReferences<_$AppDatabase, $AchievementsTable, Achievement>,
+          ),
+          Achievement,
+          PrefetchHooks Function()
+        > {
+  $$AchievementsTableTableManager(_$AppDatabase db, $AchievementsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AchievementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AchievementsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AchievementsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<DateTime> unlockedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AchievementsCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                unlockedAt: unlockedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required String id,
+                required DateTime unlockedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => AchievementsCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                unlockedAt: unlockedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AchievementsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AchievementsTable,
+      Achievement,
+      $$AchievementsTableFilterComposer,
+      $$AchievementsTableOrderingComposer,
+      $$AchievementsTableAnnotationComposer,
+      $$AchievementsTableCreateCompanionBuilder,
+      $$AchievementsTableUpdateCompanionBuilder,
+      (
+        Achievement,
+        BaseReferences<_$AppDatabase, $AchievementsTable, Achievement>,
+      ),
+      Achievement,
+      PrefetchHooks Function()
+    >;
+typedef $$HerculRulesTableCreateCompanionBuilder =
+    HerculRulesCompanion Function({
+      required String id,
+      required String domain,
+      required int priority,
+      required int cooldownDays,
+      required String requiresJson,
+      required String whenJson,
+      required String copyNormal,
+      required String copyHonest,
+      Value<String?> ctaJson,
+      Value<int> rowid,
+    });
+typedef $$HerculRulesTableUpdateCompanionBuilder =
+    HerculRulesCompanion Function({
+      Value<String> id,
+      Value<String> domain,
+      Value<int> priority,
+      Value<int> cooldownDays,
+      Value<String> requiresJson,
+      Value<String> whenJson,
+      Value<String> copyNormal,
+      Value<String> copyHonest,
+      Value<String?> ctaJson,
+      Value<int> rowid,
+    });
+
+final class $$HerculRulesTableReferences
+    extends BaseReferences<_$AppDatabase, $HerculRulesTable, HerculRule> {
+  $$HerculRulesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$HerculMessageLogTable, List<HerculMessageLogData>>
+  _herculMessageLogRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.herculMessageLog,
+    aliasName: $_aliasNameGenerator(
+      db.herculRules.id,
+      db.herculMessageLog.ruleId,
+    ),
+  );
+
+  $$HerculMessageLogTableProcessedTableManager get herculMessageLogRefs {
+    final manager = $$HerculMessageLogTableTableManager(
+      $_db,
+      $_db.herculMessageLog,
+    ).filter((f) => f.ruleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _herculMessageLogRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$HerculRulesTableFilterComposer
+    extends Composer<_$AppDatabase, $HerculRulesTable> {
+  $$HerculRulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cooldownDays => $composableBuilder(
+    column: $table.cooldownDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get requiresJson => $composableBuilder(
+    column: $table.requiresJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get whenJson => $composableBuilder(
+    column: $table.whenJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get copyNormal => $composableBuilder(
+    column: $table.copyNormal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get copyHonest => $composableBuilder(
+    column: $table.copyHonest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ctaJson => $composableBuilder(
+    column: $table.ctaJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> herculMessageLogRefs(
+    Expression<bool> Function($$HerculMessageLogTableFilterComposer f) f,
+  ) {
+    final $$HerculMessageLogTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.herculMessageLog,
+      getReferencedColumn: (t) => t.ruleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculMessageLogTableFilterComposer(
+            $db: $db,
+            $table: $db.herculMessageLog,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$HerculRulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $HerculRulesTable> {
+  $$HerculRulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cooldownDays => $composableBuilder(
+    column: $table.cooldownDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get requiresJson => $composableBuilder(
+    column: $table.requiresJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get whenJson => $composableBuilder(
+    column: $table.whenJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get copyNormal => $composableBuilder(
+    column: $table.copyNormal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get copyHonest => $composableBuilder(
+    column: $table.copyHonest,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ctaJson => $composableBuilder(
+    column: $table.ctaJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HerculRulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HerculRulesTable> {
+  $$HerculRulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<int> get cooldownDays => $composableBuilder(
+    column: $table.cooldownDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get requiresJson => $composableBuilder(
+    column: $table.requiresJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get whenJson =>
+      $composableBuilder(column: $table.whenJson, builder: (column) => column);
+
+  GeneratedColumn<String> get copyNormal => $composableBuilder(
+    column: $table.copyNormal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get copyHonest => $composableBuilder(
+    column: $table.copyHonest,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get ctaJson =>
+      $composableBuilder(column: $table.ctaJson, builder: (column) => column);
+
+  Expression<T> herculMessageLogRefs<T extends Object>(
+    Expression<T> Function($$HerculMessageLogTableAnnotationComposer a) f,
+  ) {
+    final $$HerculMessageLogTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.herculMessageLog,
+      getReferencedColumn: (t) => t.ruleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculMessageLogTableAnnotationComposer(
+            $db: $db,
+            $table: $db.herculMessageLog,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$HerculRulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HerculRulesTable,
+          HerculRule,
+          $$HerculRulesTableFilterComposer,
+          $$HerculRulesTableOrderingComposer,
+          $$HerculRulesTableAnnotationComposer,
+          $$HerculRulesTableCreateCompanionBuilder,
+          $$HerculRulesTableUpdateCompanionBuilder,
+          (HerculRule, $$HerculRulesTableReferences),
+          HerculRule,
+          PrefetchHooks Function({bool herculMessageLogRefs})
+        > {
+  $$HerculRulesTableTableManager(_$AppDatabase db, $HerculRulesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HerculRulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HerculRulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HerculRulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> domain = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+                Value<int> cooldownDays = const Value.absent(),
+                Value<String> requiresJson = const Value.absent(),
+                Value<String> whenJson = const Value.absent(),
+                Value<String> copyNormal = const Value.absent(),
+                Value<String> copyHonest = const Value.absent(),
+                Value<String?> ctaJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HerculRulesCompanion(
+                id: id,
+                domain: domain,
+                priority: priority,
+                cooldownDays: cooldownDays,
+                requiresJson: requiresJson,
+                whenJson: whenJson,
+                copyNormal: copyNormal,
+                copyHonest: copyHonest,
+                ctaJson: ctaJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String domain,
+                required int priority,
+                required int cooldownDays,
+                required String requiresJson,
+                required String whenJson,
+                required String copyNormal,
+                required String copyHonest,
+                Value<String?> ctaJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HerculRulesCompanion.insert(
+                id: id,
+                domain: domain,
+                priority: priority,
+                cooldownDays: cooldownDays,
+                requiresJson: requiresJson,
+                whenJson: whenJson,
+                copyNormal: copyNormal,
+                copyHonest: copyHonest,
+                ctaJson: ctaJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$HerculRulesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({herculMessageLogRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (herculMessageLogRefs) db.herculMessageLog,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (herculMessageLogRefs)
+                    await $_getPrefetchedData<
+                      HerculRule,
+                      $HerculRulesTable,
+                      HerculMessageLogData
+                    >(
+                      currentTable: table,
+                      referencedTable: $$HerculRulesTableReferences
+                          ._herculMessageLogRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$HerculRulesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).herculMessageLogRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.ruleId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$HerculRulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HerculRulesTable,
+      HerculRule,
+      $$HerculRulesTableFilterComposer,
+      $$HerculRulesTableOrderingComposer,
+      $$HerculRulesTableAnnotationComposer,
+      $$HerculRulesTableCreateCompanionBuilder,
+      $$HerculRulesTableUpdateCompanionBuilder,
+      (HerculRule, $$HerculRulesTableReferences),
+      HerculRule,
+      PrefetchHooks Function({bool herculMessageLogRefs})
+    >;
+typedef $$HerculMessageLogTableCreateCompanionBuilder =
+    HerculMessageLogCompanion Function({
+      required String ruleId,
+      required DateTime lastFiredAt,
+      Value<int> rowid,
+    });
+typedef $$HerculMessageLogTableUpdateCompanionBuilder =
+    HerculMessageLogCompanion Function({
+      Value<String> ruleId,
+      Value<DateTime> lastFiredAt,
+      Value<int> rowid,
+    });
+
+final class $$HerculMessageLogTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $HerculMessageLogTable,
+          HerculMessageLogData
+        > {
+  $$HerculMessageLogTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $HerculRulesTable _ruleIdTable(_$AppDatabase db) =>
+      db.herculRules.createAlias(
+        $_aliasNameGenerator(db.herculMessageLog.ruleId, db.herculRules.id),
+      );
+
+  $$HerculRulesTableProcessedTableManager get ruleId {
+    final $_column = $_itemColumn<String>('rule_id')!;
+
+    final manager = $$HerculRulesTableTableManager(
+      $_db,
+      $_db.herculRules,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_ruleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$HerculMessageLogTableFilterComposer
+    extends Composer<_$AppDatabase, $HerculMessageLogTable> {
+  $$HerculMessageLogTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<DateTime> get lastFiredAt => $composableBuilder(
+    column: $table.lastFiredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$HerculRulesTableFilterComposer get ruleId {
+    final $$HerculRulesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ruleId,
+      referencedTable: $db.herculRules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculRulesTableFilterComposer(
+            $db: $db,
+            $table: $db.herculRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculMessageLogTableOrderingComposer
+    extends Composer<_$AppDatabase, $HerculMessageLogTable> {
+  $$HerculMessageLogTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<DateTime> get lastFiredAt => $composableBuilder(
+    column: $table.lastFiredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$HerculRulesTableOrderingComposer get ruleId {
+    final $$HerculRulesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ruleId,
+      referencedTable: $db.herculRules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculRulesTableOrderingComposer(
+            $db: $db,
+            $table: $db.herculRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculMessageLogTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HerculMessageLogTable> {
+  $$HerculMessageLogTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<DateTime> get lastFiredAt => $composableBuilder(
+    column: $table.lastFiredAt,
+    builder: (column) => column,
+  );
+
+  $$HerculRulesTableAnnotationComposer get ruleId {
+    final $$HerculRulesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ruleId,
+      referencedTable: $db.herculRules,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$HerculRulesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.herculRules,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculMessageLogTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HerculMessageLogTable,
+          HerculMessageLogData,
+          $$HerculMessageLogTableFilterComposer,
+          $$HerculMessageLogTableOrderingComposer,
+          $$HerculMessageLogTableAnnotationComposer,
+          $$HerculMessageLogTableCreateCompanionBuilder,
+          $$HerculMessageLogTableUpdateCompanionBuilder,
+          (HerculMessageLogData, $$HerculMessageLogTableReferences),
+          HerculMessageLogData,
+          PrefetchHooks Function({bool ruleId})
+        > {
+  $$HerculMessageLogTableTableManager(
+    _$AppDatabase db,
+    $HerculMessageLogTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HerculMessageLogTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HerculMessageLogTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HerculMessageLogTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> ruleId = const Value.absent(),
+                Value<DateTime> lastFiredAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HerculMessageLogCompanion(
+                ruleId: ruleId,
+                lastFiredAt: lastFiredAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String ruleId,
+                required DateTime lastFiredAt,
+                Value<int> rowid = const Value.absent(),
+              }) => HerculMessageLogCompanion.insert(
+                ruleId: ruleId,
+                lastFiredAt: lastFiredAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$HerculMessageLogTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({ruleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (ruleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.ruleId,
+                                referencedTable:
+                                    $$HerculMessageLogTableReferences
+                                        ._ruleIdTable(db),
+                                referencedColumn:
+                                    $$HerculMessageLogTableReferences
+                                        ._ruleIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$HerculMessageLogTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HerculMessageLogTable,
+      HerculMessageLogData,
+      $$HerculMessageLogTableFilterComposer,
+      $$HerculMessageLogTableOrderingComposer,
+      $$HerculMessageLogTableAnnotationComposer,
+      $$HerculMessageLogTableCreateCompanionBuilder,
+      $$HerculMessageLogTableUpdateCompanionBuilder,
+      (HerculMessageLogData, $$HerculMessageLogTableReferences),
+      HerculMessageLogData,
+      PrefetchHooks Function({bool ruleId})
+    >;
+typedef $$FastingStagesTableCreateCompanionBuilder =
+    FastingStagesCompanion Function({
+      Value<int> hour,
+      required String stageName,
+      required String stageCategory,
+      required String shortMessage,
+      Value<String?> detail,
+      Value<String?> icon,
+    });
+typedef $$FastingStagesTableUpdateCompanionBuilder =
+    FastingStagesCompanion Function({
+      Value<int> hour,
+      Value<String> stageName,
+      Value<String> stageCategory,
+      Value<String> shortMessage,
+      Value<String?> detail,
+      Value<String?> icon,
+    });
+
+class $$FastingStagesTableFilterComposer
+    extends Composer<_$AppDatabase, $FastingStagesTable> {
+  $$FastingStagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stageName => $composableBuilder(
+    column: $table.stageName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stageCategory => $composableBuilder(
+    column: $table.stageCategory,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shortMessage => $composableBuilder(
+    column: $table.shortMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FastingStagesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FastingStagesTable> {
+  $$FastingStagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get hour => $composableBuilder(
+    column: $table.hour,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stageName => $composableBuilder(
+    column: $table.stageName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stageCategory => $composableBuilder(
+    column: $table.stageCategory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get shortMessage => $composableBuilder(
+    column: $table.shortMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FastingStagesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FastingStagesTable> {
+  $$FastingStagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get hour =>
+      $composableBuilder(column: $table.hour, builder: (column) => column);
+
+  GeneratedColumn<String> get stageName =>
+      $composableBuilder(column: $table.stageName, builder: (column) => column);
+
+  GeneratedColumn<String> get stageCategory => $composableBuilder(
+    column: $table.stageCategory,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get shortMessage => $composableBuilder(
+    column: $table.shortMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get detail =>
+      $composableBuilder(column: $table.detail, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+}
+
+class $$FastingStagesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FastingStagesTable,
+          FastingStageData,
+          $$FastingStagesTableFilterComposer,
+          $$FastingStagesTableOrderingComposer,
+          $$FastingStagesTableAnnotationComposer,
+          $$FastingStagesTableCreateCompanionBuilder,
+          $$FastingStagesTableUpdateCompanionBuilder,
+          (
+            FastingStageData,
+            BaseReferences<
+              _$AppDatabase,
+              $FastingStagesTable,
+              FastingStageData
+            >,
+          ),
+          FastingStageData,
+          PrefetchHooks Function()
+        > {
+  $$FastingStagesTableTableManager(_$AppDatabase db, $FastingStagesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FastingStagesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FastingStagesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FastingStagesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> hour = const Value.absent(),
+                Value<String> stageName = const Value.absent(),
+                Value<String> stageCategory = const Value.absent(),
+                Value<String> shortMessage = const Value.absent(),
+                Value<String?> detail = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
+              }) => FastingStagesCompanion(
+                hour: hour,
+                stageName: stageName,
+                stageCategory: stageCategory,
+                shortMessage: shortMessage,
+                detail: detail,
+                icon: icon,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> hour = const Value.absent(),
+                required String stageName,
+                required String stageCategory,
+                required String shortMessage,
+                Value<String?> detail = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
+              }) => FastingStagesCompanion.insert(
+                hour: hour,
+                stageName: stageName,
+                stageCategory: stageCategory,
+                shortMessage: shortMessage,
+                detail: detail,
+                icon: icon,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FastingStagesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FastingStagesTable,
+      FastingStageData,
+      $$FastingStagesTableFilterComposer,
+      $$FastingStagesTableOrderingComposer,
+      $$FastingStagesTableAnnotationComposer,
+      $$FastingStagesTableCreateCompanionBuilder,
+      $$FastingStagesTableUpdateCompanionBuilder,
+      (
+        FastingStageData,
+        BaseReferences<_$AppDatabase, $FastingStagesTable, FastingStageData>,
+      ),
+      FastingStageData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -60017,4 +62760,12 @@ class $AppDatabaseManager {
       $$WorkoutCircuitsTableTableManager(_db, _db.workoutCircuits);
   $$CircuitExercisesTableTableManager get circuitExercises =>
       $$CircuitExercisesTableTableManager(_db, _db.circuitExercises);
+  $$AchievementsTableTableManager get achievements =>
+      $$AchievementsTableTableManager(_db, _db.achievements);
+  $$HerculRulesTableTableManager get herculRules =>
+      $$HerculRulesTableTableManager(_db, _db.herculRules);
+  $$HerculMessageLogTableTableManager get herculMessageLog =>
+      $$HerculMessageLogTableTableManager(_db, _db.herculMessageLog);
+  $$FastingStagesTableTableManager get fastingStages =>
+      $$FastingStagesTableTableManager(_db, _db.fastingStages);
 }

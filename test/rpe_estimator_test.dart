@@ -9,29 +9,30 @@ import 'package:herculex/features/reps/domain/rpe_estimator.dart';
 /// [_handComputedLooMae] below relies on to hand-verify Task 1's own
 /// implementation via an independently written closed-form derivation.
 RepFeatures _row(double meanPeriodMs) => RepFeatures(
-      meanPeriodMs: meanPeriodMs,
-      periodCv: 0.1,
-      normalisedAmplitude: 1.0,
-      finalRepPeriodRatio: 1.0,
-      amplitudeDecayRatio: 1.0,
-    );
+  meanPeriodMs: meanPeriodMs,
+  periodCv: 0.1,
+  normalisedAmplitude: 1.0,
+  finalRepPeriodRatio: 1.0,
+  amplitudeDecayRatio: 1.0,
+);
 
 void main() {
   group('RpeEstimator.gatePasses', () {
-    test('false when sampleCount is below 10, other two conditions passing',
-        () {
-      expect(
-        RpeEstimator.gatePasses(
-          sampleCount: 9,
-          distinctSessionCount: 3,
-          looMae: 0.5,
-        ),
-        isFalse,
-      );
-    });
-
     test(
-        'false when distinctSessionCount is below 3, other two conditions '
+      'false when sampleCount is below 10, other two conditions passing',
+      () {
+        expect(
+          RpeEstimator.gatePasses(
+            sampleCount: 9,
+            distinctSessionCount: 3,
+            looMae: 0.5,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('false when distinctSessionCount is below 3, other two conditions '
         'passing', () {
       expect(
         RpeEstimator.gatePasses(
@@ -154,8 +155,7 @@ void main() {
       distinctSessionCount: 3,
     );
 
-    test('a wildly out-of-range feature vector still clamps to 5.0-10.0',
-        () {
+    test('a wildly out-of-range feature vector still clamps to 5.0-10.0', () {
       final farBelow = estimator.estimate(_row(-1e9));
       final farAbove = estimator.estimate(_row(1e9));
       expect(farBelow, isNotNull);
@@ -235,8 +235,7 @@ void main() {
   });
 
   group('RpeEstimator.fit — degenerate inputs', () {
-    test(
-        'a training set where every row has a null ratio feature yields a '
+    test('a training set where every row has a null ratio feature yields a '
         'null looMae rather than an empty-matrix crash', () {
       final rows = [
         RpeTrainingRow(

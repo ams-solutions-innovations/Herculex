@@ -5,10 +5,7 @@ import 'package:herculex/features/workouts/domain/circuit_stats.dart';
 void main() {
   group('calculateCircuitStats', () {
     test('returns empty when exercises are empty', () {
-      final stats = calculateCircuitStats(
-        exercises: [],
-        setsByExerciseId: {},
-      );
+      final stats = calculateCircuitStats(exercises: [], setsByExerciseId: {});
       expect(stats.completedRounds, 0);
       expect(stats.totalPlannedRounds, 0);
       expect(stats.averageRestBetweenRoundsSeconds, isNull);
@@ -108,10 +105,7 @@ void main() {
 
       final stats = calculateCircuitStats(
         exercises: [ex1, ex2],
-        setsByExerciseId: {
-          101: sets1,
-          102: sets2,
-        },
+        setsByExerciseId: {101: sets1, 102: sets2},
       );
 
       expect(stats.totalPlannedRounds, 3);

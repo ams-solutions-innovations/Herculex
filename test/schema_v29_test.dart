@@ -77,9 +77,7 @@ void main() {
             // The table must exist and be queryable post-migration; an
             // empty result set (rather than an exception) is exactly what
             // "created but not backfilled" should look like.
-            final rows = await newDb
-                .customSelect('SELECT * FROM $table')
-                .get();
+            final rows = await newDb.customSelect('SELECT * FROM $table').get();
             expect(rows, isEmpty);
           }
         },

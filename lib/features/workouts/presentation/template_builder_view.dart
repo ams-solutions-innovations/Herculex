@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../../../widgets/premium_button.dart';
 import '../domain/set_type.dart';
 import 'circuits_providers.dart';
@@ -46,7 +47,8 @@ class TemplateBuilderView extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<TemplateBuilderView> createState() => _TemplateBuilderViewState();
+  ConsumerState<TemplateBuilderView> createState() =>
+      _TemplateBuilderViewState();
 }
 
 class _TemplateBuilderViewState extends ConsumerState<TemplateBuilderView> {
@@ -73,53 +75,53 @@ class _TemplateBuilderViewState extends ConsumerState<TemplateBuilderView> {
     if (name.isEmpty) return;
     setState(() => _saving = true);
     final repo = ref.read(templatesRepositoryProvider);
-    await repo.updateTemplate(template.id, name: name, notes: _notes.text.trim().isEmpty ? null : _notes.text.trim());
+    await repo.updateTemplate(
+      template.id,
+      name: name,
+      notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+    );
     if (mounted) setState(() => _saving = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final templateId = widget.existing?.id;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          templateId == null ? 'New Template' : 'Edit Template',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          if (templateId != null && !_saving)
-            TextButton(
-              onPressed: () async {
-                final navigator = Navigator.of(context);
-                await _save(widget.existing!);
-                if (!mounted || !widget.returnsSelection) return;
-                // Hand the finished template back to whatever opened us.
-                navigator.pop(widget.existing);
-              },
-              child: Text(
-                widget.returnsSelection ? 'Use template' : 'Save',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+    return HxScreenShell(
+      title: templateId == null ? 'New Template' : 'Edit Template',
+      actions: [
+        if (templateId != null && !_saving)
+          TextButton(
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              await _save(widget.existing!);
+              if (!mounted || !widget.returnsSelection) return;
+              // Hand the finished template back to whatever opened us.
+              navigator.pop(widget.existing);
+            },
+            child: Text(
+              widget.returnsSelection ? 'Use template' : 'Save',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
               ),
             ),
-        ],
-      ),
-      body: templateId == null
-          ? _CreateForm(
-              nameCtrl: _name,
-              notesCtrl: _notes,
-              initialFolderId: widget.initialFolderId,
-              returnsSelection: widget.returnsSelection,
-            )
-          : _EditBody(
-              template: widget.existing!,
-              nameCtrl: _name,
-              notesCtrl: _notes,
-            ),
+          ),
+      ],
+      children: [
+        templateId == null
+            ? _CreateForm(
+                nameCtrl: _name,
+                notesCtrl: _notes,
+                initialFolderId: widget.initialFolderId,
+                returnsSelection: widget.returnsSelection,
+              )
+            : _EditBody(
+                template: widget.existing!,
+                nameCtrl: _name,
+                notesCtrl: _notes,
+              ),
+      ],
     );
   }
 }
@@ -157,18 +159,30 @@ class _CreateFormState extends ConsumerState<_CreateForm> {
     final theme = Theme.of(context);
     final foldersAsync = ref.watch(workoutFoldersProvider);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 48),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PillField(label: 'Name *', controller: widget.nameCtrl, hint: 'e.g. Push Day A'),
+        _PillField(
+          label: 'Name *',
+          controller: widget.nameCtrl,
+          hint: 'e.g. Push Day A',
+        ),
         const SizedBox(height: 14),
-        _PillField(label: 'Notes', controller: widget.notesCtrl, hint: 'Optional description', maxLines: 3),
+        _PillField(
+          label: 'Notes',
+          controller: widget.notesCtrl,
+          hint: 'Optional description',
+          maxLines: 3,
+        ),
         const SizedBox(height: 24),
         Center(
           child: Text(
             'FOLDER',
             textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.2),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.secondary,
+              letterSpacing: 1.2,
+            ),
           ),
         ),
         const SizedBox(height: 10),
@@ -199,27 +213,31 @@ class _CreateFormState extends ConsumerState<_CreateForm> {
         PremiumButton(
           text: _saving ? 'Creating…' : 'Create & Add Exercises',
           icon: Icons.add,
-          onTap: _saving ? () {} : () async {
-            final name = widget.nameCtrl.text.trim();
-            if (name.isEmpty) return;
-            setState(() => _saving = true);
-            final repo = ref.read(templatesRepositoryProvider);
-            final navigator = Navigator.of(context);
-            final template = await repo.createTemplate(
-              name: name,
-              notes: widget.notesCtrl.text.trim().isEmpty ? null : widget.notesCtrl.text.trim(),
-              folderId: _selectedFolder,
-            );
-            if (!mounted) return;
-            navigator.pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => TemplateBuilderView(
-                  existing: template,
-                  returnsSelection: widget.returnsSelection,
-                ),
-              ),
-            );
-          },
+          onTap: _saving
+              ? () {}
+              : () async {
+                  final name = widget.nameCtrl.text.trim();
+                  if (name.isEmpty) return;
+                  setState(() => _saving = true);
+                  final repo = ref.read(templatesRepositoryProvider);
+                  final navigator = Navigator.of(context);
+                  final template = await repo.createTemplate(
+                    name: name,
+                    notes: widget.notesCtrl.text.trim().isEmpty
+                        ? null
+                        : widget.notesCtrl.text.trim(),
+                    folderId: _selectedFolder,
+                  );
+                  if (!mounted) return;
+                  navigator.pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => TemplateBuilderView(
+                        existing: template,
+                        returnsSelection: widget.returnsSelection,
+                      ),
+                    ),
+                  );
+                },
         ),
       ],
     );
@@ -235,7 +253,11 @@ class _EditBody extends ConsumerStatefulWidget {
   final TextEditingController nameCtrl;
   final TextEditingController notesCtrl;
 
-  const _EditBody({required this.template, required this.nameCtrl, required this.notesCtrl});
+  const _EditBody({
+    required this.template,
+    required this.nameCtrl,
+    required this.notesCtrl,
+  });
 
   @override
   ConsumerState<_EditBody> createState() => _EditBodyState();
@@ -253,24 +275,33 @@ class _EditBodyState extends ConsumerState<_EditBody> {
     final notesCtrl = widget.notesCtrl;
     final theme = Theme.of(context);
     final exercisesAsync = ref.watch(templateExercisesProvider(template.id));
-    final catalogAsync = ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
+    final catalogAsync = ref.watch(
+      exerciseCatalogProvider(const ExerciseCatalogFilter()),
+    );
     final repo = ref.read(templatesRepositoryProvider);
     final catalog = catalogAsync.asData?.value ?? [];
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-            children: [
-              _PillField(label: 'Name', controller: nameCtrl, hint: 'Template name'),
+        _PillField(
+          label: 'Name',
+          controller: nameCtrl,
+          hint: 'Template name',
+        ),
               const SizedBox(height: 14),
-              _PillField(label: 'Notes', controller: notesCtrl, hint: 'Optional description', maxLines: 2),
+              _PillField(
+                label: 'Notes',
+                controller: notesCtrl,
+                hint: 'Optional description',
+                maxLines: 2,
+              ),
               const SizedBox(height: 20),
 
               // Muscle Group Volume Breakdown Header Card
               exercisesAsync.maybeWhen(
-                data: (rows) => _MuscleGroupHeaderCard(exercises: rows, catalog: catalog),
+                data: (rows) =>
+                    _MuscleGroupHeaderCard(exercises: rows, catalog: catalog),
                 orElse: () => const SizedBox.shrink(),
               ),
 
@@ -280,7 +311,10 @@ class _EditBodyState extends ConsumerState<_EditBody> {
                   Text(
                     'EXERCISES',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 1.2),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.secondary,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                   Align(
                     alignment: Alignment.centerRight,
@@ -297,26 +331,37 @@ class _EditBodyState extends ConsumerState<_EditBody> {
                               title: 'Default Sets For New Exercises',
                             );
                             if (chosen != null && chosen > 0) {
-                              setState(() => _defaultTargetSets = chosen.clamp(1, 50));
+                              setState(
+                                () => _defaultTargetSets = chosen.clamp(1, 50),
+                              );
                             }
                           },
                         ),
                         TextButton.icon(
                           icon: const Icon(Icons.add, size: 16),
                           label: const Text('Add Exercise'),
-                          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                          ),
                           onPressed: () async {
-                            final results = await ExercisePickerSheet.show(context);
-                            if (results == null || results.isEmpty || !context.mounted) return;
+                            final results = await ExercisePickerSheet.show(
+                              context,
+                            );
+                            if (results == null ||
+                                results.isEmpty ||
+                                !context.mounted)
+                              return;
                             final circuitIds = <int>{};
                             for (final picked in results) {
                               if (picked.circuitId != null) {
                                 if (!circuitIds.contains(picked.circuitId!)) {
                                   circuitIds.add(picked.circuitId!);
-                                  await ref.read(circuitsRepositoryProvider).addCircuitToTemplate(
-                                    templateId: template.id,
-                                    circuitId: picked.circuitId!,
-                                  );
+                                  await ref
+                                      .read(circuitsRepositoryProvider)
+                                      .addCircuitToTemplate(
+                                        templateId: template.id,
+                                        circuitId: picked.circuitId!,
+                                      );
                                 }
                                 continue;
                               }
@@ -342,15 +387,33 @@ class _EditBodyState extends ConsumerState<_EditBody> {
                       decoration: BoxDecoration(
                         color: AppColors.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                        border: Border.all(
+                          color: AppColors.outlineVariant.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
                       ),
                       child: Column(
                         children: [
-                          Icon(Icons.fitness_center_outlined, size: 40, color: AppColors.primary),
+                          Icon(
+                            Icons.fitness_center_outlined,
+                            size: 40,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(height: 12),
-                          Text('No exercises yet', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            'No exercises yet',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text('Tap Add Exercise to build your template', style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
+                          Text(
+                            'Tap Add Exercise to build your template',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                            ),
+                          ),
                         ],
                       ),
                     );
@@ -365,7 +428,8 @@ class _EditBodyState extends ConsumerState<_EditBody> {
                             (e) => e.id == te.exerciseId,
                             orElse: () => _placeholder(te.exerciseId),
                           ),
-                          onRemove: () => repo.removeExerciseFromTemplate(te.id),
+                          onRemove: () =>
+                              repo.removeExerciseFromTemplate(te.id),
                         ),
                     ],
                   );
@@ -373,37 +437,52 @@ class _EditBodyState extends ConsumerState<_EditBody> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text('Error: $e'),
               ),
+              const SizedBox(height: 24),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: PremiumButton(
+                    text: 'Done',
+                    icon: Icons.check,
+                    onTap: () async {
+                      final name = nameCtrl.text.trim();
+                      if (name.isNotEmpty) {
+                        await repo.updateTemplate(
+                          template.id,
+                          name: name,
+                          notes: notesCtrl.text.trim().isEmpty
+                              ? null
+                              : notesCtrl.text.trim(),
+                        );
+                      }
+                      if (context.mounted) Navigator.of(context).pop(template);
+                    },
+                  ),
+                ),
+              ),
             ],
-          ),
-        ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-            child: PremiumButton(
-              text: 'Done',
-              icon: Icons.check,
-              onTap: () async {
-                final name = nameCtrl.text.trim();
-                if (name.isNotEmpty) {
-                  await repo.updateTemplate(template.id, name: name, notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim());
-                }
-                if (context.mounted) Navigator.of(context).pop(template);
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+          );
+        }
 
   ExerciseCatalogData _placeholder(int id) => ExerciseCatalogData(
-        id: id, name: '…', primaryMuscle: '', equipment: '', mechanics: '',
-        force: '', plane: '', defaultRestSeconds: 120, isCustom: false,
-        category: 'strength', modality: 'barbell', cnsScore: 3,
-        recoveryImpact: 3, loggingMetric: 'weight_reps',
-        supportsWeightedBodyweight: false, isReviewed: false,
-      );
+    id: id,
+    name: '…',
+    primaryMuscle: '',
+    equipment: '',
+    mechanics: '',
+    force: '',
+    plane: '',
+    defaultRestSeconds: 120,
+    isCustom: false,
+    category: 'strength',
+    modality: 'barbell',
+    cnsScore: 3,
+    recoveryImpact: 3,
+    loggingMetric: 'weight_reps',
+    supportsWeightedBodyweight: false,
+    isReviewed: false,
+  );
 }
 
 // ── Muscle Group Breakdown Header ──────────────────────────────────────────
@@ -412,7 +491,10 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
   final List<TemplateExerciseData> exercises;
   final List<ExerciseCatalogData> catalog;
 
-  const _MuscleGroupHeaderCard({required this.exercises, required this.catalog});
+  const _MuscleGroupHeaderCard({
+    required this.exercises,
+    required this.catalog,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -428,7 +510,9 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
         (c) => c.id == te.exerciseId,
         orElse: () => _placeholder(te.exerciseId),
       );
-      final muscle = ex.primaryMuscle.trim().isNotEmpty ? _normalizeMuscle(ex.primaryMuscle) : 'Other';
+      final muscle = ex.primaryMuscle.trim().isNotEmpty
+          ? _normalizeMuscle(ex.primaryMuscle)
+          : 'Other';
 
       final setsAsync = ref.watch(templateExerciseSetsProvider(te.id));
       final sets = setsAsync.asData?.value ?? [];
@@ -464,7 +548,11 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.fitness_center_outlined, size: 18, color: AppColors.primary),
+              Icon(
+                Icons.fitness_center_outlined,
+                size: 18,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Muscle Groups / Volume',
@@ -490,21 +578,37 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
             children: [
               for (final entry in muscleSetCounts.entries)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_muscleEmoji(entry.key), style: const TextStyle(fontSize: 13)),
+                      Text(
+                        _muscleEmoji(entry.key),
+                        style: const TextStyle(fontSize: 13),
+                      ),
                       const SizedBox(width: 6),
-                      Text(entry.key, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        entry.key,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
@@ -531,7 +635,12 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
   String _normalizeMuscle(String raw) {
     final lower = raw.trim();
     if (lower.isEmpty) return 'Other';
-    return lower.split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ');
+    return lower
+        .split(' ')
+        .map(
+          (w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '',
+        )
+        .join(' ');
   }
 
   String _muscleEmoji(String muscle) {
@@ -541,20 +650,33 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
     if (m.contains('shoulder') || m.contains('delt')) return '🛡️';
     if (m.contains('bicep')) return '💪';
     if (m.contains('tricep')) return '⚡';
-    if (m.contains('quad') || m.contains('leg') || m.contains('thigh')) return '🦵';
+    if (m.contains('quad') || m.contains('leg') || m.contains('thigh'))
+      return '🦵';
     if (m.contains('glute')) return '🍑';
-    if (m.contains('hamstring') || m.contains('calf') || m.contains('calves')) return '🦵';
+    if (m.contains('hamstring') || m.contains('calf') || m.contains('calves'))
+      return '🦵';
     if (m.contains('ab') || m.contains('core')) return '🔥';
     return '🎯';
   }
 
   ExerciseCatalogData _placeholder(int id) => ExerciseCatalogData(
-        id: id, name: '…', primaryMuscle: '', equipment: '', mechanics: '',
-        force: '', plane: '', defaultRestSeconds: 120, isCustom: false,
-        category: 'strength', modality: 'barbell', cnsScore: 3,
-        recoveryImpact: 3, loggingMetric: 'weight_reps',
-        supportsWeightedBodyweight: false, isReviewed: false,
-      );
+    id: id,
+    name: '…',
+    primaryMuscle: '',
+    equipment: '',
+    mechanics: '',
+    force: '',
+    plane: '',
+    defaultRestSeconds: 120,
+    isCustom: false,
+    category: 'strength',
+    modality: 'barbell',
+    cnsScore: 3,
+    recoveryImpact: 3,
+    loggingMetric: 'weight_reps',
+    supportsWeightedBodyweight: false,
+    isReviewed: false,
+  );
 }
 
 // ── Interactive Exercise Card with Empty Workout Set Table ─────────────────
@@ -583,7 +705,9 @@ class _TemplateExerciseCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,18 +721,29 @@ class _TemplateExerciseCard extends ConsumerWidget {
                   color: AppColors.primaryContainer.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.fitness_center, size: 20, color: AppColors.primary),
+                child: Icon(
+                  Icons.fitness_center,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(exercise.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      exercise.name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       '${exercise.primaryMuscle}${exercise.equipment.isNotEmpty ? ' • ${exercise.equipment}' : ''}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
                   ],
                 ),
@@ -631,7 +766,11 @@ class _TemplateExerciseCard extends ConsumerWidget {
                 },
               ),
               IconButton(
-                icon: Icon(Icons.delete_outline, size: 20, color: AppColors.secondary),
+                icon: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColors.secondary,
+                ),
                 onPressed: onRemove,
               ),
             ],
@@ -644,20 +783,52 @@ class _TemplateExerciseCard extends ConsumerWidget {
               children: [
                 SizedBox(
                   width: 32,
-                  child: Text('SET', textAlign: TextAlign.center, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 10)),
+                  child: Text(
+                    'SET',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 6),
                 SizedBox(
                   width: 48,
-                  child: Text('TYPE', textAlign: TextAlign.center, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 10)),
+                  child: Text(
+                    'TYPE',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('TARGET KG', textAlign: TextAlign.center, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 10)),
+                  child: Text(
+                    'TARGET KG',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('TARGET REPS', textAlign: TextAlign.center, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 10)),
+                  child: Text(
+                    'TARGET REPS',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 32), // space for delete button
               ],
@@ -668,7 +839,12 @@ class _TemplateExerciseCard extends ConsumerWidget {
             data: (sets) {
               if (sets.isEmpty) {
                 Future.microtask(() => repo.getTemplateSets(te.id));
-                return const SizedBox(height: 32, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+                return const SizedBox(
+                  height: 32,
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
               }
               return Column(
                 children: [
@@ -697,14 +873,21 @@ class _TemplateExerciseCard extends ConsumerWidget {
                           );
                         }
                       },
-                      onUpdateWeight: (kg) => repo.updateTemplateSet(sets[i].id, targetWeightKg: kg),
-                      onUpdateReps: (reps) => repo.updateTemplateSet(sets[i].id, targetReps: reps),
+                      onUpdateWeight: (kg) => repo.updateTemplateSet(
+                        sets[i].id,
+                        targetWeightKg: kg,
+                      ),
+                      onUpdateReps: (reps) =>
+                          repo.updateTemplateSet(sets[i].id, targetReps: reps),
                       onDelete: () => repo.deleteTemplateSet(sets[i].id),
                     ),
                 ],
               );
             },
-            loading: () => const SizedBox(height: 32, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+            loading: () => const SizedBox(
+              height: 32,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
             error: (e, _) => Text('Error loading sets: $e'),
           ),
           const SizedBox(height: 6),
@@ -757,12 +940,17 @@ class _TemplateSetRowState extends State<_TemplateSetRow> {
   void initState() {
     super.initState();
     _weightCtrl = TextEditingController(
-      text: (widget.set.targetWeightKg != null && widget.set.targetWeightKg! > 0)
-          ? widget.set.targetWeightKg!.toStringAsFixed(widget.set.targetWeightKg! % 1 == 0 ? 0 : 1)
+      text:
+          (widget.set.targetWeightKg != null && widget.set.targetWeightKg! > 0)
+          ? widget.set.targetWeightKg!.toStringAsFixed(
+              widget.set.targetWeightKg! % 1 == 0 ? 0 : 1,
+            )
           : '',
     );
     _repsCtrl = TextEditingController(
-      text: widget.set.targetReps != null ? widget.set.targetReps!.toString() : '',
+      text: widget.set.targetReps != null
+          ? widget.set.targetReps!.toString()
+          : '',
     );
   }
 
@@ -770,13 +958,18 @@ class _TemplateSetRowState extends State<_TemplateSetRow> {
   void didUpdateWidget(covariant _TemplateSetRow oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.set.targetWeightKg != widget.set.targetWeightKg) {
-      final text = (widget.set.targetWeightKg != null && widget.set.targetWeightKg! > 0)
-          ? widget.set.targetWeightKg!.toStringAsFixed(widget.set.targetWeightKg! % 1 == 0 ? 0 : 1)
+      final text =
+          (widget.set.targetWeightKg != null && widget.set.targetWeightKg! > 0)
+          ? widget.set.targetWeightKg!.toStringAsFixed(
+              widget.set.targetWeightKg! % 1 == 0 ? 0 : 1,
+            )
           : '';
       if (_weightCtrl.text != text) _weightCtrl.text = text;
     }
     if (oldWidget.set.targetReps != widget.set.targetReps) {
-      final text = widget.set.targetReps != null ? widget.set.targetReps!.toString() : '';
+      final text = widget.set.targetReps != null
+          ? widget.set.targetReps!.toString()
+          : '';
       if (_repsCtrl.text != text) _repsCtrl.text = text;
     }
   }
@@ -817,7 +1010,9 @@ class _TemplateSetRowState extends State<_TemplateSetRow> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: isWarmup ? Colors.orange : AppColors.onSurfaceVariant,
+                    color: isWarmup
+                        ? Colors.orange
+                        : AppColors.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -845,26 +1040,36 @@ class _TemplateSetRowState extends State<_TemplateSetRow> {
                   color: isWarmup
                       ? Colors.orange.withValues(alpha: 0.15)
                       : (setType != SetType.standard
-                          ? AppColors.primary.withValues(alpha: 0.15)
-                          : AppColors.surfaceContainer),
+                            ? AppColors.primary.withValues(alpha: 0.15)
+                            : AppColors.surfaceContainer),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isWarmup
                         ? Colors.orange.withValues(alpha: 0.4)
                         : (setType != SetType.standard
-                            ? AppColors.primary.withValues(alpha: 0.4)
-                            : AppColors.outlineVariant.withValues(alpha: 0.4)),
+                              ? AppColors.primary.withValues(alpha: 0.4)
+                              : AppColors.outlineVariant.withValues(
+                                  alpha: 0.4,
+                                )),
                   ),
                 ),
                 child: Center(
                   child: isWarmup
-                      ? const Icon(Icons.local_fire_department, size: 14, color: Colors.orange)
+                      ? const Icon(
+                          Icons.local_fire_department,
+                          size: 14,
+                          color: Colors.orange,
+                        )
                       : Text(
-                          setType == SetType.standard ? '—' : SetTypeMenu.badge(setType),
+                          setType == SetType.standard
+                              ? '—'
+                              : SetTypeMenu.badge(setType),
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: setType != SetType.standard ? AppColors.primary : AppColors.secondary,
+                            color: setType != SetType.standard
+                                ? AppColors.primary
+                                : AppColors.secondary,
                           ),
                         ),
                 ),
@@ -876,16 +1081,27 @@ class _TemplateSetRowState extends State<_TemplateSetRow> {
           Expanded(
             child: TextField(
               controller: _weightCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
               decoration: InputDecoration(
                 hintText: 'kg',
                 filled: true,
                 fillColor: AppColors.surfaceContainer,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 6,
+                ),
                 isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
               ),
               onChanged: (val) {
                 final parsed = double.tryParse(val.trim().replaceAll(',', '.'));
@@ -900,14 +1116,23 @@ class _TemplateSetRowState extends State<_TemplateSetRow> {
               controller: _repsCtrl,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
               decoration: InputDecoration(
                 hintText: 'reps',
                 filled: true,
                 fillColor: AppColors.surfaceContainer,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 6,
+                ),
                 isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
               ),
               onChanged: (val) {
                 final parsed = int.tryParse(val.trim());
@@ -935,7 +1160,11 @@ class _SetsCountChip extends StatelessWidget {
   final String label;
   final int count;
   final VoidCallback onTap;
-  const _SetsCountChip({required this.label, required this.count, required this.onTap});
+  const _SetsCountChip({
+    required this.label,
+    required this.count,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1005,7 +1234,12 @@ class _PillField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final int maxLines;
-  const _PillField({required this.label, required this.controller, required this.hint, this.maxLines = 1});
+  const _PillField({
+    required this.label,
+    required this.controller,
+    required this.hint,
+    this.maxLines = 1,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1013,7 +1247,14 @@ class _PillField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: AppColors.secondary, letterSpacing: 0.8, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.secondary,
+            letterSpacing: 0.8,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
@@ -1022,10 +1263,22 @@ class _PillField extends StatelessWidget {
             hintText: hint,
             filled: true,
             fillColor: AppColors.surfaceContainer,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.primary, width: 1.5)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+            ),
           ),
         ),
       ],
@@ -1038,7 +1291,12 @@ class _FolderChip extends StatelessWidget {
   final String emoji;
   final bool selected;
   final VoidCallback onTap;
-  const _FolderChip({required this.label, required this.emoji, required this.selected, required this.onTap});
+  const _FolderChip({
+    required this.label,
+    required this.emoji,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1050,11 +1308,19 @@ class _FolderChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : AppColors.surfaceContainer,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.5)),
+          border: Border.all(
+            color: selected
+                ? AppColors.primary
+                : AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
         ),
         child: Text(
           '$emoji $label',
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: selected ? Colors.white : AppColors.onSurfaceVariant),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : AppColors.onSurfaceVariant,
+          ),
         ),
       ),
     );

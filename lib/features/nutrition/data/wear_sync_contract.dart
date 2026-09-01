@@ -117,7 +117,8 @@ class WearSyncEnvelope {
 /// namespaces the persisted high-water mark so independent entities (e.g.
 /// workout vs. fasting) don't share — and corrupt — each other's sequence.
 class WearRevisionAllocator {
-  WearRevisionAllocator(this._prefs, String key) : _key = 'wear_sync_revision_$key';
+  WearRevisionAllocator(this._prefs, String key)
+    : _key = 'wear_sync_revision_$key';
 
   final SharedPreferences _prefs;
   final String _key;

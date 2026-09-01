@@ -136,10 +136,10 @@ class HxColors extends ThemeExtension<HxColors> {
   bool get isDark => brightness == Brightness.dark;
 
   LinearGradient get backgroundGradient => LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [gradientTop, gradientMid, gradientBottom],
-      );
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [gradientTop, gradientMid, gradientBottom],
+  );
 
   // ── 1. Classic Blue (Default) ──
   static const HxColors classicBlueDark = HxColors(
@@ -510,11 +510,15 @@ class HxColors extends ThemeExtension<HxColors> {
   static const HxColors dark = classicBlueDark;
   static const HxColors light = classicBlueLight;
 
-  static HxColors of(Brightness brightness, [AppColorTheme theme = AppColorTheme.classicBlue]) {
+  static HxColors of(
+    Brightness brightness, [
+    AppColorTheme theme = AppColorTheme.classicBlue,
+  ]) {
     final isDark = brightness == Brightness.dark;
     return switch (theme) {
       AppColorTheme.classicBlue => isDark ? classicBlueDark : classicBlueLight,
-      AppColorTheme.siriousBlack => isDark ? siriousBlackDark : siriousBlackLight,
+      AppColorTheme.siriousBlack =>
+        isDark ? siriousBlackDark : siriousBlackLight,
       AppColorTheme.vividGreen => isDark ? vividGreenDark : vividGreenLight,
       AppColorTheme.sunnyYellow => isDark ? sunnyYellowDark : sunnyYellowLight,
       AppColorTheme.pinky => isDark ? pinkyDark : pinkyLight,
@@ -544,8 +548,10 @@ class HxColors extends ThemeExtension<HxColors> {
       secondary: c(secondary, other.secondary),
       tertiary: c(tertiary, other.tertiary),
       surfaceContainer: c(surfaceContainer, other.surfaceContainer),
-      surfaceContainerLowest:
-          c(surfaceContainerLowest, other.surfaceContainerLowest),
+      surfaceContainerLowest: c(
+        surfaceContainerLowest,
+        other.surfaceContainerLowest,
+      ),
       surfaceVariant: c(surfaceVariant, other.surfaceVariant),
       outline: c(outline, other.outline),
       outlineVariant: c(outlineVariant, other.outlineVariant),

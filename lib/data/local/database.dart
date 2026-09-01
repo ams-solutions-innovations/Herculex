@@ -13,6 +13,8 @@ import 'migrations/nutrition_snapshot_backfill.dart';
 import 'migrations/sync_backfill.dart';
 import 'migrations/sync_triggers.dart';
 import '../../features/nutrition/data/food_catalogue_importer.dart';
+import '../../features/hercul/data/hercul_rule_importer.dart';
+import '../../features/fasting/data/fasting_stage_importer.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
@@ -77,6 +79,12 @@ part 'database.g.dart';
     // Workout Circuits (v34)
     WorkoutCircuits,
     CircuitExercises,
+    // Gamification & Hercul Coaching Engine (v35)
+    Achievements,
+    HerculRules,
+    HerculMessageLog,
+    // Physiological fasting stages (v36)
+    FastingStages,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -86,7 +94,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 34;
+  int get schemaVersion => 36;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -94,6 +102,8 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
       await ExerciseImporter.runFromAsset(this);
       await AccessorySeed.run(this);
+      await HerculRuleImporter.runFromAsset(this);
+      await FastingStageImporter.runFromAsset(this);
       if (seedFoodCatalogue) {
         await FoodCatalogueImporter.runIfNeeded(this);
       }
@@ -408,7 +418,9 @@ class AppDatabase extends _$AppDatabase {
         }
         for (final entry in report.deleted.entries) {
           if (entry.value > 0) {
-            log('Migration v23: deleted ${entry.value} orphan rows from ${entry.key}');
+            log(
+              'Migration v23: deleted ${entry.value} orphan rows from ${entry.key}',
+            );
           }
         }
         if (report.residualViolations > 0) {
@@ -714,7 +726,10 @@ class AppDatabase extends _$AppDatabase {
         }
 
         await tryAddColumn(programDays, programDays.startTimeMinutes);
-        await tryAddColumn(scheduledWorkouts, scheduledWorkouts.startTimeMinutes);
+        await tryAddColumn(
+          scheduledWorkouts,
+          scheduledWorkouts.startTimeMinutes,
+        );
       }
       if (from < 29) {
         // Gym Buddy (Phase 11). Two local-only tables — no sync columns, no
@@ -850,6 +865,21 @@ class AppDatabase extends _$AppDatabase {
         );
         await installSyncTriggers(this);
       }
+      if (from < 35) {
+        await m.createTable(achievements);
+        await m.createTable(herculRules);
+        await m.createTable(herculMessageLog);
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_achievements '
+          'ON achievements(sync_uuid)',
+        );
+        await installSyncTriggers(this);
+        await HerculRuleImporter.runFromAsset(this);
+      }
+      if (from < 36) {
+        await m.createTable(fastingStages);
+        await FastingStageImporter.runFromAsset(this);
+      }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
     // issued. It cannot live in onCreate/onUpgrade — those run inside a
@@ -882,6 +912,13 @@ class AppDatabase extends _$AppDatabase {
       ).getSingleOrNull();
       if (catalogueExists != null) {
         await ExerciseImporter.runFromAsset(this);
+      }
+      final fastingStagesExists = await customSelect(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+        "AND name = 'fasting_stages'",
+      ).getSingleOrNull();
+      if (fastingStagesExists != null) {
+        await FastingStageImporter.runFromAsset(this);
       }
     },
   );

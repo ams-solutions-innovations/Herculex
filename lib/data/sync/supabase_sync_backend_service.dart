@@ -76,16 +76,11 @@ class SupabaseSyncBackendService implements SyncBackendService {
     required String userId,
   }) async {
     final rows = await _client.from(table).select('id').eq('user_id', userId);
-    return (rows as List)
-        .map((r) => (r as Map)['id'] as String)
-        .toSet();
+    return (rows as List).map((r) => (r as Map)['id'] as String).toSet();
   }
 
   @override
-  Stream<String> realtimeHints(
-    List<String> tables, {
-    required String userId,
-  }) {
+  Stream<String> realtimeHints(List<String> tables, {required String userId}) {
     final controller = StreamController<String>.broadcast();
     for (final table in tables) {
       final channel = _client

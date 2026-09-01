@@ -81,18 +81,29 @@ class MealNotificationScheduler {
           '🍽️ ${slot.label} reminder',
           'Time for ${slot.label.toLowerCase()}! Tap to log your food in Herculex.',
           scheduled,
-          const NotificationDetails(
-            android: androidDetails,
-            iOS: iOSDetails,
-          ),
+          const NotificationDetails(android: androidDetails, iOS: iOSDetails),
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time,
         );
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('MealNotificationScheduler: schedule failed ($e)');
+      } catch (_) {
+        try {
+          await _plugin.zonedSchedule(
+            _baseNotifId + slotIndex,
+            '🍽️ ${slot.label} reminder',
+            'Time for ${slot.label.toLowerCase()}! Tap to log your food in Herculex.',
+            scheduled,
+            const NotificationDetails(android: androidDetails, iOS: iOSDetails),
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('MealNotificationScheduler: schedule failed ($e)');
+          }
         }
       }
 

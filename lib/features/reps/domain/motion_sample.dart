@@ -59,7 +59,8 @@ class MotionSample {
   bool get hasGyro => rx != null && ry != null && rz != null;
 
   @override
-  String toString() => 'MotionSample($tMs, $x, $y, $z'
+  String toString() =>
+      'MotionSample($tMs, $x, $y, $z'
       '${hasGravity ? ', g=($gx, $gy, $gz)' : ''}'
       '${hasGyro ? ', r=($rx, $ry, $rz)' : ''})';
 
@@ -110,10 +111,7 @@ class MotionTrace {
   /// `linear_acceleration` | `accelerometer` — see [MotionSensorType].
   final String sensorType;
 
-  const MotionTrace({
-    required this.samples,
-    required this.sensorType,
-  });
+  const MotionTrace({required this.samples, required this.sensorType});
 
   /// True when this trace still contains the gravity vector and needs
   /// detrending before magnitude is meaningful.
@@ -194,8 +192,8 @@ class MotionTrace {
 
   /// Per-sample vector magnitude `sqrt(x² + y² + z²)`.
   List<double> magnitudes() => [
-        for (final s in samples) sqrt(s.x * s.x + s.y * s.y + s.z * s.z),
-      ];
+    for (final s in samples) sqrt(s.x * s.x + s.y * s.y + s.z * s.z),
+  ];
 
   /// Parse a fixture-corpus CSV body. A leading header row is tolerated;
   /// blank lines are skipped.
@@ -227,9 +225,16 @@ class MotionTrace {
       if (x == null || y == null || z == null) continue;
       samples.add(
         MotionSample(
-          tMs, x, y, z,
-          gx: at(4), gy: at(5), gz: at(6),
-          rx: at(7), ry: at(8), rz: at(9),
+          tMs,
+          x,
+          y,
+          z,
+          gx: at(4),
+          gy: at(5),
+          gz: at(6),
+          rx: at(7),
+          ry: at(8),
+          rz: at(9),
         ),
       );
     }
@@ -237,7 +242,8 @@ class MotionTrace {
   }
 
   /// True when every sample carries a gravity vector.
-  bool get hasGravity => samples.isNotEmpty && samples.every((s) => s.hasGravity);
+  bool get hasGravity =>
+      samples.isNotEmpty && samples.every((s) => s.hasGravity);
 
   /// True when every sample carries an angular velocity.
   bool get hasGyro => samples.isNotEmpty && samples.every((s) => s.hasGyro);

@@ -70,6 +70,7 @@ class Profile {
   final BiologicalSex? sex;
   final MeasurementUnit preferredUnit;
   final bool countBurnedCalories;
+  final String herculTone;
 
   const Profile({
     this.name,
@@ -82,10 +83,11 @@ class Profile {
     this.sex,
     this.preferredUnit = MeasurementUnit.metric,
     this.countBurnedCalories = false,
+    this.herculTone = 'normal',
   });
 
   bool get isComplete =>
-      ageYears != null && weightKg != null && heightCm != null;
+      ageYears != null && weightKg != null && heightCm != null && sex != null;
 
   Profile copyWith({
     String? name,
@@ -98,18 +100,22 @@ class Profile {
     BiologicalSex? sex,
     MeasurementUnit? preferredUnit,
     bool? countBurnedCalories,
-  }) => Profile(
-    name: name ?? this.name,
-    goal: goal ?? this.goal,
-    activityLevel: activityLevel ?? this.activityLevel,
-    ageYears: ageYears ?? this.ageYears,
-    weightKg: weightKg ?? this.weightKg,
-    targetWeightKg: targetWeightKg ?? this.targetWeightKg,
-    heightCm: heightCm ?? this.heightCm,
-    sex: sex ?? this.sex,
-    preferredUnit: preferredUnit ?? this.preferredUnit,
-    countBurnedCalories: countBurnedCalories ?? this.countBurnedCalories,
-  );
+    String? herculTone,
+  }) {
+    return Profile(
+      name: name ?? this.name,
+      goal: goal ?? this.goal,
+      activityLevel: activityLevel ?? this.activityLevel,
+      ageYears: ageYears ?? this.ageYears,
+      weightKg: weightKg ?? this.weightKg,
+      targetWeightKg: targetWeightKg ?? this.targetWeightKg,
+      heightCm: heightCm ?? this.heightCm,
+      sex: sex ?? this.sex,
+      preferredUnit: preferredUnit ?? this.preferredUnit,
+      countBurnedCalories: countBurnedCalories ?? this.countBurnedCalories,
+      herculTone: herculTone ?? this.herculTone,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'name': name,
@@ -122,6 +128,7 @@ class Profile {
     'sex': sex?.name,
     'preferredUnit': preferredUnit.name,
     'countBurnedCalories': countBurnedCalories,
+    'herculTone': herculTone,
   };
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
@@ -131,11 +138,14 @@ class Profile {
     goal: FitnessGoal.values.byName(json['goal'] as String),
     activityLevel: ActivityLevel.values.byName(json['activityLevel'] as String),
     ageYears: json['ageYears'] as int?,
-    weightKg: (json['weightKg'] as num?)?.toDouble() ??
+    weightKg:
+        (json['weightKg'] as num?)?.toDouble() ??
         (json['weight_kg'] as num?)?.toDouble(),
-    targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble() ??
+    targetWeightKg:
+        (json['targetWeightKg'] as num?)?.toDouble() ??
         (json['target_weight_kg'] as num?)?.toDouble(),
-    heightCm: (json['heightCm'] as num?)?.toDouble() ??
+    heightCm:
+        (json['heightCm'] as num?)?.toDouble() ??
         (json['height_cm'] as num?)?.toDouble(),
     sex: json['sex'] == null
         ? null
@@ -144,6 +154,7 @@ class Profile {
         ? MeasurementUnit.metric
         : MeasurementUnit.values.byName(json['preferredUnit'] as String),
     countBurnedCalories: json['countBurnedCalories'] as bool? ?? false,
+    herculTone: json['herculTone'] as String? ?? 'normal',
   );
 
   String encode() => jsonEncode(toJson());

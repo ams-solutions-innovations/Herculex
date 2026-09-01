@@ -20,10 +20,7 @@ void main() {
     });
 
     test('bodyweight ignored when exercise does not support it', () {
-      expect(
-        EffectiveLoad.computeKg(weightKg: 25, bodyweightKg: 80),
-        25,
-      );
+      expect(EffectiveLoad.computeKg(weightKg: 25, bodyweightKg: 80), 25);
     });
 
     test('resistance bands add half their rated tension per band', () {
@@ -45,9 +42,7 @@ void main() {
           weightKg: 0,
           bodyweightKg: 80,
           includesBodyweight: true,
-          bands: const [
-            BandContribution(tensionKg: 30, isResistance: false),
-          ],
+          bands: const [BandContribution(tensionKg: 30, isResistance: false)],
         ),
         65,
       );
@@ -61,9 +56,7 @@ void main() {
       expect(
         EffectiveLoad.computeKg(
           weightKg: 0,
-          bands: const [
-            BandContribution(tensionKg: 100, isResistance: false),
-          ],
+          bands: const [BandContribution(tensionKg: 100, isResistance: false)],
         ),
         0,
       );
@@ -72,16 +65,16 @@ void main() {
 
   group('EffectiveLoad.tonnageKg', () {
     test('standard set is load × reps', () {
-      expect(
-        EffectiveLoad.tonnageKg(effectiveKg: 100, reps: 5),
-        500,
-      );
+      expect(EffectiveLoad.tonnageKg(effectiveKg: 100, reps: 5), 500);
     });
 
     test('partials count half volume', () {
       expect(
         EffectiveLoad.tonnageKg(
-            effectiveKg: 100, reps: 10, setType: SetType.partials),
+          effectiveKg: 100,
+          reps: 10,
+          setType: SetType.partials,
+        ),
         500,
       );
     });

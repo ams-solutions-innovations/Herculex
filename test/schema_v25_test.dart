@@ -87,9 +87,9 @@ void main() {
 
     // Column exists and is nullable/queryable post-migration — the v25
     // block must not have tried (and failed) to re-add it.
-    final food = await db.customSelect(
-      'SELECT deleted_at FROM foods LIMIT 1',
-    ).getSingleOrNull();
+    final food = await db
+        .customSelect('SELECT deleted_at FROM foods LIMIT 1')
+        .getSingleOrNull();
     expect(food, isNull);
   });
 }

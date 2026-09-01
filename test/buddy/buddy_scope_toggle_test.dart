@@ -5,43 +5,48 @@ import 'package:herculex/features/buddy/domain/buddy_scope.dart';
 import 'package:herculex/features/buddy/presentation/buddy_scope_toggle.dart';
 
 void main() {
-  testWidgets('BuddyScopeToggle shows selection and notifies on change when enabled', (tester) async {
-    BuddyScope currentScope = BuddyScope.both;
+  testWidgets(
+    'BuddyScopeToggle shows selection and notifies on change when enabled',
+    (tester) async {
+      BuddyScope currentScope = BuddyScope.both;
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) {
-              return BuddyScopeToggle(
-                scope: currentScope,
-                onChanged: (newScope) {
-                  setState(() {
-                    currentScope = newScope;
-                  });
-                },
-                decision: const ShareDecision(
-                  scope: BuddyScope.both,
-                  userOverridable: true,
-                ),
-              );
-            },
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                return BuddyScopeToggle(
+                  scope: currentScope,
+                  onChanged: (newScope) {
+                    setState(() {
+                      currentScope = newScope;
+                    });
+                  },
+                  decision: const ShareDecision(
+                    scope: BuddyScope.both,
+                    userOverridable: true,
+                  ),
+                );
+              },
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('Both (Shared)'), findsOneWidget);
-    expect(find.text('Only Me'), findsOneWidget);
+      expect(find.text('Both (Shared)'), findsOneWidget);
+      expect(find.text('Only Me'), findsOneWidget);
 
-    // Tap Only Me
-    await tester.tap(find.text('Only Me'));
-    await tester.pumpAndSettle();
+      // Tap Only Me
+      await tester.tap(find.text('Only Me'));
+      await tester.pumpAndSettle();
 
-    expect(currentScope, BuddyScope.mine);
-  });
+      expect(currentScope, BuddyScope.mine);
+    },
+  );
 
-  testWidgets('BuddyScopeToggle displays reason text when scope is forced', (tester) async {
+  testWidgets('BuddyScopeToggle displays reason text when scope is forced', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -58,6 +63,9 @@ void main() {
       ),
     );
 
-    expect(find.text('Custom exercises cannot be shared with gym buddies'), findsOneWidget);
+    expect(
+      find.text('Custom exercises cannot be shared with gym buddies'),
+      findsOneWidget,
+    );
   });
 }

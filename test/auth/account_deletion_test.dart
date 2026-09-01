@@ -152,7 +152,9 @@ void main() {
       // it, so a commit that got here at all is already proof — but an
       // explicit check is what would catch a future table being added to the
       // clear list without its children.
-      final violations = await db.customSelect('PRAGMA foreign_key_check').get();
+      final violations = await db
+          .customSelect('PRAGMA foreign_key_check')
+          .get();
       expect(violations, isEmpty);
     });
   });

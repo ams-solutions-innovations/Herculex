@@ -32,17 +32,16 @@ void main() {
     });
 
     test('block phases prescribe different main work', () {
-      SlotPrescription forPhase(String phase) =>
-          PrescriptionResolver.archetype(
-            model: PeriodizationModel.block,
-            role: SlotRole.main,
-            week: WeekPrescription(
-              weekIndex: 0,
-              intensityFactor: 1,
-              volumeFactor: 1,
-              blockPhase: phase,
-            ),
-          );
+      SlotPrescription forPhase(String phase) => PrescriptionResolver.archetype(
+        model: PeriodizationModel.block,
+        role: SlotRole.main,
+        week: WeekPrescription(
+          weekIndex: 0,
+          intensityFactor: 1,
+          volumeFactor: 1,
+          blockPhase: phase,
+        ),
+      );
 
       final accumulation = forPhase('accumulation').segments.first;
       final realization = forPhase('realization').segments.first;
@@ -108,8 +107,9 @@ void main() {
     });
 
     test('a user template overrides the archetype and is named in the why', () {
-      final mine = SlotPrescription.builtIns
-          .firstWhere((p) => p.name == '2 to failure');
+      final mine = SlotPrescription.builtIns.firstWhere(
+        (p) => p.name == '2 to failure',
+      );
       final r = PrescriptionResolver.resolve(
         model: PeriodizationModel.maxEffort,
         role: SlotRole.main,
@@ -180,8 +180,9 @@ void main() {
         model: PeriodizationModel.maxEffort,
         role: SlotRole.main,
         week: _flatWeek,
-        template: SlotPrescription.builtIns
-            .firstWhere((p) => p.name == 'Dynamic Effort 8x3'),
+        template: SlotPrescription.builtIns.firstWhere(
+          (p) => p.name == 'Dynamic Effort 8x3',
+        ),
       );
       expect(dynamicEffort.restSeconds, 60);
     });

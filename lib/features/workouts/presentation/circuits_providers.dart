@@ -15,26 +15,34 @@ final workoutCircuitsProvider = StreamProvider<List<WorkoutCircuitData>>((ref) {
 
 final circuitExercisesProvider =
     StreamProvider.family<List<CircuitExerciseData>, int>((ref, circuitId) {
-  return ref.watch(circuitsRepositoryProvider).watchCircuitExercises(circuitId);
-});
+      return ref
+          .watch(circuitsRepositoryProvider)
+          .watchCircuitExercises(circuitId);
+    });
 
 typedef CircuitDetails = ({
   WorkoutCircuitData circuit,
   List<({CircuitExerciseData entry, ExerciseCatalogData catalog})> exercises,
 });
 
-final circuitDetailsProvider =
-    FutureProvider.family<CircuitDetails?, int>((ref, circuitId) async {
+final circuitDetailsProvider = FutureProvider.family<CircuitDetails?, int>((
+  ref,
+  circuitId,
+) async {
   final repo = ref.watch(circuitsRepositoryProvider);
   final circuit = await repo.getCircuitById(circuitId);
   if (circuit == null) return null;
 
   final entries = await repo.getCircuitExercises(circuitId);
-  final snapshot = await ref.watch(workoutsRepositoryProvider).watchExerciseCatalog().first;
+  final snapshot = await ref
+      .watch(workoutsRepositoryProvider)
+      .watchExerciseCatalog()
+      .first;
   final catalogMap = {for (final e in snapshot.exercises) e.id: e};
 
   final exerciseDetails = entries.map((entry) {
-    final catalog = catalogMap[entry.exerciseId] ??
+    final catalog =
+        catalogMap[entry.exerciseId] ??
         ExerciseCatalogData(
           id: entry.exerciseId,
           name: 'Exercise #${entry.exerciseId}',

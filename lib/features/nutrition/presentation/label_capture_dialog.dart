@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../../fasting/presentation/fasting_food_log_dialog.dart';
+import '../data/gemini_food_analyzer_service.dart';
 import '../data/nutrition_label_ocr_service.dart';
 import '../domain/meal.dart';
 import '../domain/nutrition_label.dart';
 import 'nutrition_providers.dart';
-import '../data/gemini_food_analyzer_service.dart';
 
 class LabelCaptureDialog extends ConsumerStatefulWidget {
   final File imageFile;
@@ -130,6 +131,9 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
       setState(() => _error = 'Name and calories / 100g are required.');
       return;
     }
+    final proceed = await confirmEndFastOnFoodLog(context, ref);
+    if (!proceed || !mounted) return;
+
     setState(() {
       _saving = true;
       _error = null;
@@ -271,9 +275,7 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
               ),
               Row(
                 children: [
-                  Expanded(
-                    child: _field('Protein g', _protein, numeric: true),
-                  ),
+                  Expanded(child: _field('Protein g', _protein, numeric: true)),
                   const SizedBox(width: 8),
                   Expanded(child: _field('Carbs g', _carbs, numeric: true)),
                   const SizedBox(width: 8),

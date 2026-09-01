@@ -84,10 +84,11 @@ class SessionSummary {
       }
       exerciseIds.add(rs.exercise.id);
 
-      final muscles = musclesByExercise[rs.exercise.id] ??
+      final muscles =
+          musclesByExercise[rs.exercise.id] ??
           [
             MuscleRecoveryV3.alias[rs.exercise.primaryMuscle] ??
-                rs.exercise.primaryMuscle
+                rs.exercise.primaryMuscle,
           ];
       for (final m in muscles) {
         muscleSets[m] = (muscleSets[m] ?? 0) + 1;
@@ -104,8 +105,12 @@ class SessionSummary {
     } else {
       // Standard MET estimate for resistance / strength training: ~5.0 MET
       // Formula: kcal = MET * weight_kg * (duration_minutes / 60)
-      final weight = userWeightKg != null && userWeightKg > 20 ? userWeightKg : 75.0;
-      final minutes = duration.inMinutes > 0 ? duration.inMinutes : (sets.isNotEmpty ? sets.length * 2 : 1);
+      final weight = userWeightKg != null && userWeightKg > 20
+          ? userWeightKg
+          : 75.0;
+      final minutes = duration.inMinutes > 0
+          ? duration.inMinutes
+          : (sets.isNotEmpty ? sets.length * 2 : 1);
       final estimated = (5.0 * weight * (minutes / 60.0)).round();
       finalCalories = sets.isNotEmpty ? estimated.clamp(10, 3000) : 0;
     }
@@ -142,8 +147,8 @@ class SessionSummary {
   String get tonnageLabel => !tonnageKg.isFinite
       ? '0 kg'
       : tonnageKg >= 1000
-          ? '${(tonnageKg / 1000).toStringAsFixed(1)} t'
-          : '${tonnageKg.round()} kg';
+      ? '${(tonnageKg / 1000).toStringAsFixed(1)} t'
+      : '${tonnageKg.round()} kg';
 
   /// Format calories burned.
   String get caloriesLabel => '$caloriesBurned kcal';

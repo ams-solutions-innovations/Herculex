@@ -30,12 +30,33 @@ ActiveWorkoutNotificationTarget? selectActiveWorkoutNotificationTarget({
   ActiveWorkoutNotificationTarget? fallback;
   for (final exercise in exercises) {
     final sets = setsByWorkoutExerciseId[exercise.id] ?? const <SetEntryData>[];
-    if (sets.isEmpty) continue;
 
     final catalogEntry = catalog.firstWhereOrNull(
       (e) => e.id == exercise.exerciseId,
     );
     final exerciseName = catalogEntry?.name ?? 'Workout in progress';
+
+    if (sets.isEmpty) {
+      final syntheticSet = SetEntryData(
+        id: -exercise.id,
+        workoutExerciseId: exercise.id,
+        setIndex: 0,
+        weightKg: 0.0,
+        reps: 0,
+        setType: 'standard',
+        isWarmup: false,
+        isCompleted: false,
+      );
+      return ActiveWorkoutNotificationTarget(
+        exerciseName: exerciseName,
+        set: syntheticSet,
+        totalSets: 1,
+        primaryMuscle: catalogEntry?.primaryMuscle ?? '',
+        equipmentVariant:
+            exercise.equipmentVariant ?? catalogEntry?.modality ?? '',
+      );
+    }
+
     final nextOpenSet = sets.where((s) => !s.isCompleted).firstOrNull;
     final target = ActiveWorkoutNotificationTarget(
       exerciseName: exerciseName,

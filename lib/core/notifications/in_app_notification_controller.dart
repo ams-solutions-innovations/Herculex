@@ -40,7 +40,8 @@ class InAppNotificationNotifier extends StateNotifier<InAppNotificationState> {
       _display(item);
     } else {
       // Add to queue (avoid duplicates of exact same id)
-      if (!state.queue.any((q) => q.id == item.id) && state.current?.id != item.id) {
+      if (!state.queue.any((q) => q.id == item.id) &&
+          state.current?.id != item.id) {
         state = state.copyWith(queue: [...state.queue, item]);
       }
     }
@@ -92,6 +93,8 @@ class InAppNotificationNotifier extends StateNotifier<InAppNotificationState> {
 }
 
 final inAppNotificationControllerProvider =
-    StateNotifierProvider<InAppNotificationNotifier, InAppNotificationState>((ref) {
-  return InAppNotificationNotifier();
-});
+    StateNotifierProvider<InAppNotificationNotifier, InAppNotificationState>((
+      ref,
+    ) {
+      return InAppNotificationNotifier();
+    });

@@ -24,13 +24,12 @@ class ActiveDietPlan {
     double? weeklyRateKg,
     int? kcalDelta,
     String? paceLabel,
-  }) =>
-      ActiveDietPlan(
-        phase: phase ?? this.phase,
-        weeklyRateKg: weeklyRateKg ?? this.weeklyRateKg,
-        kcalDelta: kcalDelta ?? this.kcalDelta,
-        paceLabel: paceLabel ?? this.paceLabel,
-      );
+  }) => ActiveDietPlan(
+    phase: phase ?? this.phase,
+    weeklyRateKg: weeklyRateKg ?? this.weeklyRateKg,
+    kcalDelta: kcalDelta ?? this.kcalDelta,
+    paceLabel: paceLabel ?? this.paceLabel,
+  );
 }
 
 class ActiveDietPlanNotifier extends Notifier<ActiveDietPlan> {
@@ -81,8 +80,8 @@ class ActiveDietPlanNotifier extends Notifier<ActiveDietPlan> {
 
 final activeDietPlanProvider =
     NotifierProvider<ActiveDietPlanNotifier, ActiveDietPlan>(
-  ActiveDietPlanNotifier.new,
-);
+      ActiveDietPlanNotifier.new,
+    );
 
 // ── Starting weight ──────────────────────────────────────────────────────────
 
@@ -115,8 +114,8 @@ class StartingWeightNotifier extends Notifier<StartingWeightData?> {
 
 final startingWeightProvider =
     NotifierProvider<StartingWeightNotifier, StartingWeightData?>(
-  StartingWeightNotifier.new,
-);
+      StartingWeightNotifier.new,
+    );
 
 // ── Goal weight ──────────────────────────────────────────────────────────────
 
@@ -132,8 +131,9 @@ class GoalWeightNotifier extends Notifier<double?> {
   }
 }
 
-final goalWeightProvider =
-    NotifierProvider<GoalWeightNotifier, double?>(GoalWeightNotifier.new);
+final goalWeightProvider = NotifierProvider<GoalWeightNotifier, double?>(
+  GoalWeightNotifier.new,
+);
 
 // ── Weekly goal (positive = loss, negative = gain, in kg/week) ────────────────
 
@@ -141,8 +141,7 @@ class WeeklyGoalNotifier extends Notifier<double> {
   static const _key = 'goals_weekly_kg';
 
   @override
-  double build() =>
-      ref.watch(sharedPreferencesProvider).getDouble(_key) ?? 0.5;
+  double build() => ref.watch(sharedPreferencesProvider).getDouble(_key) ?? 0.5;
 
   Future<void> set(double kgPerWeek) async {
     await ref.read(sharedPreferencesProvider).setDouble(_key, kgPerWeek);
@@ -150,8 +149,9 @@ class WeeklyGoalNotifier extends Notifier<double> {
   }
 }
 
-final weeklyGoalProvider =
-    NotifierProvider<WeeklyGoalNotifier, double>(WeeklyGoalNotifier.new);
+final weeklyGoalProvider = NotifierProvider<WeeklyGoalNotifier, double>(
+  WeeklyGoalNotifier.new,
+);
 
 // ── Fitness goals ────────────────────────────────────────────────────────────
 
@@ -197,8 +197,8 @@ class FitnessGoalsNotifier extends Notifier<FitnessGoalsState> {
 
 final fitnessGoalsProvider =
     NotifierProvider<FitnessGoalsNotifier, FitnessGoalsState>(
-  FitnessGoalsNotifier.new,
-);
+      FitnessGoalsNotifier.new,
+    );
 
 // ── Show net carbs by meal ────────────────────────────────────────────────────
 
@@ -206,8 +206,7 @@ class ShowNetCarbsNotifier extends Notifier<bool> {
   static const _key = 'goals_show_net_carbs';
 
   @override
-  bool build() =>
-      ref.watch(sharedPreferencesProvider).getBool(_key) ?? true;
+  bool build() => ref.watch(sharedPreferencesProvider).getBool(_key) ?? true;
 
   Future<void> toggle() async {
     final next = !state;
@@ -216,8 +215,9 @@ class ShowNetCarbsNotifier extends Notifier<bool> {
   }
 }
 
-final showNetCarbsByMealProvider =
-    NotifierProvider<ShowNetCarbsNotifier, bool>(ShowNetCarbsNotifier.new);
+final showNetCarbsByMealProvider = NotifierProvider<ShowNetCarbsNotifier, bool>(
+  ShowNetCarbsNotifier.new,
+);
 
 // ── Meal goals ───────────────────────────────────────────────────────────────
 
@@ -245,27 +245,27 @@ class MealGoalsState {
     double? lunchPct,
     double? dinnerPct,
     double? snacksPct,
-  }) =>
-      MealGoalsState(
-        enabled: enabled ?? this.enabled,
-        showAsCalories: showAsCalories ?? this.showAsCalories,
-        breakfastPct: breakfastPct ?? this.breakfastPct,
-        lunchPct: lunchPct ?? this.lunchPct,
-        dinnerPct: dinnerPct ?? this.dinnerPct,
-        snacksPct: snacksPct ?? this.snacksPct,
-      );
+  }) => MealGoalsState(
+    enabled: enabled ?? this.enabled,
+    showAsCalories: showAsCalories ?? this.showAsCalories,
+    breakfastPct: breakfastPct ?? this.breakfastPct,
+    lunchPct: lunchPct ?? this.lunchPct,
+    dinnerPct: dinnerPct ?? this.dinnerPct,
+    snacksPct: snacksPct ?? this.snacksPct,
+  );
 
-  int mealCalories(int totalKcal, double pct) => (totalKcal * pct / 100).round();
+  int mealCalories(int totalKcal, double pct) =>
+      (totalKcal * pct / 100).round();
 
   /// Share of the daily budget allotted to a diary slot, or null for custom
   /// slots — those have no configured split, so the diary shows no "of Y".
   double? pctForSlot(String mealKey) => switch (mealKey) {
-        'breakfast' => breakfastPct,
-        'lunch' => lunchPct,
-        'dinner' => dinnerPct,
-        'snack' => snacksPct,
-        _ => null,
-      };
+    'breakfast' => breakfastPct,
+    'lunch' => lunchPct,
+    'dinner' => dinnerPct,
+    'snack' => snacksPct,
+    _ => null,
+  };
 }
 
 class MealGoalsNotifier extends Notifier<MealGoalsState> {
@@ -313,8 +313,9 @@ class MealGoalsNotifier extends Notifier<MealGoalsState> {
   }
 }
 
-final mealGoalsProvider =
-    NotifierProvider<MealGoalsNotifier, MealGoalsState>(MealGoalsNotifier.new);
+final mealGoalsProvider = NotifierProvider<MealGoalsNotifier, MealGoalsState>(
+  MealGoalsNotifier.new,
+);
 
 /// Calorie goal for one diary slot on one day (§3), or null when meal goals
 /// are off, the day has no resolved target, or the slot is user-created.
@@ -322,15 +323,18 @@ final mealGoalsProvider =
 /// schedules flow through to per-meal goals automatically.
 typedef MealGoalKey = ({String mealKey, DateTime date});
 
-final mealGoalKcalProvider =
-    Provider.autoDispose.family<int?, MealGoalKey>((ref, key) {
+final mealGoalKcalProvider = Provider.autoDispose.family<int?, MealGoalKey>((
+  ref,
+  key,
+) {
   final goals = ref.watch(mealGoalsProvider);
   if (!goals.enabled) return null;
 
   final pct = goals.pctForSlot(key.mealKey);
   if (pct == null) return null;
 
-  final targets = ref.watch(effectiveTargetsProvider(key.date)).asData?.value ??
+  final targets =
+      ref.watch(effectiveTargetsProvider(key.date)).asData?.value ??
       ref.watch(baselineTargetsProvider);
   if (targets == null) return null;
 
@@ -366,15 +370,14 @@ class MinimumTargetsState {
     MinProteinMode? mode,
     double? proteinValue,
     Object? minCaloriesKcal = _undefined,
-  }) =>
-      MinimumTargetsState(
-        enabled: enabled ?? this.enabled,
-        mode: mode ?? this.mode,
-        proteinValue: proteinValue ?? this.proteinValue,
-        minCaloriesKcal: minCaloriesKcal == _undefined
-            ? this.minCaloriesKcal
-            : minCaloriesKcal as int?,
-      );
+  }) => MinimumTargetsState(
+    enabled: enabled ?? this.enabled,
+    mode: mode ?? this.mode,
+    proteinValue: proteinValue ?? this.proteinValue,
+    minCaloriesKcal: minCaloriesKcal == _undefined
+        ? this.minCaloriesKcal
+        : minCaloriesKcal as int?,
+  );
 
   int? resolvedMinProteinG(double? weightKg) {
     if (!enabled) return null;
@@ -447,5 +450,5 @@ class MinimumTargetsNotifier extends Notifier<MinimumTargetsState> {
 
 final minimumTargetsProvider =
     NotifierProvider<MinimumTargetsNotifier, MinimumTargetsState>(
-  MinimumTargetsNotifier.new,
-);
+      MinimumTargetsNotifier.new,
+    );

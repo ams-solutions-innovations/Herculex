@@ -81,7 +81,13 @@ fun WorkoutDetailScreen(
             OneUiPill(
                 title = ex.name,
                 subtitle = "${ex.targetSets} Sets",
-                icon = null,
+                iconComposable = {
+                    ExerciseArtwork(
+                        name = ex.name,
+                        slug = ex.slug,
+                        size = 38.dp,
+                    )
+                },
                 style = OneUiPillStyle.SlateNavy,
             )
         }

@@ -12,7 +12,6 @@ import 'widgets/active_fast_panel.dart';
 import 'widgets/clock_dial_background.dart';
 import 'widgets/fasting_history.dart';
 import 'widgets/fasting_insights.dart';
-import 'widgets/fasting_streak_card.dart';
 import 'widgets/start_fast_panel.dart';
 
 /// Fasting's first-class page (`/fasting`), replacing the 1,100-line bottom
@@ -37,6 +36,7 @@ class _FastingViewState extends ConsumerState<FastingView> {
     final activeAsync = ref.watch(activeFastingSessionProvider);
     final active = activeAsync.asData?.value;
     final isLoaded = activeAsync.hasValue;
+    final hasSchedule = ref.watch(hasActiveFastingScheduleProvider);
 
     return Stack(
       children: [
@@ -52,6 +52,13 @@ class _FastingViewState extends ConsumerState<FastingView> {
             HxCircleButton(
               icon: Icons.alarm_rounded,
               tooltip: 'Fasting schedule',
+              iconColor: hasSchedule ? context.hx.domainFasting : null,
+              tintColor: hasSchedule
+                  ? context.hx.domainFasting.withValues(alpha: 0.18)
+                  : null,
+              borderColor: hasSchedule
+                  ? context.hx.domainFasting.withValues(alpha: 0.45)
+                  : null,
               onTap: () => context.push('/fasting/schedule'),
             ),
           ],
@@ -67,7 +74,7 @@ class _FastingViewState extends ConsumerState<FastingView> {
                 )
               : null,
           children: [
-            const FastingStreakCard(),
+            const FastingInsights(),
             const SizedBox(height: HxSpace.x6),
             activeAsync.when(
               data: (active) => active != null
@@ -88,10 +95,6 @@ class _FastingViewState extends ConsumerState<FastingView> {
               ),
               error: (err, _) => Center(child: Text('Error: $err')),
             ),
-            const SizedBox(height: HxSpace.x8),
-            const Divider(),
-            const SizedBox(height: HxSpace.x6),
-            const FastingInsights(),
             const SizedBox(height: HxSpace.x8),
             const Divider(),
             const SizedBox(height: HxSpace.x6),
@@ -120,8 +123,9 @@ class _FastingViewState extends ConsumerState<FastingView> {
         ? '$_customTargetHours-Hour'
         : _selectedPlan.nameString;
 
-    final notifEnabled =
-        ref.read(notificationSettingsProvider).fastingGoalReachedEnabled;
+    final notifEnabled = ref
+        .read(notificationSettingsProvider)
+        .fastingGoalReachedEnabled;
     await ref
         .read(fastingNotificationSchedulerProvider)
         .scheduleFastingGoal(

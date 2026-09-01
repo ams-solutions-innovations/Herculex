@@ -32,24 +32,21 @@ class SupplementDayState {
   final List<Supplement> supplements;
   final Set<String> takenIds;
 
-  const SupplementDayState({
-    required this.supplements,
-    required this.takenIds,
-  });
+  const SupplementDayState({required this.supplements, required this.takenIds});
 
   int get takenCount =>
       supplements.where((s) => takenIds.contains(s.id)).length;
 
   int get totalCount => supplements.length;
 
-  double get progress =>
-      totalCount == 0 ? 0.0 : takenCount / totalCount;
+  double get progress => totalCount == 0 ? 0.0 : takenCount / totalCount;
 
   bool isTaken(String id) => takenIds.contains(id);
 }
 
-final supplementDayStateProvider =
-    Provider<AsyncValue<SupplementDayState>>((ref) {
+final supplementDayStateProvider = Provider<AsyncValue<SupplementDayState>>((
+  ref,
+) {
   final supplements = ref.watch(supplementsProvider);
   final taken = ref.watch(takenTodayProvider);
 

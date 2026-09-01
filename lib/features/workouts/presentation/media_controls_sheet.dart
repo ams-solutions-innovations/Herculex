@@ -65,13 +65,16 @@ class _MediaControlsSheetState extends State<MediaControlsSheet>
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
 
-    _pulseAnim = Tween<double>(begin: 0.9, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 0.9,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     _refresh();
-    _refreshTimer =
-        Timer.periodic(const Duration(seconds: 2), (_) => _refresh());
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _refresh(),
+    );
   }
 
   Future<void> _refresh() async {
@@ -83,12 +86,9 @@ class _MediaControlsSheetState extends State<MediaControlsSheet>
       final artist = (info['artist'] as String?) ?? '';
       final isPlaying = (info['isPlaying'] as bool?) ?? false;
       final thumbnailUrl = (info['thumbnailUrl'] as String?) ?? '';
+      final hasPermission = (info['hasPermission'] as bool?) ?? false;
 
-      // An empty track with nothing playing means either no media session
-      // is active, or Notification Listener access hasn't been granted for
-      // MediaNotificationListener — both look the same from here, so the
-      // permission prompt doubles as the "nothing playing" empty state.
-      final noPermission = track.isEmpty && !isPlaying;
+      final noPermission = !hasPermission;
 
       // thumbnailUrl is a base64-encoded PNG from the Android side.
       Uint8List? thumb;
@@ -202,8 +202,8 @@ class _MediaControlsSheetState extends State<MediaControlsSheet>
                   Text(
                     'Media Controls',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const Spacer(),
                   IconButton(
@@ -243,14 +243,16 @@ class _MediaControlsSheetState extends State<MediaControlsSheet>
                     Haptics.light();
                     await _wearSyncService.sendMediaActionNative('next');
                     await Future<void>.delayed(
-                        const Duration(milliseconds: 400));
+                      const Duration(milliseconds: 400),
+                    );
                     await _refresh();
                   },
                   onPrevious: () async {
                     Haptics.light();
                     await _wearSyncService.sendMediaActionNative('previous');
                     await Future<void>.delayed(
-                        const Duration(milliseconds: 400));
+                      const Duration(milliseconds: 400),
+                    );
                     await _refresh();
                   },
                 ),
@@ -352,10 +354,7 @@ class _MediaContent extends StatelessWidget {
               onTap: onPrevious,
             ),
             const SizedBox(width: 24),
-            _PlayPauseButton(
-              isPlaying: isPlaying,
-              onTap: onPlayPause,
-            ),
+            _PlayPauseButton(isPlaying: isPlaying, onTap: onPlayPause),
             const SizedBox(width: 24),
             _ControlButton(
               icon: Icons.skip_next_rounded,
@@ -450,14 +449,10 @@ class _PlayPauseButtonState extends State<_PlayPauseButton>
           ),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
-            transitionBuilder: (child, anim) => ScaleTransition(
-              scale: anim,
-              child: child,
-            ),
+            transitionBuilder: (child, anim) =>
+                ScaleTransition(scale: anim, child: child),
             child: Icon(
-              widget.isPlaying
-                  ? Icons.pause_rounded
-                  : Icons.play_arrow_rounded,
+              widget.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
               key: ValueKey(widget.isPlaying),
               color: Colors.white,
               size: 36,
@@ -496,11 +491,7 @@ class _ControlButton extends StatelessWidget {
             color: AppColors.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
-        child: Icon(
-          icon,
-          size: size,
-          color: AppColors.onSurface,
-        ),
+        child: Icon(icon, size: size, color: AppColors.onSurface),
       ),
     );
   }
@@ -560,8 +551,7 @@ class _PermissionPrompt extends StatelessWidget {
             label: const Text('Open Settings'),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

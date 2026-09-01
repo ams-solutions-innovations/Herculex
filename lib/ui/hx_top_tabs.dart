@@ -61,8 +61,9 @@ class HxTopTabs extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: i == index ? hx.onPrimary : hx.secondary,
-                      fontWeight:
-                          i == index ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: i == index
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                   ),
                 ),

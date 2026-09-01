@@ -79,39 +79,36 @@ String _captureStartJson({
   required String captureId,
   String exerciseSlug = 'pull-up',
   String sensorType = 'linear_acceleration',
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'exerciseSlug': exerciseSlug,
-      'sensorType': sensorType,
-      'startedAtMs': 0,
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'exerciseSlug': exerciseSlug,
+  'sensorType': sensorType,
+  'startedAtMs': 0,
+});
 
 String _samplesJson(
   String captureId,
   Map<String, dynamic> batch, {
   String sensorType = 'linear_acceleration',
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'seq': batch['seq'],
-      'sensorType': sensorType,
-      'samples': batch['samples'],
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'seq': batch['seq'],
+  'sensorType': sensorType,
+  'samples': batch['samples'],
+});
 
 String _captureEndJson({
   required String captureId,
   required int batchCount,
   String stoppedReason = 'user',
   int? provisionalCount,
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'endedAtMs': 999999,
-      'batchCount': batchCount,
-      'stoppedReason': stoppedReason,
-      'provisionalCount': ?provisionalCount,
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'endedAtMs': 999999,
+  'batchCount': batchCount,
+  'stoppedReason': stoppedReason,
+  'provisionalCount': ?provisionalCount,
+});
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -200,8 +197,9 @@ void main() {
       expect(find.textContaining('Tracking'), findsNothing);
     });
 
-    testWidgets('countOnly renders a count and no RPE suggestion',
-        (tester) async {
+    testWidgets('countOnly renders a count and no RPE suggestion', (
+      tester,
+    ) async {
       await grantAndEnable('pull-up');
       final trace = _syntheticPullUpTrace();
       // Drop one batch and disagree with the provisional count by >1 — two
@@ -209,7 +207,8 @@ void main() {
       // (10-03b's "each cause exactly one lowerByOne() step").
       final batches = _batchSamples(trace);
       final gapped = [
-        for (var i = 0; i < batches.length; i++) if (i != 1) batches[i],
+        for (var i = 0; i < batches.length; i++)
+          if (i != 1) batches[i],
       ];
 
       RepSuggestion? received;
@@ -252,8 +251,9 @@ void main() {
       );
     });
 
-    testWidgets('manual renders the manual-entry path and the stateReason',
-        (tester) async {
+    testWidgets('manual renders the manual-entry path and the stateReason', (
+      tester,
+    ) async {
       await grantAndEnable('pull-up');
 
       await tester.pumpWidget(
@@ -328,35 +328,38 @@ void main() {
       sensorType: MotionSensorType.linearAcceleration,
     );
 
-    RepSuggestion suggestion({int proposedReps = 8, Map<String, dynamic>? featuresJson}) =>
-        RepSuggestion(
-          captureId: 'cap-review',
-          exerciseSlug: 'pull-up',
-          movement: RepMovement.verticalPull,
-          source: 'wrist',
-          placement: null,
-          sensorType: MotionSensorType.linearAcceleration,
-          proposedReps: proposedReps,
-          provisionalCount: proposedReps,
-          provisionalDisagrees: false,
-          setConfidence: 0.9,
-          confidenceBand: ConfidenceBand.high,
-          missedRepSuspected: false,
-          missedBatches: 0,
-          sampleCount: 500,
-          coverageRatio: 1.0,
-          featuresJson: featuresJson,
-          state: TrackerState.tracking,
-          stateReason: null,
-        );
+    RepSuggestion suggestion({
+      int proposedReps = 8,
+      Map<String, dynamic>? featuresJson,
+    }) => RepSuggestion(
+      captureId: 'cap-review',
+      exerciseSlug: 'pull-up',
+      movement: RepMovement.verticalPull,
+      source: 'wrist',
+      placement: null,
+      sensorType: MotionSensorType.linearAcceleration,
+      proposedReps: proposedReps,
+      provisionalCount: proposedReps,
+      provisionalDisagrees: false,
+      setConfidence: 0.9,
+      confidenceBand: ConfidenceBand.high,
+      missedRepSuspected: false,
+      missedBatches: 0,
+      sampleCount: 500,
+      coverageRatio: 1.0,
+      featuresJson: featuresJson,
+      state: TrackerState.tracking,
+      stateReason: null,
+    );
 
     /// An `insufficient` profile for every pre-existing sheet case below —
     /// 10-05 made the sheet read `calibrationProfileProvider`, and without
     /// this override these cases would hit the real (empty) repository
     /// instead of asserting a known, fixed calibration state.
-    final insufficientOverride = calibrationProfileProvider(
-      wristPullUpKey,
-    ).overrideWith((ref) async => CalibrationProfile.fromObservations(const []));
+    final insufficientOverride = calibrationProfileProvider(wristPullUpKey)
+        .overrideWith(
+          (ref) async => CalibrationProfile.fromObservations(const []),
+        );
 
     testWidgets('the rep field is editable, pre-filled, and the edited '
         'value — not proposedReps — reaches onConfirm', (tester) async {
@@ -393,86 +396,88 @@ void main() {
     });
 
     testWidgets(
-        'a calibrated profile pre-fills an editable RPE suggestion, and the '
-        'rep field is identical to the insufficient case', (tester) async {
-      // Ten sets, three sessions, cadence strongly correlated with RPE —
-      // the same shape `test/rep_calibration_test.dart` uses to reach
-      // `calibrated`.
-      for (var i = 0; i < 10; i++) {
-        final period = 1000.0 + i * 50;
-        final rpe = 5.0 + i * 0.3;
-        await repo.recordObservation(
-          exerciseSlug: 'pull-up',
-          sessionId: 1 + (i % 3),
-          recordedAt: DateTime(2026, 1, 1).add(Duration(minutes: i)),
+      'a calibrated profile pre-fills an editable RPE suggestion, and the '
+      'rep field is identical to the insufficient case',
+      (tester) async {
+        // Ten sets, three sessions, cadence strongly correlated with RPE —
+        // the same shape `test/rep_calibration_test.dart` uses to reach
+        // `calibrated`.
+        for (var i = 0; i < 10; i++) {
+          final period = 1000.0 + i * 50;
+          final rpe = 5.0 + i * 0.3;
+          await repo.recordObservation(
+            exerciseSlug: 'pull-up',
+            sessionId: 1 + (i % 3),
+            recordedAt: DateTime(2026, 1, 1).add(Duration(minutes: i)),
+            source: 'wrist',
+            sensorType: MotionSensorType.linearAcceleration,
+            detectedReps: 8,
+            confirmedReps: 8,
+            confidence: 0.9,
+            confirmedRpeX10: (rpe * 10).round(),
+            featuresJson: jsonEncode({
+              'v': RepFeatures.version,
+              'meanPeriodMs': period,
+              'periodCv': 0.05,
+              'normalisedAmplitude': 1.0,
+              'finalRepPeriodRatio': 1.0,
+              'amplitudeDecayRatio': 1.0,
+            }),
+          );
+        }
+
+        final profile = await repo.profileFor(
+          slug: 'pull-up',
           source: 'wrist',
           sensorType: MotionSensorType.linearAcceleration,
-          detectedReps: 8,
-          confirmedReps: 8,
-          confidence: 0.9,
-          confirmedRpeX10: (rpe * 10).round(),
-          featuresJson: jsonEncode({
-            'v': RepFeatures.version,
-            'meanPeriodMs': period,
-            'periodCv': 0.05,
-            'normalisedAmplitude': 1.0,
-            'finalRepPeriodRatio': 1.0,
-            'amplitudeDecayRatio': 1.0,
-          }),
         );
-      }
+        expect(profile.status, CalibrationStatus.calibrated);
 
-      final profile = await repo.profileFor(
-        slug: 'pull-up',
-        source: 'wrist',
-        sensorType: MotionSensorType.linearAcceleration,
-      );
-      expect(profile.status, CalibrationStatus.calibrated);
+        final incomingFeatures = RepFeatures(
+          meanPeriodMs: 1225,
+          periodCv: 0.05,
+          normalisedAmplitude: 1.0,
+          finalRepPeriodRatio: 1.0,
+          amplitudeDecayRatio: 1.0,
+        );
+        final expectedRpe = profile.estimate(incomingFeatures);
+        expect(expectedRpe, isNotNull);
 
-      final incomingFeatures = RepFeatures(
-        meanPeriodMs: 1225,
-        periodCv: 0.05,
-        normalisedAmplitude: 1.0,
-        finalRepPeriodRatio: 1.0,
-        amplitudeDecayRatio: 1.0,
-      );
-      final expectedRpe = profile.estimate(incomingFeatures);
-      expect(expectedRpe, isNotNull);
+        final calibratedOverride = calibrationProfileProvider(
+          wristPullUpKey,
+        ).overrideWith((ref) async => profile);
 
-      final calibratedOverride = calibrationProfileProvider(
-        wristPullUpKey,
-      ).overrideWith((ref) async => profile);
-
-      await tester.pumpWidget(
-        wrap(
-          Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () => RepReviewSheet.show(
-                context,
-                suggestion: suggestion(
-                  proposedReps: 8,
-                  featuresJson: incomingFeatures.toJson(),
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => RepReviewSheet.show(
+                  context,
+                  suggestion: suggestion(
+                    proposedReps: 8,
+                    featuresJson: incomingFeatures.toJson(),
+                  ),
+                  sessionId: 1,
+                  onConfirm: (reps, rpeX10) async {},
                 ),
-                sessionId: 1,
-                onConfirm: (reps, rpeX10) async {},
+                child: const Text('open'),
               ),
-              child: const Text('open'),
             ),
+            extraOverrides: [calibratedOverride],
           ),
-          extraOverrides: [calibratedOverride],
-        ),
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
 
-      // The rep field is unaffected by calibration status — identical
-      // pre-fill behaviour to the insufficient case above.
-      expect(find.widgetWithText(TextField, '8'), findsOneWidget);
+        // The rep field is unaffected by calibration status — identical
+        // pre-fill behaviour to the insufficient case above.
+        expect(find.widgetWithText(TextField, '8'), findsOneWidget);
 
-      final slider = tester.widget<Slider>(find.byType(Slider));
-      expect(slider.value, expectedRpe);
-      expect(slider.onChanged, isNotNull); // still editable
-      expect(find.text('suggested — edit if it looks wrong'), findsOneWidget);
-    });
+        final slider = tester.widget<Slider>(find.byType(Slider));
+        expect(slider.value, expectedRpe);
+        expect(slider.onChanged, isNotNull); // still editable
+        expect(find.text('suggested — edit if it looks wrong'), findsOneWidget);
+      },
+    );
   });
 }

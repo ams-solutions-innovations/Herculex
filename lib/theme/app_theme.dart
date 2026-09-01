@@ -19,19 +19,24 @@ class AppTheme {
   /// half of the pairing.
   static const String fontDisplay = 'SpaceGrotesk';
 
-  static ThemeData get lightTheme => _buildTheme(Brightness.light, AppColorTheme.classicBlue);
-  static ThemeData get darkTheme => _buildTheme(Brightness.dark, AppColorTheme.classicBlue);
+  static ThemeData get lightTheme =>
+      _buildTheme(Brightness.light, AppColorTheme.classicBlue);
+  static ThemeData get darkTheme =>
+      _buildTheme(Brightness.dark, AppColorTheme.classicBlue);
 
   static ThemeData lightThemeWith(AppColorTheme colorTheme) =>
       _buildTheme(Brightness.light, colorTheme);
   static ThemeData darkThemeWith(AppColorTheme colorTheme) =>
       _buildTheme(Brightness.dark, colorTheme);
-  static ThemeData buildTheme(Brightness brightness,
-          [AppColorTheme colorTheme = AppColorTheme.classicBlue]) =>
-      _buildTheme(brightness, colorTheme);
+  static ThemeData buildTheme(
+    Brightness brightness, [
+    AppColorTheme colorTheme = AppColorTheme.classicBlue,
+  ]) => _buildTheme(brightness, colorTheme);
 
-  static ThemeData _buildTheme(Brightness brightness,
-      [AppColorTheme colorTheme = AppColorTheme.classicBlue]) {
+  static ThemeData _buildTheme(
+    Brightness brightness, [
+    AppColorTheme colorTheme = AppColorTheme.classicBlue,
+  ]) {
     final p = HxColors.of(brightness, colorTheme);
     final isDark = p.isDark;
 
@@ -105,7 +110,10 @@ class AppTheme {
           minimumSize: const Size(0, 50),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+          ),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -117,7 +125,10 @@ class AppTheme {
           minimumSize: const Size(0, 50),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -128,7 +139,10 @@ class AppTheme {
           side: BorderSide(color: p.outlineVariant),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -136,7 +150,10 @@ class AppTheme {
           foregroundColor: p.primaryText,
           shape: _pill,
           textStyle: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: -0.2),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            letterSpacing: -0.2,
+          ),
         ),
       ),
 
@@ -146,7 +163,10 @@ class AppTheme {
         selectedColor: p.primary,
         disabledColor: p.surfaceContainer,
         labelStyle: TextStyle(
-          color: p.onSurface, fontSize: 14, fontWeight: FontWeight.w500),
+          color: p.onSurface,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         secondaryLabelStyle: TextStyle(color: p.onPrimary),
         side: BorderSide.none,
         shape: _pill,
@@ -159,8 +179,10 @@ class AppTheme {
         filled: true,
         fillColor: p.surfaceVariant,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 14,
+        ),
         hintStyle: TextStyle(color: p.secondary),
         border: OutlineInputBorder(
           borderRadius: HxRadius.xlAll,
@@ -191,10 +213,11 @@ class AppTheme {
 
       switchTheme: SwitchThemeData(
         thumbColor: const WidgetStatePropertyAll(Colors.white),
-        trackColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected) ? p.primary : p.surfaceVariant),
-        trackOutlineColor:
-            const WidgetStatePropertyAll(Colors.transparent),
+        trackColor: WidgetStateProperty.resolveWith(
+          (s) =>
+              s.contains(WidgetState.selected) ? p.primary : p.surfaceVariant,
+        ),
+        trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
 
       sliderTheme: SliderThemeData(
@@ -207,12 +230,14 @@ class AppTheme {
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
           shape: const WidgetStatePropertyAll(_pill),
-          backgroundColor: WidgetStateProperty.resolveWith((s) =>
-              s.contains(WidgetState.selected)
-                  ? p.primary
-                  : p.surfaceContainer),
-          foregroundColor: WidgetStateProperty.resolveWith((s) =>
-              s.contains(WidgetState.selected) ? p.onPrimary : p.onSurface),
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected)
+                ? p.primary
+                : p.surfaceContainer,
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected) ? p.onPrimary : p.onSurface,
+          ),
           side: const WidgetStatePropertyAll(BorderSide.none),
         ),
       ),
@@ -227,9 +252,7 @@ class AppTheme {
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: p.surfaceContainer,
         modalBackgroundColor: p.surfaceContainer,
-        shape: const RoundedRectangleBorder(
-          borderRadius: HxRadius.sheetTop,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: HxRadius.sheetTop),
       ),
 
       dialogTheme: DialogThemeData(
@@ -242,7 +265,10 @@ class AppTheme {
           color: p.onSurface,
         ),
         contentTextStyle: TextStyle(
-          fontFamily: fontBody, fontSize: 15, color: p.onSurfaceVariant),
+          fontFamily: fontBody,
+          fontSize: 15,
+          color: p.onSurfaceVariant,
+        ),
       ),
 
       dividerTheme: DividerThemeData(
@@ -300,53 +326,114 @@ class AppTheme {
   static TextTheme _buildTextTheme(HxColors p) => TextTheme(
     // Display + headline carry the distinctive face.
     displayLarge: TextStyle(
-        fontFamily: fontDisplay, fontSize: 34, fontWeight: FontWeight.w700,
-        color: p.onSurface, letterSpacing: -0.6, fontFeatures: _tabular),
+      fontFamily: fontDisplay,
+      fontSize: 34,
+      fontWeight: FontWeight.w700,
+      color: p.onSurface,
+      letterSpacing: -0.6,
+      fontFeatures: _tabular,
+    ),
     displayMedium: TextStyle(
-        fontFamily: fontDisplay, fontSize: 28, fontWeight: FontWeight.w700,
-        color: p.onSurface, letterSpacing: -0.5, fontFeatures: _tabular),
+      fontFamily: fontDisplay,
+      fontSize: 28,
+      fontWeight: FontWeight.w700,
+      color: p.onSurface,
+      letterSpacing: -0.5,
+      fontFeatures: _tabular,
+    ),
     displaySmall: TextStyle(
-        fontFamily: fontDisplay, fontSize: 24, fontWeight: FontWeight.w700,
-        color: p.onSurface, letterSpacing: -0.4, fontFeatures: _tabular),
+      fontFamily: fontDisplay,
+      fontSize: 24,
+      fontWeight: FontWeight.w700,
+      color: p.onSurface,
+      letterSpacing: -0.4,
+      fontFeatures: _tabular,
+    ),
     headlineLarge: TextStyle(
-        fontFamily: fontDisplay, fontSize: 32, fontWeight: FontWeight.w700,
-        color: p.onSurface, letterSpacing: -0.5, fontFeatures: _tabular),
+      fontFamily: fontDisplay,
+      fontSize: 32,
+      fontWeight: FontWeight.w700,
+      color: p.onSurface,
+      letterSpacing: -0.5,
+      fontFeatures: _tabular,
+    ),
     headlineMedium: TextStyle(
-        fontFamily: fontDisplay, fontSize: 28, fontWeight: FontWeight.w700,
-        color: p.onSurface, letterSpacing: -0.4, fontFeatures: _tabular),
+      fontFamily: fontDisplay,
+      fontSize: 28,
+      fontWeight: FontWeight.w700,
+      color: p.onSurface,
+      letterSpacing: -0.4,
+      fontFeatures: _tabular,
+    ),
     headlineSmall: TextStyle(
-        fontFamily: fontDisplay, fontSize: 24, fontWeight: FontWeight.w600,
-        color: p.onSurface, letterSpacing: -0.3, fontFeatures: _tabular),
+      fontFamily: fontDisplay,
+      fontSize: 24,
+      fontWeight: FontWeight.w600,
+      color: p.onSurface,
+      letterSpacing: -0.3,
+      fontFeatures: _tabular,
+    ),
 
     // Titles and below stay on the body face for legibility at small sizes.
     // Every style names its family explicitly: `ThemeData.fontFamily` does not
     // reach a `textTheme` supplied through copyWith, which is why the app
     // silently rendered in the platform default before this pass.
     titleLarge: TextStyle(
-        fontFamily: fontBody, fontSize: 22, fontWeight: FontWeight.w700,
-        color: p.onSurface, letterSpacing: -0.4, fontFeatures: _tabular),
+      fontFamily: fontBody,
+      fontSize: 22,
+      fontWeight: FontWeight.w700,
+      color: p.onSurface,
+      letterSpacing: -0.4,
+      fontFeatures: _tabular,
+    ),
     titleMedium: TextStyle(
-        fontFamily: fontBody, fontSize: 17, fontWeight: FontWeight.w600,
-        color: p.onSurface, letterSpacing: -0.2),
+      fontFamily: fontBody,
+      fontSize: 17,
+      fontWeight: FontWeight.w600,
+      color: p.onSurface,
+      letterSpacing: -0.2,
+    ),
     titleSmall: TextStyle(
-        fontFamily: fontBody, fontSize: 15, fontWeight: FontWeight.w600,
-        color: p.onSurface, letterSpacing: -0.1),
+      fontFamily: fontBody,
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
+      color: p.onSurface,
+      letterSpacing: -0.1,
+    ),
     bodyLarge: TextStyle(
-        fontFamily: fontBody, fontSize: 17, color: p.onSurface,
-        letterSpacing: -0.2),
+      fontFamily: fontBody,
+      fontSize: 17,
+      color: p.onSurface,
+      letterSpacing: -0.2,
+    ),
     bodyMedium: TextStyle(
-        fontFamily: fontBody, fontSize: 15, color: p.onSurfaceVariant,
-        letterSpacing: -0.1),
+      fontFamily: fontBody,
+      fontSize: 15,
+      color: p.onSurfaceVariant,
+      letterSpacing: -0.1,
+    ),
     bodySmall: TextStyle(
-        fontFamily: fontBody, fontSize: 13, color: p.secondary),
+      fontFamily: fontBody,
+      fontSize: 13,
+      color: p.secondary,
+    ),
     labelLarge: TextStyle(
-        fontFamily: fontBody, fontSize: 15, fontWeight: FontWeight.w600,
-        color: p.onSurface),
+      fontFamily: fontBody,
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
+      color: p.onSurface,
+    ),
     labelMedium: TextStyle(
-        fontFamily: fontBody, fontSize: 13, fontWeight: FontWeight.w500,
-        color: p.secondary),
+      fontFamily: fontBody,
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+      color: p.secondary,
+    ),
     labelSmall: TextStyle(
-        fontFamily: fontBody, fontSize: 12, fontWeight: FontWeight.w500,
-        color: p.secondary),
+      fontFamily: fontBody,
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: p.secondary,
+    ),
   );
 }

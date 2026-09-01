@@ -111,7 +111,8 @@ const List<FixtureSpec> requiredFixtures = [
   ),
   FixtureSpec(
     name: 'pullup_phone_armband_8reps',
-    purpose: 'phone source, armband placement — the placement-change axis of REP-06',
+    purpose:
+        'phone source, armband placement — the placement-change axis of REP-06',
     movement: RepMovement.verticalPull,
     source: 'phone',
     placement: 'armband',
@@ -160,9 +161,9 @@ class FixtureCorpusStatus {
 
   /// Specs still missing, in [requiredFixtures] order.
   List<FixtureSpec> get missingSpecs => [
-        for (final spec in requiredFixtures)
-          if (byName[spec.name] != FixtureRecordState.recorded) spec,
-      ];
+    for (final spec in requiredFixtures)
+      if (byName[spec.name] != FixtureRecordState.recorded) spec,
+  ];
 
   static FixtureCorpusStatus evaluate(List<String> recordedNames) {
     final recorded = recordedNames.toSet();
@@ -172,8 +173,9 @@ class FixtureCorpusStatus {
             ? FixtureRecordState.recorded
             : FixtureRecordState.missing,
     };
-    final sufficient =
-        byName.values.every((s) => s == FixtureRecordState.recorded);
+    final sufficient = byName.values.every(
+      (s) => s == FixtureRecordState.recorded,
+    );
     return FixtureCorpusStatus(byName: byName, sufficient: sufficient);
   }
 }

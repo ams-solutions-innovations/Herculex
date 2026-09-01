@@ -99,11 +99,7 @@ class AppShortcutsService {
         final now = DateTime.now();
         final date = DateTime(now.year, now.month, now.day);
         if (context.mounted) {
-          await FoodPickerSheet.show(
-            context,
-            date: date,
-            mealKey: 'snack',
-          );
+          await FoodPickerSheet.show(context, date: date, mealKey: 'snack');
         }
       } else if (shortcutType.startsWith('template_')) {
         final templateIdStr = shortcutType.replaceFirst('template_', '');

@@ -43,7 +43,8 @@ class GeminiFoodAnalysisResult {
       fatPer100g: (json['fatPer100g'] as num?)?.toDouble() ?? 0.0,
       fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
       rating: (json['rating'] as num?)?.toDouble() ?? 7.0,
-      ratingReason: json['ratingReason'] as String? ?? 'Evaluated with Gemini AI.',
+      ratingReason:
+          json['ratingReason'] as String? ?? 'Evaluated with Gemini AI.',
     );
   }
 }
@@ -134,14 +135,18 @@ class RamblerFoodItem {
     return RamblerFoodItem(
       name: json['name'] as String? ?? 'Food item',
       servingGrams: servingGrams,
-      portionAmount: (json['portionAmount'] as num?)?.toDouble() ?? servingGrams,
+      portionAmount:
+          (json['portionAmount'] as num?)?.toDouble() ?? servingGrams,
       portionUnit: json['portionUnit'] as String? ?? 'g',
       kcalPer100g: (json['kcalPer100g'] as num?)?.toDouble() ?? 0.0,
       proteinPer100g: (json['proteinPer100g'] as num?)?.toDouble() ?? 0.0,
       carbsPer100g: (json['carbsPer100g'] as num?)?.toDouble() ?? 0.0,
       fatPer100g: (json['fatPer100g'] as num?)?.toDouble() ?? 0.0,
       fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
-      confidence: ((json['confidence'] as num?)?.toDouble() ?? 0.9).clamp(0.0, 1.0),
+      confidence: ((json['confidence'] as num?)?.toDouble() ?? 0.9).clamp(
+        0.0,
+        1.0,
+      ),
     );
   }
 
@@ -178,7 +183,9 @@ class RamblerFoodResult {
         if (it is Map<String, dynamic>) {
           itemsList.add(RamblerFoodItem.fromJson(it));
         } else if (it is Map) {
-          itemsList.add(RamblerFoodItem.fromJson(Map<String, dynamic>.from(it)));
+          itemsList.add(
+            RamblerFoodItem.fromJson(Map<String, dynamic>.from(it)),
+          );
         }
       }
     }

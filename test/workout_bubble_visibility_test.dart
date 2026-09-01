@@ -91,7 +91,9 @@ void main() {
         isTrue,
       );
       expect(
-        shouldClearOngoingWorkoutSurface(const AsyncData<_Session?>(_Session())),
+        shouldClearOngoingWorkoutSurface(
+          const AsyncData<_Session?>(_Session()),
+        ),
         isFalse,
       );
       expect(

@@ -75,9 +75,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       ageYears: int.tryParse(_ageCtrl.text.trim()),
       weightKg: double.tryParse(_weightCtrl.text.trim()),
       heightCm: double.tryParse(_heightCtrl.text.trim()),
-      sex:
-          _sex ??
-          BiologicalSex.male,
+      sex: _sex ?? BiologicalSex.male,
     );
     await ref.read(localProfileRepositoryProvider).save(profile);
     if (!mounted) return;
@@ -87,7 +85,9 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   Future<void> _submitEmailAuth({required bool register}) async {
     final (allowed, secondsRemaining) = _rateLimiter.canAttempt();
     if (!allowed) {
-      _showError('Too many failed attempts. Please wait $secondsRemaining seconds.');
+      _showError(
+        'Too many failed attempts. Please wait $secondsRemaining seconds.',
+      );
       return;
     }
 
@@ -100,7 +100,10 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       return;
     }
 
-    final passwordError = AuthValidator.validatePassword(password, isRegistration: register);
+    final passwordError = AuthValidator.validatePassword(
+      password,
+      isRegistration: register,
+    );
     if (passwordError != null) {
       _showError(passwordError);
       return;
@@ -124,16 +127,24 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
         await authRepository.registerWithEmail(
           email: email,
           password: password,
-          displayName: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
+          displayName: _nameCtrl.text.trim().isEmpty
+              ? null
+              : _nameCtrl.text.trim(),
         );
       } else {
         await authRepository.loginWithEmail(email: email, password: password);
       }
       _rateLimiter.recordSuccess();
-      _showMessage(register ? 'Account created successfully.' : 'Signed in successfully.');
+      _showMessage(
+        register ? 'Account created successfully.' : 'Signed in successfully.',
+      );
     } catch (error) {
       _rateLimiter.recordFailure();
-      _showError('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
+      _showError(
+        '$error'
+            .replaceAll('Exception: ', '')
+            .replaceAll('AuthException: ', ''),
+      );
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -148,7 +159,11 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       _rateLimiter.recordSuccess();
       _showMessage('Signed in with Google.');
     } catch (error) {
-      _showError('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
+      _showError(
+        '$error'
+            .replaceAll('Exception: ', '')
+            .replaceAll('AuthException: ', ''),
+      );
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -163,7 +178,11 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       _rateLimiter.recordSuccess();
       _showMessage('Signed in with Apple.');
     } catch (error) {
-      _showError('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
+      _showError(
+        '$error'
+            .replaceAll('Exception: ', '')
+            .replaceAll('AuthException: ', ''),
+      );
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -190,7 +209,11 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       await ref.read(authRepositoryProvider).sendPasswordReset(email);
       _showMessage('Password reset email sent.');
     } catch (error) {
-      _showError('$error'.replaceAll('Exception: ', '').replaceAll('AuthException: ', ''));
+      _showError(
+        '$error'
+            .replaceAll('Exception: ', '')
+            .replaceAll('AuthException: ', ''),
+      );
     } finally {
       if (mounted) {
         setState(() => _authBusy = false);
@@ -286,7 +309,9 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
               ),
               PremiumButton(
                 text: _index == 2 ? 'Complete' : 'Next',
-                onTap: _canAdvance(authSession) ? () => _next(authSession) : () {},
+                onTap: _canAdvance(authSession)
+                    ? () => _next(authSession)
+                    : () {},
               ),
             ],
           ),
@@ -298,44 +323,45 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
   Widget _buildGoals(ThemeData theme, AuthSession? authSession) {
     return SingleChildScrollView(
       child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildAuthCard(theme, authSession),
-        const SizedBox(height: 24),
-        Text(
-          "What is your primary goal?",
-          style: theme.textTheme.displayMedium,
-        ),
-        const SizedBox(height: 32),
-        ...FitnessGoal.values.map((g) {
-          final selected = _goal == g;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: GestureDetector(
-              onTap: () => setState(() => _goal = g),
-              child: GlassContainer(
-                padding: const EdgeInsets.all(20),
-                border: selected
-                    ? Border.all(color: AppColors.primary, width: 2)
-                    : null,
-                child: Row(
-                  children: [
-                    Icon(
-                      selected
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked,
-                      color: selected ? AppColors.primary : AppColors.outline,
-                    ),
-                    const SizedBox(width: 16),
-                    Text(g.label, style: theme.textTheme.bodyLarge),
-                  ],
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAuthCard(theme, authSession),
+          const SizedBox(height: 24),
+          Text(
+            "What is your primary goal?",
+            style: theme.textTheme.displayMedium,
+          ),
+          const SizedBox(height: 32),
+          ...FitnessGoal.values.map((g) {
+            final selected = _goal == g;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: GestureDetector(
+                onTap: () => setState(() => _goal = g),
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(20),
+                  border: selected
+                      ? Border.all(color: AppColors.primary, width: 2)
+                      : null,
+                  child: Row(
+                    children: [
+                      Icon(
+                        selected
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                        color: selected ? AppColors.primary : AppColors.outline,
+                      ),
+                      const SizedBox(width: 16),
+                      Text(g.label, style: theme.textTheme.bodyLarge),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        }),
-      ],
-    ));
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   Widget _buildActivity(ThemeData theme) {
@@ -421,12 +447,12 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     String hint,
     TextEditingController controller,
   ) => _textField(
-        label,
-        hint,
-        controller,
-        keyboardType: TextInputType.number,
-        maxLength: 5,
-      );
+    label,
+    hint,
+    controller,
+    keyboardType: TextInputType.number,
+    maxLength: 5,
+  );
 
   Widget _buildSexSelector(ThemeData theme) {
     return Column(
@@ -584,7 +610,9 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
                   child: TextButton(
                     onPressed: _authBusy
                         ? null
-                        : () => setState(() => _isRegisterMode = !_isRegisterMode),
+                        : () => setState(
+                            () => _isRegisterMode = !_isRegisterMode,
+                          ),
                     child: Text(
                       _isRegisterMode
                           ? 'Already have an account? Sign in'

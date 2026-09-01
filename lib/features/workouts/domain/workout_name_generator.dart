@@ -108,8 +108,7 @@ class WorkoutNameGenerator {
     final mobility = muscleCounts[MuscleTargetGroup.mobility] ?? 0;
     final chest = muscleCounts[MuscleTargetGroup.chest] ?? 0;
     final back = muscleCounts[MuscleTargetGroup.back] ?? 0;
-    final frontSideDelts =
-        muscleCounts[MuscleTargetGroup.frontSideDelts] ?? 0;
+    final frontSideDelts = muscleCounts[MuscleTargetGroup.frontSideDelts] ?? 0;
     final rearDelts = muscleCounts[MuscleTargetGroup.rearDelts] ?? 0;
     final allShoulders = frontSideDelts + rearDelts;
 
@@ -147,16 +146,32 @@ class WorkoutNameGenerator {
     // 3. Full Body (upper + lower)
     if (legs > 0 && upper > 0) {
       // If only 1 upper muscle and 1 lower muscle, name the specific combination
-      if (legs > 0 && allShoulders > 0 && chest == 0 && back == 0 && arms == 0) {
+      if (legs > 0 &&
+          allShoulders > 0 &&
+          chest == 0 &&
+          back == 0 &&
+          arms == 0) {
         return hasAbs ? 'Legs, Shoulders & Abs' : 'Legs & Shoulders';
       }
-      if (legs > 0 && arms > 0 && chest == 0 && back == 0 && allShoulders == 0) {
+      if (legs > 0 &&
+          arms > 0 &&
+          chest == 0 &&
+          back == 0 &&
+          allShoulders == 0) {
         return hasAbs ? 'Legs, Arms & Abs' : 'Legs & Arms';
       }
-      if (legs > 0 && chest > 0 && back == 0 && allShoulders == 0 && arms == 0) {
+      if (legs > 0 &&
+          chest > 0 &&
+          back == 0 &&
+          allShoulders == 0 &&
+          arms == 0) {
         return hasAbs ? 'Legs, Chest & Abs' : 'Legs & Chest';
       }
-      if (legs > 0 && back > 0 && chest == 0 && allShoulders == 0 && arms == 0) {
+      if (legs > 0 &&
+          back > 0 &&
+          chest == 0 &&
+          allShoulders == 0 &&
+          arms == 0) {
         return hasAbs ? 'Legs, Back & Abs' : 'Legs & Back';
       }
       return 'Full Body';
@@ -204,7 +219,11 @@ class WorkoutNameGenerator {
     }
 
     // 6. Pull (Back, Biceps, Rear Delts, Forearms)
-    if (pull > 0 && chest == 0 && triceps == 0 && frontSideDelts == 0 && legs == 0) {
+    if (pull > 0 &&
+        chest == 0 &&
+        triceps == 0 &&
+        frontSideDelts == 0 &&
+        legs == 0) {
       if (back > 0 && biceps > 0) {
         if (total >= 4 || rearDelts > 0) {
           return hasAbs ? 'Pull & Abs' : 'Pull Day';
@@ -244,7 +263,8 @@ class WorkoutNameGenerator {
     // 9. Chest Combinations (no legs)
     if (chest > 0 && legs == 0) {
       if (back > 0) {
-        if (hasAbs && allShoulders == 0 && arms == 0) return 'Chest, Back & Abs';
+        if (hasAbs && allShoulders == 0 && arms == 0)
+          return 'Chest, Back & Abs';
         if (allShoulders == 0 && arms == 0) return 'Chest & Back';
         if (total <= 4 && arms == 0) return 'Chest & Back';
         return hasAbs ? 'Upper Body & Abs' : 'Upper Body';

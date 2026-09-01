@@ -299,6 +299,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView>
       ],
     );
   }
+
   Widget _buildLoudPermissionView(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
@@ -314,7 +315,11 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              const Icon(Icons.camera_alt_rounded, size: 80, color: Colors.white),
+              const Icon(
+                Icons.camera_alt_rounded,
+                size: 80,
+                color: Colors.white,
+              ),
               const SizedBox(height: 32),
               const Text(
                 'WE NEED YOUR CAMERA',
@@ -355,9 +360,12 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView>
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: openAppSettings,
-                  child: const Text('OPEN SETTINGS', style: TextStyle(color: Colors.white54, letterSpacing: 1.5)),
-                )
-              ]
+                  child: const Text(
+                    'OPEN SETTINGS',
+                    style: TextStyle(color: Colors.white54, letterSpacing: 1.5),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

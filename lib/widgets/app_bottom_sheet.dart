@@ -54,10 +54,7 @@ class AppBottomSheet extends StatelessWidget {
     if (!scrollable) {
       return _shell(
         context,
-        SingleChildScrollView(
-          padding: padding,
-          child: child,
-        ),
+        SingleChildScrollView(padding: padding, child: child),
         shrinkWrap: true,
       );
     }

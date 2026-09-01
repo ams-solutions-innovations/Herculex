@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import '../domain/cycle_adjuster.dart';
 import 'cycle_providers.dart';
 
@@ -34,20 +35,15 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Cycle Syncing & Tracking'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: adjustmentAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error loading cycle data: $err')),
-        data: (adjustment) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
+    return HxScreenShell(
+      title: 'Cycle Tracking',
+      children: [
+        adjustmentAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) =>
+              Center(child: Text('Error loading cycle data: $err')),
+          data: (adjustment) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── 1. Phase Hero / Visual Cycle Tracker ────────────────────────
@@ -75,10 +71,10 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
 
                 const SizedBox(height: 40),
               ],
-            ),
-          );
-        },
-      ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -108,7 +104,10 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: phaseColor.withValues(alpha: 0.4), width: 1.5),
+        border: Border.all(
+          color: phaseColor.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: phaseColor.withValues(alpha: 0.1),
@@ -154,14 +153,19 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: phaseColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: phaseColor.withValues(alpha: 0.5)),
                 ),
                 child: Text(
-                  adjustment.isManualOverride ? 'OVERRIDE' : 'DAY ${adjustment.dayOfCycle + 1}',
+                  adjustment.isManualOverride
+                      ? 'OVERRIDE'
+                      : 'DAY ${adjustment.dayOfCycle + 1}',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: phaseColor,
                     fontWeight: FontWeight.bold,
@@ -202,7 +206,10 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
             ],
           ),
           const SizedBox(height: 16),
-          Divider(height: 1, color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+          Divider(
+            height: 1,
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
           const SizedBox(height: 16),
 
           // Training & Volume Impact
@@ -242,7 +249,9 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,7 +264,11 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
                   color: Colors.pinkAccent.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.sync, color: Colors.pinkAccent, size: 20),
+                child: const Icon(
+                  Icons.sync,
+                  color: Colors.pinkAccent,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -297,7 +310,9 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
               ),
               child: Text(
                 syncState.syncMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.primary),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ],
@@ -320,7 +335,9 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
                     )
                   : const Icon(Icons.cloud_download_outlined, size: 18),
               label: Text(
-                syncState.isSyncingHealth ? 'Syncing...' : 'Sync Period Data from Health / Flo',
+                syncState.isSyncingHealth
+                    ? 'Syncing...'
+                    : 'Sync Period Data from Health / Flo',
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -337,14 +354,19 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
     );
   }
 
-  Widget _buildDailyOverrideCard(ThemeData theme, CycleAdjustmentResult adjustment) {
+  Widget _buildDailyOverrideCard(
+    ThemeData theme,
+    CycleAdjustmentResult adjustment,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,14 +437,18 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
                           Icon(
                             phase.icon,
                             size: 18,
-                            color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant,
                           ),
                           const SizedBox(height: 4),
                           Text(
                             phase.id.substring(0, 3).toUpperCase(),
                             style: theme.textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -445,7 +471,9 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,7 +492,10 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
             title: const Text('Last Period Start Date'),
             subtitle: Text(
               '${_lastPeriodStart.year}-${_lastPeriodStart.month.toString().padLeft(2, '0')}-${_lastPeriodStart.day.toString().padLeft(2, '0')}',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             trailing: const Icon(Icons.calendar_today, size: 20),
             onTap: () async {
@@ -486,7 +517,10 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
               }
             },
           ),
-          Divider(height: 1, color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+          Divider(
+            height: 1,
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
           const SizedBox(height: 12),
 
           // Average Cycle Length
@@ -496,7 +530,10 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
               const Text('Average Cycle Length'),
               Text(
                 '$_avgCycleDays days',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -527,7 +564,10 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
               const Text('Average Period Duration'),
               Text(
                 '$_avgPeriodDays days',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -562,7 +602,9 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,7 +675,13 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
         children: [
           Row(
             children: [
-              Icon(phase.icon, size: 16, color: isCurrent ? AppColors.primary : AppColors.onSurfaceVariant),
+              Icon(
+                phase.icon,
+                size: 16,
+                color: isCurrent
+                    ? AppColors.primary
+                    : AppColors.onSurfaceVariant,
+              ),
               const SizedBox(width: 6),
               Text(
                 phase.title,
@@ -645,7 +693,10 @@ class _CycleTrackingViewState extends ConsumerState<CycleTrackingView> {
               if (isCurrent) ...[
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),

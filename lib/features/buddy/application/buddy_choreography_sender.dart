@@ -18,13 +18,13 @@ class BuddyChoreographySender {
     required String buddySessionId,
     required int localWorkoutSessionId,
     String Function()? newSlotId,
-  })  : _publisher = publisher,
-        _slots = slots,
-        _workouts = workouts,
-        _resolver = resolver,
-        _buddySessionId = buddySessionId,
-        _localWorkoutSessionId = localWorkoutSessionId,
-        _newSlotId = newSlotId ?? _defaultNewSlotId;
+  }) : _publisher = publisher,
+       _slots = slots,
+       _workouts = workouts,
+       _resolver = resolver,
+       _buddySessionId = buddySessionId,
+       _localWorkoutSessionId = localWorkoutSessionId,
+       _newSlotId = newSlotId ?? _defaultNewSlotId;
 
   final BuddyEventPublisher _publisher;
   final BuddySlotStore _slots;
@@ -83,10 +83,7 @@ class BuddyChoreographySender {
       naturalKeyColumn: 'slug',
       isCustomColumn: 'is_custom',
     );
-    final exerciseRef = BuddyExerciseRef(
-      uuid: pushRef.$1,
-      slug: pushRef.$2,
-    );
+    final exerciseRef = BuddyExerciseRef(uuid: pushRef.$1, slug: pushRef.$2);
     final payload = BuddyAddPayload(
       slotId: slotId,
       ref: exerciseRef,
@@ -197,14 +194,8 @@ class BuddyChoreographySender {
       naturalKeyColumn: 'slug',
       isCustomColumn: 'is_custom',
     );
-    final exerciseRef = BuddyExerciseRef(
-      uuid: pushRef.$1,
-      slug: pushRef.$2,
-    );
-    final payload = BuddyReplacePayload(
-      slotId: slot.slotId,
-      ref: exerciseRef,
-    );
+    final exerciseRef = BuddyExerciseRef(uuid: pushRef.$1, slug: pushRef.$2);
+    final payload = BuddyReplacePayload(slotId: slot.slotId, ref: exerciseRef);
 
     await _publisher.append(
       buddySessionId: _buddySessionId,

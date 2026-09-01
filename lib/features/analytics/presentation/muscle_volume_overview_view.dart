@@ -30,10 +30,7 @@ class MuscleVolumeOverviewView extends ConsumerWidget {
           data: (data) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _HeaderSummaryCard(
-                data: data,
-                displayMode: displayMode,
-              ),
+              _HeaderSummaryCard(data: data, displayMode: displayMode),
               const SizedBox(height: HxSpace.x4),
               _TimeframeAndModeSelector(
                 currentTimeframe: selectedTimeframe,
@@ -75,10 +72,7 @@ class MuscleVolumeOverviewView extends ConsumerWidget {
 // ── 1. Top Summary Card ──────────────────────────────────────────────────────
 
 class _HeaderSummaryCard extends ConsumerWidget {
-  const _HeaderSummaryCard({
-    required this.data,
-    required this.displayMode,
-  });
+  const _HeaderSummaryCard({required this.data, required this.displayMode});
 
   final MuscleVolumeOverviewData data;
   final VolumeMetricDisplayMode displayMode;
@@ -197,9 +191,7 @@ class _MetricTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: hx.surfaceContainer,
         borderRadius: BorderRadius.circular(HxRadius.lg),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,13 +249,18 @@ class _TimeframeAndModeSelector extends ConsumerWidget {
                         onTap: () {
                           Haptics.selection();
                           ref
-                              .read(selectedVolumeTimeframeProvider.notifier)
-                              .state = tf;
+                                  .read(
+                                    selectedVolumeTimeframeProvider.notifier,
+                                  )
+                                  .state =
+                              tf;
                         },
                         child: AnimatedContainer(
                           duration: HxMotion.base,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 13, vertical: 7),
+                            horizontal: 13,
+                            vertical: 7,
+                          ),
                           decoration: BoxDecoration(
                             color: tf == currentTimeframe
                                 ? hx.primary
@@ -313,13 +310,16 @@ class _TimeframeAndModeSelector extends ConsumerWidget {
                       onTap: () {
                         Haptics.selection();
                         ref
-                            .read(volumeMetricDisplayModeProvider.notifier)
-                            .state = mode;
+                                .read(volumeMetricDisplayModeProvider.notifier)
+                                .state =
+                            mode;
                       },
                       borderRadius: BorderRadius.circular(HxRadius.pill),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: mode == currentMode
                               ? hx.primary
@@ -381,8 +381,10 @@ class _FilterAndSortBar extends ConsumerWidget {
                     },
                     borderRadius: BorderRadius.circular(HxRadius.pill),
                     child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: r == currentRegion
                             ? hx.primary.withValues(alpha: 0.15)
@@ -400,9 +402,7 @@ class _FilterAndSortBar extends ConsumerWidget {
                           fontWeight: r == currentRegion
                               ? FontWeight.bold
                               : FontWeight.normal,
-                          color: r == currentRegion
-                              ? hx.primary
-                              : hx.secondary,
+                          color: r == currentRegion ? hx.primary : hx.secondary,
                         ),
                       ),
                     ),
@@ -555,7 +555,9 @@ class _MuscleGroupList extends ConsumerWidget {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: hx.outlineVariant.withValues(alpha: 0.2),
+                                  color: hx.outlineVariant.withValues(
+                                    alpha: 0.2,
+                                  ),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -574,8 +576,8 @@ class _MuscleGroupList extends ConsumerWidget {
                             item.workoutCount == 0
                                 ? 'No workouts logged in this period'
                                 : isWeekly
-                                    ? '${item.workoutCount} workouts (${item.weeklyWorkouts(weeks).toStringAsFixed(1)}/wk) • Last: ${_formatLastTrained(item.lastTrained)}'
-                                    : '${item.workoutCount} workouts • ${item.exerciseCount} exercises • Last: ${_formatLastTrained(item.lastTrained)}',
+                                ? '${item.workoutCount} workouts (${item.weeklyWorkouts(weeks).toStringAsFixed(1)}/wk) • Last: ${_formatLastTrained(item.lastTrained)}'
+                                : '${item.workoutCount} workouts • ${item.exerciseCount} exercises • Last: ${_formatLastTrained(item.lastTrained)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: hx.secondary,
                               fontSize: 11,
@@ -593,7 +595,9 @@ class _MuscleGroupList extends ConsumerWidget {
                               : weight.formatTonnage(item.tonnageKg),
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: item.tonnageKg > 0 ? hx.primary : hx.secondary,
+                            color: item.tonnageKg > 0
+                                ? hx.primary
+                                : hx.secondary,
                           ),
                         ),
                         Text(

@@ -35,7 +35,11 @@ void main() {
   }
 
   NutritionRepository repo(AppDatabase db, {Clock? clock}) =>
-      NutritionRepository(db, OpenFoodFactsClient(), clock ?? const SystemClock());
+      NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        clock ?? const SystemClock(),
+      );
 
   group('NutritionRepository.watchRecentlyLoggedFoods', () {
     test('returns unique foods ordered by latest loggedAt descending', () async {
@@ -81,7 +85,11 @@ void main() {
 
       // Expected order: Oatmeal (21st 11:00) -> Eggs (21st 7:30) -> Banana (20th 10:00)
       // Protein Bar was never logged so it should not appear.
-      expect(recents.map((f) => f.name).toList(), ['Oatmeal', 'Eggs', 'Banana']);
+      expect(recents.map((f) => f.name).toList(), [
+        'Oatmeal',
+        'Eggs',
+        'Banana',
+      ]);
     });
 
     test('excludes soft-deleted foods from recents', () async {
@@ -161,24 +169,40 @@ void main() {
       }
 
       // Query suggestions for 8:00 AM Breakfast
-      final morningSuggestions = await r.watchSuggestedFoods(
-        hour: 8,
-        mealKey: 'breakfast',
-      ).first;
+      final morningSuggestions = await r
+          .watchSuggestedFoods(hour: 8, mealKey: 'breakfast')
+          .first;
 
-      expect(morningSuggestions.map((f) => f.name), contains('Oatmeal & Berries'));
-      expect(morningSuggestions.map((f) => f.name), isNot(contains('Chicken Rice Bowl')));
-      expect(morningSuggestions.map((f) => f.name), isNot(contains('Salmon & Broccoli')));
+      expect(
+        morningSuggestions.map((f) => f.name),
+        contains('Oatmeal & Berries'),
+      );
+      expect(
+        morningSuggestions.map((f) => f.name),
+        isNot(contains('Chicken Rice Bowl')),
+      );
+      expect(
+        morningSuggestions.map((f) => f.name),
+        isNot(contains('Salmon & Broccoli')),
+      );
 
       // Query suggestions for 13:00 Lunch
-      final lunchSuggestions = await r.watchSuggestedFoods(
-        hour: 13,
-        mealKey: 'lunch',
-      ).first;
+      final lunchSuggestions = await r
+          .watchSuggestedFoods(hour: 13, mealKey: 'lunch')
+          .first;
 
-      expect(lunchSuggestions.map((f) => f.name), contains('Chicken Rice Bowl'));
-      expect(lunchSuggestions.map((f) => f.name), isNot(contains('Oatmeal & Berries')));
-      expect(lunchSuggestions.map((f) => f.name), isNot(contains('Salmon & Broccoli')));
+      expect(
+        lunchSuggestions.map((f) => f.name),
+        contains('Chicken Rice Bowl'),
+      );
+      expect(
+        lunchSuggestions.map((f) => f.name),
+        isNot(contains('Oatmeal & Berries')),
+      );
+      expect(
+        lunchSuggestions.map((f) => f.name),
+        isNot(contains('Salmon & Broccoli')),
+      );
     });
 
     test('excludes soft-deleted foods from suggestions', () async {
@@ -200,12 +224,14 @@ void main() {
 
       await r.deleteFood(food);
 
-      final suggestions = await r.watchSuggestedFoods(
-        hour: 8,
-        mealKey: 'breakfast',
-      ).first;
+      final suggestions = await r
+          .watchSuggestedFoods(hour: 8, mealKey: 'breakfast')
+          .first;
 
-      expect(suggestions.map((f) => f.name), isNot(contains('Deleted Breakfast Food')));
+      expect(
+        suggestions.map((f) => f.name),
+        isNot(contains('Deleted Breakfast Food')),
+      );
     });
   });
 }

@@ -15,20 +15,19 @@ Widget dashboardCard({
   double? radius,
   EdgeInsets? padding,
   Gradient? gradient,
-}) =>
-    Consumer(
-      builder: (context, ref, _) {
-        final shape = ref.watch(dashboardCardShapeProvider);
-        return HxCard(
-          onTap: onTap,
-          accent: accent,
-          radius: radius ?? shape.cardRadius,
-          padding: padding ?? const EdgeInsets.all(HxSpace.x5),
-          gradient: gradient,
-          child: child,
-        );
-      },
+}) => Consumer(
+  builder: (context, ref, _) {
+    final shape = ref.watch(dashboardCardShapeProvider);
+    return HxCard(
+      onTap: onTap,
+      accent: accent,
+      radius: radius ?? shape.cardRadius,
+      padding: padding ?? const EdgeInsets.all(HxSpace.x5),
+      gradient: gradient,
+      child: child,
     );
+  },
+);
 
 /// Dashboard "pill" surface used by compact single-line and mini widgets
 /// (CNS Load, Total Volume, Streaks). Adapts to the user-selected [DashboardCardShape]
@@ -57,7 +56,8 @@ class DashboardPill extends ConsumerWidget {
     final shape = ref.watch(dashboardCardShapeProvider);
     final effectiveRadius = radius ?? shape.pillRadius;
 
-    final pillGradient = gradient ??
+    final pillGradient =
+        gradient ??
         (color != null
             ? LinearGradient(
                 colors: [
@@ -78,7 +78,8 @@ class DashboardPill extends ConsumerWidget {
         color: pillGradient == null ? hx.surfaceContainerLowest : null,
         borderRadius: BorderRadius.circular(effectiveRadius),
         border: Border.all(
-          color: color?.withValues(alpha: 0.3) ??
+          color:
+              color?.withValues(alpha: 0.3) ??
               hx.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
@@ -95,8 +96,9 @@ class DashboardPill extends ConsumerWidget {
   }
 }
 
-Widget dashboardTitle(BuildContext context, String text) => Text(text,
-    style: Theme.of(context)
-        .textTheme
-        .titleMedium
-        ?.copyWith(fontWeight: FontWeight.bold));
+Widget dashboardTitle(BuildContext context, String text) => Text(
+  text,
+  style: Theme.of(
+    context,
+  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+);

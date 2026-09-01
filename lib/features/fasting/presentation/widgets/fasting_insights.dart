@@ -16,48 +16,34 @@ class FastingInsights extends ConsumerWidget {
     final streakAsync = ref.watch(fastingStreakProvider);
     final avgEatingAsync = ref.watch(fastingAverageEatingWindowProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Center(
-          child: Text(
-            "FASTING INSIGHTS",
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: hx.secondary, letterSpacing: 1.0),
+        Expanded(
+          child: _metricCard(
+            context,
+            title: "Current Streak",
+            value: streakAsync.when(
+              data: (s) => "$s ${s == 1 ? 'day' : 'days'}",
+              loading: () => "...",
+              error: (e, s) => "0 days",
+            ),
+            icon: Icons.local_fire_department_rounded,
+            accent: hx.warning,
           ),
         ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _metricCard(
-                context,
-                title: "Current Streak",
-                value: streakAsync.when(
-                  data: (s) => "$s ${s == 1 ? 'day' : 'days'}",
-                  loading: () => "...",
-                  error: (e, s) => "0",
-                ),
-                icon: Icons.local_fire_department,
-                accent: hx.warning,
-              ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _metricCard(
+            context,
+            title: "Avg. Fasting Window",
+            value: avgEatingAsync.when(
+              data: (hrs) => "${(24.0 - hrs).clamp(0.0, 24.0).toStringAsFixed(1)} hrs",
+              loading: () => "...",
+              error: (e, s) => "16.0 hrs",
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _metricCard(
-                context,
-                title: "Avg. Window",
-                value: avgEatingAsync.when(
-                  data: (hrs) => "${hrs.toStringAsFixed(1)} hrs",
-                  loading: () => "...",
-                  error: (e, s) => "8.0 hrs",
-                ),
-                icon: Icons.restaurant,
-                accent: hx.domainNutrition,
-              ),
-            ),
-          ],
+            icon: Icons.timelapse_rounded,
+            accent: hx.domainFasting,
+          ),
         ),
       ],
     );
@@ -80,7 +66,10 @@ class FastingInsights extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary)),
+              Text(
+                title,
+                style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+              ),
               Icon(icon, size: 18, color: accent),
             ],
           ),

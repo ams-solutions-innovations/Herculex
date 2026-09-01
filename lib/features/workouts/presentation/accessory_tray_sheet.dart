@@ -34,7 +34,8 @@ class AccessoryTraySheet extends ConsumerWidget {
     final repo = ref.watch(accessoriesRepositoryProvider);
 
     final attachedIds =
-        attached.asData?.value.map((a) => a.accessoryId).toSet() ?? const <int>{};
+        attached.asData?.value.map((a) => a.accessoryId).toSet() ??
+        const <int>{};
 
     return DraggableScrollableSheet(
       initialChildSize: 0.65,
@@ -43,7 +44,8 @@ class AccessoryTraySheet extends ConsumerWidget {
       expand: false,
       builder: (_, controller) => Container(
         decoration: BoxDecoration(
-          color: theme.bottomSheetTheme.backgroundColor ??
+          color:
+              theme.bottomSheetTheme.backgroundColor ??
               AppColors.surfaceContainerLowest,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
@@ -62,9 +64,12 @@ class AccessoryTraySheet extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Accessories',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Accessories',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 12),
             accessories.maybeWhen(
               data: (list) => Wrap(
@@ -86,9 +91,12 @@ class AccessoryTraySheet extends ConsumerWidget {
                       ),
                       selected: attachedIds.contains(a.id),
                       onSelected: (_) => repo.toggleSetAccessory(
-                          setEntryId: set.id, accessoryId: a.id),
-                      selectedColor:
-                          AppColors.primaryContainer.withValues(alpha: 0.7),
+                        setEntryId: set.id,
+                        accessoryId: a.id,
+                      ),
+                      selectedColor: AppColors.primaryContainer.withValues(
+                        alpha: 0.7,
+                      ),
                       side: BorderSide(
                         color: attachedIds.contains(a.id)
                             ? AppColors.primary
@@ -100,26 +108,33 @@ class AccessoryTraySheet extends ConsumerWidget {
                 ],
               ),
               orElse: () => const SizedBox(
-                  height: 40,
-                  child: Center(
-                      child: CircularProgressIndicator(strokeWidth: 2))),
+                height: 40,
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
             ),
             const SizedBox(height: 20),
-            Text('Chains',
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Chains',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(
               'Average added load over the lift (kg at lockout ÷ 2).',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
             ),
             const SizedBox(height: 8),
             _ChainsField(set: set),
             const SizedBox(height: 20),
-            Text('Bands',
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Bands',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
             attachedBands.maybeWhen(
               data: (rows) => Column(
@@ -144,9 +159,12 @@ class AccessoryTraySheet extends ConsumerWidget {
                   for (final b in list)
                     ActionChip(
                       avatar: CircleAvatar(
-                          backgroundColor: _bandColor(b.color), radius: 6),
+                        backgroundColor: _bandColor(b.color),
+                        radius: 6,
+                      ),
                       label: Text(
-                          '${b.name} (${b.tensionKg.toStringAsFixed(0)}kg)'),
+                        '${b.name} (${b.tensionKg.toStringAsFixed(0)}kg)',
+                      ),
                       onPressed: () => _pickBandMode(context, repo, b),
                     ),
                 ],
@@ -160,14 +178,14 @@ class AccessoryTraySheet extends ConsumerWidget {
   }
 
   static Color _bandColor(String color) => switch (color) {
-        'red' => Colors.redAccent,
-        'blue' => Colors.blueAccent,
-        'green' => Colors.green,
-        'black' => Colors.black87,
-        'purple' => Colors.purpleAccent,
-        'orange' => Colors.orangeAccent,
-        _ => AppColors.outline,
-      };
+    'red' => Colors.redAccent,
+    'blue' => Colors.blueAccent,
+    'green' => Colors.green,
+    'black' => Colors.black87,
+    'purple' => Colors.purpleAccent,
+    'orange' => Colors.orangeAccent,
+    _ => AppColors.outline,
+  };
 
   void _pickBandMode(BuildContext context, dynamic repo, BandData band) {
     showModalBottomSheet<void>(
@@ -182,7 +200,10 @@ class AccessoryTraySheet extends ConsumerWidget {
               subtitle: const Text('Harder at the top — adds load'),
               onTap: () {
                 repo.attachBand(
-                    setEntryId: set.id, bandId: band.id, isResistance: true);
+                  setEntryId: set.id,
+                  bandId: band.id,
+                  isResistance: true,
+                );
                 Navigator.pop(sheetCtx);
               },
             ),
@@ -192,7 +213,10 @@ class AccessoryTraySheet extends ConsumerWidget {
               subtitle: const Text('Easier at the bottom — removes load'),
               onTap: () {
                 repo.attachBand(
-                    setEntryId: set.id, bandId: band.id, isResistance: false);
+                  setEntryId: set.id,
+                  bandId: band.id,
+                  isResistance: false,
+                );
                 Navigator.pop(sheetCtx);
               },
             ),
@@ -233,8 +257,9 @@ class _AttachedBandTile extends StatelessWidget {
         ),
         title: Text(
           '${band?.name ?? 'Band'} ×${setBand.count}',
-          style:
-              theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         subtitle: Text(isResistance ? 'Resistance' : 'Assistance'),
         trailing: IconButton(
@@ -261,7 +286,8 @@ class _ChainsFieldState extends ConsumerState<_ChainsField> {
         : widget.set.chainsKg!.toStringAsFixed(
             widget.set.chainsKg!.truncateToDouble() == widget.set.chainsKg!
                 ? 0
-                : 1),
+                : 1,
+          ),
   );
 
   @override
@@ -272,10 +298,9 @@ class _ChainsFieldState extends ConsumerState<_ChainsField> {
 
   void _commit() {
     final v = double.tryParse(_ctrl.text);
-    ref.read(workoutsRepositoryProvider).updateSet(
-          setId: widget.set.id,
-          chainsKg: v,
-        );
+    ref
+        .read(workoutsRepositoryProvider)
+        .updateSet(setId: widget.set.id, chainsKg: v);
   }
 
   @override

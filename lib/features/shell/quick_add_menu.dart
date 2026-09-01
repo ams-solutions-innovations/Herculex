@@ -20,11 +20,7 @@ import 'main_scaffold.dart';
 /// Actions are context-aware: fasting flips between "Start Quick Fast" and
 /// "End Fast" depending on whether a session is already running.
 class QuickAddMenu extends ConsumerStatefulWidget {
-  const QuickAddMenu({
-    super.key,
-    required this.onClose,
-    this.onActionSelected,
-  });
+  const QuickAddMenu({super.key, required this.onClose, this.onActionSelected});
 
   final VoidCallback onClose;
   final void Function(
@@ -152,8 +148,7 @@ class QuickAddMenuState extends ConsumerState<QuickAddMenu>
             builder: (context, child) => GestureDetector(
               onTap: _close,
               child: Container(
-                color: Colors.black
-                    .withValues(alpha: 0.45 * _controller.value),
+                color: Colors.black.withValues(alpha: 0.45 * _controller.value),
               ),
             ),
           ),
@@ -204,8 +199,11 @@ class _Staggered extends StatelessWidget {
     final start = (order * 0.08).clamp(0.0, 0.6);
     final animation = CurvedAnimation(
       parent: controller,
-      curve: Interval(start, (start + 0.4).clamp(0.0, 1.0),
-          curve: HxMotion.emphasizedOvershoot),
+      curve: Interval(
+        start,
+        (start + 0.4).clamp(0.0, 1.0),
+        curve: HxMotion.emphasizedOvershoot,
+      ),
     );
 
     return AnimatedBuilder(
@@ -258,7 +256,9 @@ class _QuickAddItem extends StatelessWidget {
             HxGlass(
               borderRadius: HxRadius.pillAll,
               padding: const EdgeInsets.symmetric(
-                  horizontal: HxSpace.x4, vertical: HxSpace.x2 + 2),
+                horizontal: HxSpace.x4,
+                vertical: HxSpace.x2 + 2,
+              ),
               child: Text(label, style: theme.textTheme.labelLarge),
             ),
             const SizedBox(width: HxSpace.x3),

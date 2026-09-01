@@ -221,8 +221,8 @@ class HealthService {
       try {
         final fallbackType =
             activityType == HealthWorkoutActivityType.STRENGTH_TRAINING
-                ? HealthWorkoutActivityType.WEIGHTLIFTING
-                : HealthWorkoutActivityType.STRENGTH_TRAINING;
+            ? HealthWorkoutActivityType.WEIGHTLIFTING
+            : HealthWorkoutActivityType.STRENGTH_TRAINING;
         return await _health.writeWorkoutData(
           activityType: fallbackType,
           title: activityName,
@@ -271,10 +271,11 @@ class HealthService {
   }
 
   Future<int> getDaysOfStepHistory() async {
-    final samples = await (_db.selectOnly(_db.healthSamples, distinct: true)
-          ..addColumns([_db.healthSamples.dateIso])
-          ..where(_db.healthSamples.kind.equals('steps')))
-        .get();
+    final samples =
+        await (_db.selectOnly(_db.healthSamples, distinct: true)
+              ..addColumns([_db.healthSamples.dateIso])
+              ..where(_db.healthSamples.kind.equals('steps')))
+            .get();
     return samples.length;
   }
 

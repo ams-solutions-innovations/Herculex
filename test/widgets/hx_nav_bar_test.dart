@@ -9,21 +9,21 @@ void main() {
     ValueChanged<int>? onTap,
     bool quickAddOpen = false,
     VoidCallback? onQuickAddTap,
-  }) =>
-      MaterialApp(
-        theme: AppTheme.darkTheme,
-        home: Scaffold(
-          bottomNavigationBar: HxNavBar(
-            currentIndex: currentIndex,
-            onTap: onTap ?? (_) {},
-            quickAddOpen: quickAddOpen,
-            onQuickAddTap: onQuickAddTap ?? () {},
-          ),
-        ),
-      );
+  }) => MaterialApp(
+    theme: AppTheme.darkTheme,
+    home: Scaffold(
+      bottomNavigationBar: HxNavBar(
+        currentIndex: currentIndex,
+        onTap: onTap ?? (_) {},
+        quickAddOpen: quickAddOpen,
+        onQuickAddTap: onQuickAddTap ?? () {},
+      ),
+    ),
+  );
 
-  testWidgets('renders all 4 destinations plus the quick-add button',
-      (tester) async {
+  testWidgets('renders all 4 destinations plus the quick-add button', (
+    tester,
+  ) async {
     await tester.pumpWidget(harness());
 
     expect(find.byIcon(Icons.grid_view_rounded), findsOneWidget);
@@ -47,14 +47,14 @@ void main() {
     expect(tapped, 3);
   });
 
-  testWidgets('tapping the + reports quick-add rather than a tab index',
-      (tester) async {
+  testWidgets('tapping the + reports quick-add rather than a tab index', (
+    tester,
+  ) async {
     var quickAddTaps = 0;
     int? tabTap;
-    await tester.pumpWidget(harness(
-      onTap: (i) => tabTap = i,
-      onQuickAddTap: () => quickAddTaps++,
-    ));
+    await tester.pumpWidget(
+      harness(onTap: (i) => tabTap = i, onQuickAddTap: () => quickAddTaps++),
+    );
 
     await tester.tap(find.byIcon(Icons.add_rounded));
 

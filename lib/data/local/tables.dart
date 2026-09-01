@@ -351,6 +351,39 @@ class FoodCatalogueMeta extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class Achievements extends Table with SyncColumns, SyncTombstone {
+  TextColumn get id => text()();
+  DateTimeColumn get unlockedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// The coaching rules parsed from assets/data/hercul_rules.json.
+class HerculRules extends Table {
+  TextColumn get id => text()();
+  TextColumn get domain => text()();
+  IntColumn get priority => integer()();
+  IntColumn get cooldownDays => integer()();
+  TextColumn get requiresJson => text()();
+  TextColumn get whenJson => text()();
+  TextColumn get copyNormal => text()();
+  TextColumn get copyHonest => text()();
+  TextColumn get ctaJson => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Tracks when a coaching rule last fired, ensuring cooldowns survive restarts.
+class HerculMessageLog extends Table {
+  TextColumn get ruleId => text().references(HerculRules, #id)();
+  DateTimeColumn get lastFiredAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {ruleId};
+}
+
 /// Calorie + macro target, scoped by [appliesTo] (§19). One global row plus
 /// optional training-day / rest-day / weekday / specific-date overrides.
 @DataClassName('NutritionTargetData')
@@ -534,6 +567,20 @@ class FastingSchedules extends Table with SyncColumns, SyncTombstone {
   IntColumn get startTimeMinutes => integer()();
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
   BoolColumn get autoStart => boolean().withDefault(const Constant(false))();
+}
+
+/// Physiological fasting stages and bodily changes (v36, 1h to 72h).
+@DataClassName('FastingStageData')
+class FastingStages extends Table {
+  IntColumn get hour => integer()();
+  TextColumn get stageName => text()();
+  TextColumn get stageCategory => text()();
+  TextColumn get shortMessage => text()();
+  TextColumn get detail => text().nullable()();
+  TextColumn get icon => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {hour};
 }
 
 @DataClassName('ProgramData')
@@ -746,6 +793,7 @@ class ScheduledWorkouts extends Table with SyncColumns, SyncTombstone {
     #id,
     onDelete: KeyAction.setNull,
   )();
+
   /// planned | in_progress | done | moved | skipped — see `ScheduleStatus`.
   TextColumn get status => text().withDefault(const Constant('planned'))();
 
@@ -835,11 +883,11 @@ class CycleSettings extends Table with SyncColumns, SyncTombstone {
 class JointPainLogs extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get dateIso => text()();
-  DateTimeColumn get loggedAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get loggedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get joint => text()(); // one of JointModel.joints
-  IntColumn get severity =>
-      integer().withDefault(const Constant(1))(); // 0=resolved, 1-3=mild/moderate/severe
+  IntColumn get severity => integer().withDefault(
+    const Constant(1),
+  )(); // 0=resolved, 1-3=mild/moderate/severe
   TextColumn get note => text().nullable()();
 }
 
@@ -958,11 +1006,8 @@ class WorkoutCircuits extends Table with SyncColumns, SyncTombstone {
 @DataClassName('CircuitExerciseData')
 class CircuitExercises extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get circuitId => integer().references(
-    WorkoutCircuits,
-    #id,
-    onDelete: KeyAction.cascade,
-  )();
+  IntColumn get circuitId =>
+      integer().references(WorkoutCircuits, #id, onDelete: KeyAction.cascade)();
   IntColumn get exerciseId => integer().references(
     ExerciseCatalog,
     #id,
@@ -1119,7 +1164,8 @@ class RepTrackingSettings extends Table {
   /// pocket_front | armband | null. Must be non-null before the phone source
   /// is usable (REP-02).
   TextColumn get phonePlacement => text().nullable()();
-  BoolColumn get hapticsEnabled => boolean().withDefault(const Constant(true))();
+  BoolColumn get hapticsEnabled =>
+      boolean().withDefault(const Constant(true))();
 
   /// The single global switch (v30).
   ///
@@ -1226,8 +1272,8 @@ class RepSetObservations extends Table {
 @DataClassName('BuddySessionsLocalData')
 class BuddySessionsLocal extends Table {
   TextColumn get buddySessionId => text()(); // uuid, server-assigned
-  IntColumn get workoutSessionId => integer()
-      .references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
+  IntColumn get workoutSessionId =>
+      integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
   TextColumn get role => text()(); // 'host' | 'guest'
   TextColumn get partnerDisplayName => text().nullable()();
   TextColumn get partnerAvatarUrl => text().nullable()();

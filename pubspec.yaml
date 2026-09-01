@@ -97,6 +97,7 @@ flutter:
     - assets/data/rep_tracking_profiles.json
     - assets/data/hercul_rules.json
     - assets/data/food_database_eu.v1.json
+    - assets/data/fasting_stages.json
     - assets/images/
     - assets/images/exercises/
     - assets/programs/

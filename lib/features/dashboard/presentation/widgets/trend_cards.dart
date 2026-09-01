@@ -58,10 +58,10 @@ class BodyweightTrendPreviewCard extends ConsumerWidget {
 
     final spots = history == null
         ? null
-        : [
-            for (final (i, r) in history.indexed) FlSpot(i.toDouble(), r.value),
-          ];
-    final latest = history == null || history.isEmpty ? null : history.last.value;
+        : [for (final (i, r) in history.indexed) FlSpot(i.toDouble(), r.value)];
+    final latest = history == null || history.isEmpty
+        ? null
+        : history.last.value;
 
     return _TrendPreviewCard(
       label: 'BODYWEIGHT',
@@ -148,7 +148,9 @@ List<FlSpot> _lastKcalDays(Map<String, DailyTotals> historyMap, int days) {
     final date = today.subtract(Duration(days: i));
     final iso = DateFormat('yyyy-MM-dd').format(date);
     final totals = historyMap[iso] ?? DailyTotals.empty;
-    spots.add(FlSpot((days - 1 - i).toDouble(), macroValueForTotals(totals, 'kcal')));
+    spots.add(
+      FlSpot((days - 1 - i).toDouble(), macroValueForTotals(totals, 'kcal')),
+    );
   }
   return spots;
 }
@@ -178,7 +180,8 @@ class _TrendPreviewCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final hx = context.hx;
     final hasData = spots != null && spots!.any((s) => s.y > 0);
-    final hasTarget = targetValue != null &&
+    final hasTarget =
+        targetValue != null &&
         targetValue! > 0 &&
         !targetValue!.isNaN &&
         !targetValue!.isInfinite;
@@ -252,8 +255,9 @@ class _TrendPreviewCard extends ConsumerWidget {
                 ? Center(
                     child: Text(
                       'Not enough data yet',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: hx.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
                     ),
                   )
                 : LineChart(

@@ -10,15 +10,14 @@ import '../domain/notification_settings.dart';
 
 final notificationSettingsRepositoryProvider =
     Provider<NotificationSettingsRepository>((ref) {
-  final repo = NotificationSettingsRepository(
-    ref.watch(sharedPreferencesProvider),
-  );
-  ref.onDispose(repo.dispose);
-  return repo;
-});
+      final repo = NotificationSettingsRepository(
+        ref.watch(sharedPreferencesProvider),
+      );
+      ref.onDispose(repo.dispose);
+      return repo;
+    });
 
-class NotificationSettingsNotifier
-    extends StateNotifier<NotificationSettings> {
+class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
   final NotificationSettingsRepository _repo;
 
   NotificationSettingsNotifier(this._repo) : super(_repo.load());
@@ -76,36 +75,35 @@ class NotificationSettingsNotifier
 }
 
 final notificationSettingsProvider =
-    StateNotifierProvider<NotificationSettingsNotifier, NotificationSettings>(
-  (ref) {
-    return NotificationSettingsNotifier(
-      ref.watch(notificationSettingsRepositoryProvider),
-    );
-  },
-);
+    StateNotifierProvider<NotificationSettingsNotifier, NotificationSettings>((
+      ref,
+    ) {
+      return NotificationSettingsNotifier(
+        ref.watch(notificationSettingsRepositoryProvider),
+      );
+    });
 
 final localNotificationsPluginProvider =
     Provider<FlutterLocalNotificationsPlugin>((ref) {
-  return FlutterLocalNotificationsPlugin();
-});
+      return FlutterLocalNotificationsPlugin();
+    });
 
-final mealNotificationSchedulerProvider =
-    Provider<MealNotificationScheduler>((ref) {
-  return MealNotificationScheduler(
-    ref.watch(localNotificationsPluginProvider),
-  );
+final mealNotificationSchedulerProvider = Provider<MealNotificationScheduler>((
+  ref,
+) {
+  return MealNotificationScheduler(ref.watch(localNotificationsPluginProvider));
 });
 
 final dailyLogNotificationSchedulerProvider =
     Provider<DailyLogNotificationScheduler>((ref) {
-  return DailyLogNotificationScheduler(
-    ref.watch(localNotificationsPluginProvider),
-  );
-});
+      return DailyLogNotificationScheduler(
+        ref.watch(localNotificationsPluginProvider),
+      );
+    });
 
 final supplementNotificationSchedulerProvider =
     Provider<SupplementNotificationScheduler>((ref) {
-  return SupplementNotificationScheduler(
-    ref.watch(localNotificationsPluginProvider),
-  );
-});
+      return SupplementNotificationScheduler(
+        ref.watch(localNotificationsPluginProvider),
+      );
+    });

@@ -258,8 +258,10 @@ class SyncService {
     if (owner == userId) return;
 
     if (owner != null) {
-      _log('local database owner changed ($owner -> $userId); '
-          'clearing outbox and cursors');
+      _log(
+        'local database owner changed ($owner -> $userId); '
+        'clearing outbox and cursors',
+      );
       await _db.customUpdate('DELETE FROM pending_sync_ops');
       await _db.customUpdate('DELETE FROM sync_cursors');
       _lastSyncedAt = null;
@@ -442,7 +444,9 @@ class SyncService {
       final attempts = (op['attempts'] as int? ?? 0) + 1;
       final delaySeconds = math.min(300, 5 * (1 << math.min(attempts, 6)));
       final nextRetry =
-          DateTime.now().add(Duration(seconds: delaySeconds)).millisecondsSinceEpoch ~/
+          DateTime.now()
+              .add(Duration(seconds: delaySeconds))
+              .millisecondsSinceEpoch ~/
           1000;
       // `user_id` is stamped here rather than by the SQLite trigger, which
       // has no auth context — it is forensic only (ownership is enforced by
@@ -463,9 +467,13 @@ class SyncService {
       );
       _lastRunError = e.toString();
       if (attempts >= maxPushAttempts) {
-        _log('SyncService quarantined $table/$entityId after $attempts attempts: $e');
+        _log(
+          'SyncService quarantined $table/$entityId after $attempts attempts: $e',
+        );
       } else {
-        _log('SyncService push failed for $table/$entityId (attempt $attempts): $e');
+        _log(
+          'SyncService push failed for $table/$entityId (attempt $attempts): $e',
+        );
       }
       return false;
     }
@@ -592,7 +600,8 @@ class SyncService {
     if (spec == null) return;
 
     final isCustomFiltered =
-        isCustomFilteredTableNames.contains(parentTable) && parentTable != 'recipes';
+        isCustomFilteredTableNames.contains(parentTable) &&
+        parentTable != 'recipes';
     final isCustomGuard = isCustomFiltered ? ' AND is_custom = 1' : '';
 
     final parentRow = await _db
@@ -617,11 +626,10 @@ class SyncService {
     // Recursively ensure any grandparent tables are pushed first
     await _ensureParentsPushed(parentTable, parentRow.data, userId);
 
-    final payload = await _buildRemotePayload(
-      parentTable,
-      {...parentRow.data, 'sync_uuid': parentUuid},
-      userId,
-    );
+    final payload = await _buildRemotePayload(parentTable, {
+      ...parentRow.data,
+      'sync_uuid': parentUuid,
+    }, userId);
     await _backend.upsert(parentTable, payload);
 
     final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -691,7 +699,9 @@ class SyncService {
     var latest = since;
     for (final remoteRow in remoteRows) {
       await _applyPulledRow(table, spec, remoteRow);
-      final updatedAt = DateTime.tryParse(remoteRow['updated_at'] as String? ?? '');
+      final updatedAt = DateTime.tryParse(
+        remoteRow['updated_at'] as String? ?? '',
+      );
       if (updatedAt != null && updatedAt.isAfter(latest)) latest = updatedAt;
     }
 
@@ -710,7 +720,10 @@ class SyncService {
       // First sync on this device: nothing local can predate the account's
       // tombstones in a way that matters, so start the cursor at now rather
       // than replaying the whole retention window as no-op deletes.
-      await _writeCursor(_tombstoneKey, DateTime.now().toUtc().toIso8601String());
+      await _writeCursor(
+        _tombstoneKey,
+        DateTime.now().toUtc().toIso8601String(),
+      );
       return true;
     }
 
@@ -752,7 +765,10 @@ class SyncService {
 
     final appliedThrough = await _applyTombstoneBatch(batch);
     if (appliedThrough != null) {
-      await _writeCursor(_tombstoneKey, appliedThrough.toUtc().toIso8601String());
+      await _writeCursor(
+        _tombstoneKey,
+        appliedThrough.toUtc().toIso8601String(),
+      );
     }
     // A batch that stopped early left the cursor behind the failure, so the
     // blocked tombstone is retried on the next pull rather than lost.
@@ -797,11 +813,11 @@ class SyncService {
       // is, by construction, an echo of a delete we just applied.
       final watermark =
           (await _db
-                  .customSelect(
-                    'SELECT COALESCE(MAX(id), 0) AS max_id FROM pending_sync_ops',
-                  )
-                  .getSingle())
-              .data['max_id']
+                      .customSelect(
+                        'SELECT COALESCE(MAX(id), 0) AS max_id FROM pending_sync_ops',
+                      )
+                      .getSingle())
+                  .data['max_id']
               as int;
 
       for (final tombstone in ordered) {
@@ -891,21 +907,22 @@ class SyncService {
       await _db.transaction(() async {
         final watermark =
             (await _db
-                    .customSelect(
-                      'SELECT COALESCE(MAX(id), 0) AS max_id FROM pending_sync_ops',
-                    )
-                    .getSingle())
-                .data['max_id']
+                        .customSelect(
+                          'SELECT COALESCE(MAX(id), 0) AS max_id FROM pending_sync_ops',
+                        )
+                        .getSingle())
+                    .data['max_id']
                 as int;
 
-        final pendingIds = (await _db
-                .customSelect(
-                  'SELECT entity_id FROM pending_sync_ops WHERE entity_type = ?',
-                  variables: [Variable(table)],
-                )
-                .get())
-            .map((row) => row.data['entity_id'] as String)
-            .toSet();
+        final pendingIds =
+            (await _db
+                    .customSelect(
+                      'SELECT entity_id FROM pending_sync_ops WHERE entity_type = ?',
+                      variables: [Variable(table)],
+                    )
+                    .get())
+                .map((row) => row.data['entity_id'] as String)
+                .toSet();
 
         // `synced_at IS NOT NULL` is essential: a row created locally while
         // offline has never been pushed, so its absence from the remote id set
@@ -1119,8 +1136,13 @@ class SyncState {
       other.lastError == lastError;
 
   @override
-  int get hashCode =>
-      Object.hash(phase, pendingCount, quarantinedCount, lastSyncedAt, lastError);
+  int get hashCode => Object.hash(
+    phase,
+    pendingCount,
+    quarantinedCount,
+    lastSyncedAt,
+    lastError,
+  );
 
   @override
   String toString() =>

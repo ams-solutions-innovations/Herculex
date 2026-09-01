@@ -30,9 +30,12 @@ class _PremiumButtonState extends State<PremiumButton> {
 
     final bgColor = widget.isPrimary
         ? theme.colorScheme.primary
-        : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.05));
-    final textColor =
-        widget.isPrimary ? Colors.white : theme.textTheme.bodyLarge?.color;
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.05));
+    final textColor = widget.isPrimary
+        ? Colors.white
+        : theme.textTheme.bodyLarge?.color;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),

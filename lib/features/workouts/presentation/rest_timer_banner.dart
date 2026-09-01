@@ -59,7 +59,9 @@ class RestTimerBanner extends ConsumerWidget {
                       value: progress.clamp(0.0, 1.0),
                       minHeight: 4,
                       backgroundColor: Colors.white.withValues(alpha: 0.3),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -100,7 +102,10 @@ class _BannerButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

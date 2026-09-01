@@ -79,19 +79,22 @@ void main() {
       expect(target!.exerciseName, 'Workout in progress');
     });
 
-    test('carries muscle group and equipment variant from the catalog entry', () {
-      final target = selectActiveWorkoutNotificationTarget(
-        exercises: [_exercise(id: 10, exerciseId: 1, orderIndex: 0)],
-        setsByWorkoutExerciseId: {
-          10: [_set(id: 100, workoutExerciseId: 10, setIndex: 0)],
-        },
-        catalog: [_catalog(id: 1, name: 'Squat')],
-      );
+    test(
+      'carries muscle group and equipment variant from the catalog entry',
+      () {
+        final target = selectActiveWorkoutNotificationTarget(
+          exercises: [_exercise(id: 10, exerciseId: 1, orderIndex: 0)],
+          setsByWorkoutExerciseId: {
+            10: [_set(id: 100, workoutExerciseId: 10, setIndex: 0)],
+          },
+          catalog: [_catalog(id: 1, name: 'Squat')],
+        );
 
-      expect(target, isNotNull);
-      expect(target!.primaryMuscle, 'Chest');
-      expect(target.equipmentVariant, 'barbell');
-    });
+        expect(target, isNotNull);
+        expect(target!.primaryMuscle, 'Chest');
+        expect(target.equipmentVariant, 'barbell');
+      },
+    );
 
     test(
       "prefers the workout exercise's own equipment variant over the catalog default",
@@ -153,6 +156,58 @@ void main() {
       );
 
       expect(target!.lastCompletedSet, isNull);
+    });
+
+    test('advances to next exercise when first exercise has all sets completed', () {
+      final target = selectActiveWorkoutNotificationTarget(
+        exercises: [
+          _exercise(id: 10, exerciseId: 1, orderIndex: 0),
+          _exercise(id: 20, exerciseId: 2, orderIndex: 1),
+        ],
+        setsByWorkoutExerciseId: {
+          10: [
+            _set(id: 100, workoutExerciseId: 10, setIndex: 0, completed: true),
+            _set(id: 101, workoutExerciseId: 10, setIndex: 1, completed: true),
+            _set(id: 102, workoutExerciseId: 10, setIndex: 2, completed: true),
+          ],
+          20: [
+            _set(id: 200, workoutExerciseId: 20, setIndex: 0, completed: false),
+            _set(id: 201, workoutExerciseId: 20, setIndex: 1, completed: false),
+          ],
+        },
+        catalog: [
+          _catalog(id: 1, name: 'Squat'),
+          _catalog(id: 2, name: 'Bench Press'),
+        ],
+      );
+
+      expect(target, isNotNull);
+      expect(target!.exerciseName, 'Bench Press');
+      expect(target.set.id, 200);
+      expect(target.totalSets, 2);
+    });
+
+    test('advances to next exercise even if next exercise has no sets yet', () {
+      final target = selectActiveWorkoutNotificationTarget(
+        exercises: [
+          _exercise(id: 10, exerciseId: 1, orderIndex: 0),
+          _exercise(id: 20, exerciseId: 2, orderIndex: 1),
+        ],
+        setsByWorkoutExerciseId: {
+          10: [
+            _set(id: 100, workoutExerciseId: 10, setIndex: 0, completed: true),
+          ],
+          20: [],
+        },
+        catalog: [
+          _catalog(id: 1, name: 'Squat'),
+          _catalog(id: 2, name: 'Incline Press'),
+        ],
+      );
+
+      expect(target, isNotNull);
+      expect(target!.exerciseName, 'Incline Press');
+      expect(target.totalSets, 1);
     });
   });
 }

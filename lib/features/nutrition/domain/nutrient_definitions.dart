@@ -30,4 +30,3 @@ const trackedNutrients = <NutrientDefinition>[
   NutrientDefinition('omega_3', 'Omega 3', 'g', dailyTarget: 1.6),
   NutrientDefinition('caffeine', 'Caffeine', 'mg', dailyTarget: 400),
 ];
-

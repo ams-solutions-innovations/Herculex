@@ -2,7 +2,8 @@ import 'package:health/health.dart';
 
 class CnsImpact {
   final double baseCnsScore; // 0.1 to 1.0
-  final Map<String, double> muscleInvolvement; // Role weight per muscle (0.0 to 1.0)
+  final Map<String, double>
+  muscleInvolvement; // Role weight per muscle (0.0 to 1.0)
 
   const CnsImpact(this.baseCnsScore, this.muscleInvolvement);
 }

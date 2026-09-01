@@ -21,10 +21,10 @@ void main() {
     // sees — and it is exactly that alias which decides whether "lateral raise"
     // leads with the dumbbell or with whichever variant sorts first.
     final movementLabel = <String, String>{
-      for (final m in (jsonDecode(
-        File('assets/data/movements.json').readAsStringSync(),
-      ) as List)
-          .cast<Map<String, dynamic>>())
+      for (final m
+          in (jsonDecode(File('assets/data/movements.json').readAsStringSync())
+                  as List)
+              .cast<Map<String, dynamic>>())
         m['canonicalExerciseSlug'] as String: m['label'] as String,
     };
 
@@ -34,9 +34,7 @@ void main() {
       final row = rows[i];
       final name = row['name'] as String;
       namesById[i] = name;
-      final aliases = [
-        ...?(row['aka'] as List?)?.cast<String>(),
-      ];
+      final aliases = [...?(row['aka'] as List?)?.cast<String>()];
       final label = movementLabel[row['slug'] as String?];
       if (label != null &&
           !aliases.any((a) => a.toLowerCase() == label.toLowerCase()) &&
@@ -63,7 +61,11 @@ void main() {
     index = ExerciseSearchIndex.build(searchable);
   });
 
-  List<String> top(String query, {int count = 5, Set<int> recentIds = const {}}) {
+  List<String> top(
+    String query, {
+    int count = 5,
+    Set<int> recentIds = const {},
+  }) {
     final hits = index.rank(query, recentIds: recentIds);
     return [for (final hit in hits.take(count)) namesById[hit.id]!];
   }

@@ -22,8 +22,10 @@ class HxScreenShell extends StatefulWidget {
     this.pinnedBottom,
     this.showBack = true,
     this.padding = const EdgeInsets.symmetric(horizontal: HxSpace.x5),
-  }) : assert(children != null || slivers != null,
-            'Provide either children or slivers');
+  }) : assert(
+         children != null || slivers != null,
+         'Provide either children or slivers',
+       );
 
   final String title;
 
@@ -63,6 +65,7 @@ class _HxScreenShellState extends State<HxScreenShell>
 
   double _accumulated = 0;
   bool _visible = true;
+  bool _isAtTop = true;
 
   @override
   void dispose() {
@@ -84,6 +87,13 @@ class _HxScreenShellState extends State<HxScreenShell>
     if (delta == 0) return false;
 
     final metrics = notification.metrics;
+    final atTop = metrics.pixels <= metrics.minScrollExtent + 8;
+    if (atTop != _isAtTop) {
+      setState(() {
+        _isAtTop = atTop;
+      });
+    }
+
     // Near the top the header is always shown, so a page shorter than the
     // viewport can never hide it.
     if (metrics.pixels <= metrics.minScrollExtent + 4) {
@@ -109,12 +119,9 @@ class _HxScreenShellState extends State<HxScreenShell>
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    final slivers = widget.slivers ??
-        [
-          SliverList(
-            delegate: SliverChildListDelegate(widget.children!),
-          ),
-        ];
+    final slivers =
+        widget.slivers ??
+        [SliverList(delegate: SliverChildListDelegate(widget.children!))];
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -129,7 +136,8 @@ class _HxScreenShellState extends State<HxScreenShell>
                     top: topInset + _headerHeight + HxSpace.x2,
                     left: widget.padding.left,
                     right: widget.padding.right,
-                    bottom: bottomInset +
+                    bottom:
+                        bottomInset +
                         HxSpace.x8 +
                         (widget.pinnedBottom == null ? 0 : 80),
                   ),
@@ -155,7 +163,10 @@ class _HxScreenShellState extends State<HxScreenShell>
                   child: Opacity(
                     opacity: t,
                     child: Transform.translate(
-                      offset: Offset(0, -(_headerHeight + HxSpace.x2) * (1 - t)),
+                      offset: Offset(
+                        0,
+                        -(_headerHeight + HxSpace.x2) * (1 - t),
+                      ),
                       child: child,
                     ),
                   ),
@@ -166,19 +177,27 @@ class _HxScreenShellState extends State<HxScreenShell>
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Centered title outside of pill
+                    // Centered title: visible ONLY when at the top
                     Positioned.fill(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 56),
-                          child: Text(
-                            widget.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
+                      child: AnimatedOpacity(
+                        opacity: _isAtTop ? 1.0 : 0.0,
+                        duration: HxMotion.base,
+                        curve: Curves.easeInOut,
+                        child: IgnorePointer(
+                          ignoring: !_isAtTop,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 56),
+                              child: Text(
+                                widget.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
                             ),
                           ),
                         ),

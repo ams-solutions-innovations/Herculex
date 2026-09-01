@@ -50,21 +50,24 @@ class BuddySlotStore {
   }
 
   Future<BuddySlot?> bySlotId(String slotId) async {
-    final row = await (_db.select(_db.buddyChoreographySlots)..where(
-          (t) =>
-              t.buddySessionId.equals(buddySessionId) & t.slotId.equals(slotId),
-        ))
-        .getSingleOrNull();
+    final row =
+        await (_db.select(_db.buddyChoreographySlots)..where(
+              (t) =>
+                  t.buddySessionId.equals(buddySessionId) &
+                  t.slotId.equals(slotId),
+            ))
+            .getSingleOrNull();
     return row == null ? null : _fromData(row);
   }
 
   Future<BuddySlot?> byWorkoutExerciseId(int id) async {
-    final row = await (_db.select(_db.buddyChoreographySlots)..where(
-          (t) =>
-              t.buddySessionId.equals(buddySessionId) &
-              t.workoutExerciseId.equals(id),
-        ))
-        .getSingleOrNull();
+    final row =
+        await (_db.select(_db.buddyChoreographySlots)..where(
+              (t) =>
+                  t.buddySessionId.equals(buddySessionId) &
+                  t.workoutExerciseId.equals(id),
+            ))
+            .getSingleOrNull();
     return row == null ? null : _fromData(row);
   }
 
@@ -78,17 +81,19 @@ class BuddySlotStore {
   }
 
   Future<void> upsert(BuddySlot slot) async {
-    await _db.into(_db.buddyChoreographySlots).insertOnConflictUpdate(
-      BuddyChoreographySlotsCompanion(
-        buddySessionId: Value(buddySessionId),
-        slotId: Value(slot.slotId),
-        workoutExerciseId: Value(slot.workoutExerciseId),
-        unresolvedUuid: Value(slot.unresolvedUuid),
-        unresolvedSlug: Value(slot.unresolvedSlug),
-        placeholderLabel: Value(slot.placeholderLabel),
-        orderIndex: Value(slot.orderIndex),
-      ),
-    );
+    await _db
+        .into(_db.buddyChoreographySlots)
+        .insertOnConflictUpdate(
+          BuddyChoreographySlotsCompanion(
+            buddySessionId: Value(buddySessionId),
+            slotId: Value(slot.slotId),
+            workoutExerciseId: Value(slot.workoutExerciseId),
+            unresolvedUuid: Value(slot.unresolvedUuid),
+            unresolvedSlug: Value(slot.unresolvedSlug),
+            placeholderLabel: Value(slot.placeholderLabel),
+            orderIndex: Value(slot.orderIndex),
+          ),
+        );
   }
 
   Future<void> unlink(String slotId) async {

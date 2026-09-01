@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
+import '../../../ui/ui.dart';
 import 'circuit_builder_view.dart';
 import 'circuits_providers.dart';
 import 'template_builder_view.dart';
@@ -52,12 +53,15 @@ class TemplatesView extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('CIRCUITS',
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: AppColors.secondary, letterSpacing: 1.2)),
+                Text(
+                  'CIRCUITS',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.2,
+                  ),
+                ),
                 const SizedBox(height: 10),
-                for (final c in circuits)
-                  _CircuitTile(circuit: c),
+                for (final c in circuits) _CircuitTile(circuit: c),
                 const SizedBox(height: 24),
               ],
             );
@@ -73,12 +77,15 @@ class TemplatesView extends ConsumerWidget {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('FOLDERS',
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: AppColors.secondary, letterSpacing: 1.2)),
+                    Text(
+                      'FOLDERS',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.secondary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    for (final f in folders)
-                      _FolderTile(folder: f),
+                    for (final f in folders) _FolderTile(folder: f),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -93,12 +100,15 @@ class TemplatesView extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('NO FOLDER',
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: AppColors.secondary, letterSpacing: 1.2)),
+                Text(
+                  'NO FOLDER',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.secondary,
+                    letterSpacing: 1.2,
+                  ),
+                ),
                 const SizedBox(height: 10),
-                for (final t in templates)
-                  _TemplateTile(template: t),
+                for (final t in templates) _TemplateTile(template: t),
               ],
             );
           },
@@ -110,7 +120,9 @@ class TemplatesView extends ConsumerWidget {
         if (foldersAsync.asData?.value.isEmpty == true &&
             unfiledAsync.asData?.value.isEmpty == true &&
             circuitsAsync.asData?.value.isEmpty == true)
-          _EmptyState(onCreateTemplate: () => TemplateBuilderView.show(context)),
+          _EmptyState(
+            onCreateTemplate: () => TemplateBuilderView.show(context),
+          ),
       ],
     );
   }
@@ -151,7 +163,9 @@ class _FolderTile extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            ),
           ),
           child: Row(
             children: [
@@ -163,7 +177,10 @@ class _FolderTile extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Text(folder.emoji, style: const TextStyle(fontSize: 22)),
+                  child: Text(
+                    folder.emoji,
+                    style: const TextStyle(fontSize: 22),
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -171,11 +188,17 @@ class _FolderTile extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(folder.name,
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(
+                      folder.name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     Text(
                       count == 1 ? '1 template' : '$count templates',
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
                   ],
                 ),
@@ -220,7 +243,9 @@ class _TemplateTile extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            ),
           ),
           child: Row(
             children: [
@@ -231,30 +256,49 @@ class _TemplateTile extends ConsumerWidget {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.fitness_center, size: 22, color: AppColors.primary),
+                child: Icon(
+                  Icons.fitness_center,
+                  size: 22,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(template.name,
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(
+                      template.name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     Text(
                       count == 1 ? '1 exercise' : '$count exercises',
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text('Start',
-                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Start',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -307,7 +351,9 @@ class _CircuitTile extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.25),
+            ),
           ),
           child: Row(
             children: [
@@ -318,7 +364,11 @@ class _CircuitTile extends ConsumerWidget {
                   color: AppColors.primaryContainer.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.repeat_rounded, size: 22, color: AppColors.primary),
+                child: Icon(
+                  Icons.repeat_rounded,
+                  size: 22,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -330,13 +380,18 @@ class _CircuitTile extends ConsumerWidget {
                         Flexible(
                           child: Text(
                             circuit.name,
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
@@ -356,20 +411,29 @@ class _CircuitTile extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       '$count ${count == 1 ? 'exercise' : 'exercises'} • ${circuit.rounds} rounds • $restFormatted pause',
-                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
                   'Start',
-                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -424,12 +488,16 @@ class _CircuitActionSheet extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             circuit.name,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             '${circuit.rounds} rounds • ${circuit.restSeconds}s rest between rounds',
-            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.secondary,
+            ),
           ),
           const SizedBox(height: 20),
           _SheetAction(
@@ -498,7 +566,9 @@ class _CircuitMenuSheet extends StatelessWidget {
             color: Colors.redAccent,
             onTap: () async {
               Navigator.pop(context);
-              await ref.read(circuitsRepositoryProvider).deleteCircuit(circuit.id);
+              await ref
+                  .read(circuitsRepositoryProvider)
+                  .deleteCircuit(circuit.id);
             },
           ),
         ],
@@ -518,50 +588,52 @@ class _FolderDetailView extends ConsumerWidget {
     final theme = Theme.of(context);
     final templatesAsync = ref.watch(workoutTemplatesProvider(folder.id));
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            Text(folder.emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
-            Text(folder.name,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          ],
+    return HxScreenShell(
+      title: '${folder.emoji} ${folder.name}',
+      actions: [
+        IconButton(
+          icon: Icon(Icons.add_circle, color: AppColors.primary),
+          onPressed: () =>
+              TemplateBuilderView.show(context, initialFolderId: folder.id),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add_circle, color: AppColors.primary),
-            onPressed: () => TemplateBuilderView.show(context, initialFolderId: folder.id),
-          ),
-        ],
-      ),
-      body: templatesAsync.when(
-        data: (templates) => templates.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+      ],
+      children: [
+        templatesAsync.when(
+          data: (templates) => templates.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.folder_open, size: 48, color: AppColors.primary),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No templates yet',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap + to add a template to this folder',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
                   children: [
-                    Icon(Icons.folder_open, size: 48, color: AppColors.primary),
-                    const SizedBox(height: 12),
-                    Text('No templates yet',
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('Tap + to add a template to this folder',
-                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary)),
+                    for (var i = 0; i < templates.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 10),
+                      _TemplateTile(template: templates[i]),
+                    ],
                   ],
                 ),
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 48),
-                itemCount: templates.length,
-                itemBuilder: (_, i) => _TemplateTile(template: templates[i]),
-              ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-      ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+        ),
+      ],
     );
   }
 }
@@ -586,15 +658,20 @@ class _TemplateActionSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40, height: 4,
+            width: 40,
+            height: 4,
             decoration: BoxDecoration(
               color: AppColors.outlineVariant.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 20),
-          Text(template.name,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            template.name,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 20),
           _SheetAction(
             icon: Icons.play_arrow_rounded,
@@ -639,7 +716,8 @@ class _TemplateMenuSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40, height: 4,
+            width: 40,
+            height: 4,
             decoration: BoxDecoration(
               color: AppColors.outlineVariant.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(2),
@@ -661,7 +739,9 @@ class _TemplateMenuSheet extends StatelessWidget {
             color: Colors.redAccent,
             onTap: () async {
               Navigator.pop(context);
-              await ref.read(templatesRepositoryProvider).deleteTemplate(template.id);
+              await ref
+                  .read(templatesRepositoryProvider)
+                  .deleteTemplate(template.id);
             },
           ),
         ],
@@ -688,15 +768,20 @@ class _FolderMenuSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40, height: 4,
+            width: 40,
+            height: 4,
             decoration: BoxDecoration(
               color: AppColors.outlineVariant.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 20),
-          Text('${folder.emoji} ${folder.name}',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            '${folder.emoji} ${folder.name}',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 20),
           _SheetAction(
             icon: Icons.delete_outline,
@@ -704,7 +789,9 @@ class _FolderMenuSheet extends StatelessWidget {
             color: Colors.redAccent,
             onTap: () async {
               Navigator.pop(context);
-              await ref.read(templatesRepositoryProvider).deleteFolder(folder.id);
+              await ref
+                  .read(templatesRepositoryProvider)
+                  .deleteFolder(folder.id);
             },
           ),
         ],
@@ -724,7 +811,18 @@ class _CreateFolderSheet extends StatefulWidget {
 class _CreateFolderSheetState extends State<_CreateFolderSheet> {
   final _name = TextEditingController();
   String _emoji = '💪';
-  static const _emojis = ['💪', '🏋️', '🔥', '⚡', '🦵', '🏃', '🧘', '🎯', '🥇', '📋'];
+  static const _emojis = [
+    '💪',
+    '🏋️',
+    '🔥',
+    '⚡',
+    '🦵',
+    '🏃',
+    '🧘',
+    '🎯',
+    '🥇',
+    '📋',
+  ];
 
   @override
   void dispose() {
@@ -736,7 +834,9 @@ class _CreateFolderSheetState extends State<_CreateFolderSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: theme.bottomSheetTheme.backgroundColor,
@@ -749,7 +849,8 @@ class _CreateFolderSheetState extends State<_CreateFolderSheet> {
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.outlineVariant.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(2),
@@ -757,24 +858,40 @@ class _CreateFolderSheetState extends State<_CreateFolderSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('New Folder', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'New Folder',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
-              children: _emojis.map((e) => GestureDetector(
-                onTap: () => setState(() => _emoji = e),
-                child: Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: _emoji == e ? AppColors.primary.withValues(alpha: 0.15) : AppColors.surfaceContainer,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _emoji == e ? AppColors.primary : Colors.transparent,
+              children: _emojis
+                  .map(
+                    (e) => GestureDetector(
+                      onTap: () => setState(() => _emoji = e),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: _emoji == e
+                              ? AppColors.primary.withValues(alpha: 0.15)
+                              : AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _emoji == e
+                                ? AppColors.primary
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(e, style: const TextStyle(fontSize: 20)),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Center(child: Text(e, style: const TextStyle(fontSize: 20))),
-                ),
-              )).toList(),
+                  )
+                  .toList(),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -784,9 +901,18 @@ class _CreateFolderSheetState extends State<_CreateFolderSheet> {
                 hintText: 'Folder name',
                 filled: true,
                 fillColor: AppColors.surfaceContainer,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: AppColors.primary, width: 1.5)),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -802,10 +928,15 @@ class _CreateFolderSheetState extends State<_CreateFolderSheet> {
                 onPressed: () async {
                   final name = _name.text.trim();
                   if (name.isEmpty) return;
-                  await widget.ref.read(templatesRepositoryProvider).createFolder(name: name, emoji: _emoji);
+                  await widget.ref
+                      .read(templatesRepositoryProvider)
+                      .createFolder(name: name, emoji: _emoji);
                   if (context.mounted) Navigator.pop(context);
                 },
-                child: const Text('Create Folder', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Create Folder',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -831,18 +962,30 @@ class _EmptyState extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          ),
         ),
         child: Column(
           children: [
-            Icon(Icons.folder_copy_outlined, size: 48, color: AppColors.primary),
+            Icon(
+              Icons.folder_copy_outlined,
+              size: 48,
+              color: AppColors.primary,
+            ),
             const SizedBox(height: 16),
-            Text('No templates yet',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'No templates yet',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               'Save your go-to workouts as templates and organise them into folders.',
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -853,7 +996,10 @@ class _EmptyState extends StatelessWidget {
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
               onPressed: onCreateTemplate,
             ),
@@ -870,7 +1016,11 @@ class _IconPill extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _IconPill({required this.icon, required this.label, required this.onTap});
+  const _IconPill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -888,7 +1038,14 @@ class _IconPill extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: AppColors.primary),
             const SizedBox(width: 4),
-            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
           ],
         ),
       ),
@@ -901,7 +1058,12 @@ class _SheetAction extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final Color? color;
-  const _SheetAction({required this.icon, required this.label, required this.onTap, this.color});
+  const _SheetAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -914,13 +1076,21 @@ class _SheetAction extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          ),
         ),
         child: Row(
           children: [
             Icon(icon, size: 20, color: color),
             const SizedBox(width: 14),
-            Text(label, style: theme.textTheme.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),

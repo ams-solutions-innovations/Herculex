@@ -109,10 +109,10 @@ class ExerciseImporter {
       cnsScore: Value((e['cnsScore'] as int?) ?? 3),
       recoveryImpact: Value((e['recoveryImpact'] as int?) ?? 3),
       loggingMetric: Value((e['loggingMetric'] as String?) ?? 'weight_reps'),
-      supportsWeightedBodyweight:
-          Value((e['supportsWeightedBodyweight'] as bool?) ?? false),
-      attachments:
-          Value(attachments == null ? null : jsonEncode(attachments)),
+      supportsWeightedBodyweight: Value(
+        (e['supportsWeightedBodyweight'] as bool?) ?? false,
+      ),
+      attachments: Value(attachments == null ? null : jsonEncode(attachments)),
       isReviewed: Value((e['derived'] as bool?) == true ? false : true),
       movementFamily: Value(_movementFamily(name, pattern, primaryMuscle)),
     );
@@ -122,12 +122,12 @@ class ExerciseImporter {
     // written before v17 (and custom rows, which have no slug) still resolve.
     var existing = slug == null
         ? null
-        : await (db.select(db.exerciseCatalog)
-                ..where((t) => t.slug.equals(slug)))
-              .getSingleOrNull();
-    existing ??= await (db.select(db.exerciseCatalog)
-          ..where((t) => t.name.equals(name)))
-        .getSingleOrNull();
+        : await (db.select(
+            db.exerciseCatalog,
+          )..where((t) => t.slug.equals(slug))).getSingleOrNull();
+    existing ??= await (db.select(
+      db.exerciseCatalog,
+    )..where((t) => t.name.equals(name))).getSingleOrNull();
 
     final int id;
     if (existing == null) {
@@ -135,14 +135,15 @@ class ExerciseImporter {
     } else {
       id = existing.id;
       // Preserve id + isCustom; refresh everything else.
-      await (db.update(db.exerciseCatalog)..where((t) => t.id.equals(id)))
-          .write(companion);
-      await (db.delete(db.exerciseMuscles)
-            ..where((t) => t.exerciseId.equals(id)))
-          .go();
-      await (db.delete(db.exerciseAliases)
-            ..where((t) => t.exerciseId.equals(id)))
-          .go();
+      await (db.update(
+        db.exerciseCatalog,
+      )..where((t) => t.id.equals(id))).write(companion);
+      await (db.delete(
+        db.exerciseMuscles,
+      )..where((t) => t.exerciseId.equals(id))).go();
+      await (db.delete(
+        db.exerciseAliases,
+      )..where((t) => t.exerciseId.equals(id))).go();
     }
 
     await _writeMuscles(db, id, e['primaryMuscles'], 'primary');
@@ -150,7 +151,9 @@ class ExerciseImporter {
     await _writeMuscles(db, id, e['stabilizers'], 'stabilizer');
 
     for (final alias in aliases) {
-      await db.into(db.exerciseAliases).insert(
+      await db
+          .into(db.exerciseAliases)
+          .insert(
             ExerciseAliasesCompanion.insert(exerciseId: id, alias: alias),
           );
     }
@@ -161,12 +164,41 @@ class ExerciseImporter {
   /// multi-word tokens are tried before their substrings (handled by sorting
   /// on length in [_movementFamily]).
   static const _equipmentTokens = <String>[
-    'swiss bar', 'safety bar', 'axle bar', 'cambered bar', 'duffalo bar',
-    'trap bar', 'hex bar', 'ez bar', 'ez-bar', 'landmine', 'meadows',
-    'smith machine', 'smith', 'machine', 'cable', 'band-assisted', 'banded',
-    'band', 'kettlebell', 'dumbbell', 'barbell', 'plate-loaded', 'plate',
-    'iso-lateral', 'hammer', 'pendulum', 'v-squat', 'belt squat', 'sled',
-    'yoke', 'rings', 'ring', 'trx', 'suspension', 'neck harness',
+    'swiss bar',
+    'safety bar',
+    'axle bar',
+    'cambered bar',
+    'duffalo bar',
+    'trap bar',
+    'hex bar',
+    'ez bar',
+    'ez-bar',
+    'landmine',
+    'meadows',
+    'smith machine',
+    'smith',
+    'machine',
+    'cable',
+    'band-assisted',
+    'banded',
+    'band',
+    'kettlebell',
+    'dumbbell',
+    'barbell',
+    'plate-loaded',
+    'plate',
+    'iso-lateral',
+    'hammer',
+    'pendulum',
+    'v-squat',
+    'belt squat',
+    'sled',
+    'yoke',
+    'rings',
+    'ring',
+    'trx',
+    'suspension',
+    'neck harness',
   ];
 
   /// Derives the movement-family key: the base movement name (equipment words
@@ -176,7 +208,10 @@ class ExerciseImporter {
   /// equipment variants collapse together. Returns null when there's no usable
   /// pattern, so such rows stay ungrouped.
   static String? _movementFamily(
-      String name, String? pattern, String primaryMuscle) {
+    String name,
+    String? pattern,
+    String primaryMuscle,
+  ) {
     if (pattern == null || pattern.isEmpty) return null;
     var n = ' ${name.toLowerCase()} ';
     for (final t in _equipmentTokens) {
@@ -191,10 +226,16 @@ class ExerciseImporter {
   }
 
   static Future<void> _writeMuscles(
-      AppDatabase db, int id, dynamic raw, String role) async {
+    AppDatabase db,
+    int id,
+    dynamic raw,
+    String role,
+  ) async {
     final muscles = (raw as List?)?.cast<String>() ?? const [];
     for (final m in muscles) {
-      await db.into(db.exerciseMuscles).insertOnConflictUpdate(
+      await db
+          .into(db.exerciseMuscles)
+          .insertOnConflictUpdate(
             ExerciseMusclesCompanion.insert(
               exerciseId: id,
               muscle: m,

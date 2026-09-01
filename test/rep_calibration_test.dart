@@ -100,8 +100,7 @@ void main() {
       expect(profile.sampleCount, 9);
     });
 
-    test(
-        '10 sets across only 2 sessions yields insufficient — the session '
+    test('10 sets across only 2 sessions yields insufficient — the session '
         'gate bites independently of count', () async {
       for (var i = 0; i < 10; i++) {
         await insertObservation(
@@ -116,8 +115,7 @@ void main() {
       expect(profile.status, CalibrationStatus.insufficient);
     });
 
-    test(
-        '10 sets across 3 sessions with strongly RPE-correlated cadence '
+    test('10 sets across 3 sessions with strongly RPE-correlated cadence '
         'yields calibrated', () async {
       await insertCorrelatedCadenceSets(10);
       final profile = await profileFor();
@@ -128,8 +126,7 @@ void main() {
       expect(profile.looMae!, lessThanOrEqualTo(1.0));
     });
 
-    test(
-        '10 sets across 3 sessions with random, uncorrelated RPE does NOT '
+    test('10 sets across 3 sessions with random, uncorrelated RPE does NOT '
         'reach calibrated — the anti-overfitting / no-assumed-slowdown '
         'check', () async {
       // meanPeriodMs still varies (so it is not simply excluded), but the
@@ -149,10 +146,8 @@ void main() {
       expect(profile.model, isNull);
     });
 
-    test(
-        'a user whose RPE correlates with amplitudeDecayRatio but not '
-        'cadence still calibrates — the model is not cadence-only',
-        () async {
+    test('a user whose RPE correlates with amplitudeDecayRatio but not '
+        'cadence still calibrates — the model is not cadence-only', () async {
       for (var i = 0; i < 10; i++) {
         final decay = 0.6 + i * 0.04; // 0.60 .. 0.96, strongly increasing
         final rpe = 5.0 + i * 0.35;
@@ -169,10 +164,8 @@ void main() {
       expect(profile.model, isNotNull);
     });
 
-    test(
-        'observations written by an older detector version are excluded, '
-        'and the exclusion can push a profile back to insufficient',
-        () async {
+    test('observations written by an older detector version are excluded, '
+        'and the exclusion can push a profile back to insufficient', () async {
       await insertCorrelatedCadenceSets(10);
       final calibrated = await profileFor();
       expect(calibrated.status, CalibrationStatus.calibrated);
@@ -217,9 +210,7 @@ void main() {
         await (db.update(
           db.repSetObservations,
         )..where((t) => t.id.equals(row.id))).write(
-          RepSetObservationsCompanion(
-            featuresJson: Value(staleFeaturesJson),
-          ),
+          RepSetObservationsCompanion(featuresJson: Value(staleFeaturesJson)),
         );
       }
 
@@ -228,8 +219,7 @@ void main() {
       expect(regressed.status, CalibrationStatus.insufficient);
     });
 
-    test(
-        'observations with a null confirmedRpeX10 are excluded from the RPE '
+    test('observations with a null confirmedRpeX10 are excluded from the RPE '
         'fit but still contribute to medianCadenceMs', () async {
       await insertCorrelatedCadenceSets(10);
       final withLabels = await profileFor();
@@ -244,17 +234,13 @@ void main() {
       // The three unlabelled rows still survive the version filter and
       // still count toward sampleCount/session count and cadence stats.
       expect(withUnlabelled.sampleCount, 13);
-      expect(
-        withUnlabelled.medianCadenceMs,
-        isNot(withLabels.medianCadenceMs),
-      );
+      expect(withUnlabelled.medianCadenceMs, isNot(withLabels.medianCadenceMs));
       // The RPE model itself is unaffected — still trained on the same 10
       // labelled rows, still calibrated.
       expect(withUnlabelled.status, CalibrationStatus.calibrated);
     });
 
-    test(
-        'a changed placement yields a fresh insufficient profile while the '
+    test('a changed placement yields a fresh insufficient profile while the '
         'original key stays calibrated', () async {
       for (var i = 0; i < 10; i++) {
         final period = 1000.0 + i * 50;
@@ -293,8 +279,7 @@ void main() {
       expect(pocketAgain.status, CalibrationStatus.calibrated);
     });
 
-    test('an empty observation list yields insufficient with zero counts',
-        () {
+    test('an empty observation list yields insufficient with zero counts', () {
       final profile = CalibrationProfile.fromObservations(const []);
       expect(profile.status, CalibrationStatus.insufficient);
       expect(profile.sampleCount, 0);

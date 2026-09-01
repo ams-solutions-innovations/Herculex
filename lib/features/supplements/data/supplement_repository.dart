@@ -17,8 +17,7 @@ class SupplementRepository {
   final SharedPreferences _prefs;
 
   // In-memory stream controllers so UI reacts to changes immediately.
-  final _supplementsController =
-      StreamController<List<Supplement>>.broadcast();
+  final _supplementsController = StreamController<List<Supplement>>.broadcast();
   final _takenController = StreamController<Set<String>>.broadcast();
 
   SupplementRepository(this._prefs);

@@ -30,10 +30,11 @@ void main() {
     test('a full trace offers all three channels', () {
       final channels = ChannelExtractor.extract(_wristTrace(reps: 6));
 
-      expect(
-        channels.map((c) => c.channel).toSet(),
-        {RepChannel.tilt, RepChannel.dyn, RepChannel.rot},
-      );
+      expect(channels.map((c) => c.channel).toSet(), {
+        RepChannel.tilt,
+        RepChannel.dyn,
+        RepChannel.rot,
+      });
     });
 
     test('angular channels are flagged as such, the dynamic one is not', () {
@@ -50,8 +51,11 @@ void main() {
     test('every channel has one value per sample', () {
       final trace = _wristTrace(reps: 5);
       for (final channel in ChannelExtractor.extract(trace)) {
-        expect(channel.values, hasLength(trace.samples.length),
-            reason: channel.channel.id);
+        expect(
+          channel.values,
+          hasLength(trace.samples.length),
+          reason: channel.channel.id,
+        );
       }
     });
 
@@ -59,10 +63,12 @@ void main() {
       // The same motion performed with the watch rotated onto the inside of
       // the wrist must produce the same tilt curve — the channel measures how
       // much the device turned during the set, not how it was worn.
-      final upright = ChannelExtractor.extract(_wristTrace(reps: 6))
-          .firstWhere((c) => c.channel == RepChannel.tilt);
-      final flipped = ChannelExtractor.extract(_wristTrace(reps: 6, flipped: true))
-          .firstWhere((c) => c.channel == RepChannel.tilt);
+      final upright = ChannelExtractor.extract(
+        _wristTrace(reps: 6),
+      ).firstWhere((c) => c.channel == RepChannel.tilt);
+      final flipped = ChannelExtractor.extract(
+        _wristTrace(reps: 6, flipped: true),
+      ).firstWhere((c) => c.channel == RepChannel.tilt);
 
       for (var i = 0; i < upright.values.length; i++) {
         expect(flipped.values[i], closeTo(upright.values[i], 1.0));
@@ -84,7 +90,9 @@ void main() {
 
   group('selection', () {
     test('picks the channel that actually repeats', () {
-      final channels = ChannelExtractor.extract(_wristTrace(reps: 8, periodMs: 3000));
+      final channels = ChannelExtractor.extract(
+        _wristTrace(reps: 8, periodMs: 3000),
+      );
 
       final winner = ChannelSelector.select(
         channels,
@@ -98,43 +106,51 @@ void main() {
       expect(winner.dominantPeriodMs, closeTo(3000, 400));
     });
 
-    test('returns null when nothing repeats, rather than the least bad option', () {
-      // The honest output for an unmeasurable set is "manual, with a reason",
-      // never a count derived from whichever noise floor scored highest.
-      final winner = ChannelSelector.select(
-        ChannelExtractor.extract(_stillTrace(seconds: 30)),
-        sampleRateHz: 50,
-        minPeriodMs: 900,
-        maxPeriodMs: 9000,
-      );
+    test(
+      'returns null when nothing repeats, rather than the least bad option',
+      () {
+        // The honest output for an unmeasurable set is "manual, with a reason",
+        // never a count derived from whichever noise floor scored highest.
+        final winner = ChannelSelector.select(
+          ChannelExtractor.extract(_stillTrace(seconds: 30)),
+          sampleRateHz: 50,
+          minPeriodMs: 900,
+          maxPeriodMs: 9000,
+        );
 
-      expect(winner, isNull);
-    });
+        expect(winner, isNull);
+      },
+    );
 
-    test('selection is scale-free; the amplitude gate is what rejects a tremor', () {
-      // Deliberate division of labour, and worth pinning because it looks
-      // like a bug from the outside: the selector z-normalises, so a tiny but
-      // perfectly periodic tremor scores *high* on periodicity and gets
-      // selected. It is the detector's absolute amplitude floor, not the
-      // selector, that then counts zero reps.
-      //
-      // Putting an amplitude test in the selector too would mean two places
-      // deciding what is big enough to be a rep, which is one more than can
-      // stay consistent.
-      final tremor = _tremorTrace(seconds: 40, periodMs: 2500, degrees: 0.4);
+    test(
+      'selection is scale-free; the amplitude gate is what rejects a tremor',
+      () {
+        // Deliberate division of labour, and worth pinning because it looks
+        // like a bug from the outside: the selector z-normalises, so a tiny but
+        // perfectly periodic tremor scores *high* on periodicity and gets
+        // selected. It is the detector's absolute amplitude floor, not the
+        // selector, that then counts zero reps.
+        //
+        // Putting an amplitude test in the selector too would mean two places
+        // deciding what is big enough to be a rep, which is one more than can
+        // stay consistent.
+        final tremor = _tremorTrace(seconds: 40, periodMs: 2500, degrees: 0.4);
 
-      final winner = ChannelSelector.select(
-        ChannelExtractor.extract(tremor),
-        sampleRateHz: 50,
-        minPeriodMs: 900,
-        maxPeriodMs: 9000,
-      );
-      expect(winner, isNotNull, reason: 'a tremor does repeat');
+        final winner = ChannelSelector.select(
+          ChannelExtractor.extract(tremor),
+          sampleRateHz: 50,
+          minPeriodMs: 900,
+          maxPeriodMs: 9000,
+        );
+        expect(winner, isNotNull, reason: 'a tremor does repeat');
 
-      final (result, _) =
-          RepDetector.detectForProfile(tremor, profileFor('dumbbell-curl')!);
-      expect(result.repCount, 0, reason: 'but it is nowhere near rep-sized');
-    });
+        final (result, _) = RepDetector.detectForProfile(
+          tremor,
+          profileFor('dumbbell-curl')!,
+        );
+        expect(result.repCount, 0, reason: 'but it is nowhere near rep-sized');
+      },
+    );
 
     test('a profile filters candidates and cannot conjure one', () {
       final channels = ChannelExtractor.extract(_wristTrace(reps: 6));
@@ -150,10 +166,9 @@ void main() {
       final dynOnly = ChannelExtractor.extract(
         _wristTrace(reps: 6, gravity: false, gyro: false),
       );
-      expect(
-        ChannelSelector.allowedBy(bench, dynOnly).map((c) => c.channel),
-        [RepChannel.dyn],
-      );
+      expect(ChannelSelector.allowedBy(bench, dynOnly).map((c) => c.channel), [
+        RepChannel.dyn,
+      ]);
     });
 
     test('a constant signal is skipped, not scored', () {
@@ -175,49 +190,62 @@ void main() {
   });
 
   group('the slow-rep property', () {
-    test('a 3 s biceps curl counts, where the dynamic channel alone counts zero', () {
-      // This is the whole reason the tilt channel exists.
-      //
-      // A deliberately slow curl moves the wrist through a large arc but
-      // accelerates it barely at all: peak linear acceleration is around
-      // A*w^2 = 0.25 * (2*pi/3)^2 ~= 1.1 m/s², under any floor that also keeps
-      // walking from counting as reps. The forearm still rotates through 70°
-      // regardless of tempo, and that is what gets counted.
-      final trace = _wristTrace(
-        reps: 8,
-        periodMs: 3000,
-        tiltDegrees: 70,
-        linearAmplitude: 1.1,
-      );
-      final curl = profileFor('dumbbell-curl')!;
+    test(
+      'a 3 s biceps curl counts, where the dynamic channel alone counts zero',
+      () {
+        // This is the whole reason the tilt channel exists.
+        //
+        // A deliberately slow curl moves the wrist through a large arc but
+        // accelerates it barely at all: peak linear acceleration is around
+        // A*w^2 = 0.25 * (2*pi/3)^2 ~= 1.1 m/s², under any floor that also keeps
+        // walking from counting as reps. The forearm still rotates through 70°
+        // regardless of tempo, and that is what gets counted.
+        final trace = _wristTrace(
+          reps: 8,
+          periodMs: 3000,
+          tiltDegrees: 70,
+          linearAmplitude: 1.1,
+        );
+        final curl = profileFor('dumbbell-curl')!;
 
-      final (result, channel) = RepDetector.detectForProfile(trace, curl);
+        final (result, channel) = RepDetector.detectForProfile(trace, curl);
 
-      expect(result.repCount, 8);
-      expect(channel, RepChannel.tilt, reason: 'the dynamic channel is too weak here');
+        expect(result.repCount, 8);
+        expect(
+          channel,
+          RepChannel.tilt,
+          reason: 'the dynamic channel is too weak here',
+        );
 
-      // And the proof that this is not just a looser threshold. Counting the
-      // same set on the dynamic channel needs a floor low enough to see a
-      // 1.1 m/s² peak — but walking peaks near 1.2 m/s², so any such floor
-      // also counts a walk to the water fountain as a set. At the only
-      // dynamic floor that provably keeps walking at zero (2.5 m/s², pinned
-      // by rep_detector_test.dart) this trace counts nothing.
-      //
-      // There is no single dynamic threshold that both counts slow curls and
-      // rejects walking. That is why the channel had to change, not the
-      // number.
-      final dynOnly = ChannelExtractor.extract(trace.resampled())
-          .firstWhere((c) => c.channel == RepChannel.dyn);
-      final dynResult = RepDetector.detectOnChannel(
-        dynOnly.values,
-        config: const RepDetectorConfig.pullUp(),
-      );
-      expect(dynResult.repCount, 0);
-    });
+        // And the proof that this is not just a looser threshold. Counting the
+        // same set on the dynamic channel needs a floor low enough to see a
+        // 1.1 m/s² peak — but walking peaks near 1.2 m/s², so any such floor
+        // also counts a walk to the water fountain as a set. At the only
+        // dynamic floor that provably keeps walking at zero (2.5 m/s², pinned
+        // by rep_detector_test.dart) this trace counts nothing.
+        //
+        // There is no single dynamic threshold that both counts slow curls and
+        // rejects walking. That is why the channel had to change, not the
+        // number.
+        final dynOnly = ChannelExtractor.extract(
+          trace.resampled(),
+        ).firstWhere((c) => c.channel == RepChannel.dyn);
+        final dynResult = RepDetector.detectOnChannel(
+          dynOnly.values,
+          config: const RepDetectorConfig.pullUp(),
+        );
+        expect(dynResult.repCount, 0);
+      },
+    );
 
     test('a bench press at a normal tempo counts', () {
       final (result, channel) = RepDetector.detectForProfile(
-        _wristTrace(reps: 6, periodMs: 2500, tiltDegrees: 40, linearAmplitude: 2.0),
+        _wristTrace(
+          reps: 6,
+          periodMs: 2500,
+          tiltDegrees: 40,
+          linearAmplitude: 2.0,
+        ),
         profileFor('barbell-bench-press')!,
       );
 
@@ -238,24 +266,27 @@ void main() {
       }
     });
 
-    test('an unsupported exercise detects nothing even given a perfect trace', () {
-      final profile = RepTrackingProfile.fromJson({
-        'slug': 'seated-leg-curl',
-        'tier': 'unsupported',
-        'site': null,
-        'family': null,
-        'channels': <String>[],
-        'reason': 'femur fixed',
-      });
+    test(
+      'an unsupported exercise detects nothing even given a perfect trace',
+      () {
+        final profile = RepTrackingProfile.fromJson({
+          'slug': 'seated-leg-curl',
+          'tier': 'unsupported',
+          'site': null,
+          'family': null,
+          'channels': <String>[],
+          'reason': 'femur fixed',
+        });
 
-      final (result, channel) = RepDetector.detectForProfile(
-        _wristTrace(reps: 8),
-        profile,
-      );
+        final (result, channel) = RepDetector.detectForProfile(
+          _wristTrace(reps: 8),
+          profile,
+        );
 
-      expect(result.repCount, 0);
-      expect(channel, isNull);
-    });
+        expect(result.repCount, 0);
+        expect(channel, isNull);
+      },
+    );
   });
 
   group('backward compatibility', () {
@@ -275,7 +306,8 @@ void main() {
 
     test('a three-axis trace round-trips through CSV byte-identically', () {
       // An existing fixture must not show up as a diff after a re-save.
-      const csv = 't_ms,x,y,z\n0,1.000000,2.000000,3.000000\n'
+      const csv =
+          't_ms,x,y,z\n0,1.000000,2.000000,3.000000\n'
           '20,1.100000,2.100000,3.100000\n';
       final trace = MotionTrace.fromCsv(
         csv,
@@ -306,8 +338,12 @@ void main() {
       expect(resampled.hasGyro, isTrue);
 
       // A trace with no gravity must not acquire one.
-      final narrow = _wristTrace(reps: 3, hz: 30, gravity: false, gyro: false)
-          .resampled(hz: 50);
+      final narrow = _wristTrace(
+        reps: 3,
+        hz: 30,
+        gravity: false,
+        gyro: false,
+      ).resampled(hz: 50);
       expect(narrow.hasGravity, isFalse);
       expect(narrow.samples.every((s) => s.gx == null), isTrue);
     });
@@ -364,8 +400,9 @@ MotionTrace _wristTrace({
   MotionSample at(double phaseOrNull) {
     // phaseOrNull < 0 means "at rest": no rotation, no acceleration.
     final resting = phaseOrNull < 0;
-    final angleRad =
-        resting ? 0.0 : tiltDegrees * (pi / 180) * (1 - cos(phaseOrNull)) / 2;
+    final angleRad = resting
+        ? 0.0
+        : tiltDegrees * (pi / 180) * (1 - cos(phaseOrNull)) / 2;
     final accel = resting ? 0.0 : linearAmplitude * sin(phaseOrNull - pi / 2);
 
     // Gravity swings through `angleRad` in the device's x/y plane.
@@ -460,8 +497,18 @@ MotionTrace _stillTrace({required int seconds, int hz = 50}) {
   for (var tMs = 0; tMs < seconds * 1000; tMs += stepMs) {
     double n() => (rnd.nextDouble() - 0.5) * 0.04;
     samples.add(
-      MotionSample(tMs, n(), n(), n(),
-          gx: n(), gy: g + n(), gz: n(), rx: n(), ry: n(), rz: n()),
+      MotionSample(
+        tMs,
+        n(),
+        n(),
+        n(),
+        gx: n(),
+        gy: g + n(),
+        gz: n(),
+        rx: n(),
+        ry: n(),
+        rz: n(),
+      ),
     );
   }
 

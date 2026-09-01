@@ -2,9 +2,19 @@ import 'package:flutter/material.dart';
 
 /// The four biological cycle phases.
 enum CyclePhase {
-  menstrual('menstrual', 'Menstrual Phase', 'Rest & Recovery', Icons.water_drop),
+  menstrual(
+    'menstrual',
+    'Menstrual Phase',
+    'Rest & Recovery',
+    Icons.water_drop,
+  ),
   follicular('follicular', 'Follicular Phase', 'Power & Progress', Icons.bolt),
-  ovulatory('ovulatory', 'Ovulatory Phase', 'Peak Strength', Icons.local_fire_department),
+  ovulatory(
+    'ovulatory',
+    'Ovulatory Phase',
+    'Peak Strength',
+    Icons.local_fire_department,
+  ),
   luteal('luteal', 'Luteal Phase', 'Steady-State & Endurance', Icons.spa);
 
   final String id;
@@ -130,7 +140,9 @@ class CycleAwareAdjuster {
         return CycleAdjustmentResult(
           phase: phase,
           volumeFactor: 0.8,
-          statusLabel: isManualOverride ? "MANUAL OVERRIDE (VOLUME -20%)" : "VOLUME REDUCED 20%",
+          statusLabel: isManualOverride
+              ? "MANUAL OVERRIDE (VOLUME -20%)"
+              : "VOLUME REDUCED 20%",
           trainingRecommendation:
               "Energy and iron stores are lower. Prioritize technique work, deload volume, mobility, or low-impact cardio.",
           nutritionRecommendation:
@@ -145,7 +157,9 @@ class CycleAwareAdjuster {
         return CycleAdjustmentResult(
           phase: phase,
           volumeFactor: 1.1,
-          statusLabel: isManualOverride ? "MANUAL OVERRIDE (VOLUME +10%)" : "VOLUME BOOSTED +10%",
+          statusLabel: isManualOverride
+              ? "MANUAL OVERRIDE (VOLUME +10%)"
+              : "VOLUME BOOSTED +10%",
           trainingRecommendation:
               "Estrogen is rising and insulin sensitivity is optimal. Prime time for progressive overload, hypertrophy, and high-intensity lifts.",
           nutritionRecommendation:
@@ -160,7 +174,9 @@ class CycleAwareAdjuster {
         return CycleAdjustmentResult(
           phase: phase,
           volumeFactor: 1.0,
-          statusLabel: isManualOverride ? "MANUAL OVERRIDE (PEAK INTENSITY)" : "PEAK INTENSITY",
+          statusLabel: isManualOverride
+              ? "MANUAL OVERRIDE (PEAK INTENSITY)"
+              : "PEAK INTENSITY",
           trainingRecommendation:
               "Peak estrogen and testosterone levels maximize strength. Ideal window for attempting 1RM attempts and heavy compound lifts.",
           nutritionRecommendation:
@@ -175,7 +191,9 @@ class CycleAwareAdjuster {
         return CycleAdjustmentResult(
           phase: phase,
           volumeFactor: 0.85,
-          statusLabel: isManualOverride ? "MANUAL OVERRIDE (VOLUME -15%)" : "VOLUME REDUCED 15%",
+          statusLabel: isManualOverride
+              ? "MANUAL OVERRIDE (VOLUME -15%)"
+              : "VOLUME REDUCED 15%",
           trainingRecommendation:
               "Progesterone rises, increasing body temperature and metabolic demand. Emphasize steady-state cardio, moderate resistance, and active recovery.",
           nutritionRecommendation:

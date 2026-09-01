@@ -57,13 +57,12 @@ class HerculContext {
     Map<String, SignalSeries>? series,
     Map<String, String>? labels,
     DateTime? now,
-  }) =>
-      HerculContext(
-        scalars: scalars ?? this.scalars,
-        series: series ?? this.series,
-        labels: labels ?? this.labels,
-        now: now ?? this.now,
-      );
+  }) => HerculContext(
+    scalars: scalars ?? this.scalars,
+    series: series ?? this.series,
+    labels: labels ?? this.labels,
+    now: now ?? this.now,
+  );
 }
 
 /// The closed vocabulary of signals a rule may reference.
@@ -115,6 +114,7 @@ abstract final class HerculSignals {
   /// Mean protein ÷ target over the trailing 7 days. 1.0 = on target.
   static const proteinPct7d = 'nutrition.proteinPct7d';
   static const kcalPct7d = 'nutrition.kcalPct7d';
+  static const kcalPct14d = 'nutrition.kcalPct14d';
 
   /// Days in the last 7 with any food logged — the honesty check on the above.
   static const daysLogged7d = 'nutrition.daysLogged7d';
@@ -122,6 +122,10 @@ abstract final class HerculSignals {
   // ── bodyweight ───────────────────────────────────────────────────────────
   /// Signed change over the window. Negative = lost. Argument: day count.
   static const weightDeltaKg = 'body.weightDeltaKg';
+
+  // ── biometrics ───────────────────────────────────────────────────────────
+  /// R² correlation between sleep hours and RPE over recent sessions.
+  static const sleepVsRpeR2 = 'biometrics.sleepVsRpeR2';
 
   // ── training history ─────────────────────────────────────────────────────
   /// Sessions containing this exercise in the last 30 days. Argument: slug.
@@ -132,6 +136,9 @@ abstract final class HerculSignals {
 
   /// Best estimated 1RM in kg. Argument: exercise slug.
   static const e1rmKg = 'exercise.e1rmKg';
+  
+  /// Change in estimated 1RM over the last 14 days. Argument: exercise slug.
+  static const e1rmDeltaKg14d = 'exercise.e1rmDeltaKg14d';
 
   /// One exercise's best e1RM divided by another's. Argument: `slugA:slugB`.
   ///
@@ -140,6 +147,9 @@ abstract final class HerculSignals {
   /// always relative ("is your deadlift keeping up with your squat"), which also
   /// makes the threshold portable across strength levels.
   static const e1rmRatio = 'exercise.e1rmRatio';
+
+  /// Best e1RM with a belt divided by best e1RM without a belt. Argument: exercise slug.
+  static const e1rmRatioBelted = 'exercise.e1rmRatioBelted';
 
   // ── sessions ─────────────────────────────────────────────────────────────
   static const daysSinceLastWorkout = 'session.daysSinceLastWorkout';
@@ -154,20 +164,44 @@ abstract final class HerculSignals {
     performedLast30d,
     lastPerformedDays,
     e1rmKg,
+    e1rmDeltaKg14d,
     e1rmRatio,
+    e1rmRatioBelted,
   };
 
   /// Signals whose value is a string.
   static const labelSignals = {goal, sex, cnsStatus};
 
   static const all = {
-    heightCm, weightKg, ageYears, goal, sex,
-    cnsLoad, cnsReadiness, cnsAcwr, cnsDeloadSuggested, cnsStatus,
+    heightCm,
+    weightKg,
+    ageYears,
+    goal,
+    sex,
+    cnsLoad,
+    cnsReadiness,
+    cnsAcwr,
+    cnsDeloadSuggested,
+    cnsStatus,
     recoveryScore,
-    weeklySets, weeklyTonnageKg, pushPct, pullPct,
-    proteinPct7d, kcalPct7d, daysLogged7d,
+    weeklySets,
+    weeklyTonnageKg,
+    pushPct,
+    pullPct,
+    proteinPct7d,
+    kcalPct7d,
+    kcalPct14d,
+    daysLogged7d,
     weightDeltaKg,
-    performedLast30d, lastPerformedDays, e1rmKg, e1rmRatio,
-    daysSinceLastWorkout, sessionsThisWeek, sessionsPerWeek4w,
+    sleepVsRpeR2,
+    performedLast30d,
+    lastPerformedDays,
+    e1rmKg,
+    e1rmDeltaKg14d,
+    e1rmRatio,
+    e1rmRatioBelted,
+    daysSinceLastWorkout,
+    sessionsThisWeek,
+    sessionsPerWeek4w,
   };
 }

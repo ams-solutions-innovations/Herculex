@@ -61,11 +61,13 @@ class ExerciseArtwork extends StatelessWidget {
     final asset = exerciseArtworkAsset(exercise);
     final theme = Theme.of(context);
     final equipmentStr = equipmentVariant ?? exercise.equipment;
-    final bg = fallbackColor ??
+    final bg =
+        fallbackColor ??
         (theme.brightness == Brightness.dark
             ? AppColors.surfaceVariant
             : AppColors.surfaceContainer);
-    final iconColor = glyphColor ??
+    final iconColor =
+        glyphColor ??
         (fallbackColor != null ? Colors.white : AppColors.primary);
 
     final placeholder = Container(
@@ -101,4 +103,3 @@ class ExerciseArtwork extends StatelessWidget {
     );
   }
 }
-

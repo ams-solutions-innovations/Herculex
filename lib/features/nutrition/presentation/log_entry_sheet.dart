@@ -10,6 +10,7 @@ import '../../../data/local/database.dart';
 import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../../widgets/premium_button.dart';
+import '../../fasting/presentation/fasting_food_log_dialog.dart';
 import '../domain/daily_totals.dart';
 import '../domain/food_insights.dart';
 import '../domain/meal_slots.dart';
@@ -157,7 +158,8 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     super.initState();
     final entry = widget.existingEntry;
     if (widget.isIngredient) {
-      final grams = widget.existingIngredient?.grams ??
+      final grams =
+          widget.existingIngredient?.grams ??
           widget.initialGrams ??
           widget.food?.servingAmount ??
           widget.food?.servingGrams ??
@@ -169,18 +171,23 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       );
       _selectedUnit = _defaultUnit;
     } else if (entry != null) {
-      final amount = entry.portionAmount ?? entry.gramsOverride ?? entry.servings;
+      final amount =
+          entry.portionAmount ?? entry.gramsOverride ?? entry.servings;
       _quantity = TextEditingController(
-        text: amount % 1 == 0 ? amount.toStringAsFixed(0) : amount.toStringAsFixed(1),
+        text: amount % 1 == 0
+            ? amount.toStringAsFixed(0)
+            : amount.toStringAsFixed(1),
       );
       final savedUnit = entry.portionUnit ?? _defaultUnit;
-      _selectedUnit = _kFoodUnits.contains(savedUnit) ? savedUnit : _defaultUnit;
+      _selectedUnit = _kFoodUnits.contains(savedUnit)
+          ? savedUnit
+          : _defaultUnit;
       _time = TimeOfDay.fromDateTime(entry.loggedAt);
     } else {
       _quantity = TextEditingController(
         text: widget.food != null
             ? (widget.food!.servingAmount ?? widget.food!.servingGrams ?? 100)
-                .toStringAsFixed(0)
+                  .toStringAsFixed(0)
             : '1',
       );
       _selectedUnit = _defaultUnit;
@@ -189,7 +196,8 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
 
   /// Portion size × servings, in the selected unit.
   double get _totalAmount {
-    final portion = double.tryParse(_quantity.text.trim().replaceAll(',', '.')) ?? 0;
+    final portion =
+        double.tryParse(_quantity.text.trim().replaceAll(',', '.')) ?? 0;
     return portion * _servings;
   }
 
@@ -218,8 +226,13 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       );
       return;
     }
-    
+
     final total = parsed * _servings;
+    if (!widget.isIngredient && widget.existingEntry == null) {
+      final proceed = await confirmEndFastOnFoodLog(context, ref);
+      if (!proceed || !mounted) return;
+    }
+
     Haptics.success();
     setState(() => _saving = true);
     final repo = ref.read(nutritionRepositoryProvider);
@@ -244,7 +257,9 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       return;
     }
 
-    final isFood = widget.food != null || (widget.existingEntry != null && widget.existingEntry!.foodId != null);
+    final isFood =
+        widget.food != null ||
+        (widget.existingEntry != null && widget.existingEntry!.foodId != null);
 
     double? grams;
     if (isFood && _selectedUnit != 'servings') {
@@ -287,14 +302,18 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       }
     }
     try {
-      final currentTotals =
-          await ref.read(dailyTotalsProvider(widget.date).future);
-      final targets =
-          await ref.read(effectiveTargetsProvider(widget.date).future);
+      final currentTotals = await ref.read(
+        dailyTotalsProvider(widget.date).future,
+      );
+      final targets = await ref.read(
+        effectiveTargetsProvider(widget.date).future,
+      );
       if (targets != null &&
           currentTotals.proteinG >= targets.proteinG &&
           targets.proteinG > 0) {
-        ref.read(inAppNotificationControllerProvider.notifier).show(
+        ref
+            .read(inAppNotificationControllerProvider.notifier)
+            .show(
               InAppNotificationItem.proteinGoal(
                 currentGrams: currentTotals.proteinG,
                 targetGrams: targets.proteinG.toDouble(),
@@ -350,7 +369,9 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
             children: [
               Text(
                 'Select Meal',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -365,15 +386,22 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                         Navigator.of(context).pop();
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
-                          color: _mealKey == m.key ? AppColors.primary : AppColors.surfaceVariant,
+                          color: _mealKey == m.key
+                              ? AppColors.primary
+                              : AppColors.surfaceVariant,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           m.label,
                           style: TextStyle(
-                            color: _mealKey == m.key ? Colors.white : AppColors.onSurface,
+                            color: _mealKey == m.key
+                                ? Colors.white
+                                : AppColors.onSurface,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -413,7 +441,9 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                 children: [
                   Text(
                     'Number of Servings',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -425,7 +455,12 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                             ? null
                             : () {
                                 Haptics.selection();
-                                setState(() => _servings = (_servings - 0.5).clamp(0.5, 999.0));
+                                setState(
+                                  () => _servings = (_servings - 0.5).clamp(
+                                    0.5,
+                                    999.0,
+                                  ),
+                                );
                                 ctrl.text = _fmtAmount(_servings);
                                 setModalState(() {});
                               },
@@ -437,27 +472,43 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                           controller: ctrl,
                           autofocus: true,
                           textAlign: TextAlign.center,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9.]'),
+                            ),
+                          ],
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: AppColors.surfaceVariant,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: AppColors.outlineVariant),
+                              borderSide: BorderSide(
+                                color: AppColors.outlineVariant,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: AppColors.outlineVariant),
+                              borderSide: BorderSide(
+                                color: AppColors.outlineVariant,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                           onChanged: (val) {
@@ -491,7 +542,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: const StadiumBorder(),
                       ),
-                      child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
@@ -503,7 +557,11 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     );
   }
 
-  void _showServingSizePicker(BuildContext context, bool isFood, List<String> availableUnits) {
+  void _showServingSizePicker(
+    BuildContext context,
+    bool isFood,
+    List<String> availableUnits,
+  ) {
     Haptics.selection();
     showModalBottomSheet(
       context: context,
@@ -528,18 +586,24 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                 children: [
                   Text(
                     'Serving Size & Unit',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _quantity,
                     autofocus: true,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                    ],
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                     decoration: InputDecoration(
                       suffixText: isFood ? _selectedUnit : 'servings',
                       suffixStyle: TextStyle(
@@ -558,14 +622,25 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                        borderSide: BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                   if (isFood) ...[
                     const SizedBox(height: 16),
-                    Text('Unit', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.secondary)),
+                    Text(
+                      'Unit',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -579,15 +654,22 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                               setModalState(() {});
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: _selectedUnit == u ? AppColors.primary : AppColors.surfaceVariant,
+                                color: _selectedUnit == u
+                                    ? AppColors.primary
+                                    : AppColors.surfaceVariant,
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
                                 u,
                                 style: TextStyle(
-                                  color: _selectedUnit == u ? Colors.white : AppColors.onSurface,
+                                  color: _selectedUnit == u
+                                      ? Colors.white
+                                      : AppColors.onSurface,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -607,7 +689,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: const StadiumBorder(),
                       ),
-                      child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
@@ -623,7 +708,8 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mealSlots = ref.watch(mealSlotsProvider);
-    final isFood = widget.food != null ||
+    final isFood =
+        widget.food != null ||
         (widget.existingEntry != null && widget.existingEntry!.foodId != null);
     final isEditing = widget.isIngredient
         ? (widget.existingIngredient != null)
@@ -643,11 +729,11 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final title = widget.food?.name ?? widget.recipe?.name ?? 'Logged Item';
     final subtitle = isFood
         ? (widget.food != null
-            ? '${widget.food!.kcalPer100g.toStringAsFixed(0)} kcal / ${widget.food!.referenceBasis}'
-            : 'Food item entry')
+              ? '${widget.food!.kcalPer100g.toStringAsFixed(0)} kcal / ${widget.food!.referenceBasis}'
+              : 'Food item entry')
         : (widget.recipe != null
-            ? '${widget.recipe!.servings} servings per recipe'
-            : 'Recipe entry');
+              ? '${widget.recipe!.servings} servings per recipe'
+              : 'Recipe entry');
     final availableUnits = isFood ? _kFoodUnits : const ['servings'];
     final timestampEnabled =
         !widget.isIngredient && ref.watch(logTimestampEnabledProvider);
@@ -721,10 +807,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              PremiumButton(
-                text: buttonText,
-                onTap: _saving ? () {} : _save,
-              ),
+              PremiumButton(text: buttonText, onTap: _saving ? () {} : _save),
               if (isEditing) ...[
                 const SizedBox(height: 6),
                 SizedBox(
@@ -813,7 +896,8 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                   builder: (context, val, child) {
                     return _SettingsRow(
                       label: 'Serving Size',
-                      value: '${val.text.isEmpty ? '0' : val.text} ${isFood ? _selectedUnit : 'servings'}',
+                      value:
+                          '${val.text.isEmpty ? '0' : val.text} ${isFood ? _selectedUnit : 'servings'}',
                       showDivider: timestampEnabled,
                       onTap: () => _showServingSizePicker(
                         context,
@@ -1449,8 +1533,8 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
             Text(
               target != null && target > 0
                   ? isKcal
-                      ? NumberFormat('#,###').format(target.round())
-                      : '${target.round()}g'
+                        ? NumberFormat('#,###').format(target.round())
+                        : '${target.round()}g'
                   : '--',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: AppColors.secondary,
@@ -1468,8 +1552,7 @@ class _NutritionPreviewState extends ConsumerState<_NutritionPreview> {
       if (t.fiberG > 0) ('Fibre', '${t.fiberG.toStringAsFixed(1)} g'),
       if (t.sodiumMg > 0) ('Sodium', '${t.sodiumMg.round()} mg'),
       if (t.potassiumMg > 0) ('Potassium', '${t.potassiumMg.round()} mg'),
-      if (t.cholesterolMg > 0)
-        ('Cholesterol', '${t.cholesterolMg.round()} mg'),
+      if (t.cholesterolMg > 0) ('Cholesterol', '${t.cholesterolMg.round()} mg'),
       for (final e in t.micros.entries)
         if (e.value > 0) (e.key, e.value.toStringAsFixed(1)),
     ];

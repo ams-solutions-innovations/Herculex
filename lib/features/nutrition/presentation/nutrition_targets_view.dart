@@ -59,9 +59,9 @@ class NutritionTargetsView extends ConsumerWidget {
               ? 'Using profile-calculated targets'
               : '${targets.length} custom target'
                     '${targets.length == 1 ? '' : 's'}',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const DailyTargetsView()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const DailyTargetsView())),
         ),
         const SizedBox(height: HxSpace.x3),
         _HubTile(
@@ -74,18 +74,18 @@ class NutritionTargetsView extends ConsumerWidget {
                     'every ${schedule.intervalDays} days'
               : 'Cut · −${schedule.reducePct.toStringAsFixed(1)}% '
                     'every ${schedule.intervalDays} days',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ActiveScheduleView()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ActiveScheduleView())),
         ),
         const SizedBox(height: HxSpace.x3),
         _HubTile(
           icon: Icons.bakery_dining_rounded,
           title: 'Carb Cycle',
           subtitle: 'Hardest training days get the most carbs',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CarbCycleView()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CarbCycleView())),
         ),
       ],
     );
@@ -134,9 +134,11 @@ class _QuickPhasePlannerSectionState
       final activePlan = ref.read(activeDietPlanProvider);
       _selectedPhase = activePlan.phase;
       final options = DietPhaseCalculator.paceOptionsFor(_selectedPhase);
-      final idx = options.indexWhere((o) =>
-          (o.weeklyKg - activePlan.weeklyRateKg).abs() < 0.01 ||
-          o.kcalDelta == activePlan.kcalDelta);
+      final idx = options.indexWhere(
+        (o) =>
+            (o.weeklyKg - activePlan.weeklyRateKg).abs() < 0.01 ||
+            o.kcalDelta == activePlan.kcalDelta,
+      );
       _selectedPaceIndex = (idx >= 0 && idx < options.length)
           ? idx
           : (options.length > 1 ? 1 : 0);
@@ -162,8 +164,8 @@ class _QuickPhasePlannerSectionState
     final bwKg = profile?.weightKg;
 
     final paceOptions = DietPhaseCalculator.paceOptionsFor(_selectedPhase);
-    final currentPace = (_selectedPaceIndex >= 0 &&
-            _selectedPaceIndex < paceOptions.length)
+    final currentPace =
+        (_selectedPaceIndex >= 0 && _selectedPaceIndex < paceOptions.length)
         ? paceOptions[_selectedPaceIndex]
         : paceOptions.first;
 
@@ -374,7 +376,9 @@ class _QuickPhasePlannerSectionState
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: phaseColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
@@ -387,7 +391,7 @@ class _QuickPhasePlannerSectionState
                             ? 'TDEE Maintenance'
                             : '${targets.deltaKcal > 0 ? '+' : ''}${targets.deltaKcal} kcal / day',
                         style: TextStyle(
-                           color: phaseColor,
+                          color: phaseColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -435,7 +439,8 @@ class _QuickPhasePlannerSectionState
                     ),
                   ],
                 ),
-                if (minTargets.enabled && (minProteinG != null || minKcal != null)) ...[
+                if (minTargets.enabled &&
+                    (minProteinG != null || minKcal != null)) ...[
                   const SizedBox(height: 10),
                   Wrap(
                     alignment: WrapAlignment.center,
@@ -444,12 +449,19 @@ class _QuickPhasePlannerSectionState
                     children: [
                       if (minProteinG != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.macroProtein.withValues(alpha: 0.15),
+                            color: AppColors.macroProtein.withValues(
+                              alpha: 0.15,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: AppColors.macroProtein.withValues(alpha: 0.3),
+                              color: AppColors.macroProtein.withValues(
+                                alpha: 0.3,
+                              ),
                             ),
                           ),
                           child: Text(
@@ -463,7 +475,10 @@ class _QuickPhasePlannerSectionState
                         ),
                       if (minKcal != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.macroKcal.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
@@ -548,7 +563,9 @@ class _QuickPhasePlannerSectionState
                         carbsG: targets.carbsG,
                         fatG: targets.fatG,
                       );
-                      await ref.read(activeDietPlanProvider.notifier).setPlan(
+                      await ref
+                          .read(activeDietPlanProvider.notifier)
+                          .setPlan(
                             phase: _selectedPhase,
                             weeklyRateKg: currentPace.weeklyKg,
                             kcalDelta: currentPace.kcalDelta,
@@ -556,7 +573,9 @@ class _QuickPhasePlannerSectionState
                           );
                       if (!mounted) return;
                       setState(() => _saving = false);
-                      ref.read(hxToastControllerProvider.notifier).show(
+                      ref
+                          .read(hxToastControllerProvider.notifier)
+                          .show(
                             HxToastItem.targetsUpdated(
                               message:
                                   '${_selectedPhase.label} • ${targets.kcal} kcal',
@@ -659,9 +678,7 @@ class _MacroStatBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [
@@ -719,9 +736,7 @@ class _HubTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: hx.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -797,9 +812,9 @@ class DailyTargetsView extends ConsumerWidget {
           text: 'ADD / EDIT TARGET',
           isPrimary: true,
           icon: Icons.add_rounded,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const TargetEditorView()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const TargetEditorView())),
         ),
       ),
       children: [
@@ -923,9 +938,7 @@ class _TargetCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: hx.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1159,9 +1172,7 @@ class ActiveScheduleView extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: hx.surfaceContainer,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: color.withValues(alpha: 0.35),
-                ),
+                border: Border.all(color: color.withValues(alpha: 0.35)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1227,9 +1238,7 @@ class ActiveScheduleView extends ConsumerWidget {
                       TextButton.icon(
                         icon: const Icon(Icons.stop_circle_outlined, size: 18),
                         label: const Text('Stop'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: hx.danger,
-                        ),
+                        style: TextButton.styleFrom(foregroundColor: hx.danger),
                         onPressed: () => ref
                             .read(nutritionRepositoryProvider)
                             .stopDietSchedules(),
@@ -1564,10 +1573,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           child: Text(
             'Saving the same scope replaces any existing target for that scope.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: hx.onSurfaceVariant,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
           ),
         ),
         const SizedBox(height: HxSpace.x5),
@@ -1604,10 +1610,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
                     'deficit and raises protein to protect lean mass.'
               : 'Bulk applies a ${DietPhaseCalculator.defaultBulkPct.round()}% '
                     'surplus, with the extra going to carbs.',
-          style: TextStyle(
-            color: hx.onSurfaceVariant,
-            fontSize: 12,
-          ),
+          style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
         ),
 
         const SizedBox(height: HxSpace.x6),
@@ -1762,10 +1765,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         if (_mode == _MacroMode.percent) ...[
           Text(
             'Set the percentage of total calories for each macro. Total must equal 100%.',
-            style: TextStyle(
-              color: hx.onSurfaceVariant,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(height: 10),
           Row(
@@ -1829,18 +1829,12 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           if (bwLb != null)
             Text(
               'Your bodyweight: ${bwLb.toStringAsFixed(1)} lb (${bwKg!.toStringAsFixed(1)} kg)',
-              style: TextStyle(
-                color: hx.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
             )
           else
             Text(
               'Add bodyweight in your profile to use this mode.',
-              style: TextStyle(
-                color: hx.danger,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: hx.danger, fontSize: 13),
             ),
           const SizedBox(height: 10),
           Row(
@@ -1869,18 +1863,12 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
             const SizedBox(height: 6),
             Text(
               'Suggested: 1.0 g/lb = ${(bwLb * 1.0).round()} g protein',
-              style: TextStyle(
-                color: hx.onSurfaceVariant,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
             ),
           ],
           Text(
             'Remaining calories split: 55% carbs / 45% fat.',
-            style: TextStyle(
-              color: hx.onSurfaceVariant,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
           ),
         ],
 
@@ -1982,9 +1970,7 @@ class _LivePreviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: hx.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: hx.primary.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: hx.primary.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -2041,13 +2027,7 @@ class _PreviewItem extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: hx.onSurfaceVariant,
-            fontSize: 11,
-          ),
-        ),
+        Text(label, style: TextStyle(color: hx.onSurfaceVariant, fontSize: 11)),
       ],
     );
   }
@@ -2160,10 +2140,7 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
                 widget.isBulk
                     ? 'Calories increase by the set % every interval. Protein is preserved; surplus goes to carbs and fat.'
                     : 'Calories reduce by the set % every interval. Protein is preserved; deficit comes from carbs and fat.',
-                style: TextStyle(
-                  color: hx.onSurfaceVariant,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
               ),
               const SizedBox(height: 20),
               Row(
@@ -2285,9 +2262,7 @@ class _CarbCycleRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: hx.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2413,199 +2388,210 @@ class __MinimumTargetsSectionState
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
-          initiallyExpanded: minTargets.enabled || _expanded,
-          onExpansionChanged: (exp) => setState(() => _expanded = exp),
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          title: Row(
-            children: [
-              Icon(
-                Icons.shield_outlined,
-                size: 20,
-                color: minTargets.enabled ? hx.primary : hx.onSurfaceVariant,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Minimalni cilji (Proteini in Kalorije)',
-                      style: TextStyle(
-                        color: hx.onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    if (minTargets.enabled && resolvedMinP != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        'Min. proteini: ${resolvedMinP}g'
-                        '${minTargets.minCaloriesKcal != null ? ' • Min. ${minTargets.minCaloriesKcal} kcal' : ''}',
-                        style: TextStyle(
-                          color: hx.primary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ] else if (!minTargets.enabled) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        'Nastavi spodnjo mejo za proteine in kalorije',
-                        style: TextStyle(
-                          color: hx.onSurfaceVariant,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ],
+            initiallyExpanded: minTargets.enabled || _expanded,
+            onExpansionChanged: (exp) => setState(() => _expanded = exp),
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.shield_outlined,
+                  size: 20,
+                  color: minTargets.enabled ? hx.primary : hx.onSurfaceVariant,
                 ),
-              ),
-              Switch(
-                value: minTargets.enabled,
-                onChanged: (val) => notifier.setEnabled(val),
-              ),
-            ],
-          ),
-          children: [
-            if (minTargets.enabled)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Divider(color: hx.outlineVariant.withValues(alpha: 0.2)),
-                    const SizedBox(height: 8),
-
-                    // ── Minimum Protein Presets & Formulas ──
-                    Text(
-                      'MINIMALNI PROTEINI (FORMULA)',
-                      style: TextStyle(
-                        color: hx.onSurfaceVariant,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _MinProteinChip(
-                          label: '1.0 g/lb (Optimalno)',
-                          selected: minTargets.mode == MinProteinMode.perLb &&
-                              (minTargets.proteinValue - 1.0).abs() < 0.05,
-                          onTap: () {
-                            notifier.setMode(MinProteinMode.perLb);
-                            notifier.setProteinValue(1.0);
-                          },
-                        ),
-                        _MinProteinChip(
-                          label: '0.8 g/lb',
-                          selected: minTargets.mode == MinProteinMode.perLb &&
-                              (minTargets.proteinValue - 0.8).abs() < 0.05,
-                          onTap: () {
-                            notifier.setMode(MinProteinMode.perLb);
-                            notifier.setProteinValue(0.8);
-                          },
-                        ),
-                        _MinProteinChip(
-                          label: '1.2 g/lb (Visoko)',
-                          selected: minTargets.mode == MinProteinMode.perLb &&
-                              (minTargets.proteinValue - 1.2).abs() < 0.05,
-                          onTap: () {
-                            notifier.setMode(MinProteinMode.perLb);
-                            notifier.setProteinValue(1.2);
-                          },
-                        ),
-                        _MinProteinChip(
-                          label: '2.2 g/kg',
-                          selected: minTargets.mode == MinProteinMode.perKg &&
-                              (minTargets.proteinValue - 2.2).abs() < 0.05,
-                          onTap: () {
-                            notifier.setMode(MinProteinMode.perKg);
-                            notifier.setProteinValue(2.2);
-                          },
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-                    if (bwLb != null && resolvedMinP != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.macroProtein.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.fitness_center_rounded,
-                              size: 14,
-                              color: AppColors.macroProtein,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Izračunan minimum: ${resolvedMinP}g '
-                                '(${bwLb.toStringAsFixed(1)} lb @ ${minTargets.proteinValue} ${minTargets.mode.label})',
-                                style: TextStyle(
-                                  color: AppColors.macroProtein,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Za samodejni izračun g/lb dodajte težo v profilu.',
+                        'Minimalni cilji (Proteini in Kalorije)',
                         style: TextStyle(
-                          color: hx.onSurfaceVariant,
-                          fontSize: 11,
+                          color: hx.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
-
-                    const SizedBox(height: 14),
-
-                    // ── Minimum Calories Floor ──
-                    Text(
-                      'MINIMALNE KALORIJE (MEJA DEFICITA)',
-                      style: TextStyle(
-                        color: hx.onSurfaceVariant,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _NumField(
-                            controller: _kcalController,
-                            label: 'Minimalne kalorije',
-                            suffix: 'kcal',
-                            hint: 'npr. 1500',
-                            onChanged: (val) {
-                              final parsed = int.tryParse(val.trim());
-                              notifier.setMinCalories(parsed);
-                            },
+                      if (minTargets.enabled && resolvedMinP != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Min. proteini: ${resolvedMinP}g'
+                          '${minTargets.minCaloriesKcal != null ? ' • Min. ${minTargets.minCaloriesKcal} kcal' : ''}',
+                          style: TextStyle(
+                            color: hx.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ] else if (!minTargets.enabled) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Nastavi spodnjo mejo za proteine in kalorije',
+                          style: TextStyle(
+                            color: hx.onSurfaceVariant,
+                            fontSize: 11,
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-          ],
+                Switch(
+                  value: minTargets.enabled,
+                  onChanged: (val) => notifier.setEnabled(val),
+                ),
+              ],
+            ),
+            children: [
+              if (minTargets.enabled)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Divider(color: hx.outlineVariant.withValues(alpha: 0.2)),
+                      const SizedBox(height: 8),
+
+                      // ── Minimum Protein Presets & Formulas ──
+                      Text(
+                        'MINIMALNI PROTEINI (FORMULA)',
+                        style: TextStyle(
+                          color: hx.onSurfaceVariant,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _MinProteinChip(
+                            label: '1.0 g/lb (Optimalno)',
+                            selected:
+                                minTargets.mode == MinProteinMode.perLb &&
+                                (minTargets.proteinValue - 1.0).abs() < 0.05,
+                            onTap: () {
+                              notifier.setMode(MinProteinMode.perLb);
+                              notifier.setProteinValue(1.0);
+                            },
+                          ),
+                          _MinProteinChip(
+                            label: '0.8 g/lb',
+                            selected:
+                                minTargets.mode == MinProteinMode.perLb &&
+                                (minTargets.proteinValue - 0.8).abs() < 0.05,
+                            onTap: () {
+                              notifier.setMode(MinProteinMode.perLb);
+                              notifier.setProteinValue(0.8);
+                            },
+                          ),
+                          _MinProteinChip(
+                            label: '1.2 g/lb (Visoko)',
+                            selected:
+                                minTargets.mode == MinProteinMode.perLb &&
+                                (minTargets.proteinValue - 1.2).abs() < 0.05,
+                            onTap: () {
+                              notifier.setMode(MinProteinMode.perLb);
+                              notifier.setProteinValue(1.2);
+                            },
+                          ),
+                          _MinProteinChip(
+                            label: '2.2 g/kg',
+                            selected:
+                                minTargets.mode == MinProteinMode.perKg &&
+                                (minTargets.proteinValue - 2.2).abs() < 0.05,
+                            onTap: () {
+                              notifier.setMode(MinProteinMode.perKg);
+                              notifier.setProteinValue(2.2);
+                            },
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+                      if (bwLb != null && resolvedMinP != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.macroProtein.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.fitness_center_rounded,
+                                size: 14,
+                                color: AppColors.macroProtein,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Izračunan minimum: ${resolvedMinP}g '
+                                  '(${bwLb.toStringAsFixed(1)} lb @ ${minTargets.proteinValue} ${minTargets.mode.label})',
+                                  style: TextStyle(
+                                    color: AppColors.macroProtein,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Text(
+                          'Za samodejni izračun g/lb dodajte težo v profilu.',
+                          style: TextStyle(
+                            color: hx.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+
+                      const SizedBox(height: 14),
+
+                      // ── Minimum Calories Floor ──
+                      Text(
+                        'MINIMALNE KALORIJE (MEJA DEFICITA)',
+                        style: TextStyle(
+                          color: hx.onSurfaceVariant,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _NumField(
+                              controller: _kcalController,
+                              label: 'Minimalne kalorije',
+                              suffix: 'kcal',
+                              hint: 'npr. 1500',
+                              onChanged: (val) {
+                                final parsed = int.tryParse(val.trim());
+                                notifier.setMinCalories(parsed);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }

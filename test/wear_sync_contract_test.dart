@@ -141,26 +141,29 @@ void main() {
       expect(decoded.payload['isActive'], true);
     });
 
-    test('round-trips through wrap()/encode(), stamping the live schema version', () {
-      final envelope = WearSyncEnvelope.wrap(
-        entity: wearSyncEntityActiveWorkout,
-        entityId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-        revision: 7,
-        origin: wearSyncOriginPhone,
-        payload: const {'exercises': []},
-      );
+    test(
+      'round-trips through wrap()/encode(), stamping the live schema version',
+      () {
+        final envelope = WearSyncEnvelope.wrap(
+          entity: wearSyncEntityActiveWorkout,
+          entityId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+          revision: 7,
+          origin: wearSyncOriginPhone,
+          payload: const {'exercises': []},
+        );
 
-      expect(envelope.schemaVersion, 2);
-      expect(wearSyncSchemaVersion, 2);
+        expect(envelope.schemaVersion, 2);
+        expect(wearSyncSchemaVersion, 2);
 
-      final decoded = WearSyncEnvelope.decode(
-        envelope.encode(),
-        fallbackEntity: wearSyncEntityActiveWorkout,
-        fallbackEntityId: 'fallback',
-        fallbackOrigin: wearSyncOriginWatch,
-      );
-      expect(decoded.entityId, '3fa85f64-5717-4562-b3fc-2c963f66afa6');
-    });
+        final decoded = WearSyncEnvelope.decode(
+          envelope.encode(),
+          fallbackEntity: wearSyncEntityActiveWorkout,
+          fallbackEntityId: 'fallback',
+          fallbackOrigin: wearSyncOriginWatch,
+        );
+        expect(decoded.entityId, '3fa85f64-5717-4562-b3fc-2c963f66afa6');
+      },
+    );
   });
 
   test('wraps and unwraps versioned active workout envelope', () {
@@ -239,78 +242,79 @@ void main() {
             payload: const {'exercises': []},
           );
 
-      expect(acceptAndCommit(dedupe,env(10, 100)), isTrue);
-      expect(acceptAndCommit(dedupe,env(10, 100)), isFalse);
-      expect(acceptAndCommit(dedupe,env(9, 101)), isFalse);
-      expect(acceptAndCommit(dedupe,env(10, 101)), isTrue);
-      expect(acceptAndCommit(dedupe,env(11, 90)), isTrue);
+      expect(acceptAndCommit(dedupe, env(10, 100)), isTrue);
+      expect(acceptAndCommit(dedupe, env(10, 100)), isFalse);
+      expect(acceptAndCommit(dedupe, env(9, 101)), isFalse);
+      expect(acceptAndCommit(dedupe, env(10, 101)), isTrue);
+      expect(acceptAndCommit(dedupe, env(11, 90)), isTrue);
     },
   );
 
-  test(
-    'dedupe state is isolated per entity/entityId/origin key',
-    () {
-      final dedupe = WearDedupeState();
-      WearSyncEnvelope env({
-        required String entity,
-        required String entityId,
-        required String origin,
-      }) => WearSyncEnvelope.wrap(
-        entity: entity,
-        entityId: entityId,
-        revision: 1,
-        origin: origin,
-        updatedAtEpochMs: 100,
-        payload: const {},
-      );
+  test('dedupe state is isolated per entity/entityId/origin key', () {
+    final dedupe = WearDedupeState();
+    WearSyncEnvelope env({
+      required String entity,
+      required String entityId,
+      required String origin,
+    }) => WearSyncEnvelope.wrap(
+      entity: entity,
+      entityId: entityId,
+      revision: 1,
+      origin: origin,
+      updatedAtEpochMs: 100,
+      payload: const {},
+    );
 
-      // Same revision/updatedAt, but distinct keys — none of these should
-      // block each other, unlike the same-key case above.
-      expect(
-        acceptAndCommit(dedupe,
-          env(
-            entity: wearSyncEntityActiveWorkout,
-            entityId: 'session-1',
-            origin: wearSyncOriginWatch,
-          ),
+    // Same revision/updatedAt, but distinct keys — none of these should
+    // block each other, unlike the same-key case above.
+    expect(
+      acceptAndCommit(
+        dedupe,
+        env(
+          entity: wearSyncEntityActiveWorkout,
+          entityId: 'session-1',
+          origin: wearSyncOriginWatch,
         ),
-        isTrue,
-      );
-      expect(
-        acceptAndCommit(dedupe,
-          env(
-            entity: wearSyncEntityActiveWorkout,
-            entityId: 'session-2',
-            origin: wearSyncOriginWatch,
-          ),
+      ),
+      isTrue,
+    );
+    expect(
+      acceptAndCommit(
+        dedupe,
+        env(
+          entity: wearSyncEntityActiveWorkout,
+          entityId: 'session-2',
+          origin: wearSyncOriginWatch,
         ),
-        isTrue,
-        reason: 'different entityId is a different dedupe key',
-      );
-      expect(
-        acceptAndCommit(dedupe,
-          env(
-            entity: wearSyncEntityFasting,
-            entityId: 'session-1',
-            origin: wearSyncOriginWatch,
-          ),
+      ),
+      isTrue,
+      reason: 'different entityId is a different dedupe key',
+    );
+    expect(
+      acceptAndCommit(
+        dedupe,
+        env(
+          entity: wearSyncEntityFasting,
+          entityId: 'session-1',
+          origin: wearSyncOriginWatch,
         ),
-        isTrue,
-        reason: 'different entity is a different dedupe key',
-      );
-      expect(
-        acceptAndCommit(dedupe,
-          env(
-            entity: wearSyncEntityActiveWorkout,
-            entityId: 'session-1',
-            origin: wearSyncOriginPhone,
-          ),
+      ),
+      isTrue,
+      reason: 'different entity is a different dedupe key',
+    );
+    expect(
+      acceptAndCommit(
+        dedupe,
+        env(
+          entity: wearSyncEntityActiveWorkout,
+          entityId: 'session-1',
+          origin: wearSyncOriginPhone,
         ),
-        isTrue,
-        reason: 'different origin is a different dedupe key',
-      );
-    },
-  );
+      ),
+      isTrue,
+      reason: 'different origin is a different dedupe key',
+    );
+  });
 
   test('legacy (unenveloped) payloads are rejected — fail closed', () {
     // Phase 1c: this bypass existed for pre-envelope watch builds. Once both
@@ -331,31 +335,28 @@ void main() {
     expect(acceptAndCommit(dedupe, decoded), isFalse);
   });
 
-  test(
-    'a wrong-typed entityId falls back to the legacy decode path instead of '
-    'crashing or being silently coerced',
-    () {
-      final json = jsonEncode({
-        'schemaVersion': 2,
-        'entity': wearSyncEntityActiveWorkout,
-        'entityId': 12345, // wrong type — should be a String
-        'revision': 7,
-        'origin': wearSyncOriginPhone,
-        'updatedAtEpochMs': 500,
-        'payload': {'exercises': []},
-      });
+  test('a wrong-typed entityId falls back to the legacy decode path instead of '
+      'crashing or being silently coerced', () {
+    final json = jsonEncode({
+      'schemaVersion': 2,
+      'entity': wearSyncEntityActiveWorkout,
+      'entityId': 12345, // wrong type — should be a String
+      'revision': 7,
+      'origin': wearSyncOriginPhone,
+      'updatedAtEpochMs': 500,
+      'payload': {'exercises': []},
+    });
 
-      final decoded = WearSyncEnvelope.decode(
-        json,
-        fallbackEntity: wearSyncEntityActiveWorkout,
-        fallbackEntityId: 'fallback-entity-id',
-        fallbackOrigin: wearSyncOriginWatch,
-      );
+    final decoded = WearSyncEnvelope.decode(
+      json,
+      fallbackEntity: wearSyncEntityActiveWorkout,
+      fallbackEntityId: 'fallback-entity-id',
+      fallbackOrigin: wearSyncOriginWatch,
+    );
 
-      expect(decoded.schemaVersion, 0);
-      expect(decoded.entityId, 'fallback-entity-id');
-    },
-  );
+    expect(decoded.schemaVersion, 0);
+    expect(decoded.entityId, 'fallback-entity-id');
+  });
 
   group('WearRevisionAllocator (Phase 1b)', () {
     setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -412,41 +413,42 @@ void main() {
       );
 
       expect(dedupe.wouldAccept(first), isTrue);
-      expect(dedupe.wouldAccept(first), isTrue, reason: 'checking again without committing must not change the answer');
+      expect(
+        dedupe.wouldAccept(first),
+        isTrue,
+        reason: 'checking again without committing must not change the answer',
+      );
       expect(dedupe.wouldAccept(first), isTrue);
     },
   );
 
-  test(
-    'a failed apply must not commit — retrying the same envelope after '
-    'wouldAccept (without commit) still succeeds',
-    () {
-      // Regression test for the Phase 2 fix: previously WearDedupeState's
-      // combined shouldAccept() mutated state on the check itself, so a
-      // caller that checked, then failed to durably apply, then retried the
-      // exact same envelope would be told to ignore it forever.
-      final dedupe = WearDedupeState();
-      final envelope = WearSyncEnvelope.wrap(
-        entity: wearSyncEntityActiveWorkout,
-        entityId: 'session-1',
-        revision: 10,
-        origin: wearSyncOriginWatch,
-        updatedAtEpochMs: 100,
-        payload: const {},
-      );
+  test('a failed apply must not commit — retrying the same envelope after '
+      'wouldAccept (without commit) still succeeds', () {
+    // Regression test for the Phase 2 fix: previously WearDedupeState's
+    // combined shouldAccept() mutated state on the check itself, so a
+    // caller that checked, then failed to durably apply, then retried the
+    // exact same envelope would be told to ignore it forever.
+    final dedupe = WearDedupeState();
+    final envelope = WearSyncEnvelope.wrap(
+      entity: wearSyncEntityActiveWorkout,
+      entityId: 'session-1',
+      revision: 10,
+      origin: wearSyncOriginWatch,
+      updatedAtEpochMs: 100,
+      payload: const {},
+    );
 
-      expect(dedupe.wouldAccept(envelope), isTrue);
-      // Simulate the durable apply failing: commit() is deliberately not
-      // called here.
+    expect(dedupe.wouldAccept(envelope), isTrue);
+    // Simulate the durable apply failing: commit() is deliberately not
+    // called here.
 
-      // Retry of the identical envelope must still be accepted.
-      expect(dedupe.wouldAccept(envelope), isTrue);
-      dedupe.commit(envelope);
+    // Retry of the identical envelope must still be accepted.
+    expect(dedupe.wouldAccept(envelope), isTrue);
+    dedupe.commit(envelope);
 
-      // Now that it's committed, the same envelope is correctly rejected.
-      expect(dedupe.wouldAccept(envelope), isFalse);
-    },
-  );
+    // Now that it's committed, the same envelope is correctly rejected.
+    expect(dedupe.wouldAccept(envelope), isFalse);
+  });
 
   test('normalizes warmup and legacy set type labels', () {
     expect(normalizeWearSetType('Normal'), 'standard');

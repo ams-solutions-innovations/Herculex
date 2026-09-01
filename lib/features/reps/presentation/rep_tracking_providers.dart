@@ -134,7 +134,10 @@ class RepConsentFormNotifier extends StateNotifier<RepConsentFormState> {
   }
 }
 
-final repConsentFormProvider = StateNotifierProvider.autoDispose<
-    RepConsentFormNotifier, RepConsentFormState>((ref) {
-  return RepConsentFormNotifier();
-});
+final repConsentFormProvider =
+    StateNotifierProvider.autoDispose<
+      RepConsentFormNotifier,
+      RepConsentFormState
+    >((ref) {
+      return RepConsentFormNotifier();
+    });

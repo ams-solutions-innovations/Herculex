@@ -6,23 +6,23 @@ import 'package:herculex/features/workouts/domain/session_summary.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
 ExerciseCatalogData _ex(int id, String primaryMuscle) => ExerciseCatalogData(
-      id: id,
-      name: 'Exercise $id',
-      primaryMuscle: primaryMuscle,
-      equipment: 'Barbell',
-      mechanics: 'compound',
-      force: 'push',
-      plane: 'axial',
-      defaultRestSeconds: 120,
-      isCustom: false,
-      category: 'strength',
-      modality: 'barbell',
-      cnsScore: 3,
-      recoveryImpact: 3,
-      loggingMetric: 'weight_reps',
-      supportsWeightedBodyweight: false,
-      isReviewed: true,
-    );
+  id: id,
+  name: 'Exercise $id',
+  primaryMuscle: primaryMuscle,
+  equipment: 'Barbell',
+  mechanics: 'compound',
+  force: 'push',
+  plane: 'axial',
+  defaultRestSeconds: 120,
+  isCustom: false,
+  category: 'strength',
+  modality: 'barbell',
+  cnsScore: 3,
+  recoveryImpact: 3,
+  loggingMetric: 'weight_reps',
+  supportsWeightedBodyweight: false,
+  isReviewed: true,
+);
 
 WorkoutSessionData _session(int id, DateTime startedAt, DateTime? endedAt) =>
     WorkoutSessionData(id: id, startedAt: startedAt, endedAt: endedAt);
@@ -72,34 +72,41 @@ void main() {
   final squat = _ex(2, 'Quads');
 
   final thisSession = _session(1, start, end);
-  final otherSession = _session(2, start.subtract(const Duration(days: 2)),
-      start.subtract(const Duration(days: 2, hours: -1)));
+  final otherSession = _session(
+    2,
+    start.subtract(const Duration(days: 2)),
+    start.subtract(const Duration(days: 2, hours: -1)),
+  );
 
   final snapshot = TrainingSnapshot(
     sets: [
       _resolved(
-          setId: 1,
-          session: thisSession,
-          exercise: bench,
-          completedAt: start.add(const Duration(minutes: 10))),
+        setId: 1,
+        session: thisSession,
+        exercise: bench,
+        completedAt: start.add(const Duration(minutes: 10)),
+      ),
       _resolved(
-          setId: 2,
-          session: thisSession,
-          exercise: bench,
-          completedAt: start.add(const Duration(minutes: 20))),
+        setId: 2,
+        session: thisSession,
+        exercise: bench,
+        completedAt: start.add(const Duration(minutes: 20)),
+      ),
       _resolved(
-          setId: 3,
-          session: thisSession,
-          exercise: squat,
-          weightKg: 140,
-          reps: 3,
-          completedAt: start.add(const Duration(minutes: 40))),
+        setId: 3,
+        session: thisSession,
+        exercise: squat,
+        weightKg: 140,
+        reps: 3,
+        completedAt: start.add(const Duration(minutes: 40)),
+      ),
       // Belongs to a different session — must not leak into the summary.
       _resolved(
-          setId: 4,
-          session: otherSession,
-          exercise: bench,
-          completedAt: otherSession.startedAt),
+        setId: 4,
+        session: otherSession,
+        exercise: bench,
+        completedAt: otherSession.startedAt,
+      ),
     ],
     exerciseMuscles: const [],
   );
@@ -152,12 +159,13 @@ void main() {
         snapshot: TrainingSnapshot(
           sets: [
             _resolved(
-                setId: 9,
-                session: thisSession,
-                exercise: bench,
-                weightKg: 40,
-                reps: 10,
-                completedAt: start)
+              setId: 9,
+              session: thisSession,
+              exercise: bench,
+              weightKg: 40,
+              reps: 10,
+              completedAt: start,
+            ),
           ],
           exerciseMuscles: const [],
         ),
@@ -180,17 +188,21 @@ void main() {
     });
 
     test('excludes sets from before Monday', () {
-      final lastWeek = _session(3, DateTime(2026, 7, 23, 10),
-          DateTime(2026, 7, 23, 11));
+      final lastWeek = _session(
+        3,
+        DateTime(2026, 7, 23, 10),
+        DateTime(2026, 7, 23, 11),
+      );
       final v = WeeklyMuscleVolume.compute(
         snapshot: TrainingSnapshot(
           sets: [
             ...snapshot.sets,
             _resolved(
-                setId: 10,
-                session: lastWeek,
-                exercise: bench,
-                completedAt: lastWeek.startedAt),
+              setId: 10,
+              session: lastWeek,
+              exercise: bench,
+              completedAt: lastWeek.startedAt,
+            ),
           ],
           exerciseMuscles: const [],
         ),

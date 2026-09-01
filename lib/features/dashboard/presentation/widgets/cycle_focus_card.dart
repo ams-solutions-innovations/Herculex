@@ -45,82 +45,85 @@ class CycleFocusCard extends ConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: phaseColor.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(phase.icon, color: phaseColor, size: 22),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: phaseColor.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            phase.title,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                child: Icon(phase.icon, color: phaseColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          phase.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: phaseColor.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              adjustment.isManualOverride
-                                  ? 'OVERRIDE'
-                                  : 'DAY ${adjustment.dayOfCycle + 1}',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: phaseColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        adjustment.trainingRecommendation,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          height: 1.3,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Text(
-                            adjustment.statusLabel,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: phaseColor.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            adjustment.isManualOverride
+                                ? 'OVERRIDE'
+                                : 'DAY ${adjustment.dayOfCycle + 1}',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: phaseColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Spacer(),
-                          Text(
-                            'Track & Sync ›',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: phaseColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      adjustment.trainingRecommendation,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.3,
                       ),
-                    ],
-                  ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          adjustment.statusLabel,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: phaseColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Track & Sync ›',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: phaseColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
         );
       },
     );

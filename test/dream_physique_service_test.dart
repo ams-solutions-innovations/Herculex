@@ -7,51 +7,56 @@ import 'package:herculex/services/gemini_backend_service.dart';
 
 void main() {
   group('DreamPhysiqueService', () {
-    test('Correctly maps backend response into DreamPhysiqueAnalysisResult', () async {
-      final fakeBackend = _MockGeminiBackend();
-      final service = DreamPhysiqueService(fakeBackend);
+    test(
+      'Correctly maps backend response into DreamPhysiqueAnalysisResult',
+      () async {
+        final fakeBackend = _MockGeminiBackend();
+        final service = DreamPhysiqueService(fakeBackend);
 
-      final tempDir = await Directory.systemTemp.createTemp('dp_test_');
-      final currentFile = File('${tempDir.path}/current.jpg');
-      await currentFile.writeAsBytes([1, 2, 3]);
-      final targetFile = File('${tempDir.path}/target.jpg');
-      await targetFile.writeAsBytes([4, 5, 6]);
+        final tempDir = await Directory.systemTemp.createTemp('dp_test_');
+        final currentFile = File('${tempDir.path}/current.jpg');
+        await currentFile.writeAsBytes([1, 2, 3]);
+        final targetFile = File('${tempDir.path}/target.jpg');
+        await targetFile.writeAsBytes([4, 5, 6]);
 
-      const profile = Profile(
-        goal: FitnessGoal.muscleGain,
-        activityLevel: ActivityLevel.active,
-        weightKg: 82.0,
-        heightCm: 182.0,
-        ageYears: 27,
-        sex: BiologicalSex.male,
-      );
+        const profile = Profile(
+          goal: FitnessGoal.muscleGain,
+          activityLevel: ActivityLevel.active,
+          weightKg: 82.0,
+          heightCm: 182.0,
+          ageYears: 27,
+          sex: BiologicalSex.male,
+        );
 
-      final result = await service.compareAndAnalyzePhysique(
-        currentImages: [currentFile],
-        targetImage: targetFile,
-        profile: profile,
-        targetGoalStyle: 'Lean & Aesthetic',
-        userNote: 'Goal is classic aesthetic',
-      );
+        final result = await service.compareAndAnalyzePhysique(
+          currentImages: [currentFile],
+          targetImage: targetFile,
+          profile: profile,
+          targetGoalStyle: 'Lean & Aesthetic',
+          userNote: 'Goal is classic aesthetic',
+        );
 
-      expect(result.estimatedMonths, 8);
-      expect(result.timeframeRange, '6 - 9 months');
-      expect(result.weightChangeKg, -2.5);
-      expect(result.leanMuscleGainKg, 3.5);
-      expect(result.fatLossKg, 6.0);
-      expect(result.targetBfPercent, 11.0);
-      expect(result.musclePriorities.length, 2);
-      expect(result.musclePriorities.first.group, 'Upper chest');
-      expect(result.musclePriorities.first.priority, 'high');
-      expect(result.isAiGenerated, isTrue);
-      expect(fakeBackend.calledDreamPhysique, isTrue);
-    });
+        expect(result.estimatedMonths, 8);
+        expect(result.timeframeRange, '6 - 9 months');
+        expect(result.weightChangeKg, -2.5);
+        expect(result.leanMuscleGainKg, 3.5);
+        expect(result.fatLossKg, 6.0);
+        expect(result.targetBfPercent, 11.0);
+        expect(result.musclePriorities.length, 2);
+        expect(result.musclePriorities.first.group, 'Upper chest');
+        expect(result.musclePriorities.first.priority, 'high');
+        expect(result.isAiGenerated, isTrue);
+        expect(fakeBackend.calledDreamPhysique, isTrue);
+      },
+    );
 
     test('Provides fallback computation when backend call fails', () async {
       final failingBackend = _FailingGeminiBackend();
       final service = DreamPhysiqueService(failingBackend);
 
-      final tempDir = await Directory.systemTemp.createTemp('dp_fallback_test_');
+      final tempDir = await Directory.systemTemp.createTemp(
+        'dp_fallback_test_',
+      );
       final currentFile = File('${tempDir.path}/curr.jpg');
       await currentFile.writeAsBytes([1]);
       final targetFile = File('${tempDir.path}/targ.jpg');
@@ -125,8 +130,7 @@ class _MockGeminiBackend implements GeminiBackend {
     required List<Map<String, dynamic>> images,
     Map<String, dynamic>? biometrics,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
@@ -134,53 +138,46 @@ class _MockGeminiBackend implements GeminiBackend {
     required String mimeType,
     required String barcode,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeFoodPhoto({
     required List<int> imageBytes,
     required String mimeType,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
     required List<int> imageBytes,
     required String mimeType,
     required String ocrText,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<String> identifyExercise({
     required List<int> imageBytes,
     required String mimeType,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> identifyExerciseDetailed({
     required List<int> imageBytes,
     required String mimeType,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeSupplementPhoto({
     required List<int> imageBytes,
     required String mimeType,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeRamblerText({
     required String text,
     String? preferredMealKey,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 }
 
 class _FailingGeminiBackend implements GeminiBackend {
@@ -200,8 +197,7 @@ class _FailingGeminiBackend implements GeminiBackend {
     required List<Map<String, dynamic>> images,
     Map<String, dynamic>? biometrics,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeBarcodeProduct({
@@ -209,51 +205,44 @@ class _FailingGeminiBackend implements GeminiBackend {
     required String mimeType,
     required String barcode,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeFoodPhoto({
     required List<int> imageBytes,
     required String mimeType,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeNutritionLabel({
     required List<int> imageBytes,
     required String mimeType,
     required String ocrText,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<String> identifyExercise({
     required List<int> imageBytes,
     required String mimeType,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> identifyExerciseDetailed({
     required List<int> imageBytes,
     required String mimeType,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeSupplementPhoto({
     required List<int> imageBytes,
     required String mimeType,
     String? userNote,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 
   @override
   Future<Map<String, dynamic>> analyzeRamblerText({
     required String text,
     String? preferredMealKey,
-  }) async =>
-      throw UnimplementedError();
+  }) async => throw UnimplementedError();
 }

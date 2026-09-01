@@ -8,9 +8,9 @@ class ExerciseProgressionsRepository {
   ExerciseProgressionsRepository(this._db);
 
   Future<ExerciseProgressionData?> forExercise(int exerciseId) {
-    return (_db.select(_db.exerciseProgressions)
-          ..where((t) => t.exerciseId.equals(exerciseId)))
-        .getSingleOrNull();
+    return (_db.select(
+      _db.exerciseProgressions,
+    )..where((t) => t.exerciseId.equals(exerciseId))).getSingleOrNull();
   }
 
   Stream<List<ExerciseProgressionData>> watchAll() {
@@ -23,7 +23,9 @@ class ExerciseProgressionsRepository {
     required double weeklyIncreasePct,
     required bool enabled,
   }) async {
-    await _db.into(_db.exerciseProgressions).insert(
+    await _db
+        .into(_db.exerciseProgressions)
+        .insert(
           ExerciseProgressionsCompanion.insert(
             exerciseId: exerciseId,
             goal: Value(goal.name),
@@ -42,8 +44,8 @@ class ExerciseProgressionsRepository {
   }
 
   Future<void> delete(int exerciseId) async {
-    await (_db.delete(_db.exerciseProgressions)
-          ..where((t) => t.exerciseId.equals(exerciseId)))
-        .go();
+    await (_db.delete(
+      _db.exerciseProgressions,
+    )..where((t) => t.exerciseId.equals(exerciseId))).go();
   }
 }

@@ -62,20 +62,15 @@ class DreamPhysiqueAnalysisResult {
   factory DreamPhysiqueAnalysisResult.fromJson(Map<String, dynamic> json) {
     final months = (json['estimatedMonths'] as num?)?.toInt() ?? 6;
     final range = json['timeframeRange'] as String? ?? '$months months';
-    final weightDelta =
-        (json['weightChangeKg'] as num?)?.toDouble() ?? 0.0;
-    final muscleGain =
-        (json['leanMuscleGainKg'] as num?)?.toDouble() ?? 2.5;
+    final weightDelta = (json['weightChangeKg'] as num?)?.toDouble() ?? 0.0;
+    final muscleGain = (json['leanMuscleGainKg'] as num?)?.toDouble() ?? 2.5;
     final fatLoss = (json['fatLossKg'] as num?)?.toDouble() ?? 3.0;
-    final targetBf =
-        (json['targetBfPercent'] as num?)?.toDouble() ?? 12.0;
-    final currentBf =
-        (json['currentEstimatedBf'] as num?)?.toDouble() ?? 18.0;
+    final targetBf = (json['targetBfPercent'] as num?)?.toDouble() ?? 12.0;
+    final currentBf = (json['currentEstimatedBf'] as num?)?.toDouble() ?? 18.0;
 
     final rawPriorities = json['musclePriorities'] as List<dynamic>? ?? [];
     final priorities = rawPriorities
-        .map((p) =>
-            MusclePriority.fromJson(p is Map<String, dynamic> ? p : {}))
+        .map((p) => MusclePriority.fromJson(p is Map<String, dynamic> ? p : {}))
         .toList();
 
     return DreamPhysiqueAnalysisResult(
@@ -105,11 +100,14 @@ class DreamPhysiqueAnalysisResult {
                 focus: 'Wide pulldowns for back width',
               ),
             ],
-      nutritionStrategy: json['nutritionStrategy'] as String? ??
+      nutritionStrategy:
+          json['nutritionStrategy'] as String? ??
           'Recommended adjusted calorie intake with 2.0g protein per kg body weight.',
-      trainingAdvice: json['trainingAdvice'] as String? ??
+      trainingAdvice:
+          json['trainingAdvice'] as String? ??
           'Train 4-5x weekly with consistent progressive overload.',
-      overallAssessment: json['overallAssessment'] as String? ??
+      overallAssessment:
+          json['overallAssessment'] as String? ??
           'The goal is realistic and achievable with a consistent approach.',
       isAiGenerated: true,
     );
@@ -180,17 +178,20 @@ class DreamPhysiqueService {
           ? (isMale ? 10.5 : 18.0)
           : (isMale ? 12.0 : 20.0);
 
-      final fatToLose =
-          (weightKg * (estCurrentBf - targetBf) / 100.0).clamp(1.0, 15.0);
+      final fatToLose = (weightKg * (estCurrentBf - targetBf) / 100.0).clamp(
+        1.0,
+        15.0,
+      );
       final muscleToGain = (isMale ? 3.5 : 2.0);
       final netWeightChange = muscleToGain - fatToLose;
 
       // Realistic timeframe: fat loss @ 0.5kg/week, muscle gain @ 0.4kg/month
       final monthsForFat = fatToLose / 2.0;
       final monthsForMuscle = muscleToGain / 0.5;
-      final estMonths = (monthsForFat > monthsForMuscle ? monthsForFat : monthsForMuscle)
-          .ceil()
-          .clamp(3, 18);
+      final estMonths =
+          (monthsForFat > monthsForMuscle ? monthsForFat : monthsForMuscle)
+              .ceil()
+              .clamp(3, 18);
 
       return DreamPhysiqueAnalysisResult(
         estimatedMonths: estMonths,
@@ -204,12 +205,14 @@ class DreamPhysiqueService {
           MusclePriority(
             group: 'Upper Chest',
             priority: 'high',
-            focus: 'Incline dumbbell presses and angled cable flyes for upper chest fullness',
+            focus:
+                'Incline dumbbell presses and angled cable flyes for upper chest fullness',
           ),
           MusclePriority(
             group: 'Lateral Delts',
             priority: 'high',
-            focus: 'Cable and dumbbell lateral raises with high frequency (2-3x weekly)',
+            focus:
+                'Cable and dumbbell lateral raises with high frequency (2-3x weekly)',
           ),
           MusclePriority(
             group: 'Back / V-Taper (Lats)',
@@ -219,12 +222,14 @@ class DreamPhysiqueService {
           MusclePriority(
             group: 'Core / Abs & Serratus',
             priority: 'high',
-            focus: 'Hanging knee raises, cable crunches, and caloric deficit for leanness',
+            focus:
+                'Hanging knee raises, cable crunches, and caloric deficit for leanness',
           ),
           MusclePriority(
             group: 'Arms (Biceps / Triceps)',
             priority: 'medium',
-            focus: 'Isolation movements for long head of triceps and bicep peak',
+            focus:
+                'Isolation movements for long head of triceps and bicep peak',
           ),
         ],
         nutritionStrategy:

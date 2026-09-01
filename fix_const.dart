@@ -4,7 +4,10 @@ import 'dart:convert';
 
 void main() {
   final dir = Directory('lib');
-  final files = dir.listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart'));
+  final files = dir
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((f) => f.path.endsWith('.dart'));
 
   for (final file in files) {
     try {

@@ -29,11 +29,7 @@ class FakeBuddyPublisher implements BuddyEventPublisher {
     if (failWith != null) {
       throw failWith!;
     }
-    appends.add((
-      buddySessionId: buddySessionId,
-      kind: kind,
-      payload: payload,
-    ));
+    appends.add((buddySessionId: buddySessionId, kind: kind, payload: payload));
     return _nextSeq++;
   }
 }

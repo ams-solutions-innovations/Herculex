@@ -10,28 +10,30 @@ ExerciseCatalogData _ex(
   String primaryMuscle = 'Chest',
   int cns = 5,
   bool weightedBw = false,
-}) =>
-    ExerciseCatalogData(
-      id: id,
-      name: name,
-      primaryMuscle: primaryMuscle,
-      equipment: 'Barbell',
-      mechanics: 'compound',
-      force: 'push',
-      plane: 'horizontal',
-      defaultRestSeconds: 120,
-      isCustom: false,
-      category: 'strength',
-      modality: 'barbell',
-      cnsScore: cns,
-      recoveryImpact: 3,
-      loggingMetric: 'weight_reps',
-      supportsWeightedBodyweight: weightedBw,
-      isReviewed: true,
-    );
+}) => ExerciseCatalogData(
+  id: id,
+  name: name,
+  primaryMuscle: primaryMuscle,
+  equipment: 'Barbell',
+  mechanics: 'compound',
+  force: 'push',
+  plane: 'horizontal',
+  defaultRestSeconds: 120,
+  isCustom: false,
+  category: 'strength',
+  modality: 'barbell',
+  cnsScore: cns,
+  recoveryImpact: 3,
+  loggingMetric: 'weight_reps',
+  supportsWeightedBodyweight: weightedBw,
+  isReviewed: true,
+);
 
-WorkoutSessionData _session(int id, DateTime startedAt, {String name = 'Leg Day'}) =>
-    WorkoutSessionData(id: id, startedAt: startedAt, name: name);
+WorkoutSessionData _session(
+  int id,
+  DateTime startedAt, {
+  String name = 'Leg Day',
+}) => WorkoutSessionData(id: id, startedAt: startedAt, name: name);
 
 WorkoutExerciseData _we(int id, int exerciseId, {int sessionId = 1}) =>
     WorkoutExerciseData(
@@ -50,37 +52,35 @@ SetEntryData _set(
   DateTime? completedAt,
   String setType = 'standard',
   double? bodyweightKg,
-}) =>
-    SetEntryData(
-      id: id,
-      workoutExerciseId: weId,
-      setIndex: 0,
-      weightKg: weightKg,
-      bodyweightKg: bodyweightKg,
-      reps: reps,
-      rpeX10: rpeX10,
-      isWarmup: false,
-      isCompleted: true,
-      completedAt: completedAt,
-      setType: setType,
-    );
+}) => SetEntryData(
+  id: id,
+  workoutExerciseId: weId,
+  setIndex: 0,
+  weightKg: weightKg,
+  bodyweightKg: bodyweightKg,
+  reps: reps,
+  rpeX10: rpeX10,
+  isWarmup: false,
+  isCompleted: true,
+  completedAt: completedAt,
+  setType: setType,
+);
 
 ResolvedSet _resolved({
   required SetEntryData set,
   required WorkoutExerciseData we,
   required ExerciseCatalogData ex,
   WorkoutSessionData? session,
-}) =>
-    ResolvedSet(
-      set: set,
-      workoutExercise: we,
-      session: session ?? _session(we.sessionId, DateTime(2026, 6, 12, 9)),
-      exercise: ex,
-      setType: SetType.fromId(set.setType),
-      bands: const [],
-      accessoryNames: const [],
-      forearmMultiplier: 1.0,
-    );
+}) => ResolvedSet(
+  set: set,
+  workoutExercise: we,
+  session: session ?? _session(we.sessionId, DateTime(2026, 6, 12, 9)),
+  exercise: ex,
+  setType: SetType.fromId(set.setType),
+  bands: const [],
+  accessoryNames: const [],
+  forearmMultiplier: 1.0,
+);
 
 void main() {
   final asOf = DateTime(2026, 6, 12, 12);
@@ -102,7 +102,11 @@ void main() {
 
     test('computes session-by-session impact and residual decay accurately', () {
       final deadlift = _ex(1, name: 'Deadlift', primaryMuscle: 'Back', cns: 9);
-      final session1 = _session(10, asOf.subtract(const Duration(hours: 12)), name: 'Heavy Pull');
+      final session1 = _session(
+        10,
+        asOf.subtract(const Duration(hours: 12)),
+        name: 'Heavy Pull',
+      );
       final we1 = _we(100, deadlift.id, sessionId: session1.id);
 
       final sets = [
@@ -158,12 +162,25 @@ void main() {
       expect(result.topCnsExercises, hasLength(1));
       expect(result.topCnsExercises.first.exerciseName, 'Deadlift');
       expect(result.topCnsExercises.first.cnsScore, 9);
-      expect(result.topCnsExercises.first.totalLoadContribution, closeTo(2.754, 0.001));
+      expect(
+        result.topCnsExercises.first.totalLoadContribution,
+        closeTo(2.754, 0.001),
+      );
     });
 
     test('weighted bodyweight exercise applies +2 CNS bonus', () {
-      final pullup = _ex(2, name: 'Weighted Pull-up', primaryMuscle: 'Lats', cns: 6, weightedBw: true);
-      final session = _session(20, asOf.subtract(const Duration(hours: 4)), name: 'Upper Body');
+      final pullup = _ex(
+        2,
+        name: 'Weighted Pull-up',
+        primaryMuscle: 'Lats',
+        cns: 6,
+        weightedBw: true,
+      );
+      final session = _session(
+        20,
+        asOf.subtract(const Duration(hours: 4)),
+        name: 'Upper Body',
+      );
       final we = _we(200, pullup.id, sessionId: session.id);
 
       final sets = [
@@ -193,35 +210,57 @@ void main() {
       expect(setImpact.setLoad, closeTo(0.8, 0.001));
     });
 
-    test('recovers over time: older sessions beyond 96h have zero residual fatigue', () {
-      final bench = _ex(3, name: 'Bench Press', primaryMuscle: 'Chest', cns: 7);
-      final oldSession = _session(30, asOf.subtract(const Duration(hours: 120)), name: 'Past Push Day');
-      final we = _we(300, bench.id, sessionId: oldSession.id);
+    test(
+      'recovers over time: older sessions beyond 96h have zero residual fatigue',
+      () {
+        final bench = _ex(
+          3,
+          name: 'Bench Press',
+          primaryMuscle: 'Chest',
+          cns: 7,
+        );
+        final oldSession = _session(
+          30,
+          asOf.subtract(const Duration(hours: 120)),
+          name: 'Past Push Day',
+        );
+        final we = _we(300, bench.id, sessionId: oldSession.id);
 
-      final sets = [
-        _resolved(
-          session: oldSession,
-          we: we,
-          ex: bench,
-          set: _set(
-            3001,
-            we.id,
-            completedAt: asOf.subtract(const Duration(hours: 120)),
+        final sets = [
+          _resolved(
+            session: oldSession,
+            we: we,
+            ex: bench,
+            set: _set(
+              3001,
+              we.id,
+              completedAt: asOf.subtract(const Duration(hours: 120)),
+            ),
           ),
-        ),
-      ];
+        ];
 
-      final snapshot = TrainingSnapshot(sets: sets, exerciseMuscles: const []);
-      final result = CnsBreakdownEngine.compute(snapshot: snapshot, asOf: asOf);
+        final snapshot = TrainingSnapshot(
+          sets: sets,
+          exerciseMuscles: const [],
+        );
+        final result = CnsBreakdownEngine.compute(
+          snapshot: snapshot,
+          asOf: asOf,
+        );
 
-      expect(result.recentSessions.first.currentResidualFatigue, 0.0);
-      expect(result.recentSessions.first.hasActiveResidualFatigue, isFalse);
-      expect(result.readiness, 1.0);
-    });
+        expect(result.recentSessions.first.currentResidualFatigue, 0.0);
+        expect(result.recentSessions.first.hasActiveResidualFatigue, isFalse);
+        expect(result.readiness, 1.0);
+      },
+    );
 
     test('computes ACWR and recovery ETA correctly', () {
       final squat = _ex(4, name: 'Squat', primaryMuscle: 'Quads', cns: 8);
-      final recentSession = _session(40, asOf.subtract(const Duration(hours: 2)), name: 'Heavy Squats');
+      final recentSession = _session(
+        40,
+        asOf.subtract(const Duration(hours: 2)),
+        name: 'Heavy Squats',
+      );
       final we = _we(400, squat.id, sessionId: recentSession.id);
 
       // Add heavy volume recently (high acute load)

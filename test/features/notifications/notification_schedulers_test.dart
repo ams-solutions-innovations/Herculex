@@ -38,7 +38,7 @@ class FakeLocalNotificationsPlugin extends Fake
     DateTimeComponents? matchDateTimeComponents,
     String? payload,
     required UILocalNotificationDateInterpretation
-        uiLocalNotificationDateInterpretation,
+    uiLocalNotificationDateInterpretation,
   }) async {
     scheduledCalls.add({
       'id': id,
@@ -78,25 +78,33 @@ void main() {
       expect(fakePlugin.cancelledIds, isNotEmpty);
       // Scheduled only breakfast
       expect(fakePlugin.scheduledCalls.length, 1);
-      expect(fakePlugin.scheduledCalls.first['title'], '🍽️ Breakfast reminder');
+      expect(
+        fakePlugin.scheduledCalls.first['title'],
+        '🍽️ Breakfast reminder',
+      );
       expect(
         fakePlugin.scheduledCalls.first['matchDateTimeComponents'],
         DateTimeComponents.time,
       );
     });
 
-    test('cancels all and schedules nothing when mealRemindersEnabled is false', () async {
-      final fakePlugin = FakeLocalNotificationsPlugin();
-      final scheduler = MealNotificationScheduler(fakePlugin);
+    test(
+      'cancels all and schedules nothing when mealRemindersEnabled is false',
+      () async {
+        final fakePlugin = FakeLocalNotificationsPlugin();
+        final scheduler = MealNotificationScheduler(fakePlugin);
 
-      const settings = NotificationSettings(mealRemindersEnabled: false);
-      final mealSlots = [const MealSlot(key: 'breakfast', label: 'Breakfast')];
+        const settings = NotificationSettings(mealRemindersEnabled: false);
+        final mealSlots = [
+          const MealSlot(key: 'breakfast', label: 'Breakfast'),
+        ];
 
-      await scheduler.rescheduleAll(settings: settings, mealSlots: mealSlots);
+        await scheduler.rescheduleAll(settings: settings, mealSlots: mealSlots);
 
-      expect(fakePlugin.cancelledIds, isNotEmpty);
-      expect(fakePlugin.scheduledCalls, isEmpty);
-    });
+        expect(fakePlugin.cancelledIds, isNotEmpty);
+        expect(fakePlugin.scheduledCalls, isEmpty);
+      },
+    );
   });
 
   group('DailyLogNotificationScheduler', () {
@@ -112,7 +120,10 @@ void main() {
       await scheduler.reschedule(settings);
 
       expect(fakePlugin.scheduledCalls.length, 1);
-      expect(fakePlugin.scheduledCalls.first['id'], DailyLogNotificationScheduler.notifId);
+      expect(
+        fakePlugin.scheduledCalls.first['id'],
+        DailyLogNotificationScheduler.notifId,
+      );
       expect(fakePlugin.scheduledCalls.first['title'], '📊 Daily check-in');
     });
 
@@ -124,33 +135,42 @@ void main() {
       await scheduler.reschedule(settings);
 
       expect(fakePlugin.scheduledCalls, isEmpty);
-      expect(fakePlugin.cancelledIds, contains(DailyLogNotificationScheduler.notifId));
+      expect(
+        fakePlugin.cancelledIds,
+        contains(DailyLogNotificationScheduler.notifId),
+      );
     });
   });
 
   group('SupplementNotificationScheduler', () {
-    test('reschedules supplements when enabled and skips when disabled', () async {
-      final fakePlugin = FakeLocalNotificationsPlugin();
-      final scheduler = SupplementNotificationScheduler(fakePlugin);
+    test(
+      'reschedules supplements when enabled and skips when disabled',
+      () async {
+        final fakePlugin = FakeLocalNotificationsPlugin();
+        final scheduler = SupplementNotificationScheduler(fakePlugin);
 
-      final supplements = [
-        const Supplement(
-          id: 'creatine',
-          name: 'Creatine',
-          schedule: SupplementSchedule.time,
-          timeHHMM: '09:00',
-        ),
-      ];
+        final supplements = [
+          const Supplement(
+            id: 'creatine',
+            name: 'Creatine',
+            schedule: SupplementSchedule.time,
+            timeHHMM: '09:00',
+          ),
+        ];
 
-      await scheduler.reschedule(supplements, enabled: true);
-      expect(fakePlugin.scheduledCalls.length, 1);
-      expect(fakePlugin.scheduledCalls.first['title'], '💊 Supplement reminder');
+        await scheduler.reschedule(supplements, enabled: true);
+        expect(fakePlugin.scheduledCalls.length, 1);
+        expect(
+          fakePlugin.scheduledCalls.first['title'],
+          '💊 Supplement reminder',
+        );
 
-      fakePlugin.scheduledCalls.clear();
+        fakePlugin.scheduledCalls.clear();
 
-      await scheduler.reschedule(supplements, enabled: false);
-      expect(fakePlugin.scheduledCalls, isEmpty);
-    });
+        await scheduler.reschedule(supplements, enabled: false);
+        expect(fakePlugin.scheduledCalls, isEmpty);
+      },
+    );
   });
 
   group('FastingNotificationScheduler & FastingScheduleService', () {
@@ -161,11 +181,17 @@ void main() {
       final target = DateTime.now().add(const Duration(hours: 16));
       await scheduler.scheduleFastingGoal(target, enabled: false);
       expect(fakePlugin.scheduledCalls, isEmpty);
-      expect(fakePlugin.cancelledIds, contains(FastingNotificationScheduler.notifId));
+      expect(
+        fakePlugin.cancelledIds,
+        contains(FastingNotificationScheduler.notifId),
+      );
 
       await scheduler.scheduleFastingGoal(target, enabled: true);
       expect(fakePlugin.scheduledCalls.length, 1);
-      expect(fakePlugin.scheduledCalls.first['title'], '🎉 Fasting Goal Reached!');
+      expect(
+        fakePlugin.scheduledCalls.first['title'],
+        '🎉 Fasting Goal Reached!',
+      );
     });
   });
 

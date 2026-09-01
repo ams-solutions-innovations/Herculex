@@ -8,7 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('NotificationSettingsView renders all sections and toggles', (tester) async {
+  testWidgets('NotificationSettingsView renders all sections and toggles', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -19,12 +21,8 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
-        child: const MaterialApp(
-          home: NotificationSettingsView(),
-        ),
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: const MaterialApp(home: NotificationSettingsView()),
       ),
     );
 

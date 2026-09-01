@@ -33,13 +33,13 @@ class PendingAiScanContext {
   }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
-        'type': type.name,
-        'mealKey': mealKey,
-        'dateIso': dateIso,
-        'metricKey': metricKey,
-        'extra': extra,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'type': type.name,
+    'mealKey': mealKey,
+    'dateIso': dateIso,
+    'metricKey': metricKey,
+    'extra': extra,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   factory PendingAiScanContext.fromJson(Map<String, dynamic> json) {
     final typeName = json['type'] as String? ?? 'food';

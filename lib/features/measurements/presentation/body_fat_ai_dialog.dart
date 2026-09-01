@@ -80,7 +80,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
   Future<void> _pickFromGalleryOrCamera(ImageSource source) async {
     Haptics.light();
     try {
-      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+      await ref
+          .read(pendingAiScanServiceProvider)
+          .setPendingContext(
             PendingAiScanContext(type: AiScanContextType.bodyFat),
           );
       final picked = await ImagePicker().pickImage(
@@ -105,8 +107,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
     Haptics.selection();
     final file = File(photo.filePath);
     setState(() {
-      final existingIndex =
-          _selectedFiles.indexWhere((f) => f.path == file.path);
+      final existingIndex = _selectedFiles.indexWhere(
+        (f) => f.path == file.path,
+      );
       if (existingIndex >= 0) {
         _selectedFiles.removeAt(existingIndex);
       } else {
@@ -171,7 +174,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
             'Body fat (${_result!.estimatedBfPercent.toStringAsFixed(1)}%) saved!',
           ),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       Navigator.of(context).pop(true);
@@ -225,8 +230,11 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                       color: AppColors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.auto_awesome,
-                        size: 22, color: AppColors.primary),
+                    child: Icon(
+                      Icons.auto_awesome,
+                      size: 22,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -450,23 +458,31 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _contextChip(
-                'Sex',
-                isMale ? 'Male' : 'Female',
-                Icons.wc,
-              ),
+              _contextChip('Sex', isMale ? 'Male' : 'Female', Icons.wc),
               if (weight != null)
-                _contextChip('Weight', '${weight.toStringAsFixed(1)} kg',
-                    Icons.monitor_weight_outlined),
+                _contextChip(
+                  'Weight',
+                  '${weight.toStringAsFixed(1)} kg',
+                  Icons.monitor_weight_outlined,
+                ),
               if (height != null)
-                _contextChip('Height', '${height.toStringAsFixed(0)} cm',
-                    Icons.height),
+                _contextChip(
+                  'Height',
+                  '${height.toStringAsFixed(0)} cm',
+                  Icons.height,
+                ),
               if (waist != null)
-                _contextChip('Waist', '${waist.toStringAsFixed(1)} cm',
-                    Icons.straighten),
+                _contextChip(
+                  'Waist',
+                  '${waist.toStringAsFixed(1)} cm',
+                  Icons.straighten,
+                ),
               if (neck != null)
-                _contextChip('Neck', '${neck.toStringAsFixed(1)} cm',
-                    Icons.straighten),
+                _contextChip(
+                  'Neck',
+                  '${neck.toStringAsFixed(1)} cm',
+                  Icons.straighten,
+                ),
             ],
           ),
         ],
@@ -495,10 +511,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
           ),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -523,8 +536,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                 IconButton(
                   icon: const Icon(Icons.camera_alt_outlined, size: 20),
                   tooltip: 'Camera',
-                  onPressed: () =>
-                      _pickFromGalleryOrCamera(ImageSource.camera),
+                  onPressed: () => _pickFromGalleryOrCamera(ImageSource.camera),
                 ),
                 IconButton(
                   icon: const Icon(Icons.photo_library_outlined, size: 20),
@@ -580,8 +592,11 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                             color: Colors.black.withValues(alpha: 0.7),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close,
-                              size: 12, color: Colors.white),
+                          child: const Icon(
+                            Icons.close,
+                            size: 12,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -612,8 +627,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
               itemBuilder: (context, index) {
                 final photo = _savedPhotos[index];
                 final file = File(photo.filePath);
-                final isSelected =
-                    _selectedFiles.any((f) => f.path == file.path);
+                final isSelected = _selectedFiles.any(
+                  (f) => f.path == file.path,
+                );
 
                 return GestureDetector(
                   onTap: () => _toggleSavedPhoto(photo),
@@ -647,8 +663,11 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Center(
-                              child: Icon(Icons.check_circle,
-                                  color: Colors.white, size: 22),
+                              child: Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 22,
+                              ),
                             ),
                           ),
                         Positioned(
@@ -657,7 +676,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                           right: 2,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 1),
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black54,
                               borderRadius: BorderRadius.circular(4),
@@ -666,9 +687,10 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                               photo.pose.toUpperCase(),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -712,8 +734,10 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(12),
@@ -721,8 +745,11 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.auto_awesome,
-                            size: 14, color: Colors.white),
+                        const Icon(
+                          Icons.auto_awesome,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           r.isAiGenerated
@@ -913,9 +940,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
           const SizedBox(height: 8),
           Text(
             content,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              height: 1.4,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
           ),
         ],
       ),

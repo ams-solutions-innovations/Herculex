@@ -56,8 +56,10 @@ abstract final class SlotRoleEligibility {
   static int of(Iterable<SlotRole> roles) =>
       roles.fold(0, (mask, r) => mask | r.flag);
 
-  static List<SlotRole> toList(int mask) =>
-      [for (final r in SlotRole.values) if (allows(mask, r)) r];
+  static List<SlotRole> toList(int mask) => [
+    for (final r in SlotRole.values)
+      if (allows(mask, r)) r,
+  ];
 
   /// Modalities where a true maximal single is both loadable and safe.
   static const _maxEffortModalities = {

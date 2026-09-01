@@ -63,14 +63,15 @@ class _CaptureState {
 /// what carries the per-channel amplitude floors — the service must not be in
 /// the business of assembling detector configs, or it becomes a second place
 /// where a tilt amplitude can be compared against a m/s² threshold.
-typedef RepDetectFn = (RepDetectionResult, RepChannel?) Function(
-  MotionTrace trace,
-  RepTrackingProfile profile,
-);
+typedef RepDetectFn =
+    (RepDetectionResult, RepChannel?) Function(
+      MotionTrace trace,
+      RepTrackingProfile profile,
+    );
 
 class RepCaptureService {
   RepCaptureService({RepDetectFn? detect})
-      : _detect = detect ?? RepDetector.detectForProfile {
+    : _detect = detect ?? RepDetector.detectForProfile {
     WearSyncService.onWatchRepCaptureStart = _handleCaptureStart;
     WearSyncService.onWatchRepSamples = _handleSamples;
     WearSyncService.onWatchRepCaptureEnd = _handleCaptureEnd;
@@ -211,8 +212,9 @@ class RepCaptureService {
     if (incomplete) band = band.lowerByOne();
 
     final isLowConfidence = band == ConfidenceBand.low;
-    final state =
-        isLowConfidence ? TrackerState.countOnly : TrackerState.tracking;
+    final state = isLowConfidence
+        ? TrackerState.countOnly
+        : TrackerState.tracking;
     final reason = isLowConfidence
         ? 'low confidence — reps proposed, no RPE suggestion'
         : (incomplete ? 'capture ended early ($stoppedReason)' : null);
@@ -257,7 +259,8 @@ class RepCaptureService {
   // would.
 
   /// Simulates one `/herculex/reps/capture_start` delivery.
-  void handleCaptureStart(String? payloadJson) => _handleCaptureStart(payloadJson);
+  void handleCaptureStart(String? payloadJson) =>
+      _handleCaptureStart(payloadJson);
 
   /// Simulates one `/herculex/reps/samples` delivery.
   void handleSamples(String? payloadJson) => _handleSamples(payloadJson);
@@ -356,7 +359,9 @@ class RepCaptureService {
     final movement = profile?.family;
     if (profile == null || movement == null) {
       _captures.remove(captureId);
-      _emitManual('unrecognised exercise for rep tracking — count not verified');
+      _emitManual(
+        'unrecognised exercise for rep tracking — count not verified',
+      );
       return;
     }
 
@@ -382,7 +387,8 @@ class RepCaptureService {
         return;
       }
 
-      final provisionalDisagrees = provisionalCount != null &&
+      final provisionalDisagrees =
+          provisionalCount != null &&
           (provisionalCount - result.repCount).abs() > 1;
 
       // Confidence is degraded — never proposedReps — by exactly one step
@@ -398,7 +404,9 @@ class RepCaptureService {
           : (orderedSeqs.length / batchCount).clamp(0.0, 1.0);
 
       final isLowConfidence = band == ConfidenceBand.low;
-      final state = isLowConfidence ? TrackerState.countOnly : TrackerState.tracking;
+      final state = isLowConfidence
+          ? TrackerState.countOnly
+          : TrackerState.tracking;
       final reason = isLowConfidence
           ? 'low confidence — reps proposed, no RPE suggestion'
           : null;

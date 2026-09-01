@@ -48,7 +48,12 @@ class ScheduledWorkoutService {
   final ProgramsRepository _programs;
   final TemplatesRepository _templates;
 
-  ScheduledWorkoutService(this._db, this._clock, this._programs, this._templates);
+  ScheduledWorkoutService(
+    this._db,
+    this._clock,
+    this._programs,
+    this._templates,
+  );
 
   static String _dateIso(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
@@ -114,16 +119,16 @@ class ScheduledWorkoutService {
           )
         : await _startFromInlineExercises(today, gymId: gymId);
 
-    await (_db.update(_db.scheduledWorkouts)
-          ..where((t) => t.id.equals(today.schedule.id)))
-        .write(
-          ScheduledWorkoutsCompanion(
-            completedSessionId: Value(sessionId),
-            // Starting is not finishing — `markScheduleCompleted` flips this to
-            // done when the session actually ends.
-            status: const Value(ScheduleStatus.inProgress),
-          ),
-        );
+    await (_db.update(
+      _db.scheduledWorkouts,
+    )..where((t) => t.id.equals(today.schedule.id))).write(
+      ScheduledWorkoutsCompanion(
+        completedSessionId: Value(sessionId),
+        // Starting is not finishing — `markScheduleCompleted` flips this to
+        // done when the session actually ends.
+        status: const Value(ScheduleStatus.inProgress),
+      ),
+    );
 
     return sessionId;
   }

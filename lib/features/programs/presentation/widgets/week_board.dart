@@ -77,7 +77,8 @@ class WeekBoard extends ConsumerWidget {
     String iso,
   ) {
     for (final e in events) {
-      if (iso.compareTo(e.dateFromIso) >= 0 && iso.compareTo(e.dateToIso) <= 0) {
+      if (iso.compareTo(e.dateFromIso) >= 0 &&
+          iso.compareTo(e.dateToIso) <= 0) {
         return e;
       }
     }

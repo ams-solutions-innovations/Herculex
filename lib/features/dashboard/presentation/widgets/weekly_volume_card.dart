@@ -74,9 +74,7 @@ class WeeklyVolumeMiniCard extends ConsumerWidget {
                 )
               : Row(
                   children: [
-                    Expanded(
-                      child: dashboardTitle(context, 'Total Volume'),
-                    ),
+                    Expanded(child: dashboardTitle(context, 'Total Volume')),
                     volume.when(
                       data: (v) => Text(
                         '${v.totalSets} sets',

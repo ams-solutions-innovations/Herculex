@@ -28,9 +28,9 @@ enum HerculDomain {
   ergonomics;
 
   static HerculDomain fromId(String? id) => values.firstWhere(
-        (d) => d.name == id,
-        orElse: () => HerculDomain.consistency,
-      );
+    (d) => d.name == id,
+    orElse: () => HerculDomain.consistency,
+  );
 }
 
 enum ConditionOp {
@@ -134,10 +134,8 @@ class HerculCta {
 
   const HerculCta({required this.type, required this.value});
 
-  factory HerculCta.fromJson(Map<String, dynamic> json) => HerculCta(
-        type: json['type'] as String,
-        value: json['value'] as String,
-      );
+  factory HerculCta.fromJson(Map<String, dynamic> json) =>
+      HerculCta(type: json['type'] as String, value: json['value'] as String);
 }
 
 /// One authored observation and the conditions under which Hercul makes it.
@@ -176,9 +174,9 @@ class HerculRule {
 
   /// Every signal this rule reads, from its conditions and its `requires`.
   Set<String> get referencedSignals => {
-        for (final c in when) c.signal,
-        ...requires,
-      };
+    for (final c in when) c.signal,
+    ...requires,
+  };
 
   factory HerculRule.fromJson(Map<String, dynamic> json) {
     final copy = (json['copy'] as Map).cast<String, dynamic>();

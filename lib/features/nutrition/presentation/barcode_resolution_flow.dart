@@ -137,7 +137,9 @@ Future<File?> _pickProductPhoto(
     ),
   );
   if (source == null) return null;
-  await ref.read(pendingAiScanServiceProvider).setPendingContext(
+  await ref
+      .read(pendingAiScanServiceProvider)
+      .setPendingContext(
         PendingAiScanContext(
           type: AiScanContextType.food,
           extra: {'barcode': barcode},

@@ -87,15 +87,17 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _settling = true;
-        _pageCtrl.animateToPage(
-          targetPage,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        ).then((_) {
-          if (mounted) {
-            setState(() => _settling = false);
-          }
-        });
+        _pageCtrl
+            .animateToPage(
+              targetPage,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            )
+            .then((_) {
+              if (mounted) {
+                setState(() => _settling = false);
+              }
+            });
       });
     }
 
@@ -344,13 +346,14 @@ enum MacroDisplayMode {
   grams;
 
   MacroDisplayMode get next => switch (this) {
-        percent => grams,
-        grams => percent,
-      };
+    percent => grams,
+    grams => percent,
+  };
 }
 
-final mealMacroDisplayModeProvider =
-    StateProvider<MacroDisplayMode>((ref) => MacroDisplayMode.percent);
+final mealMacroDisplayModeProvider = StateProvider<MacroDisplayMode>(
+  (ref) => MacroDisplayMode.percent,
+);
 
 class _MealAccordionState extends ConsumerState<_MealAccordion>
     with SingleTickerProviderStateMixin {
@@ -539,21 +542,23 @@ class _MealAccordionState extends ConsumerState<_MealAccordion>
 
 final mealMacroTotalsProvider = FutureProvider.autoDispose
     .family<DailyTotals, ({DateTime date, String mealKey})>((ref, arg) async {
-  final repo = ref.watch(nutritionRepositoryProvider);
-  final allEntries = await ref.watch(entriesForDateProvider(arg.date).future);
-  final entries = allEntries.where((e) => e.meal == arg.mealKey).toList();
-  var t = DailyTotals.empty;
-  for (final e in entries) {
-    final m = await repo.macrosForEntry(e);
-    t = t.plus(
-      kcal: m.kcal,
-      proteinG: m.proteinG,
-      carbsG: m.carbsG,
-      fatG: m.fatG,
-    );
-  }
-  return t;
-});
+      final repo = ref.watch(nutritionRepositoryProvider);
+      final allEntries = await ref.watch(
+        entriesForDateProvider(arg.date).future,
+      );
+      final entries = allEntries.where((e) => e.meal == arg.mealKey).toList();
+      var t = DailyTotals.empty;
+      for (final e in entries) {
+        final m = await repo.macrosForEntry(e);
+        t = t.plus(
+          kcal: m.kcal,
+          proteinG: m.proteinG,
+          carbsG: m.carbsG,
+          fatG: m.fatG,
+        );
+      }
+      return t;
+    });
 
 /// Resolves per-meal macro totals asynchronously and renders a compact
 /// "P · C · F" chip. Tapping cycles between grams and % of meal kcal.
@@ -733,39 +738,41 @@ class _MacroChip extends StatelessWidget {
 
 final entryDisplayProvider = FutureProvider.autoDispose
     .family<_EntryDisplay, FoodEntryData>((ref, entry) async {
-  final repo = ref.watch(nutritionRepositoryProvider);
-  final macros = await repo.macrosForEntry(entry);
+      final repo = ref.watch(nutritionRepositoryProvider);
+      final macros = await repo.macrosForEntry(entry);
 
-  String name = entry.snapshotName ?? '—';
-  bool isDeleted = false;
+      String name = entry.snapshotName ?? '—';
+      bool isDeleted = false;
 
-  if (entry.foodId != null) {
-    final food = await ref.watch(foodByIdProvider(entry.foodId!).future);
-    name = entry.snapshotName ?? (food ?? _placeholderFood()).name;
-    isDeleted = food?.deletedAt != null;
-  } else if (entry.recipeId != null) {
-    final recipe = await ref.watch(recipeByIdProvider(entry.recipeId!).future);
-    name = entry.snapshotName ?? (recipe ?? _placeholderRecipe()).name;
-    isDeleted = recipe?.deletedAt != null;
-  }
+      if (entry.foodId != null) {
+        final food = await ref.watch(foodByIdProvider(entry.foodId!).future);
+        name = entry.snapshotName ?? (food ?? _placeholderFood()).name;
+        isDeleted = food?.deletedAt != null;
+      } else if (entry.recipeId != null) {
+        final recipe = await ref.watch(
+          recipeByIdProvider(entry.recipeId!).future,
+        );
+        name = entry.snapshotName ?? (recipe ?? _placeholderRecipe()).name;
+        isDeleted = recipe?.deletedAt != null;
+      }
 
-  final portionText = entry.foodId != null
-      ? '${(entry.gramsOverride ?? (entry.portionUnit == 'g' ? entry.portionAmount : null) ?? entry.snapshotServingGrams ?? entry.portionAmount ?? 0).toStringAsFixed(0)} g'
-      : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
+      final portionText = entry.foodId != null
+          ? '${(entry.gramsOverride ?? (entry.portionUnit == 'g' ? entry.portionAmount : null) ?? entry.snapshotServingGrams ?? entry.portionAmount ?? 0).toStringAsFixed(0)} g'
+          : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
 
-  return _EntryDisplay(
-    name: name,
-    isDeleted: isDeleted,
-    portionText: portionText,
-    kcal: macros.kcal,
-    proteinG: macros.proteinG,
-    carbsG: macros.carbsG,
-    fatG: macros.fatG,
-    sodiumMg: macros.sodiumMg,
-    potassiumMg: macros.potassiumMg,
-    cholesterolMg: macros.cholesterolMg,
-  );
-});
+      return _EntryDisplay(
+        name: name,
+        isDeleted: isDeleted,
+        portionText: portionText,
+        kcal: macros.kcal,
+        proteinG: macros.proteinG,
+        carbsG: macros.carbsG,
+        fatG: macros.fatG,
+        sodiumMg: macros.sodiumMg,
+        potassiumMg: macros.potassiumMg,
+        cholesterolMg: macros.cholesterolMg,
+      );
+    });
 
 FoodData _placeholderFood() => FoodData(
   id: 0,
@@ -833,7 +840,9 @@ class _EntryTile extends ConsumerWidget {
                 onTap: () => _showEntryDetail(context, theme, display, ref),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
@@ -860,8 +869,9 @@ class _EntryTile extends ConsumerWidget {
                                 Flexible(
                                   child: Text(
                                     display.name,
-                                    style: theme.textTheme.bodyMedium
-                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
                                   ),
@@ -886,8 +896,9 @@ class _EntryTile extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         '${display.kcal.toStringAsFixed(0)} kcal',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -993,10 +1004,15 @@ class _EntryTile extends ConsumerWidget {
                         final targetLabel = mealSlots
                             .firstWhere(
                               (s) => s.key == targetMealKey,
-                              orElse: () => MealSlot(key: targetMealKey, label: targetMealKey),
+                              orElse: () => MealSlot(
+                                key: targetMealKey,
+                                label: targetMealKey,
+                              ),
                             )
                             .label;
-                        ref.read(hxToastControllerProvider.notifier).show(
+                        ref
+                            .read(hxToastControllerProvider.notifier)
+                            .show(
                               HxToastItem.entryMoved(
                                 itemName: display.name,
                                 targetLabel: targetLabel,
@@ -1050,7 +1066,8 @@ class _EntryTile extends ConsumerWidget {
                           food: food,
                           recipe: recipe,
                           date:
-                              DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
+                              DateTime.tryParse(entry.dateIso) ??
+                              DateTime.now(),
                         );
                       },
                     ),
@@ -1140,7 +1157,9 @@ class _EntryTile extends ConsumerWidget {
                             mealKey: slot.key,
                           );
                           if (!context.mounted) return;
-                          ref.read(hxToastControllerProvider.notifier).show(
+                          ref
+                              .read(hxToastControllerProvider.notifier)
+                              .show(
                                 HxToastItem.entryMoved(
                                   itemName: display.name,
                                   targetLabel: slot.label,
@@ -1183,7 +1202,8 @@ class _EntryTile extends ConsumerWidget {
                         entry: entry,
                         food: food,
                         recipe: recipe,
-                        date: DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
+                        date:
+                            DateTime.tryParse(entry.dateIso) ?? DateTime.now(),
                       );
                     },
                     icon: const Icon(Icons.edit_outlined, size: 18),

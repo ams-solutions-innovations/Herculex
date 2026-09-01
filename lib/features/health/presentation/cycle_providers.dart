@@ -37,7 +37,9 @@ final recentCycleLogsProvider = StreamProvider<List<CycleLogData>>((ref) {
 });
 
 /// Comprehensive physiological adjustment recommendation for today.
-final cycleAdjustmentProvider = FutureProvider<CycleAdjustmentResult>((ref) async {
+final cycleAdjustmentProvider = FutureProvider<CycleAdjustmentResult>((
+  ref,
+) async {
   final repo = ref.watch(cycleRepositoryProvider);
   // Recompute automatically when settings or today's override change
   ref.watch(cycleSettingsStreamProvider);
@@ -120,7 +122,10 @@ class CycleSyncNotifier extends StateNotifier<CycleSyncState> {
 
   /// Pulls menstrual flow logs from Apple Health (HealthKit) / Health Connect (including Flo & Clue).
   Future<bool> syncFromHealthApps() async {
-    state = state.copyWith(isSyncingHealth: true, syncMessage: 'Querying health platforms...');
+    state = state.copyWith(
+      isSyncingHealth: true,
+      syncMessage: 'Querying health platforms...',
+    );
     try {
       final healthService = _ref.read(healthServiceProvider);
       final periodDays = await healthService.readPeriodDays(lookbackDays: 90);
@@ -128,7 +133,8 @@ class CycleSyncNotifier extends StateNotifier<CycleSyncState> {
       if (periodDays.isEmpty) {
         state = state.copyWith(
           isSyncingHealth: false,
-          syncMessage: 'No period records found in Apple Health / Health Connect.',
+          syncMessage:
+              'No period records found in Apple Health / Health Connect.',
           lastHealthSync: DateTime.now(),
         );
         return false;
@@ -138,7 +144,8 @@ class CycleSyncNotifier extends StateNotifier<CycleSyncState> {
 
       state = state.copyWith(
         isSyncingHealth: false,
-        syncMessage: 'Successfully synced ${periodDays.length} period entries from Health / Flo.',
+        syncMessage:
+            'Successfully synced ${periodDays.length} period entries from Health / Flo.',
         lastHealthSync: DateTime.now(),
       );
       return true;
@@ -154,5 +161,5 @@ class CycleSyncNotifier extends StateNotifier<CycleSyncState> {
 
 final cycleSyncNotifierProvider =
     StateNotifierProvider<CycleSyncNotifier, CycleSyncState>((ref) {
-  return CycleSyncNotifier(ref);
-});
+      return CycleSyncNotifier(ref);
+    });

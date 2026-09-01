@@ -2,7 +2,6 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../nutrition/data/wear_sync_service.dart';
-import '../../fasting/data/fasting_repository.dart';
 import '../../fasting/domain/fasting_sync_snapshot.dart';
 import '../../fasting/presentation/fasting_providers.dart';
 import '../../../app/providers.dart';
@@ -16,6 +15,7 @@ import '../../analytics/presentation/analytics_providers.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 import '../../../core/units.dart';
 import '../../gamification/presentation/gamification_providers.dart';
+import '../domain/active_workout_notification_target.dart';
 import '../domain/calendar_service.dart';
 import '../domain/effective_load.dart';
 import '../domain/session_summary.dart';
@@ -81,51 +81,52 @@ class LiveWorkoutStats {
   });
 }
 
-final activeSessionStatsProvider =
-    StreamProvider.family<LiveWorkoutStats, int>((ref, sessionId) {
-  final db = ref.watch(appDatabaseProvider);
-  final query = db.select(db.setEntries).join([
-    drift.innerJoin(
-      db.workoutExercises,
-      db.workoutExercises.id.equalsExp(db.setEntries.workoutExerciseId),
-    ),
-  ])..where(db.workoutExercises.sessionId.equals(sessionId));
+final activeSessionStatsProvider = StreamProvider.family<LiveWorkoutStats, int>(
+  (ref, sessionId) {
+    final db = ref.watch(appDatabaseProvider);
+    final query = db.select(db.setEntries).join([
+      drift.innerJoin(
+        db.workoutExercises,
+        db.workoutExercises.id.equalsExp(db.setEntries.workoutExerciseId),
+      ),
+    ])..where(db.workoutExercises.sessionId.equals(sessionId));
 
-  return query.watch().map((rows) {
-    int total = 0;
-    int completed = 0;
-    double tonnage = 0.0;
+    return query.watch().map((rows) {
+      int total = 0;
+      int completed = 0;
+      double tonnage = 0.0;
 
-    for (final row in rows) {
-      final set = row.readTable(db.setEntries);
-      total++;
-      if (set.isCompleted) {
-        completed++;
+      for (final row in rows) {
+        final set = row.readTable(db.setEntries);
+        total++;
+        if (set.isCompleted) {
+          completed++;
+        }
+        final effectiveKg = EffectiveLoad.computeKg(
+          weightKg: set.weightKg,
+          bodyweightKg: set.bodyweightKg,
+          includesBodyweight: set.bodyweightKg != null,
+          chainsKg: set.chainsKg,
+        );
+        final setType = SetType.fromId(set.setType);
+        final setTonnage = EffectiveLoad.tonnageKg(
+          effectiveKg: effectiveKg,
+          reps: set.reps,
+          setType: setType,
+        );
+        if (set.isCompleted || (set.reps > 0 && set.weightKg > 0)) {
+          tonnage += setTonnage;
+        }
       }
-      final effectiveKg = EffectiveLoad.computeKg(
-        weightKg: set.weightKg,
-        bodyweightKg: set.bodyweightKg,
-        includesBodyweight: set.bodyweightKg != null,
-        chainsKg: set.chainsKg,
-      );
-      final setType = SetType.fromId(set.setType);
-      final setTonnage = EffectiveLoad.tonnageKg(
-        effectiveKg: effectiveKg,
-        reps: set.reps,
-        setType: setType,
-      );
-      if (set.isCompleted || (set.reps > 0 && set.weightKg > 0)) {
-        tonnage += setTonnage;
-      }
-    }
 
-    return LiveWorkoutStats(
-      totalSets: total,
-      completedSets: completed,
-      totalTonnageKg: tonnage,
-    );
-  });
-});
+      return LiveWorkoutStats(
+        totalSets: total,
+        completedSets: completed,
+        totalTonnageKg: tonnage,
+      );
+    });
+  },
+);
 
 /// Headline totals for a finished session, backing the finish screen and its
 /// shareable card. Reads the same snapshot the analytics engines use, so the
@@ -359,12 +360,42 @@ final microWorkoutsTodayProvider = StreamProvider<List<MicroWorkoutStatus>>((
   return ref.watch(microWorkoutsRepositoryProvider).watchTodayStatus();
 });
 
+/// All micro workouts (including paused) with status.
+final microWorkoutsAllProvider = StreamProvider<List<MicroWorkoutStatus>>((
+  ref,
+) {
+  return ref.watch(microWorkoutsRepositoryProvider).watchAllStatus();
+});
+
+/// 7-day streak and weekly completion stats.
+final microWorkoutsWeeklyStatsProvider =
+    StreamProvider<MicroWorkoutWeeklyStats>((ref) {
+      return ref.watch(microWorkoutsRepositoryProvider).watchWeeklyStats();
+    });
+
+/// Today's logged completion sessions for micro workouts.
+final microWorkoutsTodayLogsProvider =
+    StreamProvider<List<MicroWorkoutLogEntry>>((ref) {
+      return ref.watch(microWorkoutsRepositoryProvider).watchTodayLogs();
+    });
+
 /// Per-exercise progression override row (§16). Null = no override set.
 final exerciseProgressionProvider =
     FutureProvider.family<ExerciseProgressionData?, int>((ref, exerciseId) {
       return ref
           .watch(exerciseProgressionsRepositoryProvider)
           .forExercise(exerciseId);
+    });
+
+/// Reactive stream provider for the active workout notification / surface target.
+final activeWorkoutNotificationTargetProvider =
+    StreamProvider.family<ActiveWorkoutNotificationTarget?, int>((
+      ref,
+      sessionId,
+    ) {
+      return ref
+          .watch(workoutsRepositoryProvider)
+          .watchActiveNotificationTargetForSession(sessionId);
     });
 
 final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
@@ -393,7 +424,9 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
 
     // Watcher callbacks shouldn't await before reading everything they need,
     // but the repo is safe to read.
-    final lastFast = activeFast == null ? (await fastingRepo.history(limit: 1)).firstOrNull : null;
+    final lastFast = activeFast == null
+        ? (await fastingRepo.history(limit: 1)).firstOrNull
+        : null;
 
     if (activeSession != null) {
       await syncService.pushActiveSessionToWatch(activeSession);

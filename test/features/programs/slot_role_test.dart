@@ -14,28 +14,32 @@ void main() {
       expect(SlotRoleEligibility.allows(mask, SlotRole.accessory), isTrue);
     });
 
-    test('a cable fly may never be a main lift — the whole point of the mask',
-        () {
-      final mask = SlotRoleEligibility.derive(
-        mechanics: 'isolation',
-        modality: 'cable',
-        cnsScore: 2,
-      );
-      expect(SlotRoleEligibility.allows(mask, SlotRole.main), isFalse);
-      expect(SlotRoleEligibility.allows(mask, SlotRole.isolation), isTrue);
-      expect(SlotRoleEligibility.allows(mask, SlotRole.accessory), isTrue);
-    });
+    test(
+      'a cable fly may never be a main lift — the whole point of the mask',
+      () {
+        final mask = SlotRoleEligibility.derive(
+          mechanics: 'isolation',
+          modality: 'cable',
+          cnsScore: 2,
+        );
+        expect(SlotRoleEligibility.allows(mask, SlotRole.main), isFalse);
+        expect(SlotRoleEligibility.allows(mask, SlotRole.isolation), isTrue);
+        expect(SlotRoleEligibility.allows(mask, SlotRole.accessory), isTrue);
+      },
+    );
 
-    test('a low-CNS compound is supplemental material, not a max-effort lift',
-        () {
-      final mask = SlotRoleEligibility.derive(
-        mechanics: 'compound',
-        modality: 'barbell',
-        cnsScore: 2,
-      );
-      expect(SlotRoleEligibility.allows(mask, SlotRole.main), isFalse);
-      expect(SlotRoleEligibility.allows(mask, SlotRole.supplemental), isTrue);
-    });
+    test(
+      'a low-CNS compound is supplemental material, not a max-effort lift',
+      () {
+        final mask = SlotRoleEligibility.derive(
+          mechanics: 'compound',
+          modality: 'barbell',
+          cnsScore: 2,
+        );
+        expect(SlotRoleEligibility.allows(mask, SlotRole.main), isFalse);
+        expect(SlotRoleEligibility.allows(mask, SlotRole.supplemental), isTrue);
+      },
+    );
 
     test('a selectorized machine is not max-effort material either', () {
       final mask = SlotRoleEligibility.derive(

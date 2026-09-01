@@ -26,7 +26,9 @@ export '../core/clock.dart' show clockProvider;
 
 /// Overridden in main() once SharedPreferences has been initialised.
 final sharedPreferencesProvider = Provider<SharedPreferences>((_) {
-  throw UnimplementedError('sharedPreferencesProvider must be overridden in main()');
+  throw UnimplementedError(
+    'sharedPreferencesProvider must be overridden in main()',
+  );
 });
 
 /// Resolves to the real Supabase-backed sync backend when the build carries
@@ -145,5 +147,5 @@ final measurementsRepositoryProvider = Provider<MeasurementsRepository>((ref) {
 
 final exerciseProgressionsRepositoryProvider =
     Provider<ExerciseProgressionsRepository>((ref) {
-  return ExerciseProgressionsRepository(ref.watch(appDatabaseProvider));
-});
+      return ExerciseProgressionsRepository(ref.watch(appDatabaseProvider));
+    });

@@ -56,7 +56,11 @@ class _WorkoutsLandingState extends ConsumerState<_WorkoutsLanding> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text('Workout', style: theme.textTheme.displayMedium, textAlign: TextAlign.center),
+                Text(
+                  'Workout',
+                  style: theme.textTheme.displayMedium,
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Log sets, supersets, and RPE. Rest timer starts when you check a set.',
@@ -127,8 +131,9 @@ class _RecentTabState extends ConsumerState<_RecentTab> {
             ? Center(
                 child: Text(
                   'No completed workouts yet',
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.secondary),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.secondary,
+                  ),
                 ),
               )
             : ListView.builder(
@@ -154,7 +159,8 @@ class _RecentTabState extends ConsumerState<_RecentTab> {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete workout?'),
         content: Text(
-            'This permanently deletes "$label" and every set logged in it.'),
+          'This permanently deletes "$label" and every set logged in it.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -162,8 +168,10 @@ class _RecentTabState extends ConsumerState<_RecentTab> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -202,13 +210,15 @@ class _SessionTile extends ConsumerWidget {
     final durationStr = duration == null
         ? ''
         : duration.inHours > 0
-            ? '${duration.inHours}h ${duration.inMinutes.remainder(60)}m'
-            : '${duration.inMinutes}m';
+        ? '${duration.inHours}h ${duration.inMinutes.remainder(60)}m'
+        : '${duration.inMinutes}m';
 
-    final sessionExercisesAsync =
-        ref.watch(sessionExercisesProvider(session.id));
-    final catalogAsync =
-        ref.watch(exerciseCatalogProvider(const ExerciseCatalogFilter()));
+    final sessionExercisesAsync = ref.watch(
+      sessionExercisesProvider(session.id),
+    );
+    final catalogAsync = ref.watch(
+      exerciseCatalogProvider(const ExerciseCatalogFilter()),
+    );
 
     String? exerciseSummary;
     if (sessionExercisesAsync.asData?.value != null &&
@@ -246,9 +256,12 @@ class _SessionTile extends ConsumerWidget {
             ? onDelete
             : () => context.push('/workout-history/${session.id}'),
         onLongPress: onLongPress,
-        title: Text(_displayName(session),
-            style:
-                theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+        title: Text(
+          _displayName(session),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -260,7 +273,9 @@ class _SessionTile extends ConsumerWidget {
                 if (durationStr.isNotEmpty) durationStr,
                 if (session.sessionRpe != null) 'RPE ${session.sessionRpe}',
               ].join(' • '),
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
             ),
             if (exerciseSummary != null && exerciseSummary.isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -277,8 +292,10 @@ class _SessionTile extends ConsumerWidget {
           ],
         ),
         trailing: IconButton(
-          icon: Icon(deleteMode ? Icons.close : Icons.chevron_right,
-              color: deleteMode ? Colors.redAccent : null),
+          icon: Icon(
+            deleteMode ? Icons.close : Icons.chevron_right,
+            color: deleteMode ? Colors.redAccent : null,
+          ),
           tooltip: deleteMode ? 'Delete workout' : null,
           onPressed: deleteMode
               ? onDelete

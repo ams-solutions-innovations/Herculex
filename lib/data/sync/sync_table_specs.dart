@@ -113,10 +113,7 @@ final List<SyncTableSpec> syncTableSpecs = [
   // ── Level 0: no synced-table dependency ──────────────────────────────
   const SyncTableSpec('gyms', dateTimeColumns: ['created_at']),
   const SyncTableSpec('workout_folders', dateTimeColumns: ['created_at']),
-  const SyncTableSpec(
-    'exercise_catalog',
-    localOnlyColumns: ['slug'],
-  ),
+  const SyncTableSpec('exercise_catalog', localOnlyColumns: ['slug']),
   const SyncTableSpec(
     'foods',
     localOnlyColumns: ['catalogue_id'],
@@ -138,14 +135,8 @@ final List<SyncTableSpec> syncTableSpecs = [
   const SyncTableSpec('fasting_schedules'),
   const SyncTableSpec('body_measurements'),
   const SyncTableSpec('cycle_logs'),
-  const SyncTableSpec(
-    'cycle_settings',
-    dateTimeColumns: ['last_period_start'],
-  ),
-  const SyncTableSpec(
-    'joint_pain_logs',
-    dateTimeColumns: ['logged_at'],
-  ),
+  const SyncTableSpec('cycle_settings', dateTimeColumns: ['last_period_start']),
+  const SyncTableSpec('joint_pain_logs', dateTimeColumns: ['logged_at']),
   const SyncTableSpec('exercise_rotations'),
   const SyncTableSpec('daily_summaries'),
   const SyncTableSpec('external_events'),
@@ -177,18 +168,12 @@ final List<SyncTableSpec> syncTableSpecs = [
     ],
     dateTimeColumns: ['created_at', 'last_used_at'],
   ),
-  const SyncTableSpec(
-    'workout_circuits',
-    dateTimeColumns: ['created_at'],
-  ),
+  const SyncTableSpec('workout_circuits', dateTimeColumns: ['created_at']),
   const SyncTableSpec(
     'workout_sessions',
     fkFields: [
       SimpleFk(localColumn: 'gym_id', parentTable: 'gyms'),
-      SimpleFk(
-        localColumn: 'micro_workout_id',
-        parentTable: 'micro_workouts',
-      ),
+      SimpleFk(localColumn: 'micro_workout_id', parentTable: 'micro_workouts'),
     ],
     // Phone<->watch wire-protocol identity (v22) — unrelated to cloud sync.
     localOnlyColumns: ['session_uuid'],
@@ -228,21 +213,30 @@ final List<SyncTableSpec> syncTableSpecs = [
   SyncTableSpec(
     'workout_exercises',
     fkFields: [
-      const SimpleFk(localColumn: 'session_id', parentTable: 'workout_sessions'),
+      const SimpleFk(
+        localColumn: 'session_id',
+        parentTable: 'workout_sessions',
+      ),
       _exerciseFk('exercise_id'),
     ],
   ),
   SyncTableSpec(
     'template_exercises',
     fkFields: [
-      const SimpleFk(localColumn: 'template_id', parentTable: 'workout_templates'),
+      const SimpleFk(
+        localColumn: 'template_id',
+        parentTable: 'workout_templates',
+      ),
       _exerciseFk('exercise_id'),
     ],
   ),
   SyncTableSpec(
     'circuit_exercises',
     fkFields: [
-      const SimpleFk(localColumn: 'circuit_id', parentTable: 'workout_circuits'),
+      const SimpleFk(
+        localColumn: 'circuit_id',
+        parentTable: 'workout_circuits',
+      ),
       _exerciseFk('exercise_id'),
     ],
   ),
@@ -293,7 +287,10 @@ final List<SyncTableSpec> syncTableSpecs = [
   SyncTableSpec(
     'program_day_exercises',
     fkFields: [
-      const SimpleFk(localColumn: 'program_day_id', parentTable: 'program_days'),
+      const SimpleFk(
+        localColumn: 'program_day_id',
+        parentTable: 'program_days',
+      ),
       _exerciseFk('exercise_id'),
       const SimpleFk(
         localColumn: 'rotation_id',

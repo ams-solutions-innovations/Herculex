@@ -68,7 +68,9 @@ class _ProgressionOverrideSheetState
   }
 
   Future<void> _save() async {
-    await ref.read(exerciseProgressionsRepositoryProvider).upsert(
+    await ref
+        .read(exerciseProgressionsRepositoryProvider)
+        .upsert(
           widget.exerciseId,
           goal: _goal,
           weeklyIncreasePct: _weeklyPct,
@@ -89,12 +91,18 @@ class _ProgressionOverrideSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final existing =
-        ref.watch(exerciseProgressionProvider(widget.exerciseId)).asData?.value;
+    final existing = ref
+        .watch(exerciseProgressionProvider(widget.exerciseId))
+        .asData
+        ?.value;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-          24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 32),
+        24,
+        16,
+        24,
+        MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
       decoration: BoxDecoration(
         color: theme.bottomSheetTheme.backgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -114,19 +122,29 @@ class _ProgressionOverrideSheetState
             ),
           ),
           const SizedBox(height: 20),
-          Text('Progression Override',
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          Text(widget.exerciseName,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: AppColors.secondary)),
+          Text(
+            'Progression Override',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            widget.exerciseName,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.secondary,
+            ),
+          ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('ENABLED',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.secondary, letterSpacing: 1.0)),
+              Text(
+                'ENABLED',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.secondary,
+                  letterSpacing: 1.0,
+                ),
+              ),
               Switch(
                 value: _enabled,
                 onChanged: _loaded ? (v) => setState(() => _enabled = v) : null,
@@ -134,9 +152,13 @@ class _ProgressionOverrideSheetState
             ],
           ),
           const SizedBox(height: 16),
-          Text('GOAL',
-              style: theme.textTheme.labelSmall
-                  ?.copyWith(color: AppColors.secondary, letterSpacing: 1.0)),
+          Text(
+            'GOAL',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.secondary,
+              letterSpacing: 1.0,
+            ),
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -151,12 +173,13 @@ class _ProgressionOverrideSheetState
                     : null,
                 selectedColor: AppColors.primary.withValues(alpha: 0.15),
                 side: BorderSide(
-                  color: selected ? AppColors.primary : AppColors.outlineVariant,
+                  color: selected
+                      ? AppColors.primary
+                      : AppColors.outlineVariant,
                 ),
                 labelStyle: theme.textTheme.bodySmall?.copyWith(
                   color: selected ? AppColors.primary : null,
-                  fontWeight:
-                      selected ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                 ),
               );
             }).toList(),
@@ -165,12 +188,19 @@ class _ProgressionOverrideSheetState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('WEEKLY INCREASE',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.secondary, letterSpacing: 1.0)),
-              Text('${_weeklyPct.toStringAsFixed(1)}%',
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'WEEKLY INCREASE',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.secondary,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              Text(
+                '${_weeklyPct.toStringAsFixed(1)}%',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           Slider(
@@ -191,7 +221,8 @@ class _ProgressionOverrideSheetState
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text('Save'),
@@ -205,9 +236,12 @@ class _ProgressionOverrideSheetState
                     foregroundColor: Colors.redAccent,
                     side: const BorderSide(color: Colors.redAccent),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     padding: const EdgeInsets.symmetric(
-                        vertical: 14, horizontal: 20),
+                      vertical: 14,
+                      horizontal: 20,
+                    ),
                   ),
                   child: const Text('Remove'),
                 ),

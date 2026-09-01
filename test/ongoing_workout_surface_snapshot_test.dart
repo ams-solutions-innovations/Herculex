@@ -161,20 +161,23 @@ void main() {
       expect(snapshot.lastSetSummary, 'Last set: 60 kg × 5 @8');
     });
 
-    test('lastSetSummary omits the RPE suffix entirely when none was logged', () {
-      final snapshot = buildOngoingWorkoutSurfaceSnapshot(
-        target: ActiveWorkoutNotificationTarget(
-          exerciseName: 'Barbell Back Squat',
-          set: _set(),
-          totalSets: 3,
-          lastCompletedSet: _set(weightKg: 60, reps: 5),
-        ),
-        formatWeight: _formatKg,
-        loadStepKg: 2.5,
-      );
+    test(
+      'lastSetSummary omits the RPE suffix entirely when none was logged',
+      () {
+        final snapshot = buildOngoingWorkoutSurfaceSnapshot(
+          target: ActiveWorkoutNotificationTarget(
+            exerciseName: 'Barbell Back Squat',
+            set: _set(),
+            totalSets: 3,
+            lastCompletedSet: _set(weightKg: 60, reps: 5),
+          ),
+          formatWeight: _formatKg,
+          loadStepKg: 2.5,
+        );
 
-      expect(snapshot.lastSetSummary, 'Last set: 60 kg × 5');
-    });
+        expect(snapshot.lastSetSummary, 'Last set: 60 kg × 5');
+      },
+    );
   });
 }
 

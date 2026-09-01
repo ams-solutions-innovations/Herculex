@@ -81,39 +81,36 @@ String _captureStartJson({
   required String captureId,
   String exerciseSlug = 'pull-up',
   String sensorType = 'linear_acceleration',
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'exerciseSlug': exerciseSlug,
-      'sensorType': sensorType,
-      'startedAtMs': 0,
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'exerciseSlug': exerciseSlug,
+  'sensorType': sensorType,
+  'startedAtMs': 0,
+});
 
 String _samplesJson(
   String captureId,
   Map<String, dynamic> batch, {
   String sensorType = 'linear_acceleration',
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'seq': batch['seq'],
-      'sensorType': sensorType,
-      'samples': batch['samples'],
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'seq': batch['seq'],
+  'sensorType': sensorType,
+  'samples': batch['samples'],
+});
 
 String _captureEndJson({
   required String captureId,
   required int batchCount,
   String stoppedReason = 'user',
   int? provisionalCount,
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'endedAtMs': 999999,
-      'batchCount': batchCount,
-      'stoppedReason': stoppedReason,
-      'provisionalCount': ?provisionalCount,
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'endedAtMs': 999999,
+  'batchCount': batchCount,
+  'stoppedReason': stoppedReason,
+  'provisionalCount': ?provisionalCount,
+});
 
 Future<RepSuggestion> _captureWrist(
   RepCaptureService service,
@@ -175,8 +172,10 @@ void main() {
       (tester) async {
         final service = RepCaptureService();
         addTearDown(service.dispose);
-        final suggestion =
-            await _captureWrist(service, 'pullup_wrist_clean_8reps');
+        final suggestion = await _captureWrist(
+          service,
+          'pullup_wrist_clean_8reps',
+        );
         expect(suggestion.proposedReps, 8);
         expect(suggestion.state, isNot(TrackerState.manual));
 

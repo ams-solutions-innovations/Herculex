@@ -51,13 +51,16 @@ class FastingScheduleView extends ConsumerWidget {
                     const SizedBox(height: 12),
                     Text(
                       "No Schedules Yet",
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       "Add one to get reminded when it's time to start fasting.",
-                      style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -114,7 +117,9 @@ class FastingScheduleView extends ConsumerWidget {
   }
 
   Future<void> _delete(WidgetRef ref, FastingScheduleData schedule) async {
-    await ref.read(fastingScheduleServiceProvider).cancelForSchedule(schedule.id);
+    await ref
+        .read(fastingScheduleServiceProvider)
+        .cancelForSchedule(schedule.id);
     await ref.read(fastingRepositoryProvider).deleteSchedule(schedule.id);
   }
 }
@@ -194,20 +199,24 @@ class _ScheduleCard extends StatelessWidget {
                     Text(
                       '${formatStartTime(schedule.startTimeMinutes)} · '
                       '${formatDaysOfWeek(schedule.daysOfWeek)}',
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       planLabel,
-                      style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
                     ),
                     if (next != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         'Next: ${DateFormat('E, MMM d · HH:mm').format(next)}',
-                        style: theme.textTheme.labelSmall
-                            ?.copyWith(color: hx.domainFasting),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: hx.domainFasting,
+                        ),
                       ),
                     ],
                   ],
@@ -227,14 +236,22 @@ class _ScheduleCard extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceContainerLowest,
         title: const Text("Delete Schedule"),
-        content: const Text("Are you sure you want to delete this fasting schedule?"),
+        content: const Text(
+          "Are you sure you want to delete this fasting schedule?",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("CANCEL"),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
               "DELETE",
-              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

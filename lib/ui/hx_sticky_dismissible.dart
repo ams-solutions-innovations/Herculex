@@ -63,16 +63,17 @@ class _HxStickyDismissibleState extends State<HxStickyDismissible>
   void initState() {
     super.initState();
 
-    _slideCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    )..addListener(() {
-        if (!_isDismissing) {
-          setState(() {
-            _dragOffset = _slideAnimation.value;
-          });
-        }
-      });
+    _slideCtrl =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 200),
+        )..addListener(() {
+          if (!_isDismissing) {
+            setState(() {
+              _dragOffset = _slideAnimation.value;
+            });
+          }
+        });
 
     _slideAnimation = const AlwaysStoppedAnimation(0.0);
 
@@ -91,13 +92,17 @@ class _HxStickyDismissibleState extends State<HxStickyDismissible>
     );
     _iconPopScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.25)
-            .chain(CurveTween(curve: Curves.easeOutBack)),
+        tween: Tween(
+          begin: 1.0,
+          end: 1.25,
+        ).chain(CurveTween(curve: Curves.easeOutBack)),
         weight: 60,
       ),
       TweenSequenceItem(
-        tween: Tween(begin: 1.25, end: 1.15)
-            .chain(CurveTween(curve: Curves.easeInOut)),
+        tween: Tween(
+          begin: 1.25,
+          end: 1.15,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
         weight: 40,
       ),
     ]).animate(_iconPopCtrl);
@@ -174,7 +179,8 @@ class _HxStickyDismissibleState extends State<HxStickyDismissible>
     } else if (widget.direction == DismissDirection.startToEnd) {
       shouldDismiss = (_dragOffset >= threshold) || (velocity > 650);
     } else {
-      shouldDismiss = (_dragOffset.abs() >= threshold) || (velocity.abs() > 650);
+      shouldDismiss =
+          (_dragOffset.abs() >= threshold) || (velocity.abs() > 650);
     }
 
     if (shouldDismiss) {
@@ -196,10 +202,7 @@ class _HxStickyDismissibleState extends State<HxStickyDismissible>
     _isPastThreshold = false;
     _iconPopCtrl.reverse();
 
-    _slideAnimation = Tween<double>(
-      begin: _dragOffset,
-      end: 0.0,
-    ).animate(
+    _slideAnimation = Tween<double>(begin: _dragOffset, end: 0.0).animate(
       CurvedAnimation(
         parent: _slideCtrl,
         curve: Curves.easeOutBack, // Sticky spring bounce overshoot
@@ -224,12 +227,7 @@ class _HxStickyDismissibleState extends State<HxStickyDismissible>
     _slideAnimation = Tween<double>(
       begin: _dragOffset,
       end: targetOffset,
-    ).animate(
-      CurvedAnimation(
-        parent: _slideCtrl,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
 
     _slideCtrl.duration = const Duration(milliseconds: 180);
     _slideCtrl.forward(from: 0.0).then((_) {
@@ -254,10 +252,12 @@ class _HxStickyDismissibleState extends State<HxStickyDismissible>
     final isLeftSwipe = _dragOffset < 0;
 
     final defaultRadius = widget.borderRadius ?? BorderRadius.circular(16);
-    final bgColor = widget.backgroundColor ?? Colors.redAccent.withValues(alpha: 0.90);
+    final bgColor =
+        widget.backgroundColor ?? Colors.redAccent.withValues(alpha: 0.90);
     final iconData = widget.icon ?? Icons.delete_rounded;
 
-    final backgroundWidget = widget.background ??
+    final backgroundWidget =
+        widget.background ??
         Container(
           alignment: isLeftSwipe ? Alignment.centerRight : Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -275,11 +275,7 @@ class _HxStickyDismissibleState extends State<HxStickyDismissible>
                 scale: scale,
                 child: Opacity(
                   opacity: (0.4 + 0.6 * progress).clamp(0.0, 1.0),
-                  child: Icon(
-                    iconData,
-                    color: Colors.white,
-                    size: 22,
-                  ),
+                  child: Icon(iconData, color: Colors.white, size: 22),
                 ),
               );
             },
@@ -295,9 +291,7 @@ class _HxStickyDismissibleState extends State<HxStickyDismissible>
           children: [
             // Background reveal
             if (_dragOffset != 0.0 || _isDismissing)
-              Positioned.fill(
-                child: backgroundWidget,
-              ),
+              Positioned.fill(child: backgroundWidget),
             // Foreground sliding child
             Transform.translate(
               offset: Offset(_dragOffset, 0),

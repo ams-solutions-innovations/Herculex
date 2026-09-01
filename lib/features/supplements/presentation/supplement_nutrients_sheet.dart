@@ -85,8 +85,10 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
             for (final d in remaining)
               ListTile(
                 title: Text(d.label),
-                trailing: Text(d.unit,
-                    style: TextStyle(color: AppColors.secondary)),
+                trailing: Text(
+                  d.unit,
+                  style: TextStyle(color: AppColors.secondary),
+                ),
                 onTap: () => Navigator.of(context).pop(d.id),
               ),
           ],
@@ -117,7 +119,11 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
         child: ListView(
           controller: scrollController,
           padding: EdgeInsets.fromLTRB(
-              24, 16, 24, MediaQuery.viewInsetsOf(context).bottom + 28),
+            24,
+            16,
+            24,
+            MediaQuery.viewInsetsOf(context).bottom + 28,
+          ),
           children: [
             Center(
               child: Container(
@@ -130,15 +136,19 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('Per dose',
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Per dose',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(
               'What one dose contains. These amounts are added to your daily '
               'nutrient totals each time you tick the supplement off.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: AppColors.secondary),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.secondary,
+              ),
             ),
             const SizedBox(height: 20),
             if (rows.isEmpty)
@@ -147,8 +157,9 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
                 child: Text(
                   'No nutrients yet — add the ones listed on the label.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.secondary),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.secondary,
+                  ),
                 ),
               )
             else
@@ -166,9 +177,12 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
                         child: TextField(
                           controller: _controllers[d.id],
                           keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
+                            decimal: true,
+                          ),
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9.]'),
+                            ),
                           ],
                           textAlign: TextAlign.right,
                           decoration: InputDecoration(
@@ -178,15 +192,22 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
                             suffixText: d.unit,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide(color: AppColors.outlineVariant),
+                              borderSide: BorderSide(
+                                color: AppColors.outlineVariant,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide(color: AppColors.outlineVariant),
+                              borderSide: BorderSide(
+                                color: AppColors.outlineVariant,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                              borderSide: BorderSide(
+                                color: AppColors.primary,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                         ),
@@ -210,7 +231,8 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: BorderSide(
-                    color: AppColors.primary.withValues(alpha: 0.4)),
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                ),
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(vertical: 13),
               ),
@@ -225,8 +247,10 @@ class _SupplementNutrientsSheetState extends State<SupplementNutrientsSheet> {
                 elevation: 0,
                 shape: const StadiumBorder(),
               ),
-              child: const Text('Done',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Done',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),

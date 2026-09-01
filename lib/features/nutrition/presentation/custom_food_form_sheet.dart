@@ -218,6 +218,7 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
       final v = double.tryParse(ctrl.text.trim());
       if (v != null) microsMap[key] = v;
     }
+
     addIfPresent('sugars', _sugars);
     addIfPresent('trans_fat', _transFat);
     addIfPresent('saturated_fat', _saturatedFat);

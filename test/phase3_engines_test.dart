@@ -18,38 +18,40 @@ ExerciseCatalogData _ex(
   int cns = 5,
   int recoveryImpact = 3,
   bool weightedBw = false,
-}) =>
-    ExerciseCatalogData(
-      id: id,
-      name: name,
-      primaryMuscle: primaryMuscle,
-      equipment: 'Barbell',
-      mechanics: 'compound',
-      force: 'push',
-      plane: 'horizontal',
-      defaultRestSeconds: 120,
-      isCustom: false,
-      category: 'strength',
-      modality: modality,
-      cnsScore: cns,
-      recoveryImpact: recoveryImpact,
-      loggingMetric: 'weight_reps',
-      supportsWeightedBodyweight: weightedBw,
-      isReviewed: true,
-    );
+}) => ExerciseCatalogData(
+  id: id,
+  name: name,
+  primaryMuscle: primaryMuscle,
+  equipment: 'Barbell',
+  mechanics: 'compound',
+  force: 'push',
+  plane: 'horizontal',
+  defaultRestSeconds: 120,
+  isCustom: false,
+  category: 'strength',
+  modality: modality,
+  cnsScore: cns,
+  recoveryImpact: recoveryImpact,
+  loggingMetric: 'weight_reps',
+  supportsWeightedBodyweight: weightedBw,
+  isReviewed: true,
+);
 
 WorkoutSessionData _session(int id, DateTime startedAt, {int? gymId}) =>
     WorkoutSessionData(id: id, startedAt: startedAt, gymId: gymId);
 
-WorkoutExerciseData _we(int id, int exerciseId,
-        {int sessionId = 1, String? variant}) =>
-    WorkoutExerciseData(
-      id: id,
-      sessionId: sessionId,
-      exerciseId: exerciseId,
-      orderIndex: 0,
-      equipmentVariant: variant,
-    );
+WorkoutExerciseData _we(
+  int id,
+  int exerciseId, {
+  int sessionId = 1,
+  String? variant,
+}) => WorkoutExerciseData(
+  id: id,
+  sessionId: sessionId,
+  exerciseId: exerciseId,
+  orderIndex: 0,
+  equipmentVariant: variant,
+);
 
 SetEntryData _set(
   int id,
@@ -61,21 +63,20 @@ SetEntryData _set(
   String setType = 'standard',
   double? bodyweightKg,
   double? chainsKg,
-}) =>
-    SetEntryData(
-      id: id,
-      workoutExerciseId: weId,
-      setIndex: 0,
-      weightKg: weightKg,
-      reps: reps,
-      rpeX10: rpeX10,
-      isWarmup: false,
-      isCompleted: true,
-      completedAt: completedAt ?? DateTime(2026, 6, 12, 10),
-      setType: setType,
-    bodyweightKg: bodyweightKg,
-      chainsKg: chainsKg,
-    );
+}) => SetEntryData(
+  id: id,
+  workoutExerciseId: weId,
+  setIndex: 0,
+  weightKg: weightKg,
+  reps: reps,
+  rpeX10: rpeX10,
+  isWarmup: false,
+  isCompleted: true,
+  completedAt: completedAt ?? DateTime(2026, 6, 12, 10),
+  setType: setType,
+  bodyweightKg: bodyweightKg,
+  chainsKg: chainsKg,
+);
 
 ResolvedSet _resolved({
   required SetEntryData set,
@@ -85,44 +86,50 @@ ResolvedSet _resolved({
   List<BandContribution> bands = const [],
   List<String> accessories = const [],
   double forearmMultiplier = 1.0,
-}) =>
-    ResolvedSet(
-      set: set,
-      workoutExercise: we,
-      session: session ?? _session(we.sessionId, DateTime(2026, 6, 12, 9)),
-      exercise: ex,
-      setType: SetType.fromId(set.setType),
-      bands: bands,
-      accessoryNames: accessories,
-      forearmMultiplier: forearmMultiplier,
-    );
+}) => ResolvedSet(
+  set: set,
+  workoutExercise: we,
+  session: session ?? _session(we.sessionId, DateTime(2026, 6, 12, 9)),
+  exercise: ex,
+  setType: SetType.fromId(set.setType),
+  bands: bands,
+  accessoryNames: accessories,
+  forearmMultiplier: forearmMultiplier,
+);
 
 ExerciseMuscleData _muscle(int id, int exId, String muscle, String role) =>
     ExerciseMuscleData(
-        id: id, exerciseId: exId, muscle: muscle, role: role, contribution: 1);
+      id: id,
+      exerciseId: exId,
+      muscle: muscle,
+      role: role,
+      contribution: 1,
+    );
 
 final _asOf = DateTime(2026, 6, 12, 12);
 
 void main() {
   group('ResolvedSet', () {
-    test('effective load includes bodyweight only for weighted-BW exercises',
-        () {
-      final pullup = _ex(1, weightedBw: true, modality: 'bodyweight');
-      final rs = _resolved(
-        set: _set(1, 1, weightKg: 25, bodyweightKg: 80),
-        we: _we(1, 1),
-        ex: pullup,
-      );
-      expect(rs.effectiveKg, 105);
+    test(
+      'effective load includes bodyweight only for weighted-BW exercises',
+      () {
+        final pullup = _ex(1, weightedBw: true, modality: 'bodyweight');
+        final rs = _resolved(
+          set: _set(1, 1, weightKg: 25, bodyweightKg: 80),
+          we: _we(1, 1),
+          ex: pullup,
+        );
+        expect(rs.effectiveKg, 105);
 
-      final bench = _ex(2);
-      final rs2 = _resolved(
-        set: _set(2, 2, weightKg: 100, bodyweightKg: 80),
-        we: _we(2, 2),
-        ex: bench,
-      );
-      expect(rs2.effectiveKg, 100);
-    });
+        final bench = _ex(2);
+        final rs2 = _resolved(
+          set: _set(2, 2, weightKg: 100, bodyweightKg: 80),
+          we: _we(2, 2),
+          ex: bench,
+        );
+        expect(rs2.effectiveKg, 100);
+      },
+    );
 
     test('weighted bodyweight bumps CNS by +2 capped at 10', () {
       final ex = _ex(1, cns: 9, weightedBw: true);
@@ -176,23 +183,31 @@ void main() {
         _muscle(2, 1, 'Forearms', 'secondary'),
       ];
       List<ResolvedSet> sets({required double forearmMult}) => [
-            for (var i = 0; i < 6; i++)
-              _resolved(
-                set: _set(i, 1, completedAt: _asOf.subtract(const Duration(hours: 4))),
-                we: _we(1, 1),
-                ex: curl,
-                forearmMultiplier: forearmMult,
-              ),
-          ];
+        for (var i = 0; i < 6; i++)
+          _resolved(
+            set: _set(
+              i,
+              1,
+              completedAt: _asOf.subtract(const Duration(hours: 4)),
+            ),
+            we: _we(1, 1),
+            ex: curl,
+            forearmMultiplier: forearmMult,
+          ),
+      ];
 
       final raw = MuscleRecoveryV3.compute(
         snapshot: TrainingSnapshot(
-            sets: sets(forearmMult: 1.0), exerciseMuscles: muscles),
+          sets: sets(forearmMult: 1.0),
+          exerciseMuscles: muscles,
+        ),
         asOf: _asOf,
       );
       final fatGrips = MuscleRecoveryV3.compute(
         snapshot: TrainingSnapshot(
-            sets: sets(forearmMult: 1.6), exerciseMuscles: muscles),
+          sets: sets(forearmMult: 1.6),
+          exerciseMuscles: muscles,
+        ),
         asOf: _asOf,
       );
 
@@ -209,8 +224,11 @@ void main() {
       final sets = [
         for (var i = 0; i < 25; i++) // MRV for quads is 20
           _resolved(
-            set: _set(i, 1,
-                completedAt: _asOf.subtract(Duration(hours: 24 + i))),
+            set: _set(
+              i,
+              1,
+              completedAt: _asOf.subtract(Duration(hours: 24 + i)),
+            ),
             we: _we(1, 1),
             ex: squat,
           ),
@@ -234,8 +252,12 @@ void main() {
         // Light chronic base: 1 set/day for days 28..8.
         for (var d = 8; d <= 27; d++)
           _resolved(
-            set: _set(d, 1, rpeX10: 70,
-                completedAt: _asOf.subtract(Duration(days: d))),
+            set: _set(
+              d,
+              1,
+              rpeX10: 70,
+              completedAt: _asOf.subtract(Duration(days: d)),
+            ),
             we: _we(1, 1),
             ex: deadlift,
           ),
@@ -243,8 +265,12 @@ void main() {
         for (var d = 0; d < 4; d++)
           for (var i = 0; i < 10; i++)
             _resolved(
-              set: _set(100 + d * 10 + i, 1, rpeX10: 95,
-                  completedAt: _asOf.subtract(Duration(days: d, hours: 2))),
+              set: _set(
+                100 + d * 10 + i,
+                1,
+                rpeX10: 95,
+                completedAt: _asOf.subtract(Duration(days: d, hours: 2)),
+              ),
               we: _we(1, 1),
               ex: deadlift,
             ),
@@ -269,32 +295,37 @@ void main() {
   });
 
   group('VariantPerformance', () {
-    test('groups PRs by equipment and accessory combo with effective load',
-        () {
+    test('groups PRs by equipment and accessory combo with effective load', () {
       final squat = _ex(1, name: 'Squat', primaryMuscle: 'Quads');
       final old = _asOf.subtract(const Duration(days: 3));
       final sets = [
         // Barbell raw 100×5
         _resolved(
-            set: _set(1, 1, weightKg: 100, reps: 5, completedAt: old),
-            we: _we(1, 1, variant: 'barbell'),
-            ex: squat),
+          set: _set(1, 1, weightKg: 100, reps: 5, completedAt: old),
+          we: _we(1, 1, variant: 'barbell'),
+          ex: squat,
+        ),
         // Barbell belt 120×3
         _resolved(
-            set: _set(2, 1, weightKg: 120, reps: 3, completedAt: old),
-            we: _we(1, 1, variant: 'barbell'),
-            ex: squat,
-            accessories: ['Belt']),
+          set: _set(2, 1, weightKg: 120, reps: 3, completedAt: old),
+          we: _we(1, 1, variant: 'barbell'),
+          ex: squat,
+          accessories: ['Belt'],
+        ),
         // Smith 90×8
         _resolved(
-            set: _set(3, 2, weightKg: 90, reps: 8, completedAt: old),
-            we: _we(2, 1, variant: 'smith'),
-            ex: squat),
+          set: _set(3, 2, weightKg: 90, reps: 8, completedAt: old),
+          we: _we(2, 1, variant: 'smith'),
+          ex: squat,
+        ),
       ];
       final snapshot = TrainingSnapshot(sets: sets, exerciseMuscles: const []);
 
       final byEquipment = VariantPerformance.byEquipment(snapshot, 1);
-      expect(byEquipment.map((r) => r.label), containsAll(['barbell', 'smith']));
+      expect(
+        byEquipment.map((r) => r.label),
+        containsAll(['barbell', 'smith']),
+      );
       final barbell = byEquipment.singleWhere((r) => r.label == 'barbell');
       expect(barbell.bestWeightKg, 120);
 

@@ -307,10 +307,7 @@ class _SelectedDayList extends StatelessWidget {
                   opacity: 0.3,
                   child: SessionTile(row: row, compact: true),
                 ),
-                child: SessionTile(
-                  row: row,
-                  onTap: () => onOpenSession(date),
-                ),
+                child: SessionTile(row: row, onTap: () => onOpenSession(date)),
               ),
             ),
         if (rows.isNotEmpty)

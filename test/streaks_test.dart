@@ -14,8 +14,11 @@ void main() {
     });
 
     test('counts consecutive days ending today', () {
-      final s = StreakCalculator.daily(
-          [daysAgo(0), daysAgo(1), daysAgo(2)], today);
+      final s = StreakCalculator.daily([
+        daysAgo(0),
+        daysAgo(1),
+        daysAgo(2),
+      ], today);
       expect(s.current, 3);
       expect(s.activeToday, isTrue);
     });
@@ -54,29 +57,37 @@ void main() {
   group('StreakCalculator.weekly', () {
     test('a rest day does not break the run', () {
       // One session this week (Mon) and one last week — no session yesterday.
-      final s = StreakCalculator.weekly(
-          [DateTime(2026, 7, 27), DateTime(2026, 7, 21)], today);
+      final s = StreakCalculator.weekly([
+        DateTime(2026, 7, 27),
+        DateTime(2026, 7, 21),
+      ], today);
       expect(s.current, 2);
       expect(s.activeToday, isTrue);
     });
 
     test('multiple sessions in one week count once', () {
-      final s = StreakCalculator.weekly(
-          [DateTime(2026, 7, 27), DateTime(2026, 7, 28), DateTime(2026, 7, 29)],
-          today);
+      final s = StreakCalculator.weekly([
+        DateTime(2026, 7, 27),
+        DateTime(2026, 7, 28),
+        DateTime(2026, 7, 29),
+      ], today);
       expect(s.current, 1);
     });
 
     test('a run ending last week is still current', () {
-      final s = StreakCalculator.weekly(
-          [DateTime(2026, 7, 21), DateTime(2026, 7, 14)], today);
+      final s = StreakCalculator.weekly([
+        DateTime(2026, 7, 21),
+        DateTime(2026, 7, 14),
+      ], today);
       expect(s.current, 2);
       expect(s.activeToday, isFalse);
     });
 
     test('skipping a whole week breaks the run', () {
-      final s = StreakCalculator.weekly(
-          [DateTime(2026, 7, 14), DateTime(2026, 7, 7)], today);
+      final s = StreakCalculator.weekly([
+        DateTime(2026, 7, 14),
+        DateTime(2026, 7, 7),
+      ], today);
       expect(s.current, 0);
       expect(s.best, 2);
     });

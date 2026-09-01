@@ -10,38 +10,32 @@ ExerciseCatalogData _ex(
   String primaryMuscle = 'Chest',
   int cns = 5,
   bool weightedBw = false,
-}) =>
-    ExerciseCatalogData(
-      id: id,
-      name: name,
-      primaryMuscle: primaryMuscle,
-      equipment: 'Barbell',
-      mechanics: 'compound',
-      force: 'push',
-      plane: 'horizontal',
-      defaultRestSeconds: 120,
-      isCustom: false,
-      category: 'strength',
-      modality: 'barbell',
-      cnsScore: cns,
-      recoveryImpact: 3,
-      loggingMetric: 'weight_reps',
-      supportsWeightedBodyweight: weightedBw,
-      isReviewed: true,
-    );
+}) => ExerciseCatalogData(
+  id: id,
+  name: name,
+  primaryMuscle: primaryMuscle,
+  equipment: 'Barbell',
+  mechanics: 'compound',
+  force: 'push',
+  plane: 'horizontal',
+  defaultRestSeconds: 120,
+  isCustom: false,
+  category: 'strength',
+  modality: 'barbell',
+  cnsScore: cns,
+  recoveryImpact: 3,
+  loggingMetric: 'weight_reps',
+  supportsWeightedBodyweight: weightedBw,
+  isReviewed: true,
+);
 
 WorkoutSessionData _session(
   int id,
   DateTime startedAt, {
   String name = 'Push Day',
-}) =>
-    WorkoutSessionData(id: id, startedAt: startedAt, name: name);
+}) => WorkoutSessionData(id: id, startedAt: startedAt, name: name);
 
-WorkoutExerciseData _we(
-  int id,
-  int exerciseId, {
-  int sessionId = 1,
-}) =>
+WorkoutExerciseData _we(int id, int exerciseId, {int sessionId = 1}) =>
     WorkoutExerciseData(
       id: id,
       sessionId: sessionId,
@@ -57,51 +51,75 @@ SetEntryData _set(
   int? rpeX10 = 80,
   DateTime? completedAt,
   String setType = 'standard',
-}) =>
-    SetEntryData(
-      id: id,
-      workoutExerciseId: weId,
-      setIndex: id,
-      weightKg: weightKg,
-      reps: reps,
-      rpeX10: rpeX10,
-      isWarmup: false,
-      isCompleted: true,
-      completedAt: completedAt,
-      setType: setType,
-    );
+}) => SetEntryData(
+  id: id,
+  workoutExerciseId: weId,
+  setIndex: id,
+  weightKg: weightKg,
+  reps: reps,
+  rpeX10: rpeX10,
+  isWarmup: false,
+  isCompleted: true,
+  completedAt: completedAt,
+  setType: setType,
+);
 
 ResolvedSet _resolve({
   required WorkoutSessionData session,
   required WorkoutExerciseData we,
   required ExerciseCatalogData ex,
   required SetEntryData set,
-}) =>
-    ResolvedSet(
-      session: session,
-      workoutExercise: we,
-      exercise: ex,
-      set: set,
-      setType: SetType.fromId(set.setType),
-      bands: const [],
-      accessoryNames: const [],
-      forearmMultiplier: 1.0,
-    );
+}) => ResolvedSet(
+  session: session,
+  workoutExercise: we,
+  exercise: ex,
+  set: set,
+  setType: SetType.fromId(set.setType),
+  bands: const [],
+  accessoryNames: const [],
+  forearmMultiplier: 1.0,
+);
 
 void main() {
   group('MuscleVolumeAnalyticsEngine', () {
     final now = DateTime(2026, 8, 22, 10, 0); // Saturday
 
     test('computes overview across muscle groups correctly', () {
-      final session1 = _session(1, now.subtract(const Duration(days: 1)), name: 'Chest & Back');
+      final session1 = _session(
+        1,
+        now.subtract(const Duration(days: 1)),
+        name: 'Chest & Back',
+      );
       final weBench = _we(1, 101, sessionId: 1);
-      final exBench = _ex(101, name: 'Barbell Bench Press', primaryMuscle: 'Chest');
-      final set1 = _set(1, 1, weightKg: 100, reps: 10, completedAt: now.subtract(const Duration(days: 1)));
-      final set2 = _set(2, 1, weightKg: 100, reps: 10, completedAt: now.subtract(const Duration(days: 1)));
+      final exBench = _ex(
+        101,
+        name: 'Barbell Bench Press',
+        primaryMuscle: 'Chest',
+      );
+      final set1 = _set(
+        1,
+        1,
+        weightKg: 100,
+        reps: 10,
+        completedAt: now.subtract(const Duration(days: 1)),
+      );
+      final set2 = _set(
+        2,
+        1,
+        weightKg: 100,
+        reps: 10,
+        completedAt: now.subtract(const Duration(days: 1)),
+      );
 
       final weRow = _we(2, 102, sessionId: 1);
       final exRow = _ex(102, name: 'Barbell Row', primaryMuscle: 'Back');
-      final set3 = _set(3, 2, weightKg: 80, reps: 10, completedAt: now.subtract(const Duration(days: 1)));
+      final set3 = _set(
+        3,
+        2,
+        weightKg: 80,
+        reps: 10,
+        completedAt: now.subtract(const Duration(days: 1)),
+      );
 
       final snapshot = TrainingSnapshot(
         sets: [
@@ -110,9 +128,27 @@ void main() {
           _resolve(session: session1, we: weRow, ex: exRow, set: set3),
         ],
         exerciseMuscles: [
-          const ExerciseMuscleData(id: 1, exerciseId: 101, muscle: 'Chest', role: 'primary', contribution: 1.0),
-          const ExerciseMuscleData(id: 2, exerciseId: 101, muscle: 'Triceps', role: 'secondary', contribution: 1.0),
-          const ExerciseMuscleData(id: 3, exerciseId: 102, muscle: 'Back', role: 'primary', contribution: 1.0),
+          const ExerciseMuscleData(
+            id: 1,
+            exerciseId: 101,
+            muscle: 'Chest',
+            role: 'primary',
+            contribution: 1.0,
+          ),
+          const ExerciseMuscleData(
+            id: 2,
+            exerciseId: 101,
+            muscle: 'Triceps',
+            role: 'secondary',
+            contribution: 1.0,
+          ),
+          const ExerciseMuscleData(
+            id: 3,
+            exerciseId: 102,
+            muscle: 'Back',
+            role: 'primary',
+            contribution: 1.0,
+          ),
         ],
       );
 
@@ -123,7 +159,10 @@ void main() {
       );
 
       expect(overview.totalSets, equals(3));
-      expect(overview.totalTonnageKg, equals(2800.0)); // (100*10)*2 + (80*10) = 2000 + 800 = 2800
+      expect(
+        overview.totalTonnageKg,
+        equals(2800.0),
+      ); // (100*10)*2 + (80*10) = 2000 + 800 = 2800
 
       final chest = overview.groups.firstWhere((g) => g.muscle == 'Chest');
       expect(chest.tonnageKg, equals(2000.0));
@@ -155,15 +194,32 @@ void main() {
       final ex = _ex(101, name: 'Squat', primaryMuscle: 'Quads');
 
       final setOld = _set(1, 1, weightKg: 100, reps: 5, completedAt: oldDate);
-      final setRecent = _set(2, 2, weightKg: 120, reps: 5, completedAt: recentDate);
+      final setRecent = _set(
+        2,
+        2,
+        weightKg: 120,
+        reps: 5,
+        completedAt: recentDate,
+      );
 
       final snapshot = TrainingSnapshot(
         sets: [
           _resolve(session: sessionOld, we: weOld, ex: ex, set: setOld),
-          _resolve(session: sessionRecent, we: weRecent, ex: ex, set: setRecent),
+          _resolve(
+            session: sessionRecent,
+            we: weRecent,
+            ex: ex,
+            set: setRecent,
+          ),
         ],
         exerciseMuscles: [
-          const ExerciseMuscleData(id: 1, exerciseId: 101, muscle: 'Quads', role: 'primary', contribution: 1.0),
+          const ExerciseMuscleData(
+            id: 1,
+            exerciseId: 101,
+            muscle: 'Quads',
+            role: 'primary',
+            contribution: 1.0,
+          ),
         ],
       );
 
@@ -172,7 +228,9 @@ void main() {
         asOf: now,
         timeframe: VolumeTimeframe.thisWeek,
       );
-      final quadsWeek = overviewWeek.groups.firstWhere((g) => g.muscle == 'Quads');
+      final quadsWeek = overviewWeek.groups.firstWhere(
+        (g) => g.muscle == 'Quads',
+      );
       expect(quadsWeek.sets, equals(1.0));
       expect(quadsWeek.tonnageKg, equals(600.0)); // 120 * 5
 
@@ -181,7 +239,9 @@ void main() {
         asOf: now,
         timeframe: VolumeTimeframe.allTime,
       );
-      final quadsAllTime = overviewAllTime.groups.firstWhere((g) => g.muscle == 'Quads');
+      final quadsAllTime = overviewAllTime.groups.firstWhere(
+        (g) => g.muscle == 'Quads',
+      );
       expect(quadsAllTime.sets, equals(2.0));
       expect(quadsAllTime.tonnageKg, equals(1100.0)); // (100*5) + (120*5)
     });
@@ -197,10 +257,28 @@ void main() {
       final we2 = _we(2, 102, sessionId: 2);
 
       final exBench = _ex(101, name: 'Bench Press', primaryMuscle: 'Chest');
-      final exIncline = _ex(102, name: 'Incline Dumbbell Press', primaryMuscle: 'Chest');
+      final exIncline = _ex(
+        102,
+        name: 'Incline Dumbbell Press',
+        primaryMuscle: 'Chest',
+      );
 
-      final set1 = _set(1, 1, weightKg: 100, reps: 8, rpeX10: 80, completedAt: date1);
-      final set2 = _set(2, 2, weightKg: 30, reps: 10, rpeX10: 90, completedAt: date2);
+      final set1 = _set(
+        1,
+        1,
+        weightKg: 100,
+        reps: 8,
+        rpeX10: 80,
+        completedAt: date1,
+      );
+      final set2 = _set(
+        2,
+        2,
+        weightKg: 30,
+        reps: 10,
+        rpeX10: 90,
+        completedAt: date2,
+      );
 
       final snapshot = TrainingSnapshot(
         sets: [
@@ -208,8 +286,20 @@ void main() {
           _resolve(session: session2, we: we2, ex: exIncline, set: set2),
         ],
         exerciseMuscles: [
-          const ExerciseMuscleData(id: 1, exerciseId: 101, muscle: 'Chest', role: 'primary', contribution: 1.0),
-          const ExerciseMuscleData(id: 2, exerciseId: 102, muscle: 'Chest', role: 'primary', contribution: 1.0),
+          const ExerciseMuscleData(
+            id: 1,
+            exerciseId: 101,
+            muscle: 'Chest',
+            role: 'primary',
+            contribution: 1.0,
+          ),
+          const ExerciseMuscleData(
+            id: 2,
+            exerciseId: 102,
+            muscle: 'Chest',
+            role: 'primary',
+            contribution: 1.0,
+          ),
         ],
       );
 
@@ -229,9 +319,15 @@ void main() {
       // Newest session first
       expect(detail.workouts.first.sessionId, equals(2));
       expect(detail.workouts.first.sessionName, equals('Chest Day 2'));
-      expect(detail.workouts.first.exercises.first.exerciseName, equals('Incline Dumbbell Press'));
+      expect(
+        detail.workouts.first.exercises.first.exerciseName,
+        equals('Incline Dumbbell Press'),
+      );
       expect(detail.workouts.first.exercises.first.sets.first.reps, equals(10));
-      expect(detail.workouts.first.exercises.first.sets.first.rpeX10, equals(90));
+      expect(
+        detail.workouts.first.exercises.first.sets.first.rpeX10,
+        equals(90),
+      );
 
       expect(detail.workouts.last.sessionId, equals(1));
       expect(detail.workouts.last.sessionName, equals('Chest Day 1'));

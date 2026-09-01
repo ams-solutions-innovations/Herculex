@@ -25,7 +25,9 @@ void main() {
     });
 
     test('SetTypeInfo and badge contains SetType.cheat', () {
-      final cheatInfo = SetTypeInfo.all.firstWhere((info) => info.type == SetType.cheat);
+      final cheatInfo = SetTypeInfo.all.firstWhere(
+        (info) => info.type == SetType.cheat,
+      );
       expect(cheatInfo.badge, equals('CR'));
       expect(cheatInfo.label, equals('Cheat Reps'));
       expect(SetTypeMenu.badge(SetType.cheat), equals('CR'));
@@ -62,25 +64,28 @@ void main() {
   });
 
   group('Superset Round-Robin Alternating Logic', () {
-    test('Calculates next exercise in cyclic order within the superset group', () {
-      // Suppose group has exercise IDs [10, 20, 30] in order
-      final groupExerciseIds = [10, 20, 30];
-      
-      // Starting at index 0 (Ex 10)
-      var currentIdx = 0;
-      var nextIdx = (currentIdx + 1) % groupExerciseIds.length;
-      expect(groupExerciseIds[nextIdx], equals(20));
+    test(
+      'Calculates next exercise in cyclic order within the superset group',
+      () {
+        // Suppose group has exercise IDs [10, 20, 30] in order
+        final groupExerciseIds = [10, 20, 30];
 
-      // Starting at index 1 (Ex 20)
-      currentIdx = 1;
-      nextIdx = (currentIdx + 1) % groupExerciseIds.length;
-      expect(groupExerciseIds[nextIdx], equals(30));
+        // Starting at index 0 (Ex 10)
+        var currentIdx = 0;
+        var nextIdx = (currentIdx + 1) % groupExerciseIds.length;
+        expect(groupExerciseIds[nextIdx], equals(20));
 
-      // Starting at index 2 (Ex 30) -> should wrap around to Ex 10
-      currentIdx = 2;
-      nextIdx = (currentIdx + 1) % groupExerciseIds.length;
-      expect(groupExerciseIds[nextIdx], equals(10));
-    });
+        // Starting at index 1 (Ex 20)
+        currentIdx = 1;
+        nextIdx = (currentIdx + 1) % groupExerciseIds.length;
+        expect(groupExerciseIds[nextIdx], equals(30));
+
+        // Starting at index 2 (Ex 30) -> should wrap around to Ex 10
+        currentIdx = 2;
+        nextIdx = (currentIdx + 1) % groupExerciseIds.length;
+        expect(groupExerciseIds[nextIdx], equals(10));
+      },
+    );
   });
 
   group('Active exercise detection logic', () {
@@ -92,9 +97,17 @@ void main() {
       ];
 
       final setsByExercise = {
-        1: [{'id': 101, 'isCompleted': true}, {'id': 102, 'isCompleted': true}],
-        2: [{'id': 201, 'isCompleted': true}, {'id': 202, 'isCompleted': false}],
-        3: [{'id': 301, 'isCompleted': false}],
+        1: [
+          {'id': 101, 'isCompleted': true},
+          {'id': 102, 'isCompleted': true},
+        ],
+        2: [
+          {'id': 201, 'isCompleted': true},
+          {'id': 202, 'isCompleted': false},
+        ],
+        3: [
+          {'id': 301, 'isCompleted': false},
+        ],
       };
 
       int targetIdx = -1;
@@ -117,8 +130,12 @@ void main() {
       ];
 
       final setsByExercise = {
-        1: [{'id': 101, 'isCompleted': true}],
-        2: [{'id': 201, 'isCompleted': true}],
+        1: [
+          {'id': 101, 'isCompleted': true},
+        ],
+        2: [
+          {'id': 201, 'isCompleted': true},
+        ],
       };
 
       int targetIdx = -1;
@@ -161,4 +178,3 @@ void main() {
     });
   });
 }
-

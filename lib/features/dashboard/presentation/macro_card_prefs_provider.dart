@@ -27,5 +27,5 @@ class MacroCardPrefsNotifier extends Notifier<MacroCardConfig> {
 
 final macroCardPrefsProvider =
     NotifierProvider<MacroCardPrefsNotifier, MacroCardConfig>(
-  MacroCardPrefsNotifier.new,
-);
+      MacroCardPrefsNotifier.new,
+    );

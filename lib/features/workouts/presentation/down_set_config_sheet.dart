@@ -47,8 +47,7 @@ class DownSetConfigSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<DownSetConfigSheet> createState() =>
-      _DownSetConfigSheetState();
+  ConsumerState<DownSetConfigSheet> createState() => _DownSetConfigSheetState();
 }
 
 class _DownSetConfigSheetState extends ConsumerState<DownSetConfigSheet> {

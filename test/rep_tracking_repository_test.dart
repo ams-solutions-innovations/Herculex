@@ -48,28 +48,25 @@ void main() {
       expect(await repo.isEnabledFor('pull-up'), isFalse);
     });
 
-    test(
-      'isEnabledFor is false when consent is null even though the pref row '
-      'says enabled',
-      () async {
-        // Write the pref row directly: setExerciseEnabled would work too, but
-        // this proves the gate holds against *any* enabled row, including one
-        // written by a future bug or left over from an older build.
-        await db
-            .into(db.repTrackingExercisePrefs)
-            .insert(
-              RepTrackingExercisePrefsCompanion.insert(
-                exerciseSlug: 'pull-up',
-                enabled: const Value(true),
-                updatedAt: DateTime(2026, 8, 14),
-              ),
-            );
+    test('isEnabledFor is false when consent is null even though the pref row '
+        'says enabled', () async {
+      // Write the pref row directly: setExerciseEnabled would work too, but
+      // this proves the gate holds against *any* enabled row, including one
+      // written by a future bug or left over from an older build.
+      await db
+          .into(db.repTrackingExercisePrefs)
+          .insert(
+            RepTrackingExercisePrefsCompanion.insert(
+              exerciseSlug: 'pull-up',
+              enabled: const Value(true),
+              updatedAt: DateTime(2026, 8, 14),
+            ),
+          );
 
-        final pref = await repo.prefFor('pull-up');
-        expect(pref!.enabled, isTrue);
-        expect(await repo.isEnabledFor('pull-up'), isFalse);
-      },
-    );
+      final pref = await repo.prefFor('pull-up');
+      expect(pref!.enabled, isTrue);
+      expect(await repo.isEnabledFor('pull-up'), isFalse);
+    });
 
     test('consent alone does not enable anything', () async {
       await repo.grantConsent(version: 1);
@@ -77,25 +74,31 @@ void main() {
       expect(await repo.isEnabledFor('barbell-bench-press'), isFalse);
     });
 
-    test('the global switch enables every measurable exercise at once', () async {
-      // The point of the rework. One decision, not one per exercise — and
-      // notice bench press comes on too, which the seven-slug model could
-      // never have offered.
-      await repo.grantConsent(version: 1);
-      await repo.setAutoCountEnabled(true);
+    test(
+      'the global switch enables every measurable exercise at once',
+      () async {
+        // The point of the rework. One decision, not one per exercise — and
+        // notice bench press comes on too, which the seven-slug model could
+        // never have offered.
+        await repo.grantConsent(version: 1);
+        await repo.setAutoCountEnabled(true);
 
-      expect(await repo.isEnabledFor('pull-up'), isTrue);
-      expect(await repo.isEnabledFor('barbell-bench-press'), isTrue);
-      expect(await repo.isEnabledFor('dumbbell-curl'), isTrue);
-    });
+        expect(await repo.isEnabledFor('pull-up'), isTrue);
+        expect(await repo.isEnabledFor('barbell-bench-press'), isTrue);
+        expect(await repo.isEnabledFor('dumbbell-curl'), isTrue);
+      },
+    );
 
-    test('an unmeasurable exercise stays off however the switches are set', () async {
-      await repo.grantConsent(version: 1);
-      await repo.setAutoCountEnabled(true);
+    test(
+      'an unmeasurable exercise stays off however the switches are set',
+      () async {
+        await repo.grantConsent(version: 1);
+        await repo.setAutoCountEnabled(true);
 
-      expect(await repo.isEnabledFor('seated-leg-curl'), isFalse);
-      expect(await repo.isEnabledFor('machine-neck-curl'), isFalse);
-    });
+        expect(await repo.isEnabledFor('seated-leg-curl'), isFalse);
+        expect(await repo.isEnabledFor('machine-neck-curl'), isFalse);
+      },
+    );
 
     test('the per-exercise control can only ever exclude', () async {
       await repo.grantConsent(version: 1);
@@ -147,15 +150,18 @@ void main() {
       expect(await repo.isEnabledFor('pull-up'), isFalse);
     });
 
-    test('grantConsent updates the single row rather than adding one', () async {
-      await repo.grantConsent(version: 1);
-      await repo.grantConsent(version: 2);
+    test(
+      'grantConsent updates the single row rather than adding one',
+      () async {
+        await repo.grantConsent(version: 1);
+        await repo.grantConsent(version: 2);
 
-      final rows = await db.select(db.repTrackingSettings).get();
-      expect(rows, hasLength(1));
-      expect(rows.single.consentVersion, 2);
-      expect(rows.single.consentGrantedAt, isNotNull);
-    });
+        final rows = await db.select(db.repTrackingSettings).get();
+        expect(rows, hasLength(1));
+        expect(rows.single.consentVersion, 2);
+        expect(rows.single.consentGrantedAt, isNotNull);
+      },
+    );
   });
 
   group('setExerciseEnabled eligibility guard', () {
@@ -251,7 +257,10 @@ void main() {
     });
 
     test('a non-null placement excludes the null-placement rows', () async {
-      await insertObservation(placement: null, recordedAt: DateTime(2026, 8, 1));
+      await insertObservation(
+        placement: null,
+        recordedAt: DateTime(2026, 8, 1),
+      );
       await insertObservation(
         placement: 'pocket_front',
         recordedAt: DateTime(2026, 8, 2),
@@ -270,7 +279,10 @@ void main() {
 
     test('filters on source and sensorType exactly', () async {
       await insertObservation(recordedAt: DateTime(2026, 8, 1));
-      await insertObservation(source: 'phone', recordedAt: DateTime(2026, 8, 2));
+      await insertObservation(
+        source: 'phone',
+        recordedAt: DateTime(2026, 8, 2),
+      );
       await insertObservation(
         sensorType: 'accelerometer',
         recordedAt: DateTime(2026, 8, 3),

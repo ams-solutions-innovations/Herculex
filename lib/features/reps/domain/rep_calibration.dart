@@ -96,8 +96,10 @@ class CalibrationProfile {
     }
 
     final sampleCount = surviving.length;
-    final distinctSessionCount =
-        surviving.map((e) => e.$1.sessionId).toSet().length;
+    final distinctSessionCount = surviving
+        .map((e) => e.$1.sessionId)
+        .toSet()
+        .length;
 
     final periods = [for (final e in surviving) e.$2.meanPeriodMs];
     final medianCadenceMs = _median(periods);
@@ -137,8 +139,8 @@ class CalibrationProfile {
     final status = calibrated
         ? CalibrationStatus.calibrated
         : (dataSufficient
-            ? CalibrationStatus.countOnly
-            : CalibrationStatus.insufficient);
+              ? CalibrationStatus.countOnly
+              : CalibrationStatus.insufficient);
 
     return CalibrationProfile._(
       sampleCount: sampleCount,

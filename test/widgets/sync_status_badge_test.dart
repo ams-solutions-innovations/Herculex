@@ -35,7 +35,11 @@ void main() {
       Icons.cloud_off_outlined,
     ),
     // Note the ellipsis is U+2026, not three periods.
-    (SyncState(phase: SyncPhase.syncing), 'Syncing…', Icons.cloud_sync_outlined),
+    (
+      SyncState(phase: SyncPhase.syncing),
+      'Syncing…',
+      Icons.cloud_sync_outlined,
+    ),
     (
       SyncState(phase: SyncPhase.pending, pendingCount: 3),
       '3 pending',
@@ -57,28 +61,33 @@ void main() {
     });
   }
 
-  testWidgets('never claims "Synced" for any phase that is not synced',
-      (tester) async {
+  testWidgets('never claims "Synced" for any phase that is not synced', (
+    tester,
+  ) async {
     for (final (state, _, _) in cases) {
       if (state.phase == SyncPhase.synced) continue;
       await pump(tester, state);
       expect(
         find.text('Synced'),
         findsNothing,
-        reason: '${state.phase.name} must not read as success — this is the '
+        reason:
+            '${state.phase.name} must not read as success — this is the '
             'exact failure RB-02 was filed for',
       );
     }
   });
 
-  testWidgets('falls back to disabled before the stream has produced a state',
-      (tester) async {
+  testWidgets('falls back to disabled before the stream has produced a state', (
+    tester,
+  ) async {
     // A pending `AsyncValue` has no value. The badge must not guess
     // optimistically while sync is still starting up.
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          syncStateProvider.overrideWith((ref) => const Stream<SyncState>.empty()),
+          syncStateProvider.overrideWith(
+            (ref) => const Stream<SyncState>.empty(),
+          ),
         ],
         child: const MaterialApp(
           home: Scaffold(body: Center(child: SyncStatusBadge())),
@@ -112,9 +121,13 @@ void main() {
     expect(tooltip.message, contains('2026'));
   });
 
-  testWidgets('a never-synced badge says so rather than implying success',
-      (tester) async {
-    await pump(tester, const SyncState(phase: SyncPhase.pending, pendingCount: 1));
+  testWidgets('a never-synced badge says so rather than implying success', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      const SyncState(phase: SyncPhase.pending, pendingCount: 1),
+    );
     final tooltip = tester.widget<Tooltip>(find.byType(Tooltip));
     expect(tooltip.message, 'Not yet synced to the cloud.');
   });

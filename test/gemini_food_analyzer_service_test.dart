@@ -148,10 +148,7 @@ class _FakeGeminiBackend implements GeminiBackend {
   }) async {
     lastKind = 'exercise_identification';
     lastMimeType = mimeType;
-    return {
-      'identifiedName': 'Bench Press',
-      'confidence': 0.9,
-    };
+    return {'identifiedName': 'Bench Press', 'confidence': 0.9};
   }
 
   @override
@@ -230,11 +227,7 @@ class _FakeGeminiBackend implements GeminiBackend {
       'targetBfPercent': 11.0,
       'currentEstimatedBf': 17.0,
       'musclePriorities': [
-        {
-          'group': 'Upper Chest',
-          'priority': 'high',
-          'focus': 'Incline press',
-        }
+        {'group': 'Upper Chest', 'priority': 'high', 'focus': 'Incline press'},
       ],
       'nutritionStrategy': 'High protein deficit.',
       'trainingAdvice': 'PPL split.',

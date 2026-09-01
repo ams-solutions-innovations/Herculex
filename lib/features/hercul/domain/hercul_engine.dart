@@ -109,8 +109,9 @@ abstract final class HerculEngine {
     });
   }
 
-  static final _placeholder =
-      RegExp(r'\{([a-zA-Z][\w.]*)(?::([^|}]+))?(?:\|(\w+))?\}');
+  static final _placeholder = RegExp(
+    r'\{([a-zA-Z][\w.]*)(?::([^|}]+))?(?:\|(\w+))?\}',
+  );
 
   static String _format(double value, String? format) {
     switch (format) {

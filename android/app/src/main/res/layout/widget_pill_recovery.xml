@@ -44,15 +44,40 @@
 
     </LinearLayout>
 
-    <!-- Progress bar -->
-    <ProgressBar
-        android:id="@+id/recovery_progress"
-        style="?android:attr/progressBarStyleHorizontal"
+    <!-- Progress bars (only one visible at a time) -->
+    <FrameLayout
         android:layout_width="48dp"
-        android:layout_height="6dp"
-        android:max="100"
-        android:progress="0"
-        android:progressTint="#30D158"
-        android:progressBackgroundTint="#3A383A" />
+        android:layout_height="6dp">
+        <ProgressBar
+            android:id="@+id/recovery_progress_green"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#30D158"
+            android:progressBackgroundTint="#3A383A"
+            android:visibility="gone" />
+        <ProgressBar
+            android:id="@+id/recovery_progress_amber"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#FFD60A"
+            android:progressBackgroundTint="#3A383A"
+            android:visibility="gone" />
+        <ProgressBar
+            android:id="@+id/recovery_progress_red"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="#FF453A"
+            android:progressBackgroundTint="#3A383A"
+            android:visibility="gone" />
+    </FrameLayout>
 
 </LinearLayout>

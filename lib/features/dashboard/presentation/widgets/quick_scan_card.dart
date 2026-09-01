@@ -85,7 +85,10 @@ class QuickScanWidget extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 12),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 13,
+                      horizontal: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -99,7 +102,11 @@ class QuickScanWidget extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     final today = DateUtils.dateOnly(DateTime.now());
-                    FoodPickerSheet.show(context, date: today, mealKey: 'snack');
+                    FoodPickerSheet.show(
+                      context,
+                      date: today,
+                      mealKey: 'snack',
+                    );
                   },
                   icon: const Icon(Icons.search, size: 18),
                   label: const FittedBox(
@@ -125,4 +132,3 @@ class QuickScanWidget extends ConsumerWidget {
     );
   }
 }
-

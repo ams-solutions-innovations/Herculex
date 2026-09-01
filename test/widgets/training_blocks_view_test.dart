@@ -90,8 +90,9 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('an active block renders its name, split and week counter',
-      (tester) async {
+  testWidgets('an active block renders its name, split and week counter', (
+    tester,
+  ) async {
     await buildBlock();
     await pump(tester);
 
@@ -106,8 +107,9 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('the week board shows real day names, not placeholders',
-      (tester) async {
+  testWidgets('the week board shows real day names, not placeholders', (
+    tester,
+  ) async {
     await buildBlock();
     await pump(tester);
 
@@ -135,12 +137,15 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('a linked template shows its name and exercise count',
-      (tester) async {
+  testWidgets('a linked template shows its name and exercise count', (
+    tester,
+  ) async {
     final templateId = await db
         .into(db.workoutTemplates)
         .insert(WorkoutTemplatesCompanion.insert(name: 'Heavy Push'));
-    final exerciseId = await db.into(db.exerciseCatalog).insert(
+    final exerciseId = await db
+        .into(db.exerciseCatalog)
+        .insert(
           ExerciseCatalogCompanion.insert(
             name: 'Test Bench',
             primaryMuscle: 'Chest',
@@ -150,7 +155,9 @@ void main() {
             plane: 'horizontal',
           ),
         );
-    await db.into(db.templateExercises).insert(
+    await db
+        .into(db.templateExercises)
+        .insert(
           TemplateExercisesCompanion.insert(
             templateId: templateId,
             exerciseId: exerciseId,
@@ -168,8 +175,9 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('the Week/Month toggle switches to the calendar grid',
-      (tester) async {
+  testWidgets('the Week/Month toggle switches to the calendar grid', (
+    tester,
+  ) async {
     await buildBlock();
     await pump(tester);
 

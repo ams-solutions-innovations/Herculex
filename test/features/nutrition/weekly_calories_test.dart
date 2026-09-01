@@ -55,7 +55,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('No logged nutrition entries in the selected timeframe.'), findsOneWidget);
+    expect(
+      find.text('No logged nutrition entries in the selected timeframe.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('WeeklyCaloriesView renders with data', (tester) async {
@@ -65,33 +68,42 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          nutritionHistoryProvider.overrideWith((ref) => Stream.value({
-            '2026-08-20': const DailyTotals(
-              kcal: 2200,
-              proteinG: 160,
-              carbsG: 220,
-              fatG: 70,
-              fiberG: 30,
-              sodiumMg: 2000,
-              potassiumMg: 3000,
-              cholesterolMg: 200,
-              micros: {},
+          nutritionHistoryProvider.overrideWith(
+            (ref) => Stream.value({
+              '2026-08-20': const DailyTotals(
+                kcal: 2200,
+                proteinG: 160,
+                carbsG: 220,
+                fatG: 70,
+                fiberG: 30,
+                sodiumMg: 2000,
+                potassiumMg: 3000,
+                cholesterolMg: 200,
+                micros: {},
+              ),
+            }),
+          ),
+          effectiveTargetsProvider(today).overrideWith(
+            (ref) => Future.value(
+              const MacroTargets(
+                kcal: 2500,
+                proteinG: 180,
+                carbsG: 250,
+                fatG: 80,
+              ),
             ),
-          })),
-          effectiveTargetsProvider(today).overrideWith((ref) => Future.value(
-            const MacroTargets(kcal: 2500, proteinG: 180, carbsG: 250, fatG: 80),
-          )),
+          ),
         ],
-        child: const MaterialApp(
-          home: WeeklyCaloriesView(),
-        ),
+        child: const MaterialApp(home: WeeklyCaloriesView()),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.text('Calorie Trends'), findsOneWidget);
   });
 
-  testWidgets('MacroTrendView renders for protein, carbs, and fat', (tester) async {
+  testWidgets('MacroTrendView renders for protein, carbs, and fat', (
+    tester,
+  ) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -109,18 +121,25 @@ void main() {
       ),
     };
 
-    final targetData = const MacroTargets(kcal: 2500, proteinG: 180, carbsG: 250, fatG: 80);
+    final targetData = const MacroTargets(
+      kcal: 2500,
+      proteinG: 180,
+      carbsG: 250,
+      fatG: 80,
+    );
 
     // 1. Protein
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          nutritionHistoryProvider.overrideWith((ref) => Stream.value(historyData)),
-          effectiveTargetsProvider(today).overrideWith((ref) => Future.value(targetData)),
+          nutritionHistoryProvider.overrideWith(
+            (ref) => Stream.value(historyData),
+          ),
+          effectiveTargetsProvider(
+            today,
+          ).overrideWith((ref) => Future.value(targetData)),
         ],
-        child: const MaterialApp(
-          home: MacroTrendView(macro: 'protein'),
-        ),
+        child: const MaterialApp(home: MacroTrendView(macro: 'protein')),
       ),
     );
     await tester.pumpAndSettle();
@@ -131,12 +150,14 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          nutritionHistoryProvider.overrideWith((ref) => Stream.value(historyData)),
-          effectiveTargetsProvider(today).overrideWith((ref) => Future.value(targetData)),
+          nutritionHistoryProvider.overrideWith(
+            (ref) => Stream.value(historyData),
+          ),
+          effectiveTargetsProvider(
+            today,
+          ).overrideWith((ref) => Future.value(targetData)),
         ],
-        child: const MaterialApp(
-          home: MacroTrendView(macro: 'carbs'),
-        ),
+        child: const MaterialApp(home: MacroTrendView(macro: 'carbs')),
       ),
     );
     await tester.pumpAndSettle();
@@ -147,12 +168,14 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          nutritionHistoryProvider.overrideWith((ref) => Stream.value(historyData)),
-          effectiveTargetsProvider(today).overrideWith((ref) => Future.value(targetData)),
+          nutritionHistoryProvider.overrideWith(
+            (ref) => Stream.value(historyData),
+          ),
+          effectiveTargetsProvider(
+            today,
+          ).overrideWith((ref) => Future.value(targetData)),
         ],
-        child: const MaterialApp(
-          home: MacroTrendView(macro: 'fat'),
-        ),
+        child: const MaterialApp(home: MacroTrendView(macro: 'fat')),
       ),
     );
     await tester.pumpAndSettle();

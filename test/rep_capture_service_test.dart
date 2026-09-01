@@ -79,39 +79,36 @@ String _captureStartJson({
   required String captureId,
   String exerciseSlug = 'pull-up',
   String sensorType = 'linear_acceleration',
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'exerciseSlug': exerciseSlug,
-      'sensorType': sensorType,
-      'startedAtMs': 0,
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'exerciseSlug': exerciseSlug,
+  'sensorType': sensorType,
+  'startedAtMs': 0,
+});
 
 String _samplesJson(
   String captureId,
   Map<String, dynamic> batch, {
   String sensorType = 'linear_acceleration',
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'seq': batch['seq'],
-      'sensorType': sensorType,
-      'samples': batch['samples'],
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'seq': batch['seq'],
+  'sensorType': sensorType,
+  'samples': batch['samples'],
+});
 
 String _captureEndJson({
   required String captureId,
   required int batchCount,
   String stoppedReason = 'user',
   int? provisionalCount,
-}) =>
-    jsonEncode({
-      'captureId': captureId,
-      'endedAtMs': 999999,
-      'batchCount': batchCount,
-      'stoppedReason': stoppedReason,
-      'provisionalCount': ?provisionalCount,
-    });
+}) => jsonEncode({
+  'captureId': captureId,
+  'endedAtMs': 999999,
+  'batchCount': batchCount,
+  'stoppedReason': stoppedReason,
+  'provisionalCount': ?provisionalCount,
+});
 
 /// Delivers a full intact capture (start, every batch in order, end) for
 /// [captureId] and returns the emitted [RepSuggestion].
@@ -150,7 +147,10 @@ void main() {
   setUpAll(() {
     loadRepProfilesForTest();
     final result = RepDetector.detect(
-      MotionTrace(samples: trace, sensorType: MotionSensorType.linearAcceleration),
+      MotionTrace(
+        samples: trace,
+        sensorType: MotionSensorType.linearAcceleration,
+      ),
       config: const RepDetectorConfig.pullUp(),
     );
     detectedCount = result.repCount;
@@ -161,25 +161,35 @@ void main() {
       expect(detectedCount, 8);
     });
 
-    test('in-order batches reconstruct the trace exactly and detect 8 reps',
-        () async {
-      final service = RepCaptureService();
-      addTearDown(service.dispose);
+    test(
+      'in-order batches reconstruct the trace exactly and detect 8 reps',
+      () async {
+        final service = RepCaptureService();
+        addTearDown(service.dispose);
 
-      final suggestion =
-          await _deliverIntactCapture(service, 'cap-1', batches, provisionalCount: 8);
+        final suggestion = await _deliverIntactCapture(
+          service,
+          'cap-1',
+          batches,
+          provisionalCount: 8,
+        );
 
-      expect(suggestion.proposedReps, detectedCount);
-      expect(suggestion.sampleCount, trace.length);
-      expect(suggestion.missedBatches, 0);
-      expect(suggestion.coverageRatio, closeTo(1.0, 1e-9));
-    });
+        expect(suggestion.proposedReps, detectedCount);
+        expect(suggestion.sampleCount, trace.length);
+        expect(suggestion.missedBatches, 0);
+        expect(suggestion.coverageRatio, closeTo(1.0, 1e-9));
+      },
+    );
 
     test('a dropped seq raises missedBatches, lowers coverageRatio and lowers '
         'the band relative to the intact delivery', () async {
       final intactService = RepCaptureService();
       addTearDown(intactService.dispose);
-      final intact = await _deliverIntactCapture(intactService, 'cap-intact', batches);
+      final intact = await _deliverIntactCapture(
+        intactService,
+        'cap-intact',
+        batches,
+      );
 
       final gappedService = RepCaptureService();
       addTearDown(gappedService.dispose);
@@ -220,7 +230,8 @@ void main() {
 
     test('rawBufferSampleCount is 0 after detection throws', () async {
       final service = RepCaptureService(
-        detect: (trace, profile) => throw StateError('synthetic detector failure'),
+        detect: (trace, profile) =>
+            throw StateError('synthetic detector failure'),
       );
       addTearDown(service.dispose);
 
@@ -255,7 +266,11 @@ void main() {
       final stateFuture = service.stateStream.skip(1).first;
       service.handleCaptureStart(_captureStartJson(captureId: 'cap-empty'));
       service.handleCaptureEnd(
-        _captureEndJson(captureId: 'cap-empty', batchCount: 0, provisionalCount: 5),
+        _captureEndJson(
+          captureId: 'cap-empty',
+          batchCount: 0,
+          provisionalCount: 5,
+        ),
       );
       final state = await stateFuture;
 
@@ -275,7 +290,11 @@ void main() {
 
       final stateFuture = service.stateStream.first;
       service.handleCaptureEnd(
-        _captureEndJson(captureId: 'cap-unknown', batchCount: 3, provisionalCount: 6),
+        _captureEndJson(
+          captureId: 'cap-unknown',
+          batchCount: 3,
+          provisionalCount: 6,
+        ),
       );
       final state = await stateFuture;
 
@@ -285,20 +304,22 @@ void main() {
   });
 
   group('provisional divergence (B5 rule)', () {
-    test('proposedReps == 8 regardless of provisionalCount (2, 8, 14)',
-        () async {
-      for (final provisional in [2, 8, 14]) {
-        final service = RepCaptureService();
-        addTearDown(service.dispose);
-        final suggestion = await _deliverIntactCapture(
-          service,
-          'cap-div-$provisional',
-          batches,
-          provisionalCount: provisional,
-        );
-        expect(suggestion.proposedReps, 8);
-      }
-    });
+    test(
+      'proposedReps == 8 regardless of provisionalCount (2, 8, 14)',
+      () async {
+        for (final provisional in [2, 8, 14]) {
+          final service = RepCaptureService();
+          addTearDown(service.dispose);
+          final suggestion = await _deliverIntactCapture(
+            service,
+            'cap-div-$provisional',
+            batches,
+            provisionalCount: provisional,
+          );
+          expect(suggestion.proposedReps, 8);
+        }
+      },
+    );
 
     test('agreement (8) leaves the band unlowered', () async {
       final service = RepCaptureService();
@@ -311,41 +332,51 @@ void main() {
       );
 
       expect(suggestion.provisionalDisagrees, isFalse);
-      expect(suggestion.confidenceBand, RepSuggestion.bandFor(suggestion.setConfidence));
-    });
-
-    test('a >1 divergence (14 vs 8) lowers the band by exactly one step',
-        () async {
-      final service = RepCaptureService();
-      addTearDown(service.dispose);
-      final suggestion = await _deliverIntactCapture(
-        service,
-        'cap-div-14',
-        batches,
-        provisionalCount: 14,
-      );
-
-      expect(suggestion.provisionalDisagrees, isTrue);
       expect(
         suggestion.confidenceBand,
-        RepSuggestion.bandFor(suggestion.setConfidence).lowerByOne(),
+        RepSuggestion.bandFor(suggestion.setConfidence),
       );
     });
 
-    test('a divergence of exactly 1 (9 vs 8) does not lower the band',
-        () async {
-      final service = RepCaptureService();
-      addTearDown(service.dispose);
-      final suggestion = await _deliverIntactCapture(
-        service,
-        'cap-div-9',
-        batches,
-        provisionalCount: 9,
-      );
+    test(
+      'a >1 divergence (14 vs 8) lowers the band by exactly one step',
+      () async {
+        final service = RepCaptureService();
+        addTearDown(service.dispose);
+        final suggestion = await _deliverIntactCapture(
+          service,
+          'cap-div-14',
+          batches,
+          provisionalCount: 14,
+        );
 
-      expect(suggestion.provisionalDisagrees, isFalse);
-      expect(suggestion.confidenceBand, RepSuggestion.bandFor(suggestion.setConfidence));
-    });
+        expect(suggestion.provisionalDisagrees, isTrue);
+        expect(
+          suggestion.confidenceBand,
+          RepSuggestion.bandFor(suggestion.setConfidence).lowerByOne(),
+        );
+      },
+    );
+
+    test(
+      'a divergence of exactly 1 (9 vs 8) does not lower the band',
+      () async {
+        final service = RepCaptureService();
+        addTearDown(service.dispose);
+        final suggestion = await _deliverIntactCapture(
+          service,
+          'cap-div-9',
+          batches,
+          provisionalCount: 9,
+        );
+
+        expect(suggestion.provisionalDisagrees, isFalse);
+        expect(
+          suggestion.confidenceBand,
+          RepSuggestion.bandFor(suggestion.setConfidence),
+        );
+      },
+    );
   });
 
   group('phone source gates', () {
@@ -364,15 +395,19 @@ void main() {
     Future<void> setPlacement(String? placement) async {
       final existing = await repo.settings();
       if (existing == null) {
-        await db.into(db.repTrackingSettings).insert(
+        await db
+            .into(db.repTrackingSettings)
+            .insert(
               RepTrackingSettingsCompanion.insert(
                 phonePlacement: Value(placement),
               ),
             );
       } else {
-        await (db.update(db.repTrackingSettings)
-              ..where((t) => t.id.equals(existing.id)))
-            .write(RepTrackingSettingsCompanion(phonePlacement: Value(placement)));
+        await (db.update(
+          db.repTrackingSettings,
+        )..where((t) => t.id.equals(existing.id))).write(
+          RepTrackingSettingsCompanion(phonePlacement: Value(placement)),
+        );
       }
     }
 

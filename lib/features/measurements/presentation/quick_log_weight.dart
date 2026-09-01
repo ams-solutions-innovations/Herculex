@@ -57,7 +57,9 @@ Future<void> quickLogWeight(BuildContext context, WidgetRef ref) async {
   if (value != null && value > 0) {
     Haptics.medium();
     final dateIso = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    await ref.read(measurementsRepositoryProvider).logMeasurement(
+    await ref
+        .read(measurementsRepositoryProvider)
+        .logMeasurement(
           dateIso: dateIso,
           metric: 'bodyweight',
           // Measurements are stored in kilograms regardless of display unit.

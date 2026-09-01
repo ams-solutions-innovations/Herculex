@@ -51,7 +51,8 @@ class _MuscleListCard extends ConsumerWidget {
     final etaMap = ref.watch(recoveryEtaProvider).valueOrNull;
     final deloadSignals = ref.watch(muscleDeloadSignalsProvider).valueOrNull;
     final deloadByMuscle = {
-      for (final s in deloadSignals ?? const <MuscleDeloadSignal>[]) s.muscle: s.urgency,
+      for (final s in deloadSignals ?? const <MuscleDeloadSignal>[])
+        s.muscle: s.urgency,
     };
 
     return HxCard(
@@ -74,7 +75,9 @@ class _MuscleListCard extends ConsumerWidget {
                   MuscleRecoveryRow(
                     muscle: g.muscle,
                     recoveryScore: g.recoveryScore,
-                    etaLabel: etaMap == null ? null : _formatEta(etaMap[g.muscle]),
+                    etaLabel: etaMap == null
+                        ? null
+                        : _formatEta(etaMap[g.muscle]),
                     statusDotColor: _dotColor(hx, deloadByMuscle[g.muscle]),
                   ),
               ],
@@ -83,7 +86,8 @@ class _MuscleListCard extends ConsumerWidget {
               padding: EdgeInsets.symmetric(vertical: HxSpace.x8),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (e, _) => Text('Error: $e', style: theme.textTheme.bodySmall),
+            error: (e, _) =>
+                Text('Error: $e', style: theme.textTheme.bodySmall),
           ),
         ],
       ),

@@ -28,7 +28,8 @@ class FixtureRecordingView extends ConsumerStatefulWidget {
   const FixtureRecordingView({super.key});
 
   @override
-  ConsumerState<FixtureRecordingView> createState() => _FixtureRecordingViewState();
+  ConsumerState<FixtureRecordingView> createState() =>
+      _FixtureRecordingViewState();
 }
 
 class _FixtureRecordingViewState extends ConsumerState<FixtureRecordingView> {
@@ -43,8 +44,9 @@ class _FixtureRecordingViewState extends ConsumerState<FixtureRecordingView> {
 
   void _refresh() {
     setState(() {
-      _statusFuture =
-          _recorder.listRecorded().then(FixtureCorpusStatus.evaluate);
+      _statusFuture = _recorder.listRecorded().then(
+        FixtureCorpusStatus.evaluate,
+      );
     });
   }
 
@@ -59,7 +61,8 @@ class _FixtureRecordingViewState extends ConsumerState<FixtureRecordingView> {
     }
     await Share.shareXFiles(
       [for (final f in files) XFile(f.path)],
-      text: 'Herculex REP-06 fixture corpus — commit under test/fixtures/motion/',
+      text:
+          'Herculex REP-06 fixture corpus — commit under test/fixtures/motion/',
     );
   }
 
@@ -99,8 +102,12 @@ class _FixtureRecordingViewState extends ConsumerState<FixtureRecordingView> {
                 child: Row(
                   children: [
                     Icon(
-                      status.sufficient ? Icons.check_circle : Icons.pending_outlined,
-                      color: status.sufficient ? Colors.green : theme.colorScheme.primary,
+                      status.sufficient
+                          ? Icons.check_circle
+                          : Icons.pending_outlined,
+                      color: status.sufficient
+                          ? Colors.green
+                          : theme.colorScheme.primary,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -126,7 +133,8 @@ class _FixtureRecordingViewState extends ConsumerState<FixtureRecordingView> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _FixtureRow(
                     spec: spec,
-                    state: status.byName[spec.name] ?? FixtureRecordState.missing,
+                    state:
+                        status.byName[spec.name] ?? FixtureRecordState.missing,
                     onTap: () async {
                       await Navigator.of(context).push(
                         MaterialPageRoute(
@@ -149,7 +157,11 @@ class _FixtureRecordingViewState extends ConsumerState<FixtureRecordingView> {
 }
 
 class _FixtureRow extends StatelessWidget {
-  const _FixtureRow({required this.spec, required this.state, required this.onTap});
+  const _FixtureRow({
+    required this.spec,
+    required this.state,
+    required this.onTap,
+  });
 
   final FixtureSpec spec;
   final FixtureRecordState state;
@@ -167,7 +179,9 @@ class _FixtureRow extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              recorded ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+              recorded
+                  ? Icons.check_circle_outline
+                  : Icons.radio_button_unchecked,
               color: recorded ? Colors.green : theme.colorScheme.secondary,
             ),
             const SizedBox(width: 16),
@@ -175,7 +189,10 @@ class _FixtureRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(spec.name, style: theme.textTheme.labelLarge?.copyWith(fontSize: 14)),
+                  Text(
+                    spec.name,
+                    style: theme.textTheme.labelLarge?.copyWith(fontSize: 14),
+                  ),
                   Text(
                     '${spec.purpose} — ${spec.source}'
                     '${spec.placement != null ? '/${spec.placement}' : ''}',
@@ -184,7 +201,11 @@ class _FixtureRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios, size: 14, color: theme.textTheme.bodyMedium?.color),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: theme.textTheme.bodyMedium?.color,
+            ),
           ],
         ),
       ),
@@ -202,7 +223,8 @@ class _FixtureCaptureScreen extends ConsumerStatefulWidget {
   final FixtureRecorder recorder;
 
   @override
-  ConsumerState<_FixtureCaptureScreen> createState() => _FixtureCaptureScreenState();
+  ConsumerState<_FixtureCaptureScreen> createState() =>
+      _FixtureCaptureScreenState();
 }
 
 class _FixtureCaptureScreenState extends ConsumerState<_FixtureCaptureScreen> {
@@ -249,16 +271,18 @@ class _FixtureCaptureScreenState extends ConsumerState<_FixtureCaptureScreen> {
     );
     if (!mounted) return;
     setState(() => _saved = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${widget.spec.name} saved.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('${widget.spec.name} saved.')));
   }
 
   Future<void> _start() async {
     final repCount = _repCount;
     if (repCount == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter the human-counted rep count before starting.')),
+        const SnackBar(
+          content: Text('Enter the human-counted rep count before starting.'),
+        ),
       );
       return;
     }
@@ -271,19 +295,23 @@ class _FixtureCaptureScreenState extends ConsumerState<_FixtureCaptureScreen> {
       // debug observer so the next capture_end this service sees is saved as
       // this fixture, then disarms it immediately after — see the doc
       // comment on RepCaptureService.debugRawTraceObserver.
-      ref.read(repCaptureServiceProvider).debugRawTraceObserver = (captureId, trace) {
+      ref
+          .read(repCaptureServiceProvider)
+          .debugRawTraceObserver = (captureId, trace) {
         unawaited(_saveTrace(trace));
       };
     } else {
       final refusal = await ref.read(phoneMotionSourceProvider).start();
       if (refusal != null && mounted) {
         setState(() => _capturing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(refusal.reason)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(refusal.reason)));
         return;
       }
-      _phoneEndSub = ref.read(phoneMotionSourceProvider).captureEnded.listen((result) {
+      _phoneEndSub = ref.read(phoneMotionSourceProvider).captureEnded.listen((
+        result,
+      ) {
         unawaited(_saveTrace(result.trace));
       });
     }
@@ -323,7 +351,9 @@ class _FixtureCaptureScreenState extends ConsumerState<_FixtureCaptureScreen> {
               children: [
                 Text(spec.purpose, style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 8),
-                Text('Movement: ${spec.movement?.name ?? 'none (noise fixture)'}'),
+                Text(
+                  'Movement: ${spec.movement?.name ?? 'none (noise fixture)'}',
+                ),
                 Text('Source: ${spec.source}'),
                 Text('Placement: ${spec.placement ?? 'n/a'}'),
                 Text('Target rep count: ${spec.targetRepCount}'),
@@ -336,7 +366,8 @@ class _FixtureCaptureScreenState extends ConsumerState<_FixtureCaptureScreen> {
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
               labelText: 'Ground-truth rep count',
-              helperText: 'Count out loud or film the set. Enter the HUMAN count — '
+              helperText:
+                  'Count out loud or film the set. Enter the HUMAN count — '
                   'never the app\'s detected or provisional count.',
               helperMaxLines: 3,
             ),
@@ -385,7 +416,10 @@ class _FixtureCaptureScreenState extends ConsumerState<_FixtureCaptureScreen> {
           ),
           if (_saved) ...[
             const SizedBox(height: 16),
-            Text('Saved.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.green)),
+            Text(
+              'Saved.',
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.green),
+            ),
           ],
         ],
       ),

@@ -297,9 +297,7 @@ class _SourceChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary
-              : AppColors.surfaceContainer,
+          color: selected ? AppColors.primary : AppColors.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.outlineVariant,

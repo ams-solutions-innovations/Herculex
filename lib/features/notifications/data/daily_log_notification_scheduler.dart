@@ -55,18 +55,29 @@ class DailyLogNotificationScheduler {
         '📊 Daily check-in',
         "Don't forget to log today's meals and check your targets in Herculex!",
         scheduled,
-        const NotificationDetails(
-          android: androidDetails,
-          iOS: iOSDetails,
-        ),
+        const NotificationDetails(android: androidDetails, iOS: iOSDetails),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('DailyLogNotificationScheduler: schedule failed ($e)');
+    } catch (_) {
+      try {
+        await _plugin.zonedSchedule(
+          notifId,
+          '📊 Daily check-in',
+          "Don't forget to log today's meals and check your targets in Herculex!",
+          scheduled,
+          const NotificationDetails(android: androidDetails, iOS: iOSDetails),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.time,
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('DailyLogNotificationScheduler: schedule failed ($e)');
+        }
       }
     }
   }

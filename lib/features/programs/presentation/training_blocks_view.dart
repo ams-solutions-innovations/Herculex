@@ -17,6 +17,7 @@ import 'program_marketplace_view.dart';
 import 'programs_providers.dart';
 import 'widgets/month_calendar.dart';
 import 'widgets/week_board.dart';
+import '../../workouts/presentation/calendar_providers.dart';
 
 class TrainingBlocksView extends ConsumerWidget {
   const TrainingBlocksView({super.key});
@@ -145,6 +146,64 @@ class _BlockHeader extends ConsumerWidget {
           ),
         ),
         IconButton(
+          tooltip: 'Sync with Google / Device Calendar',
+          icon: ref.watch(calendarSyncControllerProvider).isSyncing
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(
+                  Icons.sync_rounded,
+                  color: ref.watch(calendarSyncEnabledProvider)
+                      ? const Color(0xFF6750A4)
+                      : AppColors.onSurfaceVariant,
+                ),
+          onPressed: () async {
+            final isEnabled = ref.read(calendarSyncEnabledProvider);
+            if (!isEnabled) {
+              final enable = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Enable Calendar 2-Way Sync?'),
+                  content: const Text(
+                    'Sync scheduled workouts with your Google / Device Calendar. Moving workouts in Google Calendar will update Herculex and vice-versa.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Enable & Sync'),
+                    ),
+                  ],
+                ),
+              );
+              if (enable != true) return;
+              await ref
+                  .read(calendarSyncEnabledProvider.notifier)
+                  .toggle(true);
+            }
+            final res = await ref
+                .read(calendarSyncControllerProvider.notifier)
+                .syncNow();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    res.success
+                        ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
+                        : 'Sync error: ${res.error}',
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+        ),
+        IconButton(
           tooltip: 'Edit block',
           icon: Icon(Icons.tune_rounded, color: AppColors.onSurfaceVariant),
           onPressed: () => Navigator.push(
@@ -172,7 +231,11 @@ class _BlockHeader extends ConsumerWidget {
     if (startIso == null) return null;
     final start = DateTime.parse(startIso);
     final now = ref.read(clockProvider).now();
-    final days = DateTime(now.year, now.month, now.day).difference(start).inDays;
+    final days = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).difference(start).inDays;
     if (days < 0) return null;
     final week = (days ~/ 7) + 1;
     return week > program.weeks ? null : week;
@@ -180,10 +243,7 @@ class _BlockHeader extends ConsumerWidget {
 
   void _showSwitcher(BuildContext context, WidgetRef ref) {
     Haptics.selection();
-    AppBottomSheet.show(
-      context,
-      builder: (_) => const _BlockSwitcherSheet(),
-    );
+    AppBottomSheet.show(context, builder: (_) => const _BlockSwitcherSheet());
   }
 }
 
@@ -201,7 +261,8 @@ class _BlockSwitcherSheet extends ConsumerWidget {
       initialSize: 0.55,
       child: programs.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Text('Could not load blocks.', style: theme.textTheme.bodyMedium),
+        error: (e, _) =>
+            Text('Could not load blocks.', style: theme.textTheme.bodyMedium),
         data: (list) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -377,7 +438,8 @@ class _PeriodNavigator extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (mode == BlocksViewMode.week) _PhaseChip(program: program, date: date),
+              if (mode == BlocksViewMode.week)
+                _PhaseChip(program: program, date: date),
             ],
           ),
         ),
@@ -424,9 +486,8 @@ class _PhaseChip extends ConsumerWidget {
     if (weeks == null || weeks.isEmpty) return const SizedBox.shrink();
 
     final start = DateTime.parse(startIso);
-    final index = WeekBoard.mondayOf(date)
-            .difference(WeekBoard.mondayOf(start))
-            .inDays ~/
+    final index =
+        WeekBoard.mondayOf(date).difference(WeekBoard.mondayOf(start)).inDays ~/
         7;
     if (index < 0 || index >= weeks.length) return const SizedBox.shrink();
     final week = weeks[index];

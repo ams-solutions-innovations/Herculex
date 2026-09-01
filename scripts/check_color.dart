@@ -6,7 +6,7 @@ void main() {
   final file = File('assets/images/app_icon_foreground.png');
   final image = img.decodePng(file.readAsBytesSync());
   if (image == null) return;
-  
+
   for (final p in image) {
     if (p.a > 128) {
       print('Found opaque pixel: R=${p.r}, G=${p.g}, B=${p.b}, A=${p.a}');

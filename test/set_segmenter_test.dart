@@ -74,7 +74,10 @@ void main() {
 
   group('rejecting non-sets', () {
     test('a workout with no work at all yields nothing', () {
-      expect(SetSegmenter.segment(_workout(const [_Segment.rest(180)])), isEmpty);
+      expect(
+        SetSegmenter.segment(_workout(const [_Segment.rest(180)])),
+        isEmpty,
+      );
     });
 
     test('a brief burst is not a set', () {
@@ -130,16 +133,19 @@ void main() {
       expect(kept.single.startMs, 10000);
     });
 
-    test('a window overlapping a believed set is kept even if it extends past it', () {
-      final windows = [
-        const SetWindow(startMs: 10000, endMs: 60000, peakEnvelope: 5),
-      ];
+    test(
+      'a window overlapping a believed set is kept even if it extends past it',
+      () {
+        final windows = [
+          const SetWindow(startMs: 10000, endMs: 60000, peakEnvelope: 5),
+        ];
 
-      expect(
-        SetSegmenter.constrainTo(windows, const [(40000, 45000)]),
-        hasLength(1),
-      );
-    });
+        expect(
+          SetSegmenter.constrainTo(windows, const [(40000, 45000)]),
+          hasLength(1),
+        );
+      },
+    );
 
     test('no constraints means no filtering, not everything filtered', () {
       // The app may have no set/rest state at all — a freeform session. That

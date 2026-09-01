@@ -34,7 +34,9 @@ class RecoveryHeaderCard extends ConsumerWidget {
           cns.when(
             data: (t) => Text(
               '${(t.readiness * 100).round()}%',
-              style: theme.textTheme.headlineMedium?.copyWith(color: hx.domainRecovery),
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: hx.domainRecovery,
+              ),
             ),
             loading: () => const SizedBox(
               height: 32,
@@ -94,9 +96,15 @@ class RecoveryHeaderCard extends ConsumerWidget {
       children: [
         Text(
           '$count',
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: color),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
-        Text(label, style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary)),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+        ),
       ],
     );
   }

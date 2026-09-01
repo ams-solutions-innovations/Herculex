@@ -29,6 +29,7 @@ abstract final class HxRadius {
   static BorderRadius get pillAll => BorderRadius.circular(pill);
 
   /// Sheet shells: rounded top corners only.
-  static const BorderRadius sheetTop =
-      BorderRadius.vertical(top: Radius.circular(xl));
+  static const BorderRadius sheetTop = BorderRadius.vertical(
+    top: Radius.circular(xl),
+  );
 }

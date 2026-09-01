@@ -37,21 +37,24 @@ class ResolvedSet {
     required this.accessoryNames,
     required this.forearmMultiplier,
   }) : effectiveKg = EffectiveLoad.computeKg(
-          weightKg: set.weightKg,
-          bodyweightKg: set.bodyweightKg,
-          includesBodyweight: exercise.supportsWeightedBodyweight ||
-              (workoutExercise.equipmentVariant ?? exercise.modality) == 'weighted' ||
-              (workoutExercise.equipmentVariant ?? exercise.modality) == 'bodyweight' ||
-              (workoutExercise.equipmentVariant ?? exercise.modality) == 'band',
-          chainsKg: set.chainsKg,
-          bands: bands,
-        );
+         weightKg: set.weightKg,
+         bodyweightKg: set.bodyweightKg,
+         includesBodyweight:
+             exercise.supportsWeightedBodyweight ||
+             (workoutExercise.equipmentVariant ?? exercise.modality) ==
+                 'weighted' ||
+             (workoutExercise.equipmentVariant ?? exercise.modality) ==
+                 'bodyweight' ||
+             (workoutExercise.equipmentVariant ?? exercise.modality) == 'band',
+         chainsKg: set.chainsKg,
+         bands: bands,
+       );
 
   /// What this exercise is measured in (EXR-05).
   LoggingMetric get metric => effectiveLoggingMetric(
-        exercise: exercise,
-        equipmentVariant: workoutExercise.equipmentVariant,
-      );
+    exercise: exercise,
+    equipmentVariant: workoutExercise.equipmentVariant,
+  );
 
   /// Tonnage of this set, or zero when reps are not the unit of work.
   ///
@@ -66,7 +69,10 @@ class ResolvedSet {
   /// it keeps counting exactly as it did before this phase.
   double get tonnageKg => metric.isRepBased
       ? EffectiveLoad.tonnageKg(
-          effectiveKg: effectiveKg, reps: countedReps, setType: setType)
+          effectiveKg: effectiveKg,
+          reps: countedReps,
+          setType: setType,
+        )
       : 0.0;
 
   /// Reps this set contributes to a rep total, or zero for non-rep work.
@@ -94,8 +100,10 @@ class ResolvedSet {
       accessoryNames.isEmpty ? 'Raw' : accessoryNames.join(' + ');
 
   /// Weighted-bodyweight work is more CNS-costly: +2 on the 1–10 scale (§9).
-  int get cnsScore => (exercise.supportsWeightedBodyweight ||
-              (workoutExercise.equipmentVariant ?? exercise.modality) == 'weighted') &&
+  int get cnsScore =>
+      (exercise.supportsWeightedBodyweight ||
+              (workoutExercise.equipmentVariant ?? exercise.modality) ==
+                  'weighted') &&
           set.bodyweightKg != null &&
           set.weightKg > 0
       ? (exercise.cnsScore + 2).clamp(1, 10)
@@ -114,15 +122,13 @@ class TrainingSnapshot {
   static Future<TrainingSnapshot> load(AppDatabase db) async {
     final results = await Future.wait([
       (db.select(db.setEntries)..where((t) => t.deletedAt.isNull())).get(),
-      (db.select(db.workoutExercises)..where((t) => t.deletedAt.isNull()))
-          .get(),
-      (db.select(db.workoutSessions)..where((t) => t.deletedAt.isNull()))
-          .get(),
-      (db.select(db.exerciseCatalog)..where((t) => t.deletedAt.isNull()))
-          .get(),
+      (db.select(
+        db.workoutExercises,
+      )..where((t) => t.deletedAt.isNull())).get(),
+      (db.select(db.workoutSessions)..where((t) => t.deletedAt.isNull())).get(),
+      (db.select(db.exerciseCatalog)..where((t) => t.deletedAt.isNull())).get(),
       db.select(db.exerciseMuscles).get(),
-      (db.select(db.setAccessories)..where((t) => t.deletedAt.isNull()))
-          .get(),
+      (db.select(db.setAccessories)..where((t) => t.deletedAt.isNull())).get(),
       (db.select(db.setBands)..where((t) => t.deletedAt.isNull())).get(),
       (db.select(db.accessories)..where((t) => t.deletedAt.isNull())).get(),
       (db.select(db.bands)..where((t) => t.deletedAt.isNull())).get(),
@@ -146,17 +152,22 @@ class TrainingSnapshot {
     final accessoriesBySet = <int, List<AccessoryData>>{};
     for (final sa in setAccessories) {
       final a = accessoryById[sa.accessoryId];
-      if (a != null) accessoriesBySet.putIfAbsent(sa.setEntryId, () => []).add(a);
+      if (a != null)
+        accessoriesBySet.putIfAbsent(sa.setEntryId, () => []).add(a);
     }
     final bandsBySet = <int, List<BandContribution>>{};
     for (final sb in setBands) {
       final b = bandById[sb.bandId];
       if (b == null) continue;
-      bandsBySet.putIfAbsent(sb.setEntryId, () => []).add(BandContribution(
-            tensionKg: b.tensionKg,
-            count: sb.count,
-            isResistance: sb.mode == 'resistance',
-          ));
+      bandsBySet
+          .putIfAbsent(sb.setEntryId, () => [])
+          .add(
+            BandContribution(
+              tensionKg: b.tensionKg,
+              count: sb.count,
+              isResistance: sb.mode == 'resistance',
+            ),
+          );
     }
 
     final resolved = <ResolvedSet>[];
@@ -195,16 +206,18 @@ class TrainingSnapshot {
         if (a.forearmMultiplier > forearm) forearm = a.forearmMultiplier;
       }
 
-      resolved.add(ResolvedSet(
-        set: set,
-        workoutExercise: we,
-        session: session,
-        exercise: ex,
-        setType: SetType.fromId(set.setType),
-        bands: setBandsList,
-        accessoryNames: names,
-        forearmMultiplier: forearm,
-      ));
+      resolved.add(
+        ResolvedSet(
+          set: set,
+          workoutExercise: we,
+          session: session,
+          exercise: ex,
+          setType: SetType.fromId(set.setType),
+          bands: setBandsList,
+          accessoryNames: names,
+          forearmMultiplier: forearm,
+        ),
+      );
     }
 
     return TrainingSnapshot(sets: resolved, exerciseMuscles: muscles);

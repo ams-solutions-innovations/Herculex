@@ -93,7 +93,8 @@ final effectiveTargetsProvider = FutureProvider.autoDispose
       final isTrainingDay = await repo.trainedOn(date);
 
       // Apply burned calories if enabled in profile
-      final profile = ref.watch(profileProvider).valueOrNull ??
+      final profile =
+          ref.watch(profileProvider).valueOrNull ??
           await ref.watch(profileProvider.future);
       double extraCalories = 0;
       if (profile?.countBurnedCalories == true) {
@@ -214,10 +215,11 @@ final recentFoodsProvider = FutureProvider<List<FoodData>>((ref) {
 
 /// Watches all unique foods previously logged in strictly descending order of
 /// their latest log time.
-final recentlyLoggedFoodsProvider =
-    StreamProvider.autoDispose<List<FoodData>>((ref) {
-      return ref.watch(nutritionRepositoryProvider).watchRecentlyLoggedFoods();
-    });
+final recentlyLoggedFoodsProvider = StreamProvider.autoDispose<List<FoodData>>((
+  ref,
+) {
+  return ref.watch(nutritionRepositoryProvider).watchRecentlyLoggedFoods();
+});
 
 class FoodSuggestionParams {
   final int hour;
@@ -240,10 +242,9 @@ class FoodSuggestionParams {
 /// Watches foods suggested for a given time of day / hour and/or active meal slot.
 final suggestedFoodsProvider = StreamProvider.autoDispose
     .family<List<FoodData>, FoodSuggestionParams>((ref, params) {
-      return ref.watch(nutritionRepositoryProvider).watchSuggestedFoods(
-        hour: params.hour,
-        mealKey: params.mealKey,
-      );
+      return ref
+          .watch(nutritionRepositoryProvider)
+          .watchSuggestedFoods(hour: params.hour, mealKey: params.mealKey);
     });
 
 /// Group entries by meal for rendering meal sections.
@@ -325,12 +326,30 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   Future<void> syncFastingToWear() async {
     final repo = ref.read(fastingRepositoryProvider);
     final session = await repo.activeSession();
-    final lastSession = session == null ? (await repo.history(limit: 1)).firstOrNull : null;
+    final lastSession = session == null
+        ? (await repo.history(limit: 1)).firstOrNull
+        : null;
+    final nextFast = ref.read(nextScheduledFastProvider);
+    final currentStage = ref.read(currentFastingStageProvider);
+    final stageMsg = currentStage != null
+        ? '${currentStage.hour}h: ${currentStage.stageName}'
+        : null;
+    final hasSchedule = ref.read(hasActiveFastingScheduleProvider);
+
     final revision = ref.read(wearSyncRevisionAllocatorProvider).next();
     await ref
         .read(wearSyncServiceProvider)
         .syncFastingSnapshot(
-          encodeFastingSnapshot(session: session, lastSession: lastSession, revision: revision),
+          encodeFastingSnapshot(
+            session: session,
+            lastSession: lastSession,
+            nextFastStartTime: nextFast?.nextOccurrence,
+            nextFastPlanName: nextFast?.planLabel,
+            nextFastTargetSeconds: nextFast?.targetSeconds,
+            hasSchedule: hasSchedule,
+            currentStageMessage: stageMsg,
+            revision: revision,
+          ),
         );
   }
 
@@ -362,7 +381,8 @@ final wearSyncControllerProvider = Provider<void>((ref) {
         'date': iso,
         'day': dayLabel,
         'calories': (dayTotals?.kcal ?? (i == 0 ? totals.kcal : 0.0)).round(),
-        'protein': (dayTotals?.proteinG ?? (i == 0 ? totals.proteinG : 0.0)).round(),
+        'protein': (dayTotals?.proteinG ?? (i == 0 ? totals.proteinG : 0.0))
+            .round(),
         'carbs': (dayTotals?.carbsG ?? (i == 0 ? totals.carbsG : 0.0)).round(),
         'fats': (dayTotals?.fatG ?? (i == 0 ? totals.fatG : 0.0)).round(),
         'water': 0,
@@ -376,9 +396,9 @@ final wearSyncControllerProvider = Provider<void>((ref) {
 
     final calorieGoal = targets?.kcal ?? baseline?.kcal ?? 2000;
     final proteinGoal = targets?.proteinG ?? baseline?.proteinG ?? 150;
-    final carbsGoal   = targets?.carbsG ?? baseline?.carbsG ?? 200;
-    final fatGoal     = targets?.fatG ?? baseline?.fatG ?? 65;
-    final waterGoal   = 2000;
+    final carbsGoal = targets?.carbsG ?? baseline?.carbsG ?? 200;
+    final fatGoal = targets?.fatG ?? baseline?.fatG ?? 65;
+    final waterGoal = 2000;
 
     await ref
         .read(wearSyncServiceProvider)
@@ -601,7 +621,8 @@ final wearSyncControllerProvider = Provider<void>((ref) {
         );
 
         final repo = ref.read(nutritionRepositoryProvider);
-        final selectedMeal = (result.suggestedMealKey != null &&
+        final selectedMeal =
+            (result.suggestedMealKey != null &&
                 result.suggestedMealKey!.isNotEmpty)
             ? result.suggestedMealKey!
             : mealKey;
@@ -725,7 +746,9 @@ final widgetMacroSyncControllerProvider = Provider<void>((ref) {
     final foodKcal = totals.kcal.round();
 
     int baseGoalKcal = baseline?.kcal ?? targets?.kcal ?? 0;
-    if (profile?.countBurnedCalories == true && targets != null && extraCalories > 0) {
+    if (profile?.countBurnedCalories == true &&
+        targets != null &&
+        extraCalories > 0) {
       baseGoalKcal = (targets.kcal - exerciseKcal).clamp(0, 99999);
     } else if (targets != null) {
       baseGoalKcal = targets.kcal;
@@ -747,10 +770,7 @@ final widgetMacroSyncControllerProvider = Provider<void>((ref) {
     );
   }
 
-  ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (
-    _,
-    next,
-  ) {
+  ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (_, next) {
     if (next.hasValue && next.value != null) {
       doSync();
     }
@@ -788,44 +808,43 @@ final nutritionHistoryProvider =
 
 /// Provider for 7-day average intake of a specific macro ('kcal', 'protein', 'carbs', 'fat').
 /// Excludes today (in-progress day) and computes average across the past 7 completed days.
-final averageWeeklyMacroProvider =
-    Provider.autoDispose.family<double?, String>((ref, macro) {
-  final history = ref.watch(nutritionHistoryProvider).asData?.value;
-  if (history == null || history.isEmpty) return null;
+final averageWeeklyMacroProvider = Provider.autoDispose.family<double?, String>(
+  (ref, macro) {
+    final history = ref.watch(nutritionHistoryProvider).asData?.value;
+    if (history == null || history.isEmpty) return null;
 
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-  double total = 0;
-  int count = 0;
+    double total = 0;
+    int count = 0;
 
-  for (int i = 1; i <= 7; i++) {
-    final d = today.subtract(Duration(days: i));
-    final iso = DateFormat('yyyy-MM-dd').format(d);
-    if (history.containsKey(iso)) {
-      final totals = history[iso];
-      if (totals != null) {
-        final val = switch (macro) {
-          'protein' => totals.proteinG,
-          'carbs' => totals.carbsG,
-          'fat' => totals.fatG,
-          _ => totals.kcal,
-        };
-        if (val > 0 && !val.isNaN && !val.isInfinite) {
-          total += val;
-          count++;
+    for (int i = 1; i <= 7; i++) {
+      final d = today.subtract(Duration(days: i));
+      final iso = DateFormat('yyyy-MM-dd').format(d);
+      if (history.containsKey(iso)) {
+        final totals = history[iso];
+        if (totals != null) {
+          final val = switch (macro) {
+            'protein' => totals.proteinG,
+            'carbs' => totals.carbsG,
+            'fat' => totals.fatG,
+            _ => totals.kcal,
+          };
+          if (val > 0 && !val.isNaN && !val.isInfinite) {
+            total += val;
+            count++;
+          }
         }
       }
     }
-  }
 
-  if (count == 0) return null;
-  return total / count;
-});
+    if (count == 0) return null;
+    return total / count;
+  },
+);
 
 /// Provider for Average Weekly Calories (past 7 days daily average).
 final averageWeeklyCaloriesProvider = Provider.autoDispose<double?>((ref) {
   return ref.watch(averageWeeklyMacroProvider('kcal'));
 });
-
-

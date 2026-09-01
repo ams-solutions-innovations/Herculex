@@ -143,17 +143,13 @@ class SlotPrescription {
   final List<WorkSegment> segments;
   final String? note;
 
-  int get totalSets =>
-      segments.fold(0, (sum, s) => sum + s.countedSets);
+  int get totalSets => segments.fold(0, (sum, s) => sum + s.countedSets);
 
-  bool get hasFailureWork =>
-      segments.any((s) => s.intent == Intent.toFailure);
+  bool get hasFailureWork => segments.any((s) => s.intent == Intent.toFailure);
 
   /// Σ(sets × set-type CNS multiplier) — the input to the weekly CNS guardrail.
-  double get cnsUnits => segments.fold(
-        0.0,
-        (sum, s) => sum + s.countedSets * s.cnsMultiplier,
-      );
+  double get cnsUnits =>
+      segments.fold(0.0, (sum, s) => sum + s.countedSets * s.cnsMultiplier);
 
   String format() => segments.map((s) => s.format()).join(' + ');
 
@@ -212,19 +208,12 @@ class SlotPrescription {
       note: 'One primer set, then two all-out sets.',
       segments: [
         WorkSegment(sets: 1, repsMin: 6, repsMax: 8, intent: Intent.rir2),
-        WorkSegment(
-          sets: 2,
-          repsMin: 6,
-          repsMax: 12,
-          intent: Intent.toFailure,
-        ),
+        WorkSegment(sets: 2, repsMin: 6, repsMax: 12, intent: Intent.toFailure),
       ],
     ),
     SlotPrescription(
       name: 'Straight 3x8 RPE8',
-      segments: [
-        WorkSegment(sets: 3, repsMin: 8, intent: Intent.rir2),
-      ],
+      segments: [WorkSegment(sets: 3, repsMin: 8, intent: Intent.rir2)],
     ),
     SlotPrescription(
       name: 'Myo 1+3',

@@ -50,7 +50,11 @@ abstract final class MuscleDeloadAdvisor {
     required DateTime asOf,
     required CnsTrendsResult cnsTrends,
   }) {
-    final trends = MuscleVolumeTrends.compute(snapshot: snapshot, asOf: asOf, weekCount: 8);
+    final trends = MuscleVolumeTrends.compute(
+      snapshot: snapshot,
+      asOf: asOf,
+      weekCount: 8,
+    );
 
     // Recovery score history isn't persisted anywhere — MuscleRecoveryV3 is a
     // cheap pure function over the already-loaded snapshot, so "the last 14
@@ -98,8 +102,8 @@ abstract final class MuscleDeloadAdvisor {
     final urgency = score >= 4
         ? DeloadUrgency.recommended
         : score >= 2
-            ? DeloadUrgency.watch
-            : DeloadUrgency.none;
+        ? DeloadUrgency.watch
+        : DeloadUrgency.none;
 
     return MuscleDeloadSignal(
       muscle: muscle,

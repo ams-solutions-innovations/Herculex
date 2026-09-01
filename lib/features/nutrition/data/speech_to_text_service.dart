@@ -29,11 +29,12 @@ const kSupportedSttLanguages = [
   SttLanguageOption(localeId: 'fr_FR', name: 'Français', flag: '🇫🇷'),
 ];
 
-final speechToTextServiceProvider =
-    ChangeNotifierProvider<SpeechToTextService>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return SpeechToTextService(prefs);
-});
+final speechToTextServiceProvider = ChangeNotifierProvider<SpeechToTextService>(
+  (ref) {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return SpeechToTextService(prefs);
+  },
+);
 
 class SpeechToTextService extends ChangeNotifier {
   final SharedPreferences? _prefs;

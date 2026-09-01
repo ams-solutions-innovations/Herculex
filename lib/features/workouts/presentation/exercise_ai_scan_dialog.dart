@@ -55,7 +55,9 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
   Future<void> _pickImage(ImageSource source) async {
     Haptics.light();
     try {
-      await ref.read(pendingAiScanServiceProvider).setPendingContext(
+      await ref
+          .read(pendingAiScanServiceProvider)
+          .setPendingContext(
             PendingAiScanContext(type: AiScanContextType.exercise),
           );
       final picker = ImagePicker();
@@ -96,7 +98,8 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
       if (res == null) {
         setState(() {
           _analyzing = false;
-          _error = 'Gemini AI na sliki ni zaznal fitnes naprave ali vaje. Poskusite znova z bolj jasnega kota.';
+          _error =
+              'Gemini AI na sliki ni zaznal fitnes naprave ali vaje. Poskusite znova z bolj jasnega kota.';
         });
       } else {
         setState(() {
@@ -304,13 +307,8 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
           child: Container(
             height: 190,
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer,
-            ),
-            child: Image.file(
-              File(_imageFile!.path),
-              fit: BoxFit.cover,
-            ),
+            decoration: BoxDecoration(color: AppColors.surfaceContainer),
+            child: Image.file(File(_imageFile!.path), fit: BoxFit.cover),
           ),
         ),
         Positioned(
@@ -600,11 +598,7 @@ class _ExerciseCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ExerciseArtwork(
-              exercise: exercise,
-              size: 48,
-              radius: 10,
-            ),
+            ExerciseArtwork(exercise: exercise, size: 48, radius: 10),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -630,16 +624,24 @@ class _ExerciseCard extends StatelessWidget {
             FilledButton(
               onPressed: onSelect,
               style: FilledButton.styleFrom(
-                backgroundColor: isPrimary ? AppColors.primary : AppColors.surfaceVariant,
+                backgroundColor: isPrimary
+                    ? AppColors.primary
+                    : AppColors.surfaceVariant,
                 foregroundColor: isPrimary ? Colors.white : AppColors.onSurface,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: Text(
                 isPrimary ? 'Dodaj' : 'Izberi',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ),
           ],

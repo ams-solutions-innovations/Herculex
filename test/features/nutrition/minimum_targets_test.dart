@@ -62,10 +62,7 @@ void main() {
       );
       expect(disabled.effectiveMinCaloriesKcal, isNull);
 
-      const enabled = MinimumTargetsState(
-        enabled: true,
-        minCaloriesKcal: 1500,
-      );
+      const enabled = MinimumTargetsState(enabled: true, minCaloriesKcal: 1500);
       expect(enabled.effectiveMinCaloriesKcal, 1500);
     });
   });

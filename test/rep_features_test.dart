@@ -7,15 +7,14 @@ import 'package:herculex/features/reps/domain/rep_features.dart';
 RepDetectionResult resultWith({
   required List<int> periods,
   required List<double> amps,
-}) =>
-    RepDetectionResult(
-      repCount: periods.length,
-      perRepConfidence: List.filled(periods.length, 1.0),
-      setConfidence: 1,
-      cyclePeriodsMs: periods,
-      cycleAmplitudes: amps,
-      missedRepSuspected: false,
-    );
+}) => RepDetectionResult(
+  repCount: periods.length,
+  perRepConfidence: List.filled(periods.length, 1.0),
+  setConfidence: 1,
+  cyclePeriodsMs: periods,
+  cycleAmplitudes: amps,
+  missedRepSuspected: false,
+);
 
 void main() {
   group('RepFeatures.fromResult ratio guards', () {
@@ -59,16 +58,18 @@ void main() {
       expect(four.amplitudeDecayRatio, isNotNull);
     });
 
-    test('an empty result yields zeroed unguarded features and null ratios',
-        () {
-      final f = RepFeatures.fromResult(RepDetectionResult.empty);
+    test(
+      'an empty result yields zeroed unguarded features and null ratios',
+      () {
+        final f = RepFeatures.fromResult(RepDetectionResult.empty);
 
-      expect(f.meanPeriodMs, 0);
-      expect(f.periodCv, 0);
-      expect(f.normalisedAmplitude, 0);
-      expect(f.finalRepPeriodRatio, isNull);
-      expect(f.amplitudeDecayRatio, isNull);
-    });
+        expect(f.meanPeriodMs, 0);
+        expect(f.periodCv, 0);
+        expect(f.normalisedAmplitude, 0);
+        expect(f.finalRepPeriodRatio, isNull);
+        expect(f.amplitudeDecayRatio, isNull);
+      },
+    );
   });
 
   group('RepFeatures derived values', () {
@@ -85,16 +86,10 @@ void main() {
 
     test('periodCv rises with cadence irregularity', () {
       final steady = RepFeatures.fromResult(
-        resultWith(
-          periods: [2000, 2010, 1990, 2000],
-          amps: [5.0, 5, 5, 5],
-        ),
+        resultWith(periods: [2000, 2010, 1990, 2000], amps: [5.0, 5, 5, 5]),
       );
       final ragged = RepFeatures.fromResult(
-        resultWith(
-          periods: [1200, 2000, 3400, 2600],
-          amps: [5.0, 5, 5, 5],
-        ),
+        resultWith(periods: [1200, 2000, 3400, 2600], amps: [5.0, 5, 5, 5]),
       );
 
       expect(ragged.periodCv, greaterThan(steady.periodCv));
@@ -157,8 +152,10 @@ void main() {
       ).toJson();
 
       expect(RepFeatures.fromJson({...json, 'v': 0}), isNull);
-      expect(RepFeatures.fromJson({...json, 'v': RepFeatures.version + 1}),
-          isNull);
+      expect(
+        RepFeatures.fromJson({...json, 'v': RepFeatures.version + 1}),
+        isNull,
+      );
       expect(RepFeatures.fromJson({...json}..remove('v')), isNull);
     });
   });

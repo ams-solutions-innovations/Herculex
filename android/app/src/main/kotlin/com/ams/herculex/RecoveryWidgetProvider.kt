@@ -33,17 +33,24 @@ class RecoveryWidgetProvider : AppWidgetProvider() {
 
         if (score < 0) {
             views.setTextViewText(R.id.recovery_score, "—")
-            views.setProgressBar(R.id.recovery_progress, 100, 0, false)
+            views.setViewVisibility(R.id.recovery_progress_green, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.recovery_progress_amber, android.view.View.GONE)
+            views.setViewVisibility(R.id.recovery_progress_red, android.view.View.GONE)
+            views.setProgressBar(R.id.recovery_progress_green, 100, 0, false)
         } else {
             views.setTextViewText(R.id.recovery_score, "$score%")
-            views.setProgressBar(R.id.recovery_progress, 100, score, false)
-
-            val color = when {
-                score >= 70 -> Color.parseColor("#30D158")
-                score >= 30 -> Color.parseColor("#FFD60A")
-                else -> Color.parseColor("#FF453A")
+            
+            views.setViewVisibility(R.id.recovery_progress_green, android.view.View.GONE)
+            views.setViewVisibility(R.id.recovery_progress_amber, android.view.View.GONE)
+            views.setViewVisibility(R.id.recovery_progress_red, android.view.View.GONE)
+            
+            val activeId = when {
+                score >= 70 -> R.id.recovery_progress_green
+                score >= 30 -> R.id.recovery_progress_amber
+                else -> R.id.recovery_progress_red
             }
-            views.setInt(R.id.recovery_progress, "setProgressTintList", color)
+            views.setViewVisibility(activeId, android.view.View.VISIBLE)
+            views.setProgressBar(activeId, 100, score, false)
         }
 
         views.setOnClickPendingIntent(R.id.recovery_score, launchAppIntent(context))

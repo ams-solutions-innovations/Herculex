@@ -40,12 +40,13 @@ void main() {
       isTrue,
       reason: 'Expected lib/features/reps/ to exist — run from repo root.',
     );
-    dartFiles = repsDir
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart'))
-        .toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    dartFiles =
+        repsDir
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.dart'))
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
     expect(dartFiles, isNotEmpty);
   });
 
@@ -92,46 +93,46 @@ void main() {
     );
   });
 
-  test(
-    'no file under lib/features/reps/ imports anything from '
-    'lib/features/workouts/ (presentation/ included)',
-    () {
-      // Every file under lib/features/reps/ uses relative imports (matching
-      // the rest of the codebase's convention), so a workouts import reads
-      // as `'../../workouts/presentation/....dart'`, not the
-      // `package:herculex/features/workouts/...` form the plan's literal
-      // `features/workouts/` substring assumes. `/workouts/` (a path
-      // segment, not a bare word) matches both that relative form and a
-      // hypothetical `package:` import, while still requiring a real path
-      // boundary on each side so it cannot match on, say, a variable named
-      // `workoutsRepository`.
-      final workoutsSegment = RegExp(r'(^|[/'
-          "'"
-          r'])workouts/');
-      final violations = <String>[];
-      for (final file in dartFiles) {
-        final lines = codeLines(file.readAsStringSync());
-        for (var i = 0; i < lines.length; i++) {
-          final line = lines[i];
-          final isImportOrExport =
-              line.trim().startsWith('import ') || line.trim().startsWith('export ');
-          if (isImportOrExport && workoutsSegment.hasMatch(line)) {
-            violations.add('${file.path}:${i + 1}: ${line.trim()}');
-          }
+  test('no file under lib/features/reps/ imports anything from '
+      'lib/features/workouts/ (presentation/ included)', () {
+    // Every file under lib/features/reps/ uses relative imports (matching
+    // the rest of the codebase's convention), so a workouts import reads
+    // as `'../../workouts/presentation/....dart'`, not the
+    // `package:herculex/features/workouts/...` form the plan's literal
+    // `features/workouts/` substring assumes. `/workouts/` (a path
+    // segment, not a bare word) matches both that relative form and a
+    // hypothetical `package:` import, while still requiring a real path
+    // boundary on each side so it cannot match on, say, a variable named
+    // `workoutsRepository`.
+    final workoutsSegment = RegExp(
+      r'(^|[/'
+      "'"
+      r'])workouts/',
+    );
+    final violations = <String>[];
+    for (final file in dartFiles) {
+      final lines = codeLines(file.readAsStringSync());
+      for (var i = 0; i < lines.length; i++) {
+        final line = lines[i];
+        final isImportOrExport =
+            line.trim().startsWith('import ') ||
+            line.trim().startsWith('export ');
+        if (isImportOrExport && workoutsSegment.hasMatch(line)) {
+          violations.add('${file.path}:${i + 1}: ${line.trim()}');
         }
       }
-      expect(
-        violations,
-        isEmpty,
-        reason:
-            'nothing under lib/features/reps/ may reach the set write path; '
-            "the tracker's terminal output is an immutable RepSuggestion, and "
-            'the review sheet writes only through the onConfirm callback '
-            'injected by the workouts feature — a presentation/ import would '
-            'give the tracker a transitive route to WorkoutsRepository '
-            'through a view that itself holds it. Violations:\n'
-            '${violations.join('\n')}',
-      );
-    },
-  );
+    }
+    expect(
+      violations,
+      isEmpty,
+      reason:
+          'nothing under lib/features/reps/ may reach the set write path; '
+          "the tracker's terminal output is an immutable RepSuggestion, and "
+          'the review sheet writes only through the onConfirm callback '
+          'injected by the workouts feature — a presentation/ import would '
+          'give the tracker a transitive route to WorkoutsRepository '
+          'through a view that itself holds it. Violations:\n'
+          '${violations.join('\n')}',
+    );
+  });
 }

@@ -115,9 +115,7 @@ class WorkoutSettingsSheet extends ConsumerWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainer,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(
-            top: BorderSide(color: AppColors.outlineVariant),
-          ),
+          border: Border(top: BorderSide(color: AppColors.outlineVariant)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -157,158 +155,185 @@ class WorkoutSettingsSheet extends ConsumerWidget {
                   children: [
                     // ── Rest Timer ────────────────────────────────────────────────
                     _SectionHeader(label: 'REST TIMER'),
-          ListTile(
-            leading: Icon(Icons.timer_outlined, color: AppColors.primary),
-            title: const Text('Default Rest Duration'),
-            subtitle: Text('Applied when no per-exercise override is set'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _fmtDuration(restSeconds),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right, color: AppColors.secondary),
-              ],
-            ),
-            onTap: () => _pickRestTimer(context, ref, restSeconds),
-          ),
-          SwitchListTile(
-            secondary: Icon(Icons.timer_off_outlined, color: AppColors.primary),
-            title: const Text('Enable Rest Timer'),
-            subtitle: const Text('Auto-start a countdown after each completed set'),
-            value: restTimerEnabled,
-            onChanged: (v) =>
-                ref.read(restTimerEnabledProvider.notifier).set(v),
-          ),
-          Divider(height: 1, color: AppColors.outlineVariant),
+                    ListTile(
+                      leading: Icon(
+                        Icons.timer_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('Default Rest Duration'),
+                      subtitle: Text(
+                        'Applied when no per-exercise override is set',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _fmtDuration(restSeconds),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.chevron_right, color: AppColors.secondary),
+                        ],
+                      ),
+                      onTap: () => _pickRestTimer(context, ref, restSeconds),
+                    ),
+                    SwitchListTile(
+                      secondary: Icon(
+                        Icons.timer_off_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('Enable Rest Timer'),
+                      subtitle: const Text(
+                        'Auto-start a countdown after each completed set',
+                      ),
+                      value: restTimerEnabled,
+                      onChanged: (v) =>
+                          ref.read(restTimerEnabledProvider.notifier).set(v),
+                    ),
+                    Divider(height: 1, color: AppColors.outlineVariant),
 
-          // ── Units ─────────────────────────────────────────────────────
-          _SectionHeader(label: 'UNITS'),
-          SwitchListTile(
-            secondary: Icon(
-              Icons.straighten_outlined,
-              color: AppColors.primary,
-            ),
-            title: const Text('Use Metric Units'),
-            subtitle: Text(
-              isMetric ? 'Weights shown in kg' : 'Weights shown in lb',
-            ),
-            value: isMetric,
-            activeThumbColor: AppColors.primary,
-            onChanged: (_) => ref.read(unitsProvider.notifier).toggle(),
-          ),
-          ListTile(
-            leading: Icon(Icons.add_circle_outline, color: AppColors.primary),
-            title: const Text('Quick Load Step'),
-            subtitle: const Text('Used by notification load actions'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  weightFormat.format(quickLoadStepKg),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right, color: AppColors.secondary),
-              ],
-            ),
-            onTap: () =>
-                _pickQuickLoadStep(context, ref, quickLoadStepKg, weightFormat),
-          ),
-          Divider(height: 1, color: AppColors.outlineVariant),
+                    // ── Units ─────────────────────────────────────────────────────
+                    _SectionHeader(label: 'UNITS'),
+                    SwitchListTile(
+                      secondary: Icon(
+                        Icons.straighten_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('Use Metric Units'),
+                      subtitle: Text(
+                        isMetric
+                            ? 'Weights shown in kg'
+                            : 'Weights shown in lb',
+                      ),
+                      value: isMetric,
+                      activeThumbColor: AppColors.primary,
+                      onChanged: (_) =>
+                          ref.read(unitsProvider.notifier).toggle(),
+                    ),
+                    ListTile(
+                      leading: Icon(
+                        Icons.add_circle_outline,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('Quick Load Step'),
+                      subtitle: const Text('Used by notification load actions'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            weightFormat.format(quickLoadStepKg),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(Icons.chevron_right, color: AppColors.secondary),
+                        ],
+                      ),
+                      onTap: () => _pickQuickLoadStep(
+                        context,
+                        ref,
+                        quickLoadStepKg,
+                        weightFormat,
+                      ),
+                    ),
+                    Divider(height: 1, color: AppColors.outlineVariant),
 
-          // ── Keep Awake ────────────────────────────────────────────────
-          _SectionHeader(label: 'DISPLAY'),
-          SwitchListTile(
-            secondary: Icon(
-              Icons.light_mode_outlined,
-              color: AppColors.primary,
-            ),
-            title: const Text('Keep Screen Awake'),
-            subtitle: const Text('Prevent screen from sleeping during workout'),
-            value: ref.watch(keepAwakeProvider),
-            activeThumbColor: AppColors.primary,
-            onChanged: (v) => ref.read(keepAwakeProvider.notifier).set(v),
-          ),
-          ListTile(
-            leading: Icon(
-              Icons.history_toggle_off,
-              color: AppColors.primary,
-            ),
-            title: const Text('Performance Hint'),
-            subtitle: const Text(
-              'Show last session\'s numbers or a suggested next target',
-            ),
-            trailing: SegmentedButton<PerformanceHintMode>(
-              showSelectedIcon: false,
-              style: const ButtonStyle(
-                visualDensity: VisualDensity.compact,
-              ),
-              segments: const [
-                ButtonSegment(
-                  value: PerformanceHintMode.last,
-                  label: Text('Last'),
-                ),
-                ButtonSegment(
-                  value: PerformanceHintMode.next,
-                  label: Text('Next'),
-                ),
-              ],
-              selected: {ref.watch(performanceHintModeProvider)},
-              onSelectionChanged: (selection) => ref
-                  .read(performanceHintModeProvider.notifier)
-                  .set(selection.first),
-            ),
-          ),
-          Divider(height: 1, color: AppColors.outlineVariant),
+                    // ── Keep Awake ────────────────────────────────────────────────
+                    _SectionHeader(label: 'DISPLAY'),
+                    SwitchListTile(
+                      secondary: Icon(
+                        Icons.light_mode_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('Keep Screen Awake'),
+                      subtitle: const Text(
+                        'Prevent screen from sleeping during workout',
+                      ),
+                      value: ref.watch(keepAwakeProvider),
+                      activeThumbColor: AppColors.primary,
+                      onChanged: (v) =>
+                          ref.read(keepAwakeProvider.notifier).set(v),
+                    ),
+                    ListTile(
+                      leading: Icon(
+                        Icons.history_toggle_off,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('Performance Hint'),
+                      subtitle: const Text(
+                        'Show last session\'s numbers or a suggested next target',
+                      ),
+                      trailing: SegmentedButton<PerformanceHintMode>(
+                        showSelectedIcon: false,
+                        style: const ButtonStyle(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        segments: const [
+                          ButtonSegment(
+                            value: PerformanceHintMode.last,
+                            label: Text('Last'),
+                          ),
+                          ButtonSegment(
+                            value: PerformanceHintMode.next,
+                            label: Text('Next'),
+                          ),
+                        ],
+                        selected: {ref.watch(performanceHintModeProvider)},
+                        onSelectionChanged: (selection) => ref
+                            .read(performanceHintModeProvider.notifier)
+                            .set(selection.first),
+                      ),
+                    ),
+                    Divider(height: 1, color: AppColors.outlineVariant),
 
-          // ── Tools ─────────────────────────────────────────────────────
-          _SectionHeader(label: 'TOOLS'),
-          ListTile(
-            leading: Icon(
-              Icons.group_rounded,
-              color: AppColors.primary,
-            ),
-            title: const Text('Live Workout Sharing'),
-            subtitle: const Text('Share QR code with your gym buddy to train together'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).pop();
-              BuddyShareSheet.show(context);
-            },
-          ),
-          // Plate Calculator — real feature
-          ListTile(
-            leading: Icon(
-              Icons.fitness_center_outlined,
-              color: AppColors.primary,
-            ),
-            title: const Text('Plate Calculator'),
-            subtitle: const Text('See which plates to load on each side'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).pop();
-              PlateCalculatorSheet.show(context);
-            },
-          ),
-          Divider(height: 1, color: AppColors.outlineVariant),
-          _SectionHeader(label: 'COMING SOON'),
-          _ComingSoonTile(
-            icon: Icons.volume_up_outlined,
-            label: 'Sounds & Alerts',
-          ),
-          _ComingSoonTile(
-            icon: Icons.calculate_outlined,
-            label: 'Warm-up Calculator',
-          ),
+                    // ── Tools ─────────────────────────────────────────────────────
+                    _SectionHeader(label: 'TOOLS'),
+                    ListTile(
+                      leading: Icon(
+                        Icons.group_rounded,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('Live Workout Sharing'),
+                      subtitle: const Text(
+                        'Share QR code with your gym buddy to train together',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        BuddyShareSheet.show(context);
+                      },
+                    ),
+                    // Plate Calculator — real feature
+                    ListTile(
+                      leading: Icon(
+                        Icons.fitness_center_outlined,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text('Plate Calculator'),
+                      subtitle: const Text(
+                        'See which plates to load on each side',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        PlateCalculatorSheet.show(context);
+                      },
+                    ),
+                    Divider(height: 1, color: AppColors.outlineVariant),
+                    _SectionHeader(label: 'COMING SOON'),
+                    _ComingSoonTile(
+                      icon: Icons.volume_up_outlined,
+                      label: 'Sounds & Alerts',
+                    ),
+                    _ComingSoonTile(
+                      icon: Icons.calculate_outlined,
+                      label: 'Warm-up Calculator',
+                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -339,9 +364,7 @@ class WorkoutSettingsSheet extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(
-              top: BorderSide(color: AppColors.outlineVariant),
-            ),
+            border: Border(top: BorderSide(color: AppColors.outlineVariant)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -412,9 +435,7 @@ class WorkoutSettingsSheet extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceContainer,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(
-              top: BorderSide(color: AppColors.outlineVariant),
-            ),
+            border: Border(top: BorderSide(color: AppColors.outlineVariant)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

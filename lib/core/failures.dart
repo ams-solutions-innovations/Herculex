@@ -3,7 +3,8 @@ class Failure implements Exception {
   final Object? cause;
   const Failure(this.message, {this.cause});
   @override
-  String toString() => 'Failure: $message${cause != null ? ' (cause: $cause)' : ''}';
+  String toString() =>
+      'Failure: $message${cause != null ? ' (cause: $cause)' : ''}';
 }
 
 class NotFoundFailure extends Failure {

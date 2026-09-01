@@ -33,10 +33,7 @@ class TwoDeviceTransport {
     _tokens[joinToken] = buddySessionId;
     _eventsBySession[buddySessionId] = [];
     _subscribers[buddySessionId] = [];
-    return (
-      buddySessionId: buddySessionId,
-      joinToken: joinToken,
-    );
+    return (buddySessionId: buddySessionId, joinToken: joinToken);
   }
 
   String joinSession({required String token}) {
@@ -47,11 +44,17 @@ class TwoDeviceTransport {
     return sessionId;
   }
 
-  void subscribe(String buddySessionId, Future<void> Function(BuddyEvent) onEvent) {
+  void subscribe(
+    String buddySessionId,
+    Future<void> Function(BuddyEvent) onEvent,
+  ) {
     _subscribers.putIfAbsent(buddySessionId, () => []).add(onEvent);
   }
 
-  void unsubscribe(String buddySessionId, Future<void> Function(BuddyEvent) onEvent) {
+  void unsubscribe(
+    String buddySessionId,
+    Future<void> Function(BuddyEvent) onEvent,
+  ) {
     _subscribers[buddySessionId]?.remove(onEvent);
   }
 
@@ -72,7 +75,9 @@ class TwoDeviceTransport {
     );
     list.add(event);
 
-    final subs = List<Future<void> Function(BuddyEvent)>.from(_subscribers[buddySessionId] ?? []);
+    final subs = List<Future<void> Function(BuddyEvent)>.from(
+      _subscribers[buddySessionId] ?? [],
+    );
     for (final s in subs) {
       await s(event);
     }
@@ -90,10 +95,7 @@ class TwoDeviceTransport {
 }
 
 class SimulatedBuddyGateway implements BuddyGateway {
-  SimulatedBuddyGateway({
-    required this.transport,
-    required this.userId,
-  });
+  SimulatedBuddyGateway({required this.transport, required this.userId});
 
   final TwoDeviceTransport transport;
   final String userId;
@@ -147,7 +149,9 @@ class SimulatedBuddyGateway implements BuddyGateway {
   }
 
   @override
-  Future<List<BuddyRemoteParticipant>> fetchParticipants(String buddySessionId) async {
+  Future<List<BuddyRemoteParticipant>> fetchParticipants(
+    String buddySessionId,
+  ) async {
     return const [];
   }
 
@@ -238,7 +242,10 @@ class DeviceHarness {
     workouts = WorkoutsRepository(db, const SystemClock());
     resolver = SyncIdResolver(db);
     gateway = SimulatedBuddyGateway(transport: transport, userId: userId);
-    channelService = SimulatedBuddyChannelService(transport: transport, gateway: gateway);
+    channelService = SimulatedBuddyChannelService(
+      transport: transport,
+      gateway: gateway,
+    );
 
     controller = BuddySessionController(
       db: db,
@@ -255,35 +262,51 @@ class DeviceHarness {
   }
 
   Future<void> _seedCatalog() async {
-    Future<void> ensureExercise(String name, String slug, String muscle, String eq) async {
-      final existing = await (db.select(db.exerciseCatalog)
-            ..where((t) => t.name.equals(name) & t.equipment.equals(eq)))
-          .getSingleOrNull();
+    Future<void> ensureExercise(
+      String name,
+      String slug,
+      String muscle,
+      String eq,
+    ) async {
+      final existing =
+          await (db.select(db.exerciseCatalog)
+                ..where((t) => t.name.equals(name) & t.equipment.equals(eq)))
+              .getSingleOrNull();
       if (existing == null) {
-        await db.into(db.exerciseCatalog).insert(
-          ExerciseCatalogCompanion.insert(
-            name: name,
-            primaryMuscle: muscle,
-            equipment: eq,
-            mechanics: 'compound',
-            force: 'push',
-            plane: 'horizontal',
-            slug: Value(slug),
-          ),
-        );
+        await db
+            .into(db.exerciseCatalog)
+            .insert(
+              ExerciseCatalogCompanion.insert(
+                name: name,
+                primaryMuscle: muscle,
+                equipment: eq,
+                mechanics: 'compound',
+                force: 'push',
+                plane: 'horizontal',
+                slug: Value(slug),
+              ),
+            );
       } else {
-        await (db.update(db.exerciseCatalog)..where((t) => t.id.equals(existing.id)))
+        await (db.update(db.exerciseCatalog)
+              ..where((t) => t.id.equals(existing.id)))
             .write(ExerciseCatalogCompanion(slug: Value(slug)));
       }
     }
 
     await ensureExercise('Bench Press', 'bench-press', 'Chest', 'Barbell');
-    await ensureExercise('Incline Dumbbell Press', 'incline-dumbbell-press', 'Chest', 'Dumbbell');
+    await ensureExercise(
+      'Incline Dumbbell Press',
+      'incline-dumbbell-press',
+      'Chest',
+      'Dumbbell',
+    );
     await ensureExercise('Bicep Curl', 'bicep-curl', 'Biceps', 'Dumbbell');
   }
 
   Future<int> getCatalogIdBySlug(String slug) async {
-    final entry = await (db.select(db.exerciseCatalog)..where((t) => t.slug.equals(slug))).getSingle();
+    final entry = await (db.select(
+      db.exerciseCatalog,
+    )..where((t) => t.slug.equals(slug))).getSingle();
     return entry.id;
   }
 
@@ -351,15 +374,21 @@ void main() {
 
     expect(guest.controller.state.isSharing, isTrue);
     expect(guest.controller.state.isHost, isFalse);
-    expect(guest.controller.state.buddySessionId, host.controller.state.buddySessionId);
+    expect(
+      guest.controller.state.buddySessionId,
+      host.controller.state.buddySessionId,
+    );
 
     // Verify Guest auto-created active workout session
-    final guestActiveWorkouts = await (guest.db.select(guest.db.workoutSessions)
-          ..where((t) => t.endedAt.isNull()))
-        .get();
+    final guestActiveWorkouts = await (guest.db.select(
+      guest.db.workoutSessions,
+    )..where((t) => t.endedAt.isNull())).get();
     expect(guestActiveWorkouts, hasLength(1));
     final guestWorkoutId = guestActiveWorkouts.single.id;
-    expect(guestActiveWorkouts.single.buddySessionId, host.controller.state.buddySessionId);
+    expect(
+      guestActiveWorkouts.single.buddySessionId,
+      host.controller.state.buddySessionId,
+    );
 
     // Senders for both devices
     final hostSender = host.makeSender(hostWorkoutId);
@@ -374,12 +403,16 @@ void main() {
     );
 
     // Host has Bench Press
-    final hostExercises1 = await host.workouts.getExercisesForSession(hostWorkoutId);
+    final hostExercises1 = await host.workouts.getExercisesForSession(
+      hostWorkoutId,
+    );
     expect(hostExercises1, hasLength(1));
     expect(hostExercises1.first.id, hostBenchId);
 
     // Guest receives broadcast and resolves Bench Press
-    final guestExercises1 = await guest.workouts.getExercisesForSession(guestWorkoutId);
+    final guestExercises1 = await guest.workouts.getExercisesForSession(
+      guestWorkoutId,
+    );
     final guestBenchId = await guest.getCatalogIdBySlug('bench-press');
     expect(guestExercises1, hasLength(1));
     expect(guestExercises1.first.id, guestBenchId);
@@ -393,33 +426,47 @@ void main() {
     );
 
     // Guest has 2 exercises (Bench Press, Bicep Curl)
-    final guestExercises2 = await guest.workouts.getExercisesForSession(guestWorkoutId);
+    final guestExercises2 = await guest.workouts.getExercisesForSession(
+      guestWorkoutId,
+    );
     expect(guestExercises2, hasLength(2));
 
     // Host still has ONLY 1 exercise (Bench Press)
-    final hostExercises2 = await host.workouts.getExercisesForSession(hostWorkoutId);
+    final hostExercises2 = await host.workouts.getExercisesForSession(
+      hostWorkoutId,
+    );
     expect(hostExercises2, hasLength(1));
 
     // ── 5. Guest logs sets for Bench Press ──
-    final guestBenchWorkoutExercises = await (guest.db.select(guest.db.workoutExercises)
-          ..where((t) => t.sessionId.equals(guestWorkoutId) & t.exerciseId.equals(guestBenchId)))
-        .get();
+    final guestBenchWorkoutExercises =
+        await (guest.db.select(guest.db.workoutExercises)..where(
+              (t) =>
+                  t.sessionId.equals(guestWorkoutId) &
+                  t.exerciseId.equals(guestBenchId),
+            ))
+            .get();
     final guestBenchWorkoutEx = guestBenchWorkoutExercises.first;
 
-    await guest.db.into(guest.db.setEntries).insert(
-      SetEntriesCompanion.insert(
-        workoutExerciseId: guestBenchWorkoutEx.id,
-        setIndex: 1,
-        weightKg: 100.0,
-        reps: 8,
-        isCompleted: const Value(true),
-      ),
-    );
+    await guest.db
+        .into(guest.db.setEntries)
+        .insert(
+          SetEntriesCompanion.insert(
+            workoutExerciseId: guestBenchWorkoutEx.id,
+            setIndex: 1,
+            weightKg: 100.0,
+            reps: 8,
+            isCompleted: const Value(true),
+          ),
+        );
 
     // ── 6. Host removes Bench Press (scope: both) ──
-    final hostBenchWorkoutExercises = await (host.db.select(host.db.workoutExercises)
-          ..where((t) => t.sessionId.equals(hostWorkoutId) & t.exerciseId.equals(hostBenchId)))
-        .get();
+    final hostBenchWorkoutExercises =
+        await (host.db.select(host.db.workoutExercises)..where(
+              (t) =>
+                  t.sessionId.equals(hostWorkoutId) &
+                  t.exerciseId.equals(hostBenchId),
+            ))
+            .get();
     final hostBenchWorkoutEx = hostBenchWorkoutExercises.first;
 
     await hostSender.removeExercise(
@@ -428,37 +475,48 @@ void main() {
     );
 
     // Host no longer has Bench Press
-    final hostExercises3 = await host.workouts.getExercisesForSession(hostWorkoutId);
+    final hostExercises3 = await host.workouts.getExercisesForSession(
+      hostWorkoutId,
+    );
     expect(hostExercises3, isEmpty);
 
     // Guest receives remove event, BUT because Guest logged completed sets,
     // BUD-06 prevents deletion! Guest keeps Bench Press + Bicep Curl intact.
-    final guestExercises3 = await guest.workouts.getExercisesForSession(guestWorkoutId);
+    final guestExercises3 = await guest.workouts.getExercisesForSession(
+      guestWorkoutId,
+    );
     expect(guestExercises3, hasLength(2));
     expect(guestExercises3.any((e) => e.id == guestBenchId), isTrue);
 
-    final guestBenchSets = await (guest.db.select(guest.db.setEntries)
-          ..where((t) => t.workoutExerciseId.equals(guestBenchWorkoutEx.id)))
-        .get();
-    expect(guestBenchSets.any((s) => s.weightKg == 100.0 && s.reps == 8), isTrue);
+    final guestBenchSets = await (guest.db.select(
+      guest.db.setEntries,
+    )..where((t) => t.workoutExerciseId.equals(guestBenchWorkoutEx.id))).get();
+    expect(
+      guestBenchSets.any((s) => s.weightKg == 100.0 && s.reps == 8),
+      isTrue,
+    );
 
     // ── 7. Guest leaves session safely ──
     await guest.controller.leave();
     expect(guest.controller.state.isSharing, isFalse);
 
     // Guest workout is still running solo
-    final guestActiveStillRunning = await (guest.db.select(guest.db.workoutSessions)
-          ..where((t) => t.id.equals(guestWorkoutId)))
-        .getSingle();
+    final guestActiveStillRunning = await (guest.db.select(
+      guest.db.workoutSessions,
+    )..where((t) => t.id.equals(guestWorkoutId))).getSingle();
     expect(guestActiveStillRunning.endedAt, isNull);
 
     // Host continues workout solo
-    final hostInclineId = await host.getCatalogIdBySlug('incline-dumbbell-press');
+    final hostInclineId = await host.getCatalogIdBySlug(
+      'incline-dumbbell-press',
+    );
     await host.workouts.addExerciseToSession(
       sessionId: hostWorkoutId,
       exerciseId: hostInclineId,
     );
-    final hostExercises4 = await host.workouts.getExercisesForSession(hostWorkoutId);
+    final hostExercises4 = await host.workouts.getExercisesForSession(
+      hostWorkoutId,
+    );
     expect(hostExercises4, hasLength(1));
     expect(hostExercises4.single.id, hostInclineId);
   });

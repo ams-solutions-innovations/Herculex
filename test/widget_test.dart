@@ -5,7 +5,9 @@ import 'package:herculex/app/app.dart';
 import 'package:herculex/app/providers.dart';
 
 void main() {
-  testWidgets('First launch (no profile) boots into onboarding', (tester) async {
+  testWidgets('First launch (no profile) boots into onboarding', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
 

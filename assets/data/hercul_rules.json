@@ -323,5 +323,87 @@
       "normal": "Hercul sees you pulling conventional at {profile.heightCm|int} cm — a shorter build usually keeps the bar close and the back angle friendly here. Worth trying a heavier top set before assuming sumo is the answer.",
       "honest": "Hercul sees {profile.heightCm|int} cm pulling conventional. That is the stance your build is actually good at. Stop reading about sumo and add weight."
     }
+  },
+  {
+    "id": "calorie-lie-deficit",
+    "domain": "nutrition",
+    "priority": 89,
+    "cooldownDays": 7,
+    "when": [
+      { "signal": "body.weightDeltaKg", "arg": "14", "op": ">", "value": 1.0 },
+      { "signal": "nutrition.kcalPct14d", "op": "<", "value": 0.95 }
+    ],
+    "copy": {
+      "normal": "Hercul vidi, da se ti je teža povečala za {body.weightDeltaKg:14|abs} kg, kljub temu da zapisuješ deficit. Če nisi pravkar začel jemati kreatina (ki zadržuje vodo), morda spregledaš kakšne kalorije (olja, prigrizke).",
+      "honest": "Hercul vidi +{body.weightDeltaKg:14|abs} kg na tehtnici in deficit v aplikaciji. Razen če piješ kreatin z žlico, nekje ješ hrano, ki je ne zapišeš. Matematika ne laže."
+    }
+  },
+  {
+    "id": "calorie-lie-surplus",
+    "domain": "nutrition",
+    "priority": 87,
+    "cooldownDays": 7,
+    "when": [
+      { "signal": "body.weightDeltaKg", "arg": "14", "op": "<", "value": -0.5 },
+      { "signal": "nutrition.kcalPct14d", "op": ">", "value": 1.05 }
+    ],
+    "copy": {
+      "normal": "Beležiš kalorični presežek, a teža je padla za {body.weightDeltaKg:14|abs} kg. Očitno je tvoja poraba precej višja od izračunane. Dodaj več hrane, če želiš rasti.",
+      "honest": "Pišeš, da si na 'bulku', tehtnica pa pravi -{body.weightDeltaKg:14|abs} kg. Prenehaj jesti kot ptič in začni dejansko jesti presežek."
+    }
+  },
+  {
+    "id": "surplus-no-progress",
+    "domain": "nutrition",
+    "priority": 80,
+    "cooldownDays": 14,
+    "when": [
+      { "signal": "nutrition.kcalPct14d", "op": ">", "value": 1.05 },
+      { "signal": "exercise.e1rmDeltaKg14d", "arg": "barbell-back-squat", "op": "<=", "value": 0 }
+    ],
+    "copy": {
+      "normal": "Si v kaloričnem presežku, a tvoj počep se v zadnjih 14 dneh ni premaknil. Kalorije gredo v maščobo namesto v mišice. Preveri volumen treninga ali pa spi več.",
+      "honest": "Si v kaloričnem presežku, a tvoj počep se v zadnjih 14 dneh ni premaknil. Kalorije gredo v maščobo namesto v mišice. Preveri volumen treninga ali pa spi več."
+    }
+  },
+  {
+    "id": "deficit-progress",
+    "domain": "consistency",
+    "priority": 60,
+    "cooldownDays": 21,
+    "when": [
+      { "signal": "nutrition.kcalPct14d", "op": "<", "value": 0.9 },
+      { "signal": "exercise.e1rmDeltaKg14d", "arg": "barbell-bench-press", "op": ">", "value": 2 }
+    ],
+    "copy": {
+      "normal": "Kljub deficitu ti moč raste! Odlično upravljaš z utrujenostjo in programiranjem.",
+      "honest": "Kljub deficitu ti moč raste! Odlično upravljaš z utrujenostjo in programiranjem."
+    }
+  },
+  {
+    "id": "belt-core-weakness",
+    "domain": "ergonomics",
+    "priority": 75,
+    "cooldownDays": 28,
+    "when": [
+      { "signal": "exercise.e1rmRatioBelted", "arg": "barbell-back-squat", "op": ">", "value": 1.15 }
+    ],
+    "copy": {
+      "normal": "Hercul vidi, da s pasom počepneš {exercise.e1rmRatioBelted:barbell-back-squat|1dp}x več kot brez. Tvoje noge imajo očitno moč, a tvoj trup (core) je šibek člen. Začni delati specifične vaje za trup (plank, ab wheel).",
+      "honest": "Tvoj počep s pasom je {exercise.e1rmRatioBelted:barbell-back-squat|1dp}x večji od tvojega 'raw' počepa. Tvoj pas trenutno opravlja delo tvojih trebušnih mišic. Okrepi core, sicer bo hrbet plačal ceno."
+    }
+  },
+  {
+    "id": "sleep-rpe-correlation",
+    "domain": "recovery",
+    "priority": 85,
+    "cooldownDays": 10,
+    "when": [
+      { "signal": "biometrics.sleepVsRpeR2", "op": ">", "value": 0.4 }
+    ],
+    "copy": {
+      "normal": "Zgodovina kaže, da tvoj spanec močno vpliva na tvoj RPE pri treningih. Če boš spal slabo, danes pričakuj, da bodo teže čutile težje. Ne sili skozi zid.",
+      "honest": "Zgodovina kaže, da tvoj spanec močno vpliva na tvoj RPE pri treningih. Če boš spal slabo, danes pričakuj, da bodo teže čutile težje. Ne sili skozi zid."
+    }
   }
 ]

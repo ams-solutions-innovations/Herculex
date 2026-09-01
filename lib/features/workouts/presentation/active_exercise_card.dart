@@ -86,7 +86,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
       exercise: exercise,
       equipmentVariant: workoutExercise.equipmentVariant,
     );
-    final isWeightedBw = variant == 'weighted' ||
+    final isWeightedBw =
+        variant == 'weighted' ||
         (exercise.supportsWeightedBodyweight && variant == 'weighted');
     final isBodyweight = variant == 'bodyweight' || variant == 'band';
     final totalReps = isBodyweight
@@ -240,7 +241,11 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               ),
             ),
           const SizedBox(height: 8),
-          _HeaderRow(theme: theme, metric: metric, isWeightedBodyweight: isWeightedBw),
+          _HeaderRow(
+            theme: theme,
+            metric: metric,
+            isWeightedBodyweight: isWeightedBw,
+          ),
           sets.when(
             data: (rows) {
               final allLastSets =
@@ -311,26 +316,28 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         );
                         if (completed) {
                           if (!rows[i].isWarmup) {
-                            final attachedIds = ref
+                            final attachedIds =
+                                ref
                                     .read(setAccessoriesProvider(rows[i].id))
                                     .asData
                                     ?.value
                                     .map((a) => a.accessoryId)
                                     .toSet() ??
                                 const <int>{};
-                            final allAcc = ref
-                                    .read(accessoriesProvider)
-                                    .asData
-                                    ?.value ??
+                            final allAcc =
+                                ref.read(accessoriesProvider).asData?.value ??
                                 const [];
                             final accNames = allAcc
                                 .where((a) => attachedIds.contains(a.id))
                                 .map((a) => a.name)
                                 .toList();
-                            final effectiveKg = rows[i].weightKg +
+                            final effectiveKg =
+                                rows[i].weightKg +
                                 (rows[i].bodyweightKg ?? 0.0) +
                                 (rows[i].chainsKg ?? 0.0);
-                            ref.read(gamificationServiceProvider).onSetCompleted(
+                            ref
+                                .read(gamificationServiceProvider)
+                                .onSetCompleted(
                                   sessionId: workoutExercise.sessionId,
                                   exerciseId: exercise.id,
                                   exerciseName: exercise.name,
@@ -341,11 +348,12 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                                   accessoryNames: accNames,
                                   equipmentVariant:
                                       workoutExercise.equipmentVariant ??
-                                          exercise.modality,
+                                      exercise.modality,
                                   setType: SetType.fromId(rows[i].setType),
                                 );
                           }
-                          final isLinked = workoutExercise.supersetGroup != null;
+                          final isLinked =
+                              workoutExercise.supersetGroup != null;
                           final advanced = isLinked
                               ? (widget.onCompletedSet?.call(
                                       workoutExercise.id,
@@ -369,10 +377,10 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                       onDelete: () async {
                         final setToRestore = rows[i];
                         final setNumber = i + 1;
-                        final bands =
-                            await repo.bandsForSet(setToRestore.id);
-                        final accessories =
-                            await repo.accessoriesForSet(setToRestore.id);
+                        final bands = await repo.bandsForSet(setToRestore.id);
+                        final accessories = await repo.accessoriesForSet(
+                          setToRestore.id,
+                        );
                         await repo.deleteSet(setToRestore.id);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -410,13 +418,17 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                           if (sel.delete) {
                             final setToRestore = rows[i];
                             final setNumber = i + 1;
-                            final bands =
-                                await repo.bandsForSet(setToRestore.id);
-                            final accessories =
-                                await repo.accessoriesForSet(setToRestore.id);
+                            final bands = await repo.bandsForSet(
+                              setToRestore.id,
+                            );
+                            final accessories = await repo.accessoriesForSet(
+                              setToRestore.id,
+                            );
                             await repo.deleteSet(setToRestore.id);
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(
+                                context,
+                              ).hideCurrentSnackBar();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Set $setNumber deleted'),
@@ -710,7 +722,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     final currentVariant =
         widget.workoutExercise.equipmentVariant ?? widget.exercise.modality;
     final priorVariant = snapshot?.equipmentVariant;
-    final hasDifferentVariant = priorVariant != null &&
+    final hasDifferentVariant =
+        priorVariant != null &&
         priorVariant.isNotEmpty &&
         priorVariant != currentVariant;
 
@@ -740,7 +753,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
 
     SetEntryData? prior;
     if (currentRows.isEmpty) {
-      prior = allLastSets.where((s) => !s.isWarmup).firstOrNull ?? allLastSets.firstOrNull;
+      prior =
+          allLastSets.where((s) => !s.isWarmup).firstOrNull ??
+          allLastSets.firstOrNull;
     } else {
       var activeIndex = currentRows.indexWhere((r) => !r.isCompleted);
       if (activeIndex == -1) {
@@ -773,7 +788,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     );
 
     if (target.weightKg <= 0 && prior.weightKg <= 0) return null;
-    final isWeightedBw = (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality) == 'weighted';
+    final isWeightedBw =
+        (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality) ==
+        'weighted';
     final nextPrefix = isWeightedBw && target.weightKg > 0 ? '+' : '';
     final text = '$nextPrefix${fmt.format(target.weightKg)} × ${target.reps}';
     return (text: text, rationale: target.rationale);
@@ -855,7 +872,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     final currentVariant =
         widget.workoutExercise.equipmentVariant ?? widget.exercise.modality;
     final priorVariant = snapshot?.equipmentVariant;
-    final hasDifferentVariant = priorVariant != null &&
+    final hasDifferentVariant =
+        priorVariant != null &&
         priorVariant.isNotEmpty &&
         priorVariant != currentVariant;
 
@@ -909,7 +927,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     final rpe = prior.rpeX10 != null
         ? ' @${(prior.rpeX10! / 10).toStringAsFixed(1)}'
         : '';
-    final isWeightedBw = (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality) == 'weighted';
+    final isWeightedBw =
+        (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality) ==
+        'weighted';
     final summary = SetMetricFormat.summariseSet(
       prior,
       metric: metric,
@@ -1010,7 +1030,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               ListTile(
                 leading: const Icon(Icons.trending_up),
                 title: const Text('Set progression goal'),
-                subtitle: const Text('Override rep range & weekly load increase'),
+                subtitle: const Text(
+                  'Override rep range & weekly load increase',
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   ProgressionOverrideSheet.show(
@@ -1452,9 +1474,8 @@ class _SetRowState extends ConsumerState<_SetRow> {
         prior.durationSeconds,
       ),
       SetField.distance => _fmtDistance(prior.distanceM),
-      SetField.calories => prior.calories == null
-          ? ''
-          : prior.calories.toString(),
+      SetField.calories =>
+        prior.calories == null ? '' : prior.calories.toString(),
     };
   }
 
@@ -1552,7 +1573,8 @@ class _SetRowState extends ConsumerState<_SetRow> {
       activeTags.add('Chains (${cFmt}kg)');
     }
 
-    final totalAccCount = attachedAccs.length +
+    final totalAccCount =
+        attachedAccs.length +
         attachedBands.length +
         (widget.set.chainsKg != null && widget.set.chainsKg! > 0 ? 1 : 0);
 
@@ -1566,7 +1588,9 @@ class _SetRowState extends ConsumerState<_SetRow> {
         final sb = attachedBands.first;
         accBadgeText = sb.mode == 'assistance' ? 'A' : 'B';
       } else if (attachedAccs.isNotEmpty) {
-        final acc = catalogAccs.firstWhereOrNull((a) => a.id == attachedAccs.first.accessoryId);
+        final acc = catalogAccs.firstWhereOrNull(
+          (a) => a.id == attachedAccs.first.accessoryId,
+        );
         if (acc != null) {
           final nameLower = acc.name.toLowerCase();
           if (nameLower.contains('belt')) {
@@ -1673,8 +1697,9 @@ class _SetRowState extends ConsumerState<_SetRow> {
                                 width: 22,
                                 height: 22,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryContainer
-                                      .withValues(alpha: 0.8),
+                                  color: AppColors.primaryContainer.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: AppColors.primary,
@@ -1788,7 +1813,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
                       accentColor = AppColors.primary;
                       extraItems =
                           (meta['miniSets'] as List<dynamic>?)?.cast<int>() ??
-                              [];
+                          [];
                     } else if (setType == SetType.forced) {
                       metaKey = 'extraReps';
                       buttonLabel = 'Forced';
@@ -1868,10 +1893,11 @@ class _SetRowState extends ConsumerState<_SetRow> {
                                     setType == SetType.myoReps
                                         ? '${extraItems[i]} $chipSuffix'
                                         : '+${extraItems[i]} $chipSuffix',
-                                    style: theme.textTheme.labelMedium?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                   ),
                                   const SizedBox(width: 4),
                                   const Icon(
@@ -1890,8 +1916,8 @@ class _SetRowState extends ConsumerState<_SetRow> {
                               title: setType == SetType.myoReps
                                   ? 'Add Mini-Set'
                                   : (setType == SetType.forced
-                                      ? 'Add forced reps'
-                                      : 'Add cheat reps'),
+                                        ? 'Add forced reps'
+                                        : 'Add cheat reps'),
                               hint: 'No. of extra reps (e.g. 2)',
                             );
                             if (reps != null && reps > 0) {
@@ -1928,11 +1954,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  Icons.add,
-                                  size: 14,
-                                  color: accentColor,
-                                ),
+                                Icon(Icons.add, size: 14, color: accentColor),
                                 const SizedBox(width: 2),
                                 Text(
                                   buttonLabel,
@@ -2034,7 +2056,8 @@ class _SetRowState extends ConsumerState<_SetRow> {
           onChanged: (_) => _repsEditedByUser = true,
         );
       case SetField.duration:
-        final currentSec = SetMetricFormat.parseDuration(_duration.text) ??
+        final currentSec =
+            SetMetricFormat.parseDuration(_duration.text) ??
             SetMetricFormat.parseDuration(_hintFor(field)) ??
             30;
         return GestureDetector(

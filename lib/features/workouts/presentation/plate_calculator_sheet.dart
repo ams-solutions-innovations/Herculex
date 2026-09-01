@@ -134,242 +134,248 @@ class _PlateCalculatorSheetState extends ConsumerState<PlateCalculatorSheet> {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainer,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(
-            top: BorderSide(color: AppColors.outlineVariant),
-          ),
+          border: Border(top: BorderSide(color: AppColors.outlineVariant)),
         ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.outline,
-                  borderRadius: BorderRadius.circular(2),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-              child: Row(
-                children: [
-                  Icon(Icons.fitness_center_outlined,
-                      color: AppColors.primary, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Plate Calculator',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.fitness_center_outlined,
+                      color: AppColors.primary,
+                      size: 20,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Text(
+                      'Plate Calculator',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Divider(height: 1, color: AppColors.outlineVariant),
-            // Bar selector
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'BAR TYPE',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.secondary,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.0,
+              Divider(height: 1, color: AppColors.outlineVariant),
+              // Bar selector
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BAR TYPE',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: BarType.values.map((b) {
-                        final selected = b == _bar;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: GestureDetector(
-                            onTap: () {
-                              Haptics.light();
-                              setState(() => _bar = b);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.surfaceVariant,
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: BarType.values.map((b) {
+                          final selected = b == _bar;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: GestureDetector(
+                              onTap: () {
+                                Haptics.light();
+                                setState(() => _bar = b);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
                                   color: selected
                                       ? AppColors.primary
-                                      : AppColors.outlineVariant,
+                                      : AppColors.surfaceVariant,
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : AppColors.outlineVariant,
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                b.label,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: selected
-                                      ? Colors.white
-                                      : AppColors.onSurfaceVariant,
-                                  fontWeight: selected
-                                      ? FontWeight.w700
-                                      : FontWeight.normal,
+                                child: Text(
+                                  b.label,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.onSurfaceVariant,
+                                    fontWeight: selected
+                                        ? FontWeight.w700
+                                        : FontWeight.normal,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }).toList(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Target weight input
-                  Text(
-                    'TARGET WEIGHT',
+                    const SizedBox(height: 16),
+                    // Target weight input
+                    Text(
+                      'TARGET WEIGHT',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _ctrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: theme.textTheme.headlineMedium?.copyWith(
+                          color: AppColors.secondary.withValues(alpha: 0.5),
+                        ),
+                        suffixText: suffix,
+                        suffixStyle: theme.textTheme.titleMedium?.copyWith(
+                          color: AppColors.secondary,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.surfaceVariant,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 8),
+                    // Bar weight hint
+                    if (_bar != BarType.none)
+                      Text(
+                        'Bar: ${barDisplay.toStringAsFixed(barDisplay.truncateToDouble() == barDisplay ? 0 : 1)} $suffix  •  '
+                        'Each side: ${totalKg != null && totalKg > barKg ? _fmtSide(totalKg, fmt) : "—"}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Divider(height: 1, color: AppColors.outlineVariant),
+              // Plates result
+              if (totalKg != null && totalKg > barKg && plates.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  child: Text(
+                    'PLATES PER SIDE',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: AppColors.secondary,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.0,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _ctrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                ),
+                // Visual plate stack
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _PlateStack(plates: plates, colors: platesColors),
+                ),
+                const SizedBox(height: 12),
+                // Plate list
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Column(
+                    children: plates.entries.map((e) {
+                      final col = platesColors[e.key] ?? AppColors.secondary;
+                      final plateDisplay = _isMetric
+                          ? e.key
+                          : e.key; // already in display unit
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: col,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              '${_fmtPlate(plateDisplay)} $suffix',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '× ${e.value}',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ] else if (totalKg != null && plates.isEmpty && totalKg > 0) ...[
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    totalKg <= barKg
+                        ? 'Bar only — no plates needed'
+                        : 'Cannot be loaded with standard plates',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.secondary,
                     ),
-                    decoration: InputDecoration(
-                      hintText: '0',
-                      hintStyle: theme.textTheme.headlineMedium?.copyWith(
-                        color: AppColors.secondary.withValues(alpha: 0.5),
-                      ),
-                      suffixText: suffix,
-                      suffixStyle: theme.textTheme.titleMedium?.copyWith(
-                        color: AppColors.secondary,
-                      ),
-                      filled: true,
-                      fillColor: AppColors.surfaceVariant,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide:
-                            BorderSide(color: AppColors.primary, width: 1.5),
-                      ),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  // Bar weight hint
-                  if (_bar != BarType.none)
-                    Text(
-                      'Bar: ${barDisplay.toStringAsFixed(barDisplay.truncateToDouble() == barDisplay ? 0 : 1)} $suffix  •  '
-                      'Each side: ${totalKg != null && totalKg > barKg ? _fmtSide(totalKg, fmt) : "—"}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Divider(height: 1, color: AppColors.outlineVariant),
-            // Plates result
-            if (totalKg != null && totalKg > barKg && plates.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                child: Text(
-                  'PLATES PER SIDE',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.secondary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
                   ),
                 ),
-              ),
-              // Visual plate stack
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _PlateStack(plates: plates, colors: platesColors),
-              ),
-              const SizedBox(height: 12),
-              // Plate list
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Column(
-                  children: plates.entries.map((e) {
-                    final col = platesColors[e.key] ?? AppColors.secondary;
-                    final plateDisplay = _isMetric
-                        ? e.key
-                        : e.key; // already in display unit
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: col,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            '${_fmtPlate(plateDisplay)} $suffix',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '× ${e.value}',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ] else if (totalKg != null && plates.isEmpty && totalKg > 0) ...[
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  totalKg <= barKg
-                      ? 'Bar only — no plates needed'
-                      : 'Cannot be loaded with standard plates',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.secondary,
-                  ),
-                ),
-              ),
-            ] else ...[
-              const SizedBox(height: 24),
+              ] else ...[
+                const SizedBox(height: 24),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -413,11 +419,7 @@ class _PlateStack extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Left half of bar
-          Container(
-            width: 40,
-            height: 6,
-            color: AppColors.outline,
-          ),
+          Container(width: 40, height: 6, color: AppColors.outline),
           // Plates left → right (first = nearest bar, last = outermost)
           ...expanded.map((p) {
             final col = colors[p] ?? AppColors.secondary;
@@ -433,11 +435,7 @@ class _PlateStack extends StatelessWidget {
             );
           }),
           // Center sleeve
-          Container(
-            width: 18,
-            height: 8,
-            color: AppColors.secondary,
-          ),
+          Container(width: 18, height: 8, color: AppColors.secondary),
           // Mirror
           ...expanded.reversed.map((p) {
             final col = colors[p] ?? AppColors.secondary;
@@ -453,11 +451,7 @@ class _PlateStack extends StatelessWidget {
             );
           }),
           // Right half of bar
-          Container(
-            width: 40,
-            height: 6,
-            color: AppColors.outline,
-          ),
+          Container(width: 40, height: 6, color: AppColors.outline),
         ],
       ),
     );
