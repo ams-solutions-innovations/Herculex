@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
-import 'package:herculex/features/gamification/presentation/gamification_providers.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
+import 'package:herculex/features/gamification/application/gamification_providers.dart';
 
 /// Confirm-and-end flow for the active fasting session, shared by the fasting
 /// sheet and the dashboard card so "End Fast" is reachable from the home

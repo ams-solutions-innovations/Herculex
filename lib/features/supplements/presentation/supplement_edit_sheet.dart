@@ -5,14 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
 import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
-import 'package:herculex/features/nutrition/presentation/barcode_scanner_view.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
+import 'package:herculex/features/supplements/application/supplement_providers.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
 import 'package:herculex/features/supplements/presentation/supplement_nutrients_sheet.dart';
-import 'package:herculex/features/supplements/presentation/supplement_providers.dart';
 import 'package:uuid/uuid.dart';
 
 /// Bottom sheet to add or edit a single supplement.

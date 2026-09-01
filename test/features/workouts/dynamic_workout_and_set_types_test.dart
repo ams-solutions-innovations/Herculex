@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
-import 'package:herculex/features/workouts/presentation/set_type_menu.dart';
+import 'package:herculex/features/workouts/presentation/widgets/set_type_menu.dart';
 
 void main() {
   group('SetType cheat and forced reps tests', () {

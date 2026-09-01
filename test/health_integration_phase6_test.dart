@@ -2,15 +2,14 @@ import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health/health.dart';
-
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/data/health_adapter.dart';
 import 'package:herculex/features/health/data/health_service.dart';
 import 'package:herculex/features/health/domain/activity_adjuster.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
 

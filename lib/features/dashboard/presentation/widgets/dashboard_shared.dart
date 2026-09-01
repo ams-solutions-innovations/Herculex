@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/domain/dashboard_config.dart';
-import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
 
 /// Dashboard card surface. Now delegates to the shared [HxCard] primitive,
 /// respecting the user-configured [DashboardCardShape].

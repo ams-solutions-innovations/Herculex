@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
-import 'package:herculex/features/nutrition/presentation/food_picker_sheet.dart';
-import 'package:herculex/features/nutrition/presentation/quick_scan_food.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/quick_scan_food.dart';
 
 class QuickScanWidget extends ConsumerWidget {
   const QuickScanWidget({super.key});

@@ -5,14 +5,14 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
 import 'package:herculex/features/fasting/presentation/widgets/active_fast_panel.dart';
 import 'package:herculex/features/fasting/presentation/widgets/clock_dial_background.dart';
 import 'package:herculex/features/fasting/presentation/widgets/fasting_history.dart';
 import 'package:herculex/features/fasting/presentation/widgets/fasting_insights.dart';
 import 'package:herculex/features/fasting/presentation/widgets/start_fast_panel.dart';
-import 'package:herculex/features/notifications/presentation/notification_settings_provider.dart';
+import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 
 /// Fasting's first-class page (`/fasting`), replacing the 1,100-line bottom
 /// sheet it used to be. A minimalist clock dial motif sits behind the

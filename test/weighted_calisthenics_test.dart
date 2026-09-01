@@ -10,7 +10,7 @@ import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/set_metric_format.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
-import 'package:herculex/features/workouts/presentation/equipment_variant_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/equipment_variant_sheet.dart';
 
 import 'support/test_database.dart';
 

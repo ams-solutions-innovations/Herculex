@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:intl/intl.dart';
 

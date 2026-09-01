@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/features/workouts/presentation/exercise_library_view.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/presentation/views/exercise_library_view.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

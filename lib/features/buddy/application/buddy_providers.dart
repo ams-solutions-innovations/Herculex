@@ -9,7 +9,7 @@ import 'package:herculex/features/buddy/data/buddy_channel_service.dart';
 import 'package:herculex/features/buddy/data/buddy_remote_gateway.dart';
 import 'package:herculex/features/buddy/data/buddy_slot_store.dart';
 import 'package:herculex/features/buddy/data/unconfigured_buddy_gateway.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final syncIdResolverProvider = Provider<SyncIdResolver>((ref) {

@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/health/domain/health_read_state.dart';
-import 'package:herculex/features/health/presentation/health_providers.dart';
 
 enum HealthPlatform { samsung, apple, google }
 

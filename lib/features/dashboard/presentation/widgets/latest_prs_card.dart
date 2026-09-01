@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 
 /// Latest estimated 1RM PRs (§18).

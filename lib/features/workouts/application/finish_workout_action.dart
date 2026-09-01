@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/health/data/health_service.dart';
-import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 
 /// Ends a workout session: names it, stamps `ended_at` and calories, mirrors it
 /// to Health, and tells the watch.

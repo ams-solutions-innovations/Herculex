@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/features/notifications/presentation/notification_settings_provider.dart';
+import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

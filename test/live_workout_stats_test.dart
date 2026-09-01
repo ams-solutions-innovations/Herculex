@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/effective_load.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 
 void main() {
   group('LiveWorkoutStats tests', () {

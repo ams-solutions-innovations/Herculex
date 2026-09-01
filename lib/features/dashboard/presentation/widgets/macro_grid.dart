@@ -5,8 +5,8 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/dashboard/application/macro_card_prefs_provider.dart';
 import 'package:herculex/features/dashboard/domain/macro_card_config.dart';
-import 'package:herculex/features/dashboard/presentation/macro_card_prefs_provider.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 

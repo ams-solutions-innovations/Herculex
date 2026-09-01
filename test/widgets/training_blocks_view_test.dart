@@ -6,7 +6,7 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
-import 'package:herculex/features/programs/presentation/training_blocks_view.dart';
+import 'package:herculex/features/programs/presentation/views/training_blocks_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/test_database.dart';

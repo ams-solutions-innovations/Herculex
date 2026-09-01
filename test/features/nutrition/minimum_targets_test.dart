@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
+import 'package:herculex/features/nutrition/application/goals_providers.dart';
 
 void main() {
   group('MinimumTargetsState & resolvedMinProteinG', () {

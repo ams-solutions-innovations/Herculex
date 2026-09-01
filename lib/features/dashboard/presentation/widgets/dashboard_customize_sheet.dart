@@ -4,9 +4,9 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/application/macro_card_prefs_provider.dart';
 import 'package:herculex/features/dashboard/domain/dashboard_config.dart';
-import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
-import 'package:herculex/features/dashboard/presentation/macro_card_prefs_provider.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 
 /// Edit-mode sheet (§18): toggle widget visibility, drag to reorder, and

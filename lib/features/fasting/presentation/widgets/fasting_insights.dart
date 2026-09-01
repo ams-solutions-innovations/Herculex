@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 
 /// Streak + average eating window — the two headline fasting stats.
 class FastingInsights extends ConsumerWidget {

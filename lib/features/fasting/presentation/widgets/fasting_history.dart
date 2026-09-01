@@ -4,7 +4,7 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:intl/intl.dart';
 
 /// Recent sessions, deletable three ways: swipe, the detail sheet's delete

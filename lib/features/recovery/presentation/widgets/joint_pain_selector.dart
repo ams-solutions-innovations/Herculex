@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/recovery/application/recovery_providers.dart';
 import 'package:herculex/features/recovery/data/joint_pain_repository.dart';
 import 'package:herculex/features/recovery/domain/joint_model.dart';
-import 'package:herculex/features/recovery/presentation/recovery_providers.dart';
 
 /// Lets the user flag which joints hurt. Tapping a joint opens a sheet to
 /// set severity, add a note, or mark it resolved — writes go straight

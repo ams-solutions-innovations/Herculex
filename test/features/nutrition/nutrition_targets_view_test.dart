@@ -4,10 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
-import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/remaining_calories_card.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_targets_view.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

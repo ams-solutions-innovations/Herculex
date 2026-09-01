@@ -10,11 +10,11 @@ import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
 import 'package:herculex/features/workouts/domain/watch_exercise_resolver.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 
 class WearWorkoutSyncService {
   final WorkoutsRepository _workoutsRepository;

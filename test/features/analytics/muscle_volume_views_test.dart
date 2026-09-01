@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/features/analytics/application/muscle_volume_providers.dart';
 import 'package:herculex/features/analytics/domain/muscle_volume_details.dart';
-import 'package:herculex/features/analytics/presentation/muscle_volume_detail_view.dart';
-import 'package:herculex/features/analytics/presentation/muscle_volume_overview_view.dart';
-import 'package:herculex/features/analytics/presentation/muscle_volume_providers.dart';
+import 'package:herculex/features/analytics/presentation/views/muscle_volume_detail_view.dart';
+import 'package:herculex/features/analytics/presentation/views/muscle_volume_overview_view.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

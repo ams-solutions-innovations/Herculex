@@ -4,9 +4,9 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/features/nutrition/presentation/recipe_builder_view.dart';
+import 'package:herculex/features/nutrition/presentation/views/recipe_builder_view.dart';
 
 class CustomRecipesView extends ConsumerWidget {
   const CustomRecipesView({super.key});

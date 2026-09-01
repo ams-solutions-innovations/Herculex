@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/supplements/application/supplement_providers.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
 import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
-import 'package:herculex/features/supplements/presentation/supplement_providers.dart';
 
 /// Dashboard widget — a checkbox-based daily supplement tracker.
 ///

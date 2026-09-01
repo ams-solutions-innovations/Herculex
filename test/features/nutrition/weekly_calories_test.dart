@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/features/nutrition/presentation/weekly_calories_view.dart';
+import 'package:herculex/features/nutrition/presentation/views/weekly_calories_view.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
 
 void main() {

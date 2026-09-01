@@ -4,8 +4,8 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/nutrition/presentation/custom_food_form_sheet.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/custom_food_form_sheet.dart';
 
 class CustomFoodsView extends ConsumerStatefulWidget {
   const CustomFoodsView({super.key});

@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/data/fasting_notification_scheduler.dart';
 import 'package:herculex/features/fasting/data/fasting_repository.dart';
 import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
 
 import 'support/test_database.dart';
 

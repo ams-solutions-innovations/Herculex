@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
-import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

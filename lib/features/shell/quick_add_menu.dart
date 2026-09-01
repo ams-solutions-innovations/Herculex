@@ -5,15 +5,15 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/presentation/end_fast_dialog.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
 import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
 import 'package:herculex/features/measurements/presentation/quick_log_weight.dart';
-import 'package:herculex/features/nutrition/presentation/food_picker_sheet.dart';
-import 'package:herculex/features/nutrition/presentation/quick_scan_food.dart';
+import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/quick_scan_food.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 
 /// Backdrop + staggered action list behind the nav bar's "+" button.
 ///

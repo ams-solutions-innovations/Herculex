@@ -4,10 +4,10 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/presentation/end_fast_dialog.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
-import 'package:herculex/features/notifications/presentation/notification_settings_provider.dart';
+import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:intl/intl.dart';
 
 /// The running-session view: ring + timer for a targeted fast, an

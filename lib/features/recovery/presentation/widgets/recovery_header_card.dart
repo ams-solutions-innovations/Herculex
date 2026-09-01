@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/analytics/application/analytics_providers.dart';
 
 /// Overall readiness plus a Recovered/Recovering/Fatigued tally across the
 /// 19 muscle groups — the Recovery page's summary strip.

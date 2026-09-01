@@ -17,13 +17,13 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/theme/theme_provider.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/nutrition/application/goals_providers.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/speech_to_text_service.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
-import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
-import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/features/workouts/presentation/workout_bubble_controller.dart';
+import 'package:herculex/features/workouts/application/workout_bubble_controller.dart';
 import 'package:herculex/services/platform/workout_bubble_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 

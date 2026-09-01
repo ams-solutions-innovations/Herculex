@@ -5,11 +5,11 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
-import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
-import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/widgets/mini_workout_sparkles.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 
 /// Mini Workouts checklist widget (§20). Renders an interactive task list of
 /// micro-workouts for today with segmented progress dots, spring celebration

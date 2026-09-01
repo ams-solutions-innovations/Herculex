@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/data/local/exercise_merges.dart';
-import 'package:herculex/features/workouts/presentation/equipment_variant_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/equipment_variant_sheet.dart';
 
 import 'support/test_database.dart';
 

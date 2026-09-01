@@ -8,8 +8,8 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
-import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
-import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/features/nutrition/application/goals_providers.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:intl/intl.dart';
 
 final _metricHistoryProvider =

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/recovery/application/recovery_providers.dart';
 import 'package:herculex/features/recovery/domain/training_suggestion.dart';
-import 'package:herculex/features/recovery/presentation/recovery_providers.dart';
 
 /// "What's best to train next" — the readiest push/pull/legs/core split,
 /// which of its muscles have actually cleared the trainable bar, and why

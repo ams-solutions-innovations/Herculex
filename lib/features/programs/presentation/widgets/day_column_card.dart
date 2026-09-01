@@ -4,8 +4,8 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
-import 'package:herculex/features/programs/presentation/programs_providers.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
 import 'package:intl/intl.dart';
 

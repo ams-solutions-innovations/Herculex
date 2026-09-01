@@ -6,7 +6,7 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
-import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
 
 import 'support/test_database.dart';
 

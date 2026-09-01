@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/fasting/application/fasting_providers.dart';
 
 /// A prominent streak card displaying the user's intermittent fasting streak.
 class FastingStreakCard extends ConsumerWidget {
