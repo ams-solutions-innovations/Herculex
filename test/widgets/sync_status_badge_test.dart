@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/sync/sync_service.dart';
-import 'package:herculex/features/profile/presentation/profile_view.dart';
+import 'package:herculex/features/profile/presentation/widgets/sync_status_badge.dart';
 
 /// The badge is the entire user-facing surface of RB-02 — the blocker was
 /// filed because the old `SyncEngine` rendered "synced" off an empty outbox
