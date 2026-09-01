@@ -1,9 +1,8 @@
 import 'dart:convert';
 
-import 'package:flutter/services.dart';
 import 'package:drift/drift.dart';
-
-import '../../../data/local/database.dart';
+import 'package:flutter/services.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// Imports the bundled v1 catalogue into the existing Foods table.
 ///

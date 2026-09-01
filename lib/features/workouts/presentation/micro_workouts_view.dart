@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
+import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
+import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/widgets/mini_workout_sparkles.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/hx_card.dart';
+import 'package:herculex/ui/hx_screen_shell.dart';
+import 'package:herculex/ui/hx_top_tabs.dart';
 import 'package:intl/intl.dart';
-
-import '../../../data/local/database.dart';
-import '../../../theme/haptics.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/hx_card.dart';
-import '../../../ui/hx_screen_shell.dart';
-import '../../../ui/hx_top_tabs.dart';
-import '../data/micro_workouts_repository.dart';
-import 'exercise_artwork.dart';
-import 'exercise_picker_sheet.dart';
-import 'widgets/mini_workout_sparkles.dart';
-import 'workouts_providers.dart';
 
 /// Full-featured Mini (Micro) Workouts tracking and management page.
 class MicroWorkoutsView extends ConsumerStatefulWidget {

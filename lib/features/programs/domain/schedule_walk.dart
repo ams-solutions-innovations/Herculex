@@ -4,7 +4,7 @@
 /// feeds the result straight into `ScheduledWorkouts` rows.
 library;
 
-import 'split_template.dart';
+import 'package:herculex/features/programs/domain/split_template.dart';
 
 /// One materialized occurrence of a program day.
 class PlannedOccurrence {

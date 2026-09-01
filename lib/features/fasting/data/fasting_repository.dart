@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/data/local/database.dart';
 
 class FastingRepository {
   final AppDatabase _db;

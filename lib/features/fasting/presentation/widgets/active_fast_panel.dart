@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/features/fasting/presentation/end_fast_dialog.dart';
+import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/notifications/presentation/notification_settings_provider.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../data/local/database.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../../widgets/premium_button.dart';
-import '../../domain/fasting_plan.dart';
-import '../../../notifications/presentation/notification_settings_provider.dart';
-import '../end_fast_dialog.dart';
-import '../fasting_providers.dart';
 
 /// The running-session view: ring + timer for a targeted fast, an
 /// elapsed-only clock for a Quick Fast (no ring, no "remaining", no editable

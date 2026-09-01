@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
-import '../domain/cycle_adjuster.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/domain/cycle_adjuster.dart';
 
 class CycleRepository {
   final AppDatabase _db;

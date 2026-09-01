@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../core/clock.dart';
-import '../../../theme/colors.dart';
-import 'rest_timer_controller.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/features/workouts/presentation/rest_timer_controller.dart';
+import 'package:herculex/theme/colors.dart';
 
 class RestTimerBanner extends ConsumerWidget {
   const RestTimerBanner({super.key});

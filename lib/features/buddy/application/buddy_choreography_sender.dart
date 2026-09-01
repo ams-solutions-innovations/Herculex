@@ -1,11 +1,10 @@
+import 'package:herculex/data/sync/sync_id_resolver.dart';
+import 'package:herculex/features/buddy/data/buddy_event_publisher.dart';
+import 'package:herculex/features/buddy/data/buddy_slot_store.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
+import 'package:herculex/features/buddy/domain/buddy_scope.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../data/sync/sync_id_resolver.dart';
-import '../../workouts/data/workouts_repository.dart';
-import '../data/buddy_event_publisher.dart';
-import '../data/buddy_slot_store.dart';
-import '../domain/buddy_event.dart';
-import '../domain/buddy_scope.dart';
 
 /// Sends user choreography actions to the local store and, when scope is [BuddyScope.both],
 /// publishes the action to the shared [BuddyEventPublisher].

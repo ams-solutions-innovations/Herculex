@@ -1,4 +1,4 @@
-import 'one_rep_max.dart';
+import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 
 /// Training goal driving rep targets and load progression (V2 §16).
 enum ProgressionGoal {

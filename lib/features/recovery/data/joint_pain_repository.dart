@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
-import '../domain/joint_model.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/recovery/domain/joint_model.dart';
 
 /// A joint's current flagged/resolved state, derived from its most recent
 /// [JointPainLogs] rows.

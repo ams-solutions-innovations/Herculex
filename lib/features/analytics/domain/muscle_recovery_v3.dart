@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:health/health.dart';
-import '../../../data/local/database.dart';
-import '../../health/domain/external_workout_cns_mapper.dart';
-import 'training_snapshot.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/health/domain/external_workout_cns_mapper.dart';
 
 /// Recovery status for one of the 19 tracked muscle groups (V2 §2).
 class MuscleGroupRecovery {

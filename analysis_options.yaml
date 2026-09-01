@@ -10,6 +10,13 @@ analyzer:
 
 linter:
   rules:
-    prefer_relative_imports: true
+    # Absolute `package:herculex/...` imports, deliberately, so that moving a
+    # file is a search-and-replace of one path instead of recomputing `../`
+    # depth at every call site. `test/` already worked this way; `lib/` was
+    # the outlier. See docs/ARCHITECTURE.md.
+    always_use_package_imports: true
+    # Keeps the (now absolute) import block sorted, so a moved file has one
+    # obvious insert position and reordering never shows up as diff noise.
+    directives_ordering: true
     avoid_print: true
     require_trailing_commas: false

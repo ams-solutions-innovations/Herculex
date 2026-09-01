@@ -1,9 +1,8 @@
 import 'package:drift/drift.dart';
-
-import '../../../data/local/database.dart';
-import '../domain/periodization.dart';
-import '../domain/program_csv.dart';
-import 'programs_repository.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/data/programs_repository.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/program_csv.dart';
 
 /// Database glue for program CSV import/export (V2 §12). The pure codec is
 /// [ProgramCsv]; this resolves exercise names against the catalog (alias-

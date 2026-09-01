@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/tokens/tokens.dart';
-import 'hx_back_button.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/hx_back_button.dart';
 
 /// Page shell for pushed screens.
 ///

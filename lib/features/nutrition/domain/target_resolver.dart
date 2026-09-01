@@ -1,4 +1,4 @@
-import 'macro_targets.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 
 /// A stored nutrition target plus its scope key (mirrors NutritionTargetData
 /// without depending on the generated DB class, so the resolver stays pure /

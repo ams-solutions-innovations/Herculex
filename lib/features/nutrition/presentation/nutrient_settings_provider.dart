@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../domain/nutrient_definitions.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
 
 class NutrientSettingsNotifier extends StateNotifier<Set<String>> {
   static const _prefsKey = 'nutrition_visible_nutrients_v1';

@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/workouts/presentation/equipment_icon.dart';
 import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
-import 'package:herculex/data/local/database.dart';
 
 void main() {
   group('EquipmentType.resolve', () {

@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
-import '../../../data/local/database.dart';
-import 'rep_features.dart';
-import 'rpe_estimator.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/reps/domain/rep_features.dart';
+import 'package:herculex/features/reps/domain/rpe_estimator.dart';
 
 /// Where a per (slug, source, placement, sensorType) profile stands.
 ///

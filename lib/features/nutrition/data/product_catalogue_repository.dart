@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/env.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../../../core/env.dart';
 
 /// A row from the shared/public `product_catalogue` table — community
 /// nutrition data keyed by barcode, contributed via the AI barcode-lookup

@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/services/gemini_backend_service.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../data/local/database.dart';
-import '../features/workouts/presentation/workouts_providers.dart';
-import 'gemini_backend_service.dart';
 
 final aiServiceProvider = Provider<AiService>((ref) {
   return AiService(ref);

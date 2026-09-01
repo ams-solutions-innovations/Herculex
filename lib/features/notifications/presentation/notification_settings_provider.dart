@@ -1,12 +1,11 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../supplements/data/supplement_notification_scheduler.dart';
-import '../data/daily_log_notification_scheduler.dart';
-import '../data/meal_notification_scheduler.dart';
-import '../data/notification_settings_repository.dart';
-import '../domain/notification_settings.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/notifications/data/daily_log_notification_scheduler.dart';
+import 'package:herculex/features/notifications/data/meal_notification_scheduler.dart';
+import 'package:herculex/features/notifications/data/notification_settings_repository.dart';
+import 'package:herculex/features/notifications/domain/notification_settings.dart';
+import 'package:herculex/features/supplements/data/supplement_notification_scheduler.dart';
 
 final notificationSettingsRepositoryProvider =
     Provider<NotificationSettingsRepository>((ref) {

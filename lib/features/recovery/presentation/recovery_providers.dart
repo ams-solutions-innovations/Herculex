@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/muscle_volume_trend.dart';
-import '../../analytics/presentation/analytics_providers.dart';
-import '../../health/presentation/health_providers.dart';
-import '../data/joint_pain_repository.dart';
-import '../domain/joint_model.dart';
-import '../domain/joint_stress_advisor.dart';
-import '../domain/muscle_deload_advisor.dart';
-import '../domain/training_suggestion.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/muscle_volume_trend.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/features/recovery/data/joint_pain_repository.dart';
+import 'package:herculex/features/recovery/domain/joint_model.dart';
+import 'package:herculex/features/recovery/domain/joint_stress_advisor.dart';
+import 'package:herculex/features/recovery/domain/muscle_deload_advisor.dart';
+import 'package:herculex/features/recovery/domain/training_suggestion.dart';
 
 final jointPainRepositoryProvider = Provider<JointPainRepository>((ref) {
   return JointPainRepository(ref.watch(appDatabaseProvider));

@@ -1,9 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/env.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../core/env.dart';
 
 final geminiBackendProvider = Provider<GeminiBackend>((ref) {
   if (!Env.hasSupabase) return const UnconfiguredGeminiBackend();

@@ -1,8 +1,7 @@
 import 'dart:async';
 
+import 'package:herculex/data/sync/sync_backend_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'sync_backend_service.dart';
 
 /// Real [SyncBackendService], wrapping the same `Supabase.instance.client`
 /// singleton `SupabaseAuthService` already uses. `updated_at` is never sent

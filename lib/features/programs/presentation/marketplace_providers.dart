@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../data/preset_catalog_repository.dart';
-import '../data/program_csv_io.dart';
-import '../domain/preset_program.dart';
-import '../domain/program_csv.dart';
-import '../domain/program_muscle_volume.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/programs/data/preset_catalog_repository.dart';
+import 'package:herculex/features/programs/data/program_csv_io.dart';
+import 'package:herculex/features/programs/domain/preset_program.dart';
+import 'package:herculex/features/programs/domain/program_csv.dart';
+import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
 
 final presetCatalogRepositoryProvider = Provider<PresetCatalogRepository>(
   (ref) => const PresetCatalogRepository(),

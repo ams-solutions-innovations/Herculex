@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../../theme/colors.dart';
-import '../domain/progression_engine.dart';
-import 'workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/workouts/domain/progression_engine.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
 
 class ProgressionOverrideSheet extends ConsumerStatefulWidget {
   final int exerciseId;

@@ -2,11 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../theme/app_theme.dart';
-import '../../theme/haptics.dart';
-import 'in_app_notification_controller.dart';
-import 'in_app_notification_model.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/theme/app_theme.dart';
+import 'package:herculex/theme/haptics.dart';
 
 /// Wraps any widget tree (e.g. root [MaterialApp] builder) to host floating
 /// top-dropping in-app notifications.

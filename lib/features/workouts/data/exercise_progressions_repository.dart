@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
-import '../domain/progression_engine.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/progression_engine.dart';
 
 class ExerciseProgressionsRepository {
   final AppDatabase _db;

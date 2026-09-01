@@ -1,10 +1,10 @@
 import 'dart:math';
 
-import 'channel_extractor.dart';
-import 'channel_selector.dart';
-import 'motion_sample.dart';
-import 'rep_movement.dart';
-import 'rep_tracking_profile.dart';
+import 'package:herculex/features/reps/domain/channel_extractor.dart';
+import 'package:herculex/features/reps/domain/channel_selector.dart';
+import 'package:herculex/features/reps/domain/motion_sample.dart';
+import 'package:herculex/features/reps/domain/rep_movement.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// Output of one detector run over one set's samples.
 class RepDetectionResult {

@@ -4,23 +4,22 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/features/workouts/domain/circuit_stats.dart';
+import 'package:herculex/features/workouts/domain/session_summary.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/widgets/premium_button.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-
-import '../../../core/notifications/toast/hx_toast_controller.dart';
-import '../../../core/notifications/toast/hx_toast_model.dart';
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../../services/pending_ai_scan_service.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../widgets/premium_button.dart';
-import '../../health/presentation/health_providers.dart';
-import '../domain/circuit_stats.dart';
-import '../domain/session_summary.dart';
-import 'workouts_providers.dart';
 
 /// Background options for the shareable card (§2).
 enum ShareCardBackground {

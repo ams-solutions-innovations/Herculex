@@ -1,10 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:health/health.dart';
-
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
-import '../domain/health_read_state.dart';
-import 'health_adapter.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/data/health_adapter.dart';
+import 'package:herculex/features/health/domain/health_read_state.dart';
 
 class HealthService {
   final AppDatabase _db;

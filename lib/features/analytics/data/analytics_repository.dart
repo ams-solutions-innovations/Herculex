@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
-import '../../workouts/domain/logging_metric.dart';
-import '../../workouts/domain/one_rep_max.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
+import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 
 class WeeklyTonnage {
   /// First day (Mon) of the week.

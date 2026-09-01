@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../../nutrition/presentation/meal_slots_provider.dart';
-import 'notification_settings_provider.dart';
+import 'package:herculex/features/notifications/presentation/notification_settings_provider.dart';
+import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
 
 class NotificationSettingsView extends ConsumerWidget {
   const NotificationSettingsView({super.key});

@@ -4,10 +4,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_media_controller/flutter_media_controller.dart';
-
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
 
 /// Premium media controls bottom sheet.
 ///

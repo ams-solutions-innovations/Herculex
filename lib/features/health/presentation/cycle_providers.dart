@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../data/cycle_repository.dart';
-import '../domain/cycle_adjuster.dart';
-import 'health_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/data/cycle_repository.dart';
+import 'package:herculex/features/health/domain/cycle_adjuster.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
 
 /// Database repository for menstrual cycle settings and logs.
 final cycleRepositoryProvider = Provider<CycleRepository>((ref) {

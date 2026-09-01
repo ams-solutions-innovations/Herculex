@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../analytics/presentation/analytics_providers.dart';
-import 'dashboard_shared.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// This week's total volume mini-card (§18). Tapping navigates to the dedicated
 /// Muscle Volume Overview page.

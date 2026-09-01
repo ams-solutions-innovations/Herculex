@@ -4,9 +4,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../features/workouts/presentation/workouts_providers.dart';
-import '../theme/colors.dart';
-import '../theme/haptics.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
 
 final liveWorkoutBannerAtTopProvider = StateProvider<bool>((ref) => false);
 

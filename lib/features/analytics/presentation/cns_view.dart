@@ -3,12 +3,11 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/features/analytics/domain/cns_breakdown.dart';
+import 'package:herculex/features/analytics/presentation/cns_providers.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
-
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../domain/cns_breakdown.dart';
-import 'cns_providers.dart';
 
 /// Dedicated CNS (Central Nervous System) analytics view.
 /// Shows current neurological readiness, ACWR metrics, 28-day historical load,

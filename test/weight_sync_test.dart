@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/measurements/data/measurements_repository.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/test_database.dart';
 

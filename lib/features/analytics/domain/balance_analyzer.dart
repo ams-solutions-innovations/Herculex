@@ -1,4 +1,4 @@
-import 'training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
 class BalanceResult {
   final double pushPercentage;

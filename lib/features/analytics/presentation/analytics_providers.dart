@@ -1,17 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../../services/widget_sync_service.dart';
-import '../data/analytics_repository.dart';
-import '../domain/cns_trends.dart';
-import '../domain/muscle_recovery_v3.dart';
-import '../domain/balance_analyzer.dart';
-import '../domain/biometric_correlations.dart';
-import '../domain/training_snapshot.dart';
-import '../domain/variant_performance.dart';
-import '../domain/weekly_muscle_volume.dart';
-import '../../health/presentation/health_providers.dart';
-import '../../workouts/presentation/workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/analytics/data/analytics_repository.dart';
+import 'package:herculex/features/analytics/domain/balance_analyzer.dart';
+import 'package:herculex/features/analytics/domain/biometric_correlations.dart';
+import 'package:herculex/features/analytics/domain/cns_trends.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/variant_performance.dart';
+import 'package:herculex/features/analytics/domain/weekly_muscle_volume.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/services/widget_sync_service.dart';
 
 final analyticsRepositoryProvider = Provider<AnalyticsRepository>((ref) {
   return AnalyticsRepository(ref.watch(appDatabaseProvider));

@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
+
 import 'package:flutter/foundation.dart';
-import '../../../core/notifications/in_app_notification_model.dart';
+import 'package:flutter/services.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
 
 enum _WatchEventType { started, updated, ended }
 

@@ -3,14 +3,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../../fasting/presentation/fasting_food_log_dialog.dart';
-import '../data/gemini_food_analyzer_service.dart';
-import '../data/nutrition_label_ocr_service.dart';
-import '../domain/meal.dart';
-import '../domain/nutrition_label.dart';
-import 'nutrition_providers.dart';
+import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
+import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
+import 'package:herculex/features/nutrition/data/nutrition_label_ocr_service.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart';
+import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/theme/colors.dart';
 
 class LabelCaptureDialog extends ConsumerStatefulWidget {
   final File imageFile;

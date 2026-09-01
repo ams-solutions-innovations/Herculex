@@ -1,10 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../app/providers.dart';
-import '../domain/meal_slots.dart';
 
 class MealSlotsNotifier extends StateNotifier<List<MealSlot>> {
   static const _prefsKey = 'nutrition_meal_slots_v1';

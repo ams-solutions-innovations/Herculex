@@ -1,4 +1,4 @@
-import 'rep_movement.dart';
+import 'package:herculex/features/reps/domain/rep_movement.dart';
 
 /// One entry in the closed, 11-fixture motion-trace corpus REP-06 requires.
 ///

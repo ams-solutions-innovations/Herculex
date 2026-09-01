@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import '../domain/cycle_adjuster.dart';
-import 'cycle_providers.dart';
+import 'package:herculex/features/health/domain/cycle_adjuster.dart';
+import 'package:herculex/features/health/presentation/cycle_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
 
 class CycleTrackingView extends ConsumerStatefulWidget {
   const CycleTrackingView({super.key});

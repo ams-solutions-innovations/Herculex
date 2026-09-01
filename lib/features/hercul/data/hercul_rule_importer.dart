@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-import '../../../data/local/database.dart' hide HerculRule;
-import '../domain/hercul_rule.dart';
+import 'package:herculex/data/local/database.dart' hide HerculRule;
+import 'package:herculex/features/hercul/domain/hercul_rule.dart';
 
 /// Imports the authored coaching rules (`assets/data/hercul_rules.json`) into
 /// the database. Idempotent: upserts by [HerculRules.id]. Safe to re-run

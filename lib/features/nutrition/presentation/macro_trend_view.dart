@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../../profile/domain/profile.dart';
-import '../domain/daily_totals.dart';
-import 'nutrition_providers.dart';
-import 'widgets/macro_chart.dart';
 
 /// Dedicated Trend view for any macro ('kcal', 'protein', 'carbs', 'fat').
 /// Displays 7-day average, target comparison, interactive line chart (7D/30D/90D),

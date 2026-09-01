@@ -1,5 +1,5 @@
-import 'periodization.dart';
-import 'slot_role.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/slot_role.dart';
 
 /// How wide a slice of the exercise pool a slot may draw from in a given block
 /// phase. Only [PeriodizationModel.block] narrows this — the other models leave

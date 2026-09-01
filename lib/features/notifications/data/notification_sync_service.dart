@@ -1,11 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../fasting/presentation/fasting_providers.dart';
-import '../../nutrition/presentation/meal_slots_provider.dart';
-import '../../supplements/presentation/supplement_providers.dart';
-import '../presentation/notification_settings_provider.dart';
+import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/notifications/presentation/notification_settings_provider.dart';
+import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
+import 'package:herculex/features/supplements/presentation/supplement_providers.dart';
 
 /// Coordinates and synchronizes all local notifications (meals, supplements,
 /// fasting, daily check-in) whenever user data or notification settings change.

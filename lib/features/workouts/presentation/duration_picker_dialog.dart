@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../theme/colors.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Modal dialog allowing the user to manually set or edit a workout's total duration in minutes.
 class DurationPickerDialog extends StatefulWidget {

@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:herculex/app/app.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('First launch (no profile) boots into onboarding', (

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../domain/equipment_variants.dart';
-import 'equipment_icon.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/presentation/equipment_icon.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Hevy-style equipment prompt (§26): immediately after picking an exercise,
 /// large tappable buttons ask which equipment it will be performed with. The

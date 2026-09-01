@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../data/programs_repository.dart';
-import '../data/rotations_repository.dart';
-import '../domain/program_muscle_volume.dart';
-import '../domain/scheduled_workout_row.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/data/programs_repository.dart';
+import 'package:herculex/features/programs/data/rotations_repository.dart';
+import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 
 final programsRepositoryProvider = Provider<ProgramsRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);

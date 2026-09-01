@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Canonical v1 wire fixtures shared (by convention, not by file — Dart and
 // Kotlin can't literally share a file) with the Kotlin contract test at

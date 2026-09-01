@@ -1,24 +1,22 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
+import 'package:herculex/features/workouts/domain/set_metric_format.dart';
+import 'package:herculex/features/workouts/presentation/duration_picker_dialog.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-
-import 'package:drift/drift.dart' as drift;
-
-import '../../../app/providers.dart';
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../../services/pending_ai_scan_service.dart';
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import '../../health/presentation/health_providers.dart';
-import '../domain/equipment_variants.dart';
-import '../domain/logging_metric.dart';
-import '../domain/set_metric_format.dart';
-import 'duration_picker_dialog.dart';
-import 'workouts_providers.dart';
 
 class WorkoutHistoryView extends ConsumerWidget {
   final int sessionId;

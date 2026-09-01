@@ -1,8 +1,7 @@
 import 'package:drift/drift.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
 
 /// A micro workout with today's completion count and optional exercise metadata resolved.
 class MicroWorkoutStatus {

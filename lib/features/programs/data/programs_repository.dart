@@ -1,11 +1,11 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
-import '../domain/periodization.dart';
-import '../domain/schedule_status.dart';
-import '../domain/schedule_walk.dart';
-import '../domain/scheduled_workout_row.dart';
-import '../domain/split_template.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/programs/domain/schedule_walk.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/domain/split_template.dart';
 
 /// One exercise a program day will produce, from whichever source the day uses
 /// (a linked template, or its own inline [ProgramDayExercises]).

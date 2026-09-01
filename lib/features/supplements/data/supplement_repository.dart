@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../domain/supplement.dart';
 
 /// Persists the user's supplement definitions and daily taken-set in
 /// SharedPreferences. No Drift migration required.

@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-import '../../../data/local/database.dart' hide FastingStage;
-import '../domain/fasting_stage.dart';
+import 'package:herculex/data/local/database.dart' hide FastingStage;
+import 'package:herculex/features/fasting/domain/fasting_stage.dart';
 
 class FastingStageImporter {
   static const assetPath = 'assets/data/fasting_stages.json';

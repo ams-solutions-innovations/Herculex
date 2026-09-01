@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-import 'database.dart';
-import 'exercise_biomechanics.dart';
-import 'seed_data.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/local/exercise_biomechanics.dart';
+import 'package:herculex/data/local/seed_data.dart';
 
 /// Imports the enriched exercise catalog (`assets/data/exercises.json`) into
 /// the database. Idempotent: upserts by [ExerciseCatalog.slug] (falling back

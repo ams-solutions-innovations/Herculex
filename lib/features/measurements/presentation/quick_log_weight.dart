@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/haptics.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../core/notifications/toast/hx_toast_controller.dart';
-import '../../../core/notifications/toast/hx_toast_model.dart';
-import '../../../core/units.dart';
-import '../../../theme/haptics.dart';
-import '../../workouts/presentation/workouts_providers.dart';
 
 /// Shared bodyweight quick-log dialog, used by the dashboard's bodyweight
 /// card and the global quick-add menu so both stay in sync.

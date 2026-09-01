@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 
-import 'rep_features.dart';
-import 'rep_movement.dart';
-import 'rep_tracking_profile.dart';
+import 'package:herculex/features/reps/domain/rep_features.dart';
+import 'package:herculex/features/reps/domain/rep_movement.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// The single state every rep-tracking surface renders from (10-CONTEXT
 /// "Confidence and fallback states"). Exactly five values — no more, no

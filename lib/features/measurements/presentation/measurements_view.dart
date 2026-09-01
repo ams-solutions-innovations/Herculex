@@ -3,18 +3,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/measurements/data/measurements_repository.dart';
+import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
+import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../../services/pending_ai_scan_service.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../ui/ui.dart';
-import '../data/measurements_repository.dart';
-
-import 'body_fat_ai_dialog.dart';
 
 final _allMeasurementsProvider = StreamProvider<List<BodyMeasurementData>>((
   ref,

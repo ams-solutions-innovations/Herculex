@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../../theme/colors.dart';
-import '../../nutrition/domain/nutrient_definitions.dart';
+import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Lets the user say what one dose of a supplement contains, in the same
 /// nutrient vocabulary the food diary uses — so a 5 g creatine scoop or a

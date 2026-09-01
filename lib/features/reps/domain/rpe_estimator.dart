@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'rep_features.dart';
+import 'package:herculex/features/reps/domain/rep_features.dart';
 
 /// Ridge regularisation constant, fixed rather than tuned.
 ///

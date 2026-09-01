@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// A slot in the shared Gym Buddy choreography mapping a stable remote [slotId]
 /// to either a local [workoutExerciseId] or an unresolved placeholder.

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-import '../../../../theme/tokens/tokens.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// A minimalist clock dial background with radial hour and minute tick marks,
 /// giving the fasting screen an authentic, sleek chronograph feel.

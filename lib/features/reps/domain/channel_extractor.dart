@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'motion_sample.dart';
-import 'rep_tracking_profile.dart';
+import 'package:herculex/features/reps/domain/motion_sample.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// One derived, per-sample signal the detector can count cycles on, together
 /// with the units its amplitudes are in.

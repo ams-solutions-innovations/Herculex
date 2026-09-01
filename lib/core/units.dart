@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../app/providers.dart';
-import '../features/profile/domain/profile.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
 
 /// Conversion and formatting for the user's chosen measurement system.
 ///

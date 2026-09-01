@@ -1,4 +1,4 @@
-import 'exercise_merge.dart';
+import 'package:herculex/data/local/exercise_merge.dart';
 
 /// Catalog rows that were folded into another row by `tool/catalog_cleanup.py`.
 ///

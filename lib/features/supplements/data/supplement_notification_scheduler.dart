@@ -1,7 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:timezone/timezone.dart' as tz;
-
-import '../domain/supplement.dart';
 
 /// Schedules and cancels daily timed notifications for supplements that have
 /// [SupplementSchedule.time] set. Post-workout supplements are triggered

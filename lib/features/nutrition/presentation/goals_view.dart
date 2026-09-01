@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import '../../profile/domain/profile.dart';
-import 'goals_providers.dart';
 
 class GoalsView extends ConsumerWidget {
   const GoalsView({super.key});

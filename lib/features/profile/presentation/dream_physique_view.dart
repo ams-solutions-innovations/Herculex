@@ -2,17 +2,16 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/features/profile/data/dream_physique_service.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../../services/pending_ai_scan_service.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../ui/ui.dart';
-import '../../nutrition/domain/macro_targets.dart';
-import '../data/dream_physique_service.dart';
-import '../domain/profile.dart';
 
 class DreamPhysiqueView extends ConsumerStatefulWidget {
   const DreamPhysiqueView({super.key});

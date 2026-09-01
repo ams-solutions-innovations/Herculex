@@ -1,5 +1,5 @@
-import '../../../data/local/database.dart';
-import '../../../data/local/exercise_biomechanics.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/local/exercise_biomechanics.dart';
 
 class ExerciseSubstitution {
   /// Synergistic muscle groups that can cross-substitute ONLY in compound movements.

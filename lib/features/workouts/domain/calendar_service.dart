@@ -1,11 +1,10 @@
 import 'package:device_calendar/device_calendar.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-
-import '../../../data/local/database.dart';
 
 class CalendarSyncResult {
   final bool success;

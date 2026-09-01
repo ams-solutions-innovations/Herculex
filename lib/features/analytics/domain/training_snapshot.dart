@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import '../../../data/local/database.dart';
-import '../../workouts/domain/effective_load.dart';
-import '../../workouts/domain/equipment_variants.dart';
-import '../../workouts/domain/logging_metric.dart';
-import '../../workouts/domain/set_type.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/effective_load.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// One completed working set with everything the engines need resolved:
 /// exercise attributes, equipment variant, bands/chains/accessories, and the

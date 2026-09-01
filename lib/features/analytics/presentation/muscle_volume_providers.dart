@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../domain/muscle_volume_details.dart';
-import 'analytics_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/analytics/domain/muscle_volume_details.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
 
 enum MuscleVolumeSort {
   volumeDesc('Highest Volume'),

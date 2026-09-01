@@ -1,10 +1,9 @@
 import 'dart:async';
 
+import 'package:herculex/features/buddy/data/buddy_event_stream.dart';
+import 'package:herculex/features/buddy/data/buddy_remote_gateway.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../domain/buddy_event.dart';
-import 'buddy_event_stream.dart';
-import 'buddy_remote_gateway.dart';
 
 enum BuddyConnectionState { connecting, live, degraded, ended }
 

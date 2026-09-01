@@ -1,4 +1,4 @@
-import 'hercul_context.dart';
+import 'package:herculex/features/hercul/domain/hercul_context.dart';
 
 /// Which voice a message is written in.
 ///

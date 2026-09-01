@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
+import 'package:herculex/app/providers.dart';
 
 class QuickLoadStepNotifier extends Notifier<double> {
   static const prefsKey = 'quick_load_step_kg';

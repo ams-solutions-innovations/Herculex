@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
-import '../domain/rep_calibration.dart';
-import '../domain/rep_tracking_eligibility.dart';
-import '../domain/rep_tracking_profile.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/reps/domain/rep_calibration.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_eligibility.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// The single read/write surface for assisted rep tracking's local-only
 /// state: global consent, per-exercise opt-in, and the confirmed-set

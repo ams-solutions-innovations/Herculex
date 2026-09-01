@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/units.dart';
-import '../../../features/profile/domain/profile.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
 
 /// Available barbell types (weight in kg).
 enum BarType {

@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/presentation/analytics_providers.dart';
-import '../../analytics/presentation/widgets/muscle_recovery_row.dart';
-import '../domain/deload_urgency.dart';
-import '../domain/muscle_deload_advisor.dart';
-import 'recovery_providers.dart';
-import 'widgets/joint_pain_selector.dart';
-import 'widgets/recovery_header_card.dart';
-import 'widgets/next_workout_suggestion_card.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/analytics/presentation/widgets/muscle_recovery_row.dart';
+import 'package:herculex/features/recovery/domain/deload_urgency.dart';
+import 'package:herculex/features/recovery/domain/muscle_deload_advisor.dart';
+import 'package:herculex/features/recovery/presentation/recovery_providers.dart';
+import 'package:herculex/features/recovery/presentation/widgets/joint_pain_selector.dart';
+import 'package:herculex/features/recovery/presentation/widgets/next_workout_suggestion_card.dart';
+import 'package:herculex/features/recovery/presentation/widgets/recovery_header_card.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
 
 /// The dedicated Recovery page: overall readiness, a joint-pain selector,
 /// next workout's training suggestion, and the full 19-muscle-group breakdown with

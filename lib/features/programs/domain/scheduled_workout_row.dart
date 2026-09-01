@@ -1,5 +1,5 @@
-import '../../../data/local/database.dart';
-import 'schedule_status.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/schedule_status.dart';
 
 /// One scheduled session with everything the UI needs to render it, resolved in
 /// a single join rather than a query per row.

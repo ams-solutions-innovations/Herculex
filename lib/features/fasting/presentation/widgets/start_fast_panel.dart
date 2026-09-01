@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../domain/fasting_plan.dart';
 
 /// Plan picker for starting a fast. Purely presentational — the parent
 /// [FastingView] owns the selection state so the pinned "Start Fast" button

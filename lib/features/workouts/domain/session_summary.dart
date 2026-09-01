@@ -1,6 +1,6 @@
-import '../../../core/notifications/in_app_notification_model.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/training_snapshot.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
 /// Headline numbers for one finished session, shown on the finish screen and
 /// in the shareable card.

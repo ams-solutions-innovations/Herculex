@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/colors.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Shown briefly on cold start while the local profile loads.
 class SplashView extends StatelessWidget {

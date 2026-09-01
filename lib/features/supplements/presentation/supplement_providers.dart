@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../data/supplement_repository.dart';
-import '../domain/supplement.dart';
-import '../domain/supplement_intake.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/supplements/data/supplement_repository.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
+import 'package:herculex/features/supplements/domain/supplement_intake.dart';
 
 // ── Repository ────────────────────────────────────────────────────────────────
 

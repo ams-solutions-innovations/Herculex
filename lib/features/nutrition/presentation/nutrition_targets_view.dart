@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../../core/notifications/toast/hx_toast_controller.dart';
-import '../../../core/notifications/toast/hx_toast_model.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../../../widgets/premium_button.dart';
-import '../data/carb_cycle_service.dart';
-import '../domain/carb_cycling.dart';
-import '../domain/diet_phase.dart';
-import '../domain/macro_targets.dart';
-import 'goals_providers.dart';
-import 'nutrition_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
+import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
+import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
+import 'package:herculex/widgets/premium_button.dart';
 
 /// Hub for everything target-related (§5).
 class NutritionTargetsView extends ConsumerWidget {

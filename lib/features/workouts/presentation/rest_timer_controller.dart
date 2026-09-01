@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../../notifications/presentation/notification_settings_provider.dart';
-import '../../../services/workout_notification_service.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/notifications/presentation/notification_settings_provider.dart';
+import 'package:herculex/services/workout_notification_service.dart';
 
 /// Whether the rest timer should auto-start after a completed set.
 /// Persisted in SharedPreferences; toggled from [WorkoutSettingsSheet].

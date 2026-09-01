@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/haptics.dart';
-import '../theme/tokens/tokens.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// Segmented control for navigation *within* a section.
 ///

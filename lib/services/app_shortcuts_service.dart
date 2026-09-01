@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/presentation/food_picker_sheet.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 import 'package:quick_actions/quick_actions.dart';
-
-import '../data/local/database.dart';
-import '../features/nutrition/presentation/food_picker_sheet.dart';
-import '../features/shell/main_scaffold.dart';
-import '../features/workouts/presentation/workouts_providers.dart';
 
 final appShortcutsServiceProvider = Provider<AppShortcutsService>((ref) {
   return AppShortcutsService(ref);

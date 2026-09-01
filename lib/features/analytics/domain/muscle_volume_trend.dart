@@ -1,7 +1,7 @@
-import '../../../data/local/database.dart';
-import 'muscle_recovery_v3.dart';
-import 'training_snapshot.dart';
-import 'weekly_muscle_volume.dart' show WeeklyMuscleVolume;
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/weekly_muscle_volume.dart' show WeeklyMuscleVolume;
 
 /// One week's role-weighted working-set count for a muscle. Same fractional
 /// credit convention as [WeeklyMuscleVolume] — a secondary-role set counts

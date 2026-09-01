@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../theme/haptics.dart';
-import '../../theme/tokens/tokens.dart';
-import '../../ui/ui.dart';
-import '../fasting/domain/fasting_plan.dart';
-import '../fasting/presentation/end_fast_dialog.dart';
-import '../fasting/presentation/fasting_providers.dart';
-import '../gyms/presentation/gym_picker_sheet.dart';
-import '../measurements/presentation/quick_log_weight.dart';
-import '../nutrition/presentation/food_picker_sheet.dart';
-import '../nutrition/presentation/quick_scan_food.dart';
-import '../workouts/presentation/workouts_providers.dart';
-import 'main_scaffold.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/features/fasting/presentation/end_fast_dialog.dart';
+import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
+import 'package:herculex/features/measurements/presentation/quick_log_weight.dart';
+import 'package:herculex/features/nutrition/presentation/food_picker_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/quick_scan_food.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
 
 /// Backdrop + staggered action list behind the nav bar's "+" button.
 ///

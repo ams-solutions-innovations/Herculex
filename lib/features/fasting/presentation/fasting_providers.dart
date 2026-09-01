@@ -1,13 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../notifications/presentation/notification_settings_provider.dart';
-import '../data/fasting_notification_scheduler.dart';
-import '../data/fasting_repository.dart';
-import '../data/fasting_schedule_service.dart';
-import '../domain/fasting_plan.dart';
-import '../domain/fasting_schedule_occurrence.dart';
-import '../../../data/local/database.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/fasting/data/fasting_notification_scheduler.dart';
+import 'package:herculex/features/fasting/data/fasting_repository.dart';
+import 'package:herculex/features/fasting/data/fasting_schedule_service.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
+import 'package:herculex/features/notifications/presentation/notification_settings_provider.dart';
 
 final fastingNotificationSchedulerProvider =
     Provider<FastingNotificationScheduler>((ref) {

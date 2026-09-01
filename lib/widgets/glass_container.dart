@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/tokens/tokens.dart';
-import '../ui/hx_glass.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/hx_glass.dart';
 
 /// Frosted surface used across the dashboard, health and programs cards.
 ///

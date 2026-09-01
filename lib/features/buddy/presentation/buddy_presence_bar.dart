@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../application/buddy_providers.dart';
-import 'buddy_share_sheet.dart';
+import 'package:herculex/features/buddy/application/buddy_providers.dart';
+import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Top bar shown in active workout when a Gym Buddy session is active.
 /// Displays partner presence and notices.

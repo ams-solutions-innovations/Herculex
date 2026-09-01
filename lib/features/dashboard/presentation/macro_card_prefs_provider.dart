@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../domain/macro_card_config.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/dashboard/domain/macro_card_config.dart';
 
 /// Persists which macro tiles show on the dashboard grid, and their order.
 class MacroCardPrefsNotifier extends Notifier<MacroCardConfig> {

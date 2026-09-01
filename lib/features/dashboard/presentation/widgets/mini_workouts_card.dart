@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../workouts/data/micro_workouts_repository.dart';
-import '../../../workouts/presentation/exercise_artwork.dart';
-import '../../../workouts/presentation/exercise_picker_sheet.dart';
-import '../../../workouts/presentation/widgets/mini_workout_sparkles.dart';
-import '../../../workouts/presentation/workouts_providers.dart';
-import 'dashboard_shared.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
+import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
+import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/widgets/mini_workout_sparkles.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// Mini Workouts checklist widget (§20). Renders an interactive task list of
 /// micro-workouts for today with segmented progress dots, spring celebration

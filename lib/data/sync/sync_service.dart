@@ -5,12 +5,11 @@ import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:herculex/data/local/migrations/sync_backfill.dart' show isCustomFilteredTableNames;
+import 'package:herculex/data/sync/sync_backend_service.dart';
+import 'package:herculex/data/sync/sync_id_resolver.dart';
+import 'package:herculex/data/sync/sync_table_specs.dart';
 import 'package:uuid/uuid.dart';
-
-import '../local/migrations/sync_backfill.dart' show isCustomFilteredTableNames;
-import 'sync_backend_service.dart';
-import 'sync_id_resolver.dart';
-import 'sync_table_specs.dart';
 
 void _log(String message) {
   developer.log(message);

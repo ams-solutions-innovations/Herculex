@@ -1,9 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-
-import '../../../theme/colors.dart';
-import '../domain/set_type.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Result of the set-type menu: a type plus its serialized metadata.
 class SetTypeSelection {

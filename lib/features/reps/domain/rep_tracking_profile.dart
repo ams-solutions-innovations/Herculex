@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'rep_movement.dart';
+import 'package:herculex/features/reps/domain/rep_movement.dart';
 
 /// How much assisted rep tracking an exercise can support.
 ///

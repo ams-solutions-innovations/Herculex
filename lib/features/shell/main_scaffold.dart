@@ -2,28 +2,26 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-
 import 'package:go_router/go_router.dart';
-
-import '../../services/app_shortcuts_service.dart';
-import '../../services/pending_ai_scan_service.dart';
-import '../../ui/hx_nav_bar.dart';
-import '../../widgets/live_workout_banner.dart';
-import '../dashboard/presentation/dashboard_providers.dart';
-import '../dashboard/presentation/dashboard_view.dart';
-import '../measurements/presentation/body_fat_ai_dialog.dart';
-import '../nutrition/domain/meal.dart';
-import '../nutrition/presentation/gemini_photo_analysis_dialog.dart';
-import '../nutrition/presentation/label_capture_dialog.dart';
-import '../nutrition/presentation/nutrition_view.dart';
-import '../profile/presentation/profile_view.dart';
-import '../workouts/presentation/exercise_ai_scan_dialog.dart';
-import '../workouts/presentation/workouts_providers.dart';
-import '../workouts/presentation/workouts_view.dart';
-import '../supplements/presentation/supplement_ai_scan_dialog.dart';
-import '../supplements/presentation/supplement_edit_sheet.dart';
-import 'quick_add_menu.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_view.dart';
+import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart';
+import 'package:herculex/features/nutrition/presentation/gemini_photo_analysis_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/label_capture_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_view.dart';
+import 'package:herculex/features/profile/presentation/profile_view.dart';
+import 'package:herculex/features/shell/quick_add_menu.dart';
+import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
+import 'package:herculex/features/supplements/presentation/supplement_edit_sheet.dart';
+import 'package:herculex/features/workouts/presentation/exercise_ai_scan_dialog.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/features/workouts/presentation/workouts_view.dart';
+import 'package:herculex/services/app_shortcuts_service.dart';
+import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/ui/hx_nav_bar.dart';
+import 'package:herculex/widgets/live_workout_banner.dart';
+import 'package:image_picker/image_picker.dart';
 
 /// The four-tab home shell. Bottom-nav index drives which feature view
 /// shows; the nav bar's central "+" opens the quick-add menu instead of

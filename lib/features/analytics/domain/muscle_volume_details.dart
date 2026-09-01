@@ -1,10 +1,9 @@
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/weekly_muscle_volume.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:intl/intl.dart';
-
-import '../../../data/local/database.dart';
-import '../../workouts/domain/set_type.dart';
-import 'muscle_recovery_v3.dart';
-import 'training_snapshot.dart';
-import 'weekly_muscle_volume.dart';
 
 enum VolumeTimeframe {
   thisWeek('This Week'),

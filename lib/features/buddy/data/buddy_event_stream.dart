@@ -1,5 +1,5 @@
-import '../domain/buddy_event.dart';
-import 'buddy_remote_gateway.dart';
+import 'package:herculex/features/buddy/data/buddy_remote_gateway.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
 
 /// The pure ordering machine: buffers realtime arrivals, backfills historical
 /// log, applies in strictly increasing seq order, and refetches backlog on

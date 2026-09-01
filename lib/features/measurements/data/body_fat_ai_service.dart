@@ -2,9 +2,8 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../services/gemini_backend_service.dart';
-import '../../profile/domain/profile.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/services/gemini_backend_service.dart';
 
 final bodyFatAiServiceProvider = Provider<BodyFatAiService>((ref) {
   final backend = ref.watch(geminiBackendProvider);

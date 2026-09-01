@@ -4,7 +4,7 @@
 /// `weekday - 1`, so Monday is bit 0 and Sunday is bit 6.
 library;
 
-import 'fasting_plan.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 
 const List<String> kWeekdayAbbrev = [
   'Mon',

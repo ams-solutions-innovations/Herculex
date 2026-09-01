@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/presentation/block_builder_view.dart';
+import 'package:herculex/features/programs/presentation/block_detail_view.dart';
+import 'package:herculex/features/programs/presentation/day_detail_sheet.dart';
+import 'package:herculex/features/programs/presentation/program_marketplace_view.dart';
+import 'package:herculex/features/programs/presentation/programs_providers.dart';
+import 'package:herculex/features/programs/presentation/widgets/month_calendar.dart';
+import 'package:herculex/features/programs/presentation/widgets/week_board.dart';
+import 'package:herculex/features/workouts/presentation/calendar_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/widgets/app_bottom_sheet.dart';
+import 'package:herculex/widgets/glass_container.dart';
+import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
-
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../widgets/app_bottom_sheet.dart';
-import '../../../widgets/glass_container.dart';
-import '../../../widgets/premium_button.dart';
-import '../domain/split_template.dart';
-import 'block_builder_view.dart';
-import 'block_detail_view.dart';
-import 'day_detail_sheet.dart';
-import 'program_marketplace_view.dart';
-import 'programs_providers.dart';
-import 'widgets/month_calendar.dart';
-import 'widgets/week_board.dart';
-import '../../workouts/presentation/calendar_providers.dart';
 
 class TrainingBlocksView extends ConsumerWidget {
   const TrainingBlocksView({super.key});

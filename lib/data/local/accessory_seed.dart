@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import 'database.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// Seeds the default accessory + band catalogs (v10). Idempotent — skips when
 /// non-custom rows already exist, so re-runs (fresh installs after upgrades,

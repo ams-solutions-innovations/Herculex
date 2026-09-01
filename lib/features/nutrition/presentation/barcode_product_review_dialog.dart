@@ -3,12 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../data/gemini_food_analyzer_service.dart';
-import '../data/product_catalogue_repository.dart';
-import 'nutrition_providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
+import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Shown after [GeminiFoodAnalyzerService.analyzeBarcodeProduct] returns for
 /// a barcode the app didn't already know: the model's guess is editable, the

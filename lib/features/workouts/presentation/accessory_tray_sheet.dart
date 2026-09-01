@@ -1,11 +1,10 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import 'workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Quick accessory tray (§5–§8, §26): opened from a set row's accessory icon,
 /// toggles belt/sleeves/wraps/straps/fat-grips, attaches bands with an

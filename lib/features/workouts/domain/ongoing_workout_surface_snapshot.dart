@@ -1,7 +1,7 @@
-import '../../../data/local/database.dart';
-import 'active_workout_notification_target.dart';
-import 'equipment_variants.dart';
-import 'workout_notification_command.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/workout_notification_command.dart';
 
 class OngoingWorkoutSurfaceSnapshot {
   final String exerciseName;

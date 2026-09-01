@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../../../data/local/database.dart';
-import 'training_snapshot.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
 class CorrelationPoint {
   final double x;

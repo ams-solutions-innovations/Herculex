@@ -1,5 +1,5 @@
-import '../domain/buddy_event.dart';
-import 'buddy_remote_gateway.dart';
+import 'package:herculex/features/buddy/data/buddy_remote_gateway.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
 
 /// Stand-in [BuddyGateway] for builds without Supabase credentials.
 ///

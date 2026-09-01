@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
-import '../../nutrition/data/wear_sync_service.dart';
-import '../domain/motion_sample.dart';
-import '../domain/rep_detector.dart';
-import '../domain/rep_features.dart';
-import '../domain/rep_movement.dart';
-import '../domain/rep_suggestion.dart';
-import '../domain/rep_tracking_eligibility.dart';
-import '../domain/rep_tracking_profile.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/reps/domain/motion_sample.dart';
+import 'package:herculex/features/reps/domain/rep_detector.dart';
+import 'package:herculex/features/reps/domain/rep_features.dart';
+import 'package:herculex/features/reps/domain/rep_movement.dart';
+import 'package:herculex/features/reps/domain/rep_suggestion.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_eligibility.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// One `/herculex/reps/samples` batch, ordered by [seq] before assembly.
 class _Batch {

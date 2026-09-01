@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter/services.dart' show rootBundle;
-import '../../../data/local/database.dart';
-import 'periodization.dart';
-import 'program_csv.dart';
-import 'split_template.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/program_csv.dart';
+import 'package:herculex/features/programs/domain/split_template.dart';
 
 /// One muscle group's volume contribution in weekly sets.
 class MuscleVolumeEntry {

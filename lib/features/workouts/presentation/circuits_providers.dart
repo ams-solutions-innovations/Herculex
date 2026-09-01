@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../data/circuits_repository.dart';
-import 'workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/data/circuits_repository.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 
 final circuitsRepositoryProvider = Provider<CircuitsRepository>((ref) {
   return CircuitsRepository(ref.watch(appDatabaseProvider));

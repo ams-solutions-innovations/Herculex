@@ -1,13 +1,13 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../widgets/premium_button.dart';
-import '../domain/barcode_utils.dart';
-import 'nutrition_providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/widgets/premium_button.dart';
 
 class CustomFoodFormSheet extends ConsumerStatefulWidget {
   final String? initialName;

@@ -1,8 +1,8 @@
 import 'dart:math';
 
-import '../../workouts/domain/set_type.dart';
-import 'cns_trends.dart';
-import 'training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/cns_trends.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// Detail of an individual set's contribution to CNS fatigue.
 class SetCnsImpact {

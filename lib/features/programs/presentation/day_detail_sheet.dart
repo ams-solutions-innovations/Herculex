@@ -2,21 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/presentation/programs_providers.dart';
+import 'package:herculex/features/programs/presentation/template_picker_sheet.dart';
+import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
+import 'package:herculex/features/workouts/presentation/calendar_providers.dart';
+import 'package:herculex/features/workouts/presentation/template_builder_view.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/ui/ui.dart';
+import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
-
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../ui/ui.dart';
-import '../../../widgets/premium_button.dart';
-import '../../dashboard/presentation/dashboard_providers.dart';
-import '../../workouts/presentation/calendar_providers.dart';
-import '../../workouts/presentation/template_builder_view.dart';
-import '../../workouts/presentation/workouts_providers.dart';
-import '../domain/schedule_status.dart';
-import '../domain/scheduled_workout_row.dart';
-import 'programs_providers.dart';
-import 'widgets/session_tile.dart';
-import 'template_picker_sheet.dart';
 
 /// Everything you can do to one day of a block: see its sessions, attach or
 /// swap templates, start, skip, move or delete.

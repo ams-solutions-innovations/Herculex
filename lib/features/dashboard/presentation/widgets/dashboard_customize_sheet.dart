@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../app/providers.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../profile/domain/profile.dart';
-import '../../domain/dashboard_config.dart';
-import '../dashboard_providers.dart';
-import '../macro_card_prefs_provider.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/dashboard/domain/dashboard_config.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/macro_card_prefs_provider.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// Edit-mode sheet (§18): toggle widget visibility, drag to reorder, and
 /// manage widget stacks (Samsung One UI style).

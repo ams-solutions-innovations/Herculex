@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import 'nutrition_providers.dart';
-import 'nutrition_targets_view.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_targets_view.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
 
 class CalorieMacroGoalsView extends ConsumerWidget {
   const CalorieMacroGoalsView({super.key});

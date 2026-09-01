@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/ui.dart';
-import '../domain/nutrient_definitions.dart';
-import 'nutrient_settings_provider.dart';
+import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
+import 'package:herculex/features/nutrition/presentation/nutrient_settings_provider.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
 
 class NutrientSettingsView extends ConsumerWidget {
   const NutrientSettingsView({super.key});

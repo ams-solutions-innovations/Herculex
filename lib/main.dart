@@ -1,25 +1,22 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'dart:ui' show PlatformDispatcher;
-
-import 'app/app.dart';
-import 'app/providers.dart';
-import 'theme/colors.dart';
-import 'theme/tokens/tokens.dart';
-
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:herculex/app/app.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/env.dart';
+import 'package:herculex/core/error/app_error_handler.dart';
+import 'package:herculex/features/auth/data/secure_auth_storage.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/reps/data/rep_profile_loader.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-
-import 'core/env.dart';
-import 'core/error/app_error_handler.dart';
-import 'features/auth/data/secure_auth_storage.dart';
-import 'features/nutrition/data/wear_sync_service.dart';
-import 'features/reps/data/rep_profile_loader.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

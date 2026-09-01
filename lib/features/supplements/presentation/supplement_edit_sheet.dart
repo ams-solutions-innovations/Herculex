@@ -3,18 +3,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
+import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
+import 'package:herculex/features/nutrition/presentation/barcode_scanner_view.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
+import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
+import 'package:herculex/features/supplements/presentation/supplement_nutrients_sheet.dart';
+import 'package:herculex/features/supplements/presentation/supplement_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../nutrition/data/product_catalogue_repository.dart';
-import '../../nutrition/domain/nutrient_definitions.dart';
-import '../../nutrition/presentation/barcode_scanner_view.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
-import '../domain/supplement.dart';
-import 'supplement_ai_scan_dialog.dart';
-import 'supplement_nutrients_sheet.dart';
-import 'supplement_providers.dart';
 
 /// Bottom sheet to add or edit a single supplement.
 class SupplementEditSheet extends ConsumerStatefulWidget {

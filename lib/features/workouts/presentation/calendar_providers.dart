@@ -1,10 +1,9 @@
 import 'package:device_calendar/device_calendar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/workouts/domain/calendar_service.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../../app/providers.dart';
-import '../domain/calendar_service.dart';
-import 'workouts_providers.dart';
 
 const _kCalendarSyncEnabledKey = 'herculex_calendar_sync_enabled';
 const _kCalendarIdKey = 'herculex_calendar_id';

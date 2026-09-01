@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../core/notifications/in_app_notification_controller.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../gamification/presentation/gamification_providers.dart';
-import 'fasting_providers.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/gamification/presentation/gamification_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// Checks if an active fasting session is currently ongoing.
 /// If active, prompts the user whether they want to end their fast or continue fasting.

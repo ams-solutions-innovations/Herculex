@@ -2,16 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/measurements/data/body_fat_ai_service.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../../services/pending_ai_scan_service.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../profile/domain/profile.dart';
-import '../data/body_fat_ai_service.dart';
 
 class BodyFatAiDialog extends ConsumerStatefulWidget {
   final File? initialImage;

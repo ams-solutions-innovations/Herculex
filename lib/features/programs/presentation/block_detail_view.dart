@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../ui/ui.dart';
-import '../../../widgets/app_bottom_sheet.dart';
-import '../../workouts/presentation/workouts_providers.dart';
-import '../domain/split_template.dart';
-import 'programs_providers.dart';
-import 'template_picker_sheet.dart';
-import 'widgets/program_muscle_volume_card.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/presentation/programs_providers.dart';
+import 'package:herculex/features/programs/presentation/template_picker_sheet.dart';
+import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/ui/ui.dart';
+import 'package:herculex/widgets/app_bottom_sheet.dart';
 
 /// Edit a block: per-week volume, the days in each week, their templates, and
 /// the block's lifecycle (archive / delete).

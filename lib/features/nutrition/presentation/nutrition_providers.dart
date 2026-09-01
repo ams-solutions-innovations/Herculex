@@ -1,29 +1,29 @@
 import 'dart:convert';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/weekly_muscle_volume.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';
+import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
+import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
+import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
+import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart';
+import 'package:herculex/features/nutrition/domain/meal_slots.dart';
+import 'package:herculex/features/nutrition/domain/target_resolver.dart';
+import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
+import 'package:herculex/services/widget_sync_service.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../../services/widget_sync_service.dart';
-import '../data/nutrition_repository.dart';
-import '../data/openfoodfacts_client.dart';
-import '../data/gemini_food_analyzer_service.dart';
-import '../domain/daily_totals.dart';
-import '../domain/macro_targets.dart';
-import '../domain/carb_cycling.dart';
-import '../domain/target_resolver.dart';
-import '../domain/meal.dart';
-import '../domain/meal_slots.dart';
-import '../data/carb_cycle_service.dart';
-import '../data/wear_sync_service.dart';
-import '../data/wear_sync_contract.dart';
-import '../../analytics/presentation/analytics_providers.dart';
-import '../../analytics/domain/weekly_muscle_volume.dart';
-import '../../fasting/domain/fasting_sync_snapshot.dart';
-import '../../fasting/presentation/fasting_providers.dart';
-import '../../health/presentation/health_providers.dart';
-import 'meal_slots_provider.dart';
 
 /// Singleton [WidgetSyncService] for pushing data to Android home-screen widgets.
 final widgetSyncServiceProvider = Provider<WidgetSyncService>((ref) {

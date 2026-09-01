@@ -1,24 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/meal_slots.dart';
+import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
+import 'package:herculex/features/nutrition/presentation/food_picker_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
+import 'package:herculex/features/nutrition/presentation/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/macro_rings.dart';
+import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
+import 'package:herculex/features/nutrition/presentation/nutrient_settings_provider.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
-
-import '../../../core/notifications/toast/hx_toast_controller.dart';
-import '../../../core/notifications/toast/hx_toast_model.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../ui/ui.dart';
-import '../domain/daily_totals.dart';
-import '../domain/meal_slots.dart';
-import '../domain/nutrient_definitions.dart';
-import 'food_picker_sheet.dart';
-import 'goals_providers.dart';
-import 'log_entry_sheet.dart';
-import 'macro_rings.dart';
-import 'nutrition_providers.dart';
-import 'meal_slots_provider.dart';
-import 'nutrient_settings_provider.dart';
 
 class NutritionView extends ConsumerStatefulWidget {
   const NutritionView({super.key});

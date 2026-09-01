@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../theme/haptics.dart';
-import '../theme/tokens/tokens.dart';
-import 'hx_glass.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/hx_glass.dart';
 
 /// Circular frosted-glass icon button used for back navigation and header
 /// actions. Floats over scrolling content, so it needs the blur to stay

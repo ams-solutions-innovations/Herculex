@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart' hide HerculRule;
-import '../domain/hercul_rule.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart' hide HerculRule;
+import 'package:herculex/features/hercul/domain/hercul_rule.dart';
 
 final herculRepositoryProvider = Provider<HerculRepository>((ref) {
   return HerculRepository(ref.watch(appDatabaseProvider));

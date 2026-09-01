@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../shell/main_scaffold.dart';
-import '../../domain/streaks.dart';
-import '../dashboard_providers.dart';
-import 'dashboard_shared.dart';
+import 'package:herculex/features/dashboard/domain/streaks.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Consecutive days of food logging (§18).
 class NutritionStreakCard extends ConsumerWidget {

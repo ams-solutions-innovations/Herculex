@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import '../../analytics/domain/training_snapshot.dart';
-import '../domain/carb_cycling.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 
 /// Builds carb-cycle plans from training data (§19). Bridges the
 /// [TrainingSnapshot] (effective-load resolved sets) and the pure

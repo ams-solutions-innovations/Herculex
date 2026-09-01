@@ -1,5 +1,5 @@
-import 'rep_movement.dart';
-import 'rep_tracking_profile.dart';
+import 'package:herculex/features/reps/domain/rep_movement.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// Whether assisted rep tracking may be offered for [slug] at all.
 ///

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-import '../domain/rep_tracking_profile.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// Loads `assets/data/rep_tracking_profiles.json` into
 /// [RepProfileRegistry].

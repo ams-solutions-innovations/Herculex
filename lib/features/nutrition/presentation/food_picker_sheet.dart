@@ -1,31 +1,31 @@
 import 'dart:io';
 import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
+import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart';
+import 'package:herculex/features/nutrition/domain/meal_slots.dart';
+import 'package:herculex/features/nutrition/presentation/barcode_resolution_flow.dart';
+import 'package:herculex/features/nutrition/presentation/barcode_scanner_view.dart';
+import 'package:herculex/features/nutrition/presentation/custom_food_form_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/gemini_photo_analysis_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/label_capture_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/rambler_food_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/recipe_builder_view.dart';
+import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/hx_colors.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../../services/pending_ai_scan_service.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../theme/tokens/hx_colors.dart';
-import '../../fasting/presentation/fasting_food_log_dialog.dart';
-import '../domain/barcode_utils.dart';
-import '../domain/meal.dart';
-import '../domain/meal_slots.dart';
-import 'barcode_resolution_flow.dart';
-import 'barcode_scanner_view.dart';
-import 'custom_food_form_sheet.dart';
-import 'gemini_photo_analysis_dialog.dart';
-import 'label_capture_dialog.dart';
-import 'log_entry_sheet.dart';
-import 'meal_slots_provider.dart';
-import 'nutrition_providers.dart';
-import 'rambler_food_dialog.dart';
-import 'recipe_builder_view.dart';
 
 /// Tabbed bottom sheet: All · My Meals · My Recipes · My Foods.
 class FoodPickerSheet extends ConsumerStatefulWidget {

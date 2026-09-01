@@ -1,7 +1,7 @@
-import '../../workouts/domain/set_type.dart';
-import 'periodization.dart';
-import 'slot_prescription.dart';
-import 'slot_role.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/slot_prescription.dart';
+import 'package:herculex/features/programs/domain/slot_role.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// A prescription resolved for one slot in one week, plus the sentence that
 /// explains every number in it.

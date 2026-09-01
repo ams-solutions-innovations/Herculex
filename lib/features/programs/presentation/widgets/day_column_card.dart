@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/presentation/programs_providers.dart';
+import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../core/clock.dart';
-import '../../../../data/local/database.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../domain/scheduled_workout_row.dart';
-import '../programs_providers.dart';
-import 'session_tile.dart';
 
 /// One day of the week board: a header that accepts sessions dragged in from
 /// other days, and a reorderable list of the sessions already on it.

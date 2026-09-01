@@ -2,10 +2,10 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../app/providers.dart';
-import 'colors.dart';
-import 'tokens/tokens.dart';
 
 final themeModeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((
   ref,

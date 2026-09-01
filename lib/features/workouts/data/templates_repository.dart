@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../data/local/database.dart';
 
 class TemplatesRepository {
   final AppDatabase _db;

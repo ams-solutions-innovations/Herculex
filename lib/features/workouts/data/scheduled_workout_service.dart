@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
 
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
-import '../../programs/data/programs_repository.dart';
-import '../../programs/domain/schedule_status.dart';
-import 'templates_repository.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/data/programs_repository.dart';
+import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/workouts/data/templates_repository.dart';
 
 /// Today's scheduled workout resolved with its program-day name and exercise
 /// count, for the dashboard smart launcher (§18).

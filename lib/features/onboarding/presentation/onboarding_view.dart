@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../app/providers.dart';
-import '../../../core/auth_validator.dart';
-import '../../../core/notifications/toast/hx_toast_controller.dart';
-import '../../../core/notifications/toast/hx_toast_model.dart';
-import '../../auth/domain/auth_session.dart';
-import '../../../theme/colors.dart';
-import '../../../widgets/glass_container.dart';
-import '../../../widgets/premium_button.dart';
-import '../../profile/domain/profile.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/auth_validator.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/features/auth/domain/auth_session.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/widgets/glass_container.dart';
+import 'package:herculex/widgets/premium_button.dart';
 
 class OnboardingView extends ConsumerStatefulWidget {
   const OnboardingView({super.key});

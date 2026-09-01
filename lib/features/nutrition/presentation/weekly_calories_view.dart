@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'macro_trend_view.dart';
+import 'package:herculex/features/nutrition/presentation/macro_trend_view.dart';
 
 export 'macro_trend_view.dart';
 

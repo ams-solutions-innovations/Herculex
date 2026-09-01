@@ -2,20 +2,19 @@ import 'dart:developer' show log;
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:herculex/data/local/accessory_seed.dart';
+import 'package:herculex/data/local/exercise_importer.dart';
+import 'package:herculex/data/local/exercise_merge.dart';
+import 'package:herculex/data/local/exercise_merges.dart';
+import 'package:herculex/data/local/fk_repair.dart';
+import 'package:herculex/data/local/migrations/nutrition_snapshot_backfill.dart';
+import 'package:herculex/data/local/migrations/sync_backfill.dart';
+import 'package:herculex/data/local/migrations/sync_triggers.dart';
+import 'package:herculex/data/local/tables.dart';
+import 'package:herculex/features/fasting/data/fasting_stage_importer.dart';
+import 'package:herculex/features/hercul/data/hercul_rule_importer.dart';
+import 'package:herculex/features/nutrition/data/food_catalogue_importer.dart';
 import 'package:uuid/uuid.dart';
-
-import 'accessory_seed.dart';
-import 'exercise_importer.dart';
-import 'exercise_merge.dart';
-import 'exercise_merges.dart';
-import 'fk_repair.dart';
-import 'migrations/nutrition_snapshot_backfill.dart';
-import 'migrations/sync_backfill.dart';
-import 'migrations/sync_triggers.dart';
-import '../../features/nutrition/data/food_catalogue_importer.dart';
-import '../../features/hercul/data/hercul_rule_importer.dart';
-import '../../features/fasting/data/fasting_stage_importer.dart';
-import 'tables.dart';
 
 part 'database.g.dart';
 

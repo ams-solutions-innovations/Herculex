@@ -2,17 +2,16 @@ import 'dart:async';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/sync/sync_id_resolver.dart';
+import 'package:herculex/features/buddy/data/buddy_channel_service.dart';
+import 'package:herculex/features/buddy/data/buddy_choreography_applier.dart';
+import 'package:herculex/features/buddy/data/buddy_remote_gateway.dart';
+import 'package:herculex/features/buddy/data/buddy_slot_store.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
+import 'package:herculex/features/buddy/domain/buddy_join_payload.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../data/local/database.dart';
-import '../../../data/sync/sync_id_resolver.dart';
-import '../../workouts/data/workouts_repository.dart';
-import '../data/buddy_channel_service.dart';
-import '../data/buddy_choreography_applier.dart';
-import '../data/buddy_remote_gateway.dart';
-import '../data/buddy_slot_store.dart';
-import '../domain/buddy_event.dart';
-import '../domain/buddy_join_payload.dart';
 
 class BuddyParticipant {
   const BuddyParticipant({

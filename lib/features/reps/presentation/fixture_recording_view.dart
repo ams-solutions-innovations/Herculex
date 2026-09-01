@@ -2,14 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/features/reps/data/fixture_recorder.dart';
+import 'package:herculex/features/reps/data/phone_motion_source.dart';
+import 'package:herculex/features/reps/domain/fixture_corpus.dart';
+import 'package:herculex/features/reps/domain/motion_sample.dart';
+import 'package:herculex/features/reps/presentation/rep_tracking_providers.dart';
+import 'package:herculex/widgets/glass_container.dart';
 import 'package:share_plus/share_plus.dart';
-
-import '../../../widgets/glass_container.dart';
-import '../data/fixture_recorder.dart';
-import '../data/phone_motion_source.dart';
-import '../domain/fixture_corpus.dart';
-import '../domain/motion_sample.dart';
-import 'rep_tracking_providers.dart';
 
 /// **Debug-only.** In-app tool that replaces the manual "record on hardware,
 /// hand-copy CSVs" procedure from `10-02-PLAN.md` Task 5 with a checklist and

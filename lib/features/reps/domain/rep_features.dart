@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'rep_detector.dart';
+import 'package:herculex/features/reps/domain/rep_detector.dart';
 
 /// The five-feature calibration vector derived from one set's detection result.
 ///

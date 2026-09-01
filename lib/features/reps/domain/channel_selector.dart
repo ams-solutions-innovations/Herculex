@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'channel_extractor.dart';
-import 'rep_tracking_profile.dart';
+import 'package:herculex/features/reps/domain/channel_extractor.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// A scored candidate channel.
 class ChannelScore {

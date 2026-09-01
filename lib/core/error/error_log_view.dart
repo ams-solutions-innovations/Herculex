@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../theme/tokens/tokens.dart';
-import '../../ui/ui.dart';
-import 'error_log.dart';
+import 'package:herculex/core/error/error_log.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
 
 /// Read-only view of [ErrorLog].
 ///

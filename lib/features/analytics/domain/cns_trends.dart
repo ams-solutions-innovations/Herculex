@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 
 /// One day's accumulated CNS load (raw units: Σ cnsScore/10 × rpeFactor ×
 /// setTypeFactor per working set).

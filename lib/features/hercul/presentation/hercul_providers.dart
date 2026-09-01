@@ -1,20 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/analytics/domain/biometric_correlations.dart';
+import 'package:herculex/features/analytics/domain/cns_trends.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/variant_performance.dart';
+import 'package:herculex/features/analytics/domain/weekly_muscle_volume.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/hercul/data/hercul_repository.dart';
+import 'package:herculex/features/hercul/domain/hercul_context.dart';
+import 'package:herculex/features/hercul/domain/hercul_engine.dart';
+import 'package:herculex/features/hercul/domain/hercul_rule.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../analytics/presentation/analytics_providers.dart';
-import '../../analytics/domain/variant_performance.dart';
-import '../../analytics/domain/training_snapshot.dart';
-import '../../analytics/domain/biometric_correlations.dart';
-import '../../analytics/domain/cns_trends.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/weekly_muscle_volume.dart';
-import '../../workouts/domain/one_rep_max.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
-import '../data/hercul_repository.dart';
-import '../domain/hercul_context.dart';
-import '../domain/hercul_engine.dart';
-import '../domain/hercul_rule.dart';
 
 final herculRulesProvider = FutureProvider<List<HerculRule>>((ref) {
   return ref.watch(herculRepositoryProvider).fetchRules();

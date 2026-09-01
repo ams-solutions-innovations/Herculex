@@ -1,12 +1,12 @@
 import 'dart:math' as math;
 
-import '../../../core/notifications/in_app_notification_model.dart';
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/training_snapshot.dart';
-import '../../workouts/domain/one_rep_max.dart';
-import '../../workouts/domain/set_type.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/workouts/domain/one_rep_max.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// Evaluates workouts, completed sets, and fasts for new personal records
 /// and milestones to trigger in-app gamification notifications.

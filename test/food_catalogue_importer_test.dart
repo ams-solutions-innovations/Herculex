@@ -1,11 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:herculex/core/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/data/food_catalogue_importer.dart';
 import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
 import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
-import 'package:herculex/core/clock.dart';
 
 import 'support/test_database.dart';
 

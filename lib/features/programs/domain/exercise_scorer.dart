@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'rotation_policy.dart';
-import 'slot_role.dart';
+import 'package:herculex/features/programs/domain/rotation_policy.dart';
+import 'package:herculex/features/programs/domain/slot_role.dart';
 
 /// The attributes that make two exercises feel different. Used by the variety
 /// term — rotating Barbell Bench → Dumbbell Bench is a real change for a

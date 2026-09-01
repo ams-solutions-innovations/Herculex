@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:herculex/features/nutrition/data/remote_food.dart';
 import 'package:http/http.dart' as http;
-
-import 'remote_food.dart';
 
 /// Thin wrapper over the public OpenFoodFacts API. No auth required.
 /// Attribution string must appear somewhere in-app per OFF terms — we render

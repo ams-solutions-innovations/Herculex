@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../../../theme/colors.dart';
-import '../domain/daily_totals.dart';
-import '../domain/macro_targets.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/theme/colors.dart';
 
 class MacroRings extends StatelessWidget {
   final DailyTotals totals;

@@ -2,12 +2,11 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import '../../../widgets/glass_container.dart';
-import '../domain/health_read_state.dart';
-import 'health_providers.dart';
+import 'package:herculex/features/health/domain/health_read_state.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
+import 'package:herculex/widgets/glass_container.dart';
 
 enum HealthPlatform { samsung, apple, google }
 

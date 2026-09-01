@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import 'database.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// One catalog row folded into another.
 ///

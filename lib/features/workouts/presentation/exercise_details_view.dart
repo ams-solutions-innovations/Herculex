@@ -1,24 +1,23 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/variant_performance.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
+import 'package:herculex/features/workouts/domain/one_rep_max.dart';
+import 'package:herculex/features/workouts/domain/progression_engine.dart';
+import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
+import 'package:herculex/features/workouts/presentation/progression_override_sheet.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/hx_card.dart';
+import 'package:herculex/ui/hx_screen_shell.dart';
 import 'package:intl/intl.dart';
-
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../../ui/hx_card.dart';
-import '../../../ui/hx_screen_shell.dart';
-import '../../analytics/domain/training_snapshot.dart';
-import '../../analytics/domain/variant_performance.dart';
-import '../../analytics/presentation/analytics_providers.dart';
-import '../domain/equipment_variants.dart';
-import '../domain/logging_metric.dart';
-import '../domain/one_rep_max.dart';
-import '../domain/progression_engine.dart';
-import 'exercise_artwork.dart';
-import 'progression_override_sheet.dart';
-import 'workouts_providers.dart';
 
 class ExerciseDetailsView extends ConsumerWidget {
   final int exerciseId;

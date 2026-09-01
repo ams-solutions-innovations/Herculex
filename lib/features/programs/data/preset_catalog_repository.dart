@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 
-import '../domain/preset_program.dart';
-import '../domain/program_csv.dart';
+import 'package:herculex/features/programs/domain/preset_program.dart';
+import 'package:herculex/features/programs/domain/program_csv.dart';
 
 /// Loads the bundled program marketplace catalog from app assets. Pure asset
 /// I/O — no database access, so preset programs can be previewed without

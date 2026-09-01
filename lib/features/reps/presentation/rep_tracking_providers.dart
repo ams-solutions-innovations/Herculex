@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../data/phone_motion_source.dart';
-import '../data/rep_capture_service.dart';
-import '../data/rep_tracking_repository.dart';
-import '../domain/rep_calibration.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/reps/data/phone_motion_source.dart';
+import 'package:herculex/features/reps/data/rep_capture_service.dart';
+import 'package:herculex/features/reps/data/rep_tracking_repository.dart';
+import 'package:herculex/features/reps/domain/rep_calibration.dart';
 
 final repTrackingRepositoryProvider = Provider<RepTrackingRepository>((ref) {
   return RepTrackingRepository(ref.watch(appDatabaseProvider));

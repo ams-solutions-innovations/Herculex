@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
+import 'package:herculex/data/local/database.dart';
 
 class CircuitExerciseInput {
   final int exerciseId;

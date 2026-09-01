@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../domain/barcode_utils.dart';
-import 'barcode_resolution_flow.dart';
-import 'barcode_scanner_view.dart';
-import 'log_entry_sheet.dart';
-import 'nutrition_providers.dart';
+import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
+import 'package:herculex/features/nutrition/presentation/barcode_resolution_flow.dart';
+import 'package:herculex/features/nutrition/presentation/barcode_scanner_view.dart';
+import 'package:herculex/features/nutrition/presentation/log_entry_sheet.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 
 /// Scan a barcode and log it to today's food diary in one flow: scan → look
 /// up → (create a custom food if unknown) → log entry sheet.

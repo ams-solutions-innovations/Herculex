@@ -1,10 +1,10 @@
 // lib/features/recovery/domain/training_suggestion.dart
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/muscle_volume_trend.dart';
-import 'deload_urgency.dart';
-import 'joint_model.dart';
-import 'joint_stress_advisor.dart';
-import 'muscle_deload_advisor.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/muscle_volume_trend.dart';
+import 'package:herculex/features/recovery/domain/deload_urgency.dart';
+import 'package:herculex/features/recovery/domain/joint_model.dart';
+import 'package:herculex/features/recovery/domain/joint_stress_advisor.dart';
+import 'package:herculex/features/recovery/domain/muscle_deload_advisor.dart';
 
 enum MuscleCategory { push, pull, legs, core }
 

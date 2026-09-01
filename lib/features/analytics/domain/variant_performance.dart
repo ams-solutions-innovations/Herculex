@@ -1,5 +1,5 @@
-import '../../workouts/domain/one_rep_max.dart';
-import 'training_snapshot.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 
 /// Best performance for one (equipment variant | accessory combo | gym) slice
 /// of an exercise's history (V2 §1, §5, §10).

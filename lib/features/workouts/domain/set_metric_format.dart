@@ -1,6 +1,6 @@
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import 'logging_metric.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
 
 /// Parsing and rendering for the units a set can be measured in (EXR-05).
 ///

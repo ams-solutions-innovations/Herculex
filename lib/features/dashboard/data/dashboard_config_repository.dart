@@ -1,6 +1,5 @@
+import 'package:herculex/features/dashboard/domain/dashboard_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../domain/dashboard_config.dart';
 
 /// Persists the editable dashboard layout (V2 §18) in SharedPreferences as a
 /// single compact string under [_key].

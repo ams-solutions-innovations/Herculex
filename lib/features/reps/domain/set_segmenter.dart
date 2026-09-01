@@ -1,8 +1,8 @@
 import 'dart:math';
 
-import 'channel_extractor.dart';
-import 'motion_sample.dart';
-import 'rep_tracking_profile.dart';
+import 'package:herculex/features/reps/domain/channel_extractor.dart';
+import 'package:herculex/features/reps/domain/motion_sample.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
 
 /// One candidate working period found inside a continuous capture.
 class SetWindow {

@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// Accessories + bands catalogs and their per-set attachments (V2 §5–§8).
 class AccessoriesRepository {

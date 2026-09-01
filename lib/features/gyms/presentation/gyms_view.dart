@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import '../../workouts/presentation/workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
 
 /// Gym profile management (§10). Sessions tag their gym; deleting a gym keeps
 /// its sessions (FK set-null) so history is never lost.

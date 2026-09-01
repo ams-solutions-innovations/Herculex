@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'database.dart';
+import 'package:herculex/data/local/database.dart';
 
 /// Erases every trace of the signed-in person from this device.
 ///

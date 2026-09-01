@@ -1,4 +1,4 @@
-import 'auth_session.dart';
+import 'package:herculex/features/auth/domain/auth_session.dart';
 
 /// The credential provider behind [AuthRepository].
 ///

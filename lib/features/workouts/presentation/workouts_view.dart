@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
+import 'package:herculex/features/programs/presentation/training_blocks_view.dart';
+import 'package:herculex/features/workouts/presentation/active_workout_view.dart';
+import 'package:herculex/features/workouts/presentation/templates_view.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/hx_top_tabs.dart';
+import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
-
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../ui/hx_top_tabs.dart';
-import '../../../widgets/premium_button.dart';
-import '../../gyms/presentation/gym_picker_sheet.dart';
-import '../../programs/presentation/training_blocks_view.dart';
-import 'active_workout_view.dart';
-import 'templates_view.dart';
-import 'workouts_providers.dart';
 
 class WorkoutsView extends ConsumerWidget {
   const WorkoutsView({super.key});

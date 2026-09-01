@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../analytics/presentation/analytics_providers.dart';
-import '../../../analytics/presentation/widgets/muscle_recovery_row.dart';
-import 'dashboard_shared.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/analytics/presentation/widgets/muscle_recovery_row.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// Compact recovery overview (§18) reusing the Phase-3 19-group engine: shows
 /// the most-fatigued groups with responsive layouts for full-width and half-width tiles.

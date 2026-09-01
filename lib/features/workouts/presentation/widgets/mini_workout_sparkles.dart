@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// Interactive check button for mini workouts with a spring pop,
 /// shockwave expansion, and sparkle particle burst.

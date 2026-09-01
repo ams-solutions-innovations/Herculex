@@ -1,22 +1,21 @@
 import 'dart:io' show Platform;
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collection/collection.dart';
-
-import '../../../app/providers.dart';
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import '../../../widgets/glass_container.dart';
-import 'health_providers.dart';
-import 'cycle_providers.dart';
-import 'health_platform_detail_view.dart';
-import '../../../data/local/database.dart';
-import '../../profile/domain/profile.dart';
-import '../domain/health_read_state.dart';
-import '../../workouts/presentation/calendar_providers.dart';
-import '../../workouts/presentation/workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/domain/health_read_state.dart';
+import 'package:herculex/features/health/presentation/cycle_providers.dart';
+import 'package:herculex/features/health/presentation/health_platform_detail_view.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/workouts/presentation/calendar_providers.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
+import 'package:herculex/widgets/glass_container.dart';
 
 class HealthIntegrationsView extends ConsumerStatefulWidget {
   const HealthIntegrationsView({super.key});

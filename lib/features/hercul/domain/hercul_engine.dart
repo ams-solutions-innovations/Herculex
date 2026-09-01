@@ -1,5 +1,5 @@
-import 'hercul_context.dart';
-import 'hercul_rule.dart';
+import 'package:herculex/features/hercul/domain/hercul_context.dart';
+import 'package:herculex/features/hercul/domain/hercul_rule.dart';
 
 /// Matches authored rules against the user's data and renders the copy.
 ///

@@ -1,9 +1,9 @@
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
 
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../domain/set_metric_format.dart';
+import 'package:flutter/material.dart';
+import 'package:herculex/features/workouts/domain/set_metric_format.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
 
 /// Modal bottom sheet with a circular scroll wheel / dial for logging duration
 /// on HIIT, cardio, and time-based exercises (e.g. Assault Bike, Rowing, Planks).

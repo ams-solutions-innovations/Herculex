@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 
-import '../../../data/local/database.dart';
+import 'package:herculex/data/local/database.dart';
 
 class ActiveWorkoutNotificationTarget {
   final String exerciseName;

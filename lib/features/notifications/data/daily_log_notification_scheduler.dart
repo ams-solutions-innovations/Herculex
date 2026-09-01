@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:herculex/features/notifications/domain/notification_settings.dart';
 import 'package:timezone/timezone.dart' as tz;
-
-import '../domain/notification_settings.dart';
 
 /// Schedules and cancels daily evening reminders to log food and review habits.
 class DailyLogNotificationScheduler {

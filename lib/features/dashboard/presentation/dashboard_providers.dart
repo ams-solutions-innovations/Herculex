@@ -1,17 +1,16 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../../health/presentation/health_providers.dart';
-import '../../nutrition/domain/macro_targets.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
-import '../../programs/presentation/programs_providers.dart';
-import '../../workouts/data/scheduled_workout_service.dart';
-import '../../workouts/presentation/workouts_providers.dart';
-import '../data/dashboard_config_repository.dart';
-import '../domain/dashboard_config.dart';
-import '../domain/streaks.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/dashboard/data/dashboard_config_repository.dart';
+import 'package:herculex/features/dashboard/domain/dashboard_config.dart';
+import 'package:herculex/features/dashboard/domain/streaks.dart';
+import 'package:herculex/features/health/presentation/health_providers.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/programs/presentation/programs_providers.dart';
+import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 
 final dashboardConfigRepositoryProvider = Provider<DashboardConfigRepository>((
   ref,

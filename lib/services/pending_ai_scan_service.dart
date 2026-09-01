@@ -1,9 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../app/providers.dart';
 
 enum AiScanContextType {
   supplement,

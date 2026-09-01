@@ -1,18 +1,16 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
+import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
-
-import '../../../app/providers.dart';
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../ui/ui.dart';
-import '../../nutrition/presentation/goals_providers.dart';
-import '../../workouts/presentation/workouts_providers.dart';
-
-import 'body_fat_ai_dialog.dart';
 
 final _metricHistoryProvider =
     StreamProvider.family<List<BodyMeasurementData>, String>((ref, metric) {

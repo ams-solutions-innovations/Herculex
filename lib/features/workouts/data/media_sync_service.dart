@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import '../../nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 
 class MediaSyncService {
   final WearSyncService _wearSyncService;

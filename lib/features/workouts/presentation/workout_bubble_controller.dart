@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
+import 'package:herculex/app/providers.dart';
 
 /// Whether the Workout Bubble — the floating chat head shown over other apps
 /// during a workout — is enabled.

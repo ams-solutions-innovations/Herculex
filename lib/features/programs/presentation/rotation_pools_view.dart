@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import 'programs_providers.dart';
-import 'rotation_pool_sheet.dart';
+import 'package:herculex/features/programs/presentation/programs_providers.dart';
+import 'package:herculex/features/programs/presentation/rotation_pool_sheet.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
 
 class RotationPoolsView extends ConsumerWidget {
   const RotationPoolsView({super.key});

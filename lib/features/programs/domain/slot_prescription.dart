@@ -1,4 +1,4 @@
-import '../../workouts/domain/set_type.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// How close to failure a segment is meant to be taken.
 ///

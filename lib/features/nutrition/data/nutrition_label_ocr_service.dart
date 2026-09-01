@@ -1,9 +1,8 @@
 import 'dart:io';
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-
-import '../domain/nutrition_label.dart';
-import 'gemini_food_analyzer_service.dart';
+import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
+import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
 
 class NutritionLabelOcrService {
   static const geminiFallbackThreshold = 0.75;

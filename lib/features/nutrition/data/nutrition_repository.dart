@@ -1,13 +1,12 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-
-import '../../../core/clock.dart';
-import '../../../data/local/database.dart';
-import '../domain/barcode_utils.dart';
-import '../domain/daily_totals.dart';
-import '../domain/meal.dart';
-import 'openfoodfacts_client.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
+import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart';
 
 class NutritionRepository {
   final AppDatabase _db;

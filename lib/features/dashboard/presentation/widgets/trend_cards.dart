@@ -2,18 +2,17 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../app/providers.dart';
-import '../../../../core/units.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../nutrition/domain/daily_totals.dart';
-import '../../../nutrition/presentation/goals_providers.dart';
-import '../../../nutrition/presentation/nutrition_providers.dart';
-import '../../../nutrition/presentation/widgets/macro_chart.dart';
-import '../dashboard_providers.dart';
-import 'dashboard_shared.dart';
 
 /// Standalone preview card for 7-day calorie trends.
 class CalorieTrendPreviewCard extends ConsumerWidget {

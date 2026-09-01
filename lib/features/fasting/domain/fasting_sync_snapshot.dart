@@ -1,5 +1,5 @@
-import '../../nutrition/data/wear_sync_contract.dart';
-import '../../../data/local/database.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 
 Map<String, dynamic> fastingPayloadFromSession(
   FastingSessionData? session, {

@@ -6,20 +6,19 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../domain/equipment_variants.dart';
-import '../domain/logging_metric.dart';
-import '../domain/set_type.dart';
-import '../domain/set_type_meta.dart';
-import '../application/finish_workout_action.dart';
-import '../../gamification/presentation/gamification_providers.dart';
-import 'rest_timer_controller.dart';
-import 'workout_finish_view.dart';
-import 'workouts_providers.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/gamification/presentation/gamification_providers.dart';
+import 'package:herculex/features/workouts/application/finish_workout_action.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/logging_metric.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
+import 'package:herculex/features/workouts/domain/set_type_meta.dart';
+import 'package:herculex/features/workouts/presentation/rest_timer_controller.dart';
+import 'package:herculex/features/workouts/presentation/workout_finish_view.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
 
 /// Dynamic workout mode (§14): full-screen, distraction-free view with
 /// horizontal exercise swipe, automated active set & exercise tracking,

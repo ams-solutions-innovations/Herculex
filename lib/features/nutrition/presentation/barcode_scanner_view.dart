@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/theme/colors.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import '../../../theme/colors.dart';
 
 /// Returns the first detected barcode string (or null if user cancels).
 class BarcodeScannerView extends StatefulWidget {

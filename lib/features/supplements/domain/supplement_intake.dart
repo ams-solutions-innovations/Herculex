@@ -1,4 +1,4 @@
-import 'supplement.dart';
+import 'package:herculex/features/supplements/domain/supplement.dart';
 
 /// Sums what the supplements ticked off on a given day add to the diary's
 /// micronutrient totals (§4).

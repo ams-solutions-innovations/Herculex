@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../core/notifications/in_app_notification_controller.dart';
-import '../../../core/notifications/in_app_notification_model.dart';
-import '../../../core/units.dart';
-import '../../analytics/presentation/analytics_providers.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
-import '../../workouts/domain/set_type.dart';
-import '../domain/achievement_evaluator.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/gamification/domain/achievement_evaluator.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 final achievementEvaluatorProvider = Provider<AchievementEvaluator>((ref) {
   return const AchievementEvaluator();

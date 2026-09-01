@@ -1,9 +1,8 @@
 import 'package:drift/drift.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/profile/data/local_profile_repository.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:intl/intl.dart';
-
-import '../../../data/local/database.dart';
-import '../../profile/data/local_profile_repository.dart';
-import '../../profile/domain/profile.dart';
 
 /// Body measurements + progress photo pointers (V2 §17). Photos themselves
 /// live under the app documents directory — device-only, never synced.

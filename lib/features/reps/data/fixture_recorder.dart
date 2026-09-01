@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:herculex/features/reps/domain/motion_sample.dart';
+import 'package:herculex/features/reps/domain/rep_movement.dart';
 import 'package:path_provider/path_provider.dart';
-
-import '../domain/motion_sample.dart';
-import '../domain/rep_movement.dart';
 
 /// On-device CSV+sidecar reader/writer for the REP-06 fixture corpus,
 /// matching `10-02-PLAN.md`'s fixture format byte-for-byte:

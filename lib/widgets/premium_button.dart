@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/haptics.dart';
+import 'package:herculex/theme/haptics.dart';
 
 class PremiumButton extends StatefulWidget {
   final String text;

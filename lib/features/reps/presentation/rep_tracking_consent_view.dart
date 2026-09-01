@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import 'rep_tracking_providers.dart';
+import 'package:herculex/features/reps/presentation/rep_tracking_providers.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// The dedicated consent/onboarding screen for assisted rep tracking.
 ///

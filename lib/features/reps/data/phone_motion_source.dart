@@ -1,10 +1,9 @@
 import 'dart:async';
 
+import 'package:herculex/features/reps/data/rep_tracking_repository.dart';
+import 'package:herculex/features/reps/domain/motion_sample.dart';
+import 'package:herculex/features/reps/domain/rep_suggestion.dart';
 import 'package:sensors_plus/sensors_plus.dart';
-
-import '../domain/motion_sample.dart';
-import '../domain/rep_suggestion.dart';
-import 'rep_tracking_repository.dart';
 
 /// Millisecond clock, injected so the 5-minute cap is fake-testable rather
 /// than tied to wall time.

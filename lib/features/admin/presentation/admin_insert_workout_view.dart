@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../widgets/premium_button.dart';
-import '../../../widgets/premium_text_field.dart';
+import 'package:herculex/widgets/premium_button.dart';
+import 'package:herculex/widgets/premium_text_field.dart';
 
 class AdminInsertWorkoutView extends StatelessWidget {
   const AdminInsertWorkoutView({super.key});

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../core/units.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../analytics/presentation/analytics_providers.dart';
-import 'dashboard_shared.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 
 /// Latest estimated 1RM PRs (§18).
 class LatestPrsCard extends ConsumerWidget {

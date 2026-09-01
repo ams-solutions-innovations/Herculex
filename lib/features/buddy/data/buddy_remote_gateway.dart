@@ -1,7 +1,6 @@
+import 'package:herculex/features/buddy/data/buddy_event_publisher.dart';
+import 'package:herculex/features/buddy/domain/buddy_event.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../domain/buddy_event.dart';
-import 'buddy_event_publisher.dart';
 
 /// Minimal display identity of a buddy participant, denormalised at join time.
 class BuddyRemoteParticipant {

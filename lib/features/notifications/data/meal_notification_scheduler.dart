@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:herculex/features/notifications/domain/notification_settings.dart';
+import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:timezone/timezone.dart' as tz;
-
-import '../../nutrition/domain/meal_slots.dart';
-import '../domain/notification_settings.dart';
 
 /// Schedules and cancels daily repeating notifications for meal reminders.
 /// Each meal slot (Breakfast, Lunch, Dinner, Snacks, custom) can have its own

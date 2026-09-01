@@ -1,15 +1,14 @@
-import 'package:drift/drift.dart';
 import 'package:collection/collection.dart';
+import 'package:drift/drift.dart';
+import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/failures.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/local/exercise_biomechanics.dart';
+import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
+import 'package:herculex/features/workouts/domain/exercise_search.dart';
+import 'package:herculex/features/workouts/domain/workout_name_generator.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../../core/clock.dart';
-import '../../../core/failures.dart';
-import '../../../data/local/database.dart';
-import '../../../data/local/exercise_biomechanics.dart';
-import '../../programs/domain/schedule_status.dart';
-import '../domain/active_workout_notification_target.dart';
-import '../domain/exercise_search.dart';
-import '../domain/workout_name_generator.dart';
 
 class LastPerformanceSnapshot {
   final String? equipmentVariant;

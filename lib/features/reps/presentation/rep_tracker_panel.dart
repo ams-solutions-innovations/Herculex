@@ -2,13 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../data/phone_motion_source.dart';
-import '../domain/rep_suggestion.dart';
-import '../domain/rep_tracking_eligibility.dart';
-import '../domain/rep_tracking_profile.dart';
-import 'rep_tracking_providers.dart';
+import 'package:herculex/features/reps/data/phone_motion_source.dart';
+import 'package:herculex/features/reps/domain/rep_suggestion.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_eligibility.dart';
+import 'package:herculex/features/reps/domain/rep_tracking_profile.dart';
+import 'package:herculex/features/reps/presentation/rep_tracking_providers.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// The in-set surface rendered inside the active set card, for one eligible
 /// exercise's next incomplete set.

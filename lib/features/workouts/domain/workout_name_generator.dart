@@ -1,5 +1,5 @@
-import '../../../data/local/database.dart';
-import '../../../data/local/exercise_biomechanics.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/data/local/exercise_biomechanics.dart';
 
 enum MuscleTargetGroup {
   chest,

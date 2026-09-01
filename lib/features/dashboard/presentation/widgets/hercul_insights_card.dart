@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../theme/tokens/hx_colors.dart';
-import '../../../hercul/domain/hercul_rule.dart';
-import '../../../hercul/presentation/hercul_providers.dart';
-import 'dashboard_shared.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/hercul/domain/hercul_rule.dart';
+import 'package:herculex/features/hercul/presentation/hercul_providers.dart';
+import 'package:herculex/theme/tokens/hx_colors.dart';
 
 class HerculInsightsCard extends ConsumerWidget {
   const HerculInsightsCard({super.key});

@@ -1,21 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../core/units.dart';
-import '../../../data/local/database.dart';
-import '../../nutrition/data/wear_sync_service.dart';
-import '../../nutrition/data/wear_sync_contract.dart';
-import '../../profile/domain/profile.dart';
-import '../../shell/main_scaffold.dart';
-import '../domain/equipment_variants.dart';
-import '../domain/watch_exercise_resolver.dart';
-import '../../../app/providers.dart';
-import '../domain/progression_engine.dart';
-import 'workouts_repository.dart';
-import 'templates_repository.dart';
-import '../presentation/workouts_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
+import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/progression_engine.dart';
+import 'package:herculex/features/workouts/domain/watch_exercise_resolver.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 
 class WearWorkoutSyncService {
   final WorkoutsRepository _workoutsRepository;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/colors.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// The app's modal sheet shell: grab handle, optional title/subtitle, rounded
 /// top corners and safe-area padding.

@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../../../data/local/database.dart';
-import '../domain/exercise_rotation.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/exercise_rotation.dart';
 
 /// Exercise rotation pools (V2 §12). CRUD plus week-resolution: given a
 /// program week, which pool member is the active exercise.

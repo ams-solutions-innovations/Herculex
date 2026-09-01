@@ -1,22 +1,22 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
+import 'package:herculex/features/nutrition/domain/daily_totals.dart';
+import 'package:herculex/features/nutrition/domain/food_insights.dart';
+import 'package:herculex/features/nutrition/domain/meal_slots.dart';
+import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
+import 'package:herculex/features/nutrition/presentation/nutrient_settings_provider.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
-
-import '../../../core/notifications/in_app_notification_controller.dart';
-import '../../../core/notifications/in_app_notification_model.dart';
-import '../../../data/local/database.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../widgets/premium_button.dart';
-import '../../fasting/presentation/fasting_food_log_dialog.dart';
-import '../domain/daily_totals.dart';
-import '../domain/food_insights.dart';
-import '../domain/meal_slots.dart';
-import 'meal_slots_provider.dart';
-import 'nutrient_settings_provider.dart';
-import 'nutrition_providers.dart';
 
 /// Final step before logging/editing: choose grams (food) or servings (recipe), pick meal, or delete.
 class LogEntrySheet extends ConsumerStatefulWidget {

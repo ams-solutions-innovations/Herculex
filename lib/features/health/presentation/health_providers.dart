@@ -1,12 +1,11 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health/health.dart';
-import 'package:collection/collection.dart';
-
-import '../../../app/providers.dart';
-import '../data/health_service.dart';
-import '../../../data/local/database.dart';
-import '../domain/activity_adjuster.dart';
-import '../domain/health_read_state.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/health/data/health_service.dart';
+import 'package:herculex/features/health/domain/activity_adjuster.dart';
+import 'package:herculex/features/health/domain/health_read_state.dart';
 
 final healthServiceProvider = Provider<HealthService>((ref) {
   final db = ref.watch(appDatabaseProvider);

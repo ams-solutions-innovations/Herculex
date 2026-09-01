@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../theme/haptics.dart';
-import '../theme/tokens/tokens.dart';
-import 'hx_glass.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/hx_glass.dart';
 
 /// The app's single global bottom navigation: four destinations in one
 /// frosted pill, plus a separate quick-add button riding outside it on the

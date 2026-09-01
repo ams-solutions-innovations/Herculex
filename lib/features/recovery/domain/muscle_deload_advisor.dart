@@ -1,10 +1,10 @@
 import 'package:health/health.dart';
 
-import '../../analytics/domain/cns_trends.dart';
-import '../../analytics/domain/muscle_recovery_v3.dart';
-import '../../analytics/domain/muscle_volume_trend.dart';
-import '../../analytics/domain/training_snapshot.dart';
-import 'deload_urgency.dart';
+import 'package:herculex/features/analytics/domain/cns_trends.dart';
+import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
+import 'package:herculex/features/analytics/domain/muscle_volume_trend.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
+import 'package:herculex/features/recovery/domain/deload_urgency.dart';
 
 /// One muscle's reactive (not prescriptive — see `ProgramWeek.isDeload` for
 /// planned periodization deloads) deload signal, scored from three

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import 'app_error_view.dart';
-import 'error_log.dart';
+import 'package:herculex/core/error/app_error_view.dart';
+import 'package:herculex/core/error/error_log.dart';
 
 /// Installs the app's global error handling.
 ///

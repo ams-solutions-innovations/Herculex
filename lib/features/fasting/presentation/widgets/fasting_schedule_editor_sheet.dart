@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/fasting/domain/fasting_plan.dart';
+import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
+import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
+import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../data/local/database.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../../ui/ui.dart';
-import '../../../../widgets/premium_button.dart';
-import '../../domain/fasting_plan.dart';
-import '../../domain/fasting_schedule_occurrence.dart';
-import '../fasting_providers.dart';
 
 /// Add/edit sheet for one [FastingScheduleData] row. Pass [existing] to
 /// edit — its id and current values seed the form and a delete action

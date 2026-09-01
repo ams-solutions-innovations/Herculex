@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
-import '../domain/diet_phase.dart';
-import 'nutrition_providers.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 
 // ── Active diet plan (Cut / Bulk / Maingain / Maintain & pace) ───────────────
 

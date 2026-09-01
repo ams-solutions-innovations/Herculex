@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
+import 'package:herculex/features/measurements/presentation/quick_log_weight.dart';
+import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
 import 'package:intl/intl.dart';
-
-import '../../../../core/units.dart';
-import '../../../../theme/colors.dart';
-import '../../../../theme/haptics.dart';
-import '../../../../theme/tokens/tokens.dart';
-import '../../../workouts/presentation/workouts_providers.dart';
-import '../../../measurements/presentation/quick_log_weight.dart';
-import '../dashboard_providers.dart';
-import 'dashboard_shared.dart';
 
 /// Latest bodyweight reading (§18) with quick add. The trend chart that used
 /// to live inline moved to the swipeable [TrendCardsRow] and the full

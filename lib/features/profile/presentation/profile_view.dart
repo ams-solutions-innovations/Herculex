@@ -4,28 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/auth_validator.dart';
+import 'package:herculex/core/env.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
+import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/sync/sync_service.dart';
+import 'package:herculex/features/nutrition/data/speech_to_text_service.dart';
+import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/profile/data/local_profile_repository.dart';
+import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/workouts/presentation/workout_bubble_controller.dart';
+import 'package:herculex/services/workout_bubble_service.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/theme/theme_provider.dart';
+import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import '../../../app/providers.dart';
-import '../../../core/auth_validator.dart';
-import '../../../core/env.dart';
-import '../../../core/notifications/toast/hx_toast_controller.dart';
-import '../../../core/notifications/toast/hx_toast_model.dart';
-import '../../../core/units.dart';
-import '../../../data/sync/sync_service.dart';
-import '../../../theme/colors.dart';
-import '../../../theme/haptics.dart';
-import '../../../theme/tokens/tokens.dart';
-import '../../../theme/theme_provider.dart';
-import '../../../ui/ui.dart';
-import '../../nutrition/data/speech_to_text_service.dart';
-import '../../nutrition/domain/diet_phase.dart';
-import '../../nutrition/presentation/goals_providers.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
-import '../../workouts/presentation/workout_bubble_controller.dart';
-import '../../../services/workout_bubble_service.dart';
-import '../data/local_profile_repository.dart';
-import '../domain/profile.dart';
 
 // ── Profile view ─────────────────────────────────────────────────────────────
 //

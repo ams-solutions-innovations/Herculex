@@ -1,14 +1,13 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/features/analytics/data/analytics_repository.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/analytics/presentation/cns_recovery_cards.dart';
+import 'package:herculex/theme/colors.dart';
+import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
-
-import '../../../core/units.dart';
-import '../../../theme/colors.dart';
-import '../../../ui/ui.dart';
-import '../data/analytics_repository.dart';
-import 'analytics_providers.dart';
-import 'cns_recovery_cards.dart';
 
 class InsightsView extends ConsumerWidget {
   const InsightsView({super.key});

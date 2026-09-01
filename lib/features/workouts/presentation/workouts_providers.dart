@@ -1,25 +1,24 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../nutrition/data/wear_sync_service.dart';
-import '../../fasting/domain/fasting_sync_snapshot.dart';
-import '../../fasting/presentation/fasting_providers.dart';
-import '../../../app/providers.dart';
-import '../../../data/local/database.dart';
-import '../data/micro_workouts_repository.dart';
-import '../data/templates_repository.dart';
-import '../data/workouts_repository.dart';
-import '../data/wear_workout_sync_service.dart';
-import '../data/media_sync_service.dart';
-import '../../analytics/presentation/analytics_providers.dart';
-import '../../nutrition/presentation/nutrition_providers.dart';
-import '../../../core/units.dart';
-import '../../gamification/presentation/gamification_providers.dart';
-import '../domain/active_workout_notification_target.dart';
-import '../domain/calendar_service.dart';
-import '../domain/effective_load.dart';
-import '../domain/session_summary.dart';
-import '../domain/set_type.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/units.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
+import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';
+import 'package:herculex/features/fasting/presentation/fasting_providers.dart';
+import 'package:herculex/features/gamification/presentation/gamification_providers.dart';
+import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
+import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
+import 'package:herculex/features/workouts/data/media_sync_service.dart';
+import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
+import 'package:herculex/features/workouts/data/templates_repository.dart';
+import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
+import 'package:herculex/features/workouts/data/workouts_repository.dart';
+import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
+import 'package:herculex/features/workouts/domain/calendar_service.dart';
+import 'package:herculex/features/workouts/domain/effective_load.dart';
+import 'package:herculex/features/workouts/domain/session_summary.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 final mediaSyncServiceProvider = Provider<MediaSyncService>((ref) {
   final wearSync = ref.watch(wearSyncServiceProvider);

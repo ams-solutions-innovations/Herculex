@@ -1,4 +1,4 @@
-import '../../../data/local/database.dart';
+import 'package:herculex/data/local/database.dart';
 
 class CircuitPerformanceStats {
   final int totalPlannedRounds;

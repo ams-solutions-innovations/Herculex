@@ -2,11 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../theme/colors.dart';
-import '../domain/rep_calibration.dart';
-import '../domain/rep_suggestion.dart';
-import 'rep_tracking_providers.dart';
+import 'package:herculex/features/reps/domain/rep_calibration.dart';
+import 'package:herculex/features/reps/domain/rep_suggestion.dart';
+import 'package:herculex/features/reps/presentation/rep_tracking_providers.dart';
+import 'package:herculex/theme/colors.dart';
 
 /// Callback [RepReviewSheet]'s "Save set" action invokes with **the values
 /// currently in the fields at save time** — not necessarily
