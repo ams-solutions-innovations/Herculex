@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_top_tabs.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/gyms/presentation/gym_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/training_blocks_view.dart';
 import 'package:herculex/features/workouts/presentation/active_workout_view.dart';
 import 'package:herculex/features/workouts/presentation/templates_view.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/ui/hx_top_tabs.dart';
-import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
 
 class WorkoutsView extends ConsumerWidget {

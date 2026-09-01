@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_card.dart';
+import 'package:herculex/design_system/components/hx_screen_shell.dart';
+import 'package:herculex/design_system/components/hx_top_tabs.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
 import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
 import 'package:herculex/features/workouts/presentation/widgets/mini_workout_sparkles.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/ui/hx_card.dart';
-import 'package:herculex/ui/hx_screen_shell.dart';
-import 'package:herculex/ui/hx_top_tabs.dart';
 import 'package:intl/intl.dart';
 
 /// Full-featured Mini (Micro) Workouts tracking and management page.

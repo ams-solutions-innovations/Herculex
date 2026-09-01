@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
-import 'package:herculex/theme/app_theme.dart';
-import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 
 /// Wraps any widget tree (e.g. root [MaterialApp] builder) to host floating
 /// top-dropping in-app notifications.

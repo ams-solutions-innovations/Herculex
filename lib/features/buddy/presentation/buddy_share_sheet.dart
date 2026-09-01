@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/application/buddy_providers.dart';
 import 'package:herculex/features/buddy/domain/buddy_join_payload.dart';
-import 'package:herculex/theme/colors.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 /// Bottom sheet displaying the host's live join QR code.

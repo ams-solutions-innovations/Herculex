@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/ui/ui.dart';
 
 class CalorieMealGoalsView extends ConsumerWidget {
   const CalorieMealGoalsView({super.key});

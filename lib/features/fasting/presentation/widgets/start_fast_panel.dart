@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
 import 'package:intl/intl.dart';
 
 /// Plan picker for starting a fast. Purely presentational — the parent

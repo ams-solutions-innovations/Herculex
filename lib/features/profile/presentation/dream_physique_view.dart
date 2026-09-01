@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/pending_ai_scan_service.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/ui/ui.dart';
 import 'package:image_picker/image_picker.dart';
 
 class DreamPhysiqueView extends ConsumerStatefulWidget {

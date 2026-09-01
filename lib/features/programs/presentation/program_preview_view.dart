@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/preset_program.dart';
 import 'package:herculex/features/programs/domain/program_csv.dart';
@@ -7,9 +10,6 @@ import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
 import 'package:herculex/features/programs/presentation/marketplace_providers.dart';
 import 'package:herculex/features/programs/presentation/programs_providers.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/ui/ui.dart';
-import 'package:herculex/widgets/premium_button.dart';
 
 class ProgramPreviewView extends ConsumerStatefulWidget {
   final PresetProgramMeta meta;

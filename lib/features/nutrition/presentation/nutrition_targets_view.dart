@@ -5,16 +5,16 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/ui/ui.dart';
-import 'package:herculex/widgets/premium_button.dart';
 
 /// Hub for everything target-related (§5).
 class NutritionTargetsView extends ConsumerWidget {

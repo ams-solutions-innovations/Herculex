@@ -8,6 +8,9 @@ import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/gamification/presentation/gamification_providers.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
@@ -30,9 +33,6 @@ import 'package:herculex/features/workouts/presentation/set_type_menu.dart';
 import 'package:herculex/features/workouts/presentation/smart_substitution_sheet.dart';
 import 'package:herculex/features/workouts/presentation/workout_settings_sheet.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/ui/ui.dart';
 
 class ActiveExerciseCard extends ConsumerStatefulWidget {
   final WorkoutExerciseData workoutExercise;

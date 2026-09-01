@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/application/buddy_share_policy.dart';
 import 'package:herculex/features/buddy/domain/buddy_scope.dart';
-import 'package:herculex/theme/colors.dart';
 
 /// Segmented toggle button for choosing whether an exercise action applies to "Both" or "Only Me".
 class BuddyScopeToggle extends StatelessWidget {

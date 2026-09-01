@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 
 /// A swipe-to-dismiss widget that mimics the tactile physics of modern Android
 /// notification shades:

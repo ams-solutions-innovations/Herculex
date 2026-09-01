@@ -1,9 +1,12 @@
 import 'package:fl_chart/fl_chart.dart';
-import 'package:herculex/features/workouts/presentation/exercise_analytics_cards.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_card.dart';
+import 'package:herculex/design_system/components/hx_screen_shell.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 import 'package:herculex/features/analytics/domain/variant_performance.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
@@ -11,13 +14,10 @@ import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
+import 'package:herculex/features/workouts/presentation/exercise_analytics_cards.dart';
 import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/progression_override_sheet.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/ui/hx_card.dart';
-import 'package:herculex/ui/hx_screen_shell.dart';
 import 'package:intl/intl.dart';
 
 class ExerciseDetailsView extends ConsumerWidget {

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/units.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/data/workout_quick_action_settings.dart';
 import 'package:herculex/features/workouts/presentation/plate_calculator_sheet.dart';
 import 'package:herculex/features/workouts/presentation/rest_timer_controller.dart';
-import 'package:herculex/theme/colors.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 // ── Default Rest Timer preference ──────────────────────────────────────────

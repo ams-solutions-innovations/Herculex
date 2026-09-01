@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:herculex/theme/colors.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 
 /// The widget Flutter renders in place of a subtree whose `build` threw.
 ///

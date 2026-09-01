@@ -5,11 +5,11 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/auth_validator.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/design_system/components/glass_container.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/widgets/glass_container.dart';
-import 'package:herculex/widgets/premium_button.dart';
 
 class OnboardingView extends ConsumerStatefulWidget {
   const OnboardingView({super.key});

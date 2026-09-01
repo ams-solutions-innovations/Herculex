@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/food_insights.dart';
@@ -13,9 +16,6 @@ import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/presentation/nutrient_settings_provider.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
 
 /// Final step before logging/editing: choose grams (food) or servings (recipe), pick meal, or delete.

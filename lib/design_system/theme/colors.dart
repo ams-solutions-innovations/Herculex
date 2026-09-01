@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:herculex/theme/tokens/hx_colors.dart';
+import 'package:herculex/design_system/tokens/hx_colors.dart';
 
 /// Compatibility shim over [HxColors].
 ///

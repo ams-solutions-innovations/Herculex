@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/glass_container.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/health/domain/health_read_state.dart';
 import 'package:herculex/features/health/presentation/cycle_providers.dart';
 import 'package:herculex/features/health/presentation/health_platform_detail_view.dart';
@@ -13,9 +16,6 @@ import 'package:herculex/features/health/presentation/health_providers.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/presentation/calendar_providers.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/ui/ui.dart';
-import 'package:herculex/widgets/glass_container.dart';
 
 class HealthIntegrationsView extends ConsumerStatefulWidget {
   const HealthIntegrationsView({super.key});

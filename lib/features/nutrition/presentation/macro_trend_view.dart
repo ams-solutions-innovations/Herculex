@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
 
 /// Dedicated Trend view for any macro ('kcal', 'protein', 'carbs', 'fat').

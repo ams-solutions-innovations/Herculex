@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/buddy/application/buddy_providers.dart';
 import 'package:herculex/features/buddy/domain/buddy_scope.dart';
 import 'package:herculex/features/buddy/presentation/buddy_presence_bar.dart';
@@ -25,8 +27,6 @@ import 'package:herculex/features/workouts/presentation/rest_timer_controller.da
 import 'package:herculex/features/workouts/presentation/workout_finish_view.dart';
 import 'package:herculex/features/workouts/presentation/workout_settings_sheet.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 class ActiveWorkoutView extends ConsumerStatefulWidget {

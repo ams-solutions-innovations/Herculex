@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/theme/app_theme.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// Guards the UI-rework token migration: the `AppColors` shim must stay a
 /// faithful view of [HxColors] while ~1,500 legacy call sites migrate, and the

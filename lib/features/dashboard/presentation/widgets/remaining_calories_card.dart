@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
 
 /// Calories left today (§18): `Goal - Food + Exercise`. Tapping opens the
 /// nutrition tab. Styled with adaptive layout for full-width and half-width grid slots.

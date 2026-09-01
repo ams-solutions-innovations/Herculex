@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
@@ -11,10 +15,6 @@ import 'package:herculex/features/programs/presentation/widgets/session_tile.dar
 import 'package:herculex/features/workouts/presentation/calendar_providers.dart';
 import 'package:herculex/features/workouts/presentation/template_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/ui/ui.dart';
-import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
 
 /// Everything you can do to one day of a block: see its sessions, attach or

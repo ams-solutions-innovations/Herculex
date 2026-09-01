@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
 
 /// Gym selection at workout start (§10). Returns the chosen gym id, null for
 /// "no gym", or never shows when the user has no gym profiles. New gyms can

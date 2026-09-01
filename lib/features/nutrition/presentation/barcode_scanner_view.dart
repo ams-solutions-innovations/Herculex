@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:herculex/theme/colors.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 

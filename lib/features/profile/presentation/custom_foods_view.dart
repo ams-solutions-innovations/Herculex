@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/presentation/custom_food_form_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/ui/ui.dart';
-import 'package:herculex/widgets/premium_button.dart';
 
 class CustomFoodsView extends ConsumerStatefulWidget {
   const CustomFoodsView({super.key});

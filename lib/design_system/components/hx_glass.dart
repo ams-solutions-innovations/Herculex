@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// Frosted-glass surface: a real backdrop blur behind a translucent fill with
 /// a hairline border.

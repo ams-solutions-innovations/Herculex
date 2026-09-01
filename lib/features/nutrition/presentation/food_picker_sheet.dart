@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
 import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
@@ -22,9 +25,6 @@ import 'package:herculex/features/nutrition/presentation/nutrition_providers.dar
 import 'package:herculex/features/nutrition/presentation/rambler_food_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/recipe_builder_view.dart';
 import 'package:herculex/services/pending_ai_scan_service.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/theme/tokens/hx_colors.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Tabbed bottom sheet: All · My Meals · My Recipes · My Foods.

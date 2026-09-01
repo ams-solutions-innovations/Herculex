@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
 import 'package:herculex/features/supplements/data/supplement_ai_service.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/services/pending_ai_scan_service.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Modal dialog / bottom sheet for analyzing supplement packaging, tubs,

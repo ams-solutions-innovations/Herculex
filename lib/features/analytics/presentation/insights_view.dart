@@ -2,11 +2,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/units.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/analytics/data/analytics_repository.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
 import 'package:herculex/features/analytics/presentation/cns_recovery_cards.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
 
 class InsightsView extends ConsumerWidget {

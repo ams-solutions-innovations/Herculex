@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/dashboard/domain/macro_card_config.dart';
 import 'package:herculex/features/dashboard/presentation/macro_card_prefs_provider.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/ui/ui.dart';
 
 /// Live calorie/macro grid: a config-driven grid of macro tiles.
 /// Full weekly stats & average daily intake live in the Calorie Trends view.

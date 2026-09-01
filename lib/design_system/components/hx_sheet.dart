@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// The app's modal sheet shell: grab handle, optional title/subtitle, rounded
 /// top corners and safe-area padding.

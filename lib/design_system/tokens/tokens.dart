@@ -1,4 +1,5 @@
-/// Design tokens barrel: `import '../../theme/tokens/tokens.dart';` gives a
+/// Design tokens barrel:
+/// `import 'package:herculex/design_system/tokens/tokens.dart';` gives a
 /// screen the palette (`context.hx`), spacing, radii and motion in one line.
 library;
 

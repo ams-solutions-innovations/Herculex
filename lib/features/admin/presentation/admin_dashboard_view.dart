@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/widgets/glass_container.dart';
+import 'package:herculex/design_system/components/glass_container.dart';
 
 /// Developer-only content tooling. Reachable only in debug builds (the routes
 /// are excluded from release in the router).

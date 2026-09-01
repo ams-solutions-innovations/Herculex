@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/theme/colors.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 
 /// Quick exercise info shown from an active workout.
 ///

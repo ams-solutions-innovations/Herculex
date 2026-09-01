@@ -10,6 +10,9 @@ import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_overlay.dart';
 import 'package:herculex/core/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/theme_provider.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
 import 'package:herculex/features/fasting/data/fasting_schedule_action_queue.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
@@ -34,9 +37,6 @@ import 'package:herculex/features/workouts/presentation/workouts_providers.dart'
 import 'package:herculex/services/active_workout_surface_sync_policy.dart';
 import 'package:herculex/services/workout_bubble_service.dart';
 import 'package:herculex/services/workout_notification_service.dart';
-import 'package:herculex/theme/app_theme.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/theme_provider.dart';
 
 class HerculexApp extends ConsumerStatefulWidget {
   const HerculexApp({super.key});

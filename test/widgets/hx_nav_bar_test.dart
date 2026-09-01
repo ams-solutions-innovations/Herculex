@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/theme/app_theme.dart';
-import 'package:herculex/ui/hx_nav_bar.dart';
+import 'package:herculex/design_system/components/hx_nav_bar.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
 
 void main() {
   Widget harness({

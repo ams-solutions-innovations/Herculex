@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/glass_container.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/components/premium_text_field.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
@@ -9,12 +15,6 @@ import 'package:herculex/features/programs/presentation/programs_providers.dart'
 import 'package:herculex/features/programs/presentation/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/ui/ui.dart';
-import 'package:herculex/widgets/glass_container.dart';
-import 'package:herculex/widgets/premium_button.dart';
-import 'package:herculex/widgets/premium_text_field.dart';
 import 'package:intl/intl.dart';
 
 /// Four-step block builder: basics → split → content → schedule.

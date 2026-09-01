@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/data/circuits_repository.dart';
 import 'package:herculex/features/workouts/presentation/circuits_providers.dart';
 import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/ui/ui.dart';
-import 'package:herculex/widgets/premium_button.dart';
 
 class CircuitBuilderView extends ConsumerStatefulWidget {
   final WorkoutCircuitData? existing;

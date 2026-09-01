@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/theme/app_theme.dart';
-import 'package:herculex/ui/ui.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
 
 /// The fade-on-scroll header is the shell's whole reason to exist, so its
 /// direction handling is pinned down here.

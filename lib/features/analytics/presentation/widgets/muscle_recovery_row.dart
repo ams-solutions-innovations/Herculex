@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:herculex/theme/colors.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 
 /// Shared muscle-recovery bar row: name, progress bar, score, and two
 /// optional trailing pieces (an ETA chip and a status dot) that the two

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/programs/presentation/programs_providers.dart';
 import 'package:herculex/features/programs/presentation/widgets/day_column_card.dart';
-import 'package:herculex/theme/colors.dart';
 
 /// Monday–Sunday board for one week, with drag-to-reorder inside a day and
 /// drag-between-days across the board.

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 import 'package:herculex/features/health/domain/cycle_adjuster.dart';
 import 'package:herculex/features/health/presentation/cycle_providers.dart';
-import 'package:herculex/theme/colors.dart';
 
 /// Cycle-phase focus card (§18). Live reactive card showing current phase,
 /// physiological recommendations, volume adjustments, and tap to view cycle tracker.

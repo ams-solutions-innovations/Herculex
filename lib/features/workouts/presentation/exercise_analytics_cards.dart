@@ -1,16 +1,17 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_card.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/one_rep_max.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/ui/hx_card.dart';
 import 'package:intl/intl.dart';
-import 'dart:math' as math;
 
 class SessionVariantStats {
   final DateTime date;

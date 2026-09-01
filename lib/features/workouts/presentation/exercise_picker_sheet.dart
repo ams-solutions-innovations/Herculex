@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/presentation/circuit_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/circuits_providers.dart';
 import 'package:herculex/features/workouts/presentation/custom_exercise_builder_view.dart';
@@ -10,7 +11,6 @@ import 'package:herculex/features/workouts/presentation/equipment_icon.dart';
 import 'package:herculex/features/workouts/presentation/exercise_ai_scan_dialog.dart';
 import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
 
 /// Result from [ExercisePickerSheet.show]. [equipmentAlreadyChosen] is true
 /// when the user picked from a multi-variant family style chooser, meaning the

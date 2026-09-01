@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/presentation/equipment_icon.dart';
 import 'package:herculex/features/workouts/presentation/exercise_artwork_manifest.dart';
-import 'package:herculex/theme/colors.dart';
 
 /// Maps catalog exercises to the artwork shipped with the exercise library.
 ///

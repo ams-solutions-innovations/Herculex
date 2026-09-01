@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/ui/hx_sticky_dismissible.dart';
+import 'package:herculex/design_system/components/hx_sticky_dismissible.dart';
 
 void main() {
   testWidgets(

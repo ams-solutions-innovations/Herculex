@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/premium_text_field.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/domain/exercise_substitution.dart';
 import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/widgets/premium_text_field.dart';
 
 class SmartSubstitutionSheet extends ConsumerStatefulWidget {
   final WorkoutExerciseData workoutExercise;

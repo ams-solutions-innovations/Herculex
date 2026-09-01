@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/design_system/components/glass_container.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/domain/dashboard_config.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_widgets.dart';
@@ -15,10 +19,6 @@ import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/supplements/presentation/supplement_tracker_widget.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/widgets/glass_container.dart';
 import 'package:intl/intl.dart';
 
 class DashboardView extends ConsumerWidget {

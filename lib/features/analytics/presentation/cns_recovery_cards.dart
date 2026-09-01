@@ -2,9 +2,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
 import 'package:herculex/features/analytics/presentation/widgets/muscle_recovery_row.dart';
-import 'package:herculex/theme/colors.dart';
 
 /// CNS dashboard card (V2 §3): 28-day daily-load bar chart, readiness gauge,
 /// and deload recommendation banner.

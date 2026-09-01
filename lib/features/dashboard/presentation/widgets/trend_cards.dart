@@ -4,14 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/units.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/macro_chart.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
 import 'package:intl/intl.dart';
 
 /// Standalone preview card for 7-day calorie trends.

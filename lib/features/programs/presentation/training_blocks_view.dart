@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/clock.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/app_bottom_sheet.dart';
+import 'package:herculex/design_system/components/glass_container.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/block_builder_view.dart';
 import 'package:herculex/features/programs/presentation/block_detail_view.dart';
@@ -11,11 +16,6 @@ import 'package:herculex/features/programs/presentation/programs_providers.dart'
 import 'package:herculex/features/programs/presentation/widgets/month_calendar.dart';
 import 'package:herculex/features/programs/presentation/widgets/week_board.dart';
 import 'package:herculex/features/workouts/presentation/calendar_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/widgets/app_bottom_sheet.dart';
-import 'package:herculex/widgets/glass_container.dart';
-import 'package:herculex/widgets/premium_button.dart';
 import 'package:intl/intl.dart';
 
 class TrainingBlocksView extends ConsumerWidget {

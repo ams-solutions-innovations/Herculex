@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/remaining_calories_card.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_targets_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/theme/app_theme.dart';
-import 'package:herculex/ui/ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

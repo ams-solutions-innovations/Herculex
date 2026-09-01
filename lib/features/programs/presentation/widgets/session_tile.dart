@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
 
 /// Colour for a scheduled session's status chip and calendar dot.
 Color scheduleStatusColor(String status) => switch (status) {

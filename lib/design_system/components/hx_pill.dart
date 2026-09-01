@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// Fully-rounded capsule used for compact rows, tags and filter chips.
 ///

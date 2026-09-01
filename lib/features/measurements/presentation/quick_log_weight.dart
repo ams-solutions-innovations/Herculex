@@ -4,8 +4,8 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
 import 'package:herculex/core/units.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/theme/haptics.dart';
 import 'package:intl/intl.dart';
 
 /// Shared bodyweight quick-log dialog, used by the dashboard's bodyweight

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/food_insights.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
@@ -8,8 +10,6 @@ import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/supplements/domain/supplement_intake.dart';
 import 'package:herculex/features/supplements/presentation/supplement_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
 
 /// Full graphical breakdown of everything eaten on the selected day (§3):

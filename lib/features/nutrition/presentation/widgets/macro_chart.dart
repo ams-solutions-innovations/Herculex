@@ -1,8 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
-import 'package:herculex/theme/colors.dart';
 import 'package:intl/intl.dart';
 
 /// Shared macro-trend helpers, extracted from the dashboard's LiveMacrosGrid

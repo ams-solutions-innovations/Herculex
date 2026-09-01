@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/ui/hx_card.dart';
+import 'package:herculex/design_system/components/hx_card.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 
 /// A labelled figure: caption, value (with optional target) and an optional
 /// progress bar, all color-coded to [accent].

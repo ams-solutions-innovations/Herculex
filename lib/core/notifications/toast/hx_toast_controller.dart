@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
-import 'package:herculex/theme/haptics.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 
 class HxToastState {
   final HxToastItem? current;

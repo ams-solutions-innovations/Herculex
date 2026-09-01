@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/domain/nutrient_definitions.dart';
@@ -14,9 +17,6 @@ import 'package:herculex/features/nutrition/presentation/macro_rings.dart';
 import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/presentation/nutrient_settings_provider.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
-import 'package:herculex/ui/ui.dart';
 import 'package:intl/intl.dart';
 
 class NutritionView extends ConsumerStatefulWidget {

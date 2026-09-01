@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:herculex/core/units.dart';
-import 'package:herculex/theme/colors.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 
 /// Result of the Down Set auto-fill wizard: a weight held constant across
 /// the chain, plus the rep range it should decrement through (inclusive).

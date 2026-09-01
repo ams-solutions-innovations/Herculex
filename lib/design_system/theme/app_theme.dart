@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
-import 'package:herculex/theme/tokens/hx_colors.dart';
-import 'package:herculex/theme/tokens/hx_geometry.dart';
+import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/design_system/tokens/hx_geometry.dart';
 
 /// App theme, built entirely from the [HxColors] token palette.
 ///

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
 import 'package:herculex/features/analytics/presentation/widgets/muscle_recovery_row.dart';
@@ -9,8 +11,6 @@ import 'package:herculex/features/recovery/presentation/recovery_providers.dart'
 import 'package:herculex/features/recovery/presentation/widgets/joint_pain_selector.dart';
 import 'package:herculex/features/recovery/presentation/widgets/next_workout_suggestion_card.dart';
 import 'package:herculex/features/recovery/presentation/widgets/recovery_header_card.dart';
-import 'package:herculex/theme/tokens/tokens.dart';
-import 'package:herculex/ui/ui.dart';
 
 /// The dedicated Recovery page: overall readiness, a joint-pain selector,
 /// next workout's training suggestion, and the full 19-muscle-group breakdown with

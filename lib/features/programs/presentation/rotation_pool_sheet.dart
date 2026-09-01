@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/presentation/programs_providers.dart';
 import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/theme/haptics.dart';
 
 /// Create or edit a rotation pool. Pass [existing] to edit.
 class RotationPoolSheet extends ConsumerStatefulWidget {

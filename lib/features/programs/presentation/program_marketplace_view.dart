@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/programs/domain/preset_program.dart';
 import 'package:herculex/features/programs/presentation/marketplace_providers.dart';
 import 'package:herculex/features/programs/presentation/program_preview_view.dart';
-import 'package:herculex/theme/colors.dart';
-import 'package:herculex/ui/ui.dart';
 
 const _levelChips = <String>['Beginner', 'Intermediate', 'Advanced'];
 const _goalChips = <String>['Strength', 'Hypertrophy', 'General'];

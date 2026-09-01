@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
-import 'package:herculex/theme/colors.dart';
 
 /// Renders a structured breakdown of prescribed weekly sets per muscle group
 /// for a training program.
