@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 
@@ -15,7 +15,7 @@ class ExercisePerformanceSheet extends StatelessWidget {
   const ExercisePerformanceSheet({super.key, required this.exercise});
 
   static Future<void> show(BuildContext context, ExerciseCatalogData exercise) {
-    return context.push('/exercise/${exercise.id}');
+    return context.push(AppPaths.exercise(exercise.id));
   }
 
   @override
@@ -64,7 +64,7 @@ class ExercisePerformanceSheet extends StatelessWidget {
                 onPressed: () {
                   final router = GoRouter.of(context);
                   Navigator.of(context).pop();
-                  router.push('/exercise/${exercise.id}');
+                  router.push(AppPaths.exercise(exercise.id));
                 },
               ),
             ),

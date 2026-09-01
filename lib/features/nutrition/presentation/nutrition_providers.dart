@@ -22,7 +22,7 @@ import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dart';
-import 'package:herculex/services/widget_sync_service.dart';
+import 'package:herculex/services/platform/widget_sync_service.dart';
 import 'package:intl/intl.dart';
 
 /// Singleton [WidgetSyncService] for pushing data to Android home-screen widgets.

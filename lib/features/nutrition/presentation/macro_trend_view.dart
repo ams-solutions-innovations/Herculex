@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
@@ -238,7 +239,7 @@ class _MacroTrendViewState extends ConsumerState<MacroTrendView> {
         // ── 5. Adjust Goals Button ──
         const SizedBox(height: HxSpace.x4),
         InkWell(
-          onTap: () => context.push('/calorie-macro-goals'),
+          onTap: () => context.push(AppRoutes.calorieMacroGoals),
           borderRadius: BorderRadius.circular(16),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

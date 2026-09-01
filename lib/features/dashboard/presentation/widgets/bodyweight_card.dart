@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -35,7 +36,7 @@ class BodyweightMiniCard extends ConsumerWidget {
           accent: context.hx.domainRecovery,
           onTap: () {
             Haptics.selection();
-            context.push('/measurements/bodyweight');
+            context.push(AppPaths.measurementDetail('bodyweight'));
           },
           padding: EdgeInsets.symmetric(
             horizontal: isCompact ? 14 : 20,

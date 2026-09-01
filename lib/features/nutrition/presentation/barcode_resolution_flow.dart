@@ -3,14 +3,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herculex/core/env.dart';
+import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
 import 'package:herculex/features/nutrition/presentation/barcode_product_review_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/custom_food_form_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
-import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Resolves a scanned barcode the local catalogue doesn't have:

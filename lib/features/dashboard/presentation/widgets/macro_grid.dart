@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -57,7 +58,7 @@ class LiveMacrosGrid extends ConsumerWidget {
         progress: t == null ? null : totals.kcal / t.kcal,
         onTap: () {
           Haptics.selection();
-          context.push('/nutrition/weekly-stats');
+          context.push(AppRoutes.nutritionWeeklyStats);
         },
       ),
       DashboardMacro.protein => HxStatTile(
@@ -69,7 +70,7 @@ class LiveMacrosGrid extends ConsumerWidget {
         progress: t == null ? null : totals.proteinG / t.proteinG,
         onTap: () {
           Haptics.selection();
-          context.push('/macro-trends/protein');
+          context.push(AppPaths.macroTrends('protein'));
         },
       ),
       DashboardMacro.carbs => HxStatTile(
@@ -81,7 +82,7 @@ class LiveMacrosGrid extends ConsumerWidget {
         progress: t == null ? null : totals.carbsG / t.carbsG,
         onTap: () {
           Haptics.selection();
-          context.push('/macro-trends/carbs');
+          context.push(AppPaths.macroTrends('carbs'));
         },
       ),
       DashboardMacro.fat => HxStatTile(
@@ -94,7 +95,7 @@ class LiveMacrosGrid extends ConsumerWidget {
         progress: t == null ? null : totals.fatG / t.fatG,
         onTap: () {
           Haptics.selection();
-          context.push('/macro-trends/fat');
+          context.push(AppPaths.macroTrends('fat'));
         },
       ),
     };

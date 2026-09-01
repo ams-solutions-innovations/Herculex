@@ -5,11 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/auth_validator.dart';
-import 'package:herculex/core/env.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/core/utils/auth_validator.dart';
+import 'package:herculex/core/utils/env.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/sync/sync_service.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -23,7 +24,7 @@ import 'package:herculex/features/nutrition/presentation/nutrition_providers.dar
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/presentation/workout_bubble_controller.dart';
-import 'package:herculex/services/workout_bubble_service.dart';
+import 'package:herculex/services/platform/workout_bubble_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // ── Profile view ─────────────────────────────────────────────────────────────
@@ -536,7 +537,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/goals'),
+              onTap: () => context.push(AppRoutes.goals),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -546,7 +547,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/health'),
+              onTap: () => context.push(AppRoutes.health),
             ),
             _SettingsDivider(),
             // Android-only: iOS has no system overlay windows, so the row is
@@ -581,7 +582,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/insights'),
+              onTap: () => context.push(AppRoutes.insights),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -591,7 +592,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/measurements'),
+              onTap: () => context.push(AppRoutes.measurements),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -601,7 +602,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/gyms'),
+              onTap: () => context.push(AppRoutes.gyms),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -611,7 +612,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/micro-workouts'),
+              onTap: () => context.push(AppRoutes.microWorkouts),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -621,7 +622,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/exercises'),
+              onTap: () => context.push(AppRoutes.exercises),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -631,7 +632,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/custom-foods'),
+              onTap: () => context.push(AppRoutes.customFoods),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -641,7 +642,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/custom-recipes'),
+              onTap: () => context.push(AppRoutes.customRecipes),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -651,7 +652,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                 Icons.chevron_right,
                 color: context.hx.onSurfaceVariant,
               ),
-              onTap: () => context.push('/notifications'),
+              onTap: () => context.push(AppRoutes.notifications),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -1097,7 +1098,7 @@ class _ProfileActiveTargetSquircleCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(24),
           onTap: () {
             Haptics.selection();
-            context.push('/nutrition-targets');
+            context.push(AppRoutes.nutritionTargets);
           },
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -1349,7 +1350,7 @@ class _DreamPhysiqueCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {
-            context.push('/dream-physique');
+            context.push(AppRoutes.dreamPhysique);
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

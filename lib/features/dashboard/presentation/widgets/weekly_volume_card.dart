@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -29,7 +30,7 @@ class WeeklyVolumeMiniCard extends ConsumerWidget {
           ),
           onTap: () {
             Haptics.selection();
-            context.push('/muscle-volume');
+            context.push(AppRoutes.muscleVolume);
           },
           child: isCompact
               ? Column(

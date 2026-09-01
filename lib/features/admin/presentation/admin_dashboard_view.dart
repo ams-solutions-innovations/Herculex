@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 
 /// Developer-only content tooling. Reachable only in debug builds (the routes
@@ -23,7 +23,7 @@ class AdminDashboardView extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.exit_to_app),
             tooltip: 'Back to app',
-            onPressed: () => context.go('/app'),
+            onPressed: () => context.go(AppRoutes.app),
           ),
         ],
       ),
@@ -36,14 +36,14 @@ class AdminDashboardView extends ConsumerWidget {
             context: context,
             title: "Insert Custom Workout",
             icon: Icons.fitness_center,
-            onTap: () => context.push('/admin/workout'),
+            onTap: () => context.push(AppRoutes.adminWorkout),
           ),
           const SizedBox(height: 16),
           _buildActionCard(
             context: context,
             title: "Insert Custom Recipe",
             icon: Icons.restaurant_menu,
-            onTap: () => context.push('/admin/recipe'),
+            onTap: () => context.push(AppRoutes.adminRecipe),
           ),
           const SizedBox(height: 32),
           Divider(color: Colors.grey.withValues(alpha: 0.2)),
@@ -54,7 +54,7 @@ class AdminDashboardView extends ConsumerWidget {
             context: context,
             title: "Fixture Recording (REP-06)",
             icon: Icons.fiber_manual_record,
-            onTap: () => context.push('/admin/fixture-recording'),
+            onTap: () => context.push(AppRoutes.adminFixtureRecording),
           ),
           const SizedBox(height: 32),
           Divider(color: Colors.grey.withValues(alpha: 0.2)),
@@ -76,7 +76,7 @@ class AdminDashboardView extends ConsumerWidget {
             context: context,
             title: "Error Log",
             icon: Icons.bug_report_outlined,
-            onTap: () => context.push('/diagnostics/errors'),
+            onTap: () => context.push(AppRoutes.diagnosticsErrors),
           ),
           const SizedBox(height: 32),
           Divider(color: Colors.grey.withValues(alpha: 0.2)),
@@ -87,7 +87,7 @@ class AdminDashboardView extends ConsumerWidget {
             context: context,
             title: "Preview App",
             icon: Icons.phone_iphone,
-            onTap: () => context.go('/app'),
+            onTap: () => context.go(AppRoutes.app),
           ),
         ],
       ),

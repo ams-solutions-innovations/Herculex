@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/services/active_workout_surface_sync_policy.dart';
+import 'package:herculex/services/platform/active_workout_surface_sync_policy.dart';
 
 void main() {
   test('does not clear while active session is still loading', () {

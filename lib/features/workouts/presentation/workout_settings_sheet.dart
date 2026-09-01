@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
 import 'package:herculex/features/profile/domain/profile.dart';

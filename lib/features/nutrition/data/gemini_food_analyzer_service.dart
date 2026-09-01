@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
-import 'package:herculex/services/gemini_backend_service.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 class GeminiFoodAnalysisResult {
   final String name;

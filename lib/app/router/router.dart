@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/error/app_error_view.dart';
 import 'package:herculex/core/error/error_log_view.dart';
 import 'package:herculex/features/admin/presentation/admin_dashboard_view.dart';
@@ -39,6 +40,7 @@ import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/programs/presentation/rotation_pools_view.dart';
 import 'package:herculex/features/recovery/presentation/recovery_view.dart';
 import 'package:herculex/features/reps/presentation/fixture_recording_view.dart';
+import 'package:herculex/features/reps/presentation/rep_tracking_consent_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/shell/splash_view.dart';
 import 'package:herculex/features/workouts/presentation/exercise_details_view.dart';
@@ -67,7 +69,7 @@ int? _intParam(GoRouterState state, String name) =>
 Widget _badParam(BuildContext context, GoRouterState state, String name) =>
     AppErrorScreen(
       message: "'${state.pathParameters[name]}' isn't a valid $name.",
-      onGoHome: () => context.go('/app'),
+      onGoHome: () => context.go(AppRoutes.app),
     );
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -75,14 +77,14 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: AppRoutes.splash,
     refreshListenable: refresh,
     // Unmatched paths and malformed deep links used to fall through to
     // go_router's bare default screen; a throw inside a route builder had no
     // boundary at all.
     errorBuilder: (context, state) => AppErrorScreen(
       message: state.error?.toString() ?? 'No screen matches ${state.uri}.',
-      onGoHome: () => context.go('/app'),
+      onGoHome: () => context.go(AppRoutes.app),
     ),
     redirect: (context, state) {
       // On-device only: the only gate is whether onboarding has produced a
@@ -92,26 +94,31 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // While the profile is still loading from disk, sit on /splash.
       if (profileAsync.isLoading) {
-        return loc == '/splash' ? null : '/splash';
+        return loc == AppRoutes.splash ? null : AppRoutes.splash;
       }
 
       final profile = profileAsync.asData?.value;
 
       // No profile yet → onboarding is the only valid destination.
       if (profile == null) {
-        return loc == '/onboarding' ? null : '/onboarding';
+        return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
       }
 
       // Onboarded: bounce out of splash/onboarding into the app.
-      if (loc == '/splash' || loc == '/onboarding') return '/app';
+      if (loc == AppRoutes.splash || loc == AppRoutes.onboarding) {
+        return AppRoutes.app;
+      }
       return null;
     },
     routes: [
-      GoRoute(path: '/splash', builder: (_, _) => const SplashView()),
-      GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingView()),
-      GoRoute(path: '/app', builder: (_, _) => const MainScaffold()),
+      GoRoute(path: AppRoutes.splash, builder: (_, _) => const SplashView()),
       GoRoute(
-        path: '/workout-history/:id',
+        path: AppRoutes.onboarding,
+        builder: (_, _) => const OnboardingView(),
+      ),
+      GoRoute(path: AppRoutes.app, builder: (_, _) => const MainScaffold()),
+      GoRoute(
+        path: AppRoutes.workoutHistory,
         builder: (context, state) {
           final id = _intParam(state, 'id');
           if (id == null) return _badParam(context, state, 'id');
@@ -119,7 +126,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/exercise/:id',
+        path: AppRoutes.exercise,
         builder: (context, state) {
           final id = _intParam(state, 'id');
           if (id == null) return _badParam(context, state, 'id');
@@ -127,117 +134,126 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/measurements',
+        path: AppRoutes.measurements,
         builder: (_, _) => const MeasurementsView(),
       ),
       GoRoute(
-        path: '/measurements/:metric',
+        path: AppRoutes.measurementDetail,
         builder: (_, state) =>
             MetricDetailView(metric: state.pathParameters['metric']!),
       ),
-      GoRoute(path: '/fasting', builder: (_, _) => const FastingView()),
+      GoRoute(path: AppRoutes.fasting, builder: (_, _) => const FastingView()),
       GoRoute(
-        path: '/fasting/schedule',
+        path: AppRoutes.fastingSchedule,
         builder: (_, _) => const FastingScheduleView(),
       ),
-      GoRoute(path: '/gyms', builder: (_, _) => const GymsView()),
+      GoRoute(path: AppRoutes.gyms, builder: (_, _) => const GymsView()),
       GoRoute(
-        path: '/micro-workouts',
+        path: AppRoutes.microWorkouts,
         builder: (_, _) => const MicroWorkoutsView(),
       ),
       GoRoute(
-        path: '/exercises',
+        path: AppRoutes.exercises,
         builder: (_, _) => const ExerciseLibraryView(),
       ),
-      GoRoute(path: '/insights', builder: (_, _) => const InsightsView()),
-      GoRoute(path: '/cns', builder: (_, _) => const CnsView()),
-      GoRoute(path: '/recovery', builder: (_, _) => const RecoveryView()),
       GoRoute(
-        path: '/muscle-volume',
+        path: AppRoutes.insights,
+        builder: (_, _) => const InsightsView(),
+      ),
+      GoRoute(path: AppRoutes.cns, builder: (_, _) => const CnsView()),
+      GoRoute(
+        path: AppRoutes.recovery,
+        builder: (_, _) => const RecoveryView(),
+      ),
+      GoRoute(
+        path: AppRoutes.muscleVolume,
         builder: (_, _) => const MuscleVolumeOverviewView(),
       ),
       GoRoute(
-        path: '/muscle-volume/:muscle',
+        path: AppRoutes.muscleVolumeDetail,
         builder: (_, state) =>
             MuscleVolumeDetailView(muscle: state.pathParameters['muscle']!),
       ),
       GoRoute(
-        path: '/health',
+        path: AppRoutes.health,
         builder: (_, _) => const HealthIntegrationsView(),
       ),
-      GoRoute(path: '/cycle', builder: (_, _) => const CycleTrackingView()),
       GoRoute(
-        path: '/health/samsung',
+        path: AppRoutes.cycle,
+        builder: (_, _) => const CycleTrackingView(),
+      ),
+      GoRoute(
+        path: AppRoutes.healthSamsung,
         builder: (_, _) =>
             const HealthPlatformDetailView(platform: HealthPlatform.samsung),
       ),
       GoRoute(
-        path: '/health/apple',
+        path: AppRoutes.healthApple,
         builder: (_, _) =>
             const HealthPlatformDetailView(platform: HealthPlatform.apple),
       ),
       GoRoute(
-        path: '/health/google',
+        path: AppRoutes.healthGoogle,
         builder: (_, _) =>
             const HealthPlatformDetailView(platform: HealthPlatform.google),
       ),
-      GoRoute(path: '/profile', builder: (_, _) => const ProfileView()),
+      GoRoute(path: AppRoutes.profile, builder: (_, _) => const ProfileView()),
       GoRoute(
-        path: '/notifications',
+        path: AppRoutes.notifications,
         builder: (_, _) => const NotificationSettingsView(),
       ),
       GoRoute(
-        path: '/dream-physique',
+        path: AppRoutes.dreamPhysique,
         builder: (_, _) => const DreamPhysiqueView(),
       ),
       GoRoute(
-        path: '/custom-foods',
+        path: AppRoutes.customFoods,
         builder: (_, _) => const CustomFoodsView(),
       ),
       GoRoute(
-        path: '/custom-recipes',
+        path: AppRoutes.customRecipes,
         builder: (_, _) => const CustomRecipesView(),
       ),
       GoRoute(
-        path: '/nutrition-targets',
+        path: AppRoutes.nutritionTargets,
         builder: (_, _) => const NutritionTargetsView(),
       ),
       GoRoute(
-        path: '/nutrition-meal-slots',
+        path: AppRoutes.nutritionMealSlots,
         builder: (_, _) => const MealSlotsView(),
       ),
       GoRoute(
-        path: '/nutrition-nutrients',
+        path: AppRoutes.nutritionNutrients,
         builder: (_, _) => const NutrientSettingsView(),
       ),
       GoRoute(
-        path: '/nutrient-overview',
+        path: AppRoutes.nutrientOverview,
         builder: (_, _) => const NutrientOverviewView(),
       ),
       GoRoute(
-        path: '/nutrition/weekly-stats',
+        path: AppRoutes.nutritionWeeklyStats,
         builder: (_, _) => const WeeklyCaloriesView(),
       ),
       GoRoute(
-        path: '/macro-trends/:macro',
+        path: AppRoutes.macroTrends,
         builder: (_, state) =>
             MacroTrendView(macro: state.pathParameters['macro'] ?? 'kcal'),
       ),
-      GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
+      GoRoute(path: AppRoutes.goals, builder: (_, _) => const GoalsView()),
       GoRoute(
-        path: '/calorie-macro-goals',
+        path: AppRoutes.calorieMacroGoals,
         builder: (_, _) => const CalorieMacroGoalsView(),
       ),
       GoRoute(
-        path: '/calorie-meal-goals',
+        path: AppRoutes.calorieMealGoals,
         builder: (_, _) => const CalorieMealGoalsView(),
       ),
       GoRoute(
-        path: '/rotation-pools',
+        path: AppRoutes.rotationPools,
         builder: (_, _) => const RotationPoolsView(),
       ),
       GoRoute(
-        path: '/buddy/join',
+        path: AppRoutes.buddyJoin,
         builder: (_, _) => const BuddyJoinScannerView(),
       ),
       // Deliberately *not* behind kDebugMode: release is where an error is
@@ -245,25 +261,36 @@ final routerProvider = Provider<GoRouter>((ref) {
       // be reachable there. Read-only, and holds nothing the user didn't
       // already generate on their own device.
       GoRoute(
-        path: '/diagnostics/errors',
+        path: AppRoutes.diagnosticsErrors,
         builder: (_, _) => const ErrorLogView(),
       ),
       // Developer-only content tools. Excluded from release builds entirely.
       if (kDebugMode) ...[
-        GoRoute(path: '/admin', builder: (_, _) => const AdminDashboardView()),
         GoRoute(
-          path: '/admin/workout',
+          path: AppRoutes.admin,
+          builder: (_, _) => const AdminDashboardView(),
+        ),
+        GoRoute(
+          path: AppRoutes.adminWorkout,
           builder: (_, _) => const AdminInsertWorkoutView(),
         ),
         GoRoute(
-          path: '/admin/recipe',
+          path: AppRoutes.adminRecipe,
           builder: (_, _) => const AdminInsertRecipeView(),
         ),
         GoRoute(
-          path: '/admin/fixture-recording',
+          path: AppRoutes.adminFixtureRecording,
           builder: (_, _) => const FixtureRecordingView(),
         ),
       ],
+      // Registered outside the debug-only block above: rep_auto_count_tile
+      // pushes this in release builds too, and until now there was no
+      // matching route, so the tile opened AppErrorScreen instead of the
+      // consent screen. See AppRoutes.repTrackingConsent.
+      GoRoute(
+        path: AppRoutes.repTrackingConsent,
+        builder: (_, _) => const RepTrackingConsentView(),
+      ),
     ],
   );
 });

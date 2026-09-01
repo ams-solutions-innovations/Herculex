@@ -6,7 +6,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -405,7 +406,7 @@ class _DynamicWorkoutViewState extends ConsumerState<DynamicWorkoutView> {
               behavior: HitTestBehavior.opaque,
               onTap: () {
                 Haptics.selection();
-                context.push('/exercise/${catalogExercise.id}');
+                context.push(AppPaths.exercise(catalogExercise.id));
               },
               child: Column(
                 children: [

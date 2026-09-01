@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
-import 'package:herculex/services/gemini_backend_service.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 final supplementAiServiceProvider = Provider<SupplementAiService>((ref) {
   final backend = ref.watch(geminiBackendProvider);

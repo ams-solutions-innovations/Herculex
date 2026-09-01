@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
-import 'package:herculex/core/clock.dart';
-import 'package:herculex/core/failures.dart';
+import 'package:herculex/core/utils/clock.dart';
+import 'package:herculex/core/utils/failures.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_biomechanics.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';

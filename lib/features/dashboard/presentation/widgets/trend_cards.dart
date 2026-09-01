@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
@@ -37,7 +38,7 @@ class CalorieTrendPreviewCard extends ConsumerWidget {
       accent: hx.domainNutrition,
       spots: spots,
       targetValue: targets?.kcal.toDouble(),
-      onTap: () => context.push('/nutrition/weekly-stats'),
+      onTap: () => context.push(AppRoutes.nutritionWeeklyStats),
     );
   }
 }
@@ -68,7 +69,7 @@ class BodyweightTrendPreviewCard extends ConsumerWidget {
       accent: hx.domainRecovery,
       spots: spots,
       targetValue: targetKg,
-      onTap: () => context.push('/measurements/bodyweight'),
+      onTap: () => context.push(AppPaths.measurementDetail('bodyweight')),
     );
   }
 }

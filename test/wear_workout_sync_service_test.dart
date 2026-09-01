@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_contract.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';

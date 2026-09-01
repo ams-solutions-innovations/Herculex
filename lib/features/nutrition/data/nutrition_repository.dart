@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
 import 'package:herculex/features/nutrition/domain/barcode_utils.dart';

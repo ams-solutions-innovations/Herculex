@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
@@ -27,7 +28,7 @@ class RecoverySummaryCard extends ConsumerWidget {
             horizontal: isCompact ? 14 : 20,
             vertical: isCompact ? 12 : 16,
           ),
-          onTap: () => context.push('/recovery'),
+          onTap: () => context.push(AppRoutes.recovery),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -192,7 +193,7 @@ class CnsLoadMiniCard extends ConsumerWidget {
             horizontal: isCompact ? 14 : 20,
             vertical: isCompact ? 12 : 16,
           ),
-          onTap: () => context.push('/cns'),
+          onTap: () => context.push(AppRoutes.cns),
           child: cns.when(
             data: (t) {
               final color = switch (t.status) {

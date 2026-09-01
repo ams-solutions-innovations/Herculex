@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -103,7 +104,7 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
           onPressed: () async {
             final created = await CustomExerciseBuilderView.show(context);
             if (created != null && context.mounted) {
-              context.push('/exercise/${created.id}');
+              context.push(AppPaths.exercise(created.id));
             }
           },
         ),
@@ -269,7 +270,7 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
                     final exercise = filtered[index];
                     return _ExerciseLibraryTile(
                       exercise: exercise,
-                      onTap: () => context.push('/exercise/${exercise.id}'),
+                      onTap: () => context.push(AppPaths.exercise(exercise.id)),
                     );
                   },
                 ),

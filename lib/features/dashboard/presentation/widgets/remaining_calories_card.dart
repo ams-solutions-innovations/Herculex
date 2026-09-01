@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
@@ -24,7 +25,7 @@ class RemainingCaloriesCard extends ConsumerWidget {
         if (r == null) {
           return dashboardCard(
             accent: AppColors.macroKcal,
-            onTap: () => context.push('/nutrition-targets'),
+            onTap: () => context.push(AppRoutes.nutritionTargets),
             padding: EdgeInsets.symmetric(
               horizontal: isCompact ? 14 : 20,
               vertical: isCompact ? 14 : 16,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -58,7 +59,7 @@ class _FastingViewState extends ConsumerState<FastingView> {
               borderColor: hasSchedule
                   ? context.hx.domainFasting.withValues(alpha: 0.45)
                   : null,
-              onTap: () => context.push('/fasting/schedule'),
+              onTap: () => context.push(AppRoutes.fastingSchedule),
             ),
           ],
           pinnedBottom: isLoaded && active == null

@@ -6,8 +6,8 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/workouts/presentation/exercise_artwork.dart';
-import 'package:herculex/services/ai_service.dart';
-import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/services/ai/ai_service.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Modal dialog / sheet for recognizing gym machines, setups and exercises

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/presentation/goals_providers.dart';
@@ -76,13 +77,13 @@ class GoalsView extends ConsumerWidget {
         _GoalNavRow(
           label: 'Calorie, Net Carbs, Protein and Fat Goals',
           subtitle: 'Customize your default or daily goals.',
-          onTap: () => context.push('/calorie-macro-goals'),
+          onTap: () => context.push(AppRoutes.calorieMacroGoals),
         ),
         const _GoalDivider(),
         _GoalNavRow(
           label: 'Calorie Goals by Meal',
           subtitle: 'Stay on track with a calorie goal for each meal.',
-          onTap: () => context.push('/calorie-meal-goals'),
+          onTap: () => context.push(AppRoutes.calorieMealGoals),
         ),
         const _GoalDivider(),
         _GoalToggleRow(
@@ -96,14 +97,14 @@ class GoalsView extends ConsumerWidget {
         _GoalNavRow(
           label: 'Additional Nutrient Goals',
           subtitle: 'Choose which vitamins and minerals appear in the diary.',
-          onTap: () => context.push('/nutrition-nutrients'),
+          onTap: () => context.push(AppRoutes.nutritionNutrients),
         ),
         const _GoalDivider(),
         _GoalNavRow(
           label: 'Edit meal slots',
           subtitle:
               'Add, rename and reorder breakfast, lunch and custom meals.',
-          onTap: () => context.push('/nutrition-meal-slots'),
+          onTap: () => context.push(AppRoutes.nutritionMealSlots),
         ),
 
         const SizedBox(height: 32),

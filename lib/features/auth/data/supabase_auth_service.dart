@@ -2,7 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:herculex/core/env.dart';
+import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/features/auth/domain/auth_provider_service.dart';
 import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';

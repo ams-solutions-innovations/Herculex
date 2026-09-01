@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herculex/core/env.dart';
+import 'package:herculex/core/utils/env.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final geminiBackendProvider = Provider<GeminiBackend>((ref) {

@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/app/router.dart';
+import 'package:herculex/app/router/router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/in_app_notification_overlay.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_overlay.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -34,9 +35,9 @@ import 'package:herculex/features/workouts/presentation/circuits_providers.dart'
 import 'package:herculex/features/workouts/presentation/exercise_picker_sheet.dart';
 import 'package:herculex/features/workouts/presentation/workout_bubble_controller.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/services/active_workout_surface_sync_policy.dart';
-import 'package:herculex/services/workout_bubble_service.dart';
-import 'package:herculex/services/workout_notification_service.dart';
+import 'package:herculex/services/platform/active_workout_surface_sync_policy.dart';
+import 'package:herculex/services/platform/workout_bubble_service.dart';
+import 'package:herculex/services/platform/workout_notification_service.dart';
 
 class HerculexApp extends ConsumerStatefulWidget {
   const HerculexApp({super.key});
@@ -108,7 +109,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         final args = (call.arguments as Map?)?.cast<String, dynamic>();
         final action = args?['action'] as String?;
         ref.read(mainTabIndexProvider.notifier).state = 2;
-        ref.read(routerProvider).go('/app');
+        ref.read(routerProvider).go(AppRoutes.app);
 
         if (action == 'add_exercise') {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -147,12 +148,12 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
       }
       if (call.method == 'openNutrition' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
-        ref.read(routerProvider).go('/app');
+        ref.read(routerProvider).go(AppRoutes.app);
         return;
       }
       if (call.method == 'openFoodSearch' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
-        ref.read(routerProvider).go('/app');
+        ref.read(routerProvider).go(AppRoutes.app);
         final ctx = context;
         if (ctx.mounted) {
           final now = DateTime.now();
@@ -589,8 +590,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     await _startFastFromScheduleIfNeeded(scheduleId);
     if (!mounted) return;
     final router = ref.read(routerProvider);
-    router.go('/app');
-    router.push('/fasting');
+    router.go(AppRoutes.app);
+    router.push(AppRoutes.fasting);
   }
 
   Future<void> _drainPendingFastingScheduleActions() async {
@@ -644,7 +645,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     final router = ref.watch(routerProvider);
     WorkoutNotificationService.onNotificationTap = () {
       ref.read(mainTabIndexProvider.notifier).state = 2;
-      router.go('/app');
+      router.go(AppRoutes.app);
     };
     WorkoutNotificationService.onFastingScheduleTap = _handleFastingScheduleTap;
 

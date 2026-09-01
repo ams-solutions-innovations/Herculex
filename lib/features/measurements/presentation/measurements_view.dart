@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/measurements/data/measurements_repository.dart';
 import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
-import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -144,7 +145,9 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
                             diff: diff,
                             onTap: () {
                               Haptics.selection();
-                              context.push('/measurements/$metricKey');
+                              context.push(
+                                AppPaths.measurementDetail(metricKey),
+                              );
                             },
                             onAiTap: metricKey == 'body_fat'
                                 ? () {

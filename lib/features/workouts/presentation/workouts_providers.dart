@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';

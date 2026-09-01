@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/domain/muscle_recovery_v3.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';

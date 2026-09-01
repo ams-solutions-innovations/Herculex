@@ -10,7 +10,7 @@ import 'package:herculex/features/analytics/domain/variant_performance.dart';
 import 'package:herculex/features/analytics/domain/weekly_muscle_volume.dart';
 import 'package:herculex/features/health/presentation/health_providers.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
-import 'package:herculex/services/widget_sync_service.dart';
+import 'package:herculex/services/platform/widget_sync_service.dart';
 
 final analyticsRepositoryProvider = Provider<AnalyticsRepository>((ref) {
   return AnalyticsRepository(ref.watch(appDatabaseProvider));

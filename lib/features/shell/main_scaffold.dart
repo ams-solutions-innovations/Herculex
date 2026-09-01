@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/hx_nav_bar.dart';
 import 'package:herculex/design_system/components/live_workout_banner.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_providers.dart';
@@ -19,8 +20,8 @@ import 'package:herculex/features/supplements/presentation/supplement_edit_sheet
 import 'package:herculex/features/workouts/presentation/exercise_ai_scan_dialog.dart';
 import 'package:herculex/features/workouts/presentation/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/workouts_view.dart';
-import 'package:herculex/services/app_shortcuts_service.dart';
-import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
+import 'package:herculex/services/platform/app_shortcuts_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// The four-tab home shell. Bottom-nav index drives which feature view
@@ -150,7 +151,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         case AiScanContextType.dreamPhysique:
           ref.read(mainTabIndexProvider.notifier).state = 3;
           if (mounted) {
-            context.push('/profile/dream-physique');
+            context.push(AppRoutes.dreamPhysique);
           }
           break;
 

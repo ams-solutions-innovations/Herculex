@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/services/active_workout_surface_sync_policy.dart';
+import 'package:herculex/services/platform/active_workout_surface_sync_policy.dart';
 
 /// Stand-in for `WorkoutSessionData` — the policy is generic over the session
 /// type precisely so it can be reasoned about without the Drift row.

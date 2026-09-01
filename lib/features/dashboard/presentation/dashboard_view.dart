@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -394,7 +395,7 @@ class FastingTimerWidget extends ConsumerWidget {
           }
 
           return InkWell(
-            onTap: () => context.push('/fasting'),
+            onTap: () => context.push(AppRoutes.fasting),
             borderRadius: BorderRadius.circular(28),
             child: Container(
               padding: const EdgeInsets.all(32),
@@ -595,7 +596,7 @@ class FastingTimerWidget extends ConsumerWidget {
           final nextFast = ref.watch(nextScheduledFastProvider);
 
           return InkWell(
-            onTap: () => context.push('/fasting'),
+            onTap: () => context.push(AppRoutes.fasting),
             borderRadius: BorderRadius.circular(28),
             child: Container(
               padding: const EdgeInsets.all(28),
@@ -719,7 +720,7 @@ class FastingTimerWidget extends ConsumerWidget {
                   ],
                   const SizedBox(height: 20),
                   InkWell(
-                    onTap: () => context.push('/fasting'),
+                    onTap: () => context.push(AppRoutes.fasting),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -771,7 +772,7 @@ class _ProfileAvatarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.trim().isEmpty ? 'A' : name.trim()[0].toUpperCase();
     return GestureDetector(
-      onTap: () => context.push('/profile'),
+      onTap: () => context.push(AppRoutes.profile),
       child: Container(
         width: 40,
         height: 40,

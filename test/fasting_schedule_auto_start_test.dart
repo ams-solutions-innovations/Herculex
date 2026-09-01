@@ -1,6 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/fasting/data/fasting_notification_scheduler.dart';
 import 'package:herculex/features/fasting/data/fasting_repository.dart';

@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';

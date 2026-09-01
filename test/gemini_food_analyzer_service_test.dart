@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
-import 'package:herculex/services/gemini_backend_service.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 void main() {
   test(

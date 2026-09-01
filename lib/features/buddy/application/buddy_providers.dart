@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/env.dart';
+import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/data/sync/sync_id_resolver.dart';
 import 'package:herculex/features/buddy/application/buddy_choreography_sender.dart';
 import 'package:herculex/features/buddy/application/buddy_session_controller.dart';

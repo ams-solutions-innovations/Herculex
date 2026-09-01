@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/services/gemini_backend_service.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 void main() {
   group('DreamPhysiqueService', () {

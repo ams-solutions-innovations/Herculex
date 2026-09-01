@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
@@ -44,7 +45,7 @@ class MiniWorkoutsCard extends ConsumerWidget {
                 children: [
                   Flexible(
                     child: InkWell(
-                      onTap: () => context.push('/micro-workouts'),
+                      onTap: () => context.push(AppRoutes.microWorkouts),
                       borderRadius: BorderRadius.circular(8),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -230,7 +231,7 @@ class MiniWorkoutsCard extends ConsumerWidget {
           // Exercise artwork or glyph
           if (item.exercise != null)
             GestureDetector(
-              onTap: () => context.push('/micro-workouts'),
+              onTap: () => context.push(AppRoutes.microWorkouts),
               child: ExerciseArtwork(
                 exercise: item.exercise!,
                 size: 32,
@@ -260,7 +261,7 @@ class MiniWorkoutsCard extends ConsumerWidget {
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => context.push('/micro-workouts'),
+              onTap: () => context.push(AppRoutes.microWorkouts),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/dashboard_shared.dart';
 import 'package:herculex/features/health/domain/cycle_adjuster.dart';
@@ -39,7 +40,7 @@ class CycleFocusCard extends ConsumerWidget {
 
         return dashboardCard(
           accent: phaseColor,
-          onTap: () => context.push('/cycle'),
+          onTap: () => context.push(AppRoutes.cycle),
           padding: const EdgeInsets.all(20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

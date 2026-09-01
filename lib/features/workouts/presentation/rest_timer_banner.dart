@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/presentation/rest_timer_controller.dart';
 

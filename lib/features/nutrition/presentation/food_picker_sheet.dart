@@ -24,7 +24,7 @@ import 'package:herculex/features/nutrition/presentation/meal_slots_provider.dar
 import 'package:herculex/features/nutrition/presentation/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/presentation/rambler_food_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/recipe_builder_view.dart';
-import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Tabbed bottom sheet: All · My Meals · My Recipes · My Foods.

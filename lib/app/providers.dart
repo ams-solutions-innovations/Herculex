@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herculex/core/env.dart';
+import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/sync/supabase_sync_backend_service.dart';
 import 'package:herculex/data/sync/sync_backend_service.dart';
@@ -20,7 +20,7 @@ import 'package:herculex/features/workouts/data/exercise_progressions_repository
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
-export '../core/clock.dart' show clockProvider;
+export 'package:herculex/core/utils/clock.dart' show clockProvider;
 
 /// Overridden in main() once SharedPreferences has been initialised.
 final sharedPreferencesProvider = Provider<SharedPreferences>((_) {

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/auth_validator.dart';
+import 'package:herculex/core/utils/auth_validator.dart';
 
 void main() {
   group('AuthValidator Email Validation', () {

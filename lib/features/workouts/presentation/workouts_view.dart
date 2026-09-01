@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_top_tabs.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
@@ -253,7 +254,7 @@ class _SessionTile extends ConsumerWidget {
       child: ListTile(
         onTap: deleteMode
             ? onDelete
-            : () => context.push('/workout-history/${session.id}'),
+            : () => context.push(AppPaths.workoutHistory(session.id)),
         onLongPress: onLongPress,
         title: Text(
           _displayName(session),
@@ -298,7 +299,7 @@ class _SessionTile extends ConsumerWidget {
           tooltip: deleteMode ? 'Delete workout' : null,
           onPressed: deleteMode
               ? onDelete
-              : () => context.push('/workout-history/${session.id}'),
+              : () => context.push(AppPaths.workoutHistory(session.id)),
         ),
       ),
     );

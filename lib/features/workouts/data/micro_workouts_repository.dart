@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:uuid/uuid.dart';
 

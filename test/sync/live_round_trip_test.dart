@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/env.dart';
+import 'package:herculex/core/utils/env.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/sync/supabase_sync_backend_service.dart';
 import 'package:herculex/data/sync/sync_backend_service.dart';

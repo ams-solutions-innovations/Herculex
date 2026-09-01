@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/analytics/presentation/analytics_providers.dart';
 import 'package:herculex/features/analytics/presentation/widgets/muscle_recovery_row.dart';
@@ -17,7 +18,7 @@ class CnsTrendCard extends ConsumerWidget {
     final trends = ref.watch(cnsTrendsProvider);
 
     return InkWell(
-      onTap: () => context.push('/cns'),
+      onTap: () => context.push(AppRoutes.cns),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(20),

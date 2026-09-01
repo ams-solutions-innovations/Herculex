@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -488,7 +489,7 @@ class _WorkoutSessionCard extends StatelessWidget {
               InkWell(
                 onTap: () {
                   Haptics.selection();
-                  context.push('/workout-history/${session.sessionId}');
+                  context.push(AppPaths.workoutHistory(session.sessionId));
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
@@ -607,7 +608,7 @@ class _ExerciseSection extends StatelessWidget {
               child: InkWell(
                 onTap: () {
                   Haptics.selection();
-                  context.push('/exercise/${exercise.exerciseId}');
+                  context.push(AppPaths.exercise(exercise.exerciseId));
                 },
                 borderRadius: BorderRadius.circular(4),
                 child: Row(

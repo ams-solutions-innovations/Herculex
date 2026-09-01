@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/supplements/data/supplement_ai_service.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
-import 'package:herculex/services/gemini_backend_service.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 void main() {
   group('SupplementAiService', () {

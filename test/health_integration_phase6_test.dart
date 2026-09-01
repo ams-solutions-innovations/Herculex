@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:health/health.dart';
 
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/data/health_adapter.dart';
 import 'package:herculex/features/health/data/health_service.dart';

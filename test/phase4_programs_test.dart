@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/program_csv_io.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';

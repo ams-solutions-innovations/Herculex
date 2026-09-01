@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herculex/core/env.dart';
+import 'package:herculex/core/utils/env.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// A row from the shared/public `product_catalogue` table — community

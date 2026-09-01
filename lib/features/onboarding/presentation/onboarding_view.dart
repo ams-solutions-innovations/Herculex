@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/auth_validator.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/utils/auth_validator.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -78,7 +79,7 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
     );
     await ref.read(localProfileRepositoryProvider).save(profile);
     if (!mounted) return;
-    context.go('/app');
+    context.go(AppRoutes.app);
   }
 
   Future<void> _submitEmailAuth({required bool register}) async {

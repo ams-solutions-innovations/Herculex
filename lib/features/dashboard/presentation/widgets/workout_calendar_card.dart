@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
@@ -353,7 +354,7 @@ class WorkoutCalendarCard extends ConsumerWidget {
             const SizedBox(height: 6),
             for (final sess in summary.completedSessions) ...[
               InkWell(
-                onTap: () => context.push('/workout-history/${sess.id}'),
+                onTap: () => context.push(AppPaths.workoutHistory(sess.id)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(

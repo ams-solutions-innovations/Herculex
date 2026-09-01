@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/core/clock.dart';
-import 'package:herculex/core/units.dart';
+import 'package:herculex/core/utils/clock.dart';
+import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 import 'package:herculex/features/profile/domain/profile.dart';

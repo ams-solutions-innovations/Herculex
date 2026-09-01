@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
 import 'package:herculex/data/local/database.dart';
@@ -143,7 +144,7 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
           IconButton(
             icon: const Icon(Icons.donut_small_outlined),
             tooltip: 'Nutrient overview',
-            onPressed: () => context.push('/nutrient-overview'),
+            onPressed: () => context.push(AppRoutes.nutrientOverview),
           ),
           Expanded(
             child: Row(
@@ -194,13 +195,13 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
             onSelected: (value) {
               switch (value) {
                 case 'targets':
-                  context.push('/nutrition-targets');
+                  context.push(AppRoutes.nutritionTargets);
                   break;
                 case 'nutrients':
-                  context.push('/nutrition-nutrients');
+                  context.push(AppRoutes.nutritionNutrients);
                   break;
                 case 'meal_slots':
-                  context.push('/nutrition-meal-slots');
+                  context.push(AppRoutes.nutritionMealSlots);
                   break;
               }
             },

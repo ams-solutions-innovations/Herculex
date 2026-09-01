@@ -10,7 +10,7 @@ import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/services/pending_ai_scan_service.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 class DreamPhysiqueView extends ConsumerStatefulWidget {
