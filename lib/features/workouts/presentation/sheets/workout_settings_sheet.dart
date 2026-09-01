@@ -4,7 +4,6 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
-import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/data/workout_quick_action_settings.dart';
 import 'package:herculex/features/workouts/presentation/sheets/plate_calculator_sheet.dart';

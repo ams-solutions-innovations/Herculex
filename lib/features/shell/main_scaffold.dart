@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/hx_nav_bar.dart';
-import 'package:herculex/design_system/components/live_workout_banner.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_view.dart';
 import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
@@ -20,6 +19,7 @@ import 'package:herculex/features/supplements/presentation/supplement_edit_sheet
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/dialogs/exercise_ai_scan_dialog.dart';
 import 'package:herculex/features/workouts/presentation/views/workouts_view.dart';
+import 'package:herculex/features/workouts/presentation/widgets/live_workout_banner.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:herculex/services/platform/app_shortcuts_service.dart';
 import 'package:image_picker/image_picker.dart';

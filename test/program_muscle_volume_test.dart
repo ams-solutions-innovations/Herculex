@@ -1,12 +1,9 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/features/programs/data/program_csv_io.dart';
-import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/program_csv.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
-import 'package:herculex/features/programs/domain/split_template.dart';
 
 import 'support/test_database.dart';
 

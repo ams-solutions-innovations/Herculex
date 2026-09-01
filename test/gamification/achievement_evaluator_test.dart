@@ -4,8 +4,6 @@ import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 import 'package:herculex/features/gamification/domain/achievement_evaluator.dart';
-import 'package:herculex/features/profile/domain/profile.dart';
-import 'package:herculex/features/workouts/domain/effective_load.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
 ExerciseCatalogData _ex(

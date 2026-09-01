@@ -1,10 +1,8 @@
-import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/fasting/data/fasting_repository.dart';
 import 'package:herculex/features/fasting/data/fasting_stage_importer.dart';
-import 'package:herculex/features/fasting/domain/fasting_plan.dart';
 import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dart';
 import 'package:herculex/features/fasting/domain/fasting_stage.dart';
 import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';

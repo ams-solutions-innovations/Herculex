@@ -4,6 +4,18 @@ Status: **Phase 9 in progress 2026-08-15** (676 tests green, +4 skipped, 0 analy
 
 Full plan with per-phase tasks, risks, and verification lives in the approved implementation plan; this file tracks the phase ledger and decisions. Do not fold this into `.planning/ROADMAP.md` — GSD Phase 10 (assisted reps) is in flight and `lib/features/reps/` is off-limits to this track.
 
+> **Paths moved under this track (2026-09-01).** The `lib/` restructure folded
+> `lib/theme/`, `lib/ui/` and `lib/widgets/` into `lib/design_system/`
+> (`tokens/`, `theme/`, `components/`), so every path in this document has been
+> rewritten accordingly. Two items this roadmap still owns moved with it:
+> the `AppColors` shim is now `lib/design_system/theme/colors.dart`, and
+> `active_exercise_card.dart` (Phase 7's split) is now under
+> `lib/features/workouts/presentation/widgets/`. Both were deliberately left
+> functionally untouched. Imports are now absolute `package:herculex/...`
+> throughout, which makes the Phase 9 literal-colour sweep a good deal easier
+> to grep for. See `docs/ARCHITECTURE.md`. Also note the test count in the
+> Status line above is stale: the suite is now 1308 passing / 4 skipped.
+
 ## Decisions (user-approved 2026-08-14)
 
 1. **Foundation-first** phasing: quick wins → tokens/theme/font/light-mode → component library → navigation → tab-by-tab migration with feature work embedded.
@@ -17,8 +29,8 @@ Full plan with per-phase tasks, risks, and verification lives in the approved im
 | Phase | Scope | Size | Status |
 |---|---|---|---|
 | 0 | Quick wins: macro colors/icons, tappable weekly-calories banner + minimal stats page (`/nutrition/weekly-stats`), fasting pinned buttons + shared `confirmEndFast` dialog on the dashboard card, uncap fasting history (10 + View all), chart helpers extracted to `nutrition/presentation/widgets/macro_chart.dart` | S | **Code-complete** |
-| 1 | Design foundation: `lib/theme/tokens/` (palette with domain accents, spacing, radii, motion), `AppColors` compat shim + `context.hx` ThemeExtension, light-mode surface separation, white-on-white fixes, bundled fonts, Dashboard identity prototype. **Checkpoint: identity approval.** | L | **Code-complete** |
-| 2 | Component library `lib/ui/`: HxGlass, HxCard, HxPill/HxTextPill, HxStatTile, HxBackButton/HxCircleButton (frosted), HxScreenShell (fade-on-scroll header + pinned CTA slot), HxSheet, HxTopTabs | M–L | **Code-complete** |
+| 1 | Design foundation: `lib/design_system/tokens/` (palette with domain accents, spacing, radii, motion), `AppColors` compat shim + `context.hx` ThemeExtension, light-mode surface separation, white-on-white fixes, bundled fonts, Dashboard identity prototype. **Checkpoint: identity approval.** | L | **Code-complete** |
+| 2 | Component library `lib/design_system/components/`: HxGlass, HxCard, HxPill/HxTextPill, HxStatTile, HxBackButton/HxCircleButton (frosted), HxScreenShell (fade-on-scroll header + pinned CTA slot), HxSheet, HxTopTabs | M–L | **Code-complete** |
 | 3 | Navigation: HxNavBar (4 tabs + center "+"), quick-add overlay menu, route registration, OS quick-actions reconciliation | M | **Code-complete** |
 | 4 | Dashboard + Nutrition migration: split `dashboard_widgets.dart`, full weekly-calories stats page, swipeable trend cards replace inline charts, per-macro dashboard customization, food-entry pills | L | **Code-complete** (Nutrition tab-wide `HxScreenShell`/`HxSheet` migration deliberately descoped — see outcome) |
 | 5 | Fasting page (`/fasting`) replacing the 1,129-line sheet: Quick Fast first, pinned CTAs, clock motif, long-press delete | M | **Code-complete** |
@@ -33,17 +45,17 @@ Full plan with per-phase tasks, risks, and verification lives in the approved im
 
 **A latent bug this uncovered:** `ThemeData.fontFamily` does not reach a `textTheme` passed through `copyWith`, so the app had been rendering in the platform default all along — bundling `Inter` alone would not have changed anything. Every style now names its family explicitly.
 
-**Color.** `HxColors` (`lib/theme/tokens/hx_colors.dart`) is the single source of truth: two const palettes registered as a `ThemeExtension` and read as `context.hx`. `AppColors` is now a thin shim over it, so the ~1,500 legacy call sites keep working unchanged while tabs migrate. Light mode gained a real surface ladder — page `#E4EFFC`, cards `#F5F9FF`, sheets `#FFFFFF` — which is what fixes cards vanishing inside sheets. `primaryText` is the darkened variant for text (light `#0063CC` clears 4.5:1; the vivid `#0A84FF` stays for fills). Domain accents: training blue, nutrition green, fasting teal, recovery violet.
+**Color.** `HxColors` (`lib/design_system/tokens/hx_colors.dart`) is the single source of truth: two const palettes registered as a `ThemeExtension` and read as `context.hx`. `AppColors` is now a thin shim over it, so the ~1,500 legacy call sites keep working unchanged while tabs migrate. Light mode gained a real surface ladder — page `#E4EFFC`, cards `#F5F9FF`, sheets `#FFFFFF` — which is what fixes cards vanishing inside sheets. `primaryText` is the darkened variant for text (light `#0063CC` clears 4.5:1; the vivid `#0A84FF` stays for fills). Domain accents: training blue, nutrition green, fasting teal, recovery violet.
 
 **Startup.** Brightness now resolves in `main()` from the saved mode plus the platform value before the first frame, so a light-mode device no longer flashes dark surfaces. `theme_provider` no longer assumes `system` means dark.
 
 **Prototype.** The Dashboard header is left-aligned with a time-of-day greeting over the name in Space Grotesk, and the fasting card is fully teal (ring, labels, both CTAs) to demonstrate domain color-coding.
 
-**Deferred to later phases as planned:** the migration-enforcement script (P2 onward, once `lib/ui/` exists), removing the `ValueKey` rebuild hack in `app.dart` and deleting the shim (P9).
+**Deferred to later phases as planned:** the migration-enforcement script (P2 onward, once `lib/design_system/components/` exists), removing the `ValueKey` rebuild hack in `app.dart` and deleting the shim (P9).
 
 ## Phase 2 outcome
 
-`lib/ui/` now holds the shared primitives, exported through `lib/ui/ui.dart`.
+`lib/design_system/components/` now holds the shared primitives, exported through `lib/design_system/components/components.dart`.
 
 **`HxGlass`** is the frosted-glass base: backdrop blur, translucent themed fill, hairline border — and deliberately no colored shadow or bloom, which is the standing rule for every glass surface including the Phase 3 nav bar. `GlassContainer` (11 adopters) is now a thin adapter over it, so its hardcoded hex fallbacks that never matched light mode are gone.
 
@@ -61,11 +73,11 @@ Full plan with per-phase tasks, risks, and verification lives in the approved im
 
 **Known trade-off, deliberately deferred:** while a workout session is active, `WorkoutsView` shows `ActiveWorkoutView` full-screen and the segmented control (hence Programs) is not reachable — this exactly matches how Templates already behaved before this phase, so it's not a new regression, just Programs now inheriting it. Revisit if Phase 7 reshapes the active-session header.
 
-**`HxNavBar`** (`lib/ui/hx_nav_bar.dart`) replaces the deleted `floating_nav_bar.dart`: frosted pill shell, sliding-position mechanics, and per the checkpoint feedback the selected bubble is a flat filled circle with **no colored shadow and no halo pulse**. **Follow-up feedback after first review**: the "+" moved out of the pill entirely — it is now a separate circular glass button riding outside the main bar on the right, in its own `quickAdd` accent color (a warm amber, new token in `HxColors`) distinct from both the neutral bar glass and the primary selection fill, so it never reads as a fifth destination. It rotates 45° via `AnimatedRotation` while the quick-add menu is open.
+**`HxNavBar`** (`lib/design_system/components/hx_nav_bar.dart`) replaces the deleted `floating_nav_bar.dart`: frosted pill shell, sliding-position mechanics, and per the checkpoint feedback the selected bubble is a flat filled circle with **no colored shadow and no halo pulse**. **Follow-up feedback after first review**: the "+" moved out of the pill entirely — it is now a separate circular glass button riding outside the main bar on the right, in its own `quickAdd` accent color (a warm amber, new token in `HxColors`) distinct from both the neutral bar glass and the primary selection fill, so it never reads as a fifth destination. It rotates 45° via `AnimatedRotation` while the quick-add menu is open.
 
 **`QuickAddMenu`** (`lib/features/shell/quick_add_menu.dart`): implemented as a `Positioned` overlay inside `MainScaffold`'s existing `Stack` rather than `OverlayPortal` — same visual result (backdrop + floating items above the nav bar), less machinery to keep in sync with the scaffold's own state. Five context-aware actions, each domain-tinted: Log food, Scan barcode, Log weight, Quick workout, and Start Quick Fast ↔ End Fast depending on `activeFastingSessionProvider`. Items reveal staggered outward from the "+" (closest item first) with a fade + scale + slide-up driven by one `AnimationController`; reversing it before `onClose` fires makes the close feel symmetric with the open.
 
-Three flows were extracted from private, single-use methods into shared functions so both the dashboard cards and the quick-add menu call the same code: `quickLogWeight` (`features/measurements/presentation/quick_log_weight.dart`), `scanAndLogFood` (`features/nutrition/presentation/quick_scan_food.dart`), reusing the already-shared `confirmEndFast` from Phase 0. `app_shortcuts_service.dart`'s hardcoded Slovenian shortcut labels are now English, matching the rest of the app.
+Three flows were extracted from private, single-use methods into shared functions so both the dashboard cards and the quick-add menu call the same code: `quickLogWeight` (`features/measurements/presentation/quick_log_weight.dart`), `scanAndLogFood` (`features/nutrition/presentation/widgets/quick_scan_food.dart`), reusing the already-shared `confirmEndFast` from Phase 0. `app_shortcuts_service.dart`'s hardcoded Slovenian shortcut labels are now English, matching the rest of the app.
 
 **Not yet a real "quick fast":** `startSession` takes a required `targetSeconds`, so Quick Fast currently starts a 24h ceiling session rather than a truly open-ended one (`kQuickFastTargetSeconds` in `quick_add_menu.dart`, called out for Phase 5 to replace with a nullable-target repository change).
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:herculex/core/utils/units.dart';
 
 enum FitnessGoal {
   weightLoss,
@@ -46,16 +47,6 @@ enum BiologicalSex {
   String get label => switch (this) {
     BiologicalSex.male => 'Male',
     BiologicalSex.female => 'Female',
-  };
-}
-
-enum MeasurementUnit {
-  metric,
-  imperial;
-
-  String get label => switch (this) {
-    MeasurementUnit.metric => 'Metric (kg, cm)',
-    MeasurementUnit.imperial => 'Freedom (lb, in)',
   };
 }
 

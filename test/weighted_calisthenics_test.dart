@@ -4,7 +4,6 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/domain/training_snapshot.dart';
-import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';

@@ -1,7 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/features/profile/domain/profile.dart';
+
+/// The measurement system the user picked.
+///
+/// Lives here rather than in the profile's domain because it is a unit
+/// concept, not a profile one: core/ may not depend on a feature, and
+/// units.dart needs it. Profile re-imports it from here.
+enum MeasurementUnit {
+  metric,
+  imperial;
+
+  String get label => switch (this) {
+    MeasurementUnit.metric => 'Metric (kg, cm)',
+    MeasurementUnit.imperial => 'Freedom (lb, in)',
+  };
+}
 
 /// Conversion and formatting for the user's chosen measurement system.
 ///
