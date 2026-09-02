@@ -98,6 +98,133 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
 
   StreamSubscription<List<String>>? _presenceSubscription;
 
+  /// Resumes a Gym Buddy session that survived a killed-and-reopened app.
+  ///
+  /// Every other entry point ([hostFromActiveWorkout], [joinFromScan]) is a
+  /// one-shot UI action, so nothing previously reconstructed [state] when
+  /// the process restarted mid-session: `buddySessionControllerProvider`
+  /// came back with the default, not-sharing state even while
+  /// `buddy_sessions_local` still had a live row and the shared exercise
+  /// list was sitting durably in `buddy_session_events`. Call this once at
+  /// app startup, the same idiom `app.dart` already uses for fasting
+  /// schedules and pending workout notifications.
+  ///
+  /// Best-effort by design, matching those siblings: any failure here
+  /// (no backend configured, no network, a stale row) leaves the app on its
+  /// normal not-sharing state rather than surfacing an error at startup.
+  Future<void> resumeIfActive() async {
+    try {
+      final local =
+          await (_db.select(_db.buddySessionsLocal)
+                ..where((t) => t.endedAt.isNull())
+                ..orderBy([
+                  (t) => OrderingTerm(
+                    expression: t.joinedAt,
+                    mode: OrderingMode.desc,
+                  ),
+                ])
+                ..limit(1))
+              .getSingleOrNull();
+      if (local == null) return;
+
+      // The workout itself may have finished or been discarded while the
+      // app was closed — `WorkoutsRepository` has no reason to know about
+      // `buddy_sessions_local`, so that path cannot have closed this row on
+      // its own. Reconcile it here rather than resuming a session for a
+      // workout that no longer exists.
+      final workoutStillActive =
+          await (_db.select(_db.workoutSessions)..where(
+                (t) => t.id.equals(local.workoutSessionId) & t.endedAt.isNull(),
+              ))
+              .getSingleOrNull() !=
+          null;
+      if (!workoutStillActive) {
+        await (_db.update(_db.buddySessionsLocal)
+              ..where((t) => t.buddySessionId.equals(local.buddySessionId)))
+            .write(BuddySessionsLocalCompanion(endedAt: Value(DateTime.now())));
+        return;
+      }
+
+      state = BuddySessionState(
+        buddySessionId: local.buddySessionId,
+        isHost: local.role == 'host',
+        isLive: false,
+        partner: local.partnerDisplayName != null
+            ? BuddyParticipant(
+                userId: 'partner',
+                displayName: local.partnerDisplayName!,
+                avatarUrl: local.partnerAvatarUrl,
+              )
+            : null,
+      );
+
+      await _attachLive(
+        buddySessionId: local.buddySessionId,
+        lastSeenSeq: local.lastSeenSeq,
+        localWorkoutSessionId: local.workoutSessionId,
+      );
+    } catch (_) {
+      // Backend unconfigured, offline, or a genuinely gone session — the app
+      // starts in its normal not-sharing state, same as any other build.
+    }
+  }
+
+  /// Shared by [hostFromActiveWorkout], [joinFromScan] and [resumeIfActive]:
+  /// builds the slot store and applier for [buddySessionId], wires the
+  /// presence listener, and opens the channel starting from [lastSeenSeq] —
+  /// 0 for a fresh host/join, the persisted value for a resume.
+  Future<void> _attachLive({
+    required String buddySessionId,
+    required int lastSeenSeq,
+    required int localWorkoutSessionId,
+  }) async {
+    final slots = BuddySlotStore(_db, buddySessionId);
+    final applier = BuddyChoreographyApplier(
+      db: _db,
+      workouts: _workouts,
+      resolver: _resolver,
+      slots: slots,
+      localWorkoutSessionId: localWorkoutSessionId,
+      onNotice: (outcome, msg) {
+        state = state.copyWith(notice: () => msg);
+      },
+    );
+
+    _presenceSubscription?.cancel();
+    _presenceSubscription = _channelService.presentUserIds.listen((ids) {
+      final otherIds = ids.where((id) => id != _currentUserId).toList();
+      if (otherIds.isNotEmpty) {
+        state = state.copyWith(
+          pendingJoinToken: () => null,
+          partner: () =>
+              BuddyParticipant(userId: otherIds.first, displayName: 'Gym Buddy'),
+          isLive: true,
+        );
+      }
+    });
+
+    await _channelService.connect(
+      buddySessionId: buddySessionId,
+      lastSeenSeq: lastSeenSeq,
+      userId: _currentUserId,
+      displayName: _currentDisplayName,
+      apply: (e) async {
+        if (e.kind == BuddyEventKind.sessionEnded) {
+          await _handleSessionEnded();
+          return;
+        }
+        await applier.apply(e);
+      },
+      commitSeq: (seq) async {
+        await (_db.update(_db.buddySessionsLocal)
+              ..where((t) => t.buddySessionId.equals(buddySessionId)))
+            .write(BuddySessionsLocalCompanion(lastSeenSeq: Value(seq)));
+      },
+    );
+
+    state = state.copyWith(isLive: true);
+  }
+
   Future<String> hostFromActiveWorkout() async {
     final activeSession =
         await (_db.select(_db.workoutSessions)
@@ -149,57 +276,17 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
           ),
         );
 
-    final slots = BuddySlotStore(_db, buddySessionId);
-    final applier = BuddyChoreographyApplier(
-      db: _db,
-      workouts: _workouts,
-      resolver: _resolver,
-      slots: slots,
-      localWorkoutSessionId: activeSession.id,
-      onNotice: (outcome, msg) {
-        state = state.copyWith(notice: () => msg);
-      },
-    );
-
-    _presenceSubscription?.cancel();
-    _presenceSubscription = _channelService.presentUserIds.listen((ids) {
-      final otherIds = ids.where((id) => id != _currentUserId).toList();
-      if (otherIds.isNotEmpty) {
-        state = state.copyWith(
-          pendingJoinToken: () => null,
-          partner: () => BuddyParticipant(
-            userId: otherIds.first,
-            displayName: 'Gym Buddy',
-          ),
-          isLive: true,
-        );
-      }
-    });
-
-    await _channelService.connect(
-      buddySessionId: buddySessionId,
-      lastSeenSeq: 0,
-      userId: _currentUserId,
-      displayName: _currentDisplayName,
-      apply: (e) async {
-        if (e.kind == BuddyEventKind.sessionEnded) {
-          await _handleSessionEnded();
-          return;
-        }
-        await applier.apply(e);
-      },
-      commitSeq: (seq) async {
-        await (_db.update(_db.buddySessionsLocal)
-              ..where((t) => t.buddySessionId.equals(buddySessionId)))
-            .write(BuddySessionsLocalCompanion(lastSeenSeq: Value(seq)));
-      },
-    );
-
     state = BuddySessionState(
       buddySessionId: buddySessionId,
       pendingJoinToken: joinToken,
       isHost: true,
-      isLive: true,
+      isLive: false,
+    );
+
+    await _attachLive(
+      buddySessionId: buddySessionId,
+      lastSeenSeq: 0,
+      localWorkoutSessionId: activeSession.id,
     );
 
     return joinToken;
@@ -275,56 +362,17 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
           ),
         );
 
-    final slots = BuddySlotStore(_db, buddySessionId);
-    final applier = BuddyChoreographyApplier(
-      db: _db,
-      workouts: _workouts,
-      resolver: _resolver,
-      slots: slots,
-      localWorkoutSessionId: workoutSessionId,
-      onNotice: (outcome, msg) {
-        state = state.copyWith(notice: () => msg);
-      },
-    );
-
-    _presenceSubscription?.cancel();
-    _presenceSubscription = _channelService.presentUserIds.listen((ids) {
-      final otherIds = ids.where((id) => id != _currentUserId).toList();
-      if (otherIds.isNotEmpty) {
-        state = state.copyWith(
-          partner: () => BuddyParticipant(
-            userId: otherIds.first,
-            displayName: 'Gym Buddy',
-          ),
-          isLive: true,
-        );
-      }
-    });
-
-    await _channelService.connect(
-      buddySessionId: buddySessionId,
-      lastSeenSeq: 0,
-      userId: _currentUserId,
-      displayName: _currentDisplayName,
-      apply: (e) async {
-        if (e.kind == BuddyEventKind.sessionEnded) {
-          await _handleSessionEnded();
-          return;
-        }
-        await applier.apply(e);
-      },
-      commitSeq: (seq) async {
-        await (_db.update(_db.buddySessionsLocal)
-              ..where((t) => t.buddySessionId.equals(buddySessionId)))
-            .write(BuddySessionsLocalCompanion(lastSeenSeq: Value(seq)));
-      },
-    );
-
     state = BuddySessionState(
       buddySessionId: buddySessionId,
       isHost: false,
-      isLive: true,
+      isLive: false,
       partner: const BuddyParticipant(userId: 'host', displayName: 'Gym Buddy'),
+    );
+
+    await _attachLive(
+      buddySessionId: buddySessionId,
+      lastSeenSeq: 0,
+      localWorkoutSessionId: workoutSessionId,
     );
   }
 

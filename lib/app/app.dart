@@ -15,6 +15,7 @@ import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/theme_provider.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/buddy/application/buddy_providers.dart';
 import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/data/fasting_schedule_action_queue.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
@@ -96,6 +97,14 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     // the app last closed still need to reach the notification plugin —
     // full rehydrate on every launch, same reasoning as workout actions.
     Future<void>.microtask(_rehydrateFastingSchedules);
+    // Same reasoning again: buddySessionControllerProvider comes back with
+    // its default not-sharing state on every cold start, even when
+    // buddy_sessions_local still has a live row and the shared exercise
+    // list is sitting durably in the event log. Without this, a killed and
+    // reopened app silently drops out of an active Gym Buddy session.
+    Future<void>.microtask(
+      () => ref.read(buddySessionControllerProvider.notifier).resumeIfActive(),
+    );
     Future<void>.microtask(() {
       ref.read(notificationSyncServiceProvider).syncAll();
     });

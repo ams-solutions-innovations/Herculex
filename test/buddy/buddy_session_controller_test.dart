@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
@@ -252,6 +253,123 @@ void main() {
           isTrue,
         );
         expect(controller.state.isSharing, isFalse);
+      },
+    );
+  });
+
+  group('resumeIfActive', () {
+    test(
+      'no local session: leaves state untouched and connects nothing',
+      () async {
+        await controller.resumeIfActive();
+
+        expect(controller.state.isSharing, isFalse);
+        expect(channelService.isConnected, isFalse);
+      },
+    );
+
+    test(
+      'a live local session reconnects from its persisted lastSeenSeq, not 0',
+      () async {
+        // Simulates a killed-and-reopened app: a host session that already
+        // exchanged some events, so lastSeenSeq is not the fresh-host 0 a
+        // reconnect must not regress to (that would replay events the
+        // applier already applied before the process died).
+        await workouts.startSession();
+        await controller.hostFromActiveWorkout();
+        final buddySessionId = controller.state.buddySessionId!;
+
+        await (db.update(db.buddySessionsLocal)
+              ..where((t) => t.buddySessionId.equals(buddySessionId)))
+            .write(const BuddySessionsLocalCompanion(lastSeenSeq: Value(7)));
+
+        // Fresh controller: the previous one's provider-held state is gone,
+        // exactly as it would be after a process restart.
+        final channelService2 = FakeBuddyChannelService(gateway: gateway);
+        final controller2 = BuddySessionController(
+          db: db,
+          gateway: gateway,
+          channelService: channelService2,
+          workouts: workouts,
+          resolver: resolver,
+          currentUserId: currentUserId,
+          currentDisplayName: 'Martin',
+        );
+        addTearDown(controller2.dispose);
+
+        await controller2.resumeIfActive();
+
+        expect(controller2.state.isSharing, isTrue);
+        expect(controller2.state.buddySessionId, buddySessionId);
+        expect(controller2.state.isHost, isTrue);
+        expect(channelService2.isConnected, isTrue);
+        expect(channelService2.connectedSessionId, buddySessionId);
+        expect(channelService2.connectedLastSeenSeq, 7);
+
+        // The token from before the restart is spent — a resume must not
+        // resurrect it and show a stale QR code.
+        expect(controller2.state.pendingJoinToken, isNull);
+      },
+    );
+
+    test('a guest resumes as guest, not host', () async {
+      await workouts.startSession();
+      final joinPayload = const BuddyJoinPayload('valid-token-789').encode();
+      await controller.joinFromScan(joinPayload);
+      final buddySessionId = controller.state.buddySessionId!;
+
+      final channelService2 = FakeBuddyChannelService(gateway: gateway);
+      final controller2 = BuddySessionController(
+        db: db,
+        gateway: gateway,
+        channelService: channelService2,
+        workouts: workouts,
+        resolver: resolver,
+        currentUserId: currentUserId,
+        currentDisplayName: 'Martin',
+      );
+      addTearDown(controller2.dispose);
+
+      await controller2.resumeIfActive();
+
+      expect(controller2.state.isHost, isFalse);
+      expect(controller2.state.buddySessionId, buddySessionId);
+    });
+
+    test(
+      'the linked workout already ended: closes the local row instead of resuming',
+      () async {
+        final workoutId = await workouts.startSession();
+        await controller.hostFromActiveWorkout();
+        final buddySessionId = controller.state.buddySessionId!;
+
+        // The workout finished (or was discarded) while the app was closed —
+        // nothing about that path touches buddy_sessions_local, so a resume
+        // has to reconcile it rather than reconnect a channel for a workout
+        // that no longer exists.
+        await workouts.endSession(workoutId);
+
+        final channelService2 = FakeBuddyChannelService(gateway: gateway);
+        final controller2 = BuddySessionController(
+          db: db,
+          gateway: gateway,
+          channelService: channelService2,
+          workouts: workouts,
+          resolver: resolver,
+          currentUserId: currentUserId,
+          currentDisplayName: 'Martin',
+        );
+        addTearDown(controller2.dispose);
+
+        await controller2.resumeIfActive();
+
+        expect(controller2.state.isSharing, isFalse);
+        expect(channelService2.isConnected, isFalse);
+
+        final local = await (db.select(
+          db.buddySessionsLocal,
+        )..where((t) => t.buddySessionId.equals(buddySessionId))).getSingle();
+        expect(local.endedAt, isNotNull);
       },
     );
   });
