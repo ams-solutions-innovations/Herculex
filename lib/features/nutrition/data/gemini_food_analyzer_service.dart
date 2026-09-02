@@ -65,6 +65,12 @@ class GeminiBarcodeProductResult {
   final double? sodiumMgPer100g;
   final double confidence;
 
+  /// The URLs the grounded search actually read, when the server returned
+  /// any. Carried through to `product_catalogue_submissions` on publish:
+  /// the model's own answer is not evidence of anything, but the pages it
+  /// read are, and without them a wrong shared number is unfalsifiable.
+  final List<String> groundingSources;
+
   const GeminiBarcodeProductResult({
     required this.found,
     required this.name,
@@ -77,6 +83,7 @@ class GeminiBarcodeProductResult {
     this.fiberPer100g,
     this.sodiumMgPer100g,
     required this.confidence,
+    this.groundingSources = const [],
   });
 
   factory GeminiBarcodeProductResult.fromJson(Map<String, dynamic> json) {
@@ -95,8 +102,17 @@ class GeminiBarcodeProductResult {
         0.0,
         1.0,
       ),
+      groundingSources:
+          (json['groundingSources'] as List?)?.whereType<String>().toList() ??
+          const [],
     );
   }
+
+  /// What gets stored alongside the community submission. Null when the
+  /// lookup was ungrounded — an absent evidence trail is more honest than an
+  /// empty one that looks like it was checked.
+  Object? get evidence =>
+      groundingSources.isEmpty ? null : {'groundingSources': groundingSources};
 }
 
 class RamblerFoodItem {

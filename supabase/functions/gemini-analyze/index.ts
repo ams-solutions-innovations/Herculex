@@ -37,6 +37,30 @@ type GeminiRequest = {
 
 const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
+const supabaseUrl = Deno.env.get("SUPABASE_URL");
+const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+/// Dnevna kvota Gemini klicev na uporabnika, skupno cez vse `kind`-e.
+/// Nastavljiva prek projektne skrivnosti, da je ni treba redeployati.
+///
+/// Zakaj sploh obstaja: do migracije 0018 ni bilo NOBENEGA stevca. Vsak
+/// prijavljen uporabnik je lahko poslal sliko v zanki in edini signal bi bil
+/// racun od Googla ob koncu meseca. 50/dan je vec, kot jih realen uporabnik
+/// porabi (nekaj obrokov + kaksna naprava), in dovolj malo, da je skripta
+/// neuporabna.
+const dailyLimit = Number(Deno.env.get("GEMINI_DAILY_LIMIT") ?? "50");
+
+/// Najvecja base64 dolzina ene slike. Base64 je +33 %, torej je to ~1,9 MB
+/// izvirnika. Prej je bila meja 12 MB (~9 MB izvirnika) — cisto po
+/// nepotrebnem: Gemini slike interno skalira, tako da je edini ucinek vecje
+/// slike vec prenesenih bajtov in vec zaracunanih tokenov. Klient naj
+/// stisne na <= 1600 px, preden posilja.
+const maxImageBase64 = 2_600_000;
+
+/// Koliko slik sme en zahtevek nositi. `body_fat_estimate` in
+/// `dream_physique` sta edina, ki jih sprejmeta vec; brez meje bi lahko en
+/// zahtevek sam po sebi presegel 150-sekundni wall-clock limit funkcije.
+const maxImages = 4;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -51,11 +75,31 @@ Deno.serve(async (req) => {
     return json({ error: "Gemini is not configured on the server." }, 503);
   }
 
+  // verify_jwt = true (config.toml), torej je platforma podpis ze zavrnila,
+  // ce ni bil veljaven — tu beremo `sub` samo zato, da vemo, komu steti
+  // klic. Brez identitete ni kvote, zato je to trda zahteva.
+  const userId = callerUserId(req.headers.get("authorization"));
+  if (!userId) {
+    return json({ error: "Unauthorized." }, 401);
+  }
+
   let payload: GeminiRequest;
   try {
     payload = await req.json();
   } catch {
     return json({ error: "Invalid JSON request." }, 400);
+  }
+
+  const quota = await bumpUsage(userId, payload.kind ?? "unknown");
+  if (!quota.allowed) {
+    return json(
+      {
+        error: "Daily AI limit reached.",
+        used: quota.used,
+        limit: quota.limit,
+      },
+      429,
+    );
   }
 
   try {
@@ -119,6 +163,9 @@ Deno.serve(async (req) => {
         if (rawImages.length === 0) {
           return json({ error: "At least one image is required for body fat estimation." }, 400);
         }
+        if (rawImages.length > maxImages) {
+          return json({ error: `At most ${maxImages} images are allowed.` }, 400);
+        }
         const validImages: { mimeType: string; data: string }[] = [];
         for (const img of rawImages) {
           const validated = validateImage(img);
@@ -138,6 +185,9 @@ Deno.serve(async (req) => {
           : (payload.image ? [payload.image] : []);
         if (currentRaw.length === 0) {
           return json({ error: "Current physique image is required." }, 400);
+        }
+        if (currentRaw.length + 1 > maxImages) {
+          return json({ error: `At most ${maxImages} images are allowed.` }, 400);
         }
         if (!payload.targetImage) {
           return json({ error: "Target/dream physique image is required." }, 400);
@@ -192,8 +242,8 @@ function validateImage(raw: GeminiRequest["image"]):
   if (!["image/jpeg", "image/png", "image/webp"].includes(mimeType)) {
     return { error: "Unsupported image type." };
   }
-  if (data.length > 12_000_000) {
-    return { error: "Image is too large." };
+  if (data.length > maxImageBase64) {
+    return { error: "Image is too large. Compress it before uploading." };
   }
   return { mimeType, data };
 }
@@ -245,6 +295,34 @@ async function generate({
   responseMimeType?: string;
   tools?: Record<string, unknown>[];
 }): Promise<string> {
+  return (await generateRaw({
+    images,
+    promptText,
+    temperature,
+    responseMimeType,
+    tools,
+  })).text;
+}
+
+/// Same call as [generate], but hands back the whole response root as well.
+///
+/// Only the grounded barcode path needs it: the model's own answer is not
+/// evidence of anything, but the `groundingMetadata` it returns names the
+/// pages it actually read. Those URLs are what makes a disputed catalogue
+/// entry adjudicable later — without them a wrong number is unfalsifiable.
+async function generateRaw({
+  images,
+  promptText,
+  temperature,
+  responseMimeType,
+  tools,
+}: {
+  images: { mimeType: string; data: string }[];
+  promptText: string;
+  temperature: number;
+  responseMimeType?: string;
+  tools?: Record<string, unknown>[];
+}): Promise<{ text: string; root: Record<string, unknown> }> {
   const parts: Record<string, unknown>[] = [{ text: promptText }];
   for (const img of images) {
     parts.push({
@@ -287,7 +365,25 @@ async function generate({
   if (typeof text !== "string" || text.trim().length === 0) {
     throw new Error("Gemini returned an empty response.");
   }
-  return text;
+  return { text, root };
+}
+
+/// Pulls the source URLs out of a grounded response, if there are any.
+function groundingSources(root: Record<string, unknown>): string[] {
+  try {
+    // deno-lint-ignore no-explicit-any
+    const chunks = (root as any)?.candidates?.[0]?.groundingMetadata
+      ?.groundingChunks;
+    if (!Array.isArray(chunks)) return [];
+    const urls: string[] = [];
+    for (const chunk of chunks) {
+      const uri = chunk?.web?.uri;
+      if (typeof uri === "string" && uri.length > 0) urls.push(uri);
+    }
+    return urls.slice(0, 10);
+  } catch {
+    return [];
+  }
 }
 
 /// Grounded lookup for `barcode_product`: search-grounding `tools` and
@@ -304,14 +400,18 @@ async function generateGroundedJson({
   promptText: string;
 }): Promise<Record<string, unknown>> {
   try {
-    const text = await generate({
+    const { text, root } = await generateRaw({
       images: [image],
       promptText,
       temperature: 0.1,
       tools: [{ google_search: {} }],
     });
     const parsed = extractJsonObject(text);
-    if (parsed) return parsed;
+    if (parsed) {
+      const sources = groundingSources(root);
+      if (sources.length > 0) parsed.groundingSources = sources;
+      return parsed;
+    }
     throw new Error("Grounded response did not contain valid JSON.");
   } catch (error) {
     console.error("Grounded barcode lookup failed, falling back", error);
@@ -676,4 +776,70 @@ function json(body: Record<string, unknown>, status = 200): Response {
       "Content-Type": "application/json",
     },
   });
+}
+
+/// Bere `sub` iz ze preverjenega JWT — glej isto funkcijo v
+/// product-catalogue-publish.
+function callerUserId(authHeader: string | null): string | null {
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  const token = authHeader.slice("Bearer ".length);
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4 !== 0) base64 += "=";
+    const claims = JSON.parse(atob(base64));
+    return typeof claims.sub === "string" ? claims.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+/// Steje klic v `public.ai_usage` in pove, ali je dovoljen
+/// (`public.ai_usage_bump`, migracija 0018).
+///
+/// Steje se PRED klicem na Gemini, ne po njem: ce bi steli po uspehu, bi
+/// bila kvota obvod za vsakogar, ki zna sprozati zahtevke, ki padejo.
+/// Neuspesen Gemini klic tako uporabnika stane eno enoto kvote — namerno.
+///
+/// Ce stetje samo po sebi odpove (baza nedosegljiva), zahtevek SPUSTIMO
+/// naprej. AI analiza je uporabnikova funkcionalnost; izpad obracuna je
+/// nasa tezava, ne njegova. Ta izbira je pomembna in namerna — ce se kdaj
+/// obrne v "fail closed", naj bo to zavestna odlocitev, ne posledica
+/// refaktorja.
+async function bumpUsage(
+  userId: string,
+  kind: string,
+): Promise<{ allowed: boolean; used: number; limit: number }> {
+  const fallback = { allowed: true, used: 0, limit: dailyLimit };
+  if (!supabaseUrl || !serviceRoleKey) return fallback;
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/ai_usage_bump`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": serviceRoleKey,
+        "Authorization": `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        p_user_id: userId,
+        p_kind: kind,
+        p_daily_limit: dailyLimit,
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) {
+      console.error("ai_usage_bump failed", response.status, await response.text());
+      return fallback;
+    }
+    const body = await response.json();
+    return {
+      allowed: body?.allowed !== false,
+      used: Number(body?.used ?? 0),
+      limit: Number(body?.limit ?? dailyLimit),
+    };
+  } catch (error) {
+    console.error("ai_usage_bump threw", error);
+    return fallback;
+  }
 }

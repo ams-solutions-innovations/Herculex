@@ -183,6 +183,11 @@ class _BarcodeProductReviewDialogState
             sodiumMgPer100g: sodiumMgPer100g,
             servingGrams: servingGrams,
             servingLabel: '${servingGrams.toStringAsFixed(0)} g',
+            // Passed through to `product_catalogue_submissions` so a
+            // disputed entry can later be adjudicated against what the
+            // model actually claimed, and how sure it was.
+            confidence: _result?.confidence,
+            evidence: _result?.evidence,
           );
 
       if (!mounted) return;

@@ -1,9 +1,17 @@
-// Sole write path for the shared/public `product_catalogue` table (see
-// supabase/migrations/0012_product_catalogue.sql). The table's RLS grants no
-// insert/update policy to anon/authenticated roles, so this function is the
-// only thing that can ever add or correct a community product entry — it
-// authenticates the caller via the platform-verified JWT (verify_jwt = true
-// in config.toml) and writes with the service-role key, which bypasses RLS.
+// Vstopna tocka za edino pisalno pot v deljeno tabelo `product_catalogue`
+// (glej supabase/migrations/0012_product_catalogue.sql). Tabela nima
+// insert/update politike za anon/authenticated, zato je to edino, kar lahko
+// kdaj doda ali popravi vnos.
+//
+// Od migracije 0018 ta funkcija NE pise vec neposredno v tabelo. Vsa logika
+// (validacija, rate limit, konsenz, zgodovina oddaj) je v SECURITY DEFINER
+// funkciji `public.product_catalogue_submit`, ki jo klicemo s service-role
+// kljucem. Razlog je atomarnost: konsenz je read-modify-write, in dva
+// hkratna skena istega izdelka bi tu, v TypeScriptu, oba prebrala isto
+// stanje in oba pisala cez. V Postgresu je vse pod enim `for update`.
+//
+// Kar ostaja tu: preverjanje klicatelja (verify_jwt = true v config.toml,
+// plus branje `sub`), oblika zahtevka in preslikava izidov na HTTP kode.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +36,11 @@ type PublishRequest = {
   potassiumMgPer100g?: number | null;
   cholesterolMgPer100g?: number | null;
   source?: string;
+  confidence?: number | null;
+  /// Viri, ki jih je grounded Gemini iskanje uporabilo. Shranijo se v
+  /// `product_catalogue_submissions.payload` — brez njih ni nacina
+  /// preveriti, od kod je stevilka prisla.
+  evidence?: unknown;
 };
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -64,8 +77,17 @@ Deno.serve(async (req) => {
     return json({ error: "barcode, name and kcalPer100g are required." }, 400);
   }
 
+  // Cenena, hitra zavrnitev ocitnih smeti, preden gremo v bazo. Prave meje
+  // vsiljuje 0018 (CHECK constrainti + Atwater preverjanje v RPC-ju) — to
+  // je samo zato, da ocitno napacen zahtevek ne porabi rate-limit kvote.
+  if (!/^[0-9]{8,14}$/.test(barcode)) {
+    return json({ error: "Barcode must be 8-14 digits." }, 400);
+  }
+  if (name.length < 2 || name.length > 200) {
+    return json({ error: "Name must be 2-200 characters." }, 400);
+  }
+
   const row = {
-    barcode,
     name,
     brand: payload.brand ?? null,
     kcal_per_100g: payload.kcalPer100g,
@@ -79,32 +101,44 @@ Deno.serve(async (req) => {
     serving_grams: payload.servingGrams ?? null,
     serving_label: payload.servingLabel ?? null,
     reference_basis: payload.referenceBasis ?? "100 g",
-    source: payload.source ?? "gemini",
-    contributed_by: contributedBy,
-    updated_at: new Date().toISOString(),
+    evidence: payload.evidence ?? null,
   };
 
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/product_catalogue?on_conflict=barcode`,
+    `${supabaseUrl}/rest/v1/rpc/product_catalogue_submit`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "apikey": serviceRoleKey,
         "Authorization": `Bearer ${serviceRoleKey}`,
-        "Prefer": "resolution=merge-duplicates,return=minimal",
       },
-      body: JSON.stringify(row),
+      body: JSON.stringify({
+        p_user_id: contributedBy,
+        p_barcode: barcode,
+        p_payload: row,
+        p_source: payload.source ?? "gemini",
+        p_confidence: payload.confidence ?? null,
+      }),
     },
   );
 
   if (!response.ok) {
     const body = await response.text();
-    console.error("product_catalogue upsert failed", response.status, body);
+    // P0001 je rate limit, ki ga dvigne RPC. Locimo ga, ker klient nanj
+    // reagira drugace kot na napako streznika (tiho odneha, ne retry-ja).
+    if (body.includes("submission rate limit exceeded")) {
+      return json({ error: "Too many submissions. Try again later." }, 429);
+    }
+    console.error("product_catalogue_submit failed", response.status, body);
     return json({ error: "Failed to publish product." }, 502);
   }
 
-  return json({ ok: true });
+  const result = await response.json();
+  // status: published | confirmed | conflict | rejected. Vsi so 200 — z
+  // vidika klienta je prispevek oddan; kaj se je z njim zgodilo, je stvar
+  // kataloga, ne uporabnikovega toka.
+  return json({ ok: true, status: result?.status ?? "unknown" });
 });
 
 /// Extracts the `sub` claim from the already-platform-verified JWT on the

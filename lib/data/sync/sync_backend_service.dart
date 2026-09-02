@@ -5,6 +5,81 @@
 /// How many tombstones one [SyncBackendService.pullTombstones] page returns.
 const int tombstonePageSize = 1000;
 
+/// How many rows one [SyncBackendService.pull] / [pullExistingIds] page
+/// returns.
+///
+/// Supabase's PostgREST caps every response at the project's `db-max-rows`
+/// setting (**1000 by default**), and it does so *silently* — a truncated
+/// response is indistinguishable from a complete one. Before this constant
+/// existed, `pull` sent no `limit`, no `order` and no `range`, so a delta
+/// larger than that cap came back as an arbitrary, unordered 1000 rows and
+/// `_pullTable` then advanced its cursor to the largest `updated_at` in that
+/// batch — permanently skipping every older row the cap had cut off.
+///
+/// Kept comfortably under the default cap so the page boundary is decided
+/// here, by keyset paging we control, rather than by a server setting that
+/// can be changed in the dashboard without anyone touching this code.
+const int pullPageSize = 500;
+
+/// What kind of failure a [SyncBackendService] call hit. The distinction is
+/// load-bearing, not cosmetic: `SyncService` retries every failure eight
+/// times with backoff, so before this existed an expired JWT (which no
+/// number of retries can fix, and which a token refresh fixes instantly)
+/// quarantined the entire outbox in about twenty minutes, and a missing
+/// Postgres column (which no retry can fix either) burned eight attempts per
+/// row before going quiet.
+enum SyncErrorKind {
+  /// Expired / missing / rejected JWT. Must NOT count as a push attempt —
+  /// refresh the session and try the same op again.
+  auth,
+
+  /// The remote schema does not have what the payload names: PostgREST
+  /// `PGRST204` (unknown column), `42P01` (unknown table), `42703` (unknown
+  /// column). Always means a `supabase/migrations/` file has not been
+  /// applied. Retrying is pointless — quarantine immediately and say so
+  /// loudly.
+  schema,
+
+  /// `23503` — the parent row has not been pushed yet. Self-heals on the
+  /// next cycle once the parent goes up, so this is the one kind where the
+  /// existing retry-with-backoff behaviour is exactly right.
+  foreignKey,
+
+  /// `23505` — the row is already there. Under last-write-wins this is not a
+  /// failure; the op can be acknowledged.
+  conflict,
+
+  /// Network, timeout, 5xx. Retry with backoff.
+  transient,
+
+  /// Anything unclassified. Treated like [transient].
+  unknown,
+}
+
+/// A backend failure with its [kind] resolved, so callers can branch on the
+/// cause instead of pattern-matching `e.toString()`.
+class SyncBackendException implements Exception {
+  const SyncBackendException(this.kind, this.message, {this.code});
+
+  final SyncErrorKind kind;
+  final String message;
+
+  /// The PostgREST / SQLSTATE code, when the backend gave one.
+  final String? code;
+
+  /// Whether retrying this op could ever succeed without something else
+  /// changing first.
+  bool get isRetryable =>
+      kind == SyncErrorKind.foreignKey ||
+      kind == SyncErrorKind.transient ||
+      kind == SyncErrorKind.unknown;
+
+  @override
+  String toString() =>
+      'SyncBackendException(${kind.name}${code == null ? '' : ', $code'}): '
+      '$message';
+}
+
 abstract interface class SyncBackendService {
   /// Whether this backend can actually reach a remote. False for
   /// [NoopSyncBackendService], which lets `SyncService` report
