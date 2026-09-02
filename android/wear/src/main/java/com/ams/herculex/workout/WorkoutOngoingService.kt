@@ -3,50 +3,16 @@ package com.ams.herculex.workout
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.Activity
-import android.app.Application
 import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
-import android.hardware.SensorManager
-import android.os.BatteryManager
 import android.os.Build
-import android.os.Bundle
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.wear.ongoing.OngoingActivity
 import androidx.wear.ongoing.Status
 import com.ams.herculex.MainActivity
 import com.ams.herculex.R
-import com.ams.herculex.reps.AndroidRepSensorGateway
-import com.ams.herculex.reps.RepCaptureController
-import com.ams.herculex.reps.RepMessageSender
-import com.ams.herculex.reps.StartResult
-import com.ams.herculex.sync.WearDataLayerSyncManager
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.runBlocking
-
-/**
- * Sends rep-capture batches over the existing [WearDataLayerSyncManager]
- * MessageClient — no second client, and deliberately NOT
- * `sendRealtimeEvent`, whose retry queue is SharedPreferences-backed and
- * would write raw motion samples to disk (REP-04).
- *
- * Blocking is safe here: samples are delivered on
- * `AndroidRepSensorGateway`'s dedicated HandlerThread, never the main looper.
- */
-private class WearRepMessageSender(context: Context) : RepMessageSender {
-    private val syncManager = WearDataLayerSyncManager(context)
-
-    override fun send(path: String, payloadJson: String): Boolean = try {
-        runBlocking { syncManager.sendMessageToAllNodesReporting(path, payloadJson) }
-    } catch (_: Exception) {
-        false
-    }
-}
 
 /**
  * Foreground service that keeps the active workout alive while the app is backgrounded.
@@ -65,35 +31,8 @@ class WorkoutOngoingService : Service() {
         const val ACTION_UPDATE = "com.ams.herculex.workout.UPDATE"
         const val ACTION_STOP = "STOP"
 
-        /**
-         * Rep capture starts ONLY on this explicit per-set command — never on
-         * session start and never automatically (10-CONTEXT: the tracker is
-         * opt-in per exercise and only ever proposes).
-         */
-        const val ACTION_START_REP_CAPTURE = "com.ams.herculex.reps.START_CAPTURE"
-        const val ACTION_STOP_REP_CAPTURE = "com.ams.herculex.reps.STOP_CAPTURE"
-
-        /**
-         * Arms the low-rate motion gate for an exercise. Sets then open and
-         * close on their own — the tap-free path. Still explicit, because
-         * arming is what the user is consenting to; what it removes is the
-         * tap *per set*, not the decision to track at all.
-         */
-        const val ACTION_START_REP_WATCH = "com.ams.herculex.reps.START_WATCH"
-        const val ACTION_STOP_REP_WATCH = "com.ams.herculex.reps.STOP_WATCH"
-        const val EXTRA_REP_EXERCISE_SLUG = "extra_rep_exercise_slug"
-
         private const val CHANNEL_ID = "ongoing_workout_channel"
         private const val NOTIFICATION_ID = 1204
-
-        /**
-         * The live on-wrist count for `SetLoggerScreen` to display. It is
-         * **provisional** — the screen must label it as such, because the
-         * authoritative count comes from the phone's Dart detector (10-04
-         * owns the phone-side wording).
-         */
-        private val _provisionalRepCount = MutableStateFlow(0)
-        val provisionalRepCount: StateFlow<Int> = _provisionalRepCount.asStateFlow()
     }
 
     private var startEpochMs: Long = System.currentTimeMillis()
@@ -101,50 +40,9 @@ class WorkoutOngoingService : Service() {
     private var exerciseName: String? = null
     private var isNewStart: Boolean = false
 
-    /**
-     * Rep capture is hosted by THIS already-`foregroundServiceType="health"`
-     * service. No second foreground service is started and no new manifest
-     * permission is declared (10-CONTEXT:52-53).
-     */
-    private var repCapture: RepCaptureController? = null
-
-    /**
-     * Counts started activities so capture can be torn down when the app
-     * goes to background. Uses the framework's own
-     * `ActivityLifecycleCallbacks` rather than `ProcessLifecycleOwner`, which
-     * would mean adding `androidx.lifecycle:lifecycle-process` — this plan
-     * adds no Gradle dependency.
-     */
-    private var startedActivities: Int = 0
-    private var lifecycleCallbacks: Application.ActivityLifecycleCallbacks? = null
-
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_START_REP_CAPTURE -> {
-                startRepCapture(intent.getStringExtra(EXTRA_REP_EXERCISE_SLUG).orEmpty())
-                return START_STICKY
-            }
-            ACTION_STOP_REP_CAPTURE -> {
-                repCapture?.stop(RepCaptureController.REASON_USER)
-                return START_STICKY
-            }
-            ACTION_START_REP_WATCH -> {
-                startRepWatching(intent.getStringExtra(EXTRA_REP_EXERCISE_SLUG).orEmpty())
-                return START_STICKY
-            }
-            ACTION_STOP_REP_WATCH -> {
-                // Disarm first, then close any open set. The other order works
-                // but wastes a register/unregister pair: stop() re-registers
-                // the low-rate listener whenever the gate is still armed, and
-                // stopWatching() would immediately tear it back down.
-                repCapture?.stopWatching()
-                repCapture?.stop(RepCaptureController.REASON_USER)
-                return START_STICKY
-            }
-        }
-
         if (intent?.action == ACTION_STOP) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -171,94 +69,6 @@ class WorkoutOngoingService : Service() {
         startForeground(NOTIFICATION_ID, buildNotification())
         isNewStart = false
         return START_STICKY
-    }
-
-    /**
-     * Starts capture for one specific set. Returns silently on a typed
-     * refusal (low battery, no sensor, already capturing) — a refusal
-     * registers no listener, so the register/unregister accounting stays
-     * balanced.
-     */
-    private fun ensureController(): RepCaptureController? {
-        val sensorManager = getSystemService(SensorManager::class.java) ?: return null
-        return repCapture ?: RepCaptureController(
-            sensors = AndroidRepSensorGateway(sensorManager),
-            sender = WearRepMessageSender(applicationContext),
-            batteryLevelPercent = { readBatteryPercent() },
-            clock = { System.currentTimeMillis() },
-            onProvisionalRep = { _provisionalRepCount.value = it },
-        ).also { repCapture = it }
-    }
-
-    private fun startRepCapture(exerciseSlug: String) {
-        val controller = ensureController() ?: return
-
-        _provisionalRepCount.value = 0
-        val result = controller.start(exerciseSlug)
-        if (result is StartResult.Started) {
-            observeAppBackground()
-        }
-    }
-
-    /**
-     * Arms the gate rather than opening a capture. Same refusal handling as
-     * [startRepCapture]: a refusal registers no listener, so the
-     * register/unregister accounting stays balanced.
-     */
-    private fun startRepWatching(exerciseSlug: String) {
-        val controller = ensureController() ?: return
-        _provisionalRepCount.value = 0
-        if (controller.startWatching(exerciseSlug) is StartResult.Started) {
-            observeAppBackground()
-        }
-    }
-
-    private fun readBatteryPercent(): Int {
-        val manager = getSystemService(BatteryManager::class.java) ?: return 100
-        return manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-    }
-
-    /**
-     * The app-background teardown path. Registered lazily on the first
-     * capture and unregistered in [onDestroy], so it never outlives the
-     * service.
-     */
-    private fun observeAppBackground() {
-        if (lifecycleCallbacks != null) return
-        val application = application ?: return
-
-        val callbacks = object : Application.ActivityLifecycleCallbacks {
-            override fun onActivityStarted(activity: Activity) {
-                startedActivities += 1
-            }
-
-            override fun onActivityStopped(activity: Activity) {
-                startedActivities -= 1
-                if (startedActivities <= 0) {
-                    startedActivities = 0
-                    repCapture?.stop(RepCaptureController.REASON_BACKGROUND)
-                }
-            }
-
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
-            override fun onActivityResumed(activity: Activity) = Unit
-            override fun onActivityPaused(activity: Activity) = Unit
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
-            override fun onActivityDestroyed(activity: Activity) = Unit
-        }
-
-        application.registerActivityLifecycleCallbacks(callbacks)
-        lifecycleCallbacks = callbacks
-    }
-
-    override fun onDestroy() {
-        // Fifth teardown path. stop() is idempotent, so this is safe even
-        // when the set already ended normally.
-        repCapture?.onServiceDestroyed()
-        repCapture = null
-        lifecycleCallbacks?.let { application?.unregisterActivityLifecycleCallbacks(it) }
-        lifecycleCallbacks = null
-        super.onDestroy()
     }
 
     private fun buildNotification(): Notification {

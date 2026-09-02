@@ -42,11 +42,7 @@ Under GDPR Article 9, data concerning health requires explicit consent and heigh
 * **Camera stream:** Used in real time exclusively to decode food packaging barcodes (EAN/UPC).
 * The video stream is processed in-memory locally on your device and is discarded instantly. No photos or video recordings are taken or saved.
 
-### F. Motion Sensors & Assisted Rep Tracking
-* Accelerometer and gyroscope data used for rep tracking is processed in real time in device memory and immediately discarded.
-* Only anonymous, mathematically derived feature values (e.g. repetition frequency) are stored locally on the device for algorithm calibration.
-
-### G. Workout Bubble & "Display Over Other Apps" (Android only)
+### F. Workout Bubble & "Display Over Other Apps" (Android only)
 * The **Workout Bubble** is an optional, off-by-default floating shortcut you can enable under Settings → App Settings. It requires Android's "Display over other apps" permission, which you grant yourself in system settings and can revoke at any time.
 * The bubble is shown **only** while a workout session is active and Herculex is in the background. It disappears when you return to the app or finish the workout.
 * Tapping it expands a small card showing your **current workout only** — exercise name, set number, weight and reps, and elapsed time — with controls to adjust reps/weight and complete the set. That is the same information as the ongoing workout notification, and it is read from your device's local database. **Be aware this means workout details are briefly visible on top of whatever app you are using**, so leave the feature off if you would rather they were not.

@@ -48,17 +48,6 @@ class AdminDashboardView extends ConsumerWidget {
           const SizedBox(height: 32),
           Divider(color: Colors.grey.withValues(alpha: 0.2)),
           const SizedBox(height: 32),
-          Text("Rep Tracking", style: theme.textTheme.displayMedium),
-          const SizedBox(height: 16),
-          _buildActionCard(
-            context: context,
-            title: "Fixture Recording (REP-06)",
-            icon: Icons.fiber_manual_record,
-            onTap: () => context.push(AppRoutes.adminFixtureRecording),
-          ),
-          const SizedBox(height: 32),
-          Divider(color: Colors.grey.withValues(alpha: 0.2)),
-          const SizedBox(height: 32),
           Text("Cloud Sync", style: theme.textTheme.displayMedium),
           const SizedBox(height: 16),
           _buildActionCard(

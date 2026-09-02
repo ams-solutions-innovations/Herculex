@@ -63,36 +63,13 @@ Plans:
 - [x] 09-02-PLAN.md — Retarget remaining providers onto trainingSnapshotProvider; delete dead cnsFatigueProvider/muscleRecoveryProvider and the duplicate recovery card
 - [x] 09-03-PLAN.md — Automated regression test proving soft-deleted sets are excluded from analytics
 
-## Phase 10: Assisted rep tracking
-
-**Goal:** Add an opt-in, on-device rep counter for pull-ups and dips that *proposes* a rep count — and, once calibrated, an RPE — at the end of a set, which the user reviews and confirms or edits. The tracker can never write a set.
-
-**Requirements:** REP-01–06
-
-**Depends on:** Phase 9 (merge order only — Phase 9 adds no tables, this phase takes schema v26)
-
-**Success:** Nothing under `lib/features/reps/` imports `workouts_repository.dart` or references `updateSet`, enforced by a static test; the authoritative detector is pure Dart on the phone and the Kotlin watch counter is provisional-only and never persisted; the three new tables are local-only with no `SyncColumns`/tombstones/outbox triggers and raw samples are discarded at set end; an RPE is offered only past the n ≥ 10 / ≥ 3 sessions / LOO MAE ≤ 1.0 gate; and recorded pull-up and dip traces verify counting accuracy, missed reps, false-positive resistance and the never-auto-complete guarantee.
-
-**Plans:** 6/7 plans executed
-
-Plans:
-- [x] 10-01-PLAN.md — Schema v26, RepMovement, consent/eligibility state, rep tracking repository (wave 1)
-- [x] 10-03a-PLAN.md — Wear Kotlin capture, both WearSyncPaths copies, phone-side routing (wave 1, Gradle-verified)
-- [ ] 10-02-PLAN.md — Pure-Dart rep detection engine and recorded trace fixtures (wave 2, Tasks 1-4 done, blocking human fixture-recording checkpoint remains)
-- [x] 10-03b-PLAN.md — Dart capture service, RepSuggestion/TrackerState contract, phone motion source (wave 3)
-- [x] 10-04-PLAN.md — Consent flow, live counter, review-and-confirm sheet (wave 4)
-- [x] 10-05-PLAN.md — Calibration learning and LOO-gated RPE suggestion (wave 5)
-- [x] 10-06-PLAN.md — In-app fixture-recording debug tool: checklist, capture flow, export (wave 6, does not close REP-06 itself)
-
-**Risk:** 10-02 is gated on a human task — recording real pull-up and dip traces on both a watch and a pocketed phone with ground-truth counts. Synthetic traces cannot meet the accuracy bar. 10-06 makes this easier to do opportunistically across real workouts but does not remove the requirement for a human to actually perform them.
-
 ## Phase 11: Gym Buddy — live shared workout
 
 **Goal:** Let two people train the same workout together in real time. One shares an active workout, the other joins by scanning a QR code from the `+` button, and from then on the exercise list stays in step between them — while each person's sets, reps, weights and measurements stay entirely their own.
 
 **Requirements:** BUD-01–06
 
-**Depends on:** Nothing functionally. Takes local schema v29 and a new Supabase migration; merge after Phase 10's v26–v28 chain has landed to avoid a schema-version race.
+**Depends on:** Nothing functionally. Takes local schema v29 and a new Supabase migration; v26–v28 were already spoken for by the time this landed.
 
 **Success:** Two phones running a shared session see the same exercise list within a second of any change; a change made with scope "only me" provably does not appear on the partner's device while "both" does; each participant's `WorkoutSessions` row is owned and synced by them alone, and a test proves no partner-owned set row is ever written into the other's tables or counted in their analytics; killing and reopening the app on one phone restores the shared exercise list from the durable event log rather than an empty session; and a static test proves `0003_sync_rls.sql`'s owner-only policies are unmodified, with cross-user reads confined to the new buddy tables.
 
@@ -119,7 +96,7 @@ Plans:
 
 **Requirements:** EXR-01–05
 
-**Depends on:** Local schema v31 (v29 went to Gym Buddy and v30 to the rep-tracking switch, so 12-04 took v31 and Supabase 0013). Plan 12-04 touches `active_exercise_card.dart`, which GSD Phase 10 also edits and UI-rework Phase 7 wants to split — sequence it after Phase 10.
+**Depends on:** Local schema v31 (v29 went to Gym Buddy and v30 to the rep-tracking switch — the switch itself is gone, but the version number stays allocated to it historically — so 12-04 took v31 and Supabase 0013). Plan 12-04 touches `active_exercise_card.dart`, which UI-rework Phase 7 wants to split; that split is unblocked now that rep tracking is gone.
 
 **Success:** Searching "bench" returns one Bench Press that expands to its six bars rather than six top-level rows; `cardio`, `crossfit` and `mobility` are all non-empty and a test keeps them that way; every `loggingMetric` in the asset resolves against the `LoggingMetric` registry; and a Sled Push logs weight × distance while a Plank logs a duration, both round-tripping through history without inflating tonnage.
 
@@ -130,7 +107,7 @@ Plans:
 - [x] 12-02-PLAN.md — Coverage: 51 cardio, Olympic, CrossFit and mobility rows (wave 1)
 - [x] 12-03-PLAN.md — `LoggingMetric` registry, metric corrections, catalogue invariant tests (wave 1)
 - [x] 12-04-PLAN.md — Drift **v31** + Supabase **0013**: `durationSeconds`, `distanceM`, `calories` on `set_entries` (wave 2). Landed without a plan file; v30/0012 were taken by the rep-tracking switch and the product catalogue respectively.
-- [x] 12-05-PLAN.md — Metric-driven set-entry UI; tonnage exclusion for distance/cardio sets (wave 3, after Phase 10)
+- [x] 12-05-PLAN.md — Metric-driven set-entry UI; tonnage exclusion for distance/cardio sets (wave 3, sequenced after rep tracking's `active_exercise_card.dart` wiring to avoid a merge conflict — that wiring is since removed)
 
 **Scope fence:** Non-destructive. No catalogue row is deleted and no `set_entries.exercise_id` is remapped — variants stay as rows and the picker collapses them through `movementSlug`. Rounds-based work (AMRAP, EMOM, For Time) stays in `SetType` + `set_type_meta_json`; it does not become a logging metric.
 

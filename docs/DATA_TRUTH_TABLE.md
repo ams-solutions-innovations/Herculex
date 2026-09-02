@@ -17,8 +17,6 @@
 | **Joint Pain Logs** | Flagged joint (elbow, shoulder, wrist, knee, hip, lower back), severity (0 resolved, 1–3 mild/moderate/severe), optional note, event timestamp | SQLite (`joint_pain_logs`) | Postgres (`joint_pain_logs`) | **Synced** | **GDPR Article 9 (Special Category - Health Data)** | Recovery page's per-joint overtraining check, cross-referencing training volume and cardio load in the muscles around a flagged joint |
 | **HealthKit / Health Connect Synced Data** | Daily steps, active calories burned, resting heart rate, HRV, sleep duration & sleep stages, SpO₂ | SQLite (`health_samples`) | None | **Local Only (Never Synced)** | **GDPR Article 9 (Special Category - Health Data)** | Biometric recovery scoring, CNS fatigue calculation, daily activity summaries |
 | **Progress Photos** | Photo timestamps, pose (front, side, back), local file path on filesystem | SQLite (`progress_photos`) + Local Documents Directory | None | **Local Only (Never Synced)** | Biometric / Personal Imagery | Visual physique progress comparison |
-| **Assisted Rep Tracking Calibration** | Motion feature vectors (frequency, peak acceleration, confidence), confirmed rep counts, confirmed RPE | SQLite (`rep_set_observations`, `rep_tracking_settings`, `rep_tracking_exercise_prefs`) | None | **Local Only (Never Synced)** | Local Telemetry / Calibration | Accelerometer-based rep detection calibration for the specific device |
-| **Live Sensor Stream (Accelerometer / Gyroscope)** | Raw XYZ sensor acceleration arrays during active set | In-Memory (RAM) | None | **Ephemeral (Wiped immediately at set completion)** | Real-time Sensor Data | Real-time rep counting during exercise |
 | **Camera Video Stream (Barcode Scanner)** | Live camera preview feed | In-Memory (RAM) | None | **Ephemeral (Wiped immediately, zero recording)** | Real-time Camera Feed | Scanning barcode numbers on food packaging |
 | **AI Food Analysis (Gemini Scanner)** | Image snapshot of meal / nutritional label | In-Memory (RAM) | Supabase Edge Function `gemini-analyze` -> Gemini API | **Ephemeral (Processed in transit, not persisted in DB)** | Personal Imagery / Query | Automated estimation of meal calories and macros |
 | **Supplements Checklist** | Supplement name, daily intake checkbox | `SharedPreferences` | None | **Local Only (Never Synced)** | Personal Dietary Data | Daily supplement adherence |
@@ -47,7 +45,7 @@
 | Supabase Postgres | Every row in all 36 synced tables | `on delete cascade` on each table's `user_id` FK — no table list to keep in step |
 | Supabase `sync_tombstones` | The user's tombstones, including the ones the cascade just wrote | Explicit delete, after the auth delete (see `0005_sync_tombstones.sql` for why this table has no FK) |
 | Supabase Storage | Everything under `<user_id>/` in `user-photos` | Best-effort list + remove; currently a no-op because no client writes to that bucket yet |
-| Device — SQLite | All user rows; custom catalogue rows; local-only rep-tracking, buddy, health and photo tables | `wipeAllLocalUserData` (`lib/data/local/local_data_wipe.dart`) |
+| Device — SQLite | All user rows; custom catalogue rows; local-only buddy, health and photo tables | `wipeAllLocalUserData` (`lib/data/local/local_data_wipe.dart`) |
 | Device — filesystem | The progress-photo JPEGs the rows point at | Same function, before the rows go |
 | Device — `SharedPreferences` | Profile, units, dashboard layout, meal slots, supplements, onboarding flags | `SharedPreferences.clear()` |
 

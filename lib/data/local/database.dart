@@ -65,11 +65,6 @@ part 'database.g.dart';
     DietSchedules,
     CarbCyclePlans,
     SyncCursors,
-    // Assisted rep tracking (v26). Local-only: never added to
-    // syncedTableNames or syncTableSpecs.
-    RepTrackingSettings,
-    RepTrackingExercisePrefs,
-    RepSetObservations,
     FastingSchedules,
     // Gym Buddy (v29). Local-only: never added to syncedTableNames or
     // syncTableSpecs.
@@ -93,7 +88,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 37;
+  int get schemaVersion => 38;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -660,15 +655,11 @@ class AppDatabase extends _$AppDatabase {
 
         await installSyncTriggers(this);
       }
-      if (from < 26) {
-        // Assisted rep tracking (Phase 10). Three local-only tables — no
-        // sync columns, no outbox trigger, no entry in syncedTableNames.
-        // No backfill: the absence of a row correctly means "no consent
-        // given" and "not enabled for this exercise".
-        await m.createTable(repTrackingSettings);
-        await m.createTable(repTrackingExercisePrefs);
-        await m.createTable(repSetObservations);
-      }
+      // from < 26 used to create three local-only assisted-rep-tracking
+      // tables here. The feature was removed (v38 drops them for any device
+      // that has them); no-op rather than deleted so the version numbering
+      // stays historically accurate and every later `if (from < N)` step
+      // keeps meaning exactly what it always meant.
       if (from < 27) {
         // UI rework Phase 6: recurring fasting "notify to start" schedules.
         // Synced (SyncColumns + SyncTombstone), so it needs the same
@@ -759,42 +750,19 @@ class AppDatabase extends _$AppDatabase {
 
         await tryAddColumn(workoutSessions, workoutSessions.buddySessionId);
       }
-      if (from < 30 && to >= 30) {
-        // Assisted rep tracking gains its single global switch. Per-exercise
-        // opt-in is replaced by capability profiles derived from the
-        // catalogue, so what the user configures is one setting rather than
-        // one decision per exercise.
-        //
-        // Local-only table, so no sync columns, no tombstone and no outbox
-        // trigger — the same idiom as the v26 block that created it.
-        //
-        // Needs the `to >=` half of the guard for the reason spelled out in
-        // the v28 and v29 comments above: SchemaVerifier.migrateAndValidate
-        // fakes intermediate target versions and addColumn has no
-        // IF NOT EXISTS.
-        //
-        // NOTE ON VERSION ALLOCATION: this took the next free number rather
-        // than skipping one for GSD 12-04, which was then unlanded and also
-        // wanted a version. Leaving a hole would have been the dangerous
-        // option — a user who upgraded to 31 before 12-04 landed would then
-        // have `from = 31` and would never run its `from < 30` step at all.
-        // 12-04 duly took v31; see the block below.
-        Future<void> tryAddColumn(
-          TableInfo<Table, dynamic> table,
-          GeneratedColumn column,
-        ) async {
-          try {
-            await m.addColumn(table, column);
-          } catch (_) {
-            // Column already exists on this fixture; see comment above.
-          }
-        }
-
-        await tryAddColumn(
-          repTrackingSettings,
-          repTrackingSettings.autoCountEnabled,
-        );
-      }
+      // from < 30 used to add assisted-rep-tracking's global-switch column
+      // here (on a table the v26 step above no longer creates, now that the
+      // feature is removed). No-op for the same reason the v26 step is a
+      // no-op rather than deleted: version numbering must stay historically
+      // accurate, so a device sitting on v29 still takes exactly the same
+      // `from < N` steps it always did, minus the ones that no longer apply.
+      //
+      // NOTE ON VERSION ALLOCATION, preserved from the original comment:
+      // v30 took the next free number rather than skipping one for GSD
+      // 12-04, which was then unlanded and also wanted a version. Leaving a
+      // hole would have been the dangerous option — a user who upgraded to
+      // 31 before 12-04 landed would then have `from = 31` and would never
+      // run its `from < 30` step at all. 12-04 duly took v31; see below.
       if (from < 31 && to >= 31) {
         // GSD 12-04 (EXR-05): a set is stored in the unit its exercise is
         // actually measured in. Three nullable columns on `set_entries`, no
@@ -923,6 +891,20 @@ class AppDatabase extends _$AppDatabase {
             }
           }
         }
+      }
+      if (from < 38) {
+        // Assisted rep tracking (v26) is removed. All three tables were
+        // local-only from the start — never in syncedTableNames or
+        // syncTableSpecs — so there is no remote side to clean up and no
+        // outbox rows to worry about; this is a plain local DROP.
+        //
+        // `IF EXISTS` because the hand-written migration fixtures in
+        // schema_v21_test.dart and friends build a *narrow* pre-v26 database
+        // that never had these tables to begin with — same reasoning as the
+        // v37 step's `pragma_table_info` guard just above.
+        await customStatement('DROP TABLE IF EXISTS rep_set_observations');
+        await customStatement('DROP TABLE IF EXISTS rep_tracking_exercise_prefs');
+        await customStatement('DROP TABLE IF EXISTS rep_tracking_settings');
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is

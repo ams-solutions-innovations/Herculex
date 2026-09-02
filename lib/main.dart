@@ -12,7 +12,6 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/auth/data/secure_auth_storage.dart';
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
-import 'package:herculex/features/reps/data/rep_profile_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -22,8 +21,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // First thing after the binding: everything below — timezone lookup, the
-  // Supabase handshake, the rep-profile asset load — can throw, and until
-  // these hooks are installed a throw there is an unreported black screen.
+  // Supabase handshake — can throw, and until these hooks are installed a
+  // throw there is an unreported black screen.
   AppErrorHandler.install();
 
   tz.initializeTimeZones();
@@ -46,14 +45,6 @@ Future<void> main() async {
   // and warns on overflow, so a second event during the same startup would
   // discard the first. Same idiom `WearSyncService.initialize` uses.
   ServicesBinding.instance.channelBuffers.resize('com.ams.herculex/widget', 16);
-
-  // Assisted rep tracking reads its per-exercise capability profiles from an
-  // asset into an in-memory registry, so this has to run on every launch —
-  // unlike the exercise catalogue, which is imported into the database on
-  // install and migration only. Until it completes, every exercise reports as
-  // unsupported and no tracking surfaces anywhere; the load is best-effort and
-  // never blocks startup on failure.
-  await RepProfileLoader.load();
 
   // Guarded so tests and credential-less dev builds still run — the app is
   // local-first and stays fully usable without a backend.

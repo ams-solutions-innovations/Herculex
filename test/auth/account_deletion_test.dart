@@ -84,13 +84,13 @@ void main() {
       'INSERT INTO health_samples (date_iso, kind, value) '
       "VALUES ('2026-08-19', 'steps', 8000)",
     );
-    // Local-only feature state.
+    // Local-only feature state. `buddy_choreography_slots` needs no FK setup
+    // of its own — `workoutExerciseId` is nullable, for exactly this kind of
+    // placeholder slot — so it is the simplest local-only table to probe.
     await db.customStatement(
-      'INSERT INTO rep_set_observations (exercise_slug, session_id, '
-      'recorded_at, source, sensor_type, detected_reps, confirmed_reps, '
-      'confidence, features_json) '
-      "VALUES ('pull-up', 1, 1000, 'wrist', 'linear_acceleration', 8, 8, "
-      "0.9, '{}')",
+      'INSERT INTO buddy_choreography_slots '
+      '(buddy_session_id, slot_id, order_index) '
+      "VALUES ('buddy-sess-1', 'slot-1', 0)",
     );
   }
 
@@ -126,7 +126,7 @@ void main() {
       expect(await countOf('body_measurements'), 0);
       expect(await countOf('cycle_logs'), 0);
       expect(await countOf('health_samples'), 0);
-      expect(await countOf('rep_set_observations'), 0);
+      expect(await countOf('buddy_choreography_slots'), 0);
     });
 
     test('leaves no outbox rows behind for the deletes it just made', () async {

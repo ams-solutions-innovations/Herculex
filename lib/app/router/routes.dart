@@ -1,11 +1,10 @@
 /// Every route path in the app, in one place.
 ///
 /// Navigation used to spell paths as string literals at each of ~74 call
-/// sites, which is how two of them silently drifted out of sync with the
-/// route table and started landing users on `AppErrorScreen`:
-/// `main_scaffold` pushed `/profile/dream-physique` against a route
-/// registered as `/dream-physique`, and `rep_auto_count_tile` pushed
-/// `/rep-tracking-consent`, which was never registered at all.
+/// sites, which is how `main_scaffold` silently drifted out of sync with
+/// the route table and started landing users on `AppErrorScreen`: it pushed
+/// `/profile/dream-physique` against a route registered as
+/// `/dream-physique`.
 ///
 /// Both `GoRoute(path: ...)` and every `context.go`/`context.push` now read
 /// from here, so a typo is a compile error rather than a runtime error
@@ -78,20 +77,10 @@ abstract final class AppRoutes {
   // Buddy
   static const buddyJoin = '/buddy/join';
 
-  // Assisted rep tracking
-  //
-  // rep_auto_count_tile.dart has been pushing this path with no matching
-  // GoRoute, so tapping the tile landed on AppErrorScreen. Registered here;
-  // the call site itself is deliberately left spelling the literal, because
-  // lib/features/reps/ belongs to the in-flight GSD Phase 10 and should not
-  // pick up merge conflicts from this refactor.
-  static const repTrackingConsent = '/rep-tracking-consent';
-
   // Admin / diagnostics
   static const admin = '/admin';
   static const adminRecipe = '/admin/recipe';
   static const adminWorkout = '/admin/workout';
-  static const adminFixtureRecording = '/admin/fixture-recording';
   static const diagnosticsErrors = '/diagnostics/errors';
 }
 

@@ -39,8 +39,6 @@ import 'package:herculex/features/profile/presentation/dream_physique_view.dart'
 import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/programs/presentation/views/rotation_pools_view.dart';
 import 'package:herculex/features/recovery/presentation/recovery_view.dart';
-import 'package:herculex/features/reps/presentation/fixture_recording_view.dart';
-import 'package:herculex/features/reps/presentation/rep_tracking_consent_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/shell/splash_view.dart';
 import 'package:herculex/features/workouts/presentation/views/exercise_details_view.dart';
@@ -278,19 +276,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: AppRoutes.adminRecipe,
           builder: (_, _) => const AdminInsertRecipeView(),
         ),
-        GoRoute(
-          path: AppRoutes.adminFixtureRecording,
-          builder: (_, _) => const FixtureRecordingView(),
-        ),
       ],
-      // Registered outside the debug-only block above: rep_auto_count_tile
-      // pushes this in release builds too, and until now there was no
-      // matching route, so the tile opened AppErrorScreen instead of the
-      // consent screen. See AppRoutes.repTrackingConsent.
-      GoRoute(
-        path: AppRoutes.repTrackingConsent,
-        builder: (_, _) => const RepTrackingConsentView(),
-      ),
     ],
   );
 });

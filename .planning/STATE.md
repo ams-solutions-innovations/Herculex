@@ -19,7 +19,7 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-07-30)
 
 **Core value:** Fast, trustworthy local food logging.
-**Current focus:** Phase 12 complete; Phase 13 — hercul-coaching-engine next
+**Current focus:** Phase 10 (assisted rep tracking) removed from the roadmap entirely — see the 2026-09-01 session entry below. Phase 12 complete. Focus moves to finishing Phase 11 (Gym Buddy), currently 4.5/11 plans (waves 4–9 outstanding).
 
 ## Progress
 
@@ -126,3 +126,11 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - 17 new tests across `test/logging_metric_ui_test.dart` and `test/set_metric_tonnage_test.dart`. Full suite: **873 passed, 4 skipped, 0 failed**; `flutter analyze lib/` shows only the six pre-existing deprecation infos, none in a touched file.
 - Note: Phase 12's work is still uncommitted along with the rest of the working tree (117 changed paths, unchanged since the 11-05 handoff commit).
 - Next implementation focus: 11-05 (live Supabase migration push, still blocked per `11-05-HANDOFF.md`) or Phase 13 (Hercul coaching engine).
+
+## Session update — 2026-09-01 (Phase 10 removed; Gym Buddy resumed)
+
+- Decision: assisted rep tracking (Phase 10) is removed from the roadmap entirely, not paused. REP-06 was the phase's real gate and needed a human to physically perform pull-ups/dips wearing the watch to record ground-truth traces — that never happened, and the decision was to stop carrying the phase rather than keep waiting on it.
+- Full removal, not just the planning docs: `lib/features/reps/` (24 files), its 24 dependent test files, the three local-only Drift tables (`rep_tracking_settings`, `rep_tracking_exercise_prefs`, `rep_set_observations`, schema v26) via a new v38 `DROP TABLE IF EXISTS` step, the wear-side Kotlin capture stack (`android/wear/.../reps/`, 4 files + 2 tests), `WorkoutOngoingService.kt`'s piggy-backed rep-capture branch (the ongoing-workout notification itself is untouched), the phone-side `PhoneWearListenerService`/`MainActivity` message bridge, the `sensors_plus` dependency, `assets/data/rep_tracking_profiles.json`, and the admin fixture-recording tool and route. `.planning/phases/10-assisted-rep-tracking/` deleted outright.
+- Historical migration steps (`from < 26` creating the tables, `from < 30` adding `autoCountEnabled`) are left in place as documented no-ops rather than deleted, so `schemaVersion` numbering stays historically accurate for any device replaying the full chain — v38's drop is the real cleanup and is a safety net regardless of whether a given device's chain actually created the tables. `test/schema_v26_test.dart` (which asserted that historical creation) is deleted as no longer testing real behavior; `test/migration_test.dart` gained a v37→v38 replay using the *pre-removal* `drift_schema_v37.json` snapshot specifically because it is the one fixture that still has the tables present, making it a real test of the drop rather than a vacuous one.
+- One incidental fix found in the removal: `docs/ui-rework/ROADMAP.md` Phase 7 ("split `active_exercise_card.dart`") was blocked on "GSD Phase 10 landing" — that blocker no longer exists, noted in that roadmap.
+- Next implementation focus: finish Phase 11 (Gym Buddy), currently 4.5/11 plans — waves 4 (gateway/channel/ordering), 5 (applier), 6 (sender), 7 (session lifecycle), 8 (UI), 9 (isolation proof) remain, plus 11-05's still-unwritten `test/sync/live_buddy_test.dart` smoke suite against the already-pushed `0011` migration.

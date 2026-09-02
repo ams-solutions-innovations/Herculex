@@ -108,9 +108,11 @@ outstanding; apply in order before shipping a build that carries local v37.
 
 Two roadmaps are live and own parts of the tree. Coordinate before editing:
 
-- `.planning/ROADMAP.md` — GSD Phase 10, assisted rep tracking. **Owns
-  `lib/features/reps/`**, which is exempt from the layout rules above.
+- `.planning/ROADMAP.md` — GSD project roadmap. Phase 11 (Gym Buddy) is the
+  current focus, 4.5/11 plans. Phase 10 (assisted rep tracking) was removed
+  from the roadmap entirely on 2026-09-01 — `lib/features/reps/` no longer
+  exists, and no feature is exempt from the layout rules below any more.
 - `docs/ui-rework/ROADMAP.md` — UI/UX rework. Phase 9 (in progress) owns
   deleting the `AppColors` shim (`design_system/theme/colors.dart`, ~119
   importers) and the app-wide literal-colour sweep. Phase 7 owns splitting
-  `active_exercise_card.dart` and is blocked on GSD Phase 10.
+  `active_exercise_card.dart`, unblocked now that rep tracking is gone.

@@ -1,6 +1,6 @@
 // RB-04 Phase 4: schema tooling. Verifies the hand-written `tables.dart`
 // declarations (as materialized by `AppDatabase`) match the schema drift_dev
-// dumped to `drift_schemas/drift_schema_v37.json`. `schema dump` only
+// dumped to `drift_schemas/drift_schema_v38.json`. `schema dump` only
 // captures the *current* version — there is no retroactive v1-v22 snapshot —
 // so this only proves "the code matches what was dumped", not a full
 // migration-chain replay. Re-run `dart run drift_dev schema dump
@@ -17,10 +17,10 @@ import 'support/test_database.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('current schema matches the v37 drift_schemas snapshot', () async {
+  test('current schema matches the v38 drift_schemas snapshot', () async {
     final db = await openTestDatabase();
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // With two dumped snapshots (v23, v24) now on disk, startAt(23) has real
@@ -31,7 +31,7 @@ void main() {
     final connection = await verifier.startAt(23);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // Phase 10 sync (v25) touches every synced table at once — this is the
@@ -41,16 +41,18 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
-  // Phase 10 assisted rep tracking (v26) adds three local-only tables. Same
-  // generated-fixture replay as the v23/v24 blocks above, one step narrower.
+  // The v26 step used to create three local-only assisted-rep-tracking
+  // tables here; the feature was removed and that step is now a no-op (see
+  // database.dart). Same generated-fixture replay as the v23/v24 blocks
+  // above, one step narrower.
   test('upgrades cleanly from a generated v25 fixture', () async {
     final connection = await verifier.startAt(25);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // UI rework Phase 6 (v27) adds the fasting_schedules table. Same
@@ -59,7 +61,7 @@ void main() {
     final connection = await verifier.startAt(26);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // UI rework Phase 8 (v28) adds start_time_minutes to program_days and
@@ -69,7 +71,7 @@ void main() {
     final connection = await verifier.startAt(27);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // Phase 11 Gym Buddy (v29) adds two local-only buddy mirror tables plus
@@ -79,17 +81,17 @@ void main() {
     final connection = await verifier.startAt(28);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
-  // Assisted rep tracking's global switch (v30): rep_tracking_settings gains
-  // auto_count_enabled. Same generated-fixture replay, one step narrower
-  // still.
+  // The v30 step used to add rep_tracking_settings.auto_count_enabled here;
+  // like v26 above, it is now a no-op on the table that no longer exists.
+  // Same generated-fixture replay, one step narrower still.
   test('upgrades cleanly from a generated v29 fixture', () async {
     final connection = await verifier.startAt(29);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // GSD 12-04 (v31): set_entries gains duration_seconds, distance_m and
@@ -99,7 +101,7 @@ void main() {
     final connection = await verifier.startAt(30);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // Recovery page (v32): joint_pain_logs, a new synced table. Same
@@ -108,7 +110,7 @@ void main() {
     final connection = await verifier.startAt(31);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // v33 (workout_sessions.photo_path + calories_burned) and v34 (the two
@@ -128,7 +130,7 @@ void main() {
     final connection = await verifier.startAt(32);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
   });
 
   // v35 (achievements + the two Hercul tables), v36 (fasting_stages) and v37
@@ -144,6 +146,30 @@ void main() {
     final connection = await verifier.startAt(34);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 37);
+    await verifier.migrateAndValidate(db, 38);
+  });
+
+  // v38 removes assisted rep tracking. drift_schema_v37.json was dumped
+  // before that removal, so — unlike every replay above, which only ever
+  // exercises a *no-op* rep-tracking step — this is the one fixture that
+  // actually has rep_tracking_settings/rep_tracking_exercise_prefs/
+  // rep_set_observations present, which is what makes it the real test of
+  // the `DROP TABLE IF EXISTS` step rather than a vacuous pass against
+  // tables that were never there to begin with.
+  test('upgrades cleanly from a generated v37 fixture, dropping the removed '
+      'rep-tracking tables', () async {
+    final connection = await verifier.startAt(37);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 38);
+
+    final remaining = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'table' "
+          "AND name IN ('rep_tracking_settings', "
+          "'rep_tracking_exercise_prefs', 'rep_set_observations')",
+        )
+        .get();
+    expect(remaining, isEmpty);
   });
 }

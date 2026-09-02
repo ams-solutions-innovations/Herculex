@@ -73,9 +73,6 @@ dependencies:
   quick_actions: ^1.1.0
   flutter_media_controller: ^1.0.3
 
-  # Phone-local accelerometer source for assisted rep tracking (Phase 10)
-  sensors_plus: ^6.1.1
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -94,7 +91,6 @@ flutter:
   assets:
     - assets/data/exercises.json
     - assets/data/movements.json
-    - assets/data/rep_tracking_profiles.json
     - assets/data/hercul_rules.json
     - assets/data/food_database_eu.v1.json
     - assets/data/fasting_stages.json

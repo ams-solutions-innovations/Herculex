@@ -1,8 +1,8 @@
 # Herculex UI/UX Rework — Roadmap
 
-Status: **Phase 9 in progress 2026-08-15** (676 tests green, +4 skipped, 0 analyzer errors). Profile's own screens are migrated off `AppColors`; the shim itself, the `ValueKey` rebuild hack, and the app-wide literal-color sweep are NOT done (see Phase 9 outcome — ~98 files / ~1,416 references still call `AppColors.*`, all outside `lib/features/profile/`). Phase 7 (Workout) is still blocked on GSD Phase 10 landing.
+Status: **Phase 9 in progress 2026-08-15** (676 tests green, +4 skipped, 0 analyzer errors — stale counts, see the 2026-09-01 note below). Profile's own screens are migrated off `AppColors`; the shim itself, the `ValueKey` rebuild hack, and the app-wide literal-color sweep are NOT done (see Phase 9 outcome — ~98 files / ~1,416 references still call `AppColors.*`, all outside `lib/features/profile/`). Phase 7 (Workout) is no longer blocked — see the note below.
 
-Full plan with per-phase tasks, risks, and verification lives in the approved implementation plan; this file tracks the phase ledger and decisions. Do not fold this into `.planning/ROADMAP.md` — GSD Phase 10 (assisted reps) is in flight and `lib/features/reps/` is off-limits to this track.
+Full plan with per-phase tasks, risks, and verification lives in the approved implementation plan; this file tracks the phase ledger and decisions. Do not fold this into `.planning/ROADMAP.md` — that is a separate GSD project roadmap.
 
 > **Paths moved under this track (2026-09-01).** The `lib/` restructure folded
 > `lib/theme/`, `lib/ui/` and `lib/widgets/` into `lib/design_system/`
@@ -15,6 +15,12 @@ Full plan with per-phase tasks, risks, and verification lives in the approved im
 > throughout, which makes the Phase 9 literal-colour sweep a good deal easier
 > to grep for. See `docs/ARCHITECTURE.md`. Also note the test count in the
 > Status line above is stale: the suite is now 1308 passing / 4 skipped.
+>
+> **GSD Phase 10 removed (2026-09-01).** Assisted rep tracking is gone from
+> `.planning/ROADMAP.md` and `lib/features/reps/` no longer exists. Phase 7's
+> "After GSD Phase 10 lands" blocker in the ledger below is stale — there is
+> nothing left to wait on, and `active_exercise_card.dart` can be split
+> without coordinating with anything.
 
 ## Decisions (user-approved 2026-08-14)
 
@@ -35,7 +41,7 @@ Full plan with per-phase tasks, risks, and verification lives in the approved im
 | 4 | Dashboard + Nutrition migration: split `dashboard_widgets.dart`, full weekly-calories stats page, swipeable trend cards replace inline charts, per-macro dashboard customization, food-entry pills | L | **Code-complete** (Nutrition tab-wide `HxScreenShell`/`HxSheet` migration deliberately descoped — see outcome) |
 | 5 | Fasting page (`/fasting`) replacing the 1,129-line sheet: Quick Fast first, pinned CTAs, clock motif, long-press delete | M | **Code-complete** |
 | 6 | Fasting auto-schedule: `FastingSchedules` table + migration + sync spec, recurring notify-to-start scheduler, schedule editor UI | M–L | **Code-complete** |
-| 7 | Workout migration + features: split `active_exercise_card.dart`, set locking (UI-only gating), "Next" pill above set rows, performance page, full-catalog substitution, light-mode sweep. **After GSD Phase 10 lands.** | XL | Pending |
+| 7 | Workout migration + features: split `active_exercise_card.dart`, set locking (UI-only gating), "Next" pill above set rows, performance page, full-catalog substitution, light-mode sweep. **Unblocked (GSD Phase 10 removed 2026-09-01).** | XL | Pending |
 | 8 | Programs: session `startTimeMinutes` (schema + pickers + calendar rendering), remaining light-mode fixes, migrate to shell | M | **Code-complete** |
 | 9 | Profile migration + endgame cleanup: delete AppColors shim + ValueKey rebuild hack, literal-color sweep | M | **In progress** — Profile screens done, shim/hack/sweep still open |
 
@@ -155,4 +161,4 @@ Three flows were extracted from private, single-use methods into shared function
 
 ## Dependency notes
 
-P1 → P2 → P3 → P4+. P5 before P6 (schedule UI lives on the fasting page). P7 sequenced after GSD Phase 10 to avoid `active_exercise_card.dart` conflicts.
+P1 → P2 → P3 → P4+. P5 before P6 (schedule UI lives on the fasting page). P7 was sequenced after GSD Phase 10 to avoid `active_exercise_card.dart` conflicts; that phase is now removed, so P7 has no ordering constraint left.

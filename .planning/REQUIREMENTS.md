@@ -43,15 +43,6 @@
 - [x] **ANLY-03**: Every analytics query excludes soft-deleted (`deletedAt`) sets, sessions and exercises, so a cross-device sync delete cannot inflate tonnage, CNS load or recovery fatigue on another device.
 - [x] **ANLY-04**: Push/pull balance and biometric-correlation cards compute from effective load (bands, chains, bodyweight) rather than raw weight/reps.
 
-### Assisted rep tracking
-
-- [x] **REP-01**: Rep tracking is off until the user completes a dedicated consent screen, and then off until a single global switch is turned on. Which exercises it applies to is derived from per-exercise capability profiles covering the whole catalogue, not from a per-exercise opt-in; the per-exercise control is an override that can only ever exclude. *(Revised in the catalogue-wide rework: the original wording required a per-exercise opt-in against an enumerated slug list, which asked the user to re-derive, exercise by exercise, a fact about sensor placement the app already knows.)*
-- [x] **REP-02**: The sensor site is derived from the exercise, never chosen: exercises whose hands are anchored are sensed from a pocketed phone and the rest from the watch, and the requirement is stated before the set rather than discovered after it. The phone source still requires an explicitly selected placement. *(Revised: the original "the user chooses the sensor source" offered a choice with one correct answer per exercise, where a wrong answer presents as the tracker being broken.)*
-- [x] **REP-03**: The tracker never completes, saves or alters a set. Nothing under `lib/features/reps/` references the set write path. A confidently detected count prefills the editable reps field and is written only when the user completes the set; a low-confidence, count-only or unmeasured result opens the review sheet instead. *(Revised: "reaches the database only through a user confirmation" is unchanged in substance — the write still happens on the user's own tap — but the confirmation is now completing the set rather than a second dialog per set, which at twenty sets was worse than typing the number.)*
-- [x] **REP-04**: Raw accelerometer samples are processed on the user's devices and discarded at set end. Only derived features and confirmed outcomes persist, and none of it syncs.
-- [x] **REP-05**: An RPE suggestion appears only after ≥ 10 confirmed sets across ≥ 3 sessions for that exercise/device/placement, and only when leave-one-out error is within 1.0 RPE point. Low confidence, changed placement or unsupported movement yields a count-only state.
-- [ ] **REP-06**: Recorded motion traces verify counting accuracy, missed-rep handling, false-positive resistance, source and placement changes, and the never-auto-complete guarantee. **Scope grew with coverage**: one trace family per detection family per sensor site, not just pull-ups and dips. Still the phase's real gate, and still a human task in a gym.
-
 ### Gym Buddy — live shared workout
 
 - [ ] **BUD-01**: Sharing an active workout is an explicit user action. A partner joins by scanning a short-lived, single-session QR code reached from an additional entry in the `+` button; the token cannot be reused after the session ends.
@@ -113,7 +104,6 @@
 | CAP-02–03 | 6 | Complete |
 | NOWBAR-01–03 | 8 | Pending |
 | ANLY-01–04 | 9 | Complete |
-| REP-01–06 | 10 | In Progress |
 | BUD-01–06 | 11 | Pending |
 | EXR-01–05 | 12 | Complete |
 | HRC-01–05 | 13 | Pending |

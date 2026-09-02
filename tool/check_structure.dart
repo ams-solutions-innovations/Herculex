@@ -22,9 +22,10 @@ const int kMaxLines = 600;
 /// This list is a to-do, not a permission slip — Wave 4 of the restructure is
 /// working through it. Add to it only with a reason; the goal is an empty map.
 const Map<String, String> kLineCountExemptions = {
-  // Owned by UI-rework Phase 7, which is blocked on GSD Phase 10 landing and
-  // has "split active_exercise_card.dart" as an explicit deliverable. Splitting
-  // it here would hand that phase a merge conflict.
+  // Owned by UI-rework Phase 7, which has "split active_exercise_card.dart"
+  // as an explicit deliverable (unblocked as of 2026-09-01, when GSD Phase
+  // 10 — the other thing editing this file — was removed). Splitting it
+  // here would still risk stepping on that phase's own split.
   'lib/features/workouts/presentation/widgets/active_exercise_card.dart':
       'UI-rework P7 owns this split',
 
@@ -50,9 +51,11 @@ const List<String> kFeatureFreeRoots = ['lib/core/', 'lib/design_system/'];
 
 /// Features exempt from the presentation/ layout rules.
 ///
-/// lib/features/reps/ belongs to the in-flight GSD Phase 10 and was
-/// deliberately left out of the restructure. Remove this once that lands.
-const Set<String> kLayoutExemptFeatures = {'reps'};
+/// Empty. `lib/features/reps/` was the one exemption (owned by GSD Phase 10)
+/// and was removed along with that feature on 2026-09-01. Left as a real
+/// mechanism, not deleted, because the next in-flight feature that needs to
+/// be shielded from a concurrent structural change will want exactly this.
+const Set<String> kLayoutExemptFeatures = {};
 
 /// Below this many files, a flat presentation/ folder is easier to scan than
 /// four subfolders holding one file each.
