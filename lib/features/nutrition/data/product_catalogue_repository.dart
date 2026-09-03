@@ -81,8 +81,8 @@ final productCatalogueRepositoryProvider = Provider<ProductCatalogueRepository>(
 /// (supabase/migrations/0012_product_catalogue.sql). Reads go straight to
 /// the table (public-select RLS, no user_id scoping — unlike every other
 /// table in this app, which goes through the per-user sync engine). Writes
-/// go through the `product-catalogue-publish` Edge Function, the table's
-/// only write path by design.
+/// go through the `product_catalogue_submit` RPC (SECURITY DEFINER, reads
+/// `auth.uid()` itself), the table's only write path by design.
 class ProductCatalogueRepository {
   const ProductCatalogueRepository();
 
@@ -146,33 +146,51 @@ class ProductCatalogueRepository {
   }) async {
     if (!Env.hasSupabase) return;
     try {
-      await Supabase.instance.client.functions.invoke(
-        'product-catalogue-publish',
-        body: {
-          'barcode': barcode,
-          'name': name,
-          'brand': brand,
-          'kcalPer100g': kcalPer100g,
-          'proteinPer100g': proteinPer100g,
-          'carbsPer100g': carbsPer100g,
-          'fatPer100g': fatPer100g,
-          'fiberPer100g': fiberPer100g,
-          'sodiumMgPer100g': sodiumMgPer100g,
-          'potassiumMgPer100g': potassiumMgPer100g,
-          'cholesterolMgPer100g': cholesterolMgPer100g,
-          'servingGrams': servingGrams,
-          'servingLabel': servingLabel,
-          'referenceBasis': referenceBasis,
-          'confidence': confidence,
-          // Grounding sources from the AI lookup, kept alongside the
-          // submission. Without them there is no way to check where a
-          // number came from — the reason a disputed entry could never be
-          // adjudicated before.
-          'evidence': evidence,
+      // A direct RPC, not an Edge Function invoke. `product_catalogue_submit`
+      // is SECURITY DEFINER and reads `auth.uid()` itself, so the caller
+      // cannot claim to be anyone else and no service-role key is involved
+      // anywhere in this path — the same shape the `buddy_*` routines in
+      // `0011_buddy_sessions.sql` already use. It replaced the
+      // `product-catalogue-publish` Edge Function, which held no secret of
+      // its own and existed only to bypass RLS.
+      //
+      // Keys are the Postgres column names, not the camelCase the old
+      // function took: the whole map goes into the RPC's `p_payload jsonb`
+      // and is read with `->>` against the real column names.
+      await Supabase.instance.client.rpc(
+        'product_catalogue_submit',
+        params: {
+          'p_barcode': barcode,
+          'p_payload': <String, dynamic>{
+            'name': name,
+            'brand': brand,
+            'kcal_per_100g': kcalPer100g,
+            'protein_per_100g': proteinPer100g,
+            'carbs_per_100g': carbsPer100g,
+            'fat_per_100g': fatPer100g,
+            'fiber_per_100g': fiberPer100g,
+            'sodium_mg_per_100g': sodiumMgPer100g,
+            'potassium_mg_per_100g': potassiumMgPer100g,
+            'cholesterol_mg_per_100g': cholesterolMgPer100g,
+            'serving_grams': servingGrams,
+            'serving_label': servingLabel,
+            'reference_basis': referenceBasis,
+            // Grounding sources from the AI lookup, kept alongside the
+            // submission in `product_catalogue_submissions.payload`.
+            // Without them there is no way to check where a number came
+            // from — the reason a disputed entry could never be
+            // adjudicated before.
+            'evidence': evidence,
+          },
+          'p_source': 'gemini',
+          'p_confidence': confidence,
         },
       );
     } catch (_) {
-      // Non-fatal — see doc comment above.
+      // Non-fatal — see doc comment above. This deliberately swallows the
+      // RPC's 30-submissions-per-hour rate limit too: hitting it means the
+      // community catalogue skipped one contribution, which is not the
+      // user's problem and must not interrupt their own save.
     }
   }
 }

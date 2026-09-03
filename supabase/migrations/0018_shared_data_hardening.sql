@@ -136,11 +136,31 @@ revoke select (contributed_by) on public.product_catalogue
 -- `submission_count = 1` in oba zapisala 2. Tu je vse pod enim `for update`
 -- v eni transakciji.
 --
--- Edge Function `product-catalogue-publish` ostane vstopna tocka (preveri
--- JWT, klice to s service-role kljucem) — tako je pisalna pot se vedno ena
--- sama in dokumentirana, kot pravi 0012.
+-- Klicana NEPOSREDNO s klienta, ne prek Edge Functiona. `0012` je zapisal,
+-- da je Edge Function "edina pisalna pot po zasnovi" — kar je bilo takrat
+-- pravilno, ker tabela nima insert/update politike. A `0011` je pozneje
+-- pokazal boljso obliko za isti problem: `buddy_create_session()`,
+-- `buddy_join_session()` in `buddy_append_event()` so SECURITY DEFINER
+-- rutine, ki `auth.uid()` preberejo same, in nobena Edge Function ni v
+-- njihovi poti.
+--
+-- Zakaj je to bolje in ne samo hitreje:
+--   1. Uporabnikov id NI parameter. Dokler je bil, je bila varnost odvisna
+--      od tega, da je edini klicatelj streznik s service-role kljucem — kar
+--      je predpostavka, ki jo prihodnji refaktor lahko tiho podre. Zdaj je
+--      identiteta neponaredljiva po konstrukciji.
+--   2. Service-role kljuc v tej poti sploh ne nastopa. Vsaka rutina, ki ga
+--      uporablja, je potencialna IDOR luknja, ker je RLS znotraj nje
+--      izklopljen.
+--   3. Ni hladnega zagona in ni dveh HTTP obhodov namesto enega.
+--
+-- Ker je funkcija zdaj neposredno dosegljiva vsakemu prijavljenemu
+-- uporabniku, je omejitev 30 oddaj/uro spodaj NOSILNA, ne higienska. Ne
+-- odstranjuj je.
+--
+-- Glej docs/edge-functions-prod-arhitektura.md za pravilo, po katerem se
+-- odloca med Edge Functionom in RPC-jem.
 create or replace function public.product_catalogue_submit(
-  p_user_id    uuid,
   p_barcode    text,
   p_payload    jsonb,
   p_source     text default 'gemini',
@@ -152,6 +172,7 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_uid      uuid := auth.uid();
   v_existing public.product_catalogue;
   v_recent   integer;
   v_matches  boolean;
@@ -161,7 +182,7 @@ declare
   v_carbs    double precision := coalesce((p_payload->>'carbs_per_100g')::double precision, 0);
   v_fat      double precision := coalesce((p_payload->>'fat_per_100g')::double precision, 0);
 begin
-  if p_user_id is null then
+  if v_uid is null then
     raise exception 'not authenticated' using errcode = '42501';
   end if;
 
@@ -170,7 +191,7 @@ begin
   -- lahko skenira, in dovolj malo, da je skripta neuporabna.
   select count(*) into v_recent
   from public.product_catalogue_submissions
-  where contributed_by = p_user_id
+  where contributed_by = v_uid
     and created_at > now() - interval '1 hour';
 
   if v_recent >= 30 then
@@ -186,7 +207,7 @@ begin
   then
     insert into public.product_catalogue_submissions
       (barcode, contributed_by, payload, source, confidence, outcome)
-    values (p_barcode, p_user_id, p_payload, p_source, p_confidence, 'rejected');
+    values (p_barcode, v_uid, p_payload, p_source, p_confidence, 'rejected');
     return jsonb_build_object('status', 'rejected', 'reason', 'macro_mismatch');
   end if;
 
@@ -217,7 +238,7 @@ begin
       (p_payload->>'serving_grams')::double precision,
       nullif(btrim(coalesce(p_payload->>'serving_label', '')), ''),
       coalesce(nullif(btrim(coalesce(p_payload->>'reference_basis', '')), ''), '100 g'),
-      p_source, p_user_id,
+      p_source, v_uid,
       1, false, p_confidence
     );
     v_outcome := 'published';
@@ -277,17 +298,19 @@ begin
 
   insert into public.product_catalogue_submissions
     (barcode, contributed_by, payload, source, confidence, outcome)
-  values (p_barcode, p_user_id, p_payload, p_source, p_confidence, v_outcome);
+  values (p_barcode, v_uid, p_payload, p_source, p_confidence, v_outcome);
 
   return jsonb_build_object('status', v_outcome);
 end;
 $$;
 
--- Klicana samo s service-role kljucem iz Edge Functiona. Nikoli
--- neposredno s klienta: podpisi `p_user_id` kot argument, kar bi
--- authenticated roli omogocilo, da se predstavi kot kdorkoli.
-revoke execute on function public.product_catalogue_submit(uuid, text, jsonb, text, double precision)
-  from public, anon, authenticated;
+-- Neposredno klicana s klienta. `anon` je namerno izpuscen: prispevati sme
+-- samo prijavljen uporabnik, ker je `auth.uid()` tisto, kar rate limit sploh
+-- lahko steje.
+revoke execute on function public.product_catalogue_submit(text, jsonb, text, double precision)
+  from public, anon;
+grant execute on function public.product_catalogue_submit(text, jsonb, text, double precision)
+  to authenticated;
 
 -- Bralna pot ne sme videti umaknjenih izdelkov. Politika iz 0012 je
 -- `using (true)` in je po `docs/supabase-migrations.md` NE smemo
@@ -322,6 +345,16 @@ create policy ai_usage_select_own on public.ai_usage
 revoke insert, update, delete on public.ai_usage from anon, authenticated;
 
 -- Poveca stevec in vrne, ali je klic dovoljen.
+--
+-- Ta funkcija OBDRZI `p_user_id` kot parameter, `product_catalogue_submit`
+-- pa ga je izgubil. Razlika ni v tem, ali je rutina definer, ampak CIGAVO
+-- odlocitev sprejema: `product_catalogue_submit` odloca o uporabnikovih
+-- lastnih prispevkih in mu smemo zaupati identiteto, `ai_usage_bump` pa
+-- odloca o njegovi KVOTI in sprejme `p_daily_limit` kot argument. Ce bi ga
+-- smel klicati klient, bi si kvoto nastavil sam.
+--
+-- Zato ostane revoked in jo kliče izkljucno `gemini-analyze` s service-role
+-- kljucem. Ne podeljuj EXECUTE roli `authenticated`.
 create or replace function public.ai_usage_bump(
   p_user_id     uuid,
   p_kind        text,

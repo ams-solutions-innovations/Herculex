@@ -607,3 +607,74 @@ na 100 g pred objavo, ali ločena `supplement_catalogue` tabela.
 - [ ] UI: prikazati `verified` / `needs_review` ob community izdelku
 - [ ] Supplement per-dose → per-100 g pretvorba
 - [ ] §7 (realtime kanali), §10 (staging + CI + backup)
+
+
+---
+
+## 14. Dnevnik — 0018 dokončan (2026-09-02, četrta seja)
+
+`product_catalogue_submit` je zdaj **klican neposredno s klienta**, ne prek
+Edge Functiona. Sprememba je narejena v `0018` in ne v novi migraciji, ker
+`0018` še ni applied — pravilo o nedotakljivosti velja šele, ko se ime
+pojavi v `migration list` tudi v Remote stolpcu.
+
+| Datoteka | Kaj |
+|---|---|
+| `supabase/migrations/0018_shared_data_hardening.sql` | `product_catalogue_submit` brez `p_user_id`, bere `auth.uid()`; `grant execute ... to authenticated`. Nov podpis: `(text, jsonb, text, double precision)`. |
+| `lib/features/nutrition/data/product_catalogue_repository.dart` | `functions.invoke('product-catalogue-publish')` → `rpc('product_catalogue_submit')`. Ključi v `p_payload` so imena Postgres stolpcev, ne camelCase. |
+| `supabase/config.toml` | `[functions.product-catalogue-publish]` odstranjen, z zapisanim razlogom. |
+| `supabase/functions/product-catalogue-publish/` | Premaknjeno v `supabase/_to_delete/` (brisanje na disku ni bilo dovoljeno). |
+
+### Zakaj je to varnejše, ne samo hitrejše
+
+1. **Uporabnikov id ni več parameter.** Dokler je bil, je bila varnost
+   odvisna od predpostavke, da je edini klicatelj strežnik s service-role
+   ključem — predpostavke, ki jo prihodnji refaktor lahko tiho podre. Zdaj
+   je identiteta neponaredljiva po konstrukciji.
+2. **Service-role ključ v tej poti ne nastopa več.** Vsaka rutina, ki ga
+   uporablja, je potencialna IDOR luknja, ker je RLS znotraj nje izklopljen.
+3. Ni hladnega zagona in ni dveh HTTP obhodov namesto enega.
+
+Ker je funkcija zdaj dosegljiva vsakemu prijavljenemu uporabniku, je
+**omejitev 30 oddaj/uro nosilna, ne higienska.**
+
+### Nasprotni primer, ki ga velja zapomniti
+
+`ai_usage_bump` **obdrži** `p_user_id` in ostane revoked. Razlika ni v tem,
+ali je rutina definer, ampak čigavo odločitev sprejema:
+`product_catalogue_submit` odloča o uporabnikovih lastnih prispevkih,
+`ai_usage_bump` pa o njegovi kvoti in sprejme `p_daily_limit` kot argument.
+Če bi ga smel klicati klient, bi si kvoto nastavil sam. To je zdaj zapisano
+tudi v komentarju nad funkcijo.
+
+### Ročno, ker brisanje na disku ni dovoljeno
+
+```powershell
+Remove-Item -Recurse -Force supabase\_to_delete
+npx supabase functions delete product-catalogue-publish --project-ref ldzgyzigvbwofbswitrv
+```
+
+Drugi ukaz je obvezen: funkcija je na strežniku še vedno deployana in bo
+delovala, dokler je ne odstraniš — kar pomeni **dve pisalni poti** v isto
+tabelo, od katerih ena še vedno piše s service-role ključem.
+
+## 15. Dnevnik — `_shared/` (2026-09-03)
+
+Zadnja neopravljena postavka iz §7/§8 (`edge-functions-prod-arhitektura.md`):
+`callerUserId()`, `corsHeaders` in `json()` so bili podvojeni v treh
+kopijah (`gemini-analyze`, `delete-account`, in `_to_delete`-jeva
+`product-catalogue-publish`). Zdaj živijo v `supabase/functions/_shared/`
+(`auth.ts`, `cors.ts`, `json.ts`) — Supabase CLI mapo `_shared` prepozna in
+jo zapakira z vsako funkcijo. `gemini-analyze` in `delete-account` ju
+uvažata; obe stari kopiji odstranjeni.
+
+Pripete verzije `jsr:`/`npm:` uvozov (druga polovica iste postavke) ni bilo
+treba dodajati: nobena od dveh funkcij ne uvaža `@supabase/supabase-js` ali
+katerekoli druge zunanje odvisnosti — obe govorita s PostgREST/Auth/Storage
+prek golega `fetch`, kar je bil namerna odločitev v `gemini-analyze` (glej
+komentar na vrhu datoteke) že prej.
+
+Preverjeno: `flutter analyze` po spremembi še vedno 0 napak, 48 opozoril/info
+(nespremenjeno proti stanju pred to sejo — spremembe so izključno v
+`supabase/functions/`, brez Deno na voljo za typecheck teh datotek, zato
+ostaja ročni pregled edino preverjanje).
