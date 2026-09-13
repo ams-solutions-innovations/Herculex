@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/exercise_programming_eligibility.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 
@@ -247,5 +248,177 @@ void main() {
         );
       },
     );
+
+    group('verifyPrerequisites', () {
+      final pullUp = _makeCatalogEntry(
+        id: 1,
+        slug: 'pull-up',
+        name: 'Pull-Up',
+        movementSlug: 'pull-up-vertical-pull',
+        programmingDifficulty: 'intermediate',
+        programmingCommonness: 'basic',
+      );
+
+      final chestDips = _makeCatalogEntry(
+        id: 2,
+        slug: 'chest-dips',
+        name: 'Chest Dips',
+        movementSlug: 'dip-vertical-push',
+        programmingDifficulty: 'intermediate',
+        programmingCommonness: 'basic',
+      );
+
+      final catalogBySlug = {
+        'pull-up': pullUp,
+        'chest-dips': chestDips,
+      };
+
+      test(
+        'advanced user satisfies prerequisite pull-up via Condition (a) experience check',
+        () {
+          final satisfied = ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: '["pull-up"]',
+            userExperience: ExperienceLevel.advanced,
+            completedExerciseSlugs: {},
+            completedMovementSlugs: {},
+            catalogBySlug: catalogBySlug,
+          );
+          expect(satisfied, isTrue);
+        },
+      );
+
+      test('novice user fails prerequisite pull-up when history is empty', () {
+        final satisfied = ExerciseProgrammingEligibility.verifyPrerequisites(
+          prerequisiteSlugsJson: '["pull-up"]',
+          userExperience: ExperienceLevel.novice,
+          completedExerciseSlugs: {},
+          completedMovementSlugs: {},
+          catalogBySlug: catalogBySlug,
+        );
+        expect(satisfied, isFalse);
+      });
+
+      test(
+        'novice user satisfies prerequisite pull-up via Condition (b) when completedExerciseSlugs contains pull-up',
+        () {
+          final satisfied = ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: '["pull-up"]',
+            userExperience: ExperienceLevel.novice,
+            completedExerciseSlugs: {'pull-up'},
+            completedMovementSlugs: {},
+            catalogBySlug: catalogBySlug,
+          );
+          expect(satisfied, isTrue);
+        },
+      );
+
+      test(
+        'novice user satisfies prerequisite pull-up via Condition (b) when completedMovementSlugs contains pull-up-vertical-pull',
+        () {
+          final satisfied = ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: '["pull-up"]',
+            userExperience: ExperienceLevel.novice,
+            completedExerciseSlugs: {},
+            completedMovementSlugs: {'pull-up-vertical-pull'},
+            catalogBySlug: catalogBySlug,
+          );
+          expect(satisfied, isTrue);
+        },
+      );
+
+      test(
+        'multi-prerequisite exercise fails if only one prerequisite is satisfied and the other is unverified',
+        () {
+          // Novice with pull-up logged, but chest-dips unverified
+          final satisfied = ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: '["pull-up", "chest-dips"]',
+            userExperience: ExperienceLevel.novice,
+            completedExerciseSlugs: {'pull-up'},
+            completedMovementSlugs: {},
+            catalogBySlug: catalogBySlug,
+          );
+          expect(satisfied, isFalse);
+
+          // Novice with both logged succeeds
+          final bothSatisfied =
+              ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: '["pull-up", "chest-dips"]',
+            userExperience: ExperienceLevel.novice,
+            completedExerciseSlugs: {'pull-up', 'chest-dips'},
+            completedMovementSlugs: {},
+            catalogBySlug: catalogBySlug,
+          );
+          expect(bothSatisfied, isTrue);
+        },
+      );
+
+      test('empty or null prerequisites json trivially satisfies check', () {
+        expect(
+          ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: null,
+            userExperience: ExperienceLevel.novice,
+            completedExerciseSlugs: {},
+            completedMovementSlugs: {},
+            catalogBySlug: catalogBySlug,
+          ),
+          isTrue,
+        );
+        expect(
+          ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: '[]',
+            userExperience: ExperienceLevel.novice,
+            completedExerciseSlugs: {},
+            completedMovementSlugs: {},
+            catalogBySlug: catalogBySlug,
+          ),
+          isTrue,
+        );
+      });
+    });
   });
+}
+
+ExerciseCatalogData _makeCatalogEntry({
+  required int id,
+  required String slug,
+  required String name,
+  String? movementSlug,
+  String programmingDifficulty = 'novice',
+  String programmingCommonness = 'basic',
+  String allowedTrainingStyles = '["basic"]',
+  String technicalEligibility = 'automatic',
+  String? prerequisiteSlugs,
+  String? scalingGroup,
+  int? scalingOrder,
+  String? requiredEquipmentKeys,
+  String modality = 'bodyweight',
+}) {
+  return ExerciseCatalogData(
+    id: id,
+    slug: slug,
+    name: name,
+    primaryMuscle: 'back',
+    equipment: 'bodyweight',
+    mechanics: 'compound',
+    force: 'pull',
+    plane: 'vertical',
+    defaultRestSeconds: 120,
+    isCustom: false,
+    category: 'calisthenics',
+    modality: modality,
+    cnsScore: 3,
+    recoveryImpact: 3,
+    loggingMetric: 'weight_reps',
+    supportsWeightedBodyweight: true,
+    isReviewed: true,
+    movementSlug: movementSlug,
+    programmingDifficulty: programmingDifficulty,
+    programmingCommonness: programmingCommonness,
+    allowedTrainingStyles: allowedTrainingStyles,
+    technicalEligibility: technicalEligibility,
+    prerequisiteSlugs: prerequisiteSlugs,
+    scalingGroup: scalingGroup,
+    scalingOrder: scalingOrder,
+    requiredEquipmentKeys: requiredEquipmentKeys,
+  );
 }

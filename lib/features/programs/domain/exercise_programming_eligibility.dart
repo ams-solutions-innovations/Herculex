@@ -7,6 +7,7 @@ library;
 
 import 'dart:convert';
 
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 
 class ExerciseProgrammingEligibility {
@@ -80,6 +81,66 @@ class ExerciseProgrammingEligibility {
 
     final styles = _styles(allowedTrainingStylesJson);
     return styles.any(style.allowedCatalogStyles.contains);
+  }
+
+  /// Validates whether all prerequisite movements for an exercise are satisfied.
+  ///
+  /// Follows a dual-check model (D-05):
+  /// A prerequisite is satisfied if EITHER:
+  /// (a) The user's experience level equals or exceeds the prerequisite's difficulty, OR
+  /// (b) The user has verified logged completion of the prerequisite exercise or its
+  ///     canonical movement family in workout history (D-08).
+  ///
+  /// Strict hard gate (D-06): If any prerequisite slug fails both checks, returns false.
+  static bool verifyPrerequisites({
+    required String? prerequisiteSlugsJson,
+    required ExperienceLevel userExperience,
+    required Set<String> completedExerciseSlugs,
+    required Set<String> completedMovementSlugs,
+    required Map<String, ExerciseCatalogData> catalogBySlug,
+  }) {
+    if (prerequisiteSlugsJson == null || prerequisiteSlugsJson.trim().isEmpty) {
+      return true;
+    }
+    final List<dynamic> rawList;
+    try {
+      final decoded = jsonDecode(prerequisiteSlugsJson);
+      if (decoded is! List) return true;
+      rawList = decoded;
+    } on FormatException {
+      return false;
+    }
+    if (rawList.isEmpty) return true;
+
+    for (final item in rawList) {
+      if (item is! String) continue;
+      final prereqSlug = item.trim();
+      if (prereqSlug.isEmpty) continue;
+
+      final prereqExercise = catalogBySlug[prereqSlug];
+
+      // Check Condition (a): Experience check
+      var satisfiedByExperience = false;
+      if (prereqExercise != null) {
+        final prereqDiff = _difficulty(prereqExercise.programmingDifficulty);
+        if (_experienceRank(userExperience) >= _difficultyRank(prereqDiff)) {
+          satisfiedByExperience = true;
+        }
+      }
+
+      // Check Condition (b): History check with movement-family fallback (D-08)
+      var satisfiedByHistory = completedExerciseSlugs.contains(prereqSlug);
+      if (!satisfiedByHistory && prereqExercise?.movementSlug != null) {
+        satisfiedByHistory = completedMovementSlugs.contains(
+          prereqExercise!.movementSlug,
+        );
+      }
+
+      if (!satisfiedByExperience && !satisfiedByHistory) {
+        return false; // Hard gate: disqualified
+      }
+    }
+    return true;
   }
 
   static String _difficulty(String? value) => switch (value) {
