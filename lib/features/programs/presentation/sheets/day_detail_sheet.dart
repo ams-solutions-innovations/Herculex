@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -12,9 +14,12 @@ import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/presentation/views/template_builder_view.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:intl/intl.dart';
 
 /// Everything you can do to one day of a block: see its sessions, attach or
@@ -51,16 +56,30 @@ class DayDetailSheet extends ConsumerWidget {
     );
 
     return HxSheet(
-      title: DateFormat('EEEE, MMMM d').format(date),
-      subtitle: rows.isEmpty
-          ? 'Nothing scheduled'
-          : rows.length == 1
-          ? '1 session'
-          : '${rows.length} sessions',
       initialSize: 0.65,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text(
+            DateFormat('EEEE, MMMM d').format(date),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            rows.isEmpty
+                ? 'Nothing scheduled'
+                : rows.length == 1
+                ? '1 session'
+                : '${rows.length} sessions',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.secondary,
+            ),
+          ),
+          const SizedBox(height: 20),
           if (rows.isEmpty)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 28),
@@ -172,12 +191,22 @@ class _SessionCard extends ConsumerWidget {
           _timeRow(context, ref, theme),
           const SizedBox(height: 14),
           if (ScheduleStatus.isOpen(row.status) && !row.isEmpty)
-            PremiumButton(
-              text: row.isInProgress ? 'Resume workout' : 'Start workout',
-              icon: Icons.play_arrow_rounded,
-              onTap: () => _start(context, ref),
+            Center(
+              child: PremiumButton(
+                text: row.isInProgress ? 'Resume workout' : 'Start workout',
+                icon: Icons.play_arrow_rounded,
+                onTap: () => _start(context, ref),
+              ),
             ),
           const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => _viewWorkout(context, ref),
+              icon: const Icon(Icons.visibility_outlined, size: 18),
+              label: const Text('View workout'),
+            ),
+          ),
+          const SizedBox(height: 4),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -378,20 +407,46 @@ class _SessionCard extends ConsumerWidget {
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     final navigator = Navigator.of(context);
     final service = ref.read(scheduledWorkoutServiceProvider);
-    final today = await service.todaysWorkout();
-    if (today == null || today.schedule.id != row.id) {
+    try {
+      await service.startScheduledWorkoutById(row.id);
+      // Transition directly to the active workout screen on the Workouts tab.
+      ref.read(mainTabIndexProvider.notifier).state = 2;
+      navigator.pop();
+    } on StateError catch (error) {
       if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message.toString())));
+    }
+  }
+
+  /// Shows the resolved plan without materializing a session, so looking ahead
+  /// in the calendar never changes the user's workout history or schedule.
+  Future<void> _viewWorkout(BuildContext context, WidgetRef ref) async {
+    final plan = await ref
+        .read(scheduledWorkoutServiceProvider)
+        .previewScheduledWorkout(row.id);
+    if (!context.mounted) return;
+    if (plan == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'You can only start a session on the day it is scheduled.',
-          ),
+          content: Text('This scheduled workout no longer exists.'),
         ),
       );
       return;
     }
-    await service.startScheduledWorkout(today);
-    navigator.pop();
+
+    final catalog = await ref
+        .read(appDatabaseProvider)
+        .select(ref.read(appDatabaseProvider).exerciseCatalog)
+        .get();
+    if (!context.mounted) return;
+    final exercises = {for (final exercise in catalog) exercise.id: exercise};
+    await HxSheet.show(
+      context,
+      builder: (_) =>
+          _WorkoutPlanPreviewSheet(plan: plan, exercises: exercises),
+    );
   }
 
   Future<void> _assignTemplate(BuildContext context, WidgetRef ref) async {
@@ -483,6 +538,138 @@ class _SessionCard extends ConsumerWidget {
       final calId = ref.read(selectedCalendarIdProvider);
       unawaited(calService.syncWorkoutNow(row.id, targetCalendarId: calId));
     }
+  }
+}
+
+class _WorkoutPlanPreviewSheet extends StatelessWidget {
+  const _WorkoutPlanPreviewSheet({
+    required this.plan,
+    required this.exercises,
+  });
+
+  final PlannedSessionSnapshot plan;
+  final Map<int, ExerciseCatalogData> exercises;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return HxSheet(
+      title: 'Planned workout',
+      subtitle: '${plan.name} · ${plan.exercises.length} exercises',
+      initialSize: 0.55,
+      child: Column(
+        children: [
+          for (final (index, plannedExercise) in plan.exercises.indexed) ...[
+            Builder(
+              builder: (context) {
+                final exercise = exercises[plannedExercise.exerciseId];
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${index + 1}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      if (exercise != null)
+                        ExerciseArtwork(
+                          exercise: exercise,
+                          size: 44,
+                          radius: 10,
+                          equipmentVariant: plannedExercise.equipmentVariant,
+                        )
+                      else
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.fitness_center_rounded,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              exercise?.name ?? 'Exercise',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              _setSummary(plannedExercise),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            if (index != plan.exercises.length - 1) const SizedBox(height: 8),
+          ],
+          if (plan.exercises.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Text(
+                'No exercises are planned yet.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.secondary,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _setSummary(PlannedExerciseSnapshot exercise) {
+    final working = exercise.sets.where((set) => !set.isWarmup).toList();
+    final warmups = exercise.sets.length - working.length;
+    if (working.isEmpty) {
+      return warmups == 0 ? 'No sets prescribed' : '$warmups warm-up sets';
+    }
+    final first = working.first;
+    final reps = first.repsMin == first.repsMax
+        ? '${first.repsMin ?? '—'} reps'
+        : '${first.repsMin ?? '—'}–${first.repsMax ?? '—'} reps';
+    return [
+      '${working.length} × $reps',
+      if (warmups > 0) '$warmups warm-up ${warmups == 1 ? 'set' : 'sets'}',
+    ].join(' · ');
   }
 }
 
