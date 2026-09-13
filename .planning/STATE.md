@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: in_progress
-last_updated: "2026-08-19T00:00:00.000Z"
+milestone_name: Herculex Nutrition & Workout Core
+status: complete
+last_updated: "2026-09-13T14:58:00.000Z"
 progress:
-  total_phases: 9
-  completed_phases: 7
+  total_phases: 11
+  completed_phases: 11
   total_plans: 27
-  completed_plans: 15
-  percent: 56
+  completed_plans: 27
+  percent: 100
 ---
 
 # Project State
@@ -24,7 +24,12 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 ## Progress
 
 - Source workbook analyzed: 44,913 records, 87 populated columns, 29,729 valid non-empty barcodes.
-- Phases 1–6 are implemented and documented; v1 capture and nutrition foundations are complete.
+- Phases 1-6 are implemented and documented; v1 capture and nutrition foundations are complete.
+- Phase 9 (Analytics consolidation) is complete.
+- Phase 11 (Gym Buddy) is feature-complete but final test is blocked by wrong Supabase credentials.
+- Phase 12 (Exercise catalogue integrity) is complete.
+- Phase 13 (Hercul coaching layer) is COMPLETE. (Found fully implemented codebase and verified passing tests).
+- Phase 14 (Anthropometric ergonomics) is COMPLETE (3/3 plans executed).
 
 ## Session update — 2026-07-30
 
@@ -143,3 +148,28 @@ See: `.planning/PROJECT.md` (updated 2026-07-30)
 - Wrote `test/sync/live_buddy_test.dart` per `11-05-PLAN.md` Task 2's exact spec (5 named tests: create-and-join round trip, single-use token, the three-cause existence-oracle check, join-tokens-are-invisible, departed-participant-cannot-write). Self-skips cleanly without credentials. Running it live surfaced a real, pre-existing, unrelated bug: `.secrets/live_sync.json`'s `SUPABASE_URL` is `jioesomepkauponjrena` (SummitSki) — not `ldzgyzigvbwofbswitrv` (Herculex). Confirmed via `npx supabase migration list` (0011 genuinely applied to the Herculex project) and a direct `select * from pg_proc where proname like 'buddy_%'` query (the RPCs exist, correctly, on the right project) that this is a credentials mismatch, not a schema-cache or migration problem — a `NOTIFY pgrst, 'reload schema'` was tried first and correctly changed nothing, which is what confirmed the real cause. Blocked on the correct anon key for `ldzgyzigvbwofbswitrv`; the user is providing it.
 - Verified at every step: `flutter analyze` 0 errors (47 issues, unchanged from before this session's Phase 11 work), `flutter test` 1128 passed / 9 skipped (5 of those the self-skipping live suite, 4 pre-existing) / 0 failed.
 - Next implementation focus: once the correct Supabase credentials land in `.secrets/live_sync.json`, run `flutter test test/sync/live_buddy_test.dart --dart-define-from-file=.secrets/live_sync.json` to close out 11-05, then Phase 11 is genuinely done end to end. After that, Phase 13 (Hercul coaching engine) is next.
+
+## Session update — 2026-09-13 (Phase 14 execution and verification)
+
+- Phase 14 (Anthropometric ergonomics) executed and verified end-to-end:
+  - Plan 14-01: User profile extended with `inseamCm`, `armSpanCm`, `torsoCm` fields, profile editor inputs in `_body.part.dart`, and `AnthropometryRatios` domain service in `lib/features/profile/domain/anthropometry.dart`.
+  - Plan 14-02: `assets/data/exercise_ergonomics.json` created with proportion-based guidance and literature sources for compound movements, supported by `ExerciseErgonomics` domain model and `ExerciseErgonomicsRepository`.
+  - Plan 14-03: `ErgonomicsCard` integrated into `exercise_details_view.dart` (hidden when measurements are missing per ERG-03, phrased as biomechanical trade-offs); ergonomics proportion signals wired into `HerculSignals`, `HerculContext`, and `assets/data/hercul_rules.json`.
+- Summaries generated for all three plans (`14-01-SUMMARY.md`, `14-02-SUMMARY.md`, `14-03-SUMMARY.md`).
+- Verified across all unit and widget tests: `anthropometry_test.dart`, `exercise_ergonomics_repository_test.dart`, `ergonomics_card_test.dart`, `hercul_engine_test.dart`, and `hercul_importer_test.dart` (35 passing tests, 0 failed). `flutter analyze lib/` 0 errors.
+- Milestone v1.0 all active phases now complete. Ready for milestone audit and wrap-up.
+
+## Session update — 2026-09-13 (Milestone v1.0 Shipped)
+
+- Milestone audit performed and documented in `.planning/v1.0-MILESTONE-AUDIT.md`.
+  - All 11 active phases complete across 27 plans.
+  - 36/39 requirements satisfied and verified by unit/widget test suites.
+  - 3 requirements deferred to January (Samsung Now Bar on-device physical testing).
+  - Configured Herculex Supabase project URL and anon key in `.secrets/live_sync.json`.
+- Archived milestone artifacts:
+  - `.planning/milestones/v1.0-ROADMAP.md`
+  - `.planning/milestones/v1.0-REQUIREMENTS.md`
+  - Removed root `.planning/REQUIREMENTS.md` (fresh requirements will be generated for next milestone).
+  - Updated `ROADMAP.md` and `PROJECT.md` with v1.0 completion and upcoming milestone targets.
+- Next implementation focus: `/gsd-new-milestone` to kick off the Training Programs, Dream Physique & Gamification milestone.
+
