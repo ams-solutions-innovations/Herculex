@@ -90,10 +90,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/data/exercises.json
+    - assets/data/exercise_ergonomics.json
     - assets/data/movements.json
     - assets/data/hercul_rules.json
     - assets/data/food_database_eu.v1.json
     - assets/data/fasting_stages.json
+    - assets/data/exercise_programming_metadata.json
     - assets/images/
     - assets/images/exercises/
     - assets/programs/

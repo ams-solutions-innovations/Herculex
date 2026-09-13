@@ -107,6 +107,69 @@ class ExerciseCatalog extends Table with SyncColumns, SyncTombstone {
   /// Machine option on a selectorized hamstring curl.
   TextColumn get allowedEquipment => text().nullable()();
 
+  /// JSON array of concrete equipment keys required to perform the exercise.
+  /// Unlike [allowedEquipment], every listed key must be available at the
+  /// selected gym. An empty/null list means the legacy modality is used.
+  TextColumn get requiredEquipmentKeys => text().nullable()();
+
+  /// suitable | advanced_manual | unsuitable. Smart programming only uses
+  /// `suitable`; guided/manual flows may expose the guarded advanced option.
+  TextColumn get maxEffortEligibility => text().nullable()();
+
+  // ── Program-generation curation (v40) ────────────────────────────────
+  //
+  // These fields deliberately have conservative defaults.  The bundled
+  // catalogue is large and historical rows (and user-created exercises) must
+  // never become eligible for automatic programming simply because a field
+  // was added.  Only entries in assets/data/exercise_programming_metadata.json
+  // are promoted from advanced/specialty/manual-only to an authored profile.
+  //
+  // novice | intermediate | advanced
+  TextColumn get programmingDifficulty =>
+      text().nullable().withDefault(const Constant('advanced'))();
+
+  // basic | common | specialty | manualOnly.
+  TextColumn get programmingCommonness =>
+      text().nullable().withDefault(const Constant('manualOnly'))();
+
+  /// JSON array of canonical programme styles the exercise is curated for,
+  /// such as ["weightlifting", "basic"] or ["calisthenics"].  An empty
+  /// list means the row is manual-only until it is explicitly curated.
+  TextColumn get allowedTrainingStyles =>
+      text().nullable().withDefault(const Constant('[]'))();
+
+  /// automatic | technical_review | manual_only.  This is independent of
+  /// difficulty: an advanced athlete may opt into a technical-review lift,
+  /// while `manual_only` movements are never selected by the generator.
+  TextColumn get technicalEligibility =>
+      text().nullable().withDefault(const Constant('manual_only'))();
+
+  /// JSON array of canonical disciplines: weights, calisthenics, crossfit,
+  /// olympic, gpp.
+  TextColumn get disciplines =>
+      text().nullable().withDefault(const Constant('[]'))();
+
+  /// JSON array of exercise or movement slugs required as foundational
+  /// prerequisites before this movement is eligible for auto-programming.
+  TextColumn get prerequisiteSlugs =>
+      text().nullable().withDefault(const Constant('[]'))();
+
+  /// Progression ladder identifier (e.g. 'vertical_pull', 'horizontal_push',
+  /// 'dips', 'squat', 'hinge').
+  TextColumn get scalingGroup => text().nullable()();
+
+  /// 1-indexed difficulty rank within the [scalingGroup] (1 = easiest regression).
+  IntColumn get scalingOrder => integer().nullable()();
+
+  /// Primary competition anchor identity (e.g. 'squat', 'bench', 'deadlift',
+  /// 'overhead_press').
+  TextColumn get competitionAnchor => text().nullable()();
+
+  /// JSON array of sticking-point or specialization tags (e.g.
+  /// '["squat-bottom", "squat-mid"]').
+  TextColumn get specializationTags =>
+      text().nullable().withDefault(const Constant('[]'))();
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {name, equipment},
@@ -207,6 +270,23 @@ class WorkoutExercises extends Table with SyncColumns, SyncTombstone {
   /// Machine settings snapshot for this log, JSON object
   /// (e.g. {"seat":"6","angle":"45°"}). Null for non-machine work.
   TextColumn get machineConfigJson => text().nullable()();
+
+  // ── Immutable planned-session snapshot (v39) ──
+  IntColumn get programExerciseSlotId => integer().nullable().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  IntColumn get rotationAssignmentId => integer().nullable().references(
+    RotationAssignments,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get plannedSlotRole => text().nullable()();
+  TextColumn get plannedTrainingMethod => text().nullable()();
+  TextColumn get plannedPrescriptionWhy => text().nullable()();
+  IntColumn get plannedWaveIndex => integer().nullable()();
+  IntColumn get plannedWaveCount => integer().nullable()();
 }
 
 @DataClassName('SetEntryData')
@@ -271,6 +351,17 @@ class SetEntries extends Table with SyncColumns, SyncTombstone {
   /// Calories as reported by an erg or bike console. Not an estimate the app
   /// computes — it is a number the machine displayed and the user copied.
   IntColumn get calories => integer().nullable()();
+
+  // ── Immutable target values (v39) ──
+  // Existing weight/reps/rpe columns remain the completed values. These
+  // columns preserve what the program prescribed when the workout started.
+  IntColumn get plannedRepsMin => integer().nullable()();
+  IntColumn get plannedRepsMax => integer().nullable()();
+  RealColumn get plannedWeightKg => real().nullable()();
+  IntColumn get plannedRpeX10 => integer().nullable()();
+  IntColumn get plannedRir => integer().nullable()();
+  RealColumn get plannedPercentOf1Rm => real().nullable()();
+  TextColumn get plannedIntent => text().nullable()();
 }
 
 // ── Nutrition ──────────────────────────────────────────────────────────────
@@ -621,6 +712,18 @@ class Programs extends Table with SyncColumns, SyncTombstone {
   /// The invariant is enforced only by `ProgramsRepository.setActiveProgram`;
   /// never write this column from anywhere else.
   BoolColumn get isActive => boolean().withDefault(const Constant(false))();
+
+  // smart | guided | manual
+  TextColumn get buildMode => text().withDefault(const Constant('manual'))();
+  // hypertrophy | strength | powerbuilding | athletic
+  TextColumn get trainingGoal =>
+      text().withDefault(const Constant('hypertrophy'))();
+  // novice | intermediate | advanced
+  TextColumn get experienceLevel =>
+      text().withDefault(const Constant('intermediate'))();
+  // automatic_numeric | review_structural | locked
+  TextColumn get adaptationMode =>
+      text().withDefault(const Constant('review_structural'))();
 }
 
 @DataClassName('ProgramWeekData')
@@ -682,6 +785,9 @@ class ProgramDays extends Table with SyncColumns, SyncTombstone {
   /// editing it and re-materializing only reaches future untouched `planned`
   /// occurrences, same as [templateId].
   IntColumn get startTimeMinutes => integer().nullable()();
+
+  /// intensity | volume | dynamic_technique | mixed
+  TextColumn get stressRole => text().withDefault(const Constant('mixed'))();
 }
 
 @DataClassName('ProgramDayExerciseData')
@@ -717,6 +823,128 @@ class ProgramDayExercises extends Table with SyncColumns, SyncTombstone {
 
   /// Prescribed equipment variant; null = exercise default.
   TextColumn get equipmentVariant => text().nullable()();
+
+  IntColumn get programExerciseSlotId => integer().nullable().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get slotRole => text().withDefault(const Constant('accessory'))();
+  TextColumn get trainingMethod => text().withDefault(const Constant('auto'))();
+  IntColumn get targetRir => integer().nullable()();
+  IntColumn get restSeconds => integer().nullable()();
+  TextColumn get prescriptionWhy => text().nullable()();
+  TextColumn get prescriptionJson => text().nullable()();
+  TextColumn get variantConfigJson => text().nullable()();
+}
+
+/// Stable exercise slot shared by all materialized weeks of a program (v39).
+/// The slot owns selection constraints, method, prescription and fatigue
+/// budget; individual week/day rows only reference the resolved assignment.
+@DataClassName('ProgramExerciseSlotData')
+class ProgramExerciseSlots extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get programId =>
+      integer().references(Programs, #id, onDelete: KeyAction.cascade)();
+  TextColumn get slotKey => text()();
+  TextColumn get daySlotLabel => text()();
+  IntColumn get orderIndex => integer()();
+  TextColumn get role => text().withDefault(const Constant('accessory'))();
+  TextColumn get movementPattern => text().nullable()();
+  TextColumn get primaryMuscle => text().nullable()();
+  TextColumn get trainingMethod => text().withDefault(const Constant('auto'))();
+  TextColumn get prescriptionJson => text().nullable()();
+  TextColumn get rotationPolicyJson => text().nullable()();
+  IntColumn get fatigueBudget => integer().withDefault(const Constant(3))();
+  BoolColumn get userLocked => boolean().withDefault(const Constant(false))();
+  IntColumn get waveOverrideWeeks => integer().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {programId, slotKey},
+  ];
+}
+
+@DataClassName('ProgramSlotPoolMemberData')
+class ProgramSlotPoolMembers extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get slotId => integer().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+  IntColumn get orderIndex => integer().withDefault(const Constant(0))();
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {slotId, exerciseId},
+  ];
+}
+
+@DataClassName('RotationAssignmentData')
+class RotationAssignments extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get slotId => integer().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+  IntColumn get weekIndex => integer()();
+  TextColumn get source => text().withDefault(const Constant('planned'))();
+  TextColumn get reason => text()();
+  TextColumn get variantConfigJson => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {slotId, weekIndex},
+  ];
+}
+
+@DataClassName('PrescriptionTemplateData')
+class PrescriptionTemplates extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get method => text()();
+  TextColumn get prescriptionJson => text()();
+  BoolColumn get isBuiltIn => boolean().withDefault(const Constant(false))();
+}
+
+@DataClassName('PhysiqueProgrammingProfileData')
+class PhysiqueProgrammingProfiles extends Table
+    with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get prioritiesJson => text()();
+  TextColumn get source => text().withDefault(const Constant('manual'))();
+  TextColumn get modelVersion => text().nullable()();
+  DateTimeColumn get confirmedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+
+@DataClassName('ExercisePreferenceData')
+class ExercisePreferences extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get exerciseId =>
+      integer().references(ExerciseCatalog, #id, onDelete: KeyAction.cascade)();
+  IntColumn get programId => integer().nullable().references(
+    Programs,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  TextColumn get affinity => text().withDefault(const Constant('okay'))();
+  TextColumn get allowedRolesJson => text().nullable()();
+  TextColumn get note => text().nullable()();
 }
 
 /// A pool of exercise variations for one movement pattern. The program
@@ -1037,6 +1265,21 @@ class Gyms extends Table with SyncColumns, SyncTombstone {
   TextColumn get name => text()();
   BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get allEquipment => boolean().withDefault(const Constant(true))();
+}
+
+@DataClassName('GymEquipmentData')
+class GymEquipment extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get gymId =>
+      integer().references(Gyms, #id, onDelete: KeyAction.cascade)();
+  TextColumn get equipmentKey => text()();
+  BoolColumn get available => boolean().withDefault(const Constant(true))();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {gymId, equipmentKey},
+  ];
 }
 
 /// Lifting accessory catalog (belt, sleeves, wraps, straps, fat grips, chains
