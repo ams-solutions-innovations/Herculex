@@ -17,10 +17,10 @@
 
 ### 2. Exercise Programming Metadata & Disciplines (Phase 16)
 
-- [ ] **META-01**: Exercise catalog defines explicit `difficultyLevel` (novice, intermediate, advanced), `commonnessTier` (basic, common, specialty, manualOnly), and `disciplines`.
-- [ ] **META-02**: Technical movements enforce prerequisite checks (`prerequisiteSlugs`) before entering candidate pools.
-- [ ] **META-03**: `basicWeights` training style restricts movements strictly to standard barbell, dumbbell, cable, and machine equipment without specialty bars/variants.
-- [ ] **META-04**: Scaling groups (`scalingGroup`, `scalingOrder`) allow automated progressive regression for advanced movements.
+- [x] **META-01**: Exercise catalog defines explicit `difficultyLevel` (novice, intermediate, advanced), `commonnessTier` (basic, common, specialty, manualOnly), and `disciplines`.
+- [x] **META-02**: Technical movements enforce prerequisite checks (`prerequisiteSlugs`) before entering candidate pools.
+- [x] **META-03**: `basicWeights` training style restricts movements strictly to standard barbell, dumbbell, cable, and machine equipment without specialty bars/variants.
+- [x] **META-04**: Scaling groups (`scalingGroup`, `scalingOrder`) allow automated progressive regression for advanced movements.
 
 ### 3. Deterministic Planner & Hard Guardrails (Phase 17)
 
