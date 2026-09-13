@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: in_progress
-last_updated: "2026-09-13T18:42:44.654Z"
+last_updated: "2026-09-13T19:15:46.171Z"
 progress:
   total_phases: 11
   completed_phases: 2
-  total_plans: 6
+  total_plans: 11
   completed_plans: 6
   percent: 18
 ---
@@ -28,7 +28,7 @@ Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 - **Phase 15: Program Generator Regression Fixes & Interaction Hardening** — Completed (2026-09-13).
 - **Phase 16: Exercise Programming Metadata & Discipline Taxonomy** — Completed (2026-09-13).
-- **Phase 17: Deterministic Program Planner & Hard Guardrails** — Ready to plan (`/gsd-plan-phase 17`).
+- **Phase 17: Deterministic Program Planner & Hard Guardrails** — Ready to execute (`/gsd:execute-phase 17`), 5 plans.
 - **Phase 18: Workout Time Budget, Warmups & Set Method Prescriptions** — Pending.
 - **Phase 19: Program & Wave Editor with Explainable Periodization** — Pending.
 - **Phase 20: Active Workout Shell & Calendar Execution Flow** — Pending.

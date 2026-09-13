@@ -38,10 +38,21 @@ Blueprint reference: [`docs/training-programs-physique-gamification-plan-2026-09
 **Plans:** 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 17-01-PLAN.md — Wave 0: ProgramSlotExplanations table (schema v42), SelectionExplanation model, JointModel.excludedMusclesFor helper, EmptySlotNotice widget
 - [ ] 17-02-PLAN.md — Wave 1: injury/pain + prerequisites hard filters, delete unused ProgramGenerationRequest, replace crash-on-exhaustion with D-01/D-03 graceful empty-slot resolution
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 17-03-PLAN.md — Wave 2: anchor-lift lock across block weeks (D-09–D-12)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 17-04-PLAN.md — Wave 3: persist SelectionExplanation to ProgramSlotExplanations for every slot/week
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 17-05-PLAN.md — Wave 4: surface empty-slot rationale in the program review UI (D-04)
 
 ### Phase 18: Workout Time Budget, Warmups & Set Method Prescriptions
