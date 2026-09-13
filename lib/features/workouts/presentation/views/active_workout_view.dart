@@ -26,6 +26,7 @@ import 'package:herculex/features/workouts/presentation/sheets/workout_settings_
 import 'package:herculex/features/workouts/presentation/views/dynamic_workout_view.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_finish_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/active_exercise_card.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/widgets/rest_timer_banner.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -37,12 +38,40 @@ class ActiveWorkoutView extends ConsumerStatefulWidget {
   ConsumerState<ActiveWorkoutView> createState() => _ActiveWorkoutViewState();
 }
 
-class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
+class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
+    with WidgetsBindingObserver {
   final Map<int, FocusNode> _firstSetFocusNodes = {};
+  // While a drag is in progress the list collapses every exercise (and each
+  // superset's exercises together) into compact pills, so long lists stay
+  // legible enough to actually see where a row is landing.
+  bool _reorderMode = false;
+
+  /// Buckets [rows] into superset groups, preserving first-appearance order
+  /// so a linked group always drags — and lands — as one unit.
+  List<List<WorkoutExerciseData>> _groupRows(List<WorkoutExerciseData> rows) {
+    final groups = <List<WorkoutExerciseData>>[];
+    final indexByGroupId = <int, int>{};
+    for (final row in rows) {
+      final groupId = row.supersetGroup;
+      if (groupId == null) {
+        groups.add([row]);
+        continue;
+      }
+      final existingIndex = indexByGroupId[groupId];
+      if (existingIndex == null) {
+        indexByGroupId[groupId] = groups.length;
+        groups.add([row]);
+      } else {
+        groups[existingIndex].add(row);
+      }
+    }
+    return groups;
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Enable wakelock if the user preference is on (default: true).
     _applyWakelock();
   }
@@ -54,12 +83,21 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // Always release the wakelock when leaving the workout screen.
     WakelockPlus.disable();
     for (final node in _firstSetFocusNodes.values) {
       node.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    // Scaffold removes the bottom MediaQuery inset from its body while it
+    // resizes. Listening to platform metrics keeps this floating bar in sync
+    // with the actual keyboard instead.
+    if (mounted) setState(() {});
   }
 
   @override
@@ -92,6 +130,8 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     if (ref.watch(dynamicWorkoutModeProvider)) {
       return DynamicWorkoutView(session: session);
     }
+    final inputFocused = ref.watch(workoutInputFocusedProvider);
+    final keyboardOpen = _keyboardOpen(context) || inputFocused;
     // Floating action bar sits above the nav bar and overlays the list.
     return Stack(
       children: [
@@ -240,10 +280,11 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                       ),
                     );
                   }
+                  final groups = _groupRows(rows);
                   return ReorderableListView.builder(
                     // Enough clearance for the floating bar + nav bar.
                     padding: const EdgeInsets.only(bottom: 200),
-                    itemCount: rows.length,
+                    itemCount: groups.length,
                     buildDefaultDragHandles: false,
                     proxyDecorator: (child, _, animation) => AnimatedBuilder(
                       animation: animation,
@@ -257,68 +298,65 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                       ),
                       child: child,
                     ),
+                    onReorderStart: (_) => setState(() => _reorderMode = true),
+                    onReorderEnd: (_) => setState(() => _reorderMode = false),
                     onReorderItem: (oldIndex, newIndex) {
-                      repo.reorderWorkoutExercises(
-                        sessionId: session.id,
-                        oldIndex: oldIndex,
-                        newIndex: newIndex,
+                      var targetIndex = newIndex;
+                      if (targetIndex > oldIndex) targetIndex -= 1;
+                      final reorderedGroups = List<List<WorkoutExerciseData>>.from(
+                        groups,
                       );
-                      if (buddySender != null) {
-                        final reordered = List<WorkoutExerciseData>.from(rows);
-                        final moved = reordered.removeAt(oldIndex);
-                        reordered.insert(
-                          newIndex > oldIndex ? newIndex - 1 : newIndex,
-                          moved,
-                        );
-                        buddySender.reorder(
-                          workoutExerciseIdsInOrder: reordered
-                              .map((r) => r.id)
-                              .toList(),
-                          scope: BuddyScope.both,
-                        );
-                      }
+                      final movedGroup = reorderedGroups.removeAt(oldIndex);
+                      reorderedGroups.insert(targetIndex, movedGroup);
+                      final orderedIds = reorderedGroups
+                          .expand((group) => group)
+                          .map((r) => r.id)
+                          .toList();
+                      repo.reorderWorkoutExerciseGroups(
+                        sessionId: session.id,
+                        orderedWorkoutExerciseIds: orderedIds,
+                      );
+                      buddySender?.reorder(
+                        workoutExerciseIdsInOrder: orderedIds,
+                        scope: BuddyScope.both,
+                      );
                     },
                     itemBuilder: (_, i) {
-                      final we = rows[i];
-                      final exercise = catalog.asData?.value.firstWhere(
-                        (e) => e.id == we.exerciseId,
-                        orElse: () => _placeholderExercise(we.exerciseId),
-                      );
-                      if (exercise == null) {
-                        return SizedBox.shrink(
-                          key: ValueKey('exercise_${we.id}'),
-                        );
-                      }
-                      return _LinkedExerciseTile(
-                        key: ValueKey('exercise_${we.id}'),
-                        index: i,
-                        workoutExercise: we,
-                        rows: rows,
-                        builder: (_, dragHandle) => ActiveExerciseCard(
-                          workoutExercise: we,
-                          exercise: exercise,
-                          sessionExercises: rows,
-                          catalogExercises: catalog.asData?.value ?? const [],
-                          firstSetFocusNode: _focusNodeFor(we.id),
-                          onCompletedSet:
-                              (completedWorkoutExerciseId, setIndex) =>
-                                  _advanceWithinLinkedGroup(
-                                    rows,
-                                    completedWorkoutExerciseId,
-                                    setIndex,
-                                  ),
-                          onRemove: () {
-                            if (buddySender != null) {
-                              buddySender.removeExercise(
-                                workoutExerciseId: we.id,
-                                scope: BuddyScope.mine,
-                              );
-                            } else {
-                              repo.removeWorkoutExercise(we.id);
-                            }
-                          },
-                          dragHandle: dragHandle,
-                        ),
+                      final group = groups[i];
+                      return _ExerciseGroupTile(
+                        key: ValueKey('exercise_group_${group.first.id}'),
+                        groupIndex: i,
+                        members: group,
+                        reorderMode: _reorderMode,
+                        catalogExercises: catalog.asData?.value ?? const [],
+                        placeholderExercise: _placeholderExercise,
+                        cardBuilder: (we, exercise, dragHandle) =>
+                            ActiveExerciseCard(
+                              workoutExercise: we,
+                              exercise: exercise,
+                              sessionExercises: rows,
+                              catalogExercises:
+                                  catalog.asData?.value ?? const [],
+                              firstSetFocusNode: _focusNodeFor(we.id),
+                              onCompletedSet:
+                                  (completedWorkoutExerciseId, setIndex) =>
+                                      _advanceWithinLinkedGroup(
+                                        rows,
+                                        completedWorkoutExerciseId,
+                                        setIndex,
+                                      ),
+                              onRemove: () {
+                                if (buddySender != null) {
+                                  buddySender.removeExercise(
+                                    workoutExerciseId: we.id,
+                                    scope: BuddyScope.mine,
+                                  );
+                                } else {
+                                  repo.removeWorkoutExercise(we.id);
+                                }
+                              },
+                              dragHandle: dragHandle,
+                            ),
                       );
                     },
                   );
@@ -337,86 +375,97 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
           curve: Curves.easeOutCubic,
           left: 0,
           right: 0,
-          bottom: _keyboardOpen(context) ? -140 : 0,
-          child: IgnorePointer(
-            ignoring: _keyboardOpen(context),
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 150),
-              opacity: _keyboardOpen(context) ? 0 : 1,
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _FloatyButton(
-                          text: 'Exercise',
-                          icon: Icons.add,
-                          isPrimary: false,
-                          onTap: () async {
-                            final results = await ExercisePickerSheet.show(
-                              context,
-                            );
-                            if (results == null ||
-                                results.isEmpty ||
-                                !context.mounted)
-                              return;
-                            final circuitIds = <int>{};
-                            for (final result in results) {
-                              if (!context.mounted) return;
-                              if (result.circuitId != null) {
-                                if (!circuitIds.contains(result.circuitId!)) {
-                                  circuitIds.add(result.circuitId!);
-                                  await ref
-                                      .read(circuitsRepositoryProvider)
-                                      .addCircuitToSession(
-                                        sessionId: session.id,
-                                        circuitId: result.circuitId!,
-                                      );
+          bottom: keyboardOpen ? -140 : 0,
+          // Exclude the hidden controls as well as ignoring their pointers:
+          // screen readers must not announce actions that cannot be used
+          // while a numeric input has the keyboard open.
+          child: ExcludeSemantics(
+            excluding: keyboardOpen,
+            child: IgnorePointer(
+              ignoring: keyboardOpen,
+              child: AnimatedOpacity(
+                // Hide immediately when typing so this bar cannot overlap the
+                // focused field; retain the app's usual fade on return.
+                duration: keyboardOpen
+                    ? Duration.zero
+                    : const Duration(milliseconds: 150),
+                opacity: keyboardOpen ? 0 : 1,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _FloatyButton(
+                            text: 'Exercise',
+                            icon: Icons.add,
+                            isPrimary: false,
+                            onTap: () async {
+                              final results = await ExercisePickerSheet.show(
+                                context,
+                              );
+                              if (results == null ||
+                                  results.isEmpty ||
+                                  !context.mounted) {
+                                return;
+                              }
+                              final circuitIds = <int>{};
+                              for (final result in results) {
+                                if (!context.mounted) return;
+                                if (result.circuitId != null) {
+                                  if (!circuitIds.contains(result.circuitId!)) {
+                                    circuitIds.add(result.circuitId!);
+                                    await ref
+                                        .read(circuitsRepositoryProvider)
+                                        .addCircuitToSession(
+                                          sessionId: session.id,
+                                          circuitId: result.circuitId!,
+                                        );
+                                  }
+                                  continue;
                                 }
-                                continue;
+                                final picked = result.exercise;
+                                final String? variant =
+                                    result.equipmentVariant ??
+                                    ((results.length > 1 ||
+                                            result.equipmentAlreadyChosen)
+                                        ? picked.modality
+                                        : await EquipmentVariantSheet.show(
+                                            context,
+                                            picked,
+                                          ));
+                                if (variant == null) continue;
+                                if (buddySender != null) {
+                                  await buddySender.addExercise(
+                                    exerciseId: picked.id,
+                                    equipmentVariant: variant,
+                                    scope: BuddyScope.both,
+                                  );
+                                } else {
+                                  await repo.addExerciseToSession(
+                                    sessionId: session.id,
+                                    exerciseId: picked.id,
+                                    equipmentVariant: variant,
+                                  );
+                                }
                               }
-                              final picked = result.exercise;
-                              final String? variant =
-                                  result.equipmentVariant ??
-                                  ((results.length > 1 ||
-                                          result.equipmentAlreadyChosen)
-                                      ? picked.modality
-                                      : await EquipmentVariantSheet.show(
-                                          context,
-                                          picked,
-                                        ));
-                              if (variant == null) continue;
-                              if (buddySender != null) {
-                                await buddySender.addExercise(
-                                  exerciseId: picked.id,
-                                  equipmentVariant: variant,
-                                  scope: BuddyScope.both,
-                                );
-                              } else {
-                                await repo.addExerciseToSession(
-                                  sessionId: session.id,
-                                  exerciseId: picked.id,
-                                  equipmentVariant: variant,
-                                );
-                              }
-                            }
-                          },
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _FloatyButton(
-                          text: 'Finish',
-                          icon: Icons.check,
-                          isPrimary: true,
-                          onTap: () async {
-                            await _showFinishSummary(session);
-                          },
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _FloatyButton(
+                            text: 'Finish',
+                            icon: Icons.check,
+                            isPrimary: true,
+                            onTap: () async {
+                              await _showFinishSummary(session);
+                            },
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -428,7 +477,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   }
 
   bool _keyboardOpen(BuildContext context) =>
-      MediaQuery.viewInsetsOf(context).bottom > 0;
+      View.of(context).viewInsets.bottom > 0;
 
   DateTime _resolvedEndedAt(DateTime startedAt, DateTime? originalEndedAt) {
     if (originalEndedAt != null) return originalEndedAt;
@@ -500,6 +549,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     force: '',
     plane: '',
     defaultRestSeconds: 120,
+    maxEffortEligibility: 'unsuitable',
     isCustom: false,
     category: 'strength',
     modality: 'barbell',
@@ -815,32 +865,44 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _LinkedExerciseTile extends ConsumerWidget {
-  final int index;
-  final WorkoutExerciseData workoutExercise;
-  final List<WorkoutExerciseData> rows;
-  final Widget Function(BuildContext context, Widget dragHandle) builder;
+/// Renders one drag target in the reorderable list — a single exercise, or
+/// (when [members] has more than one row) a whole superset group that always
+/// drags and lands together, since [groupIndex] is the one index every
+/// member's drag handle reports to `ReorderableListView`.
+class _ExerciseGroupTile extends ConsumerWidget {
+  final int groupIndex;
+  final List<WorkoutExerciseData> members;
+  final bool reorderMode;
+  final List<ExerciseCatalogData> catalogExercises;
+  final ExerciseCatalogData Function(int exerciseId) placeholderExercise;
+  final Widget Function(
+    WorkoutExerciseData workoutExercise,
+    ExerciseCatalogData exercise,
+    Widget dragHandle,
+  )
+  cardBuilder;
 
-  const _LinkedExerciseTile({
+  const _ExerciseGroupTile({
     super.key,
-    required this.index,
-    required this.workoutExercise,
-    required this.rows,
-    required this.builder,
+    required this.groupIndex,
+    required this.members,
+    required this.reorderMode,
+    required this.catalogExercises,
+    required this.placeholderExercise,
+    required this.cardBuilder,
   });
+
+  ExerciseCatalogData _exerciseFor(WorkoutExerciseData we) {
+    return catalogExercises.firstWhere(
+      (e) => e.id == we.exerciseId,
+      orElse: () => placeholderExercise(we.exerciseId),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final group = workoutExercise.supersetGroup;
-    final groupRows = group == null
-        ? <WorkoutExerciseData>[]
-        : (rows.where((r) => r.supersetGroup == group).toList()
-            ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex)));
-    final isLinked = groupRows.length > 1;
-    final groupIndex = groupRows.indexWhere((r) => r.id == workoutExercise.id);
-    final isFirst = groupIndex == 0;
-    final isLast = groupIndex == groupRows.length - 1;
-    final groupCount = groupRows.length;
+    final isLinked = members.length > 1;
+    final groupCount = members.length;
     final label = groupCount == 2
         ? 'SUPERSET'
         : (groupCount == 3 ? 'TRI-SET' : 'GIANT SET');
@@ -848,24 +910,10 @@ class _LinkedExerciseTile extends ConsumerWidget {
         ? 'Superset'
         : (groupCount == 3 ? 'Tri-Set' : 'Giant Set');
 
-    // Calculate circuit metrics
-    CircuitPerformanceStats stats = CircuitPerformanceStats.empty;
-    if (isLinked) {
-      final setsByExercise = <int, List<SetEntryData>>{};
-      for (final gr in groupRows) {
-        final setsAsync = ref.watch(workoutExerciseSetsProvider(gr.id));
-        setsByExercise[gr.id] = setsAsync.asData?.value ?? [];
-      }
-      stats = calculateCircuitStats(
-        exercises: groupRows,
-        setsByExerciseId: setsByExercise,
-      );
-    }
-
     final dragHandle = Tooltip(
       message: 'Hold to reorder',
       child: ReorderableDelayedDragStartListener(
-        index: index,
+        index: groupIndex,
         child: Container(
           width: 32,
           height: 32,
@@ -886,6 +934,61 @@ class _LinkedExerciseTile extends ConsumerWidget {
       ),
     );
 
+    if (reorderMode) {
+      return _ReorderPillGroup(
+        members: members,
+        isLinked: isLinked,
+        label: label,
+        exerciseFor: _exerciseFor,
+        dragHandle: dragHandle,
+      );
+    }
+
+    // Calculate circuit metrics
+    CircuitPerformanceStats stats = CircuitPerformanceStats.empty;
+    if (isLinked) {
+      final setsByExercise = <int, List<SetEntryData>>{};
+      for (final gr in members) {
+        final setsAsync = ref.watch(workoutExerciseSetsProvider(gr.id));
+        setsByExercise[gr.id] = setsAsync.asData?.value ?? [];
+      }
+      stats = calculateCircuitStats(
+        exercises: members,
+        setsByExerciseId: setsByExercise,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var j = 0; j < members.length; j++)
+          _buildMember(
+            member: members[j],
+            memberIndex: j,
+            isLinked: isLinked,
+            isFirst: j == 0,
+            isLast: j == members.length - 1,
+            label: label,
+            tooltipMsg: tooltipMsg,
+            stats: stats,
+            dragHandle: dragHandle,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMember({
+    required WorkoutExerciseData member,
+    required int memberIndex,
+    required bool isLinked,
+    required bool isFirst,
+    required bool isLast,
+    required String label,
+    required String tooltipMsg,
+    required CircuitPerformanceStats stats,
+    required Widget dragHandle,
+  }) {
+    final exercise = _exerciseFor(member);
     return Stack(
       children: [
         if (isLinked)
@@ -914,7 +1017,7 @@ class _LinkedExerciseTile extends ConsumerWidget {
                   ),
                 ),
                 child: Text(
-                  '${groupIndex + 1}',
+                  '${memberIndex + 1}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -987,11 +1090,129 @@ class _LinkedExerciseTile extends ConsumerWidget {
                     ],
                   ),
                 ),
-              builder(context, dragHandle),
+              cardBuilder(member, exercise, dragHandle),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Compact reorder-mode stand-in for a group's full exercise cards — just
+/// enough (artwork, name, drag handle) to see where a row is landing when
+/// the list is long. Linked exercises stay visually bracketed together so
+/// it stays obvious they'll move as one.
+class _ReorderPillGroup extends StatelessWidget {
+  final List<WorkoutExerciseData> members;
+  final bool isLinked;
+  final String label;
+  final ExerciseCatalogData Function(WorkoutExerciseData) exerciseFor;
+  final Widget dragHandle;
+
+  const _ReorderPillGroup({
+    required this.members,
+    required this.isLinked,
+    required this.label,
+    required this.exerciseFor,
+    required this.dragHandle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pills = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var j = 0; j < members.length; j++)
+          Padding(
+            padding: EdgeInsets.only(top: j == 0 ? 0 : 6),
+            child: _ReorderPill(
+              exercise: exerciseFor(members[j]),
+              dragHandle: dragHandle,
+            ),
+          ),
+      ],
+    );
+
+    if (!isLinked) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: pills,
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColors.primaryContainer.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 2, 6, 6),
+            child: Row(
+              children: [
+                Icon(Icons.repeat_rounded, size: 13, color: AppColors.primary),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pills,
+        ],
+      ),
+    );
+  }
+}
+
+class _ReorderPill extends StatelessWidget {
+  final ExerciseCatalogData exercise;
+  final Widget dragHandle;
+
+  const _ReorderPill({required this.exercise, required this.dragHandle});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        children: [
+          ExerciseArtwork(exercise: exercise, size: 28, radius: 14),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              exercise.name,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+          const SizedBox(width: 8),
+          dragHandle,
+        ],
+      ),
     );
   }
 }

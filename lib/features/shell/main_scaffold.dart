@@ -38,7 +38,8 @@ class MainScaffold extends ConsumerStatefulWidget {
 
 final mainTabIndexProvider = StateProvider<int>((ref) => 0);
 
-class _MainScaffoldState extends ConsumerState<MainScaffold> {
+class _MainScaffoldState extends ConsumerState<MainScaffold>
+    with WidgetsBindingObserver {
   static const _tabs = <Widget>[
     DashboardView(),
     NutritionView(),
@@ -53,6 +54,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController(
       initialPage: ref.read(mainTabIndexProvider),
     );
@@ -173,8 +175,18 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    // ActiveWorkoutView sits below Scaffold, which deliberately removes its
+    // bottom MediaQuery inset while resizing. Rebuild this shell from the
+    // platform view metrics instead so its navigation reliably follows the
+    // physical keyboard both opening and closing.
+    if (mounted) setState(() {});
   }
 
   @override
@@ -186,6 +198,14 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     final dashboardEditMode = ref.watch(dashboardEditModeProvider);
     final showBanner = hasActiveSession && index != 2;
     final bannerAtTop = ref.watch(liveWorkoutBannerAtTopProvider);
+    // Keep the active-workout controls clear while logging a value with the
+    // on-screen keyboard. The workout view handles its own floating actions;
+    // this covers the app-wide navigation bar rendered by this shell.
+    final workoutInputFocused = ref.watch(workoutInputFocusedProvider);
+    final hideWorkoutChrome =
+        index == 2 &&
+        hasActiveSession &&
+        (View.of(context).viewInsets.bottom > 0 || workoutInputFocused);
 
     ref.listen<int>(mainTabIndexProvider, (prev, next) {
       if (!_pageController.hasClients) return;
@@ -260,22 +280,41 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
                 action(context, ref);
               },
             ),
-          Positioned(
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
             left: 0,
             right: 0,
-            bottom: 0,
-            child: HxNavBar(
-              currentIndex: index,
-              onTap: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
-              quickAddOpen: _quickAddOpen,
-              onQuickAddTap: () {
-                if (_quickAddOpen) {
-                  // Same reverse animation as tapping the backdrop.
-                  _quickAddMenuKey.currentState?.close();
-                } else {
-                  setState(() => _quickAddOpen = true);
-                }
-              },
+            bottom: hideWorkoutChrome ? -120 : 0,
+            // Do not leave an invisible navigation bar in the accessibility
+            // tree while a set-entry field owns the keyboard.
+            child: ExcludeSemantics(
+              excluding: hideWorkoutChrome,
+              child: IgnorePointer(
+                ignoring: hideWorkoutChrome,
+                child: AnimatedOpacity(
+                  // Hiding is immediate: the keyboard must never overlap a
+                  // visible control. Restoring still uses the standard fade.
+                  duration: hideWorkoutChrome
+                      ? Duration.zero
+                      : const Duration(milliseconds: 150),
+                  opacity: hideWorkoutChrome ? 0 : 1,
+                  child: HxNavBar(
+                    currentIndex: index,
+                    onTap: (i) =>
+                        ref.read(mainTabIndexProvider.notifier).state = i,
+                    quickAddOpen: _quickAddOpen,
+                    onQuickAddTap: () {
+                      if (_quickAddOpen) {
+                        // Same reverse animation as tapping the backdrop.
+                        _quickAddMenuKey.currentState?.close();
+                      } else {
+                        setState(() => _quickAddOpen = true);
+                      }
+                    },
+                  ),
+                ),
+              ),
             ),
           ),
         ],

@@ -14,6 +14,7 @@ import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
+import 'package:herculex/features/workouts/data/exercise_ergonomics_repository.dart';
 import 'package:herculex/features/workouts/domain/active_workout_notification_target.dart';
 import 'package:herculex/features/workouts/domain/calendar_service.dart';
 import 'package:herculex/features/workouts/domain/effective_load.dart';
@@ -23,7 +24,6 @@ import 'package:herculex/features/workouts/domain/set_type.dart';
 final mediaSyncServiceProvider = Provider<MediaSyncService>((ref) {
   final wearSync = ref.watch(wearSyncServiceProvider);
   final service = MediaSyncService(wearSync);
-  service.start();
   ref.onDispose(() {
     service.stop();
   });
@@ -35,6 +35,13 @@ final workoutsRepositoryProvider = Provider<WorkoutsRepository>((ref) {
   final clock = ref.watch(clockProvider);
   return WorkoutsRepository(db, clock);
 });
+
+final exerciseErgonomicsRepositoryProvider = FutureProvider<ExerciseErgonomicsRepository>((ref) async {
+  final repo = ExerciseErgonomicsRepository();
+  await repo.load();
+  return repo;
+});
+
 
 final wearWorkoutSyncServiceProvider = Provider<WearWorkoutSyncService>((ref) {
   return WearWorkoutSyncService(
@@ -57,6 +64,10 @@ final editingSessionOriginalEndedAtProvider = StateProvider<Map<int, DateTime>>(
 
 final recentSessionsProvider = StreamProvider<List<WorkoutSessionData>>((ref) {
   return ref.watch(workoutsRepositoryProvider).watchRecentSessions();
+});
+
+final completedSessionsProvider = StreamProvider<List<WorkoutSessionData>>((ref) {
+  return ref.watch(workoutsRepositoryProvider).watchCompletedSessions();
 });
 
 final workoutSessionProvider = StreamProvider.family<WorkoutSessionData, int>((
@@ -316,6 +327,12 @@ final gymsProvider = StreamProvider<List<GymData>>((ref) {
   return ref.watch(gymsRepositoryProvider).watchGyms();
 });
 
+final gymEquipmentProvider = StreamProvider.family<List<GymEquipmentData>, int>(
+  (ref, gymId) {
+    return ref.watch(gymsRepositoryProvider).watchEquipment(gymId);
+  },
+);
+
 final accessoriesProvider = StreamProvider<List<AccessoryData>>((ref) {
   return ref.watch(accessoriesRepositoryProvider).watchAccessories();
 });
@@ -452,6 +469,7 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
 
   // Watch active session and all exercises & sets reactively.
   final activeSession = ref.watch(activeSessionProvider).asData?.value;
+  ref.watch(mediaSyncServiceProvider).setWorkoutActive(activeSession != null);
   if (activeSession != null) {
     final exercises =
         ref.watch(sessionExercisesProvider(activeSession.id)).asData?.value ??
@@ -539,3 +557,7 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
     }
   }, fireImmediately: true);
 });
+
+/// True when any numeric or text input field in an active workout has focus.
+final workoutInputFocusedProvider = StateProvider<bool>((ref) => false);
+

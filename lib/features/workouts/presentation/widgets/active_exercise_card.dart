@@ -161,6 +161,10 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               ),
             ],
           ),
+          sets.maybeWhen(
+            data: (rows) => _plannedTargetCard(context, rows),
+            orElse: () => const SizedBox.shrink(),
+          ),
           lastPerformance.maybeWhen(
             data: (snapshot) {
               final allLastSets = snapshot?.sets ?? const <SetEntryData>[];
@@ -183,15 +187,35 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                 final nextLabel = _nextLabel(snapshot, currentRows);
                 return Padding(
                   padding: const EdgeInsets.only(top: 4, bottom: 8),
-                  child: Tooltip(
-                    message: nextTarget.rationale ?? '',
-                    child: Text(
-                      '$nextLabel: ${nextTarget.text}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Tooltip(
+                          message: nextTarget.rationale ?? '',
+                          child: Text(
+                            '$nextLabel: ${nextTarget.text}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      if (currentRows.any(
+                        (row) => !row.isCompleted && !row.isWarmup,
+                      ))
+                        TextButton(
+                          onPressed: () => _applyNumericTarget(
+                            context,
+                            repo,
+                            currentRows,
+                            weightKg: nextTarget.weightKg,
+                            reps: nextTarget.reps,
+                            rationale: nextTarget.rationale,
+                          ),
+                          child: const Text('Use'),
+                        ),
+                    ],
                   ),
                 );
               }
@@ -622,6 +646,113 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     );
   }
 
+  Widget _plannedTargetCard(BuildContext context, List<SetEntryData> rows) {
+    final planned = rows.where(
+      (set) =>
+          set.plannedRepsMin != null ||
+          set.plannedWeightKg != null ||
+          set.plannedRpeX10 != null ||
+          set.plannedPercentOf1Rm != null,
+    );
+    if (planned.isEmpty) return const SizedBox.shrink();
+
+    final workoutExercise = widget.workoutExercise;
+    final method = workoutExercise.plannedTrainingMethod;
+    final why = workoutExercise.plannedPrescriptionWhy;
+    final working = planned.where((set) => !set.isWarmup).toList();
+    final first = working.firstOrNull ?? planned.first;
+    final wave = workoutExercise.plannedWaveIndex == null
+        ? null
+        : 'Wave ${workoutExercise.plannedWaveIndex! + 1}'
+              '${workoutExercise.plannedWaveCount == null ? '' : '/${workoutExercise.plannedWaveCount}'}';
+    final target = method == 'max_effort'
+        ? 'Ramp • top set 1–3 @ RPE 8.5–9.5 • 3 back-off sets'
+        : _plannedTargetText(working, first);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primaryContainer.withValues(alpha: .35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withValues(alpha: .25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.flag_outlined, size: 18, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ['TARGET', ?wave].join('  •  '),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: .7,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  target,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ?(why == null
+              ? null
+              : IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Why this target?',
+                  icon: const Icon(Icons.info_outline, size: 19),
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Why this target?'),
+                      content: Text(why),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text('Got it'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+        ],
+      ),
+    );
+  }
+
+  String _plannedTargetText(
+    List<SetEntryData> working,
+    SetEntryData representative,
+  ) {
+    final count = working.isEmpty ? 1 : working.length;
+    final min = representative.plannedRepsMin;
+    final max = representative.plannedRepsMax;
+    final reps = min == null
+        ? null
+        : max != null && max != min
+        ? '$min–$max reps'
+        : '$min reps';
+    final intensity = representative.plannedWeightKg != null
+        ? '${representative.plannedWeightKg!.toStringAsFixed(1)} kg'
+        : representative.plannedPercentOf1Rm != null
+        ? '${(representative.plannedPercentOf1Rm! * 100).round()}% 1RM'
+        : representative.plannedRir != null
+        ? 'RIR ${representative.plannedRir}'
+        : representative.plannedRpeX10 != null
+        ? 'RPE ${(representative.plannedRpeX10! / 10).toStringAsFixed(1)}'
+        : null;
+    return ['$count sets', ?reps, ?intensity].join(' • ');
+  }
+
   SetEntryData? _findPriorSet(
     SetEntryData currentSet,
     int index,
@@ -760,7 +891,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     return 'Next';
   }
 
-  ({String text, String? rationale})? _formatNextTarget(
+  ({String text, String? rationale, double weightKg, int reps})?
+  _formatNextTarget(
     WidgetRef ref,
     List<SetEntryData> currentRows,
     List<SetEntryData> allLastSets,
@@ -769,6 +901,10 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   ) {
     if (allLastSets.isEmpty) return null;
     if (!metric.isRepBased) return null;
+    if (widget.workoutExercise.plannedTrainingMethod == 'max_effort' ||
+        widget.workoutExercise.plannedTrainingMethod == 'dynamic_effort') {
+      return null;
+    }
 
     SetEntryData? prior;
     if (currentRows.isEmpty) {
@@ -822,7 +958,56 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
         'weighted';
     final nextPrefix = isWeightedBw && target.weightKg > 0 ? '+' : '';
     final text = '$nextPrefix${fmt.format(target.weightKg)} × ${target.reps}';
-    return (text: text, rationale: target.rationale);
+    return (
+      text: text,
+      rationale: target.rationale,
+      weightKg: target.weightKg,
+      reps: target.reps,
+    );
+  }
+
+  Future<void> _applyNumericTarget(
+    BuildContext context,
+    WorkoutsRepository repo,
+    List<SetEntryData> rows, {
+    required double weightKg,
+    required int reps,
+    String? rationale,
+  }) async {
+    final targets = rows
+        .where((row) => !row.isCompleted && !row.isWarmup)
+        .toList(growable: false);
+    if (targets.isEmpty) return;
+    final before = [
+      for (final row in targets)
+        (id: row.id, weightKg: row.weightKg, reps: row.reps),
+    ];
+    for (final row in targets) {
+      await repo.updateSet(setId: row.id, weightKg: weightKg, reps: reps);
+    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          rationale == null || rationale.trim().isEmpty
+              ? 'Safe numeric target applied.'
+              : 'Target applied: $rationale',
+        ),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            for (final row in before) {
+              await repo.updateSet(
+                setId: row.id,
+                weightKg: row.weightKg,
+                reps: row.reps,
+              );
+            }
+          },
+        ),
+      ),
+    );
   }
 
   /// Per-row micro-label under a set (item 1): a compact "Down: X-Y" once per
@@ -973,7 +1158,6 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     final isMachine =
         (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality)
             .startsWith('machine');
-    final slug = widget.exercise.slug;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1351,7 +1535,6 @@ class _SetRowState extends ConsumerState<_SetRow> {
   /// Set the moment the user types in the reps field. A detected count never
   /// overwrites a number the user entered themselves — a proposal that
   /// silently replaced typing would be worse than no proposal at all.
-  bool _repsEditedByUser = false;
 
   @override
   void initState() {
@@ -1415,6 +1598,9 @@ class _SetRowState extends ConsumerState<_SetRow> {
 
   @override
   void dispose() {
+    if (_weightFocusNode.hasFocus || _repsFocusNode.hasFocus) {
+      ref.read(workoutInputFocusedProvider.notifier).state = false;
+    }
     _weightFocusNode.removeListener(_scrollWeightIntoViewOnFocus);
     _repsFocusNode.removeListener(_scrollRepsIntoViewOnFocus);
     _fallbackWeightFocusNode.dispose();
@@ -1431,13 +1617,23 @@ class _SetRowState extends ConsumerState<_SetRow> {
   FocusNode get _weightFocusNode =>
       widget.weightFocusNode ?? _fallbackWeightFocusNode;
 
+  void _syncInputFocus() {
+    if (_weightFocusNode.hasFocus || _repsFocusNode.hasFocus) {
+      ref.read(workoutInputFocusedProvider.notifier).state = true;
+    } else {
+      ref.read(workoutInputFocusedProvider.notifier).state = false;
+    }
+  }
+
   void _scrollWeightIntoViewOnFocus() {
+    _syncInputFocus();
     if (_weightFocusNode.hasFocus) {
       _scrollFieldIntoView(_weightFieldKey);
     }
   }
 
   void _scrollRepsIntoViewOnFocus() {
+    _syncInputFocus();
     if (_repsFocusNode.hasFocus) {
       _scrollFieldIntoView(_repsFieldKey);
     }
@@ -1495,16 +1691,25 @@ class _SetRowState extends ConsumerState<_SetRow> {
   /// in when the user completes a set without typing anything.
   String _hintFor(SetField field) {
     final prior = widget.priorSet;
-    if (prior == null) return '';
     return switch (field) {
-      SetField.weight => _fmtWeight(prior.weightKg),
-      SetField.reps => prior.reps == 0 ? '' : prior.reps.toString(),
+      SetField.weight =>
+        widget.set.plannedWeightKg != null
+            ? _fmtWeight(widget.set.plannedWeightKg!)
+            : prior == null
+            ? ''
+            : _fmtWeight(prior.weightKg),
+      SetField.reps =>
+        widget.set.plannedRepsMin != null
+            ? widget.set.plannedRepsMin.toString()
+            : prior == null || prior.reps == 0
+            ? ''
+            : prior.reps.toString(),
       SetField.duration => SetMetricFormat.durationFieldText(
-        prior.durationSeconds,
+        prior?.durationSeconds,
       ),
-      SetField.distance => _fmtDistance(prior.distanceM),
+      SetField.distance => _fmtDistance(prior?.distanceM),
       SetField.calories =>
-        prior.calories == null ? '' : prior.calories.toString(),
+        prior?.calories == null ? '' : prior!.calories.toString(),
     };
   }
 
@@ -2082,7 +2287,6 @@ class _SetRowState extends ConsumerState<_SetRow> {
           focusNode: _repsFocusNode,
           fieldKey: _repsFieldKey,
           hintText: _hintFor(field),
-          onChanged: (_) => _repsEditedByUser = true,
         );
       case SetField.duration:
         final currentSec =
@@ -2213,7 +2417,11 @@ class _SetRowState extends ConsumerState<_SetRow> {
           borderRadius: BorderRadius.circular(24),
         ),
         child: Text(
-          val != null ? val.toStringAsFixed(1) : 'RPE',
+          val != null
+              ? val.toStringAsFixed(1)
+              : widget.set.plannedRpeX10 != null
+              ? '→ ${(widget.set.plannedRpeX10! / 10).toStringAsFixed(1)}'
+              : 'RPE',
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: val != null ? FontWeight.bold : FontWeight.normal,
             color: val != null ? Colors.purple : AppColors.secondary,
