@@ -1,6 +1,6 @@
 // RB-04 Phase 4: schema tooling. Verifies the hand-written `tables.dart`
 // declarations (as materialized by `AppDatabase`) match the schema drift_dev
-// dumped to `drift_schemas/drift_schema_v38.json`. `schema dump` only
+// dumped to `drift_schemas/drift_schema_v41.json`. `schema dump` only
 // captures the *current* version — there is no retroactive v1-v22 snapshot —
 // so this only proves "the code matches what was dumped", not a full
 // migration-chain replay. Re-run `dart run drift_dev schema dump
@@ -17,10 +17,81 @@ import 'support/test_database.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('current schema matches the v38 drift_schemas snapshot', () async {
+  test('current schema matches the v41 drift_schemas snapshot', () async {
     final db = await openTestDatabase();
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
+  });
+
+  test('upgrades cleanly from a generated v40 fixture to v41', () async {
+    final connection = await verifier.startAt(40);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 41);
+
+    final columns = await db
+        .customSelect('PRAGMA table_info(exercise_catalog)')
+        .get();
+    final columnNames = columns.map((row) => row.read<String>('name')).toSet();
+    expect(
+      columnNames,
+      containsAll(<String>[
+        'disciplines',
+        'prerequisite_slugs',
+        'scaling_group',
+        'scaling_order',
+        'competition_anchor',
+        'specialization_tags',
+      ]),
+    );
+
+    final indexes = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name = 'idx_exercise_catalog_scaling'",
+        )
+        .get();
+    expect(indexes, isNotEmpty);
+  });
+
+  test('upgrades cleanly from a generated v39 fixture to v40', () async {
+    final connection = await verifier.startAt(39);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 41);
+
+    final tables = await db
+        .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .get();
+    final names = tables.map((row) => row.read<String>('name')).toSet();
+    expect(
+      names,
+      containsAll(<String>[
+        'program_exercise_slots',
+        'program_slot_pool_members',
+        'rotation_assignments',
+        'prescription_templates',
+        'physique_programming_profiles',
+        'exercise_preferences',
+        'gym_equipment',
+      ]),
+    );
+
+    final setColumns = await db
+        .customSelect('PRAGMA table_info(set_entries)')
+        .get();
+    expect(
+      setColumns.map((row) => row.read<String>('name')),
+      containsAll(<String>[
+        'planned_reps_min',
+        'planned_reps_max',
+        'planned_weight_kg',
+        'planned_rpe_x10',
+        'planned_rir',
+        'planned_percent_of1_rm',
+        'planned_intent',
+      ]),
+    );
   });
 
   // With two dumped snapshots (v23, v24) now on disk, startAt(23) has real
@@ -31,7 +102,7 @@ void main() {
     final connection = await verifier.startAt(23);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // Phase 10 sync (v25) touches every synced table at once — this is the
@@ -41,7 +112,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // The v26 step used to create three local-only assisted-rep-tracking
@@ -52,7 +123,7 @@ void main() {
     final connection = await verifier.startAt(25);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // UI rework Phase 6 (v27) adds the fasting_schedules table. Same
@@ -61,7 +132,7 @@ void main() {
     final connection = await verifier.startAt(26);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // UI rework Phase 8 (v28) adds start_time_minutes to program_days and
@@ -71,7 +142,7 @@ void main() {
     final connection = await verifier.startAt(27);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // Phase 11 Gym Buddy (v29) adds two local-only buddy mirror tables plus
@@ -81,7 +152,7 @@ void main() {
     final connection = await verifier.startAt(28);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // The v30 step used to add rep_tracking_settings.auto_count_enabled here;
@@ -91,7 +162,7 @@ void main() {
     final connection = await verifier.startAt(29);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // GSD 12-04 (v31): set_entries gains duration_seconds, distance_m and
@@ -101,7 +172,7 @@ void main() {
     final connection = await verifier.startAt(30);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // Recovery page (v32): joint_pain_logs, a new synced table. Same
@@ -110,7 +181,7 @@ void main() {
     final connection = await verifier.startAt(31);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // v33 (workout_sessions.photo_path + calories_burned) and v34 (the two
@@ -130,7 +201,7 @@ void main() {
     final connection = await verifier.startAt(32);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // v35 (achievements + the two Hercul tables), v36 (fasting_stages) and v37
@@ -146,7 +217,7 @@ void main() {
     final connection = await verifier.startAt(34);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
   });
 
   // v38 removes assisted rep tracking. drift_schema_v37.json was dumped
@@ -161,7 +232,7 @@ void main() {
     final connection = await verifier.startAt(37);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 41);
 
     final remaining = await db
         .customSelect(

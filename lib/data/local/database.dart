@@ -1088,39 +1088,34 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 41 && to >= 41) {
-        Future<void> addIfMissing(
-          TableInfo<Table, dynamic> table,
-          GeneratedColumn column,
-        ) async {
-          final existing = await customSelect(
-            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
-          ).get();
-          if (existing.isEmpty) return;
-          final names = existing.map((row) => row.read<String>('name')).toSet();
-          if (!names.contains(column.$name)) {
-            await m.addColumn(table, column);
-          }
-        }
-
-        await addIfMissing(exerciseCatalog, exerciseCatalog.disciplines);
-        await addIfMissing(exerciseCatalog, exerciseCatalog.prerequisiteSlugs);
-        await addIfMissing(exerciseCatalog, exerciseCatalog.scalingGroup);
-        await addIfMissing(exerciseCatalog, exerciseCatalog.scalingOrder);
-        await addIfMissing(exerciseCatalog, exerciseCatalog.competitionAnchor);
-        await addIfMissing(exerciseCatalog, exerciseCatalog.specializationTags);
-
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_exercise_catalog_scaling '
-          'ON exercise_catalog(scaling_group, scaling_order)',
-        );
-
         final catalogueExists = await customSelect(
           "SELECT 1 FROM sqlite_master WHERE type = 'table' "
           "AND name = 'exercise_catalog'",
         ).getSingleOrNull();
         if (catalogueExists != null) {
+          final existingColumns = (await customSelect(
+            "SELECT name FROM pragma_table_info('exercise_catalog')",
+          ).get()).map((r) => r.read<String>('name')).toSet();
+
+          final newColumns = <GeneratedColumn>[];
+          for (final col in exerciseCatalog.$columns) {
+            if (!existingColumns.contains(col.$name)) {
+              newColumns.add(col);
+            }
+          }
+
+          await m.alterTable(TableMigration(
+            exerciseCatalog,
+            newColumns: newColumns,
+          ));
+
           await ExerciseImporter.runFromAsset(this);
         }
+
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_exercise_catalog_scaling '
+          'ON exercise_catalog(scaling_group, scaling_order)',
+        );
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
