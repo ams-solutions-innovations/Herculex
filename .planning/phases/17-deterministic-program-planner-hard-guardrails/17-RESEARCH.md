@@ -634,18 +634,15 @@ relevant "old approach → new approach" shift is internal to this codebase:
    - Recommendation: default to local-only (see A1); explicitly re-visit in Phase 25 rather than
      guessing now.
 
-2. **Does `_createStableSlots`'s per-day `slotCache` (keyed by `dayLabel|stressRole.id`, reused
-   across all weeks) interact safely with anchor-locking?**
+2. **(RESOLVED)** Does `_createStableSlots`'s per-day `slotCache` (keyed by `dayLabel|stressRole.id`,
+   reused across all weeks) interact safely with anchor-locking?
    - What we know: `slotCache` only affects *slot definition* reuse (same day label appearing twice
      in a split), not the per-week rotation-assignment loop where the anchor lock lives.
-   - What's unclear: whether any split template repeats a `(dayLabel, stressRole)` pair such that two
-     physically different days would incorrectly share one `lockedAnchors` entry through the cache.
-   - Recommendation: during planning, trace one `SplitTemplates.generate` output for a repeating
-     split (e.g. PPL with 6 days/week, `daysPerWeek >= 6` per `_stressRole`) to confirm `dayLabel`
-     values are unique per physical day, not per label-type, before finalizing the `lockedAnchors`
-     keying scheme (`slotKey` already includes `dayLabel`, which should already disambiguate this,
-     but worth a concrete trace since the cache is the one part of the existing method the anchor
-     lock must NOT disturb per Pitfall 2).
+   - Resolution (confirmed during plan-checker verification, cross-checked against
+     `smart_program_planner.dart` lines 123-174 and 478-538): `ProgramExerciseSlots`/
+     `RotationAssignments` are already shared across same-label days today — this is pre-existing
+     behavior, unmodified by Phase 17. The anchor lock's `slotKey` reuse therefore doesn't introduce
+     any new risk beyond the status quo; no special-casing needed in 17-03's `lockedAnchors` keying.
 
 ## Validation Architecture
 
