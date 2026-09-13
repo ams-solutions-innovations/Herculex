@@ -1,0 +1,1942 @@
+{
+  "version": 2,
+  "description": "Hand-curated program-generation metadata with discipline taxonomy, scaling ladders, prerequisites, and competition anchors.",
+  "exercises": {
+    "barbell-back-squat": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "powerlifting",
+        "crossfit"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "squat",
+      "scalingOrder": 3,
+      "competitionAnchor": "squat",
+      "specializationTags": [
+        "squat-bottom",
+        "squat-mid",
+        "squat-lockout"
+      ]
+    },
+    "front-squat": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "crossfit"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "squat",
+      "scalingOrder": 2,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-front-squat": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-squat": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "squat",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "hack-squat-machine": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "smith-machine-squat": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "barbell-bench-press": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "powerlifting"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "bench",
+      "specializationTags": [
+        "bench-chest",
+        "bench-mid",
+        "bench-lockout"
+      ]
+    },
+    "dumbbell-bench-press": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "incline-barbell-bench": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "standard-push-up": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "horizontal_push",
+      "scalingOrder": 2,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "incline-push-up": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "horizontal_push",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "pull-up-wide-grip": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "negative-pull-up": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "vertical_pull",
+      "scalingOrder": 3,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "assisted-pull-up-machine-wide-grip": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic",
+        "weightlifting"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights",
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "vertical_pull",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "burpee": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "gpp",
+        "crossfit",
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "rowing-erg": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "gpp",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "air-bike": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "gpp",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "stationary-bike": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "gpp",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "thruster": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "crossfit",
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-snatch": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "crossfit",
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "power-clean": {
+      "difficulty": "advanced",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "olympic",
+        "weights",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "hang-power-clean": {
+      "difficulty": "advanced",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "olympic",
+        "weights",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "clean-and-jerk": {
+      "difficulty": "advanced",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "olympic",
+        "weights",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "power-snatch": {
+      "difficulty": "advanced",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "olympic",
+        "weights",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "hang-snatch": {
+      "difficulty": "advanced",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "olympic",
+        "weights",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "squat-snatch": {
+      "difficulty": "advanced",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "crossfit",
+        "weightlifting"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "olympic",
+        "weights",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "close-grip-bench-press": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "powerlifting"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "bench",
+      "specializationTags": [
+        "bench-lockout"
+      ]
+    },
+    "machine-incline-press": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "seated-chest-press-machine": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "overhead-press": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "powerlifting"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "overhead_press",
+      "specializationTags": [
+        "ohp-bottom",
+        "ohp-lockout"
+      ]
+    },
+    "dumbbell-overhead-press": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "machine-shoulder-press": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "barbell-row": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "powerlifting"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "two-arm-dumbbell-row": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "single-arm-dumbbell-row": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "machine-mid-row": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "machine-low-row": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "lat-pulldown": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "machine-high-row": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "barbell-bicep-curl": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-curl": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "machine-preacher-curl-seated": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "machine-tricep-extension": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "overhead-dumbbell-tricep": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-tricep-kickback": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-lateral-raise": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "machine-lateral-raise": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "seated-lateral-raise-machine": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-rear-delt-fly": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "reverse-pec-deck": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "conventional-deadlift": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "powerlifting"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "hinge",
+      "scalingOrder": 3,
+      "competitionAnchor": "deadlift",
+      "specializationTags": [
+        "deadlift-floor",
+        "deadlift-mid",
+        "deadlift-lockout"
+      ]
+    },
+    "romanian-deadlift": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "hinge",
+      "scalingOrder": 2,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-romanian-deadlift": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "hinge",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "leg-press": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "45-degree-leg-press": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "leg-extension": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "lying-leg-curl": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "seated-leg-curl": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "standing-calf-raise": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "seated-calf-raise": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-lunge": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "dumbbell-step-up": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "hypertrophy"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "barbell-walking-lunge": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "weightlifting",
+        "basic",
+        "powerlifting"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "chest-dips": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "dips",
+      "scalingOrder": 3,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "pull-up": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "vertical_pull",
+      "scalingOrder": 4,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "chin-up-supinated": {
+      "difficulty": "intermediate",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "ring-muscle-up": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [
+        "pull-up",
+        "chest-dips"
+      ],
+      "scalingGroup": "vertical_pull",
+      "scalingOrder": 7,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "strict-muscle-up": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "kipping-muscle-up": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "crossfit"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "bar-muscle-up": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "crossfit"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [
+        "pull-up",
+        "chest-dips"
+      ],
+      "scalingGroup": "vertical_pull",
+      "scalingOrder": 6,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "pseudo-planche-push-up": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [
+        "standard-push-up"
+      ],
+      "scalingGroup": "horizontal_push",
+      "scalingOrder": 5,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "full-planche": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [
+        "standard-push-up",
+        "chest-dips"
+      ],
+      "scalingGroup": "horizontal_push",
+      "scalingOrder": 6,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "hefesto": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "spoto-press": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "bench",
+      "specializationTags": [
+        "bench-chest",
+        "bench-mid"
+      ]
+    },
+    "board-press": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "bench",
+      "specializationTags": [
+        "bench-mid",
+        "bench-lockout"
+      ]
+    },
+    "pin-press": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "bench",
+      "specializationTags": [
+        "bench-chest",
+        "bench-mid",
+        "bench-lockout"
+      ]
+    },
+    "safety-bar-squat": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "squat",
+      "specializationTags": [
+        "squat-mid",
+        "squat-lockout"
+      ]
+    },
+    "safety-bar-low-box-squat": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "squat",
+      "specializationTags": [
+        "squat-bottom",
+        "squat-mid"
+      ]
+    },
+    "safety-bar-good-morning": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "safety-bar-walking-lunge": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "safety-bar-calf-raise": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "pin-squat": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "squat",
+      "specializationTags": [
+        "squat-bottom",
+        "squat-mid"
+      ]
+    },
+    "paused-squat": {
+      "difficulty": "intermediate",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "technical_review",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "squat",
+      "specializationTags": [
+        "squat-bottom"
+      ]
+    },
+    "swiss-bar-bench-press": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "bench",
+      "specializationTags": [
+        "bench-chest",
+        "bench-mid"
+      ]
+    },
+    "swiss-bar-incline-press": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-floor-press": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "bench",
+      "specializationTags": [
+        "bench-mid",
+        "bench-lockout"
+      ]
+    },
+    "swiss-bar-decline-push-up": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-bent-over-row": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-seal-row": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-lat-pulldown": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-rack-pull": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "deadlift",
+      "specializationTags": [
+        "deadlift-mid",
+        "deadlift-lockout"
+      ]
+    },
+    "swiss-bar-upright-row": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-overhead-press": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": "overhead_press",
+      "specializationTags": [
+        "ohp-bottom",
+        "ohp-lockout"
+      ]
+    },
+    "swiss-bar-skull-crusher": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-bicep-curl": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-jm-press": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "swiss-bar-ab-rollout": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "powerlifting"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "weights"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": null,
+      "scalingOrder": null,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "band-assisted-pull-up-wide-grip": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "vertical_pull",
+      "scalingOrder": 2,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "chest-to-bar-pull-up": {
+      "difficulty": "intermediate",
+      "commonness": "common",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "crossfit"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics",
+        "crossfit"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "vertical_pull",
+      "scalingOrder": 5,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "decline-push-up": {
+      "difficulty": "intermediate",
+      "commonness": "common",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "horizontal_push",
+      "scalingOrder": 3,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "diamond-push-up": {
+      "difficulty": "intermediate",
+      "commonness": "common",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "horizontal_push",
+      "scalingOrder": 4,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "bench-dip": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "dips",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "band-assisted-dip": {
+      "difficulty": "novice",
+      "commonness": "basic",
+      "allowedTrainingStyles": [
+        "calisthenics",
+        "basic"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "dips",
+      "scalingOrder": 2,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "ring-dips": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [
+        "chest-dips"
+      ],
+      "scalingGroup": "dips",
+      "scalingOrder": 4,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "pike-push-up": {
+      "difficulty": "intermediate",
+      "commonness": "common",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "handstand_pushup",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "handstand-push-up": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [
+        "pike-push-up"
+      ],
+      "scalingGroup": "handstand_pushup",
+      "scalingOrder": 2,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "trx-assisted-pistol-squat": {
+      "difficulty": "intermediate",
+      "commonness": "common",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "automatic",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [],
+      "scalingGroup": "pistol_squat",
+      "scalingOrder": 1,
+      "competitionAnchor": null,
+      "specializationTags": []
+    },
+    "pistol-squat": {
+      "difficulty": "advanced",
+      "commonness": "specialty",
+      "allowedTrainingStyles": [
+        "calisthenics"
+      ],
+      "technicalEligibility": "manual_only",
+      "disciplines": [
+        "calisthenics"
+      ],
+      "prerequisiteSlugs": [
+        "trx-assisted-pistol-squat"
+      ],
+      "scalingGroup": "pistol_squat",
+      "scalingOrder": 2,
+      "competitionAnchor": null,
+      "specializationTags": []
+    }
+  }
+}
