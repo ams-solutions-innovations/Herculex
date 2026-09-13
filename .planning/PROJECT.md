@@ -2,51 +2,49 @@
 
 ## What This Is
 
-Herculex is a Flutter fitness application with offline-first architecture, local-authoritative SQLite/Drift databases, Supabase cloud synchronization, nutrition tracking, workout execution, live buddy training, deterministic coaching, and anthropometric ergonomics.
+Herculex is a Flutter fitness application built on an offline-first architecture with local-authoritative Drift/SQLite databases, Supabase cloud synchronization, nutrition tracking, workout execution, live buddy training, deterministic Hercul coaching, and anthropometric ergonomics.
 
-## Current State (Shipped: Milestone v1.0)
+## Active Milestone: v2.0 — Training Programs Revamp, Dream Physique & Gamification
 
-**Version Shipped:** `v1.0` (2026-09-13)  
-**Archive:** [.planning/milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) | [.planning/milestones/v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md) | [Audit Report](v1.0-MILESTONE-AUDIT.md)
+**Defined:** 2026-09-13  
+**Blueprint:** [`docs/training-programs-physique-gamification-plan-2026-09-10.md`](../docs/training-programs-physique-gamification-plan-2026-09-10.md)  
+**Core Value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system.
 
-### Shipped Capabilities
-- **Local-First Nutrition & Catalogue:** Curated 44,913-food EU database in SQLite/FTS with exact string barcode matching and reference basis preservation.
-- **Portions & Meal Slots:** Grams, ml, and labelled serving scalers; user-configurable meal slot CRUD with daily micronutrient ledger.
-- **Capture Hardening & OCR:** GTIN/EAN/UPC check-digit validation, manual fallback, on-device Latin label OCR with Gemini fallback and confirmation review.
-- **Analytics Correctness:** Consolidated `TrainingSnapshot.load` effective load; soft-deleted records (`deletedAt`) excluded across all 8 tables.
-- **Gym Buddy Protocol:** Real-time two-device workout collaboration via Supabase Realtime broadcast + durable event log; strict participant data isolation and cold restart session resumption.
-- **Taxonomy & Logging Metrics:** Movement hierarchy collapsing equipment variants; 51 new exercises (cardio, Olympic, CrossFit, mobility); unit-preserving metrics (`durationSeconds`, `distanceM`, `calories`) excluded from tonnage distortion.
-- **Hercul Coaching Engine:** Deterministic rule engine over user signals, JSON rule corpus, dual tone (Normal / Honest 18+), dashboard insights card.
-- **Anthropometric Ergonomics:** Limb proportion calculator (inseam, arm span, torso) with movement-specific variant guidance keyed to proportion ratios.
+### Key Objectives
 
----
+1. **Deterministic Program Generation:** Unified `ProgramGenerationRequest`, hard prerequisite & equipment filters before scoring, elimination of unexpected 8×3 Dynamic Effort for beginners, and explainable selection rationales.
+2. **Exercise Taxonomy & Metadata:** Explicit curation of `difficultyLevel`, `commonnessTier`, `disciplines`, `prerequisiteSlugs`, and `basicWeights` filtering.
+3. **True Program & Wave Editor:** Week dropdown, exercise wave strip, and scoped exercise substitutions (`thisWave`, `thisAndFutureWaves`, `entireBlock`) without altering frozen started workouts.
+4. **Prescription Fidelity & Time Budgeting:** Unified `SlotPrescriptionCodec` shared between preview, editor, and workout; automatic warmup calculation and realistic session time estimation.
+5. **Specialized Tracks:** Dedicated CrossFit/GPP session blueprints (warmup, skill, metcon, cooldown) and Primary Lift Specialization (e.g. Squat Specialization with sticking point targetting).
+6. **Persistent Dream Physique:** Synchronized goal and assessment history, locally encrypted/safe photo storage with EXIF stripping, and multi-phase nutrition roadmaps (`cut`, `maintain`, `recomp`, `bulk`).
+7. **Idempotent 15-Rank Gamification:** Double-entry XP ledger keyed on verified workout/nutrition evidence, distinct from training experience, with progress explanations.
+8. **Cloud Sync & Privacy Hardening:** Drift schemas, Supabase migrations, RLS isolation, complete account wipe, and structured JSON export.
 
-## Next Milestone Goals (v2.0 / v1.1)
+### Constraints & Guiding Principles
 
-**Focus:** Training Programs Revamp, Dream Physique, and Gamification System (see `docs/training-programs-physique-gamification-plan-2026-09-10.md`).
-
-1. **Exercise Programming Metadata:** Add catalog difficulty, technical prerequisites, discipline tags, and user scaling levels.
-2. **Safe Program Generator:** Single entry point with hard guardrails preventing unsuitable exercise prescriptions for beginners.
-3. **Program & Block Editor:** Week/wave editor, explainable periodization, warmups, and advanced set methods (AMRAP, EMOM, dropsets, myo-reps).
-4. **Specialization Tracks:** CrossFit/GPP engine, primary lift specialization (e.g. Squat Specialization).
-5. **Dream Physique Integration:** Long-term physique goal tracking with multi-phase nutrition recommendations and muscle prioritization.
-6. **XP & Gamification System:** 15-tier Herculex ranking system driven by verified workout and nutrition data.
+- **No Silently Relaxed Filters:** If no safe exercise satisfies user constraints, the planner must return an explainable "no safe candidate" message rather than prescribing an unsafe or unsuitable movement.
+- **Single Source of Truth:** The prescription shown in the preview must match the exact prescription executed in the workout session.
+- **Privacy First:** Physique photos stay local by default; face blur/crop and EXIF stripping available before storage.
+- **Zero Negative or Manipulative Gamification:** XP is never subtracted, cannot be earned through unhealthy food logging or extreme weight cuts, and rank never unlocks technically restricted exercises.
 
 ---
 
 <details>
-<summary>Historical Context: Milestone v1.0 (Nutrition Completion)</summary>
+<summary>Archived Milestones</summary>
 
-### Core Value
-A user can find or capture the correct food, choose a realistic portion, and log it with trustworthy nutrient totals in a few seconds.
-
-### Constraints & Decisions
-- **Stack:** Flutter + Drift/SQLite; preserve all existing diary records.
-- **Data integrity:** Source workbook is source-of-truth input; no fabricated 100 g conversion for legacy servings.
-- **Privacy:** On-device OCR/barcode where feasible; user confirmation on all captured data.
-- **No API dependence:** Offline-first catalogue is authoritative.
+### Milestone v1.0: Nutrition & Workout Core (Shipped 2026-09-13)
+- **Archive:** [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) | [v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md) | [v1.0-MILESTONE-AUDIT.md](v1.0-MILESTONE-AUDIT.md)
+- Curated 44,913-food EU database in SQLite/FTS with exact string barcode matching.
+- Basis-aware portions (100g, 100ml, legacy servings) and user-defined meal slots.
+- Offline barcode verification & on-device OCR with Gemini review flow.
+- Consolidated `TrainingSnapshot` effective load; soft-deleted records (`deletedAt`) excluded.
+- Live Gym Buddy sharing protocol with Realtime broadcast & event replay.
+- Exercise taxonomy with 51 new exercises and unit-preserving logging metrics (`durationSeconds`, `distanceM`, `calories`).
+- Deterministic Hercul coaching rule engine (Normal / Honest 18+).
+- Anthropometric ergonomics ratio calculator and movement-specific guidance.
 
 </details>
 
 ---
-*Last updated: 2026-09-13 after milestone v1.0 completion*
+*Last updated: 2026-09-13 after initiating Milestone v2.0*

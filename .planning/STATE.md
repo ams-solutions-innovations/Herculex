@@ -1,175 +1,50 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Herculex Nutrition & Workout Core
-status: complete
-last_updated: "2026-09-13T14:58:00.000Z"
+milestone: v2.0
+milestone_name: Training Programs Revamp, Dream Physique & Gamification
+status: in_progress
+last_updated: "2026-09-13T15:05:00.000Z"
 progress:
   total_phases: 11
-  completed_phases: 11
-  total_plans: 27
-  completed_plans: 27
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
-# Project State
+# Project State: Milestone v2.0
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-07-30)
+See: `.planning/PROJECT.md` (initiated 2026-09-13)  
+Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
-**Core value:** Fast, trustworthy local food logging.
-**Current focus:** Phase 10 (assisted rep tracking) removed from the roadmap entirely — see the 2026-09-01 session entry below. Phase 12 complete. Phase 11 (Gym Buddy) turned out to already be essentially complete (11/11 plans once correctly counted) — see the 2026-09-02 session entry. One loose end: `test/sync/live_buddy_test.dart` is written but blocked on `.secrets/live_sync.json` pointing at the wrong Supabase project. Focus moves to Phase 13 (Hercul coaching engine) once that's resolved.
+**Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system.  
+**Current focus:** Phase 15: Program Generator Regression Fixes & Interaction Hardening.
 
-## Progress
+---
 
-- Source workbook analyzed: 44,913 records, 87 populated columns, 29,729 valid non-empty barcodes.
-- Phases 1-6 are implemented and documented; v1 capture and nutrition foundations are complete.
-- Phase 9 (Analytics consolidation) is complete.
-- Phase 11 (Gym Buddy) is feature-complete but final test is blocked by wrong Supabase credentials.
-- Phase 12 (Exercise catalogue integrity) is complete.
-- Phase 13 (Hercul coaching layer) is COMPLETE. (Found fully implemented codebase and verified passing tests).
-- Phase 14 (Anthropometric ergonomics) is COMPLETE (3/3 plans executed).
+## Current Roadmap (Phases 15–25)
 
-## Session update — 2026-07-30
+- **Phase 15: Program Generator Regression Fixes & Interaction Hardening** — Ready to plan (`/gsd-plan-phase 15`).
+- **Phase 16: Exercise Programming Metadata & Discipline Taxonomy** — Pending.
+- **Phase 17: Deterministic Program Planner & Hard Guardrails** — Pending.
+- **Phase 18: Workout Time Budget, Warmups & Set Method Prescriptions** — Pending.
+- **Phase 19: Program & Wave Editor with Explainable Periodization** — Pending.
+- **Phase 20: Active Workout Shell & Calendar Execution Flow** — Pending.
+- **Phase 21: CrossFit & GPP Training Tracks** — Pending.
+- **Phase 22: Primary Lift Strength Specialization** — Pending.
+- **Phase 23: Persistent Dream Physique & Multi-Phase Nutrition** — Pending.
+- **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
+- **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending.
 
-- Phase 1 catalogue export completed and validated.
-- Phase 2 local catalogue runtime completed: additive Drift v15 metadata, one-time batch importer, local-authoritative barcode/name lookup, and passing importer + nutrition tests.
-- Next implementation focus: Phase 3 FTS/filter UX and user-configurable meal slots.
-- Phase 3 meal-slot implementation is complete.
-- Phase 4 nutrient ledger is complete: basis-aware portions, source micronutrient aggregation, persisted nutrient visibility and regression coverage are green.
-- Phase 5 barcode hardening is complete: supported retail formats validate locally, manual correction is available, and custom foods retain canonical codes.
-- Phase 6 label capture is complete: on-device OCR routes low-confidence/incomplete labels to Gemini, keeps evidence, and requires editable review before logging.
+---
 
-## Session update — 2026-08-04
+## Session update — 2026-09-13 (Milestone v2.0 Initiated)
 
-- Audited the Samsung Now Bar work. The full adapter layer exists and is tested — snapshot contract, MethodChannel bridge, native receiver with session/set staleness rejection, native queue, diagnostics sheet — but the renderer never produces a Live Update: it posts a `NotificationCompat` BigText notification and writes `android.requestPromotedOngoing` into `extras` reflectively after `build()`. No `ProgressStyle`, no `setShortCriticalText`, so `hasPromotableCharacteristics()` is false and no Now Bar chip can appear.
-- Also found: Flutter and the native renderer both publish notification id 1 on channel `workout_live` once per second, so the native post always overwrites the Flutter fallback; the rest timer is silently downgraded by sharing that low-importance channel; and the bridge's `clear()` is never called on dispose.
-- Phase 8 (Samsung Now Bar Live Update) added to ROADMAP.md with NOWBAR-01–03 in REQUIREMENTS.md, plus CONTEXT and two plans: 08-01 rewrites the renderer against the real API 36 setters, 08-02 collapses the publish path and fixes the collateral issues.
-- Next implementation focus: `/gsd:execute-phase 8`.
-
-## Session update — 2026-08-14
-
-- Phase 8 (Samsung Now Bar) confirmed complete — all NOWBAR-01–03 requirements checked.
-- Audited `lib/features/analytics/` to scope a previously-undefined "Phase 9" (only referenced in passing by `10-CONTEXT.md`, absent from ROADMAP.md/REQUIREMENTS.md). Found: a duplicate legacy recovery card stacked with the v3 recovery card in `insights_view.dart`, a dead `cnsFatigueProvider`, five providers still doing independent unfiltered `setEntries` scans instead of the shared `trainingSnapshotProvider`, and — most importantly — zero soft-delete (`deletedAt`) filtering anywhere in analytics, a latent correctness bug for cross-device sync deletes.
-- Added Phase 9 (Analytics consolidation and soft-delete correctness) to ROADMAP.md and REQUIREMENTS.md (ANLY-01–04), ran phase discussion, and wrote `09-CONTEXT.md`.
-- Decisions locked: delete the legacy recovery card and `muscle_recovery.dart`/`cnsFatigueProvider` outright (no fallback); ship the effective-load number changes silently, no user-facing banner; verify soft-delete correctness with an automated regression test (acceptance gate for ANLY-03).
-- Note: `agents_installed` is false in this environment (no `gsd-planner`/`gsd-executor`/etc. under `.claude/agents/`) — `/gsd:plan-phase 9` may need those agents available before it can run.
-- Next implementation focus: `/gsd:plan-phase 9`.
-- UI-SPEC.md written and approved for Phase 9 — a "no new design" contract confirming the only visual change is deleting `_RecoveryCard`; everything else on Insights is pixel-unchanged. Environment note: `gsd-*` subagents (planner, ui-researcher, etc.) were missing from `~/.claude/agents/`; copied in from the installed `get-shit-done-cc` npm package, but this session's Agent tool roster didn't pick them up live (likely needs a fresh session to register) — so the UI research/check steps were performed inline instead of via subagent spawn.
-- Phase 9 planned: 3 plans across 3 waves (09-01 domain-layer soft-delete filter + effective-load rewrite of BalanceAnalyzer/BiometricCorrelations, incl. deleting the hardcoded mock-fallback correlation points found during planning discovery; 09-02 provider consolidation onto `trainingSnapshotProvider` + deletion of the dead `cnsFatigueProvider`/`muscleRecoveryProvider`/`_RecoveryCard`/`muscle_recovery.dart`/`cns_fatigue.dart`/`recovery_heatmap_widget.dart`; 09-03 automated soft-delete regression test, the ANLY-03/D-04 acceptance gate). Planned inline (gsd-planner unavailable this session, same as ui-researcher) and self-verified against gsd-plan-checker's dimensions — clean, no blockers. Plans validated via `gsd-sdk query frontmatter.validate`/`verify.plan-structure`.
-- Next implementation focus: `/gsd:execute-phase 9`.
-
-## Session update — 2026-08-14 (Phase 10 execution)
-
-- Phase 10 plan 10-01 executed (wave 1): schema v26 lands three **local-only** rep-tracking tables (`rep_tracking_settings`, `rep_tracking_exercise_prefs`, `rep_set_observations`) with no `SyncColumns`/`SyncTombstone`, absent from both `syncedTableNames` and `syncTableSpecs`. `sync_backfill.dart` and `sync_table_specs.dart` are byte-unchanged.
-- REP-04 is proven positively, not by grep: `test/rep_local_only_test.dart` queries `sqlite_master` on a fully-migrated database and asserts no outbox trigger names any of the three tables (with an `isNotEmpty` guard so it cannot pass vacuously), plus a `PRAGMA table_info` check that `rep_set_observations` has no raw-sample column and no BLOB column at all.
-- `RepMovement` is declared exactly once, in `lib/features/reps/domain/rep_movement.dart` — 10-02, 10-03b and 10-05 must import it, never redeclare it. `eligibleRepSlugs` closes the list at the seven catalogue slugs; all seven were verified to resolve against `assets/data/exercises.json`.
-- `RepTrackingRepository` is the single consent surface: `isEnabledFor` checks consent first and short-circuits (a stale `enabled: true` pref cannot re-enable tracking), and `revokeConsent()` deletes every pref and every observation in one transaction.
-- Bug fixed during execution: `insertOnConflictUpdate` targets the primary key, so toggling the same slug twice raised `SQLITE_CONSTRAINT_UNIQUE` (2067) on the `exercise_slug` unique key — a user could enable an exercise but never disable it. Replaced with an explicit `DoUpdate(target: [exerciseSlug])`.
-- Migration suite repointed to version 26 across four replays (current-schema, v23, v24, and a new v25 fixture). Full suite green: 538 passed, 4 skipped, 0 failed.
-- REP-01 and REP-04 marked complete in REQUIREMENTS.md; ROADMAP shows Phase 10 at 1/6 plans executed.
-- Next implementation focus: Phase 10 wave 1 remainder (10-02 detection engine, 10-03a Wear capture).
-
-## Session update — 2026-08-14 (Phase 10 plan 10-03a)
-
-- Plan 10-03a executed: the Kotlin/Wear half of rep capture. Three `/herculex/reps/*` paths (`capture_start`, `samples`, `capture_end`) added to **both** `WearSyncPaths.kt` copies by editing one and `cp`-ing it verbatim — `diff` is empty. The watch manifest's `pathPrefix="/herculex"` already covered them, so the manifest and the permission list are byte-unchanged and no second foreground service exists.
-- `RepCaptureController` owns the accelerometer for one set: linear-acceleration with an accelerometer fallback, 300 s in-memory ring buffer, ~1 s batches with a monotonic `seq`, order-preserving hold-and-retry, a 15 % battery refusal that registers nothing, and a clock-driven 5-minute cap. All five teardown paths unregister exactly once and `stop()` is idempotent — 12 tests assert it with a fake gateway, fake clock and fake battery supplier (the automated stand-in for UAT rows 6, 7 and 9).
-- `ProvisionalRepCounter` is deliberately dumb and non-authoritative: closed trough-peak-trough cycles with an **absolute** 2.5 m/s² amplitude floor, which is what makes a walking-noise trace count exactly 0. Its output crosses the bridge only as `provisionalCount` on capture-end and is never persisted.
-- Three seams had to be introduced against the plan's literal wording, all blocking-issue fixes: `SensorManager` cannot be faked in a JVM unit test (`registerListenerImpl` is a throwing stub in the test `android.jar`), so a narrow `RepSensorGateway` is injected instead; `sendMessageToAllNodes` returns `Unit` while the only Boolean-returning send (`sendRealtimeEvent`) persists through SharedPreferences — which would have written raw motion samples to disk — so an additive `sendMessageToAllNodesReporting` was added; and `ProcessLifecycleOwner` would have meant a new Gradle dependency, so the app-background stop uses framework `ActivityLifecycleCallbacks`.
-- `PhoneWearListenerService` routes all three paths verbatim through one `onRepMessageListener`, holding payloads in a **process-lifetime in-memory** queue (not the SharedPreferences pending stores) when Flutter is detached, drained in arrival order on attach so a real dropout still reads as a `seq` gap.
-- REP-02 deliberately NOT marked complete — the sensor-source choice needs the phone half (10-03b/10-04). REP-04 remains satisfied: no sample payload touches disk on either device.
-- Next implementation focus: 10-02 (Dart detection engine, wave 1) and 10-03b (Dart half of capture).
-
-## Session update — 2026-08-14 (Phase 10 plan 10-03b)
-
-- Plan 10-03b executed (wave 3): the Dart half of rep capture. `rep_suggestion.dart` publishes the exact five-state `TrackerState`, an ordered `ConfidenceBand` with `lowerByOne()` saturating at `low`, and the immutable `RepSuggestion` contract 10-04 will render and 10-05 will extend.
-- `RepCaptureService` reassembles the watch's `/herculex/reps/*` batches by `seq`, runs the single authoritative `RepDetector.detect` over the resulting trace, and discards the raw buffer in a `finally` on both the success and thrown-detector paths (REP-04). `proposedReps` is always the detector's output; `provisionalCount` only feeds `provisionalDisagrees` and steps `ConfidenceBand` down by exactly one rung on a >1-rep disagreement — never averaged, never substituted. A sample gap independently steps the band down too. Zero batches, a watch battery refusal, or an explicit abort all degrade to `TrackerState.manual` with a stated reason, never a zero-rep suggestion.
-- `PhoneMotionSource` adds `sensors_plus` (the phase's only new dependency, resolved 6.1.2, fluttercommunity.dev) and refuses to start without an explicit `RepTrackingSettings.phonePlacement` (REP-02) or below 15% battery, with a constructor-injected clock/battery supplier so the 5-minute cap and both gates are fake-testable.
-- Real gap found and fixed during execution: `WearSyncService` had no Dart-side entry point for the three `/herculex/reps/*` paths at all, and `MainActivity.kt` never assigned `PhoneWearListenerService.onRepMessageListener` (10-03a built the Kotlin listener but nothing wired it to Flutter). Added a demultiplexing `onRepMessage` bridge to `WearSyncService` and wired `MainActivity.kt`, mirroring the existing `onWatchWorkout*` idiom — verified with `:app:compileDebugKotlin`. Without this the rep-tracking path would have passed every fake-bridge test while doing nothing on a real device.
-- 15-case fake-bridge test suite (`test/rep_capture_service_test.dart`) driven through public handler aliases on `RepCaptureService` — no plugin channel, no device, no Gradle — using a synthetic deterministic pull-up trace (there is still no recorded fixture corpus; 10-02 Task 5 remains a pending human checkpoint). All green; no regressions in existing rep_*/wear_* suites.
-- REP-02 still not marked complete — 10-04 wires `PhoneMotionSource` into the settings UI that actually lets a user choose a placement. REP-04 remains satisfied end to end.
-- Next implementation focus: 10-04 (consent flow, live counter, review-and-confirm sheet).
-
-## Session update — 2026-08-14 (Phase 10 plan 10-04)
-
-- Plan 10-04 executed (wave 4): the user-facing surface. `rep_tracking_consent_view.dart` is the app's only `grantConsent()` call site, gates the phone source behind a required (never-defaulted) placement pick, and links from Profile; `RepTrackingRepository` gained `updateSensorPreferences`, the writer `defaultSource`/`phonePlacement` never had before.
-- `RepTrackerPanel` renders all five `TrackerState` values (`disabled` → `SizedBox.shrink()`, `countOnly`/`manual` styled neutral, never as errors) with no auto-start anywhere. `RepReviewSheet`'s only write route is the injected `onConfirm(reps, rpeX10)` callback; it imports nothing from `lib/features/workouts/`.
-- Deviation: the plan named `active_workout_view.dart` as the integration point, but that file has no per-set logic at all — the real set-completion handler and exercise options menu live in `active_exercise_card.dart`, so all workouts-side wiring (per-exercise toggle, panel insertion, review-sheet interception of the completion tap) landed there instead.
-- `RepCaptureService` gained `buildPhoneSuggestion`, answering 10-03b's explicitly-open question of how a phone-sourced trace reaches `RepDetector`.
-- `test/rep_tracker_write_boundary_test.dart` widens the REP-03 gate to the whole `lib/features/reps/` directory (imports included, not just symbol references) and is verified to fail on a deliberately introduced violation. 10 new tests total across the write-boundary, widget and fixture-driven e2e suites; all existing rep_* suites remain green.
-- REP-02 and REP-03 marked complete in REQUIREMENTS.md. REP-06 deliberately left open — 10-02 Task 5's recorded fixture corpus still does not exist, so the e2e test substitutes a synthetic trace (following 10-03b's precedent) rather than a real one.
-- Next implementation focus: 10-05 (calibration learning and LOO-gated RPE suggestion) and, separately, closing 10-02 Task 5's fixture-recording checkpoint.
-
-## Session update — 2026-08-14 (Phase 10 plan 10-05)
-
-- Plan 10-05 executed (wave 5): calibration learning and the LOO-gated RPE suggestion. `rpe_estimator.dart` fits ridge-regularised OLS on five standardised features (fixed small lambda, never tuned) and exposes `RpeEstimator.gatePasses` as the single named predicate for the three REP-05 thresholds (n ≥ 10, sessions ≥ 3, LOO MAE ≤ 1.0) — the only place those literals appear under `lib/features/reps/`.
-- `rep_calibration.dart`'s `CalibrationProfile.fromObservations` is computed on demand from `observationsFor`, drops rows whose `featuresJson` fails the detector-version check, and derives `insufficient`/`countOnly`/`calibrated` entirely through two calls to `gatePasses` (one with `looMae` forced to `0.0` to isolate the count/session check) rather than restating any threshold. A random-RPE synthetic user never calibrates; an amplitude-decay-only user does, proving the model is not cadence-only.
-- `RepTrackingRepository.profileFor` (cached, invalidated by `recordObservation`) and `calibrationProfileProvider` (a `FutureProvider.family` keyed on a record, not a `List`) wire the profile into `rep_review_sheet.dart`, which now pre-fills the RPE slider only while calibrated and the user hasn't touched it, and states a plain "N of 10 sets" / "still learning your pace" progress line otherwise. The rep-count field carries no `CalibrationStatus` branch.
-- Deviation (Rule 1 - bug): the new progress text overflowed `_measurementRow`'s fixed two-`Text` layout — caught by the pre-existing armband placement e2e test, not a new one. Fixed by wrapping the value in `Expanded`/right-aligned text.
-- REP-05 marked complete in REQUIREMENTS.md. REP-06 remains the only open Phase 10 requirement, still gated on 10-02 Task 5's pending human fixture-recording checkpoint.
-- Next implementation focus: 10-06 (in-app fixture-recording debug tool) and/or closing REP-06 by recording real motion traces.
-
-## Session update — 2026-08-14 (Phase 10 plan 10-06)
-
-- Plan 10-06 executed (wave 6): the in-app fixture-recording debug tool that replaces 10-02 Task 5's manual hardware procedure. `fixture_corpus.dart` declares the closed 11-fixture `requiredFixtures` list (verbatim from 10-02's table) and `FixtureCorpusStatus.evaluate`, always derived from a fresh on-device scan, never cached state. `fixture_recorder.dart` writes `<name>.csv`/`<name>.json` matching 10-02's exact schema, reusing `MotionTrace.toCsv()`, with `synthetic: false` hardcoded as a literal — never a parameter.
-- `RepCaptureService` gained `debugRawTraceObserver`, a nullable field defaulting to null, called inside the existing REP-04 discard `finally` immediately before the raw buffer clears, wrapped in its own try/catch. Verified as the only two reference sites in `lib/features/`: the declaration/call in `rep_capture_service.dart` and one assignment in the new `fixture_recording_view.dart`. All 15 pre-existing capture-service tests pass unmodified.
-- `fixture_recording_view.dart` is reachable only at `/admin/fixture-recording` (same `kDebugMode`-gated convention as the rest of `/admin/*`), showing the 11-fixture checklist with sufficiency banner, a per-fixture capture form with a ground-truth `repCount` field explicitly labelled human-counted, wrist capture arming/disarming the debug observer around the watch's own capture, phone capture driving `PhoneMotionSource` directly, and an "Export recorded fixtures" action via `share_plus`.
-- Deviation: the plan's `<interfaces>` sketch for `RepCaptureService` predated 10-04's real additions (`buildPhoneSuggestion`/`activeCaptureIdFor`) — read the actual current file before editing, as instructed, and Task 3's edit is purely additive. Also: `RepMovement` has no `ringDip` value (only `{pullUp, dip}`); `ring-dips` fixtures use `RepMovement.dip`, matching `rep_tracking_eligibility.dart`'s real mapping rather than the plan's interface sketch.
-- **This plan does not close REP-06.** It produces app-local files only; the developer still has to physically perform pull-ups/dips wearing the watch across upcoming workouts, use this screen to capture and label each one, export via the share sheet, and commit the files under `test/fixtures/motion/` by hand. 10-02 Task 5's automated fixture-count/provenance check remains the actual gate that closes REP-06.
-- Next implementation focus: the developer records the real fixture corpus using this tool across upcoming workouts, then commits the exported files so 10-02 Task 5's checkpoint and Task 6's accuracy suite can run.
-
-## Session update — 2026-08-19 (Phase 12 plan 12-05)
-
-- Plan 12-05 executed, closing **EXR-05** and with it all of Phase 12 (5/5 plans). 12-03 had built the `LoggingMetric` registry and 12-04 the three nullable `set_entries` columns; neither was read by anything, so a Plank still recorded kilos × reps. This plan connects them.
-- `ActiveExerciseCard` resolves `LoggingMetric.fromId(exercise.loggingMetric)` once and hands it to both `_HeaderRow` and `_SetRow`, which each iterate `metric.fields` — the header labels and the inputs come from the same list and cannot disagree, which is the property the widget tests assert against. A Plank renders TIME · RPE, a Sled Push KG · M · RPE, an Air Bike TIME · KCAL · RPE; `weight_reps` is byte-unchanged.
-- Field-specific affordances stayed on their own field, not on a column position: plate calculator on weight, `_repsEditedByUser` on reps, and the rep-tracker prefill additionally gated on `metric.isRepBased` so a detection can never reach a hold or a carry.
-- `updateSet` carries the three columns through the existing `bodyweightKg`/`chainsKg` absent-vs-null-vs-clear idiom, and `_commit` sends null for any undeclared field — so a Plank never overwrites a weight and re-classifying a metric never blanks logged data. 0013's nullability is what keeps "does not apply" distinct from "logged, and it was zero".
-- **The exclusion is decided by the metric, never by the stored zeros.** `ResolvedSet.tonnageKg` returns 0 and a new `countedReps` returns 0 when `!metric.isRepBased`; `weeklyTonnage` gained an `exerciseCatalog` join purely to read `loggingMetric`; `topOneRms` skips anything not both rep-based and loaded. The gate is `isRepBased`, **not** `isLoaded` — gating on load would have deleted every bodyweight athlete's volume history, pinned by a pull-up test that must still produce 640 kg. `session_summary`/`weekly_muscle_volume`/recovery/CNS needed no change because 09-02 had already consolidated them onto `rs.tonnageKg`.
-- New `DistanceFormat` in `core/units.dart` on the same single `MeasurementUnit` — no second unit preference. Metres stored, `m`/`yd` typed, `km`/`mi` only in rendered summaries.
-- Deviation: the plan said `exercise_details_view.dart` stays as is, but with non-rep metrics now loggable its 1RM trend card and per-variant line render fabricated numbers for them; both are gated. Also fixed a pre-existing bug found in the rewrite — `dynamic_workout_view.dart`'s private `_fmtWeight` appended a hardcoded `kg` and never converted, so the big readout showed kilograms to imperial users.
-- 17 new tests across `test/logging_metric_ui_test.dart` and `test/set_metric_tonnage_test.dart`. Full suite: **873 passed, 4 skipped, 0 failed**; `flutter analyze lib/` shows only the six pre-existing deprecation infos, none in a touched file.
-- Note: Phase 12's work is still uncommitted along with the rest of the working tree (117 changed paths, unchanged since the 11-05 handoff commit).
-- Next implementation focus: 11-05 (live Supabase migration push, still blocked per `11-05-HANDOFF.md`) or Phase 13 (Hercul coaching engine).
-
-## Session update — 2026-09-01 (Phase 10 removed; Gym Buddy resumed)
-
-- Decision: assisted rep tracking (Phase 10) is removed from the roadmap entirely, not paused. REP-06 was the phase's real gate and needed a human to physically perform pull-ups/dips wearing the watch to record ground-truth traces — that never happened, and the decision was to stop carrying the phase rather than keep waiting on it.
-- Full removal, not just the planning docs: `lib/features/reps/` (24 files), its 24 dependent test files, the three local-only Drift tables (`rep_tracking_settings`, `rep_tracking_exercise_prefs`, `rep_set_observations`, schema v26) via a new v38 `DROP TABLE IF EXISTS` step, the wear-side Kotlin capture stack (`android/wear/.../reps/`, 4 files + 2 tests), `WorkoutOngoingService.kt`'s piggy-backed rep-capture branch (the ongoing-workout notification itself is untouched), the phone-side `PhoneWearListenerService`/`MainActivity` message bridge, the `sensors_plus` dependency, `assets/data/rep_tracking_profiles.json`, and the admin fixture-recording tool and route. `.planning/phases/10-assisted-rep-tracking/` deleted outright.
-- Historical migration steps (`from < 26` creating the tables, `from < 30` adding `autoCountEnabled`) are left in place as documented no-ops rather than deleted, so `schemaVersion` numbering stays historically accurate for any device replaying the full chain — v38's drop is the real cleanup and is a safety net regardless of whether a given device's chain actually created the tables. `test/schema_v26_test.dart` (which asserted that historical creation) is deleted as no longer testing real behavior; `test/migration_test.dart` gained a v37→v38 replay using the *pre-removal* `drift_schema_v37.json` snapshot specifically because it is the one fixture that still has the tables present, making it a real test of the drop rather than a vacuous one.
-- One incidental fix found in the removal: `docs/ui-rework/ROADMAP.md` Phase 7 ("split `active_exercise_card.dart`") was blocked on "GSD Phase 10 landing" — that blocker no longer exists, noted in that roadmap.
-- Next implementation focus: finish Phase 11 (Gym Buddy), currently 4.5/11 plans — waves 4 (gateway/channel/ordering), 5 (applier), 6 (sender), 7 (session lifecycle), 8 (UI), 9 (isolation proof) remain, plus 11-05's still-unwritten `test/sync/live_buddy_test.dart` smoke suite against the already-pushed `0011` migration.
-
-## Session update — 2026-09-02 (Phase 11 investigated, correction, resume gap closed)
-
-- The "4.5/11 plans, waves 4-9 outstanding" note above was wrong. Read the actual code in `lib/features/buddy/` (18 files, 2773 lines) rather than trusting the ledger: waves 4-9 were already built and tested in the 2026-08-18/19 session that wrote them, just never checked off. `REQUIREMENTS.md` showed BUD-01–06 all `[ ]`; the app already had a working gateway, channel service, choreography sender/applier, full session lifecycle (host/join/leave/endForEveryone) and complete UI (share sheet with QR, scan-to-join in the `+` menu, presence bar, scope toggle), wired into `active_workout_view.dart`. 74 tests, all passing. Both `ROADMAP.md` and `REQUIREMENTS.md` corrected in place — see Phase 11's note block and the BUD-01–06 entries for the evidence behind each mark.
-- Two real gaps found by reading against the phase's own success criteria (not by re-deriving new ones): app-restart resume was missing (a killed-and-reopened app dropped a live buddy session even though the durable event log and persisted `lastSeenSeq` were sitting right there — `BuddySessionController` only ever populated state from a fresh host/join UI action), and there was no test proving `buddySessionId` doesn't affect analytics/volume calculations.
-- Closed both. `BuddySessionController` gained `resumeIfActive()` (reads `buddy_sessions_local`, reconciles a session whose linked workout already ended rather than resuming it, reconnects the channel from the persisted `lastSeenSeq` — not 0) plus a `_attachLive` extraction so `hostFromActiveWorkout`/`joinFromScan`/`resumeIfActive` share one connect path instead of three copies of it. Wired into `app.dart` startup, same idiom as the fasting-schedule rehydrate next to it. Fixed a bug in my own first draft during review: the presence-listener refactor initially used `state.partner ?? BuddyParticipant(...)`, which would have frozen the partner's userId at whatever a resume guessed and never let real presence data overwrite it — caught before commit, not by a test. `test/buddy/buddy_analytics_isolation_test.dart` added, pinning that `TrainingSnapshot.load` (the shared data path since the Phase 9 consolidation) never filters, weights or groups on `buddySessionId`.
-- Wrote `test/sync/live_buddy_test.dart` per `11-05-PLAN.md` Task 2's exact spec (5 named tests: create-and-join round trip, single-use token, the three-cause existence-oracle check, join-tokens-are-invisible, departed-participant-cannot-write). Self-skips cleanly without credentials. Running it live surfaced a real, pre-existing, unrelated bug: `.secrets/live_sync.json`'s `SUPABASE_URL` is `jioesomepkauponjrena` (SummitSki) — not `ldzgyzigvbwofbswitrv` (Herculex). Confirmed via `npx supabase migration list` (0011 genuinely applied to the Herculex project) and a direct `select * from pg_proc where proname like 'buddy_%'` query (the RPCs exist, correctly, on the right project) that this is a credentials mismatch, not a schema-cache or migration problem — a `NOTIFY pgrst, 'reload schema'` was tried first and correctly changed nothing, which is what confirmed the real cause. Blocked on the correct anon key for `ldzgyzigvbwofbswitrv`; the user is providing it.
-- Verified at every step: `flutter analyze` 0 errors (47 issues, unchanged from before this session's Phase 11 work), `flutter test` 1128 passed / 9 skipped (5 of those the self-skipping live suite, 4 pre-existing) / 0 failed.
-- Next implementation focus: once the correct Supabase credentials land in `.secrets/live_sync.json`, run `flutter test test/sync/live_buddy_test.dart --dart-define-from-file=.secrets/live_sync.json` to close out 11-05, then Phase 11 is genuinely done end to end. After that, Phase 13 (Hercul coaching engine) is next.
-
-## Session update — 2026-09-13 (Phase 14 execution and verification)
-
-- Phase 14 (Anthropometric ergonomics) executed and verified end-to-end:
-  - Plan 14-01: User profile extended with `inseamCm`, `armSpanCm`, `torsoCm` fields, profile editor inputs in `_body.part.dart`, and `AnthropometryRatios` domain service in `lib/features/profile/domain/anthropometry.dart`.
-  - Plan 14-02: `assets/data/exercise_ergonomics.json` created with proportion-based guidance and literature sources for compound movements, supported by `ExerciseErgonomics` domain model and `ExerciseErgonomicsRepository`.
-  - Plan 14-03: `ErgonomicsCard` integrated into `exercise_details_view.dart` (hidden when measurements are missing per ERG-03, phrased as biomechanical trade-offs); ergonomics proportion signals wired into `HerculSignals`, `HerculContext`, and `assets/data/hercul_rules.json`.
-- Summaries generated for all three plans (`14-01-SUMMARY.md`, `14-02-SUMMARY.md`, `14-03-SUMMARY.md`).
-- Verified across all unit and widget tests: `anthropometry_test.dart`, `exercise_ergonomics_repository_test.dart`, `ergonomics_card_test.dart`, `hercul_engine_test.dart`, and `hercul_importer_test.dart` (35 passing tests, 0 failed). `flutter analyze lib/` 0 errors.
-- Milestone v1.0 all active phases now complete. Ready for milestone audit and wrap-up.
-
-## Session update — 2026-09-13 (Milestone v1.0 Shipped)
-
-- Milestone audit performed and documented in `.planning/v1.0-MILESTONE-AUDIT.md`.
-  - All 11 active phases complete across 27 plans.
-  - 36/39 requirements satisfied and verified by unit/widget test suites.
-  - 3 requirements deferred to January (Samsung Now Bar on-device physical testing).
-  - Configured Herculex Supabase project URL and anon key in `.secrets/live_sync.json`.
-- Archived milestone artifacts:
-  - `.planning/milestones/v1.0-ROADMAP.md`
-  - `.planning/milestones/v1.0-REQUIREMENTS.md`
-  - Removed root `.planning/REQUIREMENTS.md` (fresh requirements will be generated for next milestone).
-  - Updated `ROADMAP.md` and `PROJECT.md` with v1.0 completion and upcoming milestone targets.
-- Next implementation focus: `/gsd-new-milestone` to kick off the Training Programs, Dream Physique & Gamification milestone.
-
+- Milestone v1.0 was audited, archived, and tagged (`v1.0`).
+- Initiated Milestone v2.0 based on `docs/training-programs-physique-gamification-plan-2026-09-10.md`:
+  - Created `.planning/REQUIREMENTS.md` with 35 scoped requirements across 11 phases (Phases 15–25).
+  - Created `.planning/ROADMAP.md` continuing phase numbering from Phase 15.
+  - Reset `.planning/STATE.md` for Milestone v2.0 execution.
+- Next implementation focus: `/gsd-plan-phase 15` to plan Phase 15 (Program Generator Regression Fixes & Interaction Hardening).
