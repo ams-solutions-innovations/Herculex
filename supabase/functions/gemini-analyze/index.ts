@@ -49,23 +49,28 @@ type GeminiRequest = {
   image?: GeminiImage;
   images?: GeminiImage[];
   currentImages?: GeminiImage[];
+  targetImages?: GeminiImage[];
   targetImage?: GeminiImage;
   biometrics?: Record<string, unknown>;
   userNote?: string | null;
   ocrText?: string;
   barcode?: string;
+  privacyConsent?: {
+    version?: string;
+    granted?: boolean;
+  };
 };
 
 type ValidImage = { mimeType: string; data: string };
 
 const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.0-flash";
+const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.7-flash";
 
 /// Model, na katerega se zatecemo, ko primarni vrne 429 (kvota) ali 503
 /// (preobremenjen). Razlika med "AI ne dela" in "AI je malo slabsi".
 /// Prazna vrednost izklopi fallback.
 const geminiFallbackModel = Deno.env.get("GEMINI_FALLBACK_MODEL") ??
-  "gemini-2.0-flash-lite";
+  "gemini-3.5-flash-lite";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -85,6 +90,32 @@ const maxImageBase64 = 2_600_000;
 /// Zgornja meja stevila slik na zahtevek. Brez nje lahko en zahtevek sam
 /// preseze 150-sekundni wall-clock limit funkcije.
 const maxImages = 4;
+
+const dreamPhysiqueConsentVersion = "dream_physique_images_v1";
+
+const canonicalProgrammingMuscleIds = new Set([
+  "chest",
+  "back",
+  "lats",
+  "traps",
+  "front_delts",
+  "side_delts",
+  "rear_delts",
+  "biceps",
+  "triceps",
+  "forearms",
+  "abs",
+  "obliques",
+  "neck",
+  "quads",
+  "hamstrings",
+  "glutes",
+  "calves",
+  "adductors",
+  "abductors",
+]);
+
+const programmingPriorities = new Set(["high", "medium", "maintenance"]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -114,6 +145,20 @@ Deno.serve(async (req) => {
     payload = await req.json();
   } catch {
     return json({ error: "Invalid JSON request." }, 400);
+  }
+
+  if (
+    payload.kind === "dream_physique" &&
+    (payload.privacyConsent?.granted !== true ||
+      payload.privacyConsent.version !== dreamPhysiqueConsentVersion)
+  ) {
+    return json(
+      {
+        error:
+          "Confirm the current Dream Physique photo privacy notice before uploading images.",
+      },
+      400,
+    );
   }
 
   const quota = await bumpUsage(userId, payload.kind ?? "unknown");
@@ -200,7 +245,9 @@ Deno.serve(async (req) => {
           : (payload.image ? [payload.image] : []);
         if (rawImages.length === 0) {
           return json(
-            { error: "At least one image is required for body fat estimation." },
+            {
+              error: "At least one image is required for body fat estimation.",
+            },
             400,
           );
         }
@@ -223,29 +270,50 @@ Deno.serve(async (req) => {
         if (currentRaw.length === 0) {
           return json({ error: "Current physique image is required." }, 400);
         }
-        if (!payload.targetImage) {
+        const targetRaw =
+          payload.targetImages && payload.targetImages.length > 0
+            ? payload.targetImages
+            : (payload.targetImage ? [payload.targetImage] : []);
+        if (targetRaw.length === 0) {
           return json(
-            { error: "Target/dream physique image is required." },
+            { error: "At least one target/dream physique image is required." },
             400,
           );
         }
-        // Ciljna slika steje v isto mejo — zato `maxImages - 1` za trenutne.
-        const validatedCurrent = validateImages(currentRaw, maxImages - 1);
+        const validatedTarget = validateImages(targetRaw, maxImages - 1);
+        if ("error" in validatedTarget) {
+          return json({ error: validatedTarget.error }, 400);
+        }
+        const validatedCurrent = validateImages(
+          currentRaw,
+          maxImages - validatedTarget.images.length,
+        );
         if ("error" in validatedCurrent) {
           return json({ error: validatedCurrent.error }, 400);
         }
-        const targetValid = validateImage(payload.targetImage);
-        if ("error" in targetValid) return json({ error: targetValid.error }, 400);
 
-        // Vrstni red je pomemben: prompt pravi, da je ZADNJA slika cilj.
-        const allImages = [...validatedCurrent.images, targetValid];
+        // Vrstni red je pomemben: najprej trenutna postava, nato ciljna.
+        const allImages = [
+          ...validatedCurrent.images,
+          ...validatedTarget.images,
+        ];
 
-        const { result } = await generateJson({
+        const generated = await generateJson({
           images: allImages,
           promptText: dreamPhysiquePrompt(payload.biometrics, payload.userNote),
           temperature: 0.2,
         });
-        return json({ result });
+        const result = normalizeDreamPhysiqueResult(generated.result);
+        const response = json({
+          result,
+          privacy: {
+            consentVersion: dreamPhysiqueConsentVersion,
+            processor: "Google Gemini",
+            imagesPersistedByHerculex: false,
+          },
+        });
+        response.headers.set("Cache-Control", "no-store");
+        return response;
       }
 
       case "rambler_food": {
@@ -265,13 +333,216 @@ Deno.serve(async (req) => {
         return json({ error: "Unsupported Gemini analysis kind." }, 400);
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("gemini-analyze failed", {
       kind: payload.kind,
-      error: String(error),
+      error: errorMessage,
     });
-    return json({ error: "Gemini analysis failed. Please try again." }, 502);
+    // Gemini's HTTP error message contains actionable, non-secret causes
+    // (invalid server key, exhausted quota, unavailable model). Returning it
+    // lets the app distinguish a configuration problem from a retryable one.
+    const safeMessage =
+      errorMessage.startsWith("Gemini API request failed") ||
+      errorMessage.startsWith("Gemini server authorization failed")
+        ? errorMessage
+        : "Gemini analysis failed. Please try again.";
+    return json({ error: safeMessage }, 502);
   }
 });
+
+// Dream Physique is the only image workflow whose output can later influence
+// programming. Validate and whitelist its response here instead of trusting a
+// model-generated object. This also strips any accidental training-experience
+// inference before the response reaches the app.
+function normalizeDreamPhysiqueResult(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  // The programming profile augments the visual analysis; it must never turn
+  // an otherwise usable comparison into a failed request. Gemini can omit a
+  // nested rationale or uncertainty even when the required comparison fields
+  // are complete. The client already treats this profile as optional and
+  // offers the user normal program controls without it.
+  let programmingProfile: Record<string, unknown> | null = null;
+  try {
+    programmingProfile = normalizeProgrammingProfile(raw.programmingProfile);
+  } catch (error) {
+    console.warn(
+      "Ignoring incomplete Dream Physique programming profile",
+      String(error),
+    );
+  }
+
+  // Older clients consume the compact `musclePriorities` list while newer
+  // prompts may return only the canonical `programmingProfile` list. Keep the
+  // wire contract stable by deriving the compact list from the validated
+  // profile when Gemini omits the legacy field.
+  const rawLegacyPriorities = Array.isArray(raw.musclePriorities)
+    ? raw.musclePriorities
+    : programmingProfile?.musclePriorities;
+  if (!Array.isArray(rawLegacyPriorities) || rawLegacyPriorities.length === 0) {
+    throw new Error(
+      "Dream Physique response has no usable muscle priorities. Ask Gemini to return musclePriorities or programmingProfile.musclePriorities.",
+    );
+  }
+  const musclePriorities = rawLegacyPriorities.map((item) => {
+    const value = objectValue(item, "legacy muscle priority");
+    const priority = requiredPriority(value.priority);
+    const group = typeof value.group === "string" && value.group.trim()
+      ? value.group
+      : typeof value.muscleId === "string" && value.muscleId.trim()
+      ? muscleGroupLabel(value.muscleId)
+      : null;
+    const focus = typeof value.focus === "string" && value.focus.trim()
+      ? value.focus
+      : typeof value.rationale === "string" && value.rationale.trim()
+      ? value.rationale
+      : null;
+    return {
+      group: requiredString(group, "muscle priority group"),
+      priority,
+      focus: requiredString(focus, "muscle priority focus"),
+    };
+  });
+
+  return {
+    // Preserve the established client contract while only returning known
+    // fields. In particular, experience-level guesses are never forwarded.
+    estimatedMonths: requiredNumber(raw.estimatedMonths, "estimatedMonths"),
+    timeframeRange: requiredString(raw.timeframeRange, "timeframeRange"),
+    weightChangeKg: requiredNumber(raw.weightChangeKg, "weightChangeKg"),
+    leanMuscleGainKg: requiredNumber(
+      raw.leanMuscleGainKg,
+      "leanMuscleGainKg",
+    ),
+    fatLossKg: requiredNumber(raw.fatLossKg, "fatLossKg"),
+    targetBfPercent: requiredNumber(raw.targetBfPercent, "targetBfPercent"),
+    currentEstimatedBf: requiredNumber(
+      raw.currentEstimatedBf,
+      "currentEstimatedBf",
+    ),
+    musclePriorities,
+    nutritionStrategy: requiredString(
+      raw.nutritionStrategy,
+      "nutritionStrategy",
+    ),
+    trainingAdvice: requiredString(raw.trainingAdvice, "trainingAdvice"),
+    overallAssessment: requiredString(
+      raw.overallAssessment,
+      "overallAssessment",
+    ),
+    targetAestheticStyle: requiredString(
+      raw.targetAestheticStyle,
+      "targetAestheticStyle",
+    ),
+    ...(programmingProfile != null ? { programmingProfile } : {}),
+  };
+}
+
+function normalizeProgrammingProfile(
+  raw: unknown,
+): Record<string, unknown> | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const profile = raw as Record<string, unknown>;
+  const schemaVersion = requiredNumber(
+    profile.schemaVersion,
+    "programmingProfile.schemaVersion",
+  );
+  if (!Number.isInteger(schemaVersion) || schemaVersion !== 1) {
+    throw new Error("Unsupported Dream Physique programming profile version.");
+  }
+
+  const overallConfidence = confidenceValue(
+    profile.overallConfidence,
+    "programmingProfile.overallConfidence",
+  );
+  if (
+    !Array.isArray(profile.musclePriorities) ||
+    profile.musclePriorities.length === 0
+  ) {
+    throw new Error("Dream Physique programming profile has no priorities.");
+  }
+
+  const structuredPriorities = profile.musclePriorities.map((item) => {
+    const value = objectValue(item, "programming muscle priority");
+    const muscleId = requiredString(value.muscleId, "muscleId");
+    if (!canonicalProgrammingMuscleIds.has(muscleId)) {
+      throw new Error(`Unknown canonical muscle id: ${muscleId}`);
+    }
+    return {
+      muscleId,
+      priority: requiredPriority(value.priority),
+      confidence: confidenceValue(value.confidence, "priority confidence"),
+      rationale: requiredString(value.rationale, "priority rationale"),
+      uncertainties: stringArray(value.uncertainties, "priority uncertainties"),
+    };
+  });
+
+  return {
+    schemaVersion,
+    overallConfidence,
+    musclePriorities: structuredPriorities,
+    uncertainties: stringArray(
+      profile.uncertainties,
+      "programmingProfile.uncertainties",
+    ),
+  };
+}
+
+function objectValue(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid ${label}.`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function requiredString(value: unknown, label: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Missing ${label}.`);
+  }
+  return value.trim();
+}
+
+function requiredNumber(value: unknown, label: string): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  {
+    throw new Error(`Missing ${label}.`);
+  }
+}
+
+function muscleGroupLabel(muscleId: string): string {
+  return muscleId
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function confidenceValue(value: unknown, label: string): number {
+  const confidence = requiredNumber(value, label);
+  if (confidence < 0 || confidence > 1) {
+    throw new Error(`${label} must be between 0 and 1.`);
+  }
+  return confidence;
+}
+
+function requiredPriority(value: unknown): string {
+  const priority = requiredString(value, "priority");
+  if (!programmingPriorities.has(priority)) {
+    throw new Error(`Invalid programming priority: ${priority}`);
+  }
+  return priority;
+}
+
+function stringArray(value: unknown, label: string): string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error(`Invalid ${label}.`);
+  }
+  return value.map((item) => (item as string).trim()).filter(Boolean);
+}
 
 // ── Kvota ──────────────────────────────────────────────────────────────
 
@@ -447,7 +718,23 @@ async function generate({
   }
 
   if (!response.ok) {
-    throw new Error(`Gemini HTTP ${response.status}`);
+    const bodyText = await response.text();
+    let detail = "No additional detail from Gemini.";
+    try {
+      const parsed = JSON.parse(bodyText);
+      const candidate = parsed?.error?.message;
+      if (typeof candidate === "string" && candidate.trim()) {
+        detail = candidate.trim();
+      }
+    } catch {
+      // Non-JSON error pages must not replace the stable public message.
+    }
+    if (response.status === 401 && /expected oauth|authentication credentials/i.test(detail)) {
+      throw new Error(
+        "Gemini server authorization failed. Configure GEMINI_API_KEY with a valid Google AI Studio API key and redeploy the function.",
+      );
+    }
+    throw new Error(`Gemini API request failed (${response.status}): ${detail}`);
   }
 
   const root = await response.json();
@@ -535,7 +822,10 @@ async function generateGroundedJson({
     if (parsed) return { result: parsed, groundingSources };
     throw new Error("Grounded response did not contain valid JSON.");
   } catch (error) {
-    console.error("Grounded barcode lookup failed, falling back", String(error));
+    console.error(
+      "Grounded barcode lookup failed, falling back",
+      String(error),
+    );
     const { result } = await generateJson({
       images: [image],
       promptText:
