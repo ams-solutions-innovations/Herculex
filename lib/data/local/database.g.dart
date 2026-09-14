@@ -19510,6 +19510,487 @@ class ProgramSlotPoolMembersCompanion
   }
 }
 
+class $ProgramSlotExplanationsTable extends ProgramSlotExplanations
+    with TableInfo<$ProgramSlotExplanationsTable, ProgramSlotExplanationData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProgramSlotExplanationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _slotIdMeta = const VerificationMeta('slotId');
+  @override
+  late final GeneratedColumn<int> slotId = GeneratedColumn<int>(
+    'slot_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES program_exercise_slots (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _weekIndexMeta = const VerificationMeta(
+    'weekIndex',
+  );
+  @override
+  late final GeneratedColumn<int> weekIndex = GeneratedColumn<int>(
+    'week_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _chosenExerciseIdMeta = const VerificationMeta(
+    'chosenExerciseId',
+  );
+  @override
+  late final GeneratedColumn<int> chosenExerciseId = GeneratedColumn<int>(
+    'chosen_exercise_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES exercise_catalog (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rationaleMeta = const VerificationMeta(
+    'rationale',
+  );
+  @override
+  late final GeneratedColumn<String> rationale = GeneratedColumn<String>(
+    'rationale',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _excludedJsonMeta = const VerificationMeta(
+    'excludedJson',
+  );
+  @override
+  late final GeneratedColumn<String> excludedJson = GeneratedColumn<String>(
+    'excluded_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    slotId,
+    weekIndex,
+    chosenExerciseId,
+    status,
+    rationale,
+    excludedJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'program_slot_explanations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProgramSlotExplanationData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('slot_id')) {
+      context.handle(
+        _slotIdMeta,
+        slotId.isAcceptableOrUnknown(data['slot_id']!, _slotIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slotIdMeta);
+    }
+    if (data.containsKey('week_index')) {
+      context.handle(
+        _weekIndexMeta,
+        weekIndex.isAcceptableOrUnknown(data['week_index']!, _weekIndexMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekIndexMeta);
+    }
+    if (data.containsKey('chosen_exercise_id')) {
+      context.handle(
+        _chosenExerciseIdMeta,
+        chosenExerciseId.isAcceptableOrUnknown(
+          data['chosen_exercise_id']!,
+          _chosenExerciseIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('rationale')) {
+      context.handle(
+        _rationaleMeta,
+        rationale.isAcceptableOrUnknown(data['rationale']!, _rationaleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rationaleMeta);
+    }
+    if (data.containsKey('excluded_json')) {
+      context.handle(
+        _excludedJsonMeta,
+        excludedJson.isAcceptableOrUnknown(
+          data['excluded_json']!,
+          _excludedJsonMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {slotId, weekIndex},
+  ];
+  @override
+  ProgramSlotExplanationData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProgramSlotExplanationData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      slotId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}slot_id'],
+      )!,
+      weekIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}week_index'],
+      )!,
+      chosenExerciseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chosen_exercise_id'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      rationale: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rationale'],
+      )!,
+      excludedJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}excluded_json'],
+      ),
+    );
+  }
+
+  @override
+  $ProgramSlotExplanationsTable createAlias(String alias) {
+    return $ProgramSlotExplanationsTable(attachedDatabase, alias);
+  }
+}
+
+class ProgramSlotExplanationData extends DataClass
+    implements Insertable<ProgramSlotExplanationData> {
+  final int id;
+  final int slotId;
+  final int weekIndex;
+  final int? chosenExerciseId;
+  final String status;
+  final String rationale;
+  final String? excludedJson;
+  const ProgramSlotExplanationData({
+    required this.id,
+    required this.slotId,
+    required this.weekIndex,
+    this.chosenExerciseId,
+    required this.status,
+    required this.rationale,
+    this.excludedJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['slot_id'] = Variable<int>(slotId);
+    map['week_index'] = Variable<int>(weekIndex);
+    if (!nullToAbsent || chosenExerciseId != null) {
+      map['chosen_exercise_id'] = Variable<int>(chosenExerciseId);
+    }
+    map['status'] = Variable<String>(status);
+    map['rationale'] = Variable<String>(rationale);
+    if (!nullToAbsent || excludedJson != null) {
+      map['excluded_json'] = Variable<String>(excludedJson);
+    }
+    return map;
+  }
+
+  ProgramSlotExplanationsCompanion toCompanion(bool nullToAbsent) {
+    return ProgramSlotExplanationsCompanion(
+      id: Value(id),
+      slotId: Value(slotId),
+      weekIndex: Value(weekIndex),
+      chosenExerciseId: chosenExerciseId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(chosenExerciseId),
+      status: Value(status),
+      rationale: Value(rationale),
+      excludedJson: excludedJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(excludedJson),
+    );
+  }
+
+  factory ProgramSlotExplanationData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProgramSlotExplanationData(
+      id: serializer.fromJson<int>(json['id']),
+      slotId: serializer.fromJson<int>(json['slotId']),
+      weekIndex: serializer.fromJson<int>(json['weekIndex']),
+      chosenExerciseId: serializer.fromJson<int?>(json['chosenExerciseId']),
+      status: serializer.fromJson<String>(json['status']),
+      rationale: serializer.fromJson<String>(json['rationale']),
+      excludedJson: serializer.fromJson<String?>(json['excludedJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'slotId': serializer.toJson<int>(slotId),
+      'weekIndex': serializer.toJson<int>(weekIndex),
+      'chosenExerciseId': serializer.toJson<int?>(chosenExerciseId),
+      'status': serializer.toJson<String>(status),
+      'rationale': serializer.toJson<String>(rationale),
+      'excludedJson': serializer.toJson<String?>(excludedJson),
+    };
+  }
+
+  ProgramSlotExplanationData copyWith({
+    int? id,
+    int? slotId,
+    int? weekIndex,
+    Value<int?> chosenExerciseId = const Value.absent(),
+    String? status,
+    String? rationale,
+    Value<String?> excludedJson = const Value.absent(),
+  }) => ProgramSlotExplanationData(
+    id: id ?? this.id,
+    slotId: slotId ?? this.slotId,
+    weekIndex: weekIndex ?? this.weekIndex,
+    chosenExerciseId: chosenExerciseId.present
+        ? chosenExerciseId.value
+        : this.chosenExerciseId,
+    status: status ?? this.status,
+    rationale: rationale ?? this.rationale,
+    excludedJson: excludedJson.present ? excludedJson.value : this.excludedJson,
+  );
+  ProgramSlotExplanationData copyWithCompanion(
+    ProgramSlotExplanationsCompanion data,
+  ) {
+    return ProgramSlotExplanationData(
+      id: data.id.present ? data.id.value : this.id,
+      slotId: data.slotId.present ? data.slotId.value : this.slotId,
+      weekIndex: data.weekIndex.present ? data.weekIndex.value : this.weekIndex,
+      chosenExerciseId: data.chosenExerciseId.present
+          ? data.chosenExerciseId.value
+          : this.chosenExerciseId,
+      status: data.status.present ? data.status.value : this.status,
+      rationale: data.rationale.present ? data.rationale.value : this.rationale,
+      excludedJson: data.excludedJson.present
+          ? data.excludedJson.value
+          : this.excludedJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProgramSlotExplanationData(')
+          ..write('id: $id, ')
+          ..write('slotId: $slotId, ')
+          ..write('weekIndex: $weekIndex, ')
+          ..write('chosenExerciseId: $chosenExerciseId, ')
+          ..write('status: $status, ')
+          ..write('rationale: $rationale, ')
+          ..write('excludedJson: $excludedJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    slotId,
+    weekIndex,
+    chosenExerciseId,
+    status,
+    rationale,
+    excludedJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProgramSlotExplanationData &&
+          other.id == this.id &&
+          other.slotId == this.slotId &&
+          other.weekIndex == this.weekIndex &&
+          other.chosenExerciseId == this.chosenExerciseId &&
+          other.status == this.status &&
+          other.rationale == this.rationale &&
+          other.excludedJson == this.excludedJson);
+}
+
+class ProgramSlotExplanationsCompanion
+    extends UpdateCompanion<ProgramSlotExplanationData> {
+  final Value<int> id;
+  final Value<int> slotId;
+  final Value<int> weekIndex;
+  final Value<int?> chosenExerciseId;
+  final Value<String> status;
+  final Value<String> rationale;
+  final Value<String?> excludedJson;
+  const ProgramSlotExplanationsCompanion({
+    this.id = const Value.absent(),
+    this.slotId = const Value.absent(),
+    this.weekIndex = const Value.absent(),
+    this.chosenExerciseId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.rationale = const Value.absent(),
+    this.excludedJson = const Value.absent(),
+  });
+  ProgramSlotExplanationsCompanion.insert({
+    this.id = const Value.absent(),
+    required int slotId,
+    required int weekIndex,
+    this.chosenExerciseId = const Value.absent(),
+    required String status,
+    required String rationale,
+    this.excludedJson = const Value.absent(),
+  }) : slotId = Value(slotId),
+       weekIndex = Value(weekIndex),
+       status = Value(status),
+       rationale = Value(rationale);
+  static Insertable<ProgramSlotExplanationData> custom({
+    Expression<int>? id,
+    Expression<int>? slotId,
+    Expression<int>? weekIndex,
+    Expression<int>? chosenExerciseId,
+    Expression<String>? status,
+    Expression<String>? rationale,
+    Expression<String>? excludedJson,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (slotId != null) 'slot_id': slotId,
+      if (weekIndex != null) 'week_index': weekIndex,
+      if (chosenExerciseId != null) 'chosen_exercise_id': chosenExerciseId,
+      if (status != null) 'status': status,
+      if (rationale != null) 'rationale': rationale,
+      if (excludedJson != null) 'excluded_json': excludedJson,
+    });
+  }
+
+  ProgramSlotExplanationsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? slotId,
+    Value<int>? weekIndex,
+    Value<int?>? chosenExerciseId,
+    Value<String>? status,
+    Value<String>? rationale,
+    Value<String?>? excludedJson,
+  }) {
+    return ProgramSlotExplanationsCompanion(
+      id: id ?? this.id,
+      slotId: slotId ?? this.slotId,
+      weekIndex: weekIndex ?? this.weekIndex,
+      chosenExerciseId: chosenExerciseId ?? this.chosenExerciseId,
+      status: status ?? this.status,
+      rationale: rationale ?? this.rationale,
+      excludedJson: excludedJson ?? this.excludedJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (slotId.present) {
+      map['slot_id'] = Variable<int>(slotId.value);
+    }
+    if (weekIndex.present) {
+      map['week_index'] = Variable<int>(weekIndex.value);
+    }
+    if (chosenExerciseId.present) {
+      map['chosen_exercise_id'] = Variable<int>(chosenExerciseId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (rationale.present) {
+      map['rationale'] = Variable<String>(rationale.value);
+    }
+    if (excludedJson.present) {
+      map['excluded_json'] = Variable<String>(excludedJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProgramSlotExplanationsCompanion(')
+          ..write('id: $id, ')
+          ..write('slotId: $slotId, ')
+          ..write('weekIndex: $weekIndex, ')
+          ..write('chosenExerciseId: $chosenExerciseId, ')
+          ..write('status: $status, ')
+          ..write('rationale: $rationale, ')
+          ..write('excludedJson: $excludedJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PrescriptionTemplatesTable extends PrescriptionTemplates
     with TableInfo<$PrescriptionTemplatesTable, PrescriptionTemplateData> {
   @override
@@ -41612,6 +42093,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ProgramDaysTable programDays = $ProgramDaysTable(this);
   late final $ProgramSlotPoolMembersTable programSlotPoolMembers =
       $ProgramSlotPoolMembersTable(this);
+  late final $ProgramSlotExplanationsTable programSlotExplanations =
+      $ProgramSlotExplanationsTable(this);
   late final $PrescriptionTemplatesTable prescriptionTemplates =
       $PrescriptionTemplatesTable(this);
   late final $PhysiqueProgrammingProfilesTable physiqueProgrammingProfiles =
@@ -41705,6 +42188,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     workoutTemplates,
     programDays,
     programSlotPoolMembers,
+    programSlotExplanations,
     prescriptionTemplates,
     physiqueProgrammingProfiles,
     exercisePreferences,
@@ -41859,6 +42343,24 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       ),
       result: [
         TableUpdate('program_slot_pool_members', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'program_exercise_slots',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('program_slot_explanations', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'exercise_catalog',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('program_slot_explanations', kind: UpdateKind.update),
       ],
     ),
     WritePropagation(
@@ -42259,6 +42761,34 @@ final class $$ExerciseCatalogTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _programSlotPoolMembersRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $ProgramSlotExplanationsTable,
+    List<ProgramSlotExplanationData>
+  >
+  _programSlotExplanationsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.programSlotExplanations,
+        aliasName: $_aliasNameGenerator(
+          db.exerciseCatalog.id,
+          db.programSlotExplanations.chosenExerciseId,
+        ),
+      );
+
+  $$ProgramSlotExplanationsTableProcessedTableManager
+  get programSlotExplanationsRefs {
+    final manager = $$ProgramSlotExplanationsTableTableManager(
+      $_db,
+      $_db.programSlotExplanations,
+    ).filter((f) => f.chosenExerciseId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _programSlotExplanationsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -42795,6 +43325,32 @@ class $$ExerciseCatalogTableFilterComposer
               }) => $$ProgramSlotPoolMembersTableFilterComposer(
                 $db: $db,
                 $table: $db.programSlotPoolMembers,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> programSlotExplanationsRefs(
+    Expression<bool> Function($$ProgramSlotExplanationsTableFilterComposer f) f,
+  ) {
+    final $$ProgramSlotExplanationsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.programSlotExplanations,
+          getReferencedColumn: (t) => t.chosenExerciseId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProgramSlotExplanationsTableFilterComposer(
+                $db: $db,
+                $table: $db.programSlotExplanations,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -43519,6 +44075,33 @@ class $$ExerciseCatalogTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> programSlotExplanationsRefs<T extends Object>(
+    Expression<T> Function($$ProgramSlotExplanationsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$ProgramSlotExplanationsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.programSlotExplanations,
+          getReferencedColumn: (t) => t.chosenExerciseId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProgramSlotExplanationsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.programSlotExplanations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> exercisePreferencesRefs<T extends Object>(
     Expression<T> Function($$ExercisePreferencesTableAnnotationComposer a) f,
   ) {
@@ -43719,6 +44302,7 @@ class $$ExerciseCatalogTableTableManager
             bool rotationAssignmentsRefs,
             bool workoutExercisesRefs,
             bool programSlotPoolMembersRefs,
+            bool programSlotExplanationsRefs,
             bool exercisePreferencesRefs,
             bool programDayExercisesRefs,
             bool templateExercisesRefs,
@@ -43925,6 +44509,7 @@ class $$ExerciseCatalogTableTableManager
                 rotationAssignmentsRefs = false,
                 workoutExercisesRefs = false,
                 programSlotPoolMembersRefs = false,
+                programSlotExplanationsRefs = false,
                 exercisePreferencesRefs = false,
                 programDayExercisesRefs = false,
                 templateExercisesRefs = false,
@@ -43942,6 +44527,7 @@ class $$ExerciseCatalogTableTableManager
                     if (rotationAssignmentsRefs) db.rotationAssignments,
                     if (workoutExercisesRefs) db.workoutExercises,
                     if (programSlotPoolMembersRefs) db.programSlotPoolMembers,
+                    if (programSlotExplanationsRefs) db.programSlotExplanations,
                     if (exercisePreferencesRefs) db.exercisePreferences,
                     if (programDayExercisesRefs) db.programDayExercises,
                     if (templateExercisesRefs) db.templateExercises,
@@ -44076,6 +44662,27 @@ class $$ExerciseCatalogTableTableManager
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.exerciseId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (programSlotExplanationsRefs)
+                        await $_getPrefetchedData<
+                          ExerciseCatalogData,
+                          $ExerciseCatalogTable,
+                          ProgramSlotExplanationData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ExerciseCatalogTableReferences
+                              ._programSlotExplanationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ExerciseCatalogTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).programSlotExplanationsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chosenExerciseId == item.id,
                               ),
                           typedResults: items,
                         ),
@@ -44253,6 +44860,7 @@ typedef $$ExerciseCatalogTableProcessedTableManager =
         bool rotationAssignmentsRefs,
         bool workoutExercisesRefs,
         bool programSlotPoolMembersRefs,
+        bool programSlotExplanationsRefs,
         bool exercisePreferencesRefs,
         bool programDayExercisesRefs,
         bool templateExercisesRefs,
@@ -48078,6 +48686,34 @@ final class $$ProgramExerciseSlotsTableReferences
   }
 
   static MultiTypedResultKey<
+    $ProgramSlotExplanationsTable,
+    List<ProgramSlotExplanationData>
+  >
+  _programSlotExplanationsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.programSlotExplanations,
+        aliasName: $_aliasNameGenerator(
+          db.programExerciseSlots.id,
+          db.programSlotExplanations.slotId,
+        ),
+      );
+
+  $$ProgramSlotExplanationsTableProcessedTableManager
+  get programSlotExplanationsRefs {
+    final manager = $$ProgramSlotExplanationsTableTableManager(
+      $_db,
+      $_db.programSlotExplanations,
+    ).filter((f) => f.slotId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _programSlotExplanationsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
     $ProgramDayExercisesTable,
     List<ProgramDayExerciseData>
   >
@@ -48292,6 +48928,32 @@ class $$ProgramExerciseSlotsTableFilterComposer
               }) => $$ProgramSlotPoolMembersTableFilterComposer(
                 $db: $db,
                 $table: $db.programSlotPoolMembers,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> programSlotExplanationsRefs(
+    Expression<bool> Function($$ProgramSlotExplanationsTableFilterComposer f) f,
+  ) {
+    final $$ProgramSlotExplanationsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.programSlotExplanations,
+          getReferencedColumn: (t) => t.slotId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProgramSlotExplanationsTableFilterComposer(
+                $db: $db,
+                $table: $db.programSlotExplanations,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -48625,6 +49287,33 @@ class $$ProgramExerciseSlotsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> programSlotExplanationsRefs<T extends Object>(
+    Expression<T> Function($$ProgramSlotExplanationsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$ProgramSlotExplanationsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.programSlotExplanations,
+          getReferencedColumn: (t) => t.slotId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProgramSlotExplanationsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.programSlotExplanations,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> programDayExercisesRefs<T extends Object>(
     Expression<T> Function($$ProgramDayExercisesTableAnnotationComposer a) f,
   ) {
@@ -48670,6 +49359,7 @@ class $$ProgramExerciseSlotsTableTableManager
             bool rotationAssignmentsRefs,
             bool workoutExercisesRefs,
             bool programSlotPoolMembersRefs,
+            bool programSlotExplanationsRefs,
             bool programDayExercisesRefs,
           })
         > {
@@ -48786,6 +49476,7 @@ class $$ProgramExerciseSlotsTableTableManager
                 rotationAssignmentsRefs = false,
                 workoutExercisesRefs = false,
                 programSlotPoolMembersRefs = false,
+                programSlotExplanationsRefs = false,
                 programDayExercisesRefs = false,
               }) {
                 return PrefetchHooks(
@@ -48794,6 +49485,7 @@ class $$ProgramExerciseSlotsTableTableManager
                     if (rotationAssignmentsRefs) db.rotationAssignments,
                     if (workoutExercisesRefs) db.workoutExercises,
                     if (programSlotPoolMembersRefs) db.programSlotPoolMembers,
+                    if (programSlotExplanationsRefs) db.programSlotExplanations,
                     if (programDayExercisesRefs) db.programDayExercises,
                   ],
                   addJoins:
@@ -48895,6 +49587,27 @@ class $$ProgramExerciseSlotsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (programSlotExplanationsRefs)
+                        await $_getPrefetchedData<
+                          ProgramExerciseSlotData,
+                          $ProgramExerciseSlotsTable,
+                          ProgramSlotExplanationData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProgramExerciseSlotsTableReferences
+                              ._programSlotExplanationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProgramExerciseSlotsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).programSlotExplanationsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.slotId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                       if (programDayExercisesRefs)
                         await $_getPrefetchedData<
                           ProgramExerciseSlotData,
@@ -48941,6 +49654,7 @@ typedef $$ProgramExerciseSlotsTableProcessedTableManager =
         bool rotationAssignmentsRefs,
         bool workoutExercisesRefs,
         bool programSlotPoolMembersRefs,
+        bool programSlotExplanationsRefs,
         bool programDayExercisesRefs,
       })
     >;
@@ -58005,6 +58719,482 @@ typedef $$ProgramSlotPoolMembersTableProcessedTableManager =
       (ProgramSlotPoolMemberData, $$ProgramSlotPoolMembersTableReferences),
       ProgramSlotPoolMemberData,
       PrefetchHooks Function({bool slotId, bool exerciseId})
+    >;
+typedef $$ProgramSlotExplanationsTableCreateCompanionBuilder =
+    ProgramSlotExplanationsCompanion Function({
+      Value<int> id,
+      required int slotId,
+      required int weekIndex,
+      Value<int?> chosenExerciseId,
+      required String status,
+      required String rationale,
+      Value<String?> excludedJson,
+    });
+typedef $$ProgramSlotExplanationsTableUpdateCompanionBuilder =
+    ProgramSlotExplanationsCompanion Function({
+      Value<int> id,
+      Value<int> slotId,
+      Value<int> weekIndex,
+      Value<int?> chosenExerciseId,
+      Value<String> status,
+      Value<String> rationale,
+      Value<String?> excludedJson,
+    });
+
+final class $$ProgramSlotExplanationsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ProgramSlotExplanationsTable,
+          ProgramSlotExplanationData
+        > {
+  $$ProgramSlotExplanationsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProgramExerciseSlotsTable _slotIdTable(_$AppDatabase db) =>
+      db.programExerciseSlots.createAlias(
+        $_aliasNameGenerator(
+          db.programSlotExplanations.slotId,
+          db.programExerciseSlots.id,
+        ),
+      );
+
+  $$ProgramExerciseSlotsTableProcessedTableManager get slotId {
+    final $_column = $_itemColumn<int>('slot_id')!;
+
+    final manager = $$ProgramExerciseSlotsTableTableManager(
+      $_db,
+      $_db.programExerciseSlots,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_slotIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ExerciseCatalogTable _chosenExerciseIdTable(_$AppDatabase db) =>
+      db.exerciseCatalog.createAlias(
+        $_aliasNameGenerator(
+          db.programSlotExplanations.chosenExerciseId,
+          db.exerciseCatalog.id,
+        ),
+      );
+
+  $$ExerciseCatalogTableProcessedTableManager? get chosenExerciseId {
+    final $_column = $_itemColumn<int>('chosen_exercise_id');
+    if ($_column == null) return null;
+    final manager = $$ExerciseCatalogTableTableManager(
+      $_db,
+      $_db.exerciseCatalog,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chosenExerciseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ProgramSlotExplanationsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProgramSlotExplanationsTable> {
+  $$ProgramSlotExplanationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get weekIndex => $composableBuilder(
+    column: $table.weekIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rationale => $composableBuilder(
+    column: $table.rationale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get excludedJson => $composableBuilder(
+    column: $table.excludedJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProgramExerciseSlotsTableFilterComposer get slotId {
+    final $$ProgramExerciseSlotsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.slotId,
+      referencedTable: $db.programExerciseSlots,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProgramExerciseSlotsTableFilterComposer(
+            $db: $db,
+            $table: $db.programExerciseSlots,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ExerciseCatalogTableFilterComposer get chosenExerciseId {
+    final $$ExerciseCatalogTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chosenExerciseId,
+      referencedTable: $db.exerciseCatalog,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExerciseCatalogTableFilterComposer(
+            $db: $db,
+            $table: $db.exerciseCatalog,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProgramSlotExplanationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProgramSlotExplanationsTable> {
+  $$ProgramSlotExplanationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get weekIndex => $composableBuilder(
+    column: $table.weekIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rationale => $composableBuilder(
+    column: $table.rationale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get excludedJson => $composableBuilder(
+    column: $table.excludedJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProgramExerciseSlotsTableOrderingComposer get slotId {
+    final $$ProgramExerciseSlotsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.slotId,
+          referencedTable: $db.programExerciseSlots,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProgramExerciseSlotsTableOrderingComposer(
+                $db: $db,
+                $table: $db.programExerciseSlots,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$ExerciseCatalogTableOrderingComposer get chosenExerciseId {
+    final $$ExerciseCatalogTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chosenExerciseId,
+      referencedTable: $db.exerciseCatalog,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExerciseCatalogTableOrderingComposer(
+            $db: $db,
+            $table: $db.exerciseCatalog,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProgramSlotExplanationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProgramSlotExplanationsTable> {
+  $$ProgramSlotExplanationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get weekIndex =>
+      $composableBuilder(column: $table.weekIndex, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get rationale =>
+      $composableBuilder(column: $table.rationale, builder: (column) => column);
+
+  GeneratedColumn<String> get excludedJson => $composableBuilder(
+    column: $table.excludedJson,
+    builder: (column) => column,
+  );
+
+  $$ProgramExerciseSlotsTableAnnotationComposer get slotId {
+    final $$ProgramExerciseSlotsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.slotId,
+          referencedTable: $db.programExerciseSlots,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProgramExerciseSlotsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.programExerciseSlots,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$ExerciseCatalogTableAnnotationComposer get chosenExerciseId {
+    final $$ExerciseCatalogTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chosenExerciseId,
+      referencedTable: $db.exerciseCatalog,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExerciseCatalogTableAnnotationComposer(
+            $db: $db,
+            $table: $db.exerciseCatalog,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProgramSlotExplanationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProgramSlotExplanationsTable,
+          ProgramSlotExplanationData,
+          $$ProgramSlotExplanationsTableFilterComposer,
+          $$ProgramSlotExplanationsTableOrderingComposer,
+          $$ProgramSlotExplanationsTableAnnotationComposer,
+          $$ProgramSlotExplanationsTableCreateCompanionBuilder,
+          $$ProgramSlotExplanationsTableUpdateCompanionBuilder,
+          (
+            ProgramSlotExplanationData,
+            $$ProgramSlotExplanationsTableReferences,
+          ),
+          ProgramSlotExplanationData,
+          PrefetchHooks Function({bool slotId, bool chosenExerciseId})
+        > {
+  $$ProgramSlotExplanationsTableTableManager(
+    _$AppDatabase db,
+    $ProgramSlotExplanationsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProgramSlotExplanationsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ProgramSlotExplanationsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ProgramSlotExplanationsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> slotId = const Value.absent(),
+                Value<int> weekIndex = const Value.absent(),
+                Value<int?> chosenExerciseId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> rationale = const Value.absent(),
+                Value<String?> excludedJson = const Value.absent(),
+              }) => ProgramSlotExplanationsCompanion(
+                id: id,
+                slotId: slotId,
+                weekIndex: weekIndex,
+                chosenExerciseId: chosenExerciseId,
+                status: status,
+                rationale: rationale,
+                excludedJson: excludedJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int slotId,
+                required int weekIndex,
+                Value<int?> chosenExerciseId = const Value.absent(),
+                required String status,
+                required String rationale,
+                Value<String?> excludedJson = const Value.absent(),
+              }) => ProgramSlotExplanationsCompanion.insert(
+                id: id,
+                slotId: slotId,
+                weekIndex: weekIndex,
+                chosenExerciseId: chosenExerciseId,
+                status: status,
+                rationale: rationale,
+                excludedJson: excludedJson,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ProgramSlotExplanationsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({slotId = false, chosenExerciseId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (slotId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.slotId,
+                                referencedTable:
+                                    $$ProgramSlotExplanationsTableReferences
+                                        ._slotIdTable(db),
+                                referencedColumn:
+                                    $$ProgramSlotExplanationsTableReferences
+                                        ._slotIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (chosenExerciseId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chosenExerciseId,
+                                referencedTable:
+                                    $$ProgramSlotExplanationsTableReferences
+                                        ._chosenExerciseIdTable(db),
+                                referencedColumn:
+                                    $$ProgramSlotExplanationsTableReferences
+                                        ._chosenExerciseIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ProgramSlotExplanationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProgramSlotExplanationsTable,
+      ProgramSlotExplanationData,
+      $$ProgramSlotExplanationsTableFilterComposer,
+      $$ProgramSlotExplanationsTableOrderingComposer,
+      $$ProgramSlotExplanationsTableAnnotationComposer,
+      $$ProgramSlotExplanationsTableCreateCompanionBuilder,
+      $$ProgramSlotExplanationsTableUpdateCompanionBuilder,
+      (ProgramSlotExplanationData, $$ProgramSlotExplanationsTableReferences),
+      ProgramSlotExplanationData,
+      PrefetchHooks Function({bool slotId, bool chosenExerciseId})
     >;
 typedef $$PrescriptionTemplatesTableCreateCompanionBuilder =
     PrescriptionTemplatesCompanion Function({
@@ -72954,6 +74144,11 @@ class $AppDatabaseManager {
       $$ProgramSlotPoolMembersTableTableManager(
         _db,
         _db.programSlotPoolMembers,
+      );
+  $$ProgramSlotExplanationsTableTableManager get programSlotExplanations =>
+      $$ProgramSlotExplanationsTableTableManager(
+        _db,
+        _db.programSlotExplanations,
       );
   $$PrescriptionTemplatesTableTableManager get prescriptionTemplates =>
       $$PrescriptionTemplatesTableTableManager(_db, _db.prescriptionTemplates);

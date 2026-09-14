@@ -911,6 +911,36 @@ class RotationAssignments extends Table with SyncColumns, SyncTombstone {
   ];
 }
 
+/// Per-slot, per-week record of why the deterministic planner filled or
+/// left empty a program slot (Phase 17, D-01). Local-only: this data is
+/// fully re-derivable by regenerating the program, so it never syncs and
+/// must never be added to `syncedTableNames` or `syncTableSpecs`.
+@DataClassName('ProgramSlotExplanationData')
+class ProgramSlotExplanations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get slotId => integer().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get weekIndex => integer()();
+  IntColumn get chosenExerciseId => integer().nullable().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get status => text()(); // 'filled' | 'empty'
+  TextColumn get rationale => text()();
+  // Reserved for a future per-candidate rationale stretch goal; left
+  // unpopulated in this phase.
+  TextColumn get excludedJson => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {slotId, weekIndex},
+  ];
+}
+
 @DataClassName('PrescriptionTemplateData')
 class PrescriptionTemplates extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();

@@ -38,6 +38,9 @@ part 'database.g.dart';
     ProgramExerciseSlots,
     ProgramSlotPoolMembers,
     RotationAssignments,
+    // Program Slot Explanations (v42). Local-only: never added to
+    // syncedTableNames or syncTableSpecs.
+    ProgramSlotExplanations,
     PrescriptionTemplates,
     PhysiqueProgrammingProfiles,
     ExercisePreferences,
@@ -95,7 +98,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 41;
+  int get schemaVersion => 42;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1104,10 +1107,9 @@ class AppDatabase extends _$AppDatabase {
             }
           }
 
-          await m.alterTable(TableMigration(
-            exerciseCatalog,
-            newColumns: newColumns,
-          ));
+          await m.alterTable(
+            TableMigration(exerciseCatalog, newColumns: newColumns),
+          );
 
           await ExerciseImporter.runFromAsset(this);
         }
@@ -1116,6 +1118,9 @@ class AppDatabase extends _$AppDatabase {
           'CREATE INDEX IF NOT EXISTS idx_exercise_catalog_scaling '
           'ON exercise_catalog(scaling_group, scaling_order)',
         );
+      }
+      if (from < 42 && to >= 42) {
+        await m.createTable(programSlotExplanations);
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
