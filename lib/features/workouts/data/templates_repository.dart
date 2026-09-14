@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:uuid/uuid.dart';
 
 class TemplatesRepository {
@@ -371,92 +372,18 @@ class TemplatesRepository {
     double volumeFactor = 1.0,
     String? sessionUuid,
   }) async {
-    final template = await (_db.select(
-      _db.workoutTemplates,
-    )..where((t) => t.id.equals(templateId))).getSingleOrNull();
-    final exercises =
-        await (_db.select(_db.templateExercises)
-              ..where((t) => t.templateId.equals(templateId))
-              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
-            .get();
-
-    return _db.transaction(() async {
-      final sessionId = await _db
-          .into(_db.workoutSessions)
-          .insert(
-            WorkoutSessionsCompanion.insert(
-              name: Value(template?.name),
-              startedAt: startedAt ?? DateTime.now(),
-              gymId: Value(gymId),
-              notes: Value(notes),
-              sessionUuid: Value(sessionUuid ?? const Uuid().v4()),
-            ),
-          );
-      for (final te in exercises) {
-        final workoutExerciseId = await _db
-            .into(_db.workoutExercises)
-            .insert(
-              WorkoutExercisesCompanion.insert(
-                sessionId: sessionId,
-                exerciseId: te.exerciseId,
-                orderIndex: te.orderIndex,
-                supersetGroup: Value(te.supersetGroup),
-                targetRestSeconds: Value(te.targetRestSeconds),
-              ),
-            );
-
-        final templateSets = await getTemplateSets(te.id);
-        if (templateSets.isNotEmpty) {
-          final warmups = templateSets.where((s) => s.isWarmup).toList();
-          final working = templateSets.where((s) => !s.isWarmup).toList();
-          final targetWorkingCount = volumeFactor < 1.0 && working.isNotEmpty
-              ? (working.length * volumeFactor).ceil().clamp(1, working.length)
-              : working.length;
-          final adjustedWorking = working.take(targetWorkingCount).toList();
-          final setsToInsert = [...warmups, ...adjustedWorking]
-            ..sort((a, b) => a.setOrder.compareTo(b.setOrder));
-
-          var idx = 1;
-          for (final ts in setsToInsert) {
-            await _db
-                .into(_db.setEntries)
-                .insert(
-                  SetEntriesCompanion.insert(
-                    workoutExerciseId: workoutExerciseId,
-                    setIndex: idx++,
-                    reps: ts.targetReps ?? te.targetRepsMin ?? 0,
-                    weightKg: ts.targetWeightKg ?? 0.0,
-                    setType: Value(ts.setType),
-                    setTypeMetaJson: Value(ts.setTypeMetaJson),
-                    isWarmup: Value(ts.isWarmup),
-                    isCompleted: const Value(false),
-                  ),
-                );
-          }
-        } else {
-          // Fallback if no sets
-          final defaultReps = te.targetRepsMin ?? 0;
-          final setsCount = volumeFactor < 1.0 && te.targetSets > 1
-              ? (te.targetSets * volumeFactor).ceil().clamp(1, te.targetSets)
-              : te.targetSets;
-          for (var i = 0; i < setsCount; i++) {
-            await _db
-                .into(_db.setEntries)
-                .insert(
-                  SetEntriesCompanion.insert(
-                    workoutExerciseId: workoutExerciseId,
-                    setIndex: i + 1,
-                    reps: defaultReps,
-                    weightKg: 0.0,
-                    isCompleted: const Value(false),
-                  ),
-                );
-          }
-        }
-      }
-      await markUsed(templateId);
-      return sessionId;
-    });
+    final resolver = PlannedSessionResolver(_db);
+    final plan = await resolver.resolveTemplate(
+      templateId,
+      volumeFactor: volumeFactor,
+    );
+    return resolver.materialize(
+      plan,
+      startedAt: startedAt,
+      gymId: gymId,
+      notes: notes,
+      sessionUuid: sessionUuid ?? const Uuid().v4(),
+    );
   }
 
   /// Saves a completed workout session as a template.
@@ -513,10 +440,10 @@ class TemplatesRepository {
                 TemplateSetsCompanion.insert(
                   templateExerciseId: teId,
                   setOrder: i + 1,
-                  setType: Value(s.setType ?? 'standard'),
+                  setType: Value(s.setType),
                   targetReps: Value(s.reps),
                   targetWeightKg: Value(s.weightKg),
-                  isWarmup: Value(s.isWarmup ?? false),
+                  isWarmup: Value(s.isWarmup),
                 ),
               );
         }

@@ -51,6 +51,7 @@ final circuitDetailsProvider = FutureProvider.family<CircuitDetails?, int>((
           force: '',
           plane: '',
           defaultRestSeconds: 90,
+          maxEffortEligibility: 'unsuitable',
           isCustom: false,
           category: 'strength',
           modality: 'barbell',

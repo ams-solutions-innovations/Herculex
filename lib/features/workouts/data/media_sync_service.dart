@@ -22,6 +22,18 @@ class MediaSyncService {
     });
   }
 
+  /// Polling Android media sessions every second is useful only while a
+  /// workout can expose watch controls. Keeping it alive for the whole phone
+  /// app lifetime needlessly wakes the phone and Wear Data Layer.
+  void setWorkoutActive(bool active) {
+    if (active) {
+      start();
+    } else {
+      stop();
+      _lastSyncedPayload = '';
+    }
+  }
+
   void stop() {
     _isRunning = false;
     _pollingTimer?.cancel();
@@ -36,6 +48,9 @@ class MediaSyncService {
       final isPlaying = (info['isPlaying'] as bool?) ?? false;
       final packageName = (info['packageName'] as String?) ?? '';
       final hasPermission = (info['hasPermission'] as bool?) ?? false;
+      final artworkBase64 = (info['thumbnailUrl'] as String?) ?? '';
+      final positionMs = (info['positionMs'] as num?)?.toInt() ?? 0;
+      final durationMs = (info['durationMs'] as num?)?.toInt() ?? 0;
       final isSpotify = packageName.contains('spotify');
       final hasTrack = track.isNotEmpty;
 
@@ -47,9 +62,18 @@ class MediaSyncService {
         'appName': isSpotify ? 'Spotify' : (hasTrack ? 'Music' : ''),
         'isSpotify': isSpotify,
         'hasPermission': hasPermission,
+        // Artwork is deliberately included only in the delivered payload,
+        // not in the comparison key below, so we do not resend it each poll.
+        'artworkBase64': artworkBase64,
+        'positionMs': positionMs,
+        'durationMs': durationMs,
       };
 
-      final stateJson = jsonEncode(stateMap);
+      final stateJson = jsonEncode({
+        ...stateMap,
+        'positionMs': 0,
+        'durationMs': 0,
+      });
       if (stateJson != _lastSyncedPayload) {
         _lastSyncedPayload = stateJson;
 

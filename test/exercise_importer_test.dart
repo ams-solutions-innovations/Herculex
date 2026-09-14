@@ -207,8 +207,8 @@ void main() {
     final catalog = await db.select(db.exerciseCatalog).get();
     expect(
       catalog.length,
-      greaterThan(390),
-      reason: 'full 398-exercise dataset should load',
+      greaterThanOrEqualTo(483),
+      reason: 'the complete curated catalog should load',
     );
     // Every row carries a derived CNS score and primary muscle.
     expect(catalog.every((e) => e.cnsScore >= 1 && e.cnsScore <= 10), isTrue);
@@ -380,7 +380,7 @@ void main() {
         catalog.firstWhere((e) => e.name == n);
 
     final inclineFamilies = {
-      byName('Incline Barbell Bench').movementFamily,
+      byName('Incline Barbell Bench Press').movementFamily,
       byName('Incline Dumbbell Press').movementFamily,
       byName('Machine Incline Press').movementFamily,
       byName('Swiss Bar Incline Press').movementFamily,
@@ -397,6 +397,55 @@ void main() {
       byName('Barbell Bench Press').movementFamily,
       isNot(inclineFamilies.single),
       reason: 'incline and flat press are distinct families',
+    );
+  });
+
+  test('priority variants and compatibility aliases import cleanly', () async {
+    final json = File('assets/data/exercises.json').readAsStringSync();
+    await ExerciseImporter.runFromJson(
+      db,
+      json,
+      movementsJson: File('assets/data/movements.json').readAsStringSync(),
+    );
+    final catalog = await db.select(db.exerciseCatalog).get();
+    final names = catalog.map((exercise) => exercise.name).toSet();
+
+    expect(
+      names,
+      containsAll(<String>{
+        'High-Bar Back Squat',
+        'Low-Bar Back Squat',
+        'Paused Squat',
+        'Pin Squat',
+        'Larsen Press',
+        'Spoto Press',
+        'Paused Bench Press',
+        'Pin Press',
+        'Board Press',
+        'Chest-Supported Dumbbell Row',
+        'Chest-Supported T-Bar Row',
+        'Rolling Dumbbell Triceps Extension',
+      }),
+    );
+
+    final repo = WorkoutsRepository(db, const SystemClock());
+    expect(
+      (await repo.watchExercises(query: 'Anderson Squat').first).map(
+        (exercise) => exercise.name,
+      ),
+      contains('Pin Squat'),
+    );
+    expect(
+      (await repo.watchExercises(query: 'Dumbbell Incline Row').first).map(
+        (exercise) => exercise.name,
+      ),
+      contains('Chest-Supported Dumbbell Row'),
+    );
+    expect(
+      (await repo.watchExercises(query: 'Incline Barbell Bench').first).map(
+        (exercise) => exercise.name,
+      ),
+      contains('Incline Barbell Bench Press'),
     );
   });
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 
 import 'support/test_database.dart';
@@ -143,6 +144,26 @@ void main() {
     expect(empty, isEmpty, reason: 'categories with no exercises: $empty');
   });
 
+  test('similar references are canonical, unique, and resolvable', () {
+    final names = {for (final row in rows) row['name'] as String};
+    final invalid = <String>[];
+    for (final row in rows) {
+      final exerciseName = row['name'] as String;
+      final similar = (row['similar'] as List).cast<String>();
+      if (similar.toSet().length != similar.length) {
+        invalid.add('$exerciseName has duplicate similar references');
+      }
+      for (final reference in similar) {
+        if (reference == exerciseName) {
+          invalid.add('$exerciseName references itself');
+        } else if (!names.contains(reference)) {
+          invalid.add('$exerciseName -> $reference');
+        }
+      }
+    }
+    expect(invalid, isEmpty, reason: 'invalid similar references: $invalid');
+  });
+
   test('every movement group has one movementSlug across its members', () {
     // The picker collapses on movementSlug, so a family where only some rows
     // carry the slug shows the rest as separate top-level exercises — which is
@@ -170,6 +191,117 @@ void main() {
     );
   });
 
+  test('priority programming variants are distinct and fully authored', () {
+    const expectedBySlug = <String, String>{
+      'high-bar-back-squat': 'High-Bar Back Squat',
+      'low-bar-back-squat': 'Low-Bar Back Squat',
+      'paused-squat': 'Paused Squat',
+      'tempo-squat': 'Tempo Squat',
+      'pin-squat': 'Pin Squat',
+      'hatfield-squat': 'Hatfield Squat',
+      'cambered-bar-squat': 'Cambered Bar Squat',
+      'incline-barbell-bench': 'Incline Barbell Bench Press',
+      'larsen-press': 'Larsen Press',
+      'spoto-press': 'Spoto Press',
+      'paused-bench-press': 'Paused Bench Press',
+      'tempo-bench-press': 'Tempo Bench Press',
+      'pin-press': 'Pin Press',
+      'board-press': 'Board Press',
+      'dumbbell-incline-row': 'Chest-Supported Dumbbell Row',
+      't-bar-row-machine': 'Chest-Supported T-Bar Row',
+      'kelso-shrug': 'Kelso Shrug',
+      'cable-y-raise': 'Cable Y-Raise',
+      'incline-y-raise': 'Incline Y-Raise',
+      'rolling-dumbbell-triceps-extension':
+          'Rolling Dumbbell Triceps Extension',
+    };
+    const eligibilityValues = {'suitable', 'advanced_manual', 'unsuitable'};
+
+    final bySlug = {for (final row in rows) row['slug'] as String: row};
+    for (final entry in expectedBySlug.entries) {
+      final row = bySlug[entry.key];
+      expect(row, isNotNull, reason: '${entry.value} is missing');
+      expect(row!['name'], entry.value);
+      expect(
+        row['movementSlug'],
+        isNotNull,
+        reason: '${entry.value} ungrouped',
+      );
+      expect(
+        (row['requiredEquipmentKeys'] as List?)?.cast<String>(),
+        isNotEmpty,
+        reason: '${entry.value} needs explicit equipment requirements',
+      );
+      expect(
+        eligibilityValues,
+        contains(row['maxEffortEligibility']),
+        reason: '${entry.value} needs Max Effort eligibility',
+      );
+    }
+
+    expect(
+      (bySlug['pin-squat']!['aka'] as List).cast<String>(),
+      contains('Anderson Squat'),
+    );
+    expect(bySlug['low-bar-back-squat']!['maxEffortEligibility'], 'suitable');
+    expect(bySlug['pin-press']!['maxEffortEligibility'], 'suitable');
+    expect(bySlug['cable-y-raise']!['maxEffortEligibility'], 'unsuitable');
+  });
+
+  test('movement definitions resolve every authored priority variant', () {
+    const prioritySlugs = <String>{
+      'high-bar-back-squat',
+      'low-bar-back-squat',
+      'paused-squat',
+      'tempo-squat',
+      'pin-squat',
+      'hatfield-squat',
+      'cambered-bar-squat',
+      'incline-barbell-bench',
+      'larsen-press',
+      'spoto-press',
+      'paused-bench-press',
+      'tempo-bench-press',
+      'pin-press',
+      'board-press',
+      'dumbbell-incline-row',
+      't-bar-row-machine',
+      'kelso-shrug',
+      'cable-y-raise',
+      'incline-y-raise',
+      'rolling-dumbbell-triceps-extension',
+    };
+    final movements =
+        (jsonDecode(File('assets/data/movements.json').readAsStringSync())
+                as List)
+            .cast<Map<String, dynamic>>();
+    final movementBySlug = {
+      for (final movement in movements) movement['slug'] as String: movement,
+    };
+    final exerciseSlugs = {for (final row in rows) row['slug'] as String};
+
+    for (final row in rows.where(
+      (row) => prioritySlugs.contains(row['slug']),
+    )) {
+      final movement = movementBySlug[row['movementSlug'] as String];
+      expect(
+        movement,
+        isNotNull,
+        reason: '${row['name']} references a missing movement',
+      );
+      expect(
+        (movement!['allowedEquipment'] as List).cast<String>(),
+        contains(row['modality']),
+        reason: '${row['name']} modality is absent from its movement',
+      );
+      expect(
+        exerciseSlugs,
+        contains(movement['canonicalExerciseSlug']),
+        reason: '${movement['slug']} has a missing canonical exercise',
+      );
+    }
+  });
+
   test('the importer lands every slug in the database, uniquely', () async {
     final db = await openTestDatabase();
     addTearDown(db.close);
@@ -184,5 +316,36 @@ void main() {
       reason: 'every seeded row should have imported its slug',
     );
     expect(slugs.toSet().length, slugs.length, reason: 'slugs must be unique');
+  });
+
+  test('the importer preserves renamed compatibility aliases', () async {
+    final db = await openTestDatabase();
+    addTearDown(db.close);
+    await ExerciseImporter.runFromJson(
+      db,
+      File('assets/data/exercises.json').readAsStringSync(),
+      movementsJson: File('assets/data/movements.json').readAsStringSync(),
+    );
+
+    final catalog = await db.select(db.exerciseCatalog).get();
+    final aliases = await db.select(db.exerciseAliases).get();
+    Set<String> aliasesFor(String slug) {
+      final exercise = catalog.singleWhere((row) => row.slug == slug);
+      return aliases
+          .where((alias) => alias.exerciseId == exercise.id)
+          .map((alias) => alias.alias)
+          .toSet();
+    }
+
+    expect(aliasesFor('pin-squat'), contains('Anderson Squat'));
+    expect(
+      aliasesFor('incline-barbell-bench'),
+      contains('Incline Barbell Bench'),
+    );
+    expect(
+      aliasesFor('dumbbell-incline-row'),
+      contains('Dumbbell Incline Row'),
+    );
+    expect(aliasesFor('t-bar-row-machine'), contains('T-Bar Row Machine'));
   });
 }

@@ -14,6 +14,7 @@ import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/set_metric_format.dart';
 import 'package:herculex/features/workouts/presentation/dialogs/duration_picker_dialog.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -216,99 +217,167 @@ class WorkoutHistoryView extends ConsumerWidget {
                       vertical: 8,
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Text(
+                          DateFormat(
+                            'EEEE, MMM d, yyyy · HH:mm',
+                          ).format(session.startedAt),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.secondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Text(
-                              DateFormat(
-                                'EEEE, MMM d, yyyy · HH:mm',
-                              ).format(session.startedAt),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.secondary,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
-                            ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.local_fire_department_rounded,
+                                    size: 13,
+                                    color: AppColors.primary,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.12,
-                                    ),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
+                                  const SizedBox(width: 4),
+                                  Text(
                                     '$calories kcal',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                InkWell(
-                                  onTap: () async {
-                                    final currentDur =
-                                        session.endedAt?.difference(
-                                          session.startedAt,
-                                        ) ??
-                                        const Duration(minutes: 45);
-                                    final newMins =
-                                        await DurationPickerDialog.show(
-                                          context,
-                                          initialMinutes:
-                                              currentDur.inMinutes > 0
+                                ],
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () async {
+                                final currentDur =
+                                    session.endedAt?.difference(
+                                      session.startedAt,
+                                    ) ??
+                                    const Duration(minutes: 45);
+                                final newMins =
+                                    await DurationPickerDialog.show(
+                                      context,
+                                      initialMinutes:
+                                          currentDur.inMinutes > 0
                                               ? currentDur.inMinutes
                                               : 45,
-                                        );
-                                    if (newMins != null && newMins > 0) {
-                                      final newEndedAt = session.startedAt.add(
-                                        Duration(minutes: newMins),
+                                    );
+                                if (newMins != null && newMins > 0) {
+                                  final newEndedAt = session.startedAt.add(
+                                    Duration(minutes: newMins),
+                                  );
+                                  await ref
+                                      .read(workoutsRepositoryProvider)
+                                      .endSession(
+                                        session.id,
+                                        endedAt: newEndedAt,
                                       );
-                                      await ref
-                                          .read(workoutsRepositoryProvider)
-                                          .endSession(
-                                            session.id,
-                                            endedAt: newEndedAt,
-                                          );
-                                    }
-                                  },
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                      vertical: 2,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          durationStr.isNotEmpty
-                                              ? durationStr
-                                              : 'Set duration',
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: AppColors.primary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.edit_outlined,
-                                          size: 12,
-                                          color: AppColors.primary,
-                                        ),
-                                      ],
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppColors.outlineVariant.withValues(
+                                      alpha: 0.3,
                                     ),
                                   ),
                                 ),
-                              ],
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.timer_outlined,
+                                      size: 13,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      durationStr.isNotEmpty
+                                          ? durationStr
+                                          : 'Set duration',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.edit_outlined,
+                                      size: 11,
+                                      color: AppColors.primary,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
+                            if (!hasPhoto)
+                              InkWell(
+                                onTap: () => _pickPhoto(
+                                  context,
+                                  ref,
+                                  session.id,
+                                  ImageSource.gallery,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: AppColors.outlineVariant
+                                          .withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.add_a_photo_outlined,
+                                        size: 13,
+                                        color: AppColors.secondary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Add photo',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.secondary,
+                                              fontSize: 11,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                         if (hasPhoto) ...[
@@ -377,78 +446,42 @@ class WorkoutHistoryView extends ConsumerWidget {
                               ),
                             ],
                           ),
-                        ] else ...[
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              InkWell(
-                                onTap: () => _pickPhoto(
-                                  context,
-                                  ref,
-                                  session.id,
-                                  ImageSource.gallery,
-                                ),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.add_a_photo_outlined,
-                                        size: 13,
-                                        color: AppColors.secondary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Add photo',
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: AppColors.secondary,
-                                              fontSize: 11,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ],
                     ),
                   ),
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                    itemCount: rows.length,
-                    itemBuilder: (_, i) {
-                      final we = rows[i];
-                      final exercise = catalog.asData?.value.firstWhere(
-                        (e) => e.id == we.exerciseId,
-                        orElse: () => _placeholder(we.exerciseId),
-                      );
-                      final isWeightedBw =
-                          (we.equipmentVariant ?? exercise?.modality) ==
-                          'weighted';
-                      return _ExerciseBlock(
-                        workoutExercise: we,
-                        exerciseName: exercise?.name ?? '',
-                        metric: exercise != null
-                            ? effectiveLoggingMetric(
-                                exercise: exercise,
-                                equipmentVariant: we.equipmentVariant,
-                              )
-                            : LoggingMetric.weightReps,
-                        isWeightedBodyweight: isWeightedBw,
-                      );
-                    },
+                // HxScreenShell already supplies the page's scroll view. A
+                // nested, expanded ListView receives unbounded height here
+                // and consequently fails to paint completed exercises.
+                for (final we in rows) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Builder(
+                      builder: (context) {
+                        final exercise = catalog.asData?.value.firstWhere(
+                          (e) => e.id == we.exerciseId,
+                          orElse: () => _placeholder(we.exerciseId),
+                        );
+                        final isWeightedBw =
+                            (we.equipmentVariant ?? exercise?.modality) ==
+                            'weighted';
+                        return _ExerciseBlock(
+                          workoutExercise: we,
+                          exercise: exercise,
+                          exerciseName: exercise?.name ?? '',
+                          metric: exercise != null
+                              ? effectiveLoggingMetric(
+                                  exercise: exercise,
+                                  equipmentVariant: we.equipmentVariant,
+                                )
+                              : LoggingMetric.weightReps,
+                          isWeightedBodyweight: isWeightedBw,
+                        );
+                      },
+                    ),
                   ),
-                ),
+                ],
+                const SizedBox(height: 24),
               ],
             );
           },
@@ -489,6 +522,7 @@ class WorkoutHistoryView extends ConsumerWidget {
 
 class _ExerciseBlock extends ConsumerWidget {
   final WorkoutExerciseData workoutExercise;
+  final ExerciseCatalogData? exercise;
   final String exerciseName;
 
   /// What this exercise is measured in — a logged plank reads as `2:00` here,
@@ -498,6 +532,7 @@ class _ExerciseBlock extends ConsumerWidget {
 
   const _ExerciseBlock({
     required this.workoutExercise,
+    this.exercise,
     required this.exerciseName,
     required this.metric,
     this.isWeightedBodyweight = false,
@@ -506,81 +541,145 @@ class _ExerciseBlock extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final sets = ref.watch(setsForWorkoutExerciseProvider(workoutExercise.id));
+    final setsAsync = ref.watch(
+      setsForWorkoutExerciseProvider(workoutExercise.id),
+    );
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            exerciseName,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+    return setsAsync.when(
+      data: (rows) {
+        final completedSets = rows.where((r) => r.isCompleted).toList();
+        if (completedSets.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.3),
             ),
           ),
-          const SizedBox(height: 8),
-          sets.when(
-            data: (rows) => Column(
-              children: [
-                for (var i = 0; i < rows.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (exercise != null)
+                    ExerciseArtwork(
+                      exercise: exercise!,
+                      size: 42,
+                      radius: 10,
+                      equipmentVariant: workoutExercise.equipmentVariant,
+                    )
+                  else
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.fitness_center_rounded,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          width: 28,
-                          child: Text(
-                            rows[i].isWarmup ? 'W' : '${i + 1}',
-                            style: theme.textTheme.titleSmall,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
                         Text(
-                          SetMetricFormat.summariseSet(
-                            rows[i],
-                            metric: metric,
-                            weight: ref.watch(weightFormatProvider),
-                            distance: ref.watch(distanceFormatProvider),
-                            isWeightedBodyweight: isWeightedBodyweight,
+                          exerciseName,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        if (rows[i].rpeX10 != null) ...[
-                          const SizedBox(width: 12),
+                        if (exercise != null &&
+                            exercise!.primaryMuscle.isNotEmpty) ...[
+                          const SizedBox(height: 2),
                           Text(
-                            '@${(rows[i].rpeX10! / 10).toStringAsFixed(1)}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                        if (rows[i].completedAt != null) ...[
-                          const Spacer(),
-                          Text(
-                            DateFormat('HH:mm').format(rows[i].completedAt!),
-                            style: theme.textTheme.bodySmall?.copyWith(
+                            exercise!.primaryMuscle.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
                               color: AppColors.secondary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ],
                       ],
                     ),
                   ),
-              ],
-            ),
-            loading: () => const SizedBox.shrink(),
-            error: (_, _) => const SizedBox.shrink(),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Column(
+                children: [
+                  for (var i = 0; i < completedSets.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            child: Text(
+                              completedSets[i].isWarmup ? 'W' : '${i + 1}',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: completedSets[i].isWarmup
+                                    ? AppColors.secondary
+                                    : null,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            SetMetricFormat.summariseSet(
+                              completedSets[i],
+                              metric: metric,
+                              weight: ref.watch(weightFormatProvider),
+                              distance: ref.watch(distanceFormatProvider),
+                              isWeightedBodyweight: isWeightedBodyweight,
+                            ),
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          if (completedSets[i].rpeX10 != null) ...[
+                            const SizedBox(width: 12),
+                            Text(
+                              '@${(completedSets[i].rpeX10! / 10).toStringAsFixed(1)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                          if (completedSets[i].completedAt != null) ...[
+                            const Spacer(),
+                            Text(
+                              DateFormat(
+                                'HH:mm',
+                              ).format(completedSets[i].completedAt!),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

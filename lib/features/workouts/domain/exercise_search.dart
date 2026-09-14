@@ -144,6 +144,11 @@ const _penaltyExtraWord = 8;
 const _canonicalMarkers = <String>{
   'standard',
   'conventional',
+  // In strength-exercise names, "Barbell Bench Press" is the unqualified
+  // base lift; tempo/paused/pin/board words identify variants. Treat the
+  // equipment descriptor like the other base markers so adding variants does
+  // not make the shortest variant win generic and typo-tolerant searches.
+  'barbell',
   'regular',
   'basic',
   'classic',
@@ -284,7 +289,9 @@ class _IndexedExercise {
       final unmatched = nameWords.length - matchedNameWords - canonicalMarkers;
       if (unmatched > 0) total -= unmatched * _penaltyExtraWord;
     }
-    if (total > 0 && canonicalMarkers > 0) total += _scoreCanonicalMarker;
+    if (tokensFoundInName == tokens.length && canonicalMarkers > 0) {
+      total += _scoreCanonicalMarker;
+    }
     return total;
   }
 

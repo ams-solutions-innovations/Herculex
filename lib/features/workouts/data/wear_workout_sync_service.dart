@@ -15,6 +15,7 @@ import 'package:herculex/features/workouts/data/workouts_repository.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
 import 'package:herculex/features/workouts/domain/watch_exercise_resolver.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WearWorkoutSyncService {
   final WorkoutsRepository _workoutsRepository;
@@ -30,8 +31,12 @@ class WearWorkoutSyncService {
   Future<void> _remoteApplyQueue = Future.value();
   Timer? _pendingOutboundTimer;
   WorkoutSessionData? _pendingOutboundSession;
+  late final SharedPreferences _prefs;
   late final WearRevisionAllocator _revisionAllocator;
   final WearDedupeState _remoteDedupe = WearDedupeState();
+  final Map<String, _PhoneSetSyncState> _setSyncStates = {};
+
+  static const _setSyncStatesPreferenceKey = 'wear_workout_set_sync_states_v1';
 
   WearWorkoutSyncService(
     this._workoutsRepository,
@@ -39,10 +44,9 @@ class WearWorkoutSyncService {
     this._db,
     this._ref,
   ) {
-    _revisionAllocator = WearRevisionAllocator(
-      _ref.read(sharedPreferencesProvider),
-      'workout',
-    );
+    _prefs = _ref.read(sharedPreferencesProvider);
+    _revisionAllocator = WearRevisionAllocator(_prefs, 'workout');
+    _restoreSetSyncStates();
     WearSyncService.onWatchWorkoutStarted = _handleWatchWorkoutStarted;
     WearSyncService.onWatchWorkoutUpdated = _handleWatchWorkoutUpdated;
     WearSyncService.onWatchWorkoutEnded = _handleWatchWorkoutEnded;
@@ -57,10 +61,17 @@ class WearWorkoutSyncService {
   }
 
   void scheduleOutboundSync(WorkoutSessionData session) {
-    _pendingOutboundSession = session;
+    // Drift emits an active-session update while a watch snapshot is being
+    // applied.  Queuing that update and sending it back after the guard used
+    // to manufacture a new phone envelope for the exact data we just
+    // received, creating a watch -> phone -> watch loop.  The inbound handler
+    // has already retained the incoming field versions, so this notification
+    // is an echo and must be discarded.  A real local edit happens after the
+    // transaction and arrives as a fresh provider update below.
     if (_isApplyingRemoteSession) {
       return;
     }
+    _pendingOutboundSession = session;
     final until = _suppressOutboundUntil;
     final now = DateTime.now();
     if (until != null && now.isBefore(until)) {
@@ -320,7 +331,12 @@ class WearWorkoutSyncService {
           // not a fresh start (which would otherwise bounce a "start" echo back).
           _lastSyncedSessionId = sessionId;
         }
-        await _syncSessionStateToDrift(sessionId, data);
+        await _syncSessionStateToDrift(
+          sessionId,
+          data,
+          sessionEntityId: envelope.entityId,
+          fallbackStamp: _fallbackSetStamp(envelope),
+        );
         // Only commit the dedupe mark and ack the native host once the
         // workout is durably on the phone. Committing on the earlier
         // wouldAccept() check (as the old combined shouldAccept() did) would
@@ -386,7 +402,12 @@ class WearWorkoutSyncService {
           );
           _lastSyncedSessionId = sessionId;
         }
-        await _syncSessionStateToDrift(sessionId, data);
+        await _syncSessionStateToDrift(
+          sessionId,
+          data,
+          sessionEntityId: envelope.entityId,
+          fallbackStamp: _fallbackSetStamp(envelope),
+        );
         // See the matching comment in _handleWatchWorkoutStarted — commit
         // only after the write above has actually succeeded.
         _remoteDedupe.commit(envelope);
@@ -419,6 +440,10 @@ class WearWorkoutSyncService {
       }
       _lastSyncedSessionId = null;
       _lastSyncedEntityId = null;
+      if (entityId != null && entityId.isNotEmpty) {
+        _setSyncStates.removeWhere((key, _) => key.startsWith('$entityId:'));
+        _persistSetSyncStates();
+      }
     } catch (e, st) {
       debugPrint('Failed to handle watch workout ended: $e\n$st');
     }
@@ -510,6 +535,13 @@ class WearWorkoutSyncService {
     );
   }
 
+  WearSyncStamp _fallbackSetStamp(WearSyncEnvelope envelope) {
+    // Pre-field-version peers still carry an envelope revision.  Treat it as
+    // the version of every set field so they remain interoperable, while new
+    // peers get the stronger independent versions below.
+    return WearSyncStamp(revision: envelope.revision, origin: envelope.origin);
+  }
+
   void _wearLog(
     WearSyncEnvelope envelope, {
     required String delivery,
@@ -531,6 +563,12 @@ class WearWorkoutSyncService {
         : (_lastSyncedEntityId ?? '');
     _lastSyncedSessionId = null;
     _lastSyncedEntityId = null;
+    if (targetEntityId.isNotEmpty) {
+      _setSyncStates.removeWhere(
+        (key, _) => key.startsWith('$targetEntityId:'),
+      );
+      _persistSetSyncStates();
+    }
     await _wearSyncService.endWorkoutOnWatch(targetEntityId);
   }
 
@@ -561,10 +599,178 @@ class WearWorkoutSyncService {
     ]);
   }
 
+  void _restoreSetSyncStates() {
+    final encoded = _prefs.getString(_setSyncStatesPreferenceKey);
+    if (encoded == null || encoded.isEmpty) return;
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! Map) return;
+      for (final entry in decoded.entries) {
+        if (entry.key is! String) continue;
+        final state = _PhoneSetSyncState.fromJson(entry.value);
+        if (state != null) _setSyncStates[entry.key as String] = state;
+      }
+    } catch (_) {
+      // Metadata is an optimization around the durable workout data.  A
+      // malformed legacy preference must never prevent a workout from
+      // opening; the current phone values will be stamped on their next push.
+      _setSyncStates.clear();
+    }
+  }
+
+  void _persistSetSyncStates() {
+    // Keep only currently useful metadata. A normal workout has tens of sets;
+    // this defensive cap prevents abandoned old sessions from making a small
+    // preference become unbounded over years of usage.
+    if (_setSyncStates.length > 512) {
+      final staleKeys = _setSyncStates.keys.take(_setSyncStates.length - 512);
+      for (final key in staleKeys.toList()) {
+        _setSyncStates.remove(key);
+      }
+    }
+    unawaited(
+      _prefs.setString(
+        _setSyncStatesPreferenceKey,
+        jsonEncode({
+          for (final entry in _setSyncStates.entries)
+            entry.key: entry.value.toJson(),
+        }),
+      ),
+    );
+  }
+
+  String _setSyncStateKey(String sessionEntityId, int setId) =>
+      '$sessionEntityId:set_$setId';
+
+  WearSyncStamp _nextLocalSetStamp() => WearSyncStamp(
+    revision: _revisionAllocator.next(),
+    origin: wearSyncOriginPhone,
+  );
+
+  _PhoneSetSyncState _stateForLocalSet(
+    String sessionEntityId,
+    SetEntryData set, {
+    bool persist = true,
+  }) {
+    final key = _setSyncStateKey(sessionEntityId, set.id);
+    final existing = _setSyncStates[key];
+    if (existing == null) {
+      final stamp = _nextLocalSetStamp();
+      final created = _PhoneSetSyncState(
+        weightKg: set.weightKg,
+        reps: set.reps,
+        isCompleted: set.isCompleted,
+        completedAt: set.completedAt,
+        versions: WearSetSyncVersions(
+          weight: stamp,
+          reps: stamp,
+          completion: stamp,
+        ),
+      );
+      _setSyncStates[key] = created;
+      if (persist) _persistSetSyncStates();
+      return created;
+    }
+
+    // This code runs only for an outbound phone snapshot.  A value different
+    // from our remembered winner is therefore a genuine phone-side edit; an
+    // incoming watch write updates the state before Drift, so it is never
+    // mistaken for a new local edit here.
+    if (existing.weightKg != set.weightKg) {
+      existing.weightKg = set.weightKg;
+      existing.versions = WearSetSyncVersions(
+        weight: _nextLocalSetStamp(),
+        reps: existing.versions.reps,
+        completion: existing.versions.completion,
+      );
+    }
+    if (existing.reps != set.reps) {
+      existing.reps = set.reps;
+      existing.versions = WearSetSyncVersions(
+        weight: existing.versions.weight,
+        reps: _nextLocalSetStamp(),
+        completion: existing.versions.completion,
+      );
+    }
+    if (existing.isCompleted != set.isCompleted ||
+        existing.completedAt != set.completedAt) {
+      existing.isCompleted = set.isCompleted;
+      existing.completedAt = set.completedAt;
+      existing.versions = WearSetSyncVersions(
+        weight: existing.versions.weight,
+        reps: existing.versions.reps,
+        completion: _nextLocalSetStamp(),
+      );
+    }
+    if (persist) _persistSetSyncStates();
+    return existing;
+  }
+
+  _ResolvedPhoneSet _mergeRemoteSet({
+    required String sessionEntityId,
+    required int setId,
+    required SetEntryData existing,
+    required double incomingWeight,
+    required int incomingReps,
+    required bool incomingCompleted,
+    required DateTime? incomingCompletedAt,
+    required WearSetSyncVersions incomingVersions,
+  }) {
+    final state = _stateForLocalSet(sessionEntityId, existing, persist: false);
+    var weight = existing.weightKg;
+    var reps = existing.reps;
+    var completed = existing.isCompleted;
+    var completedAt = existing.completedAt;
+    var versions = state.versions;
+
+    if (incomingVersions.weight.isNewerThan(versions.weight)) {
+      weight = incomingWeight;
+      versions = WearSetSyncVersions(
+        weight: incomingVersions.weight,
+        reps: versions.reps,
+        completion: versions.completion,
+      );
+    }
+    if (incomingVersions.reps.isNewerThan(versions.reps)) {
+      reps = incomingReps;
+      versions = WearSetSyncVersions(
+        weight: versions.weight,
+        reps: incomingVersions.reps,
+        completion: versions.completion,
+      );
+    }
+    if (incomingVersions.completion.isNewerThan(versions.completion)) {
+      completed = incomingCompleted;
+      completedAt = incomingCompletedAt;
+      versions = WearSetSyncVersions(
+        weight: versions.weight,
+        reps: versions.reps,
+        completion: incomingVersions.completion,
+      );
+    }
+
+    state
+      ..weightKg = weight
+      ..reps = reps
+      ..isCompleted = completed
+      ..completedAt = completedAt
+      ..versions = versions;
+    _setSyncStates[_setSyncStateKey(sessionEntityId, setId)] = state;
+
+    return _ResolvedPhoneSet(
+      weightKg: weight,
+      reps: reps,
+      isCompleted: completed,
+      completedAt: completedAt,
+    );
+  }
+
   Future<void> _syncSessionStateToDrift(
     int sessionId,
-    Map<String, dynamic> data,
-  ) {
+    Map<String, dynamic> data, {
+    required String sessionEntityId,
+    required WearSyncStamp fallbackStamp,
+  }) async {
     // Wrapped in a single transaction so a crash/exception partway through
     // (a malformed watch payload, a Drift write failure, ...) rolls back
     // everything applied so far instead of leaving the session in a
@@ -572,244 +778,285 @@ class WearWorkoutSyncService {
     // docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md (ENG-06
     // audit finding "Remote session apply is not wrapped in a Drift
     // transaction").
-    return _db.transaction(() async {
-      var catalog = await _db.select(_db.exerciseCatalog).get();
-      var resolver = await _buildResolver(catalog);
+    final stateBeforeApply = {
+      for (final entry in _setSyncStates.entries) entry.key: entry.value.copy(),
+    };
+    try {
+      await _db.transaction(() async {
+        var catalog = await _db.select(_db.exerciseCatalog).get();
+        var resolver = await _buildResolver(catalog);
 
-      // Watch sends 'exercises' array
-      final exercises = data['exercises'] as List<dynamic>? ?? [];
+        // Watch sends 'exercises' array
+        final exercises = data['exercises'] as List<dynamic>? ?? [];
 
-      // Get current session exercises, keyed by Drift row id so incoming
-      // entries can be matched by wire identity instead of list position —
-      // positional matching used to silently substitute/overwrite the wrong
-      // exercise (and its sets) whenever a mid-session delete or insert on
-      // the watch shifted everything after it by one slot. See Phase 3 of
-      // docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md.
-      final existingExercises = await _workoutsRepository
-          .watchSessionExercises(sessionId)
-          .first;
-      final existingExerciseById = {for (final e in existingExercises) e.id: e};
-      final matchedExerciseIds = <int>{};
+        // Get current session exercises, keyed by Drift row id so incoming
+        // entries can be matched by wire identity instead of list position —
+        // positional matching used to silently substitute/overwrite the wrong
+        // exercise (and its sets) whenever a mid-session delete or insert on
+        // the watch shifted everything after it by one slot. See Phase 3 of
+        // docs/wear-sync-race-conditions-remediation-plan-2026-08-11.md.
+        final existingExercises = await _workoutsRepository
+            .watchSessionExercises(sessionId)
+            .first;
+        final existingExerciseById = {
+          for (final e in existingExercises) e.id: e,
+        };
+        final matchedExerciseIds = <int>{};
 
-      for (int i = 0; i < exercises.length; i++) {
-        final exData = exercises[i] as Map<String, dynamic>;
-        final template = exData['template'] as Map<String, dynamic>?;
-        if (template == null) continue;
+        for (int i = 0; i < exercises.length; i++) {
+          final exData = exercises[i] as Map<String, dynamic>;
+          final template = exData['template'] as Map<String, dynamic>?;
+          if (template == null) continue;
 
-        final name = template['name'] as String?;
-        if (name == null) continue;
+          final name = template['name'] as String?;
+          if (name == null) continue;
 
-        final match = resolver.resolve(
-          catalogExerciseId: template['catalogExerciseId'] as int?,
-          slug: template['slug'] as String?,
-          name: name,
-        );
-        final rawVariant = template['equipmentVariant'] as String?;
-        final equipmentVariant =
-            rawVariant != null && isKnownEquipmentVariant(rawVariant)
-            ? rawVariant
-            : null;
+          final match = resolver.resolve(
+            catalogExerciseId: template['catalogExerciseId'] as int?,
+            slug: template['slug'] as String?,
+            name: name,
+          );
+          final rawVariant = template['equipmentVariant'] as String?;
+          final equipmentVariant =
+              rawVariant != null && isKnownEquipmentVariant(rawVariant)
+              ? rawVariant
+              : null;
 
-        ExerciseCatalogData? catalogItem = match == null
-            ? null
-            : catalog.where((c) => c.id == match.exerciseId).firstOrNull;
+          ExerciseCatalogData? catalogItem = match == null
+              ? null
+              : catalog.where((c) => c.id == match.exerciseId).firstOrNull;
 
-        if (catalogItem == null) {
-          // Genuinely unknown to the phone — every identity and name rung of
-          // [WatchExerciseIndex.resolve] missed. Create a minimal custom entry
-          // instead of silently dropping the exercise from sync.
-          try {
-            catalogItem = await _workoutsRepository.createCustomExercise(
-              name: name,
-              primaryMuscles: const [],
-              equipment: 'other',
-            );
-            catalog = [...catalog, catalogItem];
-            resolver = await _buildResolver(catalog);
-          } catch (_) {
-            // Lost a race with a concurrent sync call creating the same
-            // custom exercise (unique index on name+equipment) — re-fetch
-            // and use the one that just got created instead of failing this
-            // whole update.
-            catalog = await _db.select(_db.exerciseCatalog).get();
-            resolver = await _buildResolver(catalog);
-            final retry = resolver.resolve(name: name);
-            catalogItem = retry == null
-                ? null
-                : catalog.where((c) => c.id == retry.exerciseId).firstOrNull;
-            if (catalogItem == null) rethrow;
+          if (catalogItem == null) {
+            // Genuinely unknown to the phone — every identity and name rung of
+            // [WatchExerciseIndex.resolve] missed. Create a minimal custom entry
+            // instead of silently dropping the exercise from sync.
+            try {
+              catalogItem = await _workoutsRepository.createCustomExercise(
+                name: name,
+                primaryMuscles: const [],
+                equipment: 'other',
+              );
+              catalog = [...catalog, catalogItem];
+              resolver = await _buildResolver(catalog);
+            } catch (_) {
+              // Lost a race with a concurrent sync call creating the same
+              // custom exercise (unique index on name+equipment) — re-fetch
+              // and use the one that just got created instead of failing this
+              // whole update.
+              catalog = await _db.select(_db.exerciseCatalog).get();
+              resolver = await _buildResolver(catalog);
+              final retry = resolver.resolve(name: name);
+              catalogItem = retry == null
+                  ? null
+                  : catalog.where((c) => c.id == retry.exerciseId).firstOrNull;
+              if (catalogItem == null) rethrow;
+            }
           }
-        }
 
-        final existingExerciseId = _driftIdFromWireId(
-          exData['wireId'],
-          'exercise_',
-        );
-        final existingExercise = existingExerciseId == null
-            ? null
-            : existingExerciseById[existingExerciseId];
+          final existingExerciseId = _driftIdFromWireId(
+            exData['wireId'],
+            'exercise_',
+          );
+          final existingExercise = existingExerciseId == null
+              ? null
+              : existingExerciseById[existingExerciseId];
 
-        int workoutExerciseId;
-        if (existingExercise != null) {
-          matchedExerciseIds.add(existingExercise.id);
-          workoutExerciseId = existingExercise.id;
-          if (existingExercise.exerciseId != catalogItem.id) {
-            await _workoutsRepository.substituteExercise(
-              workoutExerciseId: workoutExerciseId,
-              newExerciseId: catalogItem.id,
-            );
-          }
-          if (equipmentVariant != null &&
-              existingExercise.equipmentVariant != equipmentVariant) {
-            await _workoutsRepository.setEquipmentVariant(
-              workoutExerciseId: workoutExerciseId,
+          int workoutExerciseId;
+          if (existingExercise != null) {
+            matchedExerciseIds.add(existingExercise.id);
+            workoutExerciseId = existingExercise.id;
+            if (existingExercise.exerciseId != catalogItem.id) {
+              await _workoutsRepository.substituteExercise(
+                workoutExerciseId: workoutExerciseId,
+                newExerciseId: catalogItem.id,
+              );
+            }
+            if (equipmentVariant != null &&
+                existingExercise.equipmentVariant != equipmentVariant) {
+              await _workoutsRepository.setEquipmentVariant(
+                workoutExerciseId: workoutExerciseId,
+                equipmentVariant: equipmentVariant,
+              );
+            }
+          } else {
+            // No wireId (a watch-created exercise not yet round-tripped
+            // through a full session push) or a wireId the phone doesn't
+            // recognize (this session's first time seeing this row) — either
+            // way, genuinely new.
+            workoutExerciseId = await _workoutsRepository.addExerciseToSession(
+              sessionId: sessionId,
+              exerciseId: catalogItem.id,
+              // The watch used to encode this by renaming the exercise to
+              // "Squat (Barbell)", which no phone row could ever match; it now
+              // travels as the same per-log variant the phone sheet writes.
               equipmentVariant: equipmentVariant,
             );
           }
-        } else {
-          // No wireId (a watch-created exercise not yet round-tripped
-          // through a full session push) or a wireId the phone doesn't
-          // recognize (this session's first time seeing this row) — either
-          // way, genuinely new.
-          workoutExerciseId = await _workoutsRepository.addExerciseToSession(
-            sessionId: sessionId,
-            exerciseId: catalogItem.id,
-            // The watch used to encode this by renaming the exercise to
-            // "Squat (Barbell)", which no phone row could ever match; it now
-            // travels as the same per-log variant the phone sheet writes.
-            equipmentVariant: equipmentVariant,
-          );
-        }
 
-        // Sync sets, matched by wire identity for the same reason as
-        // exercises above.
-        final sets = exData['sets'] as List<dynamic>? ?? [];
-        final existingSets = await _workoutsRepository
-            .watchSetsForWorkoutExercise(workoutExerciseId)
-            .first;
-        final existingSetById = {for (final s in existingSets) s.id: s};
-        final matchedSetIds = <int>{};
+          // Sync sets, matched by wire identity for the same reason as
+          // exercises above.
+          final sets = exData['sets'] as List<dynamic>? ?? [];
+          final existingSets = await _workoutsRepository
+              .watchSetsForWorkoutExercise(workoutExerciseId)
+              .first;
+          final existingSetById = {for (final s in existingSets) s.id: s};
+          final matchedSetIds = <int>{};
 
-        for (int j = 0; j < sets.length; j++) {
-          final setData = sets[j] as Map<String, dynamic>;
-          final weight = (setData['weight'] as num?)?.toDouble() ?? 0.0;
-          final reps = (setData['reps'] as num?)?.toInt() ?? 0;
-          final rpeNum = (setData['rpe'] as num?)?.toDouble();
-          final rpeX10 = rpeNum != null ? (rpeNum * 10).round() : null;
-          final isCompleted = setData['completed'] as bool? ?? false;
-          final watchSetType = setData['setType'] as String? ?? 'standard';
-          final isWarmup = normalizeWearWarmup(
-            setType: watchSetType,
-            isWarmup: setData['isWarmup'] as bool?,
-          );
-          final setType = normalizeWearSetType(watchSetType);
-          final accessory = setData['accessory'] as String?;
-          final rawMetaJson = setData['setTypeMetaJson'] as String?;
-          String? setTypeMetaJson;
-          if (rawMetaJson != null &&
-              rawMetaJson.isNotEmpty &&
-              rawMetaJson != 'null') {
-            if (accessory != null &&
-                accessory.isNotEmpty &&
-                accessory != 'None') {
-              try {
-                final map = jsonDecode(rawMetaJson) as Map<String, dynamic>;
-                map['watchAccessory'] = accessory;
-                setTypeMetaJson = jsonEncode(map);
-              } catch (_) {
+          for (int j = 0; j < sets.length; j++) {
+            final setData = sets[j] as Map<String, dynamic>;
+            final weight = (setData['weight'] as num?)?.toDouble() ?? 0.0;
+            final reps = (setData['reps'] as num?)?.toInt() ?? 0;
+            final rpeNum = (setData['rpe'] as num?)?.toDouble();
+            final rpeX10 = rpeNum != null ? (rpeNum * 10).round() : null;
+            final isCompleted = setData['completed'] as bool? ?? false;
+            final watchSetType = setData['setType'] as String? ?? 'standard';
+            final isWarmup = normalizeWearWarmup(
+              setType: watchSetType,
+              isWarmup: setData['isWarmup'] as bool?,
+            );
+            final setType = normalizeWearSetType(watchSetType);
+            final accessory = setData['accessory'] as String?;
+            final rawMetaJson = setData['setTypeMetaJson'] as String?;
+            String? setTypeMetaJson;
+            if (rawMetaJson != null &&
+                rawMetaJson.isNotEmpty &&
+                rawMetaJson != 'null') {
+              if (accessory != null &&
+                  accessory.isNotEmpty &&
+                  accessory != 'None') {
+                try {
+                  final map = jsonDecode(rawMetaJson) as Map<String, dynamic>;
+                  map['watchAccessory'] = accessory;
+                  setTypeMetaJson = jsonEncode(map);
+                } catch (_) {
+                  setTypeMetaJson = rawMetaJson;
+                }
+              } else {
                 setTypeMetaJson = rawMetaJson;
               }
-            } else {
-              setTypeMetaJson = rawMetaJson;
+            } else if (accessory != null &&
+                accessory.isNotEmpty &&
+                accessory != 'None') {
+              setTypeMetaJson = jsonEncode({'watchAccessory': accessory});
             }
-          } else if (accessory != null &&
-              accessory.isNotEmpty &&
-              accessory != 'None') {
-            setTypeMetaJson = jsonEncode({'watchAccessory': accessory});
-          }
-          final bodyweightKg = (setData['bodyweightKg'] as num?)?.toDouble();
-          final chainsKg = (setData['chainsKg'] as num?)?.toDouble();
-          final durationSeconds = (setData['durationSeconds'] as num?)?.toInt();
-          final distanceM = (setData['distanceM'] as num?)?.toDouble();
-          final completedAtEpochMs = (setData['completedAtEpochMs'] as num?)
-              ?.toInt();
-          final completedAt = completedAtEpochMs == null
-              ? null
-              : DateTime.fromMillisecondsSinceEpoch(completedAtEpochMs);
+            final bodyweightKg = (setData['bodyweightKg'] as num?)?.toDouble();
+            final chainsKg = (setData['chainsKg'] as num?)?.toDouble();
+            final durationSeconds = (setData['durationSeconds'] as num?)
+                ?.toInt();
+            final distanceM = (setData['distanceM'] as num?)?.toDouble();
+            final completedAtEpochMs = (setData['completedAtEpochMs'] as num?)
+                ?.toInt();
+            final completedAt = completedAtEpochMs == null
+                ? null
+                : DateTime.fromMillisecondsSinceEpoch(completedAtEpochMs);
 
-          final existingSetId = _driftIdFromWireId(setData['wireId'], 'set_');
-          final existing = existingSetId == null
-              ? null
-              : existingSetById[existingSetId];
+            final existingSetId = _driftIdFromWireId(setData['wireId'], 'set_');
+            final existing = existingSetId == null
+                ? null
+                : existingSetById[existingSetId];
+            final incomingVersions = WearSetSyncVersions.fromJson(
+              setData['syncVersions'],
+              fallback: fallbackStamp,
+            );
 
-          if (existing != null) {
-            matchedSetIds.add(existing.id);
-            if (existing.weightKg != weight ||
-                existing.reps != reps ||
-                existing.durationSeconds != durationSeconds ||
-                existing.rpeX10 != rpeX10 ||
-                existing.isCompleted != isCompleted ||
-                existing.isWarmup != isWarmup ||
-                existing.setType != setType ||
-                existing.setTypeMetaJson != setTypeMetaJson ||
-                existing.bodyweightKg != bodyweightKg ||
-                existing.chainsKg != chainsKg ||
-                existing.distanceM != distanceM) {
-              await _workoutsRepository.updateSet(
+            if (existing != null) {
+              matchedSetIds.add(existing.id);
+              final merged = _mergeRemoteSet(
+                sessionEntityId: sessionEntityId,
                 setId: existing.id,
+                existing: existing,
+                incomingWeight: weight,
+                incomingReps: reps,
+                incomingCompleted: isCompleted,
+                incomingCompletedAt: completedAt,
+                incomingVersions: incomingVersions,
+              );
+              final completionChanged =
+                  existing.isCompleted != merged.isCompleted ||
+                  existing.completedAt != merged.completedAt;
+              if (existing.weightKg != merged.weightKg ||
+                  existing.reps != merged.reps ||
+                  existing.durationSeconds != durationSeconds ||
+                  existing.rpeX10 != rpeX10 ||
+                  completionChanged ||
+                  existing.isWarmup != isWarmup ||
+                  existing.setType != setType ||
+                  existing.setTypeMetaJson != setTypeMetaJson ||
+                  existing.bodyweightKg != bodyweightKg ||
+                  existing.chainsKg != chainsKg ||
+                  existing.distanceM != distanceM) {
+                await _workoutsRepository.updateSet(
+                  setId: existing.id,
+                  weightKg: merged.weightKg,
+                  reps: merged.reps,
+                  durationSeconds: durationSeconds,
+                  rpeX10: rpeX10,
+                  clearRpe: rpeX10 == null,
+                  isCompleted: completionChanged ? merged.isCompleted : null,
+                  isWarmup: isWarmup,
+                  setType: setType,
+                  setTypeMetaJson: setTypeMetaJson,
+                  clearSetTypeMetaJson: setTypeMetaJson == null,
+                  bodyweightKg: bodyweightKg,
+                  clearBodyweightKg: bodyweightKg == null,
+                  chainsKg: chainsKg,
+                  clearChainsKg: chainsKg == null,
+                  distanceM: distanceM,
+                  clearDistanceM: distanceM == null,
+                  completedAt: completionChanged ? merged.completedAt : null,
+                );
+              }
+            } else {
+              // No wireId, or one the phone doesn't recognize — insert new
+              // regardless of completed flag so planned/uncompleted sets sync.
+              final newSetId = await _workoutsRepository.addSet(
+                workoutExerciseId: workoutExerciseId,
                 weightKg: weight,
                 reps: reps,
                 durationSeconds: durationSeconds,
                 rpeX10: rpeX10,
-                clearRpe: rpeX10 == null,
                 isCompleted: isCompleted,
                 isWarmup: isWarmup,
                 setType: setType,
                 setTypeMetaJson: setTypeMetaJson,
-                clearSetTypeMetaJson: setTypeMetaJson == null,
                 bodyweightKg: bodyweightKg,
-                clearBodyweightKg: bodyweightKg == null,
                 chainsKg: chainsKg,
-                clearChainsKg: chainsKg == null,
                 distanceM: distanceM,
-                clearDistanceM: distanceM == null,
                 completedAt: completedAt,
               );
+              _setSyncStates[_setSyncStateKey(
+                sessionEntityId,
+                newSetId,
+              )] = _PhoneSetSyncState(
+                weightKg: weight,
+                reps: reps,
+                isCompleted: isCompleted,
+                completedAt: completedAt,
+                versions: incomingVersions,
+              );
             }
-          } else {
-            // No wireId, or one the phone doesn't recognize — insert new
-            // regardless of completed flag so planned/uncompleted sets sync.
-            await _workoutsRepository.addSet(
-              workoutExerciseId: workoutExerciseId,
-              weightKg: weight,
-              reps: reps,
-              durationSeconds: durationSeconds,
-              rpeX10: rpeX10,
-              isCompleted: isCompleted,
-              isWarmup: isWarmup,
-              setType: setType,
-              setTypeMetaJson: setTypeMetaJson,
-              bodyweightKg: bodyweightKg,
-              chainsKg: chainsKg,
-              distanceM: distanceM,
-              completedAt: completedAt,
-            );
+          }
+
+          for (final s in existingSets) {
+            if (!matchedSetIds.contains(s.id)) {
+              await _workoutsRepository.deleteSet(s.id);
+            }
           }
         }
 
-        for (final s in existingSets) {
-          if (!matchedSetIds.contains(s.id)) {
-            await _workoutsRepository.deleteSet(s.id);
+        for (final e in existingExercises) {
+          if (!matchedExerciseIds.contains(e.id)) {
+            await _workoutsRepository.removeWorkoutExercise(e.id);
           }
         }
-      }
-
-      for (final e in existingExercises) {
-        if (!matchedExerciseIds.contains(e.id)) {
-          await _workoutsRepository.removeWorkoutExercise(e.id);
-        }
-      }
-    });
+      });
+      _persistSetSyncStates();
+    } catch (_) {
+      _setSyncStates
+        ..clear()
+        ..addAll(stateBeforeApply);
+      rethrow;
+    }
   }
 
   /// Extracts the Drift row id embedded in a wire id of the form
@@ -871,6 +1118,10 @@ class WearWorkoutSyncService {
   Future<void> pushActiveSessionToWatch(WorkoutSessionData session) async {
     final isStart = _lastSyncedSessionId != session.id;
     _lastSyncedSessionId = session.id;
+    // Fallback only guards a theoretical pre-migration NULL race; every
+    // session created after schema 22 has a sessionUuid.
+    final entityId = session.sessionUuid ?? 'phone_session_${session.id}';
+    _lastSyncedEntityId = entityId;
 
     try {
       final exercises = await _workoutsRepository
@@ -945,6 +1196,7 @@ class WearWorkoutSyncService {
 
         for (var j = 0; j < sets.length; j++) {
           final setEntry = sets[j];
+          final syncState = _stateForLocalSet(entityId, setEntry);
           final priorSet = _findPriorSet(setEntry, j, sets, lastSets);
 
           double setPriorWeight = priorSet?.weightKg ?? defaultPriorWeight;
@@ -995,6 +1247,7 @@ class WearWorkoutSyncService {
             'chainsKg': setEntry.chainsKg,
             'completed': setEntry.isCompleted,
             'completedAtEpochMs': setEntry.completedAt?.millisecondsSinceEpoch,
+            'syncVersions': syncState.versions.toJson(),
           };
           if (setEntry.rpeX10 != null) {
             setJson['rpe'] = setEntry.rpeX10! / 10.0;
@@ -1030,21 +1283,32 @@ class WearWorkoutSyncService {
             if (target.weightKg > 0) setHintWeight = target.weightKg;
             if (target.reps > 0) setHintReps = target.reps;
           }
-          final tWeight = setEntry.weightKg > 0
-              ? setEntry.weightKg
-              : (setHintWeight > 0 ? setHintWeight : defaultHintWeight);
-          final tReps = setEntry.reps > 0
-              ? setEntry.reps
-              : (setHintReps > 0
-                    ? setHintReps
-                    : (defaultHintReps > 0 ? defaultHintReps : 10));
+          final tWeight =
+              setEntry.plannedWeightKg ??
+              (setEntry.weightKg > 0
+                  ? setEntry.weightKg
+                  : (setHintWeight > 0 ? setHintWeight : defaultHintWeight));
+          final tReps =
+              setEntry.plannedRepsMin ??
+              (setEntry.reps > 0
+                  ? setEntry.reps
+                  : (setHintReps > 0
+                        ? setHintReps
+                        : (defaultHintReps > 0 ? defaultHintReps : 10)));
           return {
             'wireId': 'set_${setEntry.id}',
             'setIndex': setEntry.setIndex,
             'setType': normalizeWearSetType(setEntry.setType),
             'isWarmup': setEntry.isWarmup,
             'targetReps': tReps,
+            'targetRepsMin': setEntry.plannedRepsMin,
+            'targetRepsMax': setEntry.plannedRepsMax,
             'targetWeightKg': tWeight,
+            if (setEntry.plannedRpeX10 != null)
+              'targetRpe': setEntry.plannedRpeX10! / 10.0,
+            'targetRir': setEntry.plannedRir,
+            'targetPercentOf1Rm': setEntry.plannedPercentOf1Rm,
+            'plannedIntent': setEntry.plannedIntent,
             if (setEntry.durationSeconds != null)
               'durationSeconds': setEntry.durationSeconds,
             if (setEntry.distanceM != null)
@@ -1070,6 +1334,11 @@ class WearWorkoutSyncService {
                 ? defaultHintReps
                 : defaultPriorReps,
             if (performanceHint != null) 'performanceHint': performanceHint,
+            'trainingMethod': ex.plannedTrainingMethod,
+            if (ex.plannedWaveIndex != null && ex.plannedWaveCount != null)
+              'waveLabel':
+                  'Wave ${ex.plannedWaveIndex! + 1}/${ex.plannedWaveCount}',
+            'prescriptionReason': ex.plannedPrescriptionWhy,
             'plannedSets': plannedSetsJson,
           },
           'sets': setsJsonList,
@@ -1105,10 +1374,6 @@ class WearWorkoutSyncService {
         sessionPayload['currentSetIndex'] = 0;
       }
 
-      // Fallback only guards a theoretical pre-migration NULL race; every
-      // session created after schema 22 has a sessionUuid.
-      final entityId = session.sessionUuid ?? 'phone_session_${session.id}';
-      _lastSyncedEntityId = entityId;
       final sessionJson = WearSyncEnvelope.wrap(
         entity: wearSyncEntityActiveWorkout,
         entityId: entityId,
@@ -1121,5 +1386,77 @@ class WearWorkoutSyncService {
     } catch (e, st) {
       debugPrint('Failed to push active session to watch: $e\n$st');
     }
+  }
+}
+
+class _ResolvedPhoneSet {
+  const _ResolvedPhoneSet({
+    required this.weightKg,
+    required this.reps,
+    required this.isCompleted,
+    required this.completedAt,
+  });
+
+  final double weightKg;
+  final int reps;
+  final bool isCompleted;
+  final DateTime? completedAt;
+}
+
+/// The phone's durable mirror of the winning values and their field stamps.
+/// It lives in preferences rather than in the workout schema so existing
+/// sessions upgrade safely and an app restart cannot turn an old watch
+/// delivery into a fresh local change.
+class _PhoneSetSyncState {
+  _PhoneSetSyncState({
+    required this.weightKg,
+    required this.reps,
+    required this.isCompleted,
+    required this.completedAt,
+    required this.versions,
+  });
+
+  double weightKg;
+  int reps;
+  bool isCompleted;
+  DateTime? completedAt;
+  WearSetSyncVersions versions;
+
+  _PhoneSetSyncState copy() => _PhoneSetSyncState(
+    weightKg: weightKg,
+    reps: reps,
+    isCompleted: isCompleted,
+    completedAt: completedAt,
+    versions: versions,
+  );
+
+  Map<String, Object?> toJson() => {
+    'weightKg': weightKg,
+    'reps': reps,
+    'isCompleted': isCompleted,
+    'completedAtEpochMs': completedAt?.millisecondsSinceEpoch,
+    'versions': versions.toJson(),
+  };
+
+  static _PhoneSetSyncState? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final weight = (raw['weightKg'] as num?)?.toDouble();
+    final reps = (raw['reps'] as num?)?.toInt();
+    final completed = raw['isCompleted'] as bool?;
+    if (weight == null || reps == null || completed == null) return null;
+    final fallback = WearSyncStamp(revision: 0, origin: wearSyncOriginPhone);
+    final completedAtEpochMs = (raw['completedAtEpochMs'] as num?)?.toInt();
+    return _PhoneSetSyncState(
+      weightKg: weight,
+      reps: reps,
+      isCompleted: completed,
+      completedAt: completedAtEpochMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(completedAtEpochMs),
+      versions: WearSetSyncVersions.fromJson(
+        raw['versions'],
+        fallback: fallback,
+      ),
+    );
   }
 }

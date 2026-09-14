@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -919,6 +920,172 @@ void main() {
       expect(sets.last['reps'], 12);
     },
   );
+
+  test('a delayed watch snapshot cannot overwrite newer phone reps or weight, '
+      'but its newer completion still applies', () async {
+    final service = buildService();
+    final exerciseId = await createExercise('Bench Press');
+    final sessionId = await repo.startSession(sessionUuid: 'field-sync-1');
+    final workoutExerciseId = await repo.addExerciseToSession(
+      sessionId: sessionId,
+      exerciseId: exerciseId,
+    );
+    final set =
+        (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+            .single;
+    await repo.updateSet(setId: set.id, weightKg: 80, reps: 8);
+
+    final session = (await repo.watchActiveSession().first)!;
+    await service.pushActiveSessionToWatch(session);
+    await pumpEventQueue();
+
+    Map<String, dynamic> latestSetFromPhone() {
+      final call = dispatchedCalls.lastWhere(
+        (candidate) => candidate.method == 'syncActiveSession',
+      );
+      final args = call.arguments as Map<dynamic, dynamic>;
+      final envelope = WearSyncEnvelope.decode(
+        args['session_json'] as String,
+        fallbackEntity: wearSyncEntityActiveWorkout,
+        fallbackEntityId: 'field-sync-1',
+        fallbackOrigin: wearSyncOriginPhone,
+      );
+      final exercise =
+          (envelope.payload['exercises'] as List<dynamic>).single
+              as Map<String, dynamic>;
+      return (exercise['sets'] as List<dynamic>).single as Map<String, dynamic>;
+    }
+
+    final staleSet = latestSetFromPhone();
+    final staleVersions = Map<String, dynamic>.from(
+      staleSet['syncVersions'] as Map,
+    );
+
+    // The user changes the set on the phone. This emits fresh per-field
+    // stamps before the watch's older full snapshot arrives.
+    await repo.updateSet(setId: set.id, weightKg: 85, reps: 10);
+    await service.pushActiveSessionToWatch(session);
+    await pumpEventQueue();
+    final freshSet = latestSetFromPhone();
+    final freshVersions = Map<String, dynamic>.from(
+      freshSet['syncVersions'] as Map,
+    );
+
+    final completionVersion = <String, dynamic>{
+      'revision': 999999999999999,
+      'origin': wearSyncOriginWatch,
+    };
+    final delayedWatchUpdate = workoutEnvelopeJson(
+      entityId: 'field-sync-1',
+      revision: 999999999999999,
+      updatedAtEpochMs: 999999999999999,
+      exercises: [
+        exerciseWithWireId(
+          exerciseId,
+          'Bench Press',
+          wireId: 'exercise_$workoutExerciseId',
+          sets: [
+            {
+              'wireId': 'set_${set.id}',
+              'weight': 80,
+              'reps': 8,
+              'completed': true,
+              'syncVersions': {
+                // This is an old snapshot for editable values.
+                'weight': staleVersions['weight'],
+                'reps': staleVersions['reps'],
+                // Completing the set is a distinct, newer action.
+                'completion': completionVersion,
+              },
+            },
+          ],
+        ),
+      ],
+    );
+
+    // Guard the fixture: phone edit really did mint a newer reps stamp.
+    final staleRepsRevision = (staleVersions['reps'] as Map)['revision'] as int;
+    final freshRepsRevision = (freshVersions['reps'] as Map)['revision'] as int;
+    expect(freshRepsRevision, greaterThan(staleRepsRevision));
+
+    await emitWorkoutUpdated(delayedWatchUpdate);
+    await pumpEventQueue();
+
+    final resolved =
+        (await repo.watchSetsForWorkoutExercise(workoutExerciseId).first)
+            .single;
+    expect(resolved.weightKg, 85);
+    expect(resolved.reps, 10);
+    expect(resolved.isCompleted, isTrue);
+  });
+
+  test('active-session sync preserves the immutable program target', () async {
+    final service = buildService();
+    final exerciseId = await createExercise('Low-Bar Squat');
+    final sessionId = await repo.startSession(sessionUuid: 'planned-uuid-1');
+    final workoutExerciseId = await repo.addExerciseToSession(
+      sessionId: sessionId,
+      exerciseId: exerciseId,
+    );
+
+    await (db.update(
+      db.workoutExercises,
+    )..where((row) => row.id.equals(workoutExerciseId))).write(
+      const WorkoutExercisesCompanion(
+        plannedSlotRole: Value('main'),
+        plannedTrainingMethod: Value('max_effort'),
+        plannedPrescriptionWhy: Value('Max Effort squat wave.'),
+        plannedWaveIndex: Value(1),
+        plannedWaveCount: Value(4),
+      ),
+    );
+    await (db.update(
+      db.setEntries,
+    )..where((row) => row.workoutExerciseId.equals(workoutExerciseId))).write(
+      const SetEntriesCompanion(
+        plannedRepsMin: Value(1),
+        plannedRepsMax: Value(3),
+        plannedWeightKg: Value(140),
+        plannedRpeX10: Value(90),
+        plannedRir: Value(1),
+        plannedPercentOf1Rm: Value(92.5),
+        plannedIntent: Value('top_set'),
+      ),
+    );
+
+    final activeSession = (await repo.watchActiveSession().first)!;
+    await service.pushActiveSessionToWatch(activeSession);
+    await pumpEventQueue();
+
+    final call = dispatchedCalls.lastWhere(
+      (candidate) => candidate.method == 'syncActiveSession',
+    );
+    final args = call.arguments as Map<dynamic, dynamic>;
+    final envelope = WearSyncEnvelope.decode(
+      args['session_json'] as String,
+      fallbackEntity: wearSyncEntityActiveWorkout,
+      fallbackEntityId: 'planned-uuid-1',
+      fallbackOrigin: wearSyncOriginPhone,
+    );
+    final exercise =
+        (envelope.payload['exercises'] as List<dynamic>).single
+            as Map<String, dynamic>;
+    final template = exercise['template'] as Map<String, dynamic>;
+    final planned =
+        (template['plannedSets'] as List<dynamic>).single
+            as Map<String, dynamic>;
+
+    expect(template['trainingMethod'], 'max_effort');
+    expect(template['waveLabel'], 'Wave 2/4');
+    expect(template['prescriptionReason'], 'Max Effort squat wave.');
+    expect(planned['targetRepsMin'], 1);
+    expect(planned['targetRepsMax'], 3);
+    expect(planned['targetWeightKg'], 140.0);
+    expect(planned['targetRpe'], 9.0);
+    expect(planned['targetRir'], 1);
+    expect(planned['targetPercentOf1Rm'], 92.5);
+    expect(planned['plannedIntent'], 'top_set');
+  });
 
   test(
     'scheduleOutboundSync triggers push to watch immediately when not suppressed',

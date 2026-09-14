@@ -4,13 +4,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
-import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/gamification/application/gamification_providers.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/circuit_stats.dart';
@@ -71,7 +72,10 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
   )..forward();
 
   final _shareCardKey = GlobalKey();
-  ShareCardBackground _background = ShareCardBackground.dark;
+  // A light card is the calm default on the finish screen and matches what is
+  // most useful in a social share. The other export treatments remain
+  // available under More details.
+  ShareCardBackground _background = ShareCardBackground.light;
   bool _sharing = false;
   bool _syncingHealth = false;
   bool? _healthSyncSuccess;
@@ -80,6 +84,38 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
   void initState() {
     super.initState();
     Haptics.success();
+    // The finish screen is mounted after `endSession` commits, so this is the
+    // safe point to award the idempotent workout XP event. It also covers both
+    // classic and dynamic workout flows without touching a disposed editor.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _awardWorkoutXp());
+  }
+
+  Future<void> _awardWorkoutXp() async {
+    try {
+      final session = await ref.read(
+        workoutSessionProvider(widget.sessionId).future,
+      );
+      if (!mounted) return;
+      final db = ref.read(appDatabaseProvider);
+      final completed = await (db.select(
+        db.workoutSessions,
+      )..where((row) => row.endedAt.isNotNull())).get();
+      if (!mounted) return;
+      await ref
+          .read(gamificationServiceProvider)
+          .onWorkoutFinished(
+            sessionId: session.id,
+            workoutName: session.name ?? 'Workout',
+            startedAt: session.startedAt,
+            endedAt: session.endedAt ?? session.startedAt,
+            totalCompletedWorkouts: completed
+                .where((row) => row.deletedAt == null)
+                .length,
+          );
+    } catch (_) {
+      // XP is a non-critical local enhancement; the finish screen remains
+      // usable if a database or preference read cannot complete.
+    }
   }
 
   @override
@@ -201,89 +237,158 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
         child: summaryAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Error: $e')),
-          data: (s) => SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _Burst(controller: _intro),
-                const SizedBox(height: 20),
-                _staggered(
-                  0,
-                  Text(
-                    'Workout Complete',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                _staggered(
-                  1,
-                  Text(
-                    s.name,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                _staggered(
-                  2,
-                  RepaintBoundary(
-                    key: _shareCardKey,
-                    child: _ShareCard(
-                      summary: s,
-                      background: _background,
-                      weightFormat: ref.watch(weightFormatProvider),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _staggered(3, _circuitsSummarySection(widget.sessionId, theme)),
-                const SizedBox(height: 16),
-                _staggered(4, _photoSection(s, theme)),
-                const SizedBox(height: 16),
-                _staggered(5, _healthSyncCard(s, theme)),
-                const SizedBox(height: 20),
-                _staggered(6, _backgroundPicker(theme)),
-                const SizedBox(height: 24),
-                _staggered(
-                  7,
-                  SizedBox(
-                    width: 240,
-                    child: PremiumButton(
-                      text: _sharing ? 'Preparing…' : 'Share',
-                      icon: Icons.ios_share,
-                      onTap: () {
-                        if (_sharing) return;
-                        _share(s);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _staggered(
-                  7,
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(
-                      'Done',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: AppColors.secondary,
+          data: (s) => Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 440),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _staggered(0, _finishHeader(s, theme)),
+                          const SizedBox(height: 22),
+                          _staggered(
+                            1,
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                RepaintBoundary(
+                                  key: _shareCardKey,
+                                  child: _ShareCard(
+                                    summary: s,
+                                    background: _background,
+                                    weightFormat: ref.watch(
+                                      weightFormatProvider,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
+                                  child: _shareButton(s),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _staggered(2, _detailsSection(s, theme)),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              _staggered(
+                3,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Done'),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  Widget _finishHeader(SessionSummary summary, ThemeData theme) => Column(
+    children: [
+      _Burst(controller: _intro),
+      const SizedBox(height: 8),
+      Text(
+        'Workout Complete',
+        textAlign: TextAlign.center,
+        style: theme.textTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        '${summary.name} · ${DateFormat('d MMMM').format(summary.startedAt)}',
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.secondary),
+      ),
+    ],
+  );
+
+  Widget _shareButton(SessionSummary summary) => Semantics(
+    button: true,
+    label: 'Share workout',
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _sharing ? null : () => _share(summary),
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainer.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.55),
+            ),
+          ),
+          child: Center(
+            child: _sharing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(Icons.ios_share_rounded, color: AppColors.primary),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _detailsSection(SessionSummary summary, ThemeData theme) => Container(
+    decoration: BoxDecoration(
+      color: AppColors.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(
+        color: AppColors.outlineVariant.withValues(alpha: 0.32),
+      ),
+    ),
+    child: ExpansionTile(
+      key: const PageStorageKey('workout-finish-more-details'),
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+      shape: const RoundedRectangleBorder(),
+      collapsedShape: const RoundedRectangleBorder(),
+      leading: Icon(Icons.tune_rounded, color: AppColors.primary, size: 20),
+      title: Text(
+        'More details',
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      subtitle: Text(
+        'Photo, health sync and sharing options',
+        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+      ),
+      children: [
+        _backgroundPicker(theme),
+        const SizedBox(height: 16),
+        _photoSection(summary, theme),
+        const SizedBox(height: 12),
+        _healthSyncCard(summary, theme),
+        _circuitsSummarySection(widget.sessionId, theme),
+      ],
+    ),
+  );
 
   Widget _circuitsSummarySection(int sessionId, ThemeData theme) {
     final exercisesAsync = ref.watch(sessionExercisesProvider(sessionId));
@@ -300,9 +405,12 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
             .toList();
         if (circuitGroups.isEmpty) return const SizedBox.shrink();
 
-        return _CircuitsSummaryCard(
-          sessionId: sessionId,
-          circuitGroups: circuitGroups,
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: _CircuitsSummaryCard(
+            sessionId: sessionId,
+            circuitGroups: circuitGroups,
+          ),
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -542,7 +650,7 @@ class _WorkoutFinishViewState extends ConsumerState<WorkoutFinishView>
     return Column(
       children: [
         Text(
-          'CARD BACKGROUND',
+          'SHARE CARD STYLE',
           style: theme.textTheme.labelSmall?.copyWith(
             color: AppColors.secondary,
             letterSpacing: 1.2,
@@ -640,8 +748,8 @@ class _Burst extends StatelessWidget {
     );
 
     return SizedBox(
-      width: 140,
-      height: 140,
+      width: 104,
+      height: 104,
       child: AnimatedBuilder(
         animation: controller,
         builder: (_, _) => Stack(
@@ -656,8 +764,8 @@ class _Burst extends StatelessWidget {
                     ) *
                     0.35,
                 child: Container(
-                  width: 80 + 60 * (ripple.value - delay).clamp(0.0, 1.0),
-                  height: 80 + 60 * (ripple.value - delay).clamp(0.0, 1.0),
+                  width: 58 + 44 * (ripple.value - delay).clamp(0.0, 1.0),
+                  height: 58 + 44 * (ripple.value - delay).clamp(0.0, 1.0),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.primary, width: 2),
@@ -667,8 +775,8 @@ class _Burst extends StatelessWidget {
             Transform.scale(
               scale: pop.value.clamp(0.0, 1.4),
               child: Container(
-                width: 84,
-                height: 84,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -680,7 +788,7 @@ class _Burst extends StatelessWidget {
                 child: const Icon(
                   Icons.check_rounded,
                   color: Colors.white,
-                  size: 44,
+                  size: 34,
                 ),
               ),
             ),
@@ -713,7 +821,7 @@ class _ShareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 320,
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 26, 24, 26),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
