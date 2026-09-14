@@ -6,6 +6,8 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/data/programs_repository.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
@@ -27,6 +29,7 @@ class BlockDetailView extends ConsumerWidget {
     final program = programs.where((p) => p.id == programId).firstOrNull;
     final weeks = ref.watch(programWeeksProvider(programId));
     final volumeAsync = ref.watch(programVolumeBreakdownProvider(programId));
+    final tracking = ref.watch(programTrackingProvider(programId));
 
     return HxScreenShell(
       title: program?.name ?? 'Block',
@@ -50,6 +53,15 @@ class BlockDetailView extends ConsumerWidget {
             data: (list) => Column(
               children: [
                 _Summary(program: program),
+                const SizedBox(height: 16),
+                tracking.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (_, _) => const SizedBox.shrink(),
+                  data: (snapshot) => _ProgramTrackingCard(
+                    snapshot: snapshot,
+                    totalWeeks: program.weeks,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 if (volumeAsync.value != null && volumeAsync.value!.isNotEmpty)
                   ProgramMuscleVolumeCard(
@@ -104,6 +116,162 @@ class BlockDetailView extends ConsumerWidget {
     if (confirmed != true) return;
     await repo.deleteProgram(program.id);
     navigator.pop();
+  }
+}
+
+class _ProgramTrackingCard extends StatelessWidget {
+  const _ProgramTrackingCard({
+    required this.snapshot,
+    required this.totalWeeks,
+  });
+
+  final ProgramTrackingSnapshot snapshot;
+  final int totalWeeks;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final completed = snapshot.completedSessions;
+    final planned = snapshot.plannedSessions;
+    final phase = snapshot.phase == null
+        ? null
+        : snapshot.phase![0].toUpperCase() + snapshot.phase!.substring(1);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: .3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Program progress',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '$completed / $planned sessions',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: snapshot.adherence,
+              minHeight: 7,
+              backgroundColor: AppColors.outlineVariant.withValues(alpha: .25),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _metric('Wave', '${snapshot.currentWeekIndex + 1}/$totalWeeks'),
+              if (phase != null) _metric('Phase', phase),
+              _metric('Quality sets', '${snapshot.qualitySets}'),
+              if (snapshot.maxEffortTopSets > 0)
+                _metric('ME top sets', '${snapshot.maxEffortTopSets}'),
+              if (snapshot.skippedSessions > 0)
+                _metric('Skipped', '${snapshot.skippedSessions}'),
+            ],
+          ),
+          if (snapshot.nextRotation != null) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(Icons.sync_rounded, size: 17, color: AppColors.primary),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    'Next rotation: ${snapshot.nextRotation}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (snapshot.exercisePrs.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              'BEST ESTIMATED 1RM',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: .8,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final lift in snapshot.exercisePrs)
+              _progressRow(theme, lift.label, lift.e1RmKg),
+          ],
+          if (snapshot.movementFamilyTrends.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'MOVEMENT-FAMILY TREND',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: .8,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final trend in snapshot.movementFamilyTrends)
+              _progressRow(theme, trend.label, trend.e1RmKg),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static Widget _metric(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text('$label · $value'),
+    );
+  }
+
+  static Widget _progressRow(ThemeData theme, String label, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label.replaceAll('_', ' '),
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+          Text(
+            '${value.round()} kg',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -181,7 +349,11 @@ class _WeekCardState extends ConsumerState<_WeekCard> {
     final theme = Theme.of(context);
     final days = ref.watch(programDaysProvider(widget.week.id));
     final volume = _draft ?? widget.week.adjustmentFactor;
-    final isDeload = volume < 0.95;
+    final isDeload = Periodization.isPlannedDeload(
+      model: PeriodizationModel.fromId(widget.program.periodizationModel),
+      totalWeeks: widget.program.weeks,
+      weekIndex: widget.week.weekIndex,
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -365,68 +537,147 @@ class _DayRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final templates = ref.watch(workoutTemplateByIdProvider(day.templateId));
+    final exercises = ref.watch(programDayExerciseSummariesProvider(day.id));
     final slot = day.cycleDayIndex != null
         ? 'Day ${day.cycleDayIndex! + 1}'
         : _weekdays[(day.dayOfWeek - 1).clamp(0, 6)];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 44,
-            child: Text(
-              slot,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.secondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  day.slotLabel?.isNotEmpty == true ? day.slotLabel! : day.name,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+          Row(
+            children: [
+              SizedBox(
+                width: 44,
+                child: Text(
+                  slot,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.secondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(
-                  templates == null
-                      ? 'No template — sessions will be empty'
-                      : templates.name,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: templates == null
-                        ? AppColors.tertiary
-                        : AppColors.secondary,
-                  ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      day.slotLabel?.isNotEmpty == true
+                          ? day.slotLabel!
+                          : day.name,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      templates != null
+                          ? templates.name
+                          : exercises.asData?.value.isNotEmpty == true
+                          ? '${exercises.asData!.value.length} planned exercises · ${day.stressRole.replaceAll('_', ' ')}'
+                          : 'No template — sessions will be empty',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color:
+                            templates == null &&
+                                exercises.asData?.value.isNotEmpty != true
+                            ? AppColors.tertiary
+                            : AppColors.secondary,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Link a template',
+                icon: Icon(
+                  day.templateId == null
+                      ? Icons.link_rounded
+                      : Icons.swap_horiz_rounded,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+                onPressed: () => _link(context, ref),
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Remove this day',
+                icon: Icon(
+                  Icons.remove_circle_outline_rounded,
+                  size: 20,
+                  color: AppColors.secondary,
+                ),
+                onPressed: () => _remove(ref),
+              ),
+            ],
           ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Link a template',
-            icon: Icon(
-              day.templateId == null
-                  ? Icons.link_rounded
-                  : Icons.swap_horiz_rounded,
-              size: 20,
-              color: AppColors.primary,
-            ),
-            onPressed: () => _link(context, ref),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Remove this day',
-            icon: Icon(
-              Icons.remove_circle_outline_rounded,
-              size: 20,
-              color: AppColors.secondary,
-            ),
-            onPressed: () => _remove(ref),
+          exercises.when(
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+            data: (items) => items.isEmpty
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.only(left: 44, top: 6, bottom: 4),
+                    child: Column(
+                      children: [
+                        for (final item in items)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  margin: const EdgeInsets.only(
+                                    top: 6,
+                                    right: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.name,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      Text(
+                                        '${item.targetLabel} · ${item.role.replaceAll('_', ' ')} · ${item.method.replaceAll('_', ' ')}',
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: AppColors.secondary,
+                                            ),
+                                      ),
+                                      if (item.why?.isNotEmpty == true)
+                                        Text(
+                                          item.why!,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                color: AppColors.secondary,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),

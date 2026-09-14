@@ -1,4 +1,5 @@
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 
 /// One scheduled session with everything the UI needs to render it, resolved in
@@ -61,6 +62,12 @@ class ScheduledWorkoutRow {
 
   bool get isEmpty => exerciseCount == 0;
 
+  bool get isPlannedDeload => Periodization.isPlannedDeload(
+    model: PeriodizationModel.fromId(program.periodizationModel),
+    totalWeeks: program.weeks,
+    weekIndex: week.weekIndex,
+  );
+
   String get title {
     final slot = day.slotLabel?.trim();
     if (slot != null && slot.isNotEmpty) return slot;
@@ -71,9 +78,9 @@ class ScheduledWorkoutRow {
   String get statusLabel => ScheduleStatus.label(schedule.status);
 
   /// The periodization phase of the week this session falls in, or a deload
-  /// label when the week's volume has been dialled back.
+  /// label for an explicitly prescribed deload.
   String get phaseLabel {
-    if (week.adjustmentFactor < 0.95) return 'Deload';
+    if (isPlannedDeload) return 'Deload';
     final phase = week.blockPhase;
     return switch (phase) {
       'accumulation' => 'Accumulation',

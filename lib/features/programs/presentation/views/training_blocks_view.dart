@@ -8,6 +8,7 @@ import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/sheets/day_detail_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/block_builder_view.dart';
@@ -489,7 +490,11 @@ class _PhaseChip extends ConsumerWidget {
     if (index < 0 || index >= weeks.length) return const SizedBox.shrink();
     final week = weeks[index];
 
-    final isDeload = week.adjustmentFactor < 0.95;
+    final isDeload = Periodization.isPlannedDeload(
+      model: PeriodizationModel.fromId(program.periodizationModel),
+      totalWeeks: program.weeks,
+      weekIndex: week.weekIndex,
+    );
     final label = isDeload
         ? 'Deload'
         : switch (week.blockPhase) {

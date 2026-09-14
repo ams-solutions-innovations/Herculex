@@ -33,6 +33,23 @@ void main() {
       expect(plan[3].isDeload, isTrue);
       expect(plan[7].isDeload, isTrue);
       expect(plan[3].volumeFactor, lessThan(plan[0].volumeFactor));
+      expect(
+        Periodization.isPlannedDeload(
+          model: PeriodizationModel.linear,
+          totalWeeks: 8,
+          weekIndex: 2,
+        ),
+        isFalse,
+        reason: 'a normal volume taper is not a deload',
+      );
+      expect(
+        Periodization.isPlannedDeload(
+          model: PeriodizationModel.linear,
+          totalWeeks: 8,
+          weekIndex: 3,
+        ),
+        isTrue,
+      );
     });
 
     test('block splits accumulation → transmutation → realization', () {
@@ -47,6 +64,15 @@ void main() {
       // Accumulation: more volume, less intensity than realization.
       expect(plan.first.volumeFactor, greaterThan(plan.last.volumeFactor));
       expect(plan.first.intensityFactor, lessThan(plan.last.intensityFactor));
+      expect(
+        Periodization.isPlannedDeload(
+          model: PeriodizationModel.block,
+          totalWeeks: 10,
+          weekIndex: 9,
+        ),
+        isFalse,
+        reason: 'realization has less volume, but is not a deload',
+      );
     });
 
     test('max effort holds top intensity and protects CNS every 4th week', () {

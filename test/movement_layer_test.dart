@@ -159,13 +159,32 @@ void main() {
       expect(
         names,
         containsAll([
-          'Incline Barbell Bench',
+          'Incline Barbell Bench Press',
           'Incline Dumbbell Press',
           'Machine Incline Press',
           'Swiss Bar Incline Press',
         ]),
       );
       expect(names, isNot(contains('Barbell Bench Press')));
+    });
+
+    test('chest-supported row equipment variants share one movement', () async {
+      final rows = await movementMembers('chest-supported-row-horizontal-pull');
+      expect(
+        rows.map((exercise) => exercise.name),
+        containsAll([
+          'Chest-Supported Dumbbell Row',
+          'Chest-Supported T-Bar Row',
+        ]),
+      );
+      expect(
+        EquipmentVariantSheet.optionsFor(
+          rows.firstWhere(
+            (exercise) => exercise.name == 'Chest-Supported Dumbbell Row',
+          ),
+        ),
+        containsAll(['dumbbell', 'machine_plate']),
+      );
     });
 
     test('the group label does not depend on result ordering', () async {

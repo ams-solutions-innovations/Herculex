@@ -2,14 +2,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/data/exercise_preferences_repository.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/data/rotations_repository.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
+import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 
 final programsRepositoryProvider = Provider<ProgramsRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
   return ProgramsRepository(db);
+});
+
+final exercisePreferencesRepositoryProvider =
+    Provider<ExercisePreferencesRepository>((ref) {
+      return ExercisePreferencesRepository(ref.watch(appDatabaseProvider));
+    });
+
+final exerciseAffinityProvider = StreamProvider.family<ExerciseAffinity, int>((
+  ref,
+  exerciseId,
+) {
+  return ref
+      .watch(exercisePreferencesRepositoryProvider)
+      .watchGlobalAffinity(exerciseId);
 });
 
 /// Every non-archived block, active one first.
@@ -39,6 +55,13 @@ final programDaysProvider = StreamProvider.family<List<ProgramDayData>, int>((
 ) {
   return ref.watch(programsRepositoryProvider).watchProgramDaysForWeek(weekId);
 });
+
+final programDayExerciseSummariesProvider =
+    StreamProvider.family<List<ProgramDayExerciseSummary>, int>((ref, dayId) {
+      return ref
+          .watch(programsRepositoryProvider)
+          .watchDayExerciseSummaries(dayId);
+    });
 
 /// A date window to load the schedule for. A value type, so the family does not
 /// mint (and leak) a fresh provider on every rebuild the way a raw `DateTime`
@@ -218,4 +241,11 @@ final programVolumeBreakdownProvider =
       // Invalidate / re-compute when weeks change
       ref.watch(programWeeksProvider(programId));
       return ProgramVolumeCalculator.computeFromDatabase(db, programId);
+    });
+
+final programTrackingProvider =
+    StreamProvider.family<ProgramTrackingSnapshot, int>((ref, programId) {
+      return ref
+          .watch(programsRepositoryProvider)
+          .watchProgramTracking(programId);
     });

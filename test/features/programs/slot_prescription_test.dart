@@ -97,7 +97,7 @@ void main() {
       final me = SlotPrescription.builtIns.firstWhere(
         (p) => p.name == 'Westside ME',
       );
-      expect(me.totalSets, 3);
+      expect(me.totalSets, 4);
     });
 
     test('scaling cuts sets and load but never scales a ramp', () {
@@ -110,8 +110,10 @@ void main() {
       expect(deloaded.segments.first.sets, me.segments.first.sets);
 
       final backoff = deloaded.segments.last;
-      expect(backoff.sets, 1); // 2 * 0.7 = 1.4 -> 1
-      expect(backoff.percentOf1Rm, closeTo(0.68, 0.001));
+      expect(backoff.sets, 2); // 3 * 0.7 = 2.1 -> 2
+      expect(backoff.percentOf1Rm, isNull);
+      expect(backoff.meta['relativeToTopSetMin'], 0.85);
+      expect(backoff.meta['relativeToTopSetMax'], 0.92);
     });
 
     test('scaling never drops a segment below one set', () {

@@ -65,6 +65,22 @@ void main() {
       expect(plan.days.map((d) => d.dayOfWeek), [2, 6, 7]);
     });
 
+    test('weekly day labels let the user reorder split slots', () {
+      final plan = SplitTemplates.generate(
+        type: SplitType.upperLower,
+        daysPerWeek: 4,
+        weeklyDayLabels: const {1: 'Lower', 2: 'Upper', 4: 'Lower', 5: 'Upper'},
+      );
+
+      expect(plan.days.map((day) => day.label), [
+        'Lower',
+        'Upper',
+        'Lower',
+        'Upper',
+      ]);
+      expect(plan.days.map((day) => day.slotIndex), [1, 0, 1, 0]);
+    });
+
     test('custom with no slots supplied numbers the days', () {
       final plan = SplitTemplates.generate(
         type: SplitType.custom,

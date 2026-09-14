@@ -178,15 +178,25 @@ class SlotPrescription {
   static const builtIns = <SlotPrescription>[
     SlotPrescription(
       name: 'Westside ME',
-      note: 'Work up to a heavy single, then back off.',
+      note:
+          'Ramp safely to a daily 1–3 rep top set at RPE 8.5–9.5, then back off.',
       segments: [
-        WorkSegment(sets: 1, repsMin: 1, intent: Intent.rampToMax),
         WorkSegment(
-          sets: 2,
+          sets: 1,
+          repsMin: 1,
+          repsMax: 3,
+          intent: Intent.rampToMax,
+          restSeconds: 300,
+          meta: {'rpeMin': 8.5, 'rpeMax': 9.5},
+        ),
+        WorkSegment(
+          sets: 3,
           repsMin: 3,
-          repsMax: 5,
+          repsMax: 6,
           intent: Intent.rir2,
-          percentOf1Rm: 0.85,
+          setType: SetType.downSets,
+          restSeconds: 240,
+          meta: {'relativeToTopSetMin': 0.85, 'relativeToTopSetMax': 0.92},
         ),
       ],
     ),
