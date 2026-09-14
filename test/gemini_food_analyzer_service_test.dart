@@ -23,6 +23,8 @@ void main() {
       expect(backend.lastUserNote, 'large bowl');
       expect(result.name, 'Test meal');
       expect(result.kcalPer100g, 123);
+      expect(result.portionAmount, 1);
+      expect(result.portionUnit, 'scoop');
     },
   );
 
@@ -44,6 +46,8 @@ void main() {
       expect(draft.source, LabelExtractionSource.gemini);
       expect(draft.kcalPer100g, 400);
       expect(draft.proteinPer100g, 20);
+      expect(draft.portionAmount, 1);
+      expect(draft.servingUnit, 'scoop');
     },
   );
 
@@ -96,6 +100,8 @@ class _FakeGeminiBackend implements GeminiBackend {
       'name': 'Test meal',
       'brand': 'Gemini AI',
       'estimatedServingGrams': 250,
+      'portionAmount': 1,
+      'portionUnit': 'scoop',
       'kcalPer100g': 123,
       'proteinPer100g': 12,
       'carbsPer100g': 20,
@@ -119,6 +125,8 @@ class _FakeGeminiBackend implements GeminiBackend {
       'name': 'Protein bar',
       'brand': 'Test',
       'servingGrams': 50,
+      'portionAmount': 1,
+      'portionUnit': 'scoop',
       'kcalPerServing': 200,
       'proteinPerServing': 10,
       'carbsPerServing': 18,
@@ -212,8 +220,7 @@ class _FakeGeminiBackend implements GeminiBackend {
   @override
   Future<Map<String, dynamic>> analyzeDreamPhysique({
     required List<Map<String, dynamic>> currentImages,
-    required List<int> targetImageBytes,
-    required String targetImageMimeType,
+    required List<Map<String, dynamic>> targetImages,
     Map<String, dynamic>? biometrics,
     String? userNote,
   }) async {

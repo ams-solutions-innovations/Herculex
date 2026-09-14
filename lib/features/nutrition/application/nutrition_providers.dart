@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
@@ -27,7 +28,7 @@ import 'package:intl/intl.dart';
 
 /// Singleton [WidgetSyncService] for pushing data to Android home-screen widgets.
 final widgetSyncServiceProvider = Provider<WidgetSyncService>((ref) {
-  return WidgetSyncService();
+  return WidgetSyncService(clock: ref.watch(clockProvider));
 });
 
 final openFoodFactsClientProvider = Provider<OpenFoodFactsClient>((ref) {
@@ -247,6 +248,30 @@ final suggestedFoodsProvider = StreamProvider.autoDispose
           .watchSuggestedFoods(hour: params.hour, mealKey: params.mealKey);
     });
 
+class FoodPairingParams {
+  final int foodId;
+  final String mealKey;
+
+  const FoodPairingParams({required this.foodId, required this.mealKey});
+
+  @override
+  bool operator ==(Object other) =>
+      other is FoodPairingParams &&
+      other.foodId == foodId &&
+      other.mealKey == mealKey;
+
+  @override
+  int get hashCode => Object.hash(foodId, mealKey);
+}
+
+/// Learns food combinations from the user's own previous meals.
+final frequentlyPairedFoodsProvider = FutureProvider.autoDispose
+    .family<List<FoodData>, FoodPairingParams>((ref, params) {
+      return ref
+          .watch(nutritionRepositoryProvider)
+          .frequentlyPairedFoods(params.foodId, mealKey: params.mealKey);
+    });
+
 /// Group entries by meal for rendering meal sections.
 final entriesByMealProvider = Provider.autoDispose
     .family<AsyncValue<Map<String, List<FoodEntryData>>>, DateTime>((
@@ -459,6 +484,11 @@ final wearSyncControllerProvider = Provider<void>((ref) {
         if (active != null) {
           await repo.endSession(
             completed: decoded['completed'] as bool? ?? true,
+            // Preserve the watch's actual stop instant after an offline
+            // period instead of incorrectly ending the fast at reconnect.
+            endedAt: endedAtEpochMs != null
+                ? DateTime.fromMillisecondsSinceEpoch(endedAtEpochMs)
+                : null,
           );
         } else if (startedAtEpochMs != null) {
           final startedAt = DateTime.fromMillisecondsSinceEpoch(
@@ -667,14 +697,18 @@ final wearSyncControllerProvider = Provider<void>((ref) {
             carbsPer100g: item.carbsPer100g,
             fatPer100g: item.fatPer100g,
             servingGrams: item.servingGrams,
-            servingLabel: '${item.servingGrams.toStringAsFixed(0)} g',
+            servingAmount: item.portionAmount,
+            servingUnit: item.portionUnit,
+            servingLabel:
+                '${item.portionAmount.toStringAsFixed(item.portionAmount % 1 == 0 ? 0 : 1)} ${item.portionUnit}${item.portionUnit == 'g' ? '' : ' (${item.servingGrams.toStringAsFixed(0)} g)'}',
           );
 
           await repo.logFood(
             date: DateTime.now(),
             mealKey: selectedMeal,
             foodId: food.id,
-            grams: item.servingGrams,
+            portionAmount: item.portionAmount,
+            portionUnit: item.portionUnit,
           );
         }
       }
@@ -690,17 +724,27 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     }
   };
 
+  Timer? nutritionSyncDebounce;
+  ref.onDispose(() => nutritionSyncDebounce?.cancel());
+  void scheduleNutritionSync() {
+    nutritionSyncDebounce?.cancel();
+    nutritionSyncDebounce = Timer(const Duration(milliseconds: 750), () {
+      nutritionSyncDebounce = null;
+      syncAllToWear();
+    });
+  }
+
   ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (
     previous,
     next,
   ) {
     if (next.hasValue && next.value != null) {
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   }, fireImmediately: true);
 
   ref.listen<List<MealSlot>>(mealSlotsProvider, (previous, next) {
-    syncQuickAddToWear();
+    scheduleNutritionSync();
   });
 
   ref.listen<AsyncValue<FastingSessionData?>>(activeFastingSessionProvider, (
@@ -709,7 +753,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   ) {
     if (next.hasValue) {
       syncFastingToWear();
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   });
 
@@ -718,7 +762,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue && next.value != null) {
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   });
 
@@ -727,7 +771,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue) {
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   });
 
@@ -736,7 +780,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue) {
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   });
 });

@@ -16,9 +16,36 @@ import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 
+/// Presentation-only chip/card styling for a [DietPhase]. Kept as a single
+/// extension so the quick planner card and its chip buttons can't drift
+/// apart on color or icon the way they previously did as two hand-copied
+/// switch statements.
+extension DietPhaseUi on DietPhase {
+  Color get uiColor => switch (this) {
+    DietPhase.cut => AppColors.macroKcal,
+    DietPhase.bulk => const Color(0xFF30D158),
+    DietPhase.maingain => const Color(0xFFBF5AF2),
+    DietPhase.maintain => const Color(0xFF64D2FF),
+    DietPhase.recomp => const Color(0xFFFF9F0A),
+  };
+
+  IconData get uiIcon => switch (this) {
+    DietPhase.cut => Icons.trending_down_rounded,
+    DietPhase.bulk => Icons.trending_up_rounded,
+    DietPhase.maingain => Icons.auto_awesome_rounded,
+    DietPhase.maintain => Icons.balance_rounded,
+    DietPhase.recomp => Icons.change_circle_rounded,
+  };
+}
+
 /// Hub for everything target-related (§5).
 class NutritionTargetsView extends ConsumerWidget {
-  const NutritionTargetsView({super.key});
+  /// Pre-selects the quick planner's phase, e.g. when arriving from the
+  /// Dream Physique "Optional next nutrition phase" card so the chosen
+  /// direction isn't silently dropped in favor of the active plan's phase.
+  final DietPhase? initialPhase;
+
+  const NutritionTargetsView({super.key, this.initialPhase});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +72,7 @@ class NutritionTargetsView extends ConsumerWidget {
         const SizedBox(height: HxSpace.x5),
 
         // ── Quick Phase & Calorie Planner ──
-        const _QuickPhasePlannerSection(),
+        _QuickPhasePlannerSection(initialPhase: initialPhase),
 
         const SizedBox(height: HxSpace.x6),
         _SectionHeaderTitle('ADVANCED SETTINGS & SCHEDULES'),
@@ -112,7 +139,9 @@ class _SectionHeaderTitle extends StatelessWidget {
 
 /// Interactive quick calorie and phase planning section right on the main Targets view.
 class _QuickPhasePlannerSection extends ConsumerStatefulWidget {
-  const _QuickPhasePlannerSection();
+  final DietPhase? initialPhase;
+
+  const _QuickPhasePlannerSection({this.initialPhase});
 
   @override
   ConsumerState<_QuickPhasePlannerSection> createState() =>
@@ -131,7 +160,7 @@ class _QuickPhasePlannerSectionState
     super.didChangeDependencies();
     if (!_initialized) {
       final activePlan = ref.read(activeDietPlanProvider);
-      _selectedPhase = activePlan.phase;
+      _selectedPhase = widget.initialPhase ?? activePlan.phase;
       final options = DietPhaseCalculator.paceOptionsFor(_selectedPhase);
       final idx = options.indexWhere(
         (o) =>
@@ -181,30 +210,9 @@ class _QuickPhasePlannerSectionState
       minCaloriesKcal: minKcal,
     );
 
-    final phaseColor = switch (_selectedPhase) {
-      DietPhase.cut => AppColors.macroKcal,
-      DietPhase.bulk => const Color(0xFF30D158),
-      DietPhase.maingain => const Color(0xFFBF5AF2),
-      DietPhase.maintain => const Color(0xFF64D2FF),
-    };
-
-    final phaseIcon = switch (_selectedPhase) {
-      DietPhase.cut => Icons.trending_down_rounded,
-      DietPhase.bulk => Icons.trending_up_rounded,
-      DietPhase.maingain => Icons.auto_awesome_rounded,
-      DietPhase.maintain => Icons.balance_rounded,
-    };
-
-    final phaseSubtitle = switch (_selectedPhase) {
-      DietPhase.cut =>
-        'Caloric deficit for fat loss with high protein to protect muscle mass (2.2g protein/kg).',
-      DietPhase.bulk =>
-        'Caloric surplus with plenty of carbohydrates for maximum strength and muscle growth.',
-      DietPhase.maingain =>
-        'Body recomposition: build muscle with 2.2g/kg protein and minimal surplus without fat gain. Differs from maintenance by its anabolic focus and higher protein.',
-      DietPhase.maintain =>
-        'Zero caloric delta (TDEE) and 1.8g/kg protein for weight stabilization and recovery.',
-    };
+    final phaseColor = _selectedPhase.uiColor;
+    final phaseIcon = _selectedPhase.uiIcon;
+    final phaseSubtitle = _selectedPhase.subtitle;
 
     return Container(
       decoration: BoxDecoration(
@@ -486,7 +494,7 @@ class _QuickPhasePlannerSectionState
                             ),
                           ),
                           child: Text(
-                            'Min Kcal Floor: ${minKcal} kcal',
+                            'Min Kcal Floor: $minKcal kcal',
                             style: TextStyle(
                               color: AppColors.macroKcal,
                               fontSize: 11,
@@ -603,12 +611,7 @@ class _PhaseChipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
-    final color = switch (phase) {
-      DietPhase.cut => AppColors.macroKcal,
-      DietPhase.bulk => const Color(0xFF30D158),
-      DietPhase.maingain => const Color(0xFFBF5AF2),
-      DietPhase.maintain => const Color(0xFF64D2FF),
-    };
+    final color = phase.uiColor;
 
     return InkWell(
       onTap: onTap,
@@ -629,12 +632,7 @@ class _PhaseChipButton extends StatelessWidget {
         child: Column(
           children: [
             Icon(
-              switch (phase) {
-                DietPhase.cut => Icons.trending_down_rounded,
-                DietPhase.bulk => Icons.trending_up_rounded,
-                DietPhase.maingain => Icons.auto_awesome_rounded,
-                DietPhase.maintain => Icons.balance_rounded,
-              },
+              phase.uiIcon,
               size: 18,
               color: selected ? color : hx.onSurfaceVariant,
             ),
@@ -1544,7 +1542,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           fatG: resolved.fat,
           fiberG: int.tryParse(_fiber.text),
         );
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   @override
@@ -1600,15 +1598,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         ),
         const SizedBox(height: 6),
         Text(
-          _phase == DietPhase.maintain
-              ? 'Maintain applies 0 kcal deficit/surplus with 1.8g/kg protein for weight stability.'
-              : _phase == DietPhase.maingain
-              ? 'Maingain applies a lean recomp surplus (+${DietPhaseCalculator.defaultMaingainSurplusKcal} kcal) and 2.2g/kg protein to build muscle without fat gain.'
-              : _phase == DietPhase.cut
-              ? 'Cut applies a ${DietPhaseCalculator.defaultCutPct.round()}% '
-                    'deficit and raises protein to protect lean mass.'
-              : 'Bulk applies a ${DietPhaseCalculator.defaultBulkPct.round()}% '
-                    'surplus, with the extra going to carbs.',
+          _phase.subtitle,
           style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
         ),
 

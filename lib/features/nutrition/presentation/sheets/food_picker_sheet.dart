@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +13,7 @@ import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.d
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
+import 'package:herculex/features/nutrition/domain/food_portion.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
@@ -80,13 +80,12 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
 
     Haptics.success();
     final repo = ref.read(nutritionRepositoryProvider);
-    final amount = f.servingAmount ?? f.servingGrams ?? 100;
-    final unit = f.referenceBasis.toLowerCase().contains('100 ml') ? 'ml' : 'g';
+    final amount = FoodPortion.defaultAmount(f);
+    final unit = FoodPortion.defaultUnit(f);
     await repo.logFood(
       date: widget.date,
       mealKey: _activeMealKey,
       foodId: f.id,
-      grams: unit == 'g' ? amount : null,
       portionAmount: amount,
       portionUnit: unit,
     );
@@ -1234,20 +1233,6 @@ class _FoodTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              if (food.imageUrl != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: CachedNetworkImage(
-                    imageUrl: food.imageUrl!,
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, _, _) => _placeholder(),
-                  ),
-                )
-              else
-                _placeholder(),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1260,7 +1245,7 @@ class _FoodTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${food.kcalPer100g.toStringAsFixed(0)} cal, ${food.referenceBasis}',
+                      '${FoodPortion.label(food)} · ${(food.kcalPer100g * FoodPortion.nutritionFactor(food, FoodPortion.defaultAmount(food), FoodPortion.defaultUnit(food))).toStringAsFixed(0)} kcal',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.secondary,
                       ),
@@ -1277,16 +1262,6 @@ class _FoodTile extends StatelessWidget {
       ),
     );
   }
-
-  Widget _placeholder() => Container(
-    width: 44,
-    height: 44,
-    decoration: BoxDecoration(
-      color: AppColors.surfaceVariant,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Icon(Icons.restaurant, size: 22, color: AppColors.secondary),
-  );
 }
 
 // ─── Recipe List Tile with Circular Quick Add (+) Button ──────────────────────

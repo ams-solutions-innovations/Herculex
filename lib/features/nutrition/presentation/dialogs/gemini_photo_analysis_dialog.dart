@@ -6,6 +6,7 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
+import 'package:herculex/features/nutrition/domain/food_portion.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 
 class GeminiPhotoAnalysisDialog extends ConsumerStatefulWidget {
@@ -51,6 +52,8 @@ class _GeminiPhotoAnalysisDialogState
     extends ConsumerState<GeminiPhotoAnalysisDialog> {
   final _noteCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
+  final _portionCtrl = TextEditingController();
+  final _portionUnitCtrl = TextEditingController();
   final _gramsCtrl = TextEditingController();
   final _kcalCtrl = TextEditingController();
   final _proteinCtrl = TextEditingController();
@@ -67,6 +70,8 @@ class _GeminiPhotoAnalysisDialogState
   void dispose() {
     _noteCtrl.dispose();
     _nameCtrl.dispose();
+    _portionCtrl.dispose();
+    _portionUnitCtrl.dispose();
     _gramsCtrl.dispose();
     _kcalCtrl.dispose();
     _proteinCtrl.dispose();
@@ -94,6 +99,10 @@ class _GeminiPhotoAnalysisDialogState
         _analyzing = false;
         _result = result;
         _nameCtrl.text = result.name;
+        _portionCtrl.text = result.portionAmount.toStringAsFixed(
+          result.portionAmount % 1 == 0 ? 0 : 1,
+        );
+        _portionUnitCtrl.text = result.portionUnit;
         _gramsCtrl.text = result.estimatedServingGrams.toStringAsFixed(0);
         _kcalCtrl.text = result.kcalPer100g.toStringAsFixed(0);
         _proteinCtrl.text = result.proteinPer100g.toStringAsFixed(1);
@@ -115,6 +124,10 @@ class _GeminiPhotoAnalysisDialogState
     if (name.isEmpty) return;
 
     final servingGrams = double.tryParse(_gramsCtrl.text) ?? 100;
+    final portionAmount = double.tryParse(_portionCtrl.text) ?? 1;
+    final portionUnit = _portionUnitCtrl.text.trim().isEmpty
+        ? 'serving'
+        : _portionUnitCtrl.text.trim();
     final kcalPer100g = double.tryParse(_kcalCtrl.text) ?? 0;
     final proteinPer100g = double.tryParse(_proteinCtrl.text) ?? 0;
     final carbsPer100g = double.tryParse(_carbsCtrl.text) ?? 0;
@@ -135,7 +148,13 @@ class _GeminiPhotoAnalysisDialogState
         carbsPer100g: carbsPer100g,
         fatPer100g: fatPer100g,
         servingGrams: servingGrams,
-        servingLabel: '${servingGrams.toStringAsFixed(0)} g',
+        servingAmount: portionAmount,
+        servingUnit: portionUnit,
+        servingLabel: FoodPortion.labelFor(
+          amount: portionAmount,
+          unit: portionUnit,
+          mass: servingGrams,
+        ),
       );
 
       await repo.logFood(
@@ -143,7 +162,8 @@ class _GeminiPhotoAnalysisDialogState
         meal: widget.meal,
         mealKey: widget.mealKey,
         foodId: food.id,
-        grams: servingGrams,
+        portionAmount: portionAmount,
+        portionUnit: portionUnit,
       );
 
       if (!mounted) return;
@@ -323,6 +343,26 @@ class _GeminiPhotoAnalysisDialogState
                     ),
                     const SizedBox(height: 12),
                     _NumberField(controller: _nameCtrl, label: 'Food name'),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _NumberField(
+                            controller: _portionCtrl,
+                            label: 'Serving quantity',
+                            suffix: '×',
+                            decimal: true,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _NumberField(
+                            controller: _portionUnitCtrl,
+                            label: 'Measure (scoop, nugget…)',
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [

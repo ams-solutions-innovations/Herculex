@@ -234,4 +234,43 @@ void main() {
       );
     });
   });
+
+  group('NutritionRepository.frequentlyPairedFoods', () {
+    test(
+      'learns foods added alongside a selected food in the same meal',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final r = repo(db);
+        final chicken = await insertFood(db, name: 'Chicken');
+        final rice = await insertFood(db, name: 'Rice');
+        final broccoli = await insertFood(db, name: 'Broccoli');
+
+        for (final day in [1, 2, 3]) {
+          final date = DateTime(2026, 8, day);
+          await r.logFood(
+            date: date,
+            mealKey: 'lunch',
+            foodId: chicken,
+            grams: 200,
+          );
+          await r.logFood(
+            date: date,
+            mealKey: 'lunch',
+            foodId: rice,
+            grams: 150,
+          );
+        }
+        await r.logFood(
+          date: DateTime(2026, 8, 3),
+          mealKey: 'lunch',
+          foodId: broccoli,
+          grams: 100,
+        );
+
+        final paired = await r.frequentlyPairedFoods(chicken, mealKey: 'lunch');
+        expect(paired.map((food) => food.name), ['Rice', 'Broccoli']);
+      },
+    );
+  });
 }

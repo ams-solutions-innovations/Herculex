@@ -95,6 +95,8 @@ class NutritionLabelOcrService {
     return NutritionLabelDraft(
       name: name,
       servingGrams: serving,
+      portionAmount: serving,
+      servingUnit: 'g',
       kcalPer100g: kcal == null ? null : kcal * factor,
       proteinPer100g: protein == null ? null : protein * factor,
       carbsPer100g: carbs == null ? null : carbs * factor,

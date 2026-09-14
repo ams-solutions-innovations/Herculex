@@ -625,7 +625,7 @@ class _MealMacroSummary extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -697,7 +697,7 @@ class _MealCalorieGoal extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox(height: 16),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -757,7 +757,7 @@ final entryDisplayProvider = FutureProvider.autoDispose
       }
 
       final portionText = entry.foodId != null
-          ? '${(entry.gramsOverride ?? (entry.portionUnit == 'g' ? entry.portionAmount : null) ?? entry.snapshotServingGrams ?? entry.portionAmount ?? 0).toStringAsFixed(0)} g'
+          ? _foodEntryPortionText(entry)
           : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
 
       return _EntryDisplay(
@@ -773,6 +773,22 @@ final entryDisplayProvider = FutureProvider.autoDispose
         cholesterolMg: macros.cholesterolMg,
       );
     });
+
+String _foodEntryPortionText(FoodEntryData entry) {
+  final amount =
+      entry.portionAmount ??
+      entry.gramsOverride ??
+      entry.snapshotServingAmount ??
+      entry.snapshotServingGrams ??
+      0;
+  final unit =
+      entry.portionUnit ??
+      (entry.gramsOverride != null ? 'g' : entry.snapshotServingUnit ?? 'g');
+  final formatted = amount == amount.roundToDouble()
+      ? amount.toStringAsFixed(0)
+      : amount.toStringAsFixed(1);
+  return '$formatted $unit';
+}
 
 FoodData _placeholderFood() => FoodData(
   id: 0,

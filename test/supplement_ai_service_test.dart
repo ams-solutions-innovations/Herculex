@@ -68,8 +68,7 @@ class _MockSupplementBackend implements GeminiBackend {
   @override
   Future<Map<String, dynamic>> analyzeDreamPhysique({
     required List<Map<String, dynamic>> currentImages,
-    required List<int> targetImageBytes,
-    required String targetImageMimeType,
+    required List<Map<String, dynamic>> targetImages,
     Map<String, dynamic>? biometrics,
     String? userNote,
   }) async => throw UnimplementedError();

@@ -8,6 +8,7 @@ import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.d
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/data/nutrition_label_ocr_service.dart';
+import 'package:herculex/features/nutrition/domain/food_portion.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/nutrition_label.dart';
 
@@ -126,6 +127,10 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
     final name = _name.text.trim();
     final kcal = double.tryParse(_kcal.text.replaceAll(',', '.'));
     final serving = double.tryParse(_serving.text.replaceAll(',', '.'));
+    final portionAmount = _draft?.portionAmount ?? serving ?? 100;
+    final portionUnit = _draft?.servingUnit.trim().isNotEmpty == true
+        ? _draft!.servingUnit
+        : 'g';
     if (name.isEmpty || kcal == null || kcal <= 0) {
       setState(() => _error = 'Name and calories / 100g are required.');
       return;
@@ -162,11 +167,13 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
         carbsPer100g: double.tryParse(_carbs.text.replaceAll(',', '.')) ?? 0,
         fatPer100g: double.tryParse(_fat.text.replaceAll(',', '.')) ?? 0,
         servingGrams: serving,
-        servingLabel: serving == null
-            ? null
-            : '${serving.toStringAsFixed(0)} g',
-        servingAmount: serving == null ? null : 1,
-        servingUnit: serving == null ? null : 'serving',
+        servingLabel: FoodPortion.labelFor(
+          amount: portionAmount,
+          unit: portionUnit,
+          mass: serving,
+        ),
+        servingAmount: portionAmount,
+        servingUnit: portionUnit,
         sourceMetadataJson: metadata,
       );
       await repo.logFood(
@@ -174,7 +181,8 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
         meal: widget.meal,
         mealKey: widget.mealKey,
         foodId: food.id,
-        grams: serving ?? 100,
+        portionAmount: portionAmount,
+        portionUnit: portionUnit,
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {

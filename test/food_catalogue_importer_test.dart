@@ -111,4 +111,64 @@ void main() {
       expect(entries.single.foodId, firstImportRow.id);
     },
   );
+
+  test(
+    'keeps named portions meaningful for scoops and individual nuggets',
+    () async {
+      final db = await openTestDatabase();
+      addTearDown(db.close);
+      const fixture = '''{
+      "schemaVersion":"herculex-food-catalogue/v1",
+      "statistics":{"foodCount":2},
+      "foods":[
+        {
+          "id":"SCOOP-1","name":"Test whey","referenceBasis":"100 g",
+          "catalogue":{"originalName":"Test whey"},
+          "serving":{"amount":1,"unit":"scoop","weightGramsOrMl":30},
+          "nutrients":{"energy_kcal":400,"protein":80,"carbohydrates":5,"fat":5}
+        },
+        {
+          "id":"NUGGET-1","name":"Chicken nuggets (4 kosi)",
+          "referenceBasis":"Legacy serving (unverified)",
+          "catalogue":{"originalName":"Chicken nuggets (4 kosi)"},
+          "serving":{"amount":1,"unit":"serving"},
+          "nutrients":{"energy_kcal":160,"protein":8,"carbohydrates":10,"fat":8}
+        }
+      ]
+    }''';
+
+      await FoodCatalogueImporter.runIfNeeded(db, catalogueJson: fixture);
+      final foods = await db.select(db.foods).get();
+      final whey = foods.firstWhere((food) => food.catalogueId == 'SCOOP-1');
+      final nuggets = foods.firstWhere(
+        (food) => food.catalogueId == 'NUGGET-1',
+      );
+      expect(whey.servingLabel, '1 scoop (30 g)');
+      expect(nuggets.servingLabel, '4 nugget');
+
+      final repo = NutritionRepository(
+        db,
+        OpenFoodFactsClient(),
+        SystemClock(),
+      );
+      final now = DateTime(2026, 1, 1);
+      await repo.logFood(
+        date: now,
+        foodId: whey.id,
+        portionAmount: 1,
+        portionUnit: 'scoop',
+      );
+      await repo.logFood(
+        date: now,
+        foodId: nuggets.id,
+        portionAmount: 1,
+        portionUnit: 'nugget',
+      );
+      final entries = await db.select(db.foodEntries).get();
+      final wheyTotals = await repo.macrosForEntry(entries[0]);
+      final nuggetTotals = await repo.macrosForEntry(entries[1]);
+      expect(wheyTotals.kcal, 120); // 30 g of 400 kcal / 100 g.
+      expect(nuggetTotals.kcal, 40); // one of the labelled four nuggets.
+    },
+  );
 }

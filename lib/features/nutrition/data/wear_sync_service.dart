@@ -476,6 +476,14 @@ class WearSyncService {
     }
   }
 
+  Future<void> openMediaControlsPermission() async {
+    try {
+      await _channel.invokeMethod('openMediaControlsPermission');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to open media controls permission: ${e.message}');
+    }
+  }
+
   Future<void> endWorkoutOnWatch(String entityId) async {
     try {
       await _channel.invokeMethod('endWorkoutOnWatch', {'entity_id': entityId});

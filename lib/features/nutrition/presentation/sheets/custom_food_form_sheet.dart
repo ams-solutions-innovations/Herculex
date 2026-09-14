@@ -8,6 +8,7 @@ import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/barcode_utils.dart';
+import 'package:herculex/features/nutrition/domain/food_portion.dart';
 
 class CustomFoodFormSheet extends ConsumerStatefulWidget {
   final String? initialName;
@@ -57,6 +58,8 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
   late final TextEditingController _protein;
   late final TextEditingController _carbs;
   late final TextEditingController _fat;
+  late final TextEditingController _servingAmount;
+  late final TextEditingController _servingUnit;
   late final TextEditingController _servingG;
   late final TextEditingController _sodium;
   late final TextEditingController _potassium;
@@ -80,6 +83,7 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
 
   bool _saving = false;
   String? _error;
+  late String _referenceBasis;
 
   @override
   void initState() {
@@ -102,10 +106,21 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
     _fat = TextEditingController(
       text: ef != null ? ef.fatPer100g.toStringAsFixed(1) : '',
     );
+    _referenceBasis = ef?.referenceBasis == '100 ml' ? '100 ml' : '100 g';
+    _servingAmount = TextEditingController(
+      text: ef == null
+          ? '100'
+          : FoodPortion.defaultAmount(
+              ef,
+            ).toStringAsFixed(FoodPortion.defaultAmount(ef) % 1 == 0 ? 0 : 1),
+    );
+    _servingUnit = TextEditingController(
+      text: ef == null ? 'g' : FoodPortion.defaultUnit(ef),
+    );
     _servingG = TextEditingController(
       text: ef?.servingGrams != null
           ? ef!.servingGrams!.toStringAsFixed(0)
-          : '',
+          : (ef == null ? '100' : ''),
     );
     _sodium = TextEditingController(
       text: ef?.sodiumMgPer100g != null
@@ -166,6 +181,8 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
       _protein,
       _carbs,
       _fat,
+      _servingAmount,
+      _servingUnit,
       _servingG,
       _sodium,
       _potassium,
@@ -198,6 +215,9 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
       return;
     }
     final rawBarcode = _barcode.text.trim();
+    final servingAmount = double.tryParse(_servingAmount.text.trim());
+    final servingUnit = _servingUnit.text.trim();
+    final servingGrams = double.tryParse(_servingG.text.trim());
     final normalizedBarcode = rawBarcode.isEmpty
         ? null
         : normalizeBarcode(rawBarcode);
@@ -205,6 +225,21 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
       setState(
         () =>
             _error = 'Barcode must be a valid EAN-8, UPC-A, EAN-13 or GTIN-14',
+      );
+      return;
+    }
+    if (servingAmount == null || servingAmount <= 0 || servingUnit.isEmpty) {
+      setState(
+        () => _error = 'Enter a positive default serving and its measure.',
+      );
+      return;
+    }
+    final isMassOrVolume =
+        servingUnit.toLowerCase() == 'g' || servingUnit.toLowerCase() == 'ml';
+    if (!isMassOrVolume && (servingGrams == null || servingGrams <= 0)) {
+      setState(
+        () => _error =
+            'A named measure (for example scoop or nugget) needs its weight in grams.',
       );
       return;
     }
@@ -239,6 +274,13 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
         : widget.existingFood?.sourceMetadataJson;
 
     final repo = ref.read(nutritionRepositoryProvider);
+    final savedServingGrams =
+        servingGrams ?? (isMassOrVolume ? servingAmount : null);
+    final servingLabel = FoodPortion.labelFor(
+      amount: servingAmount,
+      unit: servingUnit,
+      mass: savedServingGrams,
+    );
     final FoodData food;
     if (widget.existingFood != null) {
       food = await repo.updateCustomFood(
@@ -250,10 +292,11 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
         proteinPer100g: double.tryParse(_protein.text.trim()) ?? 0,
         carbsPer100g: double.tryParse(_carbs.text.trim()) ?? 0,
         fatPer100g: double.tryParse(_fat.text.trim()) ?? 0,
-        servingGrams: double.tryParse(_servingG.text.trim()),
-        referenceBasis: widget.existingFood?.referenceBasis ?? '100 g',
-        servingAmount: widget.existingFood?.servingAmount,
-        servingUnit: widget.existingFood?.servingUnit,
+        servingGrams: savedServingGrams,
+        servingLabel: servingLabel,
+        referenceBasis: _referenceBasis,
+        servingAmount: servingAmount,
+        servingUnit: servingUnit,
         sourceMetadataJson: metadataJson,
         sodiumMgPer100g: double.tryParse(_sodium.text.trim()),
         potassiumMgPer100g: double.tryParse(_potassium.text.trim()),
@@ -268,7 +311,11 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
         proteinPer100g: double.tryParse(_protein.text.trim()) ?? 0,
         carbsPer100g: double.tryParse(_carbs.text.trim()) ?? 0,
         fatPer100g: double.tryParse(_fat.text.trim()) ?? 0,
-        servingGrams: double.tryParse(_servingG.text.trim()),
+        servingGrams: savedServingGrams,
+        servingLabel: servingLabel,
+        referenceBasis: _referenceBasis,
+        servingAmount: servingAmount,
+        servingUnit: servingUnit,
         sourceMetadataJson: metadataJson,
         sodiumMgPer100g: double.tryParse(_sodium.text.trim()),
         potassiumMgPer100g: double.tryParse(_potassium.text.trim()),
@@ -316,7 +363,7 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              'All values per 100 g/ml',
+              'Enter nutrition values in the selected 100 g/ml basis.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.secondary,
               ),
@@ -328,7 +375,33 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
             const SizedBox(height: 14),
             _Field(label: 'Barcode (optional)', controller: _barcode),
             const SizedBox(height: 14),
-            _Field(label: 'kcal / 100g *', controller: _kcal, numeric: true),
+            DropdownButtonFormField<String>(
+              initialValue: _referenceBasis,
+              decoration: InputDecoration(
+                labelText: 'Nutrition basis',
+                filled: true,
+                fillColor: AppColors.surfaceVariant,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: AppColors.outlineVariant),
+                ),
+              ),
+              items: const [
+                DropdownMenuItem(value: '100 g', child: Text('Per 100 g')),
+                DropdownMenuItem(value: '100 ml', child: Text('Per 100 ml')),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _referenceBasis = value);
+              },
+            ),
+            const SizedBox(height: 14),
+            _Field(
+              label: _referenceBasis == '100 ml'
+                  ? 'kcal / 100 ml *'
+                  : 'kcal / 100 g *',
+              controller: _kcal,
+              numeric: true,
+            ),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -358,8 +431,36 @@ class _CustomFoodFormSheetState extends ConsumerState<CustomFoodFormSheet> {
               ],
             ),
             const SizedBox(height: 14),
+            Text(
+              'DEFAULT SERVING',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _Field(
+                    label: 'Quantity',
+                    controller: _servingAmount,
+                    numeric: true,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _Field(
+                    label: 'Measure (g, scoop, nugget…)',
+                    controller: _servingUnit,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             _Field(
-              label: 'Default serving (g)',
+              label: 'Weight of this serving (g)',
               controller: _servingG,
               numeric: true,
             ),

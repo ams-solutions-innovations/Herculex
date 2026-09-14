@@ -728,6 +728,8 @@ class NutritionRepository {
       _portionFactorForBasis(
         food.referenceBasis,
         food.servingGrams,
+        food.servingAmount,
+        food.servingUnit,
         amount,
         unit,
       );
@@ -739,18 +741,45 @@ class NutritionRepository {
   double _portionFactorForBasis(
     String basis,
     double? servingGrams,
+    double? servingAmount,
+    String? servingUnit,
     double amount,
     String unit,
   ) {
     final b = basis.toLowerCase();
-    if (unit == 'serving') return amount;
+    final normalizedUnit = unit.trim().toLowerCase();
+    final normalizedServingUnit = servingUnit?.trim().toLowerCase();
+    final defaultAmount = servingAmount != null && servingAmount > 0
+        ? servingAmount
+        : 1.0;
+    final isNativeServing =
+        normalizedServingUnit != null &&
+        normalizedServingUnit.isNotEmpty &&
+        normalizedUnit == normalizedServingUnit;
+
     if (b.contains('legacy serving')) {
-      if (unit == 'g' && servingGrams != null && servingGrams > 0) {
+      // Legacy rows hold nutrition per labelled serving, not per 100 g. A
+      // named quantity ("1 scoop", "4 nuggets") must therefore scale by its
+      // own default amount; if it is weighed instead, scale by the verified
+      // mass when there is one.
+      if (isNativeServing) return amount / defaultAmount;
+      if ((normalizedUnit == 'g' || normalizedUnit == 'ml') &&
+          servingGrams != null &&
+          servingGrams > 0) {
         return amount / servingGrams;
       }
-      return amount;
+      return amount / defaultAmount;
     }
-    if (b.contains('100 ml')) return amount / 100.0;
+
+    // A named measure is converted through its recorded physical mass. This
+    // is what makes one 30 g scoop equal 30 g of nutrition rather than 1 g.
+    if (isNativeServing &&
+        servingGrams != null &&
+        servingGrams > 0 &&
+        servingAmount != null &&
+        servingAmount > 0) {
+      return amount * servingGrams / servingAmount / 100.0;
+    }
     return amount / 100.0;
   }
 
@@ -770,6 +799,8 @@ class NutritionRepository {
     final factor = _portionFactorForBasis(
       entry.snapshotBasis!,
       entry.snapshotServingGrams,
+      entry.snapshotServingAmount,
+      entry.snapshotServingUnit,
       amount,
       unit,
     );
@@ -1074,6 +1105,58 @@ class NutritionRepository {
           .where((f) => f.deletedAt == null)
           .toList();
     });
+  }
+
+  /// Foods most often logged in the same meal as [foodId]. Each food counts
+  /// at most once per meal, so adding the same ingredient twice does not make
+  /// it look like a stronger pairing. The active meal gets a small preference
+  /// while still allowing a useful suggestion when history is sparse.
+  Future<List<FoodData>> frequentlyPairedFoods(
+    int foodId, {
+    String? mealKey,
+    int limit = 5,
+  }) async {
+    final entries =
+        await (_db.select(_db.foodEntries)
+              ..where((entry) => entry.foodId.isNotNull())
+              ..orderBy([
+                (entry) => OrderingTerm(
+                  expression: entry.loggedAt,
+                  mode: OrderingMode.desc,
+                ),
+              ]))
+            .get();
+
+    final targetMeals = <String>{
+      for (final entry in entries)
+        if (entry.foodId == foodId) '${entry.dateIso}|${entry.meal}',
+    };
+    if (targetMeals.isEmpty) return const [];
+
+    final seenInMeal = <String, Set<int>>{};
+    final scores = <int, double>{};
+    for (final entry in entries) {
+      final pairedId = entry.foodId;
+      if (pairedId == null || pairedId == foodId) continue;
+      final mealId = '${entry.dateIso}|${entry.meal}';
+      if (!targetMeals.contains(mealId)) continue;
+      final seen = seenInMeal.putIfAbsent(mealId, () => <int>{});
+      if (!seen.add(pairedId)) continue;
+      scores[pairedId] =
+          (scores[pairedId] ?? 0) +
+          (mealKey != null && entry.meal == mealKey ? 2 : 1);
+    }
+    if (scores.isEmpty) return const [];
+
+    final rankedIds = scores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final foods = await foodsByIds(
+      rankedIds.take(limit).map((item) => item.key),
+    );
+    return [
+      for (final item in rankedIds.take(limit))
+        if (foods[item.key]?.deletedAt == null) foods[item.key]!,
+    ];
   }
 
   /// Stream of foods suggested based on time of day (hour) and/or [mealKey].

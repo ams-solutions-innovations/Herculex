@@ -9,7 +9,11 @@ import 'package:herculex/data/local/database.dart';
 /// The importer is intentionally independent of the repository so it can run
 /// during database creation/migration and be tested with a small JSON fixture.
 class FoodCatalogueImporter {
-  static const schemaVersion = 'herculex-food-catalogue/v1';
+  // v2 does not change the source JSON. It repairs the imported serving
+  // metadata so existing catalogue rows are re-read with real human measures
+  // (scoop, nugget, bottle…) rather than a misleading generic gram amount.
+  static const schemaVersion = 'herculex-food-catalogue/v2';
+  static const _sourceSchemaVersion = 'herculex-food-catalogue/v1';
   static const assetPath = 'assets/data/food_database_eu.v1.json';
 
   static Future<void> runIfNeeded(
@@ -19,12 +23,13 @@ class FoodCatalogueImporter {
     final marker = await (db.select(
       db.foodCatalogueMeta,
     )..limit(1)).getSingleOrNull();
-    if (marker?.schemaVersion == schemaVersion && marker?.foodCount != null)
+    if (marker?.schemaVersion == schemaVersion && marker?.foodCount != null) {
       return;
+    }
 
     final raw = catalogueJson ?? await rootBundle.loadString(assetPath);
     final document = jsonDecode(raw) as Map<String, dynamic>;
-    if (document['schemaVersion'] != schemaVersion) {
+    if (document['schemaVersion'] != _sourceSchemaVersion) {
       throw StateError('Unsupported food catalogue schema');
     }
     final foods =
@@ -116,12 +121,14 @@ class FoodCatalogueImporter {
       'quality': item['quality'],
     }..removeWhere((_, value) => value == null);
 
-    final amount = _number(serving['amount']);
-    final weight = _number(serving['weightGramsOrMl']);
-    final unit = serving['unit']?.toString();
-    final label = amount == null && unit == null
-        ? null
-        : '${amount ?? ''}${unit == null ? '' : ' $unit'}'.trim();
+    final portion = _normalizedServing(
+      referenceBasis: item['referenceBasis']?.toString() ?? '100 g',
+      name: item['name']?.toString() ?? '',
+      originalName: catalogue['originalName']?.toString(),
+      amount: _number(serving['amount']),
+      unit: serving['unit']?.toString(),
+      weight: _number(serving['weightGramsOrMl']),
+    );
 
     return FoodsCompanion.insert(
       name: item['name']?.toString() ?? 'Unknown food',
@@ -132,8 +139,8 @@ class FoodCatalogueImporter {
       carbsPer100g: Value(_number(nutrients['carbohydrates']) ?? 0),
       fatPer100g: Value(_number(nutrients['fat']) ?? 0),
       fiberPer100g: Value(_number(nutrients['fiber'])),
-      servingGrams: Value(weight),
-      servingLabel: Value(label),
+      servingGrams: Value(portion.weight),
+      servingLabel: Value(portion.label),
       source: const Value('food_catalogue_v1'),
       isCustom: const Value(false),
       sodiumMgPer100g: Value(_number(nutrients['sodium'])),
@@ -141,8 +148,8 @@ class FoodCatalogueImporter {
       cholesterolMgPer100g: Value(_number(nutrients['cholesterol'])),
       catalogueId: Value(item['id']?.toString()),
       referenceBasis: Value(item['referenceBasis']?.toString() ?? '100 g'),
-      servingAmount: Value(amount),
-      servingUnit: Value(unit),
+      servingAmount: Value(portion.amount),
+      servingUnit: Value(portion.unit),
       category: Value(catalogue['category']?.toString()),
       country: Value(catalogue['country']?.toString()),
       sourceMetadataJson: Value(jsonEncode(metadata)),
@@ -155,5 +162,160 @@ class FoodCatalogueImporter {
   static double? _number(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '');
+  }
+
+  static _CatalogueServing _normalizedServing({
+    required String referenceBasis,
+    required String name,
+    String? originalName,
+    double? amount,
+    String? unit,
+    double? weight,
+  }) {
+    final legacy = referenceBasis.toLowerCase().contains('legacy serving');
+    final sourceName = '$name ${originalName ?? ''}';
+    final namedWeight = RegExp(
+      r'\(\s*(\d+(?:[.,]\d+)?)\s*(g|ml)\s*\)',
+      caseSensitive: false,
+    ).firstMatch(sourceName);
+    final namedMass = namedWeight == null
+        ? null
+        : double.tryParse(namedWeight.group(1)!.replaceAll(',', '.'));
+    final namedMassUnit = namedWeight?.group(2)?.toLowerCase();
+    final nuggetCount = RegExp(
+      r'\(\s*(\d+)\s*(?:kos(?:i|ov)?|pcs?|pieces?)\s*\)',
+      caseSensitive: false,
+    ).firstMatch(sourceName);
+
+    if (legacy) {
+      if (nuggetCount != null) {
+        final count = double.parse(nuggetCount.group(1)!);
+        return _CatalogueServing(amount: count, unit: 'nugget', weight: null);
+      }
+      if (RegExp(
+            r'(whey|protein powder|beljakovin)',
+            caseSensitive: false,
+          ).hasMatch(sourceName) &&
+          namedMass != null &&
+          namedMassUnit == 'g') {
+        return _CatalogueServing(amount: 1, unit: 'scoop', weight: namedMass);
+      }
+      if (namedMass != null && namedMassUnit == 'ml') {
+        return _CatalogueServing(
+          amount: namedMass,
+          unit: 'ml',
+          weight: namedMass,
+        );
+      }
+      // These records contain nutrients per labelled serving. The raw source
+      // has several known corrupt piece/weight combinations, so a neutral
+      // serving is safer than presenting a made-up number of pieces.
+      return const _CatalogueServing(amount: 1, unit: 'serving', weight: null);
+    }
+
+    final normalizedUnit = _normalizeUnit(unit);
+    final basisIsMl = referenceBasis.toLowerCase().contains('100 ml');
+    final usableWeight = weight != null && weight > 0 ? weight : null;
+    final usableAmount = amount != null && amount > 0 ? amount : null;
+
+    if (normalizedUnit == null || usableAmount == null) {
+      final fallback = usableWeight ?? 100;
+      return _CatalogueServing(
+        amount: fallback,
+        unit: basisIsMl ? 'ml' : 'g',
+        weight: usableWeight ?? fallback,
+      );
+    }
+    if (normalizedUnit == 'g' || normalizedUnit == 'ml') {
+      return _CatalogueServing(
+        amount: usableAmount,
+        unit: normalizedUnit,
+        weight: usableWeight ?? usableAmount,
+      );
+    }
+    if (usableWeight == null) {
+      // A named unit without a mass cannot be converted to 100 g nutrition.
+      return _CatalogueServing(
+        amount: 100,
+        unit: basisIsMl ? 'ml' : 'g',
+        weight: 100,
+      );
+    }
+    return _CatalogueServing(
+      amount: usableAmount,
+      unit: normalizedUnit,
+      weight: usableWeight,
+    );
+  }
+
+  static String? _normalizeUnit(String? raw) {
+    final value = raw?.trim().toLowerCase();
+    if (value == null || value.isEmpty || value == 'undetermined') return null;
+    const aliases = {
+      'gram': 'g',
+      'grams': 'g',
+      'g': 'g',
+      'millilitre': 'ml',
+      'millilitres': 'ml',
+      'ml': 'ml',
+      'pcs': 'piece',
+      'pc': 'piece',
+      'pieces': 'piece',
+      'piece': 'piece',
+      'kosi': 'piece',
+      'kos': 'piece',
+      'cups': 'cup',
+      'cup': 'cup',
+      'tablespoon': 'tbsp',
+      'tablespoons': 'tbsp',
+      'tbsp': 'tbsp',
+      'teaspoon': 'tsp',
+      'teaspoons': 'tsp',
+      'tsp': 'tsp',
+      'oz': 'oz',
+      'onz': 'oz',
+      'oza': 'oz',
+      'fl oz': 'fl oz',
+      'scoop': 'scoop',
+      'slice': 'slice',
+      'serving': 'serving',
+      'bar': 'bar',
+      'bottle': 'bottle',
+      'container': 'container',
+      'packet': 'packet',
+      'package': 'package',
+      'pouch': 'pouch',
+      'egg': 'egg',
+      'cookie': 'cookie',
+      'cookies': 'cookie',
+      'sandwich': 'sandwich',
+    };
+    return aliases[value];
+  }
+}
+
+class _CatalogueServing {
+  final double amount;
+  final String unit;
+  final double? weight;
+
+  const _CatalogueServing({
+    required this.amount,
+    required this.unit,
+    required this.weight,
+  });
+
+  String get label {
+    final amountText = amount == amount.roundToDouble()
+        ? amount.toStringAsFixed(0)
+        : amount.toStringAsFixed(1);
+    final massMeasure = unit == 'g' || unit == 'ml';
+    if (massMeasure || weight == null || weight! <= 0) {
+      return '$amountText $unit';
+    }
+    final weightText = weight == weight!.roundToDouble()
+        ? weight!.toStringAsFixed(0)
+        : weight!.toStringAsFixed(1);
+    return '$amountText $unit ($weightText g)';
   }
 }

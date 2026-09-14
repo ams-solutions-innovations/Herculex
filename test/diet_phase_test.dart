@@ -8,6 +8,7 @@ void main() {
       expect(DietPhase.bulk.saveLabel, 'Save Bulk');
       expect(DietPhase.maingain.saveLabel, 'Save Maingain');
       expect(DietPhase.maintain.saveLabel, 'Save Target');
+      expect(DietPhase.recomp.saveLabel, 'Save Recomp');
     });
   });
 
@@ -40,6 +41,17 @@ void main() {
         bodyweightKg: 80,
       );
       expect(t.kcal, 2000);
+    });
+
+    test('recomp keeps calories at maintenance with high protein', () {
+      final t = DietPhaseCalculator.apply(
+        phase: DietPhase.recomp,
+        baselineKcal: 2500,
+        bodyweightKg: 80,
+      );
+      expect(t.kcal, 2500);
+      expect(t.deltaKcal, 0);
+      expect(t.proteinG, (80 * 2.2).round());
     });
 
     test('bulk adds the default 10% surplus', () {

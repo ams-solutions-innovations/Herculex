@@ -7,7 +7,8 @@ enum DietPhase {
   maintain('Maintain'),
   maingain('Maingain'),
   cut('Cut'),
-  bulk('Bulk');
+  bulk('Bulk'),
+  recomp('Recomp');
 
   const DietPhase(this.label);
   final String label;
@@ -16,6 +17,20 @@ enum DietPhase {
   String get saveLabel => switch (this) {
     DietPhase.maintain => 'Save Target',
     _ => 'Save $label',
+  };
+
+  /// One-line explanation of what this phase does to calories and macros.
+  String get subtitle => switch (this) {
+    DietPhase.cut =>
+      'Caloric deficit for fat loss with high protein to protect muscle mass (2.2g protein/kg).',
+    DietPhase.bulk =>
+      'Caloric surplus with plenty of carbohydrates for maximum strength and muscle growth.',
+    DietPhase.maingain =>
+      'Small, controlled surplus with 2.2g/kg protein for gradual, mostly-lean muscle gain.',
+    DietPhase.maintain =>
+      'Zero caloric delta (TDEE) and 1.8g/kg protein for weight stabilization and recovery.',
+    DietPhase.recomp =>
+      'Body recomposition: zero caloric delta (TDEE) with 2.2g/kg protein to build muscle while losing fat at a stable scale weight.',
   };
 }
 
@@ -67,6 +82,7 @@ class DietPhaseCalculator {
   static const maingainProteinPerKg = 2.2;
   static const maintainProteinPerKg = 1.8;
   static const bulkProteinPerKg = 1.8;
+  static const recompProteinPerKg = 2.2;
 
   /// Share of calories from fat. Kept above ~20-25 % for hormonal
   /// health; the rest of the budget goes to carbs.
@@ -74,6 +90,7 @@ class DietPhaseCalculator {
   static const maingainFatShare = 0.25;
   static const maintainFatShare = 0.275;
   static const bulkFatShare = 0.25;
+  static const recompFatShare = 0.25;
 
   /// Standard pace presets for each dieting phase.
   static List<DietPaceOption> paceOptionsFor(DietPhase phase) =>
@@ -134,9 +151,8 @@ class DietPhaseCalculator {
           DietPaceOption(
             weeklyKg: 0.05,
             kcalDelta: 75,
-            label: 'Recomp (+75 kcal)',
-            description:
-                'Body recomposition at stable weight with 2.2g/kg protein.',
+            label: 'Minimal (+75 kcal)',
+            description: 'Smallest surplus for near-lean gain.',
           ),
           DietPaceOption(
             weeklyKg: 0.15,
@@ -157,6 +173,15 @@ class DietPhaseCalculator {
             kcalDelta: 0,
             label: 'Maintenance (0 kcal)',
             description: 'Complete caloric balance (TDEE).',
+          ),
+        ],
+        DietPhase.recomp => const [
+          DietPaceOption(
+            weeklyKg: 0.0,
+            kcalDelta: 0,
+            label: 'Recomp (0 kcal)',
+            description:
+                'Body recomposition at stable weight with 2.2g/kg protein.',
           ),
         ],
       };
@@ -195,6 +220,7 @@ class DietPhaseCalculator {
     } else {
       delta = switch (phase) {
         DietPhase.maintain => 0,
+        DietPhase.recomp => 0,
         DietPhase.maingain => defaultMaingainSurplusKcal,
         DietPhase.cut => -(baselineKcal * (defaultCutPct / 100)).round(),
         DietPhase.bulk => (baselineKcal * (defaultBulkPct / 100)).round(),
@@ -223,12 +249,14 @@ class DietPhaseCalculator {
       DietPhase.maingain => maingainProteinPerKg,
       DietPhase.bulk => bulkProteinPerKg,
       DietPhase.maintain => maintainProteinPerKg,
+      DietPhase.recomp => recompProteinPerKg,
     };
     final fatShare = switch (phase) {
       DietPhase.cut => cutFatShare,
       DietPhase.maingain => maingainFatShare,
       DietPhase.bulk => bulkFatShare,
       DietPhase.maintain => maintainFatShare,
+      DietPhase.recomp => recompFatShare,
     };
 
     // Protein first, then fat, then carbs take whatever is left.
