@@ -41,6 +41,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   final _weightCtrl = TextEditingController();
   final _targetWeightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
+  final _inseamCtrl = TextEditingController();
+  final _armSpanCtrl = TextEditingController();
+  final _torsoCtrl = TextEditingController();
 
   Timer? _autoSaveTimer;
   bool _saving = false;
@@ -79,6 +82,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _heightCtrl.text = p?.heightCm == null
         ? ''
         : heightFmt.formatValue(p!.heightCm!);
+    _inseamCtrl.text = p?.inseamCm == null
+        ? ''
+        : heightFmt.formatValue(p!.inseamCm!);
+    _armSpanCtrl.text = p?.armSpanCm == null
+        ? ''
+        : heightFmt.formatValue(p!.armSpanCm!);
+    _torsoCtrl.text = p?.torsoCm == null
+        ? ''
+        : heightFmt.formatValue(p!.torsoCm!);
   }
 
   @override
@@ -107,10 +119,22 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       final heightStr = p?.heightCm == null
           ? ''
           : heightFmt.formatValue(p!.heightCm!);
+      final inseamStr = p?.inseamCm == null
+          ? ''
+          : heightFmt.formatValue(p!.inseamCm!);
+      final armSpanStr = p?.armSpanCm == null
+          ? ''
+          : heightFmt.formatValue(p!.armSpanCm!);
+      final torsoStr = p?.torsoCm == null
+          ? ''
+          : heightFmt.formatValue(p!.torsoCm!);
       if (_weightCtrl.text != weightStr) _weightCtrl.text = weightStr;
       if (_targetWeightCtrl.text != targetStr)
         _targetWeightCtrl.text = targetStr;
       if (_heightCtrl.text != heightStr) _heightCtrl.text = heightStr;
+      if (_inseamCtrl.text != inseamStr) _inseamCtrl.text = inseamStr;
+      if (_armSpanCtrl.text != armSpanStr) _armSpanCtrl.text = armSpanStr;
+      if (_torsoCtrl.text != torsoStr) _torsoCtrl.text = torsoStr;
     }
   }
 
@@ -137,11 +161,17 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final targetKg =
         widget.profile?.targetWeightKg ?? ref.read(goalWeightProvider);
     final cm = widget.profile?.heightCm;
+    final inseam = widget.profile?.inseamCm;
+    final armSpan = widget.profile?.armSpanCm;
+    final torso = widget.profile?.torsoCm;
     _weightCtrl.text = kg == null ? '' : weightFmt.formatValue(kg);
     _targetWeightCtrl.text = targetKg == null
         ? ''
         : weightFmt.formatValue(targetKg);
     _heightCtrl.text = cm == null ? '' : heightFmt.formatValue(cm);
+    _inseamCtrl.text = inseam == null ? '' : heightFmt.formatValue(inseam);
+    _armSpanCtrl.text = armSpan == null ? '' : heightFmt.formatValue(armSpan);
+    _torsoCtrl.text = torso == null ? '' : heightFmt.formatValue(torso);
   }
 
   @override
@@ -154,6 +184,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _weightCtrl.dispose();
     _targetWeightCtrl.dispose();
     _heightCtrl.dispose();
+    _inseamCtrl.dispose();
+    _armSpanCtrl.dispose();
+    _torsoCtrl.dispose();
     super.dispose();
   }
 
@@ -164,6 +197,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final weight = double.tryParse(_weightCtrl.text.trim());
     final targetWeight = double.tryParse(_targetWeightCtrl.text.trim());
     final height = double.tryParse(_heightCtrl.text.trim());
+    final inseam = double.tryParse(_inseamCtrl.text.trim());
+    final armSpan = double.tryParse(_armSpanCtrl.text.trim());
+    final torso = double.tryParse(_torsoCtrl.text.trim());
     return Profile(
       name: name.isEmpty ? null : name,
       goal: _goal,
@@ -182,6 +218,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       heightCm: height == null
           ? null
           : ref.read(heightFormatProvider).toCm(height),
+      inseamCm: inseam == null
+          ? null
+          : ref.read(heightFormatProvider).toCm(inseam),
+      armSpanCm: armSpan == null
+          ? null
+          : ref.read(heightFormatProvider).toCm(armSpan),
+      torsoCm: torso == null
+          ? null
+          : ref.read(heightFormatProvider).toCm(torso),
       preferredUnit: ref.read(unitsProvider),
     );
   }
@@ -313,6 +358,43 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _StatField(
+                label: isMetric ? 'Inseam (cm)' : 'Inseam (in)',
+                hint: isMetric ? 'cm' : 'in',
+                controller: _inseamCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StatField(
+                label: isMetric ? 'Arm Span (cm)' : 'Arm Span (in)',
+                hint: isMetric ? 'cm' : 'in',
+                controller: _armSpanCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _StatField(
+                label: isMetric ? 'Torso (cm)' : 'Torso (in)',
+                hint: isMetric ? 'cm' : 'in',
+                controller: _torsoCtrl,
+                onChanged: _onFieldChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Spacer(),
+          ],
+        ),
 
         const SizedBox(height: 8),
         // BMI chip (read-only, calculated)
@@ -376,9 +458,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         const SizedBox(height: 20),
 
         // ── Active Target & Dieting Phase (Gradient Squircle) ──
+        const _ProfileLevelCard(),
+        const SizedBox(height: 12),
         const _ProfileActiveTargetSquircleCard(),
         const SizedBox(height: 12),
-        const _DreamPhysiqueCard(),
+        const DreamPhysiqueSummaryCard(),
+        const SizedBox(height: 12),
+        const DreamPhysiqueNutritionDirectionCard(),
 
         const SizedBox(height: 28),
 
@@ -411,6 +497,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                   ),
                 ],
               ),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
+              icon: Icons.music_note_rounded,
+              label: 'Media Controls Permission',
+              trailing: Icon(
+                Icons.chevron_right,
+                color: context.hx.onSurfaceVariant,
+              ),
+              onTap: () => WearSyncService().openMediaControlsPermission(),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -1001,5 +1097,111 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 }
 
 // ── Avatar header ─────────────────────────────────────────────────────────────
+
+class _ProfileLevelCard extends ConsumerWidget {
+  const _ProfileLevelCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final progressAsync = ref.watch(levelProgressProvider);
+    return progressAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (progress) {
+        final level = progress.level;
+        final remaining = progress.xpRemaining;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: () {
+              Haptics.selection();
+              context.push(AppRoutes.trainingLevel);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.military_tech_rounded, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Training level',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        level.title,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.primary.withValues(alpha: 0.8),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${progress.totalXp} XP · ${progress.completedWorkouts} workouts logged',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: progress.progressToNext,
+                      minHeight: 8,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.16),
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        remaining == null
+                            ? 'Top training level reached'
+                            : '$remaining XP to ${progress.nextLevel!.title}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: context.hx.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        'View Details',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
 
 /// Gradient squircle card displaying the active target calories, phase, pace and macros.

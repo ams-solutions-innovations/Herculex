@@ -62,6 +62,11 @@ class Profile {
   final MeasurementUnit preferredUnit;
   final bool countBurnedCalories;
   final String herculTone;
+  
+  // Anthropometrics
+  final double? inseamCm;
+  final double? armSpanCm;
+  final double? torsoCm;
 
   const Profile({
     this.name,
@@ -75,6 +80,9 @@ class Profile {
     this.preferredUnit = MeasurementUnit.metric,
     this.countBurnedCalories = false,
     this.herculTone = 'normal',
+    this.inseamCm,
+    this.armSpanCm,
+    this.torsoCm,
   });
 
   bool get isComplete =>
@@ -92,6 +100,9 @@ class Profile {
     MeasurementUnit? preferredUnit,
     bool? countBurnedCalories,
     String? herculTone,
+    double? inseamCm,
+    double? armSpanCm,
+    double? torsoCm,
   }) {
     return Profile(
       name: name ?? this.name,
@@ -105,6 +116,9 @@ class Profile {
       preferredUnit: preferredUnit ?? this.preferredUnit,
       countBurnedCalories: countBurnedCalories ?? this.countBurnedCalories,
       herculTone: herculTone ?? this.herculTone,
+      inseamCm: inseamCm ?? this.inseamCm,
+      armSpanCm: armSpanCm ?? this.armSpanCm,
+      torsoCm: torsoCm ?? this.torsoCm,
     );
   }
 
@@ -120,6 +134,9 @@ class Profile {
     'preferredUnit': preferredUnit.name,
     'countBurnedCalories': countBurnedCalories,
     'herculTone': herculTone,
+    'inseamCm': inseamCm,
+    'armSpanCm': armSpanCm,
+    'torsoCm': torsoCm,
   };
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
@@ -146,6 +163,9 @@ class Profile {
         : MeasurementUnit.values.byName(json['preferredUnit'] as String),
     countBurnedCalories: json['countBurnedCalories'] as bool? ?? false,
     herculTone: json['herculTone'] as String? ?? 'normal',
+    inseamCm: (json['inseamCm'] as num?)?.toDouble(),
+    armSpanCm: (json['armSpanCm'] as num?)?.toDouble(),
+    torsoCm: (json['torsoCm'] as num?)?.toDouble(),
   );
 
   String encode() => jsonEncode(toJson());

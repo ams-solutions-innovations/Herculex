@@ -9,6 +9,47 @@ final dreamPhysiqueServiceProvider = Provider<DreamPhysiqueService>((ref) {
   return DreamPhysiqueService(backend);
 });
 
+const canonicalProgrammingMuscleIds = <String>{
+  'chest',
+  'back',
+  'lats',
+  'traps',
+  'front_delts',
+  'side_delts',
+  'rear_delts',
+  'biceps',
+  'triceps',
+  'forearms',
+  'abs',
+  'obliques',
+  'neck',
+  'quads',
+  'hamstrings',
+  'glutes',
+  'calves',
+  'adductors',
+  'abductors',
+};
+
+enum ProgrammingPriorityLevel {
+  high,
+  medium,
+  maintenance;
+
+  String get wireValue => name;
+
+  static ProgrammingPriorityLevel fromWire(Object? value) {
+    return switch (value) {
+      'high' => ProgrammingPriorityLevel.high,
+      'medium' => ProgrammingPriorityLevel.medium,
+      'maintenance' => ProgrammingPriorityLevel.maintenance,
+      _ => throw const FormatException(
+        'Invalid programming priority in Dream Physique response.',
+      ),
+    };
+  }
+}
+
 class MusclePriority {
   final String group;
   final String priority; // 'high', 'medium', 'maintenance'
@@ -21,10 +62,120 @@ class MusclePriority {
   });
 
   factory MusclePriority.fromJson(Map<String, dynamic> json) {
+    final priority = ProgrammingPriorityLevel.fromWire(json['priority']);
     return MusclePriority(
-      group: json['group'] as String? ?? 'Muscle Group',
-      priority: json['priority'] as String? ?? 'medium',
-      focus: json['focus'] as String? ?? 'Progressive overload',
+      group: _requiredString(json, 'group'),
+      priority: priority.wireValue,
+      focus: _requiredString(json, 'focus'),
+    );
+  }
+}
+
+class ProgrammingMusclePriority {
+  final String muscleId;
+  final ProgrammingPriorityLevel priority;
+  final double confidence;
+  final String rationale;
+  final List<String> uncertainties;
+
+  const ProgrammingMusclePriority({
+    required this.muscleId,
+    required this.priority,
+    required this.confidence,
+    required this.rationale,
+    required this.uncertainties,
+  });
+
+  factory ProgrammingMusclePriority.fromJson(Map<String, dynamic> json) {
+    final muscleId = _requiredString(json, 'muscleId');
+    if (!canonicalProgrammingMuscleIds.contains(muscleId)) {
+      throw FormatException(
+        'Unknown canonical muscle id in Dream Physique response: $muscleId',
+      );
+    }
+
+    final confidence = _requiredDouble(json, 'confidence');
+    if (confidence < 0 || confidence > 1) {
+      throw const FormatException(
+        'Programming priority confidence must be between 0 and 1.',
+      );
+    }
+
+    return ProgrammingMusclePriority(
+      muscleId: muscleId,
+      priority: ProgrammingPriorityLevel.fromWire(json['priority']),
+      confidence: confidence,
+      rationale: _requiredString(json, 'rationale'),
+      uncertainties: _stringList(json['uncertainties']),
+    );
+  }
+
+  ProgrammingMusclePriority copyWith({ProgrammingPriorityLevel? priority}) {
+    return ProgrammingMusclePriority(
+      muscleId: muscleId,
+      priority: priority ?? this.priority,
+      confidence: confidence,
+      rationale: rationale,
+      uncertainties: uncertainties,
+    );
+  }
+}
+
+class DreamPhysiqueProgrammingProfile {
+  static const currentSchemaVersion = 1;
+
+  final int schemaVersion;
+  final double overallConfidence;
+  final List<ProgrammingMusclePriority> musclePriorities;
+  final List<String> uncertainties;
+
+  const DreamPhysiqueProgrammingProfile({
+    required this.schemaVersion,
+    required this.overallConfidence,
+    required this.musclePriorities,
+    required this.uncertainties,
+  });
+
+  factory DreamPhysiqueProgrammingProfile.fromJson(Map<String, dynamic> json) {
+    final schemaVersion = _requiredInt(json, 'schemaVersion');
+    if (schemaVersion < 1) {
+      throw const FormatException(
+        'Invalid Dream Physique programming profile version.',
+      );
+    }
+
+    final overallConfidence = _requiredDouble(json, 'overallConfidence');
+    if (overallConfidence < 0 || overallConfidence > 1) {
+      throw const FormatException(
+        'Programming profile confidence must be between 0 and 1.',
+      );
+    }
+
+    final rawPriorities = json['musclePriorities'];
+    if (rawPriorities is! List || rawPriorities.isEmpty) {
+      throw const FormatException(
+        'Dream Physique programming profile has no muscle priorities.',
+      );
+    }
+
+    final priorities = rawPriorities
+        .map((value) {
+          if (value is! Map) {
+            throw const FormatException(
+              'Invalid muscle priority in Dream Physique response.',
+            );
+          }
+          return ProgrammingMusclePriority.fromJson(
+            Map<String, dynamic>.from(value),
+          );
+        })
+        .toList(growable: false);
+
+    return DreamPhysiqueProgrammingProfile(
+      schemaVersion: schemaVersion,
+      overallConfidence: overallConfidence,
+      musclePriorities: priorities,
+      uncertainties: _stringList(json['uncertainties']),
     );
   }
 }
@@ -41,6 +192,8 @@ class DreamPhysiqueAnalysisResult {
   final String nutritionStrategy;
   final String trainingAdvice;
   final String overallAssessment;
+  final String targetAestheticStyle;
+  final DreamPhysiqueProgrammingProfile? programmingProfile;
   final bool isAiGenerated;
 
   const DreamPhysiqueAnalysisResult({
@@ -55,62 +208,67 @@ class DreamPhysiqueAnalysisResult {
     required this.nutritionStrategy,
     required this.trainingAdvice,
     required this.overallAssessment,
+    required this.targetAestheticStyle,
+    this.programmingProfile,
     this.isAiGenerated = true,
   });
 
   factory DreamPhysiqueAnalysisResult.fromJson(Map<String, dynamic> json) {
-    final months = (json['estimatedMonths'] as num?)?.toInt() ?? 6;
-    final range = json['timeframeRange'] as String? ?? '$months months';
-    final weightDelta = (json['weightChangeKg'] as num?)?.toDouble() ?? 0.0;
-    final muscleGain = (json['leanMuscleGainKg'] as num?)?.toDouble() ?? 2.5;
-    final fatLoss = (json['fatLossKg'] as num?)?.toDouble() ?? 3.0;
-    final targetBf = (json['targetBfPercent'] as num?)?.toDouble() ?? 12.0;
-    final currentBf = (json['currentEstimatedBf'] as num?)?.toDouble() ?? 18.0;
-
-    final rawPriorities = json['musclePriorities'] as List<dynamic>? ?? [];
+    final rawPriorities = json['musclePriorities'];
+    if (rawPriorities is! List) {
+      throw const FormatException(
+        'Dream Physique response is missing muscle priorities.',
+      );
+    }
     final priorities = rawPriorities
-        .map((p) => MusclePriority.fromJson(p is Map<String, dynamic> ? p : {}))
-        .toList();
+        .map((value) {
+          if (value is! Map) {
+            throw const FormatException(
+              'Invalid muscle priority in Dream Physique response.',
+            );
+          }
+          return MusclePriority.fromJson(Map<String, dynamic>.from(value));
+        })
+        .toList(growable: false);
+
+    final rawProgrammingProfile = json['programmingProfile'];
+    final programmingProfile = rawProgrammingProfile == null
+        ? null
+        : rawProgrammingProfile is Map
+        ? DreamPhysiqueProgrammingProfile.fromJson(
+            Map<String, dynamic>.from(rawProgrammingProfile),
+          )
+        : throw const FormatException(
+            'Invalid Dream Physique programming profile.',
+          );
 
     return DreamPhysiqueAnalysisResult(
-      estimatedMonths: months,
-      timeframeRange: range,
-      weightChangeKg: weightDelta,
-      leanMuscleGainKg: muscleGain,
-      fatLossKg: fatLoss,
-      targetBfPercent: targetBf,
-      currentEstimatedBf: currentBf,
-      musclePriorities: priorities.isNotEmpty
-          ? priorities
-          : const [
-              MusclePriority(
-                group: 'Upper Chest',
-                priority: 'high',
-                focus: 'Incline presses and angled cable crossovers',
-              ),
-              MusclePriority(
-                group: 'Lateral Delts',
-                priority: 'high',
-                focus: 'Lateral raises for V-taper',
-              ),
-              MusclePriority(
-                group: 'Back / Lats',
-                priority: 'medium',
-                focus: 'Wide pulldowns for back width',
-              ),
-            ],
-      nutritionStrategy:
-          json['nutritionStrategy'] as String? ??
-          'Recommended adjusted calorie intake with 2.0g protein per kg body weight.',
-      trainingAdvice:
-          json['trainingAdvice'] as String? ??
-          'Train 4-5x weekly with consistent progressive overload.',
-      overallAssessment:
-          json['overallAssessment'] as String? ??
-          'The goal is realistic and achievable with a consistent approach.',
+      estimatedMonths: _requiredInt(json, 'estimatedMonths'),
+      timeframeRange: _requiredString(json, 'timeframeRange'),
+      weightChangeKg: _requiredDouble(json, 'weightChangeKg'),
+      leanMuscleGainKg: _requiredDouble(json, 'leanMuscleGainKg'),
+      fatLossKg: _requiredDouble(json, 'fatLossKg'),
+      targetBfPercent: _requiredDouble(json, 'targetBfPercent'),
+      currentEstimatedBf: _requiredDouble(json, 'currentEstimatedBf'),
+      musclePriorities: priorities,
+      nutritionStrategy: _requiredString(json, 'nutritionStrategy'),
+      trainingAdvice: _requiredString(json, 'trainingAdvice'),
+      overallAssessment: _requiredString(json, 'overallAssessment'),
+      targetAestheticStyle: _requiredString(json, 'targetAestheticStyle'),
+      programmingProfile: programmingProfile,
       isAiGenerated: true,
     );
   }
+}
+
+class DreamPhysiqueAnalysisException implements Exception {
+  final String message;
+  final bool recoverable;
+
+  const DreamPhysiqueAnalysisException(this.message, {this.recoverable = true});
+
+  @override
+  String toString() => message;
 }
 
 class DreamPhysiqueService {
@@ -120,23 +278,26 @@ class DreamPhysiqueService {
 
   Future<DreamPhysiqueAnalysisResult> compareAndAnalyzePhysique({
     required List<File> currentImages,
-    required File targetImage,
+    required List<File> targetImages,
+    required bool consentGranted,
     Profile? profile,
     Map<String, double>? measurements,
-    String? targetGoalStyle,
     String? userNote,
   }) async {
-    final weightKg = profile?.weightKg ?? 78.0;
-    final heightCm = profile?.heightCm ?? 180.0;
-    final age = profile?.ageYears ?? 25;
-    final isMale = profile?.sex != BiologicalSex.female;
+    if (!consentGranted) {
+      throw const DreamPhysiqueAnalysisException(
+        'Confirm the photo privacy notice before starting the analysis.',
+        recoverable: false,
+      );
+    }
 
     final biometrics = <String, dynamic>{
-      'sex': isMale ? 'male' : 'female',
-      'weightKg': weightKg,
-      'heightCm': heightCm,
-      'ageYears': age,
-      'targetGoalStyle': targetGoalStyle ?? 'Lean & Aesthetic',
+      if (profile != null) ...{
+        'sex': profile.sex == BiologicalSex.female ? 'female' : 'male',
+        'weightKg': profile.weightKg,
+        'heightCm': profile.heightCm,
+        'ageYears': profile.ageYears,
+      },
       ...?measurements != null ? {'measurements': measurements} : null,
     };
 
@@ -145,99 +306,70 @@ class DreamPhysiqueService {
       for (final file in currentImages) {
         if (await file.exists()) {
           final bytes = await file.readAsBytes();
-          final mime = _mimeType(file.path);
-          currentPayload.add({'bytes': bytes, 'mimeType': mime});
+          currentPayload.add({
+            'bytes': bytes,
+            'mimeType': _mimeType(file.path),
+          });
         }
       }
 
       if (currentPayload.isEmpty) {
-        throw Exception('Select at least one photo of your current physique.');
+        throw const DreamPhysiqueAnalysisException(
+          'Select at least one available photo of your current physique.',
+          recoverable: false,
+        );
       }
 
-      if (!await targetImage.exists()) {
-        throw Exception('Target dream physique photo does not exist.');
+      if (targetImages.isEmpty) {
+        throw const DreamPhysiqueAnalysisException(
+          'Select at least one target photo of your dream physique.',
+          recoverable: false,
+        );
+      }
+      if (currentPayload.length + targetImages.length > 4) {
+        throw const DreamPhysiqueAnalysisException(
+          'Use at most four photos across your current and target physiques.',
+          recoverable: false,
+        );
       }
 
-      final targetBytes = await targetImage.readAsBytes();
-      final targetMime = _mimeType(targetImage.path);
+      final targetPayload = <Map<String, dynamic>>[];
+      for (final file in targetImages) {
+        if (!await file.exists()) {
+          throw const DreamPhysiqueAnalysisException(
+            'One of the selected target physique photos is no longer available.',
+            recoverable: false,
+          );
+        }
+        targetPayload.add({
+          'bytes': await file.readAsBytes(),
+          'mimeType': _mimeType(file.path),
+        });
+      }
 
       final resultJson = await _backend.analyzeDreamPhysique(
         currentImages: currentPayload,
-        targetImageBytes: targetBytes,
-        targetImageMimeType: targetMime,
+        targetImages: targetPayload,
         biometrics: biometrics,
         userNote: userNote,
       );
 
-      return DreamPhysiqueAnalysisResult.fromJson(resultJson);
-    } catch (e) {
-      // Smart fallback computation based on body weight, height and goal style
-      final estCurrentBf = isMale ? 18.0 : 25.0;
-      final targetBf = targetGoalStyle?.contains('Lean') == true
-          ? (isMale ? 10.5 : 18.0)
-          : (isMale ? 12.0 : 20.0);
-
-      final fatToLose = (weightKg * (estCurrentBf - targetBf) / 100.0).clamp(
-        1.0,
-        15.0,
-      );
-      final muscleToGain = (isMale ? 3.5 : 2.0);
-      final netWeightChange = muscleToGain - fatToLose;
-
-      // Realistic timeframe: fat loss @ 0.5kg/week, muscle gain @ 0.4kg/month
-      final monthsForFat = fatToLose / 2.0;
-      final monthsForMuscle = muscleToGain / 0.5;
-      final estMonths =
-          (monthsForFat > monthsForMuscle ? monthsForFat : monthsForMuscle)
-              .ceil()
-              .clamp(3, 18);
-
-      return DreamPhysiqueAnalysisResult(
-        estimatedMonths: estMonths,
-        timeframeRange: '${estMonths - 1} - ${estMonths + 2} months',
-        weightChangeKg: double.parse(netWeightChange.toStringAsFixed(1)),
-        leanMuscleGainKg: double.parse(muscleToGain.toStringAsFixed(1)),
-        fatLossKg: double.parse(fatToLose.toStringAsFixed(1)),
-        targetBfPercent: double.parse(targetBf.toStringAsFixed(1)),
-        currentEstimatedBf: double.parse(estCurrentBf.toStringAsFixed(1)),
-        musclePriorities: const [
-          MusclePriority(
-            group: 'Upper Chest',
-            priority: 'high',
-            focus:
-                'Incline dumbbell presses and angled cable flyes for upper chest fullness',
-          ),
-          MusclePriority(
-            group: 'Lateral Delts',
-            priority: 'high',
-            focus:
-                'Cable and dumbbell lateral raises with high frequency (2-3x weekly)',
-          ),
-          MusclePriority(
-            group: 'Back / V-Taper (Lats)',
-            priority: 'medium',
-            focus: 'Wide lat pulldowns and single-arm rows for back width',
-          ),
-          MusclePriority(
-            group: 'Core / Abs & Serratus',
-            priority: 'high',
-            focus:
-                'Hanging knee raises, cable crunches, and caloric deficit for leanness',
-          ),
-          MusclePriority(
-            group: 'Arms (Biceps / Triceps)',
-            priority: 'medium',
-            focus:
-                'Isolation movements for long head of triceps and bicep peak',
-          ),
-        ],
-        nutritionStrategy:
-            'Recommended moderate calorie deficit (~250–400 kcal below maintenance) with high protein intake (2.0–2.2 g/kg).',
-        trainingAdvice:
-            'Frequency of 4-5 sessions per week (Upper/Lower or PPL) with emphasis on upper chest and lateral delts.',
-        overallAssessment:
-            'Estimate based on biometric profile (AI connection: $e). Goal is achievable with consistent training and structured nutrition.',
-        isAiGenerated: false,
+      try {
+        return DreamPhysiqueAnalysisResult.fromJson(resultJson);
+      } on FormatException {
+        throw const DreamPhysiqueAnalysisException(
+          'Gemini returned an incomplete analysis. Your selections were kept; please try again.',
+        );
+      }
+    } on DreamPhysiqueAnalysisException {
+      rethrow;
+    } catch (error) {
+      final detail = error.toString().replaceFirst('Exception: ', '').trim();
+      final message = detail.isEmpty
+          ? 'Gemini analysis is temporarily unavailable.'
+          : detail;
+      throw DreamPhysiqueAnalysisException(
+        '$message Your selections were kept; please try again.',
       );
     }
   }
@@ -248,4 +380,34 @@ class DreamPhysiqueService {
     if (lower.endsWith('.webp')) return 'image/webp';
     return 'image/jpeg';
   }
+}
+
+int _requiredInt(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is num) return value.toInt();
+  throw FormatException('Dream Physique response is missing $key.');
+}
+
+double _requiredDouble(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is num) return value.toDouble();
+  throw FormatException('Dream Physique response is missing $key.');
+}
+
+String _requiredString(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is String && value.trim().isNotEmpty) return value.trim();
+  throw FormatException('Dream Physique response is missing $key.');
+}
+
+List<String> _stringList(Object? value) {
+  if (value == null) return const [];
+  if (value is! List || value.any((item) => item is! String)) {
+    throw const FormatException('Expected a list of uncertainty notes.');
+  }
+  return value
+      .cast<String>()
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
 }
