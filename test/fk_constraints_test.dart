@@ -32,8 +32,8 @@ class _FkEdge {
 
 /// The full, hard-coded inventory of every foreign key declared in
 /// `lib/data/local/tables.dart` (emitted in `database.g.dart`), captured by
-/// `PRAGMA foreign_key_list` against a freshly-migrated database. Schema v39
-/// has 27 CASCADE + 13 RESTRICT + 11 SET NULL + 1 NO ACTION = 52 edges. Any
+/// `PRAGMA foreign_key_list` against a freshly-migrated database. Schema v42
+/// has 28 CASCADE + 13 RESTRICT + 12 SET NULL + 1 NO ACTION = 54 edges. Any
 /// future `tables.dart` edit that changes an edge must update this inventory
 /// deliberately — that is the point of the test.
 const _expectedEdges = <_FkEdge>[
@@ -295,6 +295,21 @@ const _expectedEdges = <_FkEdge>[
     'id',
     'SET NULL',
   ),
+  // Schema v42 (17-01): explanation trail for every slot, every week.
+  _FkEdge(
+    'program_slot_explanations',
+    'slot_id',
+    'program_exercise_slots',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'program_slot_explanations',
+    'chosen_exercise_id',
+    'exercise_catalog',
+    'id',
+    'SET NULL',
+  ),
 ];
 
 void main() {
@@ -349,14 +364,14 @@ void main() {
     expect(actualEdges.toSet(), _expectedEdges.toSet());
   });
 
-  test('edge action counts match the schema-v39 inventory', () {
+  test('edge action counts match the schema-v42 inventory', () {
     final byAction = <String, int>{};
     for (final edge in _expectedEdges) {
       byAction[edge.onDelete] = (byAction[edge.onDelete] ?? 0) + 1;
     }
-    expect(byAction['CASCADE'], 27);
+    expect(byAction['CASCADE'], 28);
     expect(byAction['RESTRICT'], 13);
-    expect(byAction['SET NULL'], 11);
+    expect(byAction['SET NULL'], 12);
     expect(byAction['NO ACTION'], 1);
   });
 

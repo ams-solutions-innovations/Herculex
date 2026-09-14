@@ -1112,12 +1112,12 @@ class AppDatabase extends _$AppDatabase {
           );
 
           await ExerciseImporter.runFromAsset(this);
-        }
 
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_exercise_catalog_scaling '
-          'ON exercise_catalog(scaling_group, scaling_order)',
-        );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_exercise_catalog_scaling '
+            'ON exercise_catalog(scaling_group, scaling_order)',
+          );
+        }
       }
       if (from < 42 && to >= 42) {
         await m.createTable(programSlotExplanations);
