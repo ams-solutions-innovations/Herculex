@@ -9,6 +9,7 @@ import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/supplements/application/supplement_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 
@@ -38,6 +39,11 @@ class DashboardConfigNotifier extends Notifier<DashboardConfig> {
 
   void reorder(int oldIndex, int newIndex) {
     state = state.reorder(oldIndex, newIndex);
+    ref.read(dashboardConfigRepositoryProvider).save(state);
+  }
+
+  void stackSlots(int sourceIndex, int targetIndex) {
+    state = state.stackSlots(sourceIndex, targetIndex);
     ref.read(dashboardConfigRepositoryProvider).save(state);
   }
 
@@ -346,3 +352,77 @@ final weekCalendarSummaryProvider =
 
       return AsyncData(result);
     });
+
+/// The program week number for [schedule]'s program day, or null when the
+/// day isn't part of a program (e.g. an inline one-off schedule).
+final _scheduleWeekNumberProvider = FutureProvider.family<int?, int>((
+  ref,
+  programWeekId,
+) async {
+  final db = ref.watch(appDatabaseProvider);
+  final week = await (db.select(
+    db.programWeeks,
+  )..where((t) => t.id.equals(programWeekId))).getSingleOrNull();
+  return week?.weekIndex;
+});
+
+/// Pushes today's planned workout + up to 4 supplements to the Training
+/// home-screen widget whenever [todaysScheduledWorkoutProvider] or
+/// [supplementDayStateProvider] emits new data.
+///
+/// Only the fields the Training card actually renders are reused here
+/// ([TodaysScheduledWorkout.title], [TodaysScheduledWorkout.exerciseCount],
+/// and the program week number) — no scheduling/domain logic is
+/// re-derived. An exercise-name list ("Bench · OHP · Dips" in the mockup)
+/// and duration/volume estimates are not exposed by any existing provider,
+/// so the widget shows an exercise count instead of fabricating that data.
+final widgetTrainingSyncControllerProvider = Provider<void>((ref) {
+  final widgetSync = ref.watch(widgetSyncServiceProvider);
+
+  Future<void> doSync() async {
+    final workout = ref.read(todaysScheduledWorkoutProvider).valueOrNull;
+    final supplementState = ref
+        .read(supplementDayStateProvider)
+        .asData
+        ?.value;
+    final supplements =
+        supplementState?.supplements.take(4).toList() ?? const [];
+    final takenIds = supplementState?.takenIds ?? const <String>{};
+
+    int? week;
+    if (workout != null) {
+      week = await ref.read(
+        _scheduleWeekNumberProvider(workout.programDay.programWeekId).future,
+      );
+    }
+
+    await widgetSync.syncTraining(
+      title: workout?.title,
+      week: week,
+      exerciseCount: workout?.exerciseCount ?? 0,
+      supplementNames: [for (final s in supplements) s.name],
+      supplementDoses: [for (final s in supplements) s.doseLabel ?? ''],
+      supplementTimes: [for (final s in supplements) s.timeHHMM ?? ''],
+      supplementTaken: [
+        for (final s in supplements) takenIds.contains(s.id),
+      ],
+      supplementTakenCount: supplementState?.takenCount ?? 0,
+      supplementTotalCount: supplementState?.totalCount ?? 0,
+    );
+  }
+
+  ref.listen<AsyncValue<TodaysScheduledWorkout?>>(
+    todaysScheduledWorkoutProvider,
+    (_, next) {
+      if (next.hasValue) doSync();
+    },
+    fireImmediately: true,
+  );
+
+  ref.listen<AsyncValue<SupplementDayState>>(supplementDayStateProvider, (
+    _,
+    next,
+  ) {
+    if (next.hasValue) doSync();
+  });
+});

@@ -23,6 +23,57 @@ class GymsRepository {
         .getSingleOrNull();
   }
 
+  Stream<List<GymEquipmentData>> watchEquipment(int gymId) {
+    return (_db.select(_db.gymEquipment)
+          ..where((t) => t.gymId.equals(gymId))
+          ..orderBy([(t) => OrderingTerm(expression: t.equipmentKey)]))
+        .watch();
+  }
+
+  Future<void> setAllEquipment(int gymId, bool enabled) async {
+    await (_db.update(_db.gyms)..where((t) => t.id.equals(gymId))).write(
+      GymsCompanion(allEquipment: Value(enabled)),
+    );
+  }
+
+  Future<void> setEquipmentAvailable(
+    int gymId,
+    String equipmentKey,
+    bool available,
+  ) async {
+    final existing =
+        await (_db.select(_db.gymEquipment)..where(
+              (t) =>
+                  t.gymId.equals(gymId) & t.equipmentKey.equals(equipmentKey),
+            ))
+            .getSingleOrNull();
+    if (existing == null) {
+      await _db
+          .into(_db.gymEquipment)
+          .insert(
+            GymEquipmentCompanion.insert(
+              gymId: gymId,
+              equipmentKey: equipmentKey,
+              available: Value(available),
+            ),
+          );
+    } else {
+      await (_db.update(_db.gymEquipment)
+            ..where((t) => t.id.equals(existing.id)))
+          .write(GymEquipmentCompanion(available: Value(available)));
+    }
+    await setAllEquipment(gymId, false);
+  }
+
+  Future<void> addEquipmentPreset(int gymId, Set<String> keys) async {
+    await _db.transaction(() async {
+      await setAllEquipment(gymId, false);
+      for (final key in keys) {
+        await setEquipmentAvailable(gymId, key, true);
+      }
+    });
+  }
+
   Future<int> createGym(String name, {bool isDefault = false}) async {
     return _db.transaction(() async {
       if (isDefault) await _clearDefault();

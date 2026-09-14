@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-import 'package:herculex/data/local/database.dart' hide FastingStage;
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/fasting/domain/fasting_stage.dart';
 
 class FastingStageImporter {

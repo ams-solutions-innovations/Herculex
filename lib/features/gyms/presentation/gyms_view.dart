@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/gyms/data/gyms_repository.dart';
+import 'package:herculex/features/gyms/domain/gym_equipment_catalog.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 
 /// Gym profile management (§10). Sessions tag their gym; deleting a gym keeps
@@ -71,7 +74,15 @@ class GymsView extends ConsumerWidget {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          subtitle: g.isDefault ? const Text('Default') : null,
+                          subtitle: Text(
+                            [
+                              if (g.isDefault) 'Default',
+                              g.allEquipment
+                                  ? 'All equipment'
+                                  : 'Custom equipment',
+                            ].join(' · '),
+                          ),
+                          onTap: () => _showEquipment(context, repo, g),
                           trailing: PopupMenuButton<String>(
                             onSelected: (action) async {
                               switch (action) {
@@ -139,5 +150,139 @@ class GymsView extends ConsumerWidget {
     );
     final trimmed = result?.trim();
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
+
+  static Future<void> _showEquipment(
+    BuildContext context,
+    GymsRepository repo,
+    GymData gym,
+  ) {
+    var allEquipment = gym.allEquipment;
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => FractionallySizedBox(
+          heightFactor: .9,
+          child: SafeArea(
+            child: StreamBuilder<List<GymEquipmentData>>(
+              stream: repo.watchEquipment(gym.id),
+              builder: (context, snapshot) {
+                final selected = {
+                  for (final row in snapshot.data ?? const <GymEquipmentData>[])
+                    if (row.available) row.equipmentKey,
+                };
+                final groups = <String, List<GymEquipmentOption>>{};
+                for (final option in GymEquipmentCatalog.options) {
+                  groups.putIfAbsent(option.group, () => []).add(option);
+                }
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${gym.name} equipment',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  'Unavailable equipment is hidden from Smart selection and exercise pickers.',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: AppColors.secondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SwitchListTile.adaptive(
+                      title: const Text('All equipment available'),
+                      subtitle: const Text(
+                        'Disable to choose what this gym has',
+                      ),
+                      value: allEquipment,
+                      onChanged: (value) async {
+                        setSheetState(() => allEquipment = value);
+                        await repo.setAllEquipment(gym.id, value);
+                      },
+                    ),
+                    if (!allEquipment)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final preset
+                                  in GymEquipmentCatalog.quickPresets.entries)
+                                ActionChip(
+                                  label: Text('+ ${preset.key}'),
+                                  onPressed: () => repo.addEquipmentPreset(
+                                    gym.id,
+                                    preset.value,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                        children: [
+                          for (final group in groups.entries) ...[
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 16,
+                                bottom: 6,
+                              ),
+                              child: Text(
+                                group.key.toUpperCase(),
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      color: AppColors.secondary,
+                                      letterSpacing: 1,
+                                    ),
+                              ),
+                            ),
+                            for (final option in group.value)
+                              CheckboxListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(option.label),
+                                value:
+                                    allEquipment ||
+                                    selected.contains(option.key),
+                                onChanged: allEquipment
+                                    ? null
+                                    : (value) => repo.setEquipmentAvailable(
+                                        gym.id,
+                                        option.key,
+                                        value ?? false,
+                                      ),
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

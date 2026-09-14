@@ -104,6 +104,19 @@ enum DashboardWidgetType {
     DashboardWidgetType.workoutCalendar => DashboardWidgetKind.large,
   };
 
+  /// Whether this widget can be stacked with [other].
+  /// All standard cards and compact pills (CNS Load, Volume, Streaks, Remaining Calories,
+  /// Recovery, Trends, Quick Scan, Supplements, Hercul Insights, PRs, etc.)
+  /// are mutually stackable. Large widgets stack with other large widgets.
+  bool canStackWith(DashboardWidgetType other) {
+    if (this == other) return false;
+    if (kind == DashboardWidgetKind.large ||
+        other.kind == DashboardWidgetKind.large) {
+      return kind == other.kind;
+    }
+    return true;
+  }
+
   /// Whether this widget's layout tolerates shrinking to half the dashboard
   /// width. Full-bleed feature widgets (fasting timer, macros, calendar…)
   /// aren't built for it, so they never show a resize handle.
@@ -145,6 +158,11 @@ class DashboardWidgetConfig {
   DashboardWidgetType get type => types.first;
   bool get isStack => types.length > 1;
   String get id => types.map((t) => t.id).join('+');
+
+  bool canStackWith(DashboardWidgetConfig other) {
+    if (id == other.id) return false;
+    return type.canStackWith(other.type);
+  }
 
   /// Resolved grid span, clamped to full for stacks and non-resizable types
   /// regardless of what [size] happens to hold.
@@ -221,12 +239,45 @@ class DashboardConfig {
     return DashboardConfig(list);
   }
 
+  /// Merges the slot at [sourceIndex] into the slot at [targetIndex].
+  DashboardConfig stackSlots(int sourceIndex, int targetIndex) {
+    if (sourceIndex == targetIndex ||
+        sourceIndex < 0 ||
+        sourceIndex >= widgets.length ||
+        targetIndex < 0 ||
+        targetIndex >= widgets.length) {
+      return this;
+    }
+    final sourceSlot = widgets[sourceIndex];
+    final targetSlot = widgets[targetIndex];
+    if (!targetSlot.canStackWith(sourceSlot)) return this;
+
+    final newTypes = [...targetSlot.types];
+    for (final t in sourceSlot.types) {
+      if (!newTypes.contains(t)) {
+        newTypes.add(t);
+      }
+    }
+
+    final list = <DashboardWidgetConfig>[];
+    for (var i = 0; i < widgets.length; i++) {
+      if (i == targetIndex) {
+        list.add(targetSlot.copyWith(types: newTypes));
+      } else if (i != sourceIndex) {
+        list.add(widgets[i]);
+      }
+    }
+    return DashboardConfig(list);
+  }
+
   /// Stacks [addedType] into the slot containing [targetType].
   DashboardConfig stackWidgets(
     DashboardWidgetType targetType,
     DashboardWidgetType addedType,
   ) {
-    if (targetType == addedType) return this;
+    if (targetType == addedType || !targetType.canStackWith(addedType)) {
+      return this;
+    }
     final list = <DashboardWidgetConfig>[];
     for (final w in widgets) {
       if (w.types.contains(targetType)) {

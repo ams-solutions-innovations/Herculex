@@ -82,6 +82,15 @@ abstract final class HerculSignals {
   /// `male | female` (label).
   static const sex = 'profile.sex';
 
+  // ── ergonomics ───────────────────────────────────────────────────────────
+  /// `short | average | long` (label).
+  static const ergoLegProportion = 'ergonomics.proportion.leg';
+  static const ergoArmProportion = 'ergonomics.proportion.arm';
+  static const ergoTorsoProportion = 'ergonomics.proportion.torso';
+
+  /// Next exercise movement mechanics name or slug (label).
+  static const nextExerciseMechanics = 'workout.next_exercise_mechanics';
+
   // ── central nervous system ───────────────────────────────────────────────
   /// Rolling fatigue 0–1.
   static const cnsLoad = 'cns.currentLoad';
@@ -170,7 +179,15 @@ abstract final class HerculSignals {
   };
 
   /// Signals whose value is a string.
-  static const labelSignals = {goal, sex, cnsStatus};
+  static const labelSignals = {
+    goal,
+    sex,
+    cnsStatus,
+    ergoLegProportion,
+    ergoArmProportion,
+    ergoTorsoProportion,
+    nextExerciseMechanics,
+  };
 
   static const all = {
     heightCm,
@@ -178,6 +195,10 @@ abstract final class HerculSignals {
     ageYears,
     goal,
     sex,
+    ergoLegProportion,
+    ergoArmProportion,
+    ergoTorsoProportion,
+    nextExerciseMechanics,
     cnsLoad,
     cnsReadiness,
     cnsAcwr,

@@ -338,6 +338,14 @@ void main() {
   });
 
   group('ProgressionEngine', () {
+    test('aesthetics is a distinct, reps-first progression focus', () {
+      expect(ProgressionGoal.aesthetics.label, 'Aesthetics');
+      expect(ProgressionGoal.aesthetics.repsMin, 10);
+      expect(ProgressionGoal.aesthetics.repsMax, 15);
+      expect(ProgressionGoal.aesthetics.recommendedProgressionModel, 'double');
+      expect(ProgressionGoal.strength.recommendedProgressionModel, 'linear');
+    });
+
     test('adds a rep below the goal rep-range ceiling', () {
       final t = ProgressionEngine.suggestNext(
         lastWeightKg: 100,

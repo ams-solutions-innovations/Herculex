@@ -12,6 +12,7 @@ import 'package:herculex/features/hercul/domain/hercul_context.dart';
 import 'package:herculex/features/hercul/domain/hercul_engine.dart';
 import 'package:herculex/features/hercul/domain/hercul_rule.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/profile/domain/anthropometry.dart';
 import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 import 'package:intl/intl.dart';
 
@@ -60,6 +61,17 @@ final herculContextProvider = FutureProvider<HerculContext>((ref) async {
       scalars[HerculSignals.ageYears] = profile.ageYears!.toDouble();
     labels[HerculSignals.goal] = profile.goal.name;
     if (profile.sex != null) labels[HerculSignals.sex] = profile.sex!.name;
+
+    final anthropometry = AnthropometryRatios(profile);
+    if (anthropometry.legProportion != null) {
+      labels[HerculSignals.ergoLegProportion] = anthropometry.legProportion!.name;
+    }
+    if (anthropometry.armProportion != null) {
+      labels[HerculSignals.ergoArmProportion] = anthropometry.armProportion!.name;
+    }
+    if (anthropometry.torsoProportion != null) {
+      labels[HerculSignals.ergoTorsoProportion] = anthropometry.torsoProportion!.name;
+    }
   }
 
   if (cns != null) {

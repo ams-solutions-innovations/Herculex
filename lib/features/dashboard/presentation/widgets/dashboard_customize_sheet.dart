@@ -66,15 +66,20 @@ class DashboardCustomizeSheet extends ConsumerWidget {
             const SizedBox(height: 16),
             Text(
               'Customize Dashboard',
+              textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              'Reorder · toggle widgets · customize shapes · manage stacks',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.secondary,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Reorder · toggle widgets · customize shapes · manage stacks',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
               ),
             ),
             const SizedBox(height: 14),
@@ -95,6 +100,7 @@ class DashboardCustomizeSheet extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     sliver: SliverReorderableList(
                       itemCount: displaySlots.length,
+                      autoScrollerVelocityScalar: 200,
                       onReorderItem: (oldIdx, newIdx) {
                         Haptics.selection();
                         notifier.reorder(oldIdx, newIdx);
@@ -173,6 +179,7 @@ class DashboardCustomizeSheet extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                       sliver: SliverReorderableList(
                         itemCount: macroConfig.entries.length,
+                        autoScrollerVelocityScalar: 200,
                         onReorderItem: (oldIdx, newIdx) {
                           Haptics.selection();
                           macroNotifier.reorder(oldIdx, newIdx);
@@ -259,7 +266,7 @@ class _SingleSlotCard extends StatelessWidget {
     for (final s in allSlots) {
       for (final t in s.types) {
         if (!isFemale && t == DashboardWidgetType.cycle) continue;
-        if (t != type && t.kind == type.kind) {
+        if (t != type && type.canStackWith(t)) {
           stackCandidates.add(t);
         }
       }
@@ -273,7 +280,7 @@ class _SingleSlotCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -297,6 +304,8 @@ class _SingleSlotCard extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -364,12 +373,11 @@ class _StackSlotCard extends StatelessWidget {
     final hx = context.hx;
 
     // Compatible candidate widgets that can be added into this stack
-    final stackKind = slot.types.first.kind;
     final stackCandidates = <DashboardWidgetType>[];
     for (final s in allSlots) {
       for (final t in s.types) {
         if (!isFemale && t == DashboardWidgetType.cycle) continue;
-        if (!slot.types.contains(t) && t.kind == stackKind) {
+        if (!slot.types.contains(t) && slot.type.canStackWith(t)) {
           stackCandidates.add(t);
         }
       }

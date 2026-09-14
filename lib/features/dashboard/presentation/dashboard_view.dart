@@ -170,6 +170,7 @@ class DashboardView extends ConsumerWidget {
                           );
                           return LongPressDraggable<int>(
                             data: index,
+                            delay: const Duration(milliseconds: 120),
                             onDragStarted: Haptics.medium,
                             feedback: Material(
                               color: Colors.transparent,
@@ -212,15 +213,40 @@ class DashboardView extends ConsumerWidget {
                               onWillAcceptWithDetails: (details) =>
                                   details.data != index,
                               onAcceptWithDetails: (details) {
-                                Haptics.selection();
-                                ref
-                                    .read(dashboardConfigProvider.notifier)
-                                    .reorder(details.data, index);
+                                final sourceIndex = details.data;
+                                final sourceSlot = (sourceIndex >= 0 &&
+                                        sourceIndex < config.widgets.length)
+                                    ? config.widgets[sourceIndex]
+                                    : null;
+                                if (sourceSlot != null &&
+                                    w.canStackWith(sourceSlot)) {
+                                  Haptics.heavy();
+                                  ref
+                                      .read(dashboardConfigProvider.notifier)
+                                      .stackSlots(sourceIndex, index);
+                                } else {
+                                  Haptics.selection();
+                                  ref
+                                      .read(dashboardConfigProvider.notifier)
+                                      .reorder(sourceIndex, index);
+                                }
                               },
                               builder: (context, candidate, rejected) {
                                 final isTarget = candidate.isNotEmpty;
+                                final draggedIdx = candidate.firstOrNull;
+                                final draggedSlot = (draggedIdx != null &&
+                                        draggedIdx >= 0 &&
+                                        draggedIdx < config.widgets.length)
+                                    ? config.widgets[draggedIdx]
+                                    : null;
+                                final isStackCandidate = isTarget &&
+                                    draggedSlot != null &&
+                                    w.canStackWith(draggedSlot);
+
                                 return AnimatedScale(
-                                  scale: isTarget ? 0.94 : 1.0,
+                                  scale: isTarget
+                                      ? (isStackCandidate ? 0.96 : 0.94)
+                                      : 1.0,
                                   duration: HxMotion.fast,
                                   curve: HxMotion.emphasized,
                                   child: AnimatedContainer(
@@ -228,18 +254,70 @@ class DashboardView extends ConsumerWidget {
                                     curve: HxMotion.emphasized,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(28),
+                                      border: isStackCandidate
+                                          ? Border.all(
+                                              color: context.hx.primary,
+                                              width: 2.5,
+                                            )
+                                          : null,
                                       boxShadow: isTarget
                                           ? [
                                               BoxShadow(
-                                                color: context.hx.primary
-                                                    .withValues(alpha: 0.45),
-                                                blurRadius: 16,
+                                                color: (isStackCandidate
+                                                        ? context.hx.primary
+                                                        : context.hx.secondary)
+                                                    .withValues(alpha: 0.5),
+                                                blurRadius: 18,
                                                 spreadRadius: 2,
                                               ),
                                             ]
                                           : null,
                                     ),
-                                    child: tile,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        tile,
+                                        if (isStackCandidate)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: context.hx.primary,
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.3),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.layers_outlined,
+                                                  size: 14,
+                                                  color: Colors.white,
+                                                ),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  'Drop to Stack',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },
@@ -835,24 +913,25 @@ class _StackedDashboardWidgetState
     super.dispose();
   }
 
-  double _heightForKind(DashboardWidgetKind kind) {
-    return switch (kind) {
-      DashboardWidgetKind.card => 184.0,
-      DashboardWidgetKind.large => 330.0,
-      DashboardWidgetKind.pill => 76.0,
-    };
+  double _heightForTypes(List<DashboardWidgetType> types) {
+    if (types.any((t) => t.kind == DashboardWidgetKind.large)) {
+      return 330.0;
+    }
+    if (types.any((t) => t.kind == DashboardWidgetKind.card)) {
+      return 184.0;
+    }
+    return 76.0;
   }
 
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
     final shape = ref.watch(dashboardCardShapeProvider);
-    final primaryKind = widget.types.first.kind;
-    final height = _heightForKind(primaryKind);
+    final height = _heightForTypes(widget.types);
     final count = widget.types.length;
-    final layerRadius = primaryKind == DashboardWidgetKind.pill
-        ? shape.pillRadius
-        : shape.cardRadius;
+    final isPillOnly =
+        widget.types.every((t) => t.kind == DashboardWidgetKind.pill);
+    final layerRadius = isPillOnly ? shape.pillRadius : shape.cardRadius;
 
     return GestureDetector(
       onLongPress: widget.onLongPress,
@@ -914,7 +993,13 @@ class _StackedDashboardWidgetState
                     setState(() => _page = i);
                   },
                   itemBuilder: (context, index) {
-                    return widget.renderWidget(widget.types[index]);
+                    final type = widget.types[index];
+                    final child = widget.renderWidget(type);
+                    if (height > 100 &&
+                        type.kind == DashboardWidgetKind.pill) {
+                      return Center(child: child);
+                    }
+                    return child;
                   },
                 ),
               ),
@@ -1069,8 +1154,65 @@ class _EditableDashboardTile extends ConsumerWidget {
                   },
                 ),
               ),
+            if (slot.isStack)
+              Positioned(
+                bottom: -8,
+                right: -8,
+                child: _UnstackButton(
+                  onTap: () {
+                    Haptics.selection();
+                    notifier.unstackWidget(slot.types.last);
+                  },
+                ),
+              ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Small circular unstack control in dashboard edit mode for stacked slots.
+class _UnstackButton extends StatelessWidget {
+  const _UnstackButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: hx.surfaceContainer,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.layers_clear_outlined, size: 13, color: hx.secondary),
+            const SizedBox(width: 4),
+            Text(
+              'Unstack',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: hx.secondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

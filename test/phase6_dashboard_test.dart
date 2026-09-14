@@ -109,6 +109,68 @@ void main() {
       expect(await svc.todaysWorkout(), isNull);
     });
 
+    test('resolves and starts the exact selected same-day schedule', () async {
+      final svc = makeService();
+      final squat = await makeExercise('Test Squat');
+      final press = await makeExercise('Test Press');
+      final firstId = await scheduleLegDay('2026-06-15', [squat]);
+      final secondId = await scheduleLegDay('2026-06-15', [press]);
+
+      final selected = await svc.workoutForSchedule(secondId);
+      expect(selected, isNotNull);
+      expect(selected!.schedule.id, secondId);
+
+      final sessionId = await svc.startScheduledWorkout(selected);
+      final schedules = await (db.select(
+        db.scheduledWorkouts,
+      )..orderBy([(t) => OrderingTerm(expression: t.id)])).get();
+      final byId = {for (final schedule in schedules) schedule.id: schedule};
+      expect(byId[firstId]!.completedSessionId, isNull);
+      expect(byId[secondId]!.completedSessionId, sessionId);
+
+      final exercises = await (db.select(
+        db.workoutExercises,
+      )..where((t) => t.sessionId.equals(sessionId))).get();
+      expect(exercises.single.exerciseId, press);
+    });
+
+    test('resuming reuses the linked in-progress session', () async {
+      final svc = makeService();
+      final squat = await makeExercise('Test Squat');
+      final scheduleId = await scheduleLegDay('2026-06-15', [squat]);
+
+      final firstId = await svc.startScheduledWorkoutById(scheduleId);
+      final resumedId = await svc.startScheduledWorkoutById(scheduleId);
+
+      expect(resumedId, firstId);
+      expect(await db.select(db.workoutSessions).get(), hasLength(1));
+      final schedule = await (db.select(
+        db.scheduledWorkouts,
+      )..where((t) => t.id.equals(scheduleId))).getSingle();
+      expect(schedule.completedSessionId, firstId);
+      expect(schedule.status, 'in_progress');
+    });
+
+    test(
+      'preview resolves the selected schedule without creating a session',
+      () async {
+        final svc = makeService();
+        final squat = await makeExercise('Test Squat');
+        final scheduleId = await scheduleLegDay('2026-06-15', [squat]);
+
+        final preview = await svc.previewScheduledWorkout(scheduleId);
+
+        expect(preview, isNotNull);
+        expect(preview!.exercises.single.exerciseId, squat);
+        expect(await db.select(db.workoutSessions).get(), isEmpty);
+        final schedule = await (db.select(
+          db.scheduledWorkouts,
+        )..where((t) => t.id.equals(scheduleId))).getSingle();
+        expect(schedule.completedSessionId, isNull);
+        expect(schedule.status, 'planned');
+      },
+    );
+
     test(
       'starting pre-populates a session and marks the schedule in progress',
       () async {
@@ -215,7 +277,7 @@ void main() {
         // Template sets came across too — the reason this path delegates to
         // TemplatesRepository instead of copying exercises itself.
         final sets = await db.select(db.setEntries).get();
-        expect(sets.any((s) => s.reps == 5), isTrue);
+        expect(sets.any((s) => s.plannedRepsMin == 5 && s.reps == 0), isTrue);
       },
     );
 

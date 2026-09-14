@@ -127,11 +127,13 @@ final hrVsTonnageProvider = FutureProvider<BiometricCorrelationResult>((
   );
 });
 
-/// Reference to the shared [WidgetSyncService] singleton (declared in
-/// nutrition_providers.dart; accessed here to avoid a duplicate).
-/// If nutrition_providers hasn't initialised it yet, this lazily creates one.
+/// Analytics-side [WidgetSyncService].
+///
+/// A separate instance from nutrition's `widgetSyncServiceProvider` — the
+/// service is stateless (it only forwards over a MethodChannel), and keeping a
+/// local provider avoids an analytics → nutrition dependency.
 final _analyticsWidgetSyncProvider = Provider<WidgetSyncService>((ref) {
-  return WidgetSyncService();
+  return WidgetSyncService(clock: ref.watch(clockProvider));
 });
 
 /// Pushes CNS readiness data to the CNS Load home-screen widget whenever
