@@ -6,11 +6,16 @@ import 'package:herculex/design_system/theme/app_theme.dart';
 /// The fade-on-scroll header is the shell's whole reason to exist, so its
 /// direction handling is pinned down here.
 void main() {
-  Widget harness({Widget? pinnedBottom, int itemCount = 30}) => MaterialApp(
+  Widget harness({
+    Widget? pinnedBottom,
+    List<Widget> actions = const [],
+    int itemCount = 30,
+  }) => MaterialApp(
     theme: AppTheme.darkTheme,
     home: HxScreenShell(
       title: 'Calorie Trends',
       pinnedBottom: pinnedBottom,
+      actions: actions,
       children: [
         for (var i = 0; i < itemCount; i++)
           SizedBox(height: 100, child: Text('item $i')),
@@ -49,6 +54,28 @@ void main() {
     expect(find.byType(HxBackButton), findsOneWidget);
     expect(headerOpacity(tester), 1.0);
     expect(titleOpacity(tester), 1.0);
+  });
+
+  testWidgets('reserves title space for every header action', (tester) async {
+    await tester.pumpWidget(
+      harness(
+        actions: [
+          IconButton(icon: const Icon(Icons.edit), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.delete), onPressed: () {}),
+        ],
+      ),
+    );
+
+    final titlePadding = find
+        .ancestor(
+          of: find.text('Calorie Trends'),
+          matching: find.byType(Padding),
+        )
+        .first;
+    expect(
+      tester.widget<Padding>(titlePadding).padding,
+      const EdgeInsets.only(left: 56, right: 112),
+    );
   });
 
   testWidgets('header hides on scroll down and returns on scroll up', (

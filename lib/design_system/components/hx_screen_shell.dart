@@ -117,6 +117,16 @@ class _HxScreenShellState extends State<HxScreenShell>
     final theme = Theme.of(context);
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // Each header action occupies a 48 px button plus its 8 px gap.  The
+    // title used to reserve a fixed 56 px on the right, which let it draw
+    // underneath the first action whenever a screen had more than one.
+    const headerActionSlotWidth = HxSpace.x10 + HxSpace.x4;
+    // Keep the title centered against the standard back-button slot even on
+    // screens that intentionally hide it.
+    const titleLeftInset = headerActionSlotWidth;
+    final titleRightInset = widget.actions.isEmpty
+        ? headerActionSlotWidth
+        : headerActionSlotWidth * widget.actions.length;
 
     final slivers =
         widget.slivers ??
@@ -138,7 +148,11 @@ class _HxScreenShellState extends State<HxScreenShell>
                     bottom:
                         bottomInset +
                         HxSpace.x8 +
-                        (widget.pinnedBottom == null ? 0 : 80),
+                        // A pinned action sits on top of the scroll view.
+                        // Reserve its full touch area plus breathing room so
+                        // the last card can always scroll above it instead of
+                        // being obscured by the CTA.
+                        (widget.pinnedBottom == null ? 0 : 112),
                   ),
                   sliver: slivers.length == 1
                       ? slivers.first
@@ -186,8 +200,9 @@ class _HxScreenShellState extends State<HxScreenShell>
                           ignoring: !_isAtTop,
                           child: Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 56,
+                              padding: EdgeInsets.only(
+                                left: titleLeftInset,
+                                right: titleRightInset,
                               ),
                               child: Text(
                                 widget.title,

@@ -5,14 +5,25 @@
     "priority": 95,
     "cooldownDays": 7,
     "when": [
-      { "signal": "cns.deloadSuggested", "op": "==", "value": 1 },
-      { "signal": "cns.acwr", "op": ">", "value": 1.4 }
+      {
+        "signal": "cns.deloadSuggested",
+        "op": "==",
+        "value": 1
+      },
+      {
+        "signal": "cns.acwr",
+        "op": ">",
+        "value": 1.4
+      }
     ],
     "copy": {
-      "normal": "Hercul sees your CNS load running {cns.acwr|1dp}× your four-week average. That is the point where progress starts costing more than it returns — take a deload week.",
-      "honest": "Hercul sees {cns.acwr|1dp}× your four-week average and no deload in sight. You are not being hard, you are being slow. Take the week."
+      "normal": "Hercul sees your CNS load running {cns.acwr|1dp}\u00d7 your four-week average. That is the point where progress starts costing more than it returns \u2014 take a deload week.",
+      "honest": "Hercul sees {cns.acwr|1dp}\u00d7 your four-week average and no deload in sight. You are not being hard, you are being slow. Take the week."
     },
-    "cta": { "type": "route", "value": "/insights" }
+    "cta": {
+      "type": "route",
+      "value": "/insights"
+    }
   },
   {
     "id": "cns-high-today",
@@ -20,10 +31,14 @@
     "priority": 85,
     "cooldownDays": 2,
     "when": [
-      { "signal": "cns.status", "op": "==", "text": "HIGH" }
+      {
+        "signal": "cns.status",
+        "op": "==",
+        "text": "HIGH"
+      }
     ],
     "copy": {
-      "normal": "Hercul sees your CNS is running high today — readiness {cns.readiness|pct}%. Good day for isolations. Push the heavy compounds to your next session.",
+      "normal": "Hercul sees your CNS is running high today \u2014 readiness {cns.readiness|pct}%. Good day for isolations. Push the heavy compounds to your next session.",
       "honest": "Hercul sees {cns.readiness|pct}% readiness. Whatever heroic compound you had planned today, it is going to be a bad rep at a weight you already own. Do isolations."
     }
   },
@@ -33,29 +48,49 @@
     "priority": 40,
     "cooldownDays": 4,
     "when": [
-      { "signal": "cns.status", "op": "==", "text": "FRESH" },
-      { "signal": "session.daysSinceLastWorkout", "op": ">=", "value": 1 }
+      {
+        "signal": "cns.status",
+        "op": "==",
+        "text": "FRESH"
+      },
+      {
+        "signal": "session.daysSinceLastWorkout",
+        "op": ">=",
+        "value": 1
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you fully recovered — readiness {cns.readiness|pct}%. This is the day to go after a top set.",
+      "normal": "Hercul sees you fully recovered \u2014 readiness {cns.readiness|pct}%. This is the day to go after a top set.",
       "honest": "Hercul sees {cns.readiness|pct}% readiness. No excuses available today. Go and be heavy."
     }
   },
-
   {
     "id": "rear-delts-neglected",
     "domain": "volume",
     "priority": 80,
     "cooldownDays": 7,
     "when": [
-      { "signal": "volume.weeklySets", "arg": "Rear Delts", "op": "<", "value": 6 },
-      { "signal": "volume.weeklySets", "arg": "Chest", "op": ">", "value": 12 }
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Rear Delts",
+        "op": "<",
+        "value": 6
+      },
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Chest",
+        "op": ">",
+        "value": 12
+      }
     ],
     "copy": {
       "normal": "Hercul sees {volume.weeklySets:Chest|int} chest sets and {volume.weeklySets:Rear Delts|int} rear delt sets this week. If your shoulders complain on bench, that ratio is the first place to look.",
       "honest": "Hercul sees {volume.weeklySets:Chest|int} sets of chest and {volume.weeklySets:Rear Delts|int} of rear delts. Then you wonder why your shoulders hurt on bench. That is not bad luck, that is arithmetic."
     },
-    "cta": { "type": "route", "value": "/insights" }
+    "cta": {
+      "type": "route",
+      "value": "/insights"
+    }
   },
   {
     "id": "push-pull-imbalance",
@@ -63,13 +98,20 @@
     "priority": 70,
     "cooldownDays": 10,
     "when": [
-      { "signal": "volume.pushPct", "op": ">", "value": 65 }
+      {
+        "signal": "volume.pushPct",
+        "op": ">",
+        "value": 65
+      }
     ],
     "copy": {
-      "normal": "Hercul sees {volume.pushPct|int}% of your volume going to pushing. Pulling builds the shoulders that let you keep pushing — even it up over the next few weeks.",
+      "normal": "Hercul sees {volume.pushPct|int}% of your volume going to pushing. Pulling builds the shoulders that let you keep pushing \u2014 even it up over the next few weeks.",
       "honest": "Hercul sees {volume.pushPct|int}% push. You are building the half of your body you can see in the mirror and quietly skipping the half that holds it together."
     },
-    "cta": { "type": "route", "value": "/insights" }
+    "cta": {
+      "type": "route",
+      "value": "/insights"
+    }
   },
   {
     "id": "legs-under-trained",
@@ -77,11 +119,21 @@
     "priority": 75,
     "cooldownDays": 7,
     "when": [
-      { "signal": "volume.weeklySets", "arg": "Quads", "op": "<", "value": 6 },
-      { "signal": "volume.weeklySets", "arg": "Chest", "op": ">", "value": 10 }
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Quads",
+        "op": "<",
+        "value": 6
+      },
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Chest",
+        "op": ">",
+        "value": 10
+      }
     ],
     "copy": {
-      "normal": "Hercul sees {volume.weeklySets:Quads|int} quad sets against {volume.weeklySets:Chest|int} for chest this week. Legs carry everything else — give them a real session.",
+      "normal": "Hercul sees {volume.weeklySets:Quads|int} quad sets against {volume.weeklySets:Chest|int} for chest this week. Legs carry everything else \u2014 give them a real session.",
       "honest": "Hercul sees {volume.weeklySets:Quads|int} sets of quads. Your upper body is thriving and your legs have been quietly retired. Hercul is not angry, just disappointed."
     }
   },
@@ -91,30 +143,51 @@
     "priority": 65,
     "cooldownDays": 7,
     "when": [
-      { "signal": "volume.weeklySets", "arg": "Chest", "op": ">", "value": 24 }
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Chest",
+        "op": ">",
+        "value": 24
+      }
     ],
     "copy": {
-      "normal": "Hercul sees {volume.weeklySets:Chest|int} chest sets this week — past the point most people can recover from. More is not the missing ingredient here.",
+      "normal": "Hercul sees {volume.weeklySets:Chest|int} chest sets this week \u2014 past the point most people can recover from. More is not the missing ingredient here.",
       "honest": "Hercul sees {volume.weeklySets:Chest|int} chest sets. You are not training chest any more, you are just visiting it repeatedly."
     }
   },
-
   {
     "id": "protein-under-target",
     "domain": "nutrition",
     "priority": 78,
     "cooldownDays": 3,
-    "requires": ["nutrition.daysLogged7d"],
+    "requires": [
+      "nutrition.daysLogged7d"
+    ],
     "when": [
-      { "signal": "nutrition.proteinPct7d", "op": "<", "value": 0.85 },
-      { "signal": "nutrition.daysLogged7d", "op": ">=", "value": 4 },
-      { "signal": "session.sessionsThisWeek", "op": ">=", "value": 2 }
+      {
+        "signal": "nutrition.proteinPct7d",
+        "op": "<",
+        "value": 0.85
+      },
+      {
+        "signal": "nutrition.daysLogged7d",
+        "op": ">=",
+        "value": 4
+      },
+      {
+        "signal": "session.sessionsThisWeek",
+        "op": ">=",
+        "value": 2
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you hitting {nutrition.proteinPct7d|pct}% of your protein target this week across {session.sessionsThisWeek|int} sessions. You are training hard enough to deserve the recovery — one more solid portion a day covers it.",
+      "normal": "Hercul sees you hitting {nutrition.proteinPct7d|pct}% of your protein target this week across {session.sessionsThisWeek|int} sessions. You are training hard enough to deserve the recovery \u2014 one more solid portion a day covers it.",
       "honest": "Hercul sees {session.sessionsThisWeek|int} sessions this week and {nutrition.proteinPct7d|pct}% of your protein target. You are paying for the gym and refusing to collect."
     },
-    "cta": { "type": "route", "value": "/nutrition" }
+    "cta": {
+      "type": "route",
+      "value": "/nutrition"
+    }
   },
   {
     "id": "cutting-but-eating-over",
@@ -122,15 +195,30 @@
     "priority": 82,
     "cooldownDays": 5,
     "when": [
-      { "signal": "profile.goal", "op": "==", "text": "weightLoss" },
-      { "signal": "nutrition.kcalPct7d", "op": ">", "value": 1.05 },
-      { "signal": "nutrition.daysLogged7d", "op": ">=", "value": 5 }
+      {
+        "signal": "profile.goal",
+        "op": "==",
+        "text": "weightLoss"
+      },
+      {
+        "signal": "nutrition.kcalPct7d",
+        "op": ">",
+        "value": 1.05
+      },
+      {
+        "signal": "nutrition.daysLogged7d",
+        "op": ">=",
+        "value": 5
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you averaging {nutrition.kcalPct7d|pct}% of your calorie target while cutting. The target is the plan — either eat to it or move it deliberately.",
+      "normal": "Hercul sees you averaging {nutrition.kcalPct7d|pct}% of your calorie target while cutting. The target is the plan \u2014 either eat to it or move it deliberately.",
       "honest": "Hercul sees {nutrition.kcalPct7d|pct}% of your calorie target on a cut. That is not a cut, that is maintenance with extra paperwork."
     },
-    "cta": { "type": "route", "value": "/nutrition" }
+    "cta": {
+      "type": "route",
+      "value": "/nutrition"
+    }
   },
   {
     "id": "bulking-under-eating",
@@ -138,15 +226,30 @@
     "priority": 72,
     "cooldownDays": 5,
     "when": [
-      { "signal": "profile.goal", "op": "==", "text": "muscleGain" },
-      { "signal": "nutrition.kcalPct7d", "op": "<", "value": 0.92 },
-      { "signal": "nutrition.daysLogged7d", "op": ">=", "value": 5 }
+      {
+        "signal": "profile.goal",
+        "op": "==",
+        "text": "muscleGain"
+      },
+      {
+        "signal": "nutrition.kcalPct7d",
+        "op": "<",
+        "value": 0.92
+      },
+      {
+        "signal": "nutrition.daysLogged7d",
+        "op": ">=",
+        "value": 5
+      }
     ],
     "copy": {
       "normal": "Hercul sees {nutrition.kcalPct7d|pct}% of your calorie target while you are trying to gain. Muscle is built from surplus, not from good intentions.",
       "honest": "Hercul sees you trying to grow on {nutrition.kcalPct7d|pct}% of your target. You cannot build a house and skip the bricks."
     },
-    "cta": { "type": "route", "value": "/nutrition" }
+    "cta": {
+      "type": "route",
+      "value": "/nutrition"
+    }
   },
   {
     "id": "nutrition-logging-lapsed",
@@ -154,14 +257,25 @@
     "priority": 55,
     "cooldownDays": 5,
     "when": [
-      { "signal": "nutrition.daysLogged7d", "op": "<=", "value": 2 },
-      { "signal": "nutrition.daysLogged7d", "op": ">=", "value": 1 }
+      {
+        "signal": "nutrition.daysLogged7d",
+        "op": "<=",
+        "value": 2
+      },
+      {
+        "signal": "nutrition.daysLogged7d",
+        "op": ">=",
+        "value": 1
+      }
     ],
     "copy": {
-      "normal": "Hercul sees {nutrition.daysLogged7d|int} days logged out of seven. He is not going to draw conclusions from that — and neither should you.",
+      "normal": "Hercul sees {nutrition.daysLogged7d|int} days logged out of seven. He is not going to draw conclusions from that \u2014 and neither should you.",
       "honest": "Hercul sees {nutrition.daysLogged7d|int} days logged this week. Hard to fix a diet nobody is willing to look at."
     },
-    "cta": { "type": "route", "value": "/nutrition" }
+    "cta": {
+      "type": "route",
+      "value": "/nutrition"
+    }
   },
   {
     "id": "protein-on-point",
@@ -169,29 +283,48 @@
     "priority": 30,
     "cooldownDays": 10,
     "when": [
-      { "signal": "nutrition.proteinPct7d", "op": ">=", "value": 0.95 },
-      { "signal": "nutrition.daysLogged7d", "op": ">=", "value": 6 }
+      {
+        "signal": "nutrition.proteinPct7d",
+        "op": ">=",
+        "value": 0.95
+      },
+      {
+        "signal": "nutrition.daysLogged7d",
+        "op": ">=",
+        "value": 6
+      }
     ],
     "copy": {
       "normal": "Hercul sees {nutrition.proteinPct7d|pct}% of your protein target, six days logged. This is the boring part that actually works. Keep it.",
       "honest": "Hercul sees {nutrition.proteinPct7d|pct}% protein and a full week logged. Fine. Hercul has nothing to complain about. Do not let it go to your head."
     }
   },
-
   {
     "id": "cut-stalled-three-weeks",
     "domain": "bodyweight",
     "priority": 88,
     "cooldownDays": 7,
     "when": [
-      { "signal": "profile.goal", "op": "==", "text": "weightLoss" },
-      { "signal": "body.weightDeltaKg", "arg": "21", "op": ">", "value": -0.5 }
+      {
+        "signal": "profile.goal",
+        "op": "==",
+        "text": "weightLoss"
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "21",
+        "op": ">",
+        "value": -0.5
+      }
     ],
     "copy": {
-      "normal": "Hercul sees your weight has moved {body.weightDeltaKg:21|abs} kg in three weeks while you are cutting. Nothing is broken — the intake just is not where you think it is. Re-weigh portions for a week or take another 200 kcal off.",
+      "normal": "Hercul sees your weight has moved {body.weightDeltaKg:21|abs} kg in three weeks while you are cutting. Nothing is broken \u2014 the intake just is not where you think it is. Re-weigh portions for a week or take another 200 kcal off.",
       "honest": "Hercul sees three weeks of cutting and {body.weightDeltaKg:21|abs} kg to show for it. Something is not making it into the log. Hercul is not angry, just disappointed."
     },
-    "cta": { "type": "route", "value": "/measurements" }
+    "cta": {
+      "type": "route",
+      "value": "/measurements"
+    }
   },
   {
     "id": "bulk-stalled-three-weeks",
@@ -199,14 +332,26 @@
     "priority": 76,
     "cooldownDays": 7,
     "when": [
-      { "signal": "profile.goal", "op": "==", "text": "muscleGain" },
-      { "signal": "body.weightDeltaKg", "arg": "21", "op": "<", "value": 0.3 }
+      {
+        "signal": "profile.goal",
+        "op": "==",
+        "text": "muscleGain"
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "21",
+        "op": "<",
+        "value": 0.3
+      }
     ],
     "copy": {
       "normal": "Hercul sees your bodyweight flat over three weeks on a gaining phase. Add 200 kcal and hold it for a fortnight before judging it.",
       "honest": "Hercul sees three weeks of \"bulking\" and no bulk. You are eating like someone who is scared of the scale."
     },
-    "cta": { "type": "route", "value": "/measurements" }
+    "cta": {
+      "type": "route",
+      "value": "/measurements"
+    }
   },
   {
     "id": "cut-too-fast",
@@ -214,29 +359,49 @@
     "priority": 84,
     "cooldownDays": 7,
     "when": [
-      { "signal": "profile.goal", "op": "==", "text": "weightLoss" },
-      { "signal": "body.weightDeltaKg", "arg": "14", "op": "<", "value": -2.5 }
+      {
+        "signal": "profile.goal",
+        "op": "==",
+        "text": "weightLoss"
+      },
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "14",
+        "op": "<",
+        "value": -2.5
+      }
     ],
     "copy": {
-      "normal": "Hercul sees {body.weightDeltaKg:14|abs} kg down in two weeks. That is faster than muscle survives — ease the deficit unless there is a reason for the hurry.",
+      "normal": "Hercul sees {body.weightDeltaKg:14|abs} kg down in two weeks. That is faster than muscle survives \u2014 ease the deficit unless there is a reason for the hurry.",
       "honest": "Hercul sees {body.weightDeltaKg:14|abs} kg gone in a fortnight. Some of that was muscle you spent a year earning. Slow down."
     }
   },
-
   {
     "id": "squat-abandoned",
     "domain": "consistency",
     "priority": 68,
     "cooldownDays": 10,
     "when": [
-      { "signal": "exercise.lastPerformedDays", "arg": "barbell-back-squat", "op": ">", "value": 21 },
-      { "signal": "session.sessionsPerWeek4w", "op": ">=", "value": 2 }
+      {
+        "signal": "exercise.lastPerformedDays",
+        "arg": "barbell-back-squat",
+        "op": ">",
+        "value": 21
+      },
+      {
+        "signal": "session.sessionsPerWeek4w",
+        "op": ">=",
+        "value": 2
+      }
     ],
     "copy": {
       "normal": "Hercul sees {exercise.lastPerformedDays:barbell-back-squat|int} days since your last squat, while everything else is on schedule. Put it back at the front of a session.",
       "honest": "Hercul sees {exercise.lastPerformedDays:barbell-back-squat|int} days since you squatted. Everything else is going great. Funny, that."
     },
-    "cta": { "type": "substitute", "value": "barbell-back-squat" }
+    "cta": {
+      "type": "substitute",
+      "value": "barbell-back-squat"
+    }
   },
   {
     "id": "training-lapsed",
@@ -244,10 +409,14 @@
     "priority": 90,
     "cooldownDays": 4,
     "when": [
-      { "signal": "session.daysSinceLastWorkout", "op": ">=", "value": 7 }
+      {
+        "signal": "session.daysSinceLastWorkout",
+        "op": ">=",
+        "value": 7
+      }
     ],
     "copy": {
-      "normal": "Hercul sees {session.daysSinceLastWorkout|int} days since your last session. Do not try to make it up — just do a normal workout today.",
+      "normal": "Hercul sees {session.daysSinceLastWorkout|int} days since your last session. Do not try to make it up \u2014 just do a normal workout today.",
       "honest": "Hercul sees {session.daysSinceLastWorkout|int} days. The plan does not care why. Go and do a session, an ordinary one, today."
     }
   },
@@ -257,28 +426,43 @@
     "priority": 25,
     "cooldownDays": 14,
     "when": [
-      { "signal": "session.sessionsPerWeek4w", "op": ">=", "value": 3.5 }
+      {
+        "signal": "session.sessionsPerWeek4w",
+        "op": ">=",
+        "value": 3.5
+      }
     ],
     "copy": {
       "normal": "Hercul sees {session.sessionsPerWeek4w|1dp} sessions a week for a month straight. That consistency is worth more than any single programme.",
       "honest": "Hercul sees {session.sessionsPerWeek4w|1dp} sessions a week for four weeks. Hercul has checked twice and can find nothing wrong. Unsettling."
     }
   },
-
   {
     "id": "tall-squat-lowbar",
     "domain": "ergonomics",
     "priority": 60,
     "cooldownDays": 21,
     "when": [
-      { "signal": "profile.heightCm", "op": ">=", "value": 188 },
-      { "signal": "exercise.performedLast30d", "arg": "barbell-back-squat", "op": ">=", "value": 3 }
+      {
+        "signal": "profile.heightCm",
+        "op": ">=",
+        "value": 188
+      },
+      {
+        "signal": "exercise.performedLast30d",
+        "arg": "barbell-back-squat",
+        "op": ">=",
+        "value": 3
+      }
     ],
     "copy": {
       "normal": "Hercul sees you squatting regularly at {profile.heightCm|int} cm. Longer femurs force more forward lean to keep the bar over midfoot, so a low-bar position or a heeled shoe usually buys back the depth you are fighting for. Worth a three-week trial.",
-      "honest": "Hercul sees {profile.heightCm|int} cm grinding high-bar squats. Your femurs are never going to make that look like the video. Go low-bar or put your heels up — it is leverage, not character."
+      "honest": "Hercul sees {profile.heightCm|int} cm grinding high-bar squats. Your femurs are never going to make that look like the video. Go low-bar or put your heels up \u2014 it is leverage, not character."
     },
-    "cta": { "type": "substitute", "value": "barbell-back-squat" }
+    "cta": {
+      "type": "substitute",
+      "value": "barbell-back-squat"
+    }
   },
   {
     "id": "tall-sumo-lagging-squat",
@@ -286,14 +470,26 @@
     "priority": 58,
     "cooldownDays": 21,
     "when": [
-      { "signal": "profile.heightCm", "op": ">=", "value": 188 },
-      { "signal": "exercise.e1rmRatio", "arg": "sumo-deadlift:barbell-back-squat", "op": "<", "value": 1.1 }
+      {
+        "signal": "profile.heightCm",
+        "op": ">=",
+        "value": 188
+      },
+      {
+        "signal": "exercise.e1rmRatio",
+        "arg": "sumo-deadlift:barbell-back-squat",
+        "op": "<",
+        "value": 1.1
+      }
     ],
     "copy": {
-      "normal": "Hercul sees your sumo deadlift sitting at {exercise.e1rmRatio:sumo-deadlift:barbell-back-squat|1dp}× your back squat. At {profile.heightCm|int} cm that is largely anatomy — a wide stance asks a lot of long femurs. Conventional often suits your build better; run it for a block and compare.",
-      "honest": "Hercul sees your sumo barely clearing your squat at {exercise.e1rmRatio:sumo-deadlift:barbell-back-squat|1dp}×. Some of that is being {profile.heightCm|int} cm and pulling the stance that punishes it. Pick conventional, commit to a block, then argue."
+      "normal": "Hercul sees your sumo deadlift sitting at {exercise.e1rmRatio:sumo-deadlift:barbell-back-squat|1dp}\u00d7 your back squat. At {profile.heightCm|int} cm that is largely anatomy \u2014 a wide stance asks a lot of long femurs. Conventional often suits your build better; run it for a block and compare.",
+      "honest": "Hercul sees your sumo barely clearing your squat at {exercise.e1rmRatio:sumo-deadlift:barbell-back-squat|1dp}\u00d7. Some of that is being {profile.heightCm|int} cm and pulling the stance that punishes it. Pick conventional, commit to a block, then argue."
     },
-    "cta": { "type": "substitute", "value": "sumo-deadlift" }
+    "cta": {
+      "type": "substitute",
+      "value": "sumo-deadlift"
+    }
   },
   {
     "id": "tall-bench-long-arms",
@@ -301,12 +497,26 @@
     "priority": 55,
     "cooldownDays": 21,
     "when": [
-      { "signal": "profile.heightCm", "op": ">=", "value": 188 },
-      { "signal": "exercise.performedLast30d", "arg": "barbell-bench-press", "op": ">=", "value": 3 },
-      { "signal": "volume.weeklySets", "arg": "Rear Delts", "op": "<", "value": 8 }
+      {
+        "signal": "profile.heightCm",
+        "op": ">=",
+        "value": 188
+      },
+      {
+        "signal": "exercise.performedLast30d",
+        "arg": "barbell-bench-press",
+        "op": ">=",
+        "value": 3
+      },
+      {
+        "signal": "volume.weeklySets",
+        "arg": "Rear Delts",
+        "op": "<",
+        "value": 8
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you benching often at {profile.heightCm|int} cm on {volume.weeklySets:Rear Delts|int} rear delt sets a week. Long arms mean a longer bar path and more triceps off the chest, and the shoulder spends longer at end range — direct rear delt and rotator work is part of the lift, not an extra.",
+      "normal": "Hercul sees you benching often at {profile.heightCm|int} cm on {volume.weeklySets:Rear Delts|int} rear delt sets a week. Long arms mean a longer bar path and more triceps off the chest, and the shoulder spends longer at end range \u2014 direct rear delt and rotator work is part of the lift, not an extra.",
       "honest": "Hercul sees {profile.heightCm|int} cm of leverage against you on bench and {volume.weeklySets:Rear Delts|int} rear delt sets defending the joint. Long arms make that press a shoulder-health problem before it is a chest problem. Fix the back of the shoulder."
     }
   },
@@ -316,11 +526,20 @@
     "priority": 45,
     "cooldownDays": 28,
     "when": [
-      { "signal": "profile.heightCm", "op": "<=", "value": 170 },
-      { "signal": "exercise.performedLast30d", "arg": "conventional-deadlift", "op": ">=", "value": 2 }
+      {
+        "signal": "profile.heightCm",
+        "op": "<=",
+        "value": 170
+      },
+      {
+        "signal": "exercise.performedLast30d",
+        "arg": "conventional-deadlift",
+        "op": ">=",
+        "value": 2
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you pulling conventional at {profile.heightCm|int} cm — a shorter build usually keeps the bar close and the back angle friendly here. Worth trying a heavier top set before assuming sumo is the answer.",
+      "normal": "Hercul sees you pulling conventional at {profile.heightCm|int} cm \u2014 a shorter build usually keeps the bar close and the back angle friendly here. Worth trying a heavier top set before assuming sumo is the answer.",
       "honest": "Hercul sees {profile.heightCm|int} cm pulling conventional. That is the stance your build is actually good at. Stop reading about sumo and add weight."
     }
   },
@@ -330,11 +549,20 @@
     "priority": 89,
     "cooldownDays": 7,
     "when": [
-      { "signal": "body.weightDeltaKg", "arg": "14", "op": ">", "value": 1.0 },
-      { "signal": "nutrition.kcalPct14d", "op": "<", "value": 0.95 }
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "14",
+        "op": ">",
+        "value": 1.0
+      },
+      {
+        "signal": "nutrition.kcalPct14d",
+        "op": "<",
+        "value": 0.95
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you up {body.weightDeltaKg:14|abs} kg over two weeks while logging a deficit. Unless you have just started creatine, which holds water, some calories are going unlogged — oils and snacks are the usual suspects.",
+      "normal": "Hercul sees you up {body.weightDeltaKg:14|abs} kg over two weeks while logging a deficit. Unless you have just started creatine, which holds water, some calories are going unlogged \u2014 oils and snacks are the usual suspects.",
       "honest": "Hercul sees +{body.weightDeltaKg:14|abs} kg on the scale and a deficit in the app. Unless you are drinking creatine by the spoonful, you are eating food you are not logging. The math does not lie."
     }
   },
@@ -344,11 +572,20 @@
     "priority": 87,
     "cooldownDays": 7,
     "when": [
-      { "signal": "body.weightDeltaKg", "arg": "14", "op": "<", "value": -0.5 },
-      { "signal": "nutrition.kcalPct14d", "op": ">", "value": 1.05 }
+      {
+        "signal": "body.weightDeltaKg",
+        "arg": "14",
+        "op": "<",
+        "value": -0.5
+      },
+      {
+        "signal": "nutrition.kcalPct14d",
+        "op": ">",
+        "value": 1.05
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you logging a surplus while the scale dropped {body.weightDeltaKg:14|abs} kg. Your real expenditure is running higher than the estimate — add food if you want to grow.",
+      "normal": "Hercul sees you logging a surplus while the scale dropped {body.weightDeltaKg:14|abs} kg. Your real expenditure is running higher than the estimate \u2014 add food if you want to grow.",
       "honest": "You log a bulk, the scale says -{body.weightDeltaKg:14|abs} kg. Stop eating like a bird and eat an actual surplus."
     }
   },
@@ -358,11 +595,20 @@
     "priority": 80,
     "cooldownDays": 14,
     "when": [
-      { "signal": "nutrition.kcalPct14d", "op": ">", "value": 1.05 },
-      { "signal": "exercise.e1rmDeltaKg14d", "arg": "barbell-back-squat", "op": "<=", "value": 0 }
+      {
+        "signal": "nutrition.kcalPct14d",
+        "op": ">",
+        "value": 1.05
+      },
+      {
+        "signal": "exercise.e1rmDeltaKg14d",
+        "arg": "barbell-back-squat",
+        "op": "<=",
+        "value": 0
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you in a surplus with a squat that has not moved in 14 days. Those extra calories are not turning into muscle — check your training volume, or sleep more.",
+      "normal": "Hercul sees you in a surplus with a squat that has not moved in 14 days. Those extra calories are not turning into muscle \u2014 check your training volume, or sleep more.",
       "honest": "Hercul sees a surplus and a squat that has not moved in 14 days. You are not bulking, you are just eating. Add volume or add sleep, then earn the food."
     }
   },
@@ -372,11 +618,20 @@
     "priority": 60,
     "cooldownDays": 21,
     "when": [
-      { "signal": "nutrition.kcalPct14d", "op": "<", "value": 0.9 },
-      { "signal": "exercise.e1rmDeltaKg14d", "arg": "barbell-bench-press", "op": ">", "value": 2 }
+      {
+        "signal": "nutrition.kcalPct14d",
+        "op": "<",
+        "value": 0.9
+      },
+      {
+        "signal": "exercise.e1rmDeltaKg14d",
+        "arg": "barbell-bench-press",
+        "op": ">",
+        "value": 2
+      }
     ],
     "copy": {
-      "normal": "Hercul sees your strength climbing through a deficit. That is fatigue management and programming done right — keep it exactly as it is.",
+      "normal": "Hercul sees your strength climbing through a deficit. That is fatigue management and programming done right \u2014 keep it exactly as it is.",
       "honest": "Strength up while in a deficit. That is the hard version and you are pulling it off. Do not get clever and change something."
     }
   },
@@ -386,10 +641,15 @@
     "priority": 75,
     "cooldownDays": 28,
     "when": [
-      { "signal": "exercise.e1rmRatioBelted", "arg": "barbell-back-squat", "op": ">", "value": 1.15 }
+      {
+        "signal": "exercise.e1rmRatioBelted",
+        "arg": "barbell-back-squat",
+        "op": ">",
+        "value": 1.15
+      }
     ],
     "copy": {
-      "normal": "Hercul sees you squat {exercise.e1rmRatioBelted:barbell-back-squat|1dp}x more with a belt than without. Your legs clearly have the strength; your core is what is holding them back — start on dedicated trunk work (planks, ab wheel).",
+      "normal": "Hercul sees you squat {exercise.e1rmRatioBelted:barbell-back-squat|1dp}x more with a belt than without. Your legs clearly have the strength; your core is what is holding them back \u2014 start on dedicated trunk work (planks, ab wheel).",
       "honest": "Your belted squat is {exercise.e1rmRatioBelted:barbell-back-squat|1dp}x your raw squat. The belt is doing your abs' job. Fix the core, or your back pays for it."
     }
   },
@@ -399,11 +659,67 @@
     "priority": 85,
     "cooldownDays": 10,
     "when": [
-      { "signal": "biometrics.sleepVsRpeR2", "op": ">", "value": 0.4 }
+      {
+        "signal": "biometrics.sleepVsRpeR2",
+        "op": ">",
+        "value": 0.4
+      }
     ],
     "copy": {
-      "normal": "Hercul sees your sleep tracking closely with your training RPE. After a bad night, expect the same weights to feel heavier today — plan around it rather than pushing through.",
+      "normal": "Hercul sees your sleep tracking closely with your training RPE. After a bad night, expect the same weights to feel heavier today \u2014 plan around it rather than pushing through.",
       "honest": "Your RPE follows your sleep almost one to one. You slept badly, so today's weights will feel heavy, and that is not weakness. Do not run into the wall to prove a point."
+    }
+  },
+  {
+    "id": "ergo-long-femur-squat",
+    "domain": "ergonomics",
+    "priority": 50,
+    "cooldownDays": 14,
+    "when": [
+      {
+        "signal": "ergonomics.proportion.leg",
+        "op": "==",
+        "text": "long"
+      },
+      {
+        "signal": "workout.next_exercise_mechanics",
+        "op": "==",
+        "text": "Squat"
+      }
+    ],
+    "copy": {
+      "normal": "Hercul noticed you have relatively long femurs. For your upcoming squats, you might find a low-bar position or an elevated heel more comfortable to maintain an upright torso.",
+      "honest": "Hercul sees you've got long femurs and a squat coming up. If you're doing high-bar in flat shoes, you're fighting your own mechanics. Try low-bar or lifting shoes."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/exercises"
+    }
+  },
+  {
+    "id": "ergo-long-arms-bench",
+    "domain": "ergonomics",
+    "priority": 50,
+    "cooldownDays": 14,
+    "when": [
+      {
+        "signal": "ergonomics.proportion.arm",
+        "op": "==",
+        "text": "long"
+      },
+      {
+        "signal": "workout.next_exercise_mechanics",
+        "op": "==",
+        "text": "Bench Press"
+      }
+    ],
+    "copy": {
+      "normal": "With a longer arm span, bench pressing requires a greater range of motion. Consider a slightly wider grip to reduce shoulder strain at the bottom.",
+      "honest": "Long arms mean you have to press the bar an extra mile. Widen your grip a bit or you're just putting unnecessary wear on your shoulders."
+    },
+    "cta": {
+      "type": "route",
+      "value": "/exercises"
     }
   }
 ]

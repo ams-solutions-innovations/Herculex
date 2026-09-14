@@ -16,6 +16,7 @@ import 'package:herculex/features/analytics/presentation/views/muscle_volume_ove
 import 'package:herculex/features/buddy/presentation/buddy_join_scanner_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_schedule_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_view.dart';
+import 'package:herculex/features/gamification/presentation/training_level_view.dart';
 import 'package:herculex/features/gyms/presentation/gyms_view.dart';
 import 'package:herculex/features/health/presentation/cycle_tracking_view.dart';
 import 'package:herculex/features/health/presentation/health_integrations_view.dart';
@@ -23,6 +24,7 @@ import 'package:herculex/features/health/presentation/health_platform_detail_vie
 import 'package:herculex/features/measurements/presentation/measurements_view.dart';
 import 'package:herculex/features/measurements/presentation/metric_detail_view.dart';
 import 'package:herculex/features/notifications/presentation/notification_settings_view.dart';
+import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/presentation/views/calorie_macro_goals_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/calorie_meal_goals_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/goals_view.dart';
@@ -35,6 +37,8 @@ import 'package:herculex/features/onboarding/presentation/onboarding_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/profile/presentation/custom_foods_view.dart';
 import 'package:herculex/features/profile/presentation/custom_recipes_view.dart';
+import 'package:herculex/features/profile/presentation/dream_physique_history_view.dart';
+import 'package:herculex/features/profile/presentation/dream_physique_priorities_view.dart';
 import 'package:herculex/features/profile/presentation/dream_physique_view.dart';
 import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/programs/presentation/views/rotation_pools_view.dart';
@@ -197,12 +201,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: AppRoutes.profile, builder: (_, _) => const ProfileView()),
       GoRoute(
+        path: AppRoutes.trainingLevel,
+        builder: (_, _) => const TrainingLevelView(),
+      ),
+      GoRoute(
         path: AppRoutes.notifications,
         builder: (_, _) => const NotificationSettingsView(),
       ),
       GoRoute(
         path: AppRoutes.dreamPhysique,
         builder: (_, _) => const DreamPhysiqueView(),
+      ),
+      GoRoute(
+        path: AppRoutes.dreamPhysiquePriorities,
+        builder: (_, _) => const DreamPhysiquePrioritiesView(),
+      ),
+      GoRoute(
+        path: AppRoutes.dreamPhysiqueHistory,
+        builder: (_, _) => const DreamPhysiqueHistoryView(),
       ),
       GoRoute(
         path: AppRoutes.customFoods,
@@ -214,7 +230,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.nutritionTargets,
-        builder: (_, _) => const NutritionTargetsView(),
+        builder: (_, state) =>
+            NutritionTargetsView(initialPhase: state.extra as DietPhase?),
       ),
       GoRoute(
         path: AppRoutes.nutritionMealSlots,

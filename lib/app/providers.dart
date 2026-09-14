@@ -14,6 +14,8 @@ import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:herculex/features/gyms/data/gyms_repository.dart';
 import 'package:herculex/features/measurements/data/measurements_repository.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
+import 'package:herculex/features/profile/data/dream_physique_summary_repository.dart';
+import 'package:herculex/features/profile/data/dream_physique_nutrition_preference_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/workouts/data/accessories_repository.dart';
 import 'package:herculex/features/workouts/data/exercise_progressions_repository.dart';
@@ -73,6 +75,41 @@ final localProfileRepositoryProvider = Provider<LocalProfileRepository>((ref) {
   ref.onDispose(repo.dispose);
   return repo;
 });
+
+final dreamPhysiqueSummaryRepositoryProvider =
+    Provider<DreamPhysiqueSummaryRepository>((ref) {
+      final repository = DreamPhysiqueSummaryRepository(
+        ref.watch(sharedPreferencesProvider),
+      );
+      ref.onDispose(repository.dispose);
+      return repository;
+    });
+
+final dreamPhysiqueSummaryProvider =
+    StreamProvider<DreamPhysiqueAnalysisSummary?>((ref) {
+      return ref.watch(dreamPhysiqueSummaryRepositoryProvider).watch();
+    });
+
+final dreamPhysiqueSummaryHistoryProvider =
+    StreamProvider<List<DreamPhysiqueAnalysisSummary>>((ref) {
+      return ref.watch(dreamPhysiqueSummaryRepositoryProvider).watchHistory();
+    });
+
+final dreamPhysiqueNutritionPreferenceRepositoryProvider =
+    Provider<DreamPhysiqueNutritionPreferenceRepository>((ref) {
+      final repository = DreamPhysiqueNutritionPreferenceRepository(
+        ref.watch(sharedPreferencesProvider),
+      );
+      ref.onDispose(repository.dispose);
+      return repository;
+    });
+
+final dreamPhysiqueNutritionPreferenceProvider =
+    StreamProvider<DreamPhysiqueNutritionPreference?>((ref) {
+      return ref
+          .watch(dreamPhysiqueNutritionPreferenceRepositoryProvider)
+          .watch();
+    });
 
 final localAuthRepositoryProvider = Provider<LocalAuthRepository>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);

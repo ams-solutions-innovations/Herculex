@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/core/utils/env.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const dreamPhysiqueImageConsentVersion = 'dream_physique_images_v1';
+
 final geminiBackendProvider = Provider<GeminiBackend>((ref) {
   if (!Env.hasSupabase) return const UnconfiguredGeminiBackend();
   return SupabaseGeminiBackend(Supabase.instance.client);
@@ -55,8 +57,7 @@ abstract interface class GeminiBackend {
 
   Future<Map<String, dynamic>> analyzeDreamPhysique({
     required List<Map<String, dynamic>> currentImages,
-    required List<int> targetImageBytes,
-    required String targetImageMimeType,
+    required List<Map<String, dynamic>> targetImages,
     Map<String, dynamic>? biometrics,
     String? userNote,
   });
@@ -135,8 +136,7 @@ class UnconfiguredGeminiBackend implements GeminiBackend {
   @override
   Future<Map<String, dynamic>> analyzeDreamPhysique({
     required List<Map<String, dynamic>> currentImages,
-    required List<int> targetImageBytes,
-    required String targetImageMimeType,
+    required List<Map<String, dynamic>> targetImages,
     Map<String, dynamic>? biometrics,
     String? userNote,
   }) async {
@@ -281,8 +281,7 @@ class SupabaseGeminiBackend implements GeminiBackend {
   @override
   Future<Map<String, dynamic>> analyzeDreamPhysique({
     required List<Map<String, dynamic>> currentImages,
-    required List<int> targetImageBytes,
-    required String targetImageMimeType,
+    required List<Map<String, dynamic>> targetImages,
     Map<String, dynamic>? biometrics,
     String? userNote,
   }) async {
@@ -291,13 +290,25 @@ class SupabaseGeminiBackend implements GeminiBackend {
       final mime = img['mimeType'] as String;
       return _imagePayload(bytes, mime);
     }).toList();
+    final payloadTarget = targetImages.map((img) {
+      final bytes = img['bytes'] as List<int>;
+      final mime = img['mimeType'] as String;
+      return _imagePayload(bytes, mime);
+    }).toList();
 
     final data = await _invoke({
       'kind': 'dream_physique',
       'currentImages': payloadCurrent,
-      'targetImage': _imagePayload(targetImageBytes, targetImageMimeType),
+      'targetImages': payloadTarget,
       'biometrics': biometrics,
       'userNote': userNote,
+      // DreamPhysiqueService only reaches this call after the user has
+      // accepted the matching, versioned notice in the UI. The Edge Function
+      // rejects requests from older clients that do not send this assertion.
+      'privacyConsent': {
+        'version': dreamPhysiqueImageConsentVersion,
+        'granted': true,
+      },
     });
     return _resultMap(data);
   }

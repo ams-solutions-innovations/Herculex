@@ -111,7 +111,7 @@
       "Conventional Deadlift",
       "Trap Bar Deadlift (High Handles)",
       "Barbell Back Squat",
-      "RDL"
+      "Romanian Deadlift"
     ],
     "derived": true,
     "movementSlug": "deadlift-hinge"
@@ -257,7 +257,7 @@
     "defaultRestSeconds": 240,
     "similar": [
       "Conventional Deadlift",
-      "RDL",
+      "Romanian Deadlift",
       "Farmers Walk"
     ],
     "derived": true
@@ -293,8 +293,7 @@
     "defaultRestSeconds": 240,
     "similar": [
       "Conventional Deadlift",
-      "Sumo Deadlift",
-      "Trap Bar Deadlift"
+      "Sumo Deadlift"
     ],
     "derived": true
   },
@@ -329,7 +328,7 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Seated Good Morning",
-      "RDL",
+      "Romanian Deadlift",
       "45° Hyperextension",
       "Safety Bar Good Morning",
       "Dumbbell Good Morning"
@@ -368,8 +367,7 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Good Morning",
-      "Barbell Good Morning",
-      "RDL"
+      "Romanian Deadlift"
     ],
     "derived": true,
     "movementSlug": "good-morning-hinge"
@@ -404,7 +402,7 @@
     "similar": [
       "Good Morning",
       "45° Hyperextension",
-      "Reverse Hyper"
+      "Reverse Hyperextension"
     ],
     "derived": true
   },
@@ -438,8 +436,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 180,
     "similar": [
-      "Conventional Deadlift (dynamic)",
-      "RDL",
+      "Romanian Deadlift",
       "Jump Squat"
     ],
     "derived": true
@@ -477,7 +474,6 @@
       "Front Squat",
       "Zercher Squat",
       "Box Squat",
-      "Hack Squat",
       "Safety Bar Squat",
       "Duffalo Bar Squat",
       "Trap Bar Deadlift (Low Handles)"
@@ -554,8 +550,7 @@
     "defaultRestSeconds": 240,
     "similar": [
       "Front Squat",
-      "Goblet Squat",
-      "Dumbbell Back Squat"
+      "Goblet Squat"
     ],
     "derived": true,
     "movementSlug": "front-squat-squat"
@@ -627,8 +622,7 @@
     "defaultRestSeconds": 240,
     "similar": [
       "Barbell Back Squat",
-      "Zercher Squat",
-      "Hack Squat"
+      "Zercher Squat"
     ],
     "derived": true
   },
@@ -736,7 +730,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Hack Squat",
       "V-Squat",
       "Belt Squat"
     ],
@@ -774,7 +767,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Pendulum Squat",
-      "Hack Squat",
       "Leg Press"
     ],
     "derived": true
@@ -810,7 +802,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Barbell Back Squat",
-      "Hack Squat",
       "Leg Press"
     ],
     "derived": true
@@ -882,8 +873,7 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Barbell Back Squat",
-      "Box Squat",
-      "Hack Squat"
+      "Box Squat"
     ],
     "derived": true,
     "movementSlug": "squat-squat"
@@ -919,8 +909,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Leg Press",
-      "Bulgarian Split Squat",
-      "Hack Squat"
+      "Bulgarian Split Squat"
     ],
     "derived": true
   },
@@ -955,7 +944,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Leg Press",
-      "Hack Squat",
       "Belt Squat"
     ],
     "derived": true
@@ -992,7 +980,6 @@
     "similar": [
       "Pistol Squat",
       "Shrimp Squat",
-      "Lunges",
       "Dumbbell Bulgarian Split Squat",
       "Safety Bar Walking Lunge"
     ],
@@ -1067,9 +1054,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Bulgarian Split Squat",
-      "Shrimp Squat",
-      "Step-up",
-      "Dumbbell Pistol Squat"
+      "Shrimp Squat"
     ],
     "derived": true,
     "movementSlug": "pistol-squat-lunge"
@@ -1137,9 +1122,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
-      "Lateral Lunge",
-      "Side Lunge",
-      "Dumbbell Cossack Squat"
+      "Lateral Lunge"
     ],
     "derived": true
   },
@@ -1173,7 +1156,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Reverse Lunge",
       "Lateral Lunge",
       "Bulgarian Split Squat"
     ],
@@ -1210,8 +1192,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Cossack Squat",
-      "Curtsy Lunge",
-      "Side Step-Up"
+      "Curtsy Lunge"
     ],
     "derived": true
   },
@@ -1246,7 +1227,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Bulgarian Split Squat",
-      "Step-up",
       "Dumbbell Step-Up"
     ],
     "derived": true
@@ -1282,8 +1262,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Patrick Step-Up",
-      "Bulgarian Split Squat",
-      "Box Step-Up"
+      "Bulgarian Split Squat"
     ],
     "derived": true,
     "movementSlug": "step-up-lunge"
@@ -1385,7 +1364,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Leg Extension",
-      "Hack Squat",
       "Front Squat"
     ],
     "derived": true
@@ -1420,7 +1398,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Hack Squat",
       "Pendulum Squat",
       "Belt Squat",
       "45-Degree Leg Press"
@@ -1451,9 +1428,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Sissy Squat",
-      "Reverse Nordic",
-      "Dumbbell Leg Extension"
+      "Sissy Squat"
     ],
     "derived": true
   },
@@ -1490,8 +1465,7 @@
       "Conventional Deadlift",
       "Good Morning",
       "45° Hyperextension",
-      "Trap Bar Deadlift (High Handles)",
-      "Dumbbell RDL"
+      "Trap Bar Deadlift (High Handles)"
     ],
     "derived": true,
     "movementSlug": "romanian-deadlift-hinge"
@@ -1528,7 +1502,7 @@
     "similar": [
       "Romanian Deadlift",
       "Dumbbell Good Morning",
-      "Single-Leg DB RDL"
+      "Single-Leg Dumbbell RDL"
     ],
     "derived": true,
     "movementSlug": "romanian-deadlift-hinge"
@@ -1563,7 +1537,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Dumbbell RDL",
       "Romanian Deadlift",
       "Death March"
     ],
@@ -1601,7 +1574,7 @@
     "similar": [
       "Reverse Hyperextension",
       "Good Morning",
-      "RDL"
+      "Romanian Deadlift"
     ],
     "derived": true
   },
@@ -1635,9 +1608,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 75,
     "similar": [
-      "45° Hyperextension",
-      "Glute Ham Raise",
-      "Back Extension"
+      "45° Hyperextension"
     ],
     "derived": true
   },
@@ -1670,8 +1641,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Lying Leg Curl",
-      "Seated Leg Curl",
-      "Glute Ham Raise"
+      "Seated Leg Curl"
     ],
     "derived": true
   },
@@ -1703,8 +1673,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 75,
     "similar": [
-      "Nordic Curl",
-      "Reverse Hyper",
+      "Reverse Hyperextension",
       "45° Hyperextension"
     ],
     "derived": true
@@ -1737,9 +1706,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Seated Leg Curl",
-      "Standing Leg Curl",
-      "Nordic Curl"
+      "Seated Leg Curl"
     ],
     "derived": true
   },
@@ -1771,9 +1738,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Lying Leg Curl",
-      "Standing Leg Curl",
-      "Nordic Curl"
+      "Lying Leg Curl"
     ],
     "derived": true
   },
@@ -1947,8 +1912,7 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Dumbbell Glute Bridge",
-      "Barbell Hip Thrust",
-      "Single-Leg Dumbbell Hip Thrust"
+      "Barbell Hip Thrust"
     ],
     "derived": true,
     "movementSlug": "hip-thrust-hinge"
@@ -2189,7 +2153,6 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Bodyweight Hip Thrust",
-      "Single-Leg Glute Bridge",
       "Frog Pump"
     ],
     "derived": true,
@@ -2224,8 +2187,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Barbell Hip Thrust",
-      "Cable Kickback",
-      "Banded Kickback"
+      "Cable Glute Kickback"
     ],
     "derived": true,
     "movementSlug": "glute-kickback-hinge"
@@ -2289,11 +2251,7 @@
     "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
-    "similar": [
-      "Band Abduction",
-      "Cable Abduction",
-      "Standing Machine Abduction"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -2323,9 +2281,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Copenhagen Adductor Plank",
-      "Cable Adduction",
-      "Standing Adduction"
+      "Copenhagen Adductor Plank"
     ],
     "derived": true
   },
@@ -2355,9 +2311,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Machine Abductor",
-      "Band Abduction",
-      "Lying Cable Abduction"
+      "Machine Abductor"
     ],
     "derived": true
   },
@@ -2389,8 +2343,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Machine Adductor",
-      "Copenhagen Adductor Plank",
-      "Standing Adduction"
+      "Copenhagen Adductor Plank"
     ],
     "derived": true
   },
@@ -2421,8 +2374,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Machine Adductor",
-      "Side Plank with adduction"
+      "Machine Adductor"
     ],
     "derived": true
   },
@@ -2451,7 +2403,6 @@
       "Donkey Calf Raise",
       "Seated Calf Raise",
       "Safety Bar Calf Raise",
-      "Dumbbell Standing Calf Raise",
       "Single-Leg Standing Calf Raise"
     ],
     "derived": true
@@ -2482,7 +2433,7 @@
     "similar": [
       "Standing Calf Raise",
       "Donkey Calf Raise",
-      "Leg Press Calf Raise"
+      "Calf Press"
     ],
     "derived": true
   },
@@ -2511,8 +2462,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Standing Calf Raise",
-      "Donkey Calf Raise",
-      "Dumbbell Seated Calf Raise"
+      "Donkey Calf Raise"
     ],
     "derived": true
   },
@@ -2569,10 +2519,7 @@
     "loggingMetric": "reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 75,
-    "similar": [
-      "Reverse Calf Raise",
-      "Ankle Dorsiflexion with Band"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -2605,9 +2552,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "RDL",
-      "Single-leg RDL",
-      "Dumbbell Overhead March"
+      "Romanian Deadlift"
     ],
     "derived": true
   },
@@ -2753,7 +2698,7 @@
     "similar": [
       "Good Morning",
       "Cambered Bar Good Morning",
-      "RDL"
+      "Romanian Deadlift"
     ],
     "derived": true,
     "movementSlug": "good-morning-hinge"
@@ -2861,7 +2806,7 @@
     "similar": [
       "Good Morning",
       "Safety Bar Good Morning",
-      "RDL"
+      "Romanian Deadlift"
     ],
     "derived": true,
     "movementSlug": "good-morning-hinge"
@@ -2935,8 +2880,7 @@
     "defaultRestSeconds": 240,
     "similar": [
       "Conventional Deadlift",
-      "Trap Bar Deadlift (High Handles)",
-      "Rack Pull"
+      "Trap Bar Deadlift (High Handles)"
     ],
     "derived": true,
     "movementSlug": "deadlift-hinge"
@@ -3039,7 +2983,7 @@
     "similar": [
       "Standing Calf Raise",
       "Donkey Calf Raise",
-      "Leg Press Calf Raise"
+      "Calf Press"
     ],
     "derived": true
   },
@@ -3073,7 +3017,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Barbell Lunge",
       "Bulgarian Split Squat",
       "Dumbbell Step-Up"
     ],
@@ -3219,7 +3162,6 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Dumbbell Hip Thrust",
-      "Bodyweight Glute Bridge",
       "Barbell Hip Thrust"
     ],
     "derived": true,
@@ -3377,7 +3319,8 @@
     "slug": "barbell-bench-press",
     "name": "Barbell Bench Press",
     "aka": [
-      "Flat Bench"
+      "Flat Bench",
+      "Bench Press"
     ],
     "bodyPart": "Chest",
     "category": "powerlifting",
@@ -3488,9 +3431,10 @@
   },
   {
     "slug": "incline-barbell-bench",
-    "name": "Incline Barbell Bench",
+    "name": "Incline Barbell Bench Press",
     "aka": [
-      "Incline Bench"
+      "Incline Bench",
+      "Incline Barbell Bench"
     ],
     "bodyPart": "Chest",
     "category": "strength",
@@ -3521,6 +3465,12 @@
       "Swiss Bar Incline Press"
     ],
     "derived": true,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "incline_bench",
+      "bench_rack"
+    ],
+    "maxEffortEligibility": "suitable",
     "movementSlug": "incline-press-horizontal-push"
   },
   {
@@ -3554,7 +3504,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Decline Dumbbell Press",
-      "Dips",
       "Floor Press"
     ],
     "derived": true,
@@ -3592,7 +3541,6 @@
     "similar": [
       "Barbell Bench Press",
       "Dumbbell Bench Press",
-      "Push-up",
       "Swiss Bar Floor Press",
       "Dumbbell Floor Press"
     ],
@@ -3630,8 +3578,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Floor Press",
-      "Dumbbell Bench Press",
-      "Barbell Floor Press"
+      "Dumbbell Bench Press"
     ],
     "derived": true,
     "movementSlug": "floor-press-horizontal-push"
@@ -3738,10 +3685,8 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Barbell Bench Press",
-      "Smith Bench",
       "Floor Press",
-      "Dumbbell Floor Press",
-      "Neutral Grip DB Press"
+      "Dumbbell Floor Press"
     ],
     "derived": true,
     "movementSlug": "press-horizontal-push"
@@ -3776,7 +3721,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Incline Barbell Bench",
+      "Incline Barbell Bench Press",
       "Machine Incline Press",
       "Dumbbell Bench Press"
     ],
@@ -3814,7 +3759,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Decline Barbell Bench",
-      "Dips",
       "Dumbbell Bench Press"
     ],
     "derived": true,
@@ -3885,7 +3829,6 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Cable Crossover",
-      "Pec Deck",
       "Dumbbell Fly",
       "Cable Fly (Low to High)"
     ],
@@ -3920,9 +3863,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Incline Cable Fly",
-      "Cable Crossover",
-      "Pec Deck"
+      "Cable Crossover"
     ],
     "derived": true,
     "movementSlug": "fly-isolation"
@@ -3993,8 +3934,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Incline Barbell Press",
-      "Smith Incline Press",
       "Incline Dumbbell Press"
     ],
     "derived": true,
@@ -4102,7 +4041,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Seated Chest Press Machine",
-      "Pec Deck",
       "Iso-Lateral Chest Press"
     ],
     "derived": true
@@ -4140,7 +4078,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Decline Bench Press",
       "Band-Assisted Dip",
       "Seated Dip Machine"
     ],
@@ -4177,7 +4114,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Dip",
-      "Weighted Dip (negative)",
       "Bench Dip"
     ],
     "derived": true,
@@ -4214,7 +4150,6 @@
     "similar": [
       "Dip",
       "Bench Dip",
-      "Tricep Pushdown",
       "Close Grip Bench Press"
     ],
     "derived": true
@@ -4288,8 +4223,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Standard Push-Up",
-      "Decline Push-Up",
-      "Knee Push-up"
+      "Decline Push-Up"
     ],
     "derived": true
   },
@@ -4324,7 +4258,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Standard Push-Up",
-      "Dips",
       "Archer Push-Up",
       "Swiss Bar Decline Push-Up"
     ],
@@ -4396,8 +4329,7 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Archer Push-Up",
-      "Ring Push-Up",
-      "Tuck Planche"
+      "Ring Push-Up"
     ],
     "derived": true
   },
@@ -4431,9 +4363,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
-      "Decline Push-Up",
-      "Bench Press (speed)",
-      "Jump Push-Up"
+      "Decline Push-Up"
     ],
     "derived": true
   },
@@ -4468,7 +4398,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Ring Push-Up",
-      "One-arm Push-up",
       "Pseudo Planche Push-Up"
     ],
     "derived": true,
@@ -4505,7 +4434,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Diamond Push-Up",
-      "Close-grip Bench Press",
       "Ring Push-Up"
     ],
     "derived": true
@@ -4542,7 +4470,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Ring Push-Up (Feet Elevated)",
-      "Archer Ring Push-Up",
       "TRX Push-Up (Feet Strapped)"
     ],
     "derived": true,
@@ -4579,7 +4506,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Ring Push-Up",
-      "Archer Ring Push-Up",
       "TRX Push-Up (Feet Strapped)"
     ],
     "derived": true,
@@ -4760,7 +4686,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Parallel Bar Dips",
       "Dip",
       "Bench Dip"
     ],
@@ -4834,9 +4759,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Ring Dips",
-      "Parallel Bar Support",
-      "Plank (on rings)"
+      "Ring Dips"
     ],
     "derived": true
   },
@@ -4871,7 +4794,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "TRX Push-Up (Feet Strapped)",
-      "Mountain Climber",
       "Decline Push-Up"
     ],
     "derived": true
@@ -4906,8 +4828,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Ring Dips",
-      "Bench Dip",
-      "Tricep Pushdown"
+      "Bench Dip"
     ],
     "derived": true
   },
@@ -4940,7 +4861,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Cable Crossover",
-      "Pec Deck",
       "Dumbbell Fly"
     ],
     "derived": true
@@ -5083,8 +5003,7 @@
       "Barbell Bench Press",
       "Dumbbell Bench Press",
       "Floor Press",
-      "Swiss Bar Floor Press",
-      "Neutral Grip DB Press"
+      "Swiss Bar Floor Press"
     ],
     "derived": true,
     "movementSlug": "press-horizontal-push"
@@ -5117,8 +5036,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Incline Barbell Bench",
-      "Dumbbell Incline Press",
+      "Incline Barbell Bench Press",
       "Machine Incline Press"
     ],
     "derived": true,
@@ -5227,7 +5145,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Decline Push-Up",
-      "Dips",
       "Swiss Bar Bench Press"
     ],
     "derived": true,
@@ -5265,8 +5182,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Pull-Up (Super Wide)",
-      "Assisted Pull-Up Machine (Wide)",
-      "Lat Pulldown (Wide)",
       "Negative Pull-Up"
     ],
     "derived": true,
@@ -5303,7 +5218,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Pull-Up (Wide)",
       "Assisted Pull-Up Machine (Super Wide)",
       "Lat Pulldown (Super Wide)"
     ],
@@ -5343,7 +5257,6 @@
     "similar": [
       "Assisted Pull-Up Machine (Neutral Grip)",
       "Lat Pulldown (V-Bar)",
-      "Band-Assisted Pull-Up (Neutral)",
       "Typewriter Pull-Up"
     ],
     "derived": true,
@@ -5380,10 +5293,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Assisted Chin-Up Machine",
-      "Lat Pulldown (Reverse)",
-      "Band-Assisted Chin-Up",
-      "Negative Chin-Up"
+      "Lat Pulldown (Reverse)"
     ],
     "derived": true,
     "movementSlug": "chin-up-supinated-vertical-pull"
@@ -5418,11 +5328,7 @@
     "loggingMetric": "reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
-    "similar": [
-      "Wide Pull-Up",
-      "Lat Pulldown (Behind Neck)",
-      "Assisted Pull-Up Machine (Wide)"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -5456,7 +5362,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Pull-Up (Neutral)",
       "Towel Pull-Up",
       "Commando Pull-Up"
     ],
@@ -5493,9 +5398,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Pull-Up (Neutral)",
-      "Rope Climb",
-      "Fat Grip Pull-Up"
+      "Rope Climb"
     ],
     "derived": true
   },
@@ -5566,11 +5469,7 @@
     "loggingMetric": "reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
-    "similar": [
-      "Pull-Up (Wide)",
-      "Assisted Pull-Up Machine",
-      "Band-Assisted Pull-Up"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -5598,9 +5497,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Straight-Arm Pulldown",
-      "Lat Pulldown (partial)",
-      "Assisted Pull-Up Machine (partial ROM)"
+      "Straight-Arm Pulldown"
     ],
     "derived": true
   },
@@ -5674,7 +5571,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Pull-Up (Super Wide)",
-      "Lat Pulldown (Wide)",
       "Assisted Pull-Up Machine (Super Wide)"
     ],
     "derived": true,
@@ -5712,7 +5608,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Chin-Up",
       "Assisted Pull-Up Machine (Neutral Grip)",
       "Seated Cable Row (V-Bar)"
     ],
@@ -5749,11 +5644,7 @@
     "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
-    "similar": [
-      "Chin-Up",
-      "Assisted Chin-Up Machine",
-      "Pull-Up (Neutral)"
-    ],
+    "similar": [],
     "derived": true,
     "movementSlug": "lat-pulldown-vertical-pull"
   },
@@ -5826,10 +5717,8 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Single-Arm Cable Row",
       "Meadows Row",
-      "Single-Arm Dumbbell Row",
-      "Assisted Pull-Up Machine (unilateral)"
+      "Single-Arm Dumbbell Row"
     ],
     "derived": true
   },
@@ -5863,11 +5752,7 @@
     "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
-    "similar": [
-      "Lat Pulldown (Wide)",
-      "Pull-Up (Behind neck)",
-      "Assisted Pull-Up Machine (Wide)"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -5902,10 +5787,8 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Lat Pulldown (Wide)",
       "Pull-Up",
-      "Machine Mid Row",
-      "Assisted Pull-Up Machine"
+      "Machine Mid Row"
     ],
     "derived": true
   },
@@ -5942,9 +5825,9 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Seated Cable Row (Wide)",
-      "T-Bar Row",
+      "Landmine Row",
       "Seal Row",
-      "Dumbbell Incline Row"
+      "Chest-Supported Dumbbell Row"
     ],
     "derived": true
   },
@@ -5982,7 +5865,7 @@
     "similar": [
       "Seated Cable Row (V-Bar)",
       "Barbell Row",
-      "T-Bar Row",
+      "Landmine Row",
       "Single-Arm Dumbbell Row"
     ],
     "derived": true
@@ -6020,7 +5903,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Machine Low Row",
-      "T-Bar Row",
+      "Landmine Row",
       "Seated Cable Row (V-Bar)"
     ],
     "derived": true
@@ -6138,7 +6021,7 @@
     "similar": [
       "Seated Cable Row (V-Bar)",
       "Face Pull",
-      "T-Bar Row"
+      "Landmine Row"
     ],
     "derived": true,
     "movementSlug": "seated-row-horizontal-pull"
@@ -6216,7 +6099,7 @@
     "similar": [
       "Pendlay Row",
       "Yates Row",
-      "T-Bar Row",
+      "Landmine Row",
       "Swiss Bar Bent-Over Row",
       "Axle Bar Bent-Over Row",
       "Two-Arm Dumbbell Row",
@@ -6258,8 +6141,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Single-Arm Dumbbell Row",
-      "Meadows Row",
-      "Barbell Row (heavy)"
+      "Meadows Row"
     ],
     "derived": true
   },
@@ -6334,7 +6216,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Two-Arm Dumbbell Row",
-      "Seated Cable Row (Single)",
       "Meadows Row",
       "Barbell Row"
     ],
@@ -6342,9 +6223,10 @@
   },
   {
     "slug": "dumbbell-incline-row",
-    "name": "Dumbbell Incline Row",
+    "name": "Chest-Supported Dumbbell Row",
     "aka": [
-      "Chest-Supported DB Row"
+      "Chest-Supported DB Row",
+      "Dumbbell Incline Row"
     ],
     "bodyPart": "Back",
     "category": "strength",
@@ -6373,10 +6255,15 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Machine Mid Row",
-      "Seal Row",
-      "Single-Arm Dumbbell Row (bench)"
+      "Seal Row"
     ],
-    "derived": true
+    "derived": true,
+    "requiredEquipmentKeys": [
+      "dumbbell",
+      "incline_bench"
+    ],
+    "maxEffortEligibility": "advanced_manual",
+    "movementSlug": "chest-supported-row-horizontal-pull"
   },
   {
     "slug": "pendlay-row",
@@ -6449,9 +6336,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 180,
     "similar": [
-      "Barbell Row",
-      "Chin-Up",
-      "Seated Cable Row (Reverse)"
+      "Barbell Row"
     ],
     "derived": true
   },
@@ -6487,8 +6372,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Single-Arm Cable Row",
-      "Seated Cable Row (Single)",
       "Single-Arm Dumbbell Row"
     ],
     "derived": true,
@@ -6528,24 +6411,25 @@
     "similar": [
       "Machine Mid Row",
       "Pendlay Row",
-      "T-Bar Row Machine",
+      "Chest-Supported T-Bar Row",
       "Swiss Bar Seal Row",
-      "Dumbbell Incline Row"
+      "Chest-Supported Dumbbell Row"
     ],
     "derived": true,
     "movementSlug": "seal-row-horizontal-pull"
   },
   {
     "slug": "t-bar-row-machine",
-    "name": "T-Bar Row Machine",
+    "name": "Chest-Supported T-Bar Row",
     "aka": [
-      "Chest-Supported T-Bar"
+      "Chest-Supported T-Bar",
+      "T-Bar Row Machine"
     ],
     "bodyPart": "Back",
     "category": "strength",
     "movementPattern": "horizontal_pull",
     "movementPatternRaw": "Horizontal Pull",
-    "modality": "machine_selectorized",
+    "modality": "machine_plate",
     "equipment": "Machine",
     "primaryMuscle": "Back",
     "primaryMuscles": [
@@ -6571,7 +6455,12 @@
       "Seal Row",
       "Barbell Row"
     ],
-    "derived": true
+    "derived": true,
+    "requiredEquipmentKeys": [
+      "chest_supported_t_bar_row"
+    ],
+    "maxEffortEligibility": "advanced_manual",
+    "movementSlug": "chest-supported-row-horizontal-pull"
   },
   {
     "slug": "pullover-machine",
@@ -6828,8 +6717,8 @@
     "similar": [
       "Seal Row",
       "Machine Mid Row",
-      "T-Bar Row",
-      "Dumbbell Incline Row"
+      "Landmine Row",
+      "Chest-Supported Dumbbell Row"
     ],
     "derived": true,
     "movementSlug": "seal-row-horizontal-pull"
@@ -6865,8 +6754,7 @@
     "similar": [
       "Lat Pulldown (V-Bar)",
       "Pull-Up",
-      "Straight-Arm Pulldown",
-      "Assisted Pull-Up Machine (Neutral)"
+      "Straight-Arm Pulldown"
     ],
     "derived": true,
     "movementSlug": "lat-pulldown-vertical-pull"
@@ -6980,9 +6868,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Pull-Up (Wide Grip)",
-      "Lat Pulldown (Wide Grip)",
-      "Band-Assisted Pull-Up (Wide)",
-      "Assisted Pull-Up Machine (Neutral)"
+      "Lat Pulldown (Wide Grip)"
     ],
     "derived": true,
     "movementSlug": "pull-up-vertical-pull"
@@ -7019,7 +6905,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Pull-Up (Super Wide)",
-      "Assisted Pull-Up Machine (Wide)",
       "Lat Pulldown (Super Wide)"
     ],
     "derived": true,
@@ -7058,8 +6943,7 @@
     "similar": [
       "Pull-Up (Neutral Grip)",
       "Lat Pulldown (V-Bar)",
-      "Assisted Pull-Up Machine (Wide Grip)",
-      "Band-Assisted Pull-Up (Neutral)"
+      "Assisted Pull-Up Machine (Wide Grip)"
     ],
     "derived": true,
     "movementSlug": "pull-up-vertical-pull"
@@ -7095,10 +6979,8 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Chin-Up",
       "Lat Pulldown (Reverse)",
-      "Assisted Pull-Up Machine (Neutral Grip)",
-      "Band-Assisted Chin-Up"
+      "Assisted Pull-Up Machine (Neutral Grip)"
     ],
     "derived": true,
     "movementSlug": "chin-up-supinated-vertical-pull"
@@ -7134,8 +7016,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Assisted Pull-Up Machine",
-      "Assisted Dip Machine",
       "Lat Pulldown"
     ],
     "derived": true
@@ -7173,7 +7053,6 @@
     "similar": [
       "Assisted Pull-Up Machine (Wide Grip)",
       "Pull-Up (Wide Grip)",
-      "Jumping Pull-Up",
       "Negative Pull-Up"
     ],
     "derived": true,
@@ -7211,8 +7090,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Assisted Pull-Up Machine (Neutral Grip)",
-      "Pull-Up (Neutral Grip)",
-      "Band-Assisted Chin-Up"
+      "Pull-Up (Neutral Grip)"
     ],
     "derived": true,
     "movementSlug": "pull-up-vertical-pull"
@@ -7247,12 +7125,7 @@
     "loggingMetric": "reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
-    "similar": [
-      "Assisted Chin-Up Machine",
-      "Chin-Up",
-      "Band-Assisted Pull-Up (Neutral)",
-      "Negative Chin-Up"
-    ],
+    "similar": [],
     "derived": true,
     "movementSlug": "chin-up-supinated-vertical-pull"
   },
@@ -7367,9 +7240,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Barbell Inverted Row",
-      "Chin-Up",
-      "Seated Cable Row (Reverse)"
+      "Barbell Inverted Row"
     ],
     "derived": true,
     "movementSlug": "inverted-row-horizontal-pull"
@@ -7406,9 +7277,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Barbell Inverted Row",
-      "Lat Pulldown (Wide)",
-      "Ring Row (Wide)"
+      "Barbell Inverted Row"
     ],
     "derived": true,
     "movementSlug": "inverted-row-horizontal-pull"
@@ -7565,8 +7434,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Ring Row (Feet on Floor)",
-      "TRX Inverted Row (Feet Elevated)",
-      "Front Lever Row"
+      "TRX Inverted Row (Feet Elevated)"
     ],
     "derived": true,
     "movementSlug": "row-horizontal-pull"
@@ -7757,9 +7625,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
-      "Back Lever",
-      "Tuck Front Lever",
-      "Ring Rows (advanced)"
+      "Back Lever"
     ],
     "derived": true,
     "movementSlug": "front-lever-horizontal-pull"
@@ -7795,9 +7661,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
-      "Skin the Cat",
-      "Front Lever",
-      "German Hang"
+      "Front Lever"
     ],
     "derived": true,
     "movementSlug": "back-lever-horizontal-pull"
@@ -7834,8 +7698,7 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Strict Muscle-Up",
-      "Bar Muscle-Up",
-      "Chest Dips + Pull-Up"
+      "Bar Muscle-Up"
     ],
     "derived": true
   },
@@ -7871,8 +7734,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Ring Pull-Up",
-      "L-Sit",
       "Toes to Rings"
     ],
     "derived": true
@@ -7910,8 +7771,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Bulgarian Split Squat",
-      "TRX Assisted Pistol Squat",
-      "Suspended Squats"
+      "TRX Assisted Pistol Squat"
     ],
     "derived": true,
     "movementSlug": "bulgarian-split-squat-lunge"
@@ -7945,8 +7805,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "TRX Bicep Curl",
-      "Pelican Curl",
-      "Ring Row (Close Grip)"
+      "Pelican Curl"
     ],
     "derived": true,
     "movementSlug": "curl-isolation"
@@ -8084,7 +7943,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 180,
     "similar": [
-      "Behind Neck OHP",
       "Arnold Press",
       "Machine Shoulder Press",
       "Swiss Bar Overhead Press",
@@ -8129,7 +7987,7 @@
       "Overhead Press",
       "Dumbbell Push Press",
       "Split Jerk",
-      "Power Jerk"
+      "Push Jerk"
     ],
     "derived": true,
     "movementSlug": "push-press-vertical-push"
@@ -8165,8 +8023,7 @@
     "defaultRestSeconds": 240,
     "similar": [
       "Push Press",
-      "Dumbbell Overhead Press",
-      "Seated DB Press"
+      "Dumbbell Overhead Press"
     ],
     "derived": true,
     "movementSlug": "push-press-vertical-push"
@@ -8240,8 +8097,7 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Overhead Press",
-      "Smith Machine OHP",
-      "Seated DB Press"
+      "Smith Machine OHP"
     ],
     "derived": true
   },
@@ -8275,9 +8131,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 180,
     "similar": [
-      "Behind Neck OHP",
-      "Overhead Press",
-      "Seated DB Press"
+      "Overhead Press"
     ],
     "derived": true
   },
@@ -8349,7 +8203,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Overhead Press",
-      "Dumbbell Shoulder Press",
       "Cuban Press"
     ],
     "derived": true
@@ -8385,7 +8238,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Overhead Press",
-      "Smith OHP",
       "Arnold Press",
       "Dumbbell Overhead Press"
     ],
@@ -8415,7 +8267,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "DB Lateral Raise",
       "Cable Lateral Raise",
       "Machine Lateral Raise"
     ],
@@ -8454,8 +8305,7 @@
     "similar": [
       "Overhead Press",
       "Pike Push-Up",
-      "Decline Push-Up",
-      "Wall HSPU"
+      "Decline Push-Up"
     ],
     "derived": true
   },
@@ -8517,9 +8367,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Lateral Raise",
-      "Cable Lateral Raise",
-      "Bent-Over Lateral Raise"
+      "Cable Lateral Raise"
     ],
     "derived": true
   },
@@ -8547,9 +8395,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "DB Lateral Raise",
-      "Machine Lateral Raise",
-      "Upright Row"
+      "Machine Lateral Raise"
     ],
     "derived": true,
     "movementSlug": "lateral-raise-isolation"
@@ -8578,7 +8424,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "DB Lateral Raise",
       "Cable Lateral Raise",
       "Seated Lateral Raise Machine"
     ],
@@ -8609,7 +8454,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Lateral Raise",
       "Cuban Press",
       "Face Pull"
     ],
@@ -8643,9 +8487,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Cable Front Raise",
-      "Barbell Front Raise",
-      "Plate Front Raise",
-      "Kettlebell Front Raise"
+      "Plate Front Raise"
     ],
     "derived": true,
     "movementSlug": "front-raise-isolation"
@@ -8675,7 +8517,6 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Dumbbell Front Raise",
-      "Barbell Front Raise",
       "Plate Front Raise"
     ],
     "derived": true,
@@ -8708,8 +8549,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Dumbbell Front Raise",
-      "Cable Front Raise",
-      "Barbell Front Raise"
+      "Cable Front Raise"
     ],
     "derived": true,
     "movementSlug": "front-raise-isolation"
@@ -8742,8 +8582,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Face Pull",
-      "Band Pull-Apart",
-      "Seated Cable Row (wide)",
+      "Seated Cable Row (Wide)",
       "Dumbbell Rear Delt Fly"
     ],
     "derived": true
@@ -8842,7 +8681,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Reverse Pec Deck",
-      "Band Face Pull",
       "Cuban Press",
       "Dumbbell Rear Delt Fly"
     ],
@@ -8876,8 +8714,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Arnold Press",
-      "Lu Raise",
-      "Behind Neck Press (light)"
+      "Lu Raise"
     ],
     "derived": true
   },
@@ -8909,7 +8746,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Cuban Press",
-      "YTWL Raises",
       "Face Pull"
     ],
     "derived": true
@@ -8942,8 +8778,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Face Pull",
-      "Reverse Pec Deck",
-      "Band pull-apart"
+      "Reverse Pec Deck"
     ],
     "derived": true
   },
@@ -8976,8 +8811,7 @@
     "similar": [
       "Dumbbell Upright Row",
       "Swiss Bar Upright Row",
-      "Cable Upright Row",
-      "EZ Bar Upright Row"
+      "Upright Row (EZ Bar)"
     ],
     "derived": true,
     "movementSlug": "upright-row-vertical-pull"
@@ -9009,9 +8843,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Barbell Upright Row",
-      "Dumbbell Upright Row",
-      "Cable Upright Row"
+      "Dumbbell Upright Row"
     ],
     "derived": true,
     "movementSlug": "upright-row-vertical-pull"
@@ -9044,7 +8876,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Upright Row (Barbell)",
-      "Lateral Raise",
       "Face Pull"
     ],
     "derived": true,
@@ -9077,9 +8908,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Barbell Upright Row",
-      "Dumbbell Upright Row",
-      "Cable Upright Row"
+      "Dumbbell Upright Row"
     ],
     "derived": true,
     "movementSlug": "upright-row-vertical-pull"
@@ -9111,9 +8940,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Barbell Upright Row",
-      "Swiss Bar Upright Row",
-      "Cable Upright Row"
+      "Swiss Bar Upright Row"
     ],
     "derived": true,
     "movementSlug": "upright-row-vertical-pull"
@@ -9145,8 +8972,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Dumbbell Shrug",
-      "Barbell Shrug",
-      "Behind Back Shrug"
+      "Barbell Shrug"
     ],
     "derived": true
   },
@@ -9209,8 +9035,6 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Barbell Shrug",
-      "Smith Machine Shrug",
-      "Cable Shrug",
       "Overhead Shrug"
     ],
     "derived": true,
@@ -9240,10 +9064,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Dumbbell Shrug",
-      "Smith Machine Shrug",
-      "Trap Bar Shrug",
-      "Behind Back Shrug"
+      "Dumbbell Shrug"
     ],
     "derived": true,
     "movementSlug": "shrug-isolation"
@@ -9277,9 +9098,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Overhead Press",
-      "Farmer’s Walk",
-      "Dumbbell Overhead Carry"
+      "Overhead Press"
     ],
     "derived": true
   },
@@ -9309,8 +9128,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Lateral Raise",
-      "Front Raise",
+      "Dumbbell Front Raise",
       "Cuban Press",
       "Dumbbell Around the World"
     ],
@@ -9343,8 +9161,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Plate Around the World",
-      "Lateral Raise",
       "Lu Raise"
     ],
     "derived": true,
@@ -9382,7 +9198,6 @@
     "similar": [
       "Overhead Press",
       "Arnold Press",
-      "Behind Neck Press",
       "Axle Bar Overhead Press",
       "Dumbbell Overhead Press"
     ],
@@ -9419,9 +9234,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 180,
     "similar": [
-      "Overhead Press",
-      "Swiss Bar OHP",
-      "Dumbbell Shoulder Press"
+      "Overhead Press"
     ],
     "derived": true,
     "movementSlug": "overhead-press-vertical-push"
@@ -9490,7 +9303,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Barbell Curl",
       "EZ Bar Curl",
       "Dumbbell Curl"
     ],
@@ -9524,8 +9336,6 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Dumbbell Curl",
-      "Preacher Curl",
-      "Cable Curl",
       "Bayesian Curl"
     ],
     "derived": true
@@ -9590,9 +9400,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Barbell Curl",
-      "Preacher Curl",
-      "Cable Curl",
       "Dumbbell Curl"
     ],
     "derived": true,
@@ -9627,7 +9434,6 @@
     "similar": [
       "Reverse EZ Bar Curl",
       "Hammer Curl",
-      "Wrist Curl",
       "Dumbbell Reverse Curl"
     ],
     "derived": true,
@@ -9731,7 +9537,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Dumbbell Curl + Reverse Curl",
       "Hammer Curl"
     ],
     "derived": true
@@ -9763,9 +9568,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Barbell Curl",
-      "Cable Curl",
-      "Preacher Curl",
       "Hammer Curl",
       "Concentration Curl"
     ],
@@ -9799,10 +9601,8 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Reverse Curl",
       "Zottman Curl",
-      "Cable Hammer Curl",
-      "Dumbbell Hammer Curl"
+      "Cable Hammer Curl"
     ],
     "derived": true,
     "movementSlug": "curl-isolation"
@@ -9832,9 +9632,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Barbell Curl",
-      "EZ Bar Curl",
-      "Cable Curl"
+      "EZ Bar Curl"
     ],
     "derived": true
   },
@@ -9866,7 +9664,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Seated Biceps Curl Machine",
-      "Barbell Preacher Curl",
+      "EZ Bar Preacher Curl",
       "Cable Bicep Curl"
     ],
     "derived": true
@@ -9898,9 +9696,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Machine Preacher Curl",
-      "Barbell Preacher Curl",
-      "Cable Curl",
+      "EZ Bar Preacher Curl",
       "Concentration Curl"
     ],
     "derived": true,
@@ -9933,7 +9729,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Machine Preacher Curl",
       "Cable Bicep Curl",
       "Dumbbell Curl",
       "Concentration Curl"
@@ -9967,9 +9762,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Barbell Curl",
       "Dumbbell Curl",
-      "Machine Curl",
       "Bayesian Curl"
     ],
     "derived": true,
@@ -10004,7 +9797,6 @@
     "similar": [
       "Cable Bicep Curl",
       "Dumbbell Curl",
-      "Machine Preacher Curl",
       "Concentration Curl"
     ],
     "derived": true
@@ -10037,7 +9829,6 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Incline Dumbbell Curl",
-      "Cable Curl",
       "Bayesian Curl"
     ],
     "derived": true
@@ -10100,7 +9891,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Behind Back Wrist Curl",
       "Wrist Roller",
       "Dumbbell Wrist Curl"
     ],
@@ -10131,8 +9921,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Barbell Wrist Curl",
-      "Behind Back Wrist Curl",
       "Wrist Roller"
     ],
     "derived": true,
@@ -10162,8 +9950,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Wrist Roller (reverse)",
-      "Barbell Reverse Curl",
       "Dumbbell Reverse Wrist Curl"
     ],
     "derived": true,
@@ -10194,8 +9980,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Reverse Wrist Curl",
-      "Wrist Roller",
-      "Barbell Reverse Wrist Curl"
+      "Wrist Roller"
     ],
     "derived": true,
     "movementSlug": "reverse-wrist-curl-isolation"
@@ -10224,7 +10009,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Barbell Wrist Curl",
       "Wrist Roller",
       "Dumbbell Wrist Curl"
     ],
@@ -10254,9 +10038,8 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Wrist Curl",
       "Reverse Wrist Curl",
-      "DB Wrist Curl"
+      "Dumbbell Wrist Curl"
     ],
     "derived": true
   },
@@ -10287,9 +10070,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Tricep Pushdown (V-Bar)",
-      "Overhead Cable Extension",
-      "Skullcrusher",
-      "Dumbbell Tricep Extension"
+      "Skullcrusher"
     ],
     "derived": true,
     "movementSlug": "triceps-pushdown-isolation"
@@ -10321,7 +10102,6 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Tricep Pushdown (Rope)",
-      "V-Bar",
       "JM Press"
     ],
     "derived": true,
@@ -10353,8 +10133,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Straight Bar",
-      "Rope",
       "Machine Tricep Extension"
     ],
     "derived": true,
@@ -10386,7 +10164,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Straight Bar Pushdown",
       "Skullcrusher"
     ],
     "derived": true,
@@ -10419,8 +10196,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Tricep Pushdown (Straight Bar)",
-      "Overhead Cable Tricep",
-      "French Press"
+      "Overhead Cable Tricep"
     ],
     "derived": true,
     "movementSlug": "triceps-pushdown-isolation"
@@ -10453,7 +10229,7 @@
     "similar": [
       "Tricep Pushdown (Rope)",
       "Overhead Cable Tricep",
-      "Cable Kickback"
+      "Cable Glute Kickback"
     ],
     "derived": true
   },
@@ -10483,10 +10259,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Tricep Pushdown",
-      "Overhead Cable",
-      "JM Press",
-      "Dumbbell Tricep Extension"
+      "JM Press"
     ],
     "derived": true,
     "movementSlug": "triceps-extension-isolation"
@@ -10583,11 +10356,8 @@
     "defaultRestSeconds": 120,
     "similar": [
       "JM Press",
-      "Overhead DB Tricep",
-      "Close Grip Bench",
       "Swiss Bar Skullcrusher",
-      "Dumbbell Skullcrusher",
-      "Cable Lying Extension"
+      "Dumbbell Skullcrusher"
     ],
     "derived": true,
     "movementSlug": "skullcrusher-isolation"
@@ -10652,8 +10422,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Dumbbell Skullcrusher",
-      "Overhead Dumbbell Tricep",
-      "Cable Tricep Pushdown"
+      "Overhead Dumbbell Tricep"
     ],
     "derived": true
   },
@@ -10684,9 +10453,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Skullcrusher",
-      "JM Press",
-      "Overhead Extension",
-      "Dumbbell Tate Press"
+      "JM Press"
     ],
     "derived": true
   },
@@ -10716,9 +10483,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Close Grip Bench",
       "Skullcrusher",
-      "Tricep Pushdown",
       "Swiss Bar JM Press"
     ],
     "derived": true,
@@ -10750,7 +10515,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Overhead DB Tricep",
       "Skullcrusher",
       "Tate Press",
       "Single-Arm Cable French Press"
@@ -10784,9 +10548,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Overhead Cable Tricep",
-      "Single-Arm Dumbbell Overhead Tricep",
-      "Cable Tricep Pushdown"
+      "Overhead Cable Tricep"
     ],
     "derived": true
   },
@@ -10816,11 +10578,9 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Overhead Cable",
       "Skullcrusher",
       "JM Press",
-      "Dumbbell Skullcrusher",
-      "Single-Arm Overhead DB Tricep"
+      "Dumbbell Skullcrusher"
     ],
     "derived": true,
     "movementSlug": "overhead-tricep-isolation"
@@ -10884,7 +10644,6 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Overhead Cable Tricep",
-      "Single-Arm Cable Kickback",
       "Tate Press"
     ],
     "derived": true
@@ -10916,9 +10675,7 @@
     "defaultRestSeconds": 75,
     "similar": [
       "Tricep Pushdown (Rope)",
-      "Overhead Cable Tricep",
-      "Single-Arm Cable Kickback",
-      "Dumbbell Kickback"
+      "Overhead Cable Tricep"
     ],
     "derived": true,
     "movementSlug": "tricep-kickback-isolation"
@@ -10981,7 +10738,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
     "similar": [
-      "Single-Arm Cable Kickback",
       "Cable Tricep Kickback",
       "Overhead Dumbbell Tricep"
     ],
@@ -11015,8 +10771,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Diamond Push-Up",
-      "Bench Dip",
-      "Tricep Pushdown"
+      "Bench Dip"
     ],
     "derived": true
   },
@@ -11046,7 +10801,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Tricep Pushdown",
       "Skullcrusher",
       "Close Grip Push-Up",
       "Dip",
@@ -11077,10 +10831,7 @@
     "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 75,
-    "similar": [
-      "Cable Pushdown",
-      "Band Overhead Extension"
-    ],
+    "similar": [],
     "derived": true,
     "movementSlug": "triceps-pushdown-isolation"
   },
@@ -11110,7 +10861,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Skull Crusher",
       "JM Press",
       "Tate Press",
       "Swiss Bar JM Press"
@@ -11148,8 +10898,7 @@
       "Barbell Bicep Curl",
       "EZ Bar Curl",
       "Hammer Curl",
-      "Axle Bar Bicep Curl",
-      "Dumbbell Hammer Curl"
+      "Axle Bar Bicep Curl"
     ],
     "derived": true,
     "movementSlug": "curl-isolation"
@@ -11216,8 +10965,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "JM Press",
-      "Close Grip Bench",
-      "Skull Crusher",
       "Swiss Bar Skullcrusher"
     ],
     "derived": true,
@@ -11250,8 +10997,6 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Cable Crunch",
-      "Weighted Crunch",
-      "Crunch (floor)",
       "Total Core Trainer Crunch"
     ],
     "derived": true
@@ -11282,7 +11027,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Machine Ab Crunch",
       "Decline Crunch",
       "Cable Crunch"
     ],
@@ -11315,8 +11059,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Total Core Trainer Crunch",
-      "Machine Ab Crunch",
-      "Seated Crunch Machine"
+      "Ab Crunch Machine"
     ],
     "derived": true
   },
@@ -11350,8 +11093,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Hanging Leg Raise",
-      "Reverse Crunch",
-      "Lying Leg Raise"
+      "Reverse Crunch"
     ],
     "derived": true
   },
@@ -11419,9 +11161,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Russian Twist",
-      "Rotary Torso Machine",
-      "Pallof Press (rotation)"
+      "Rotary Torso Machine"
     ],
     "derived": true
   },
@@ -11452,7 +11192,6 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Ab Crunch Machine",
-      "Weighted Crunch",
       "Hanging Leg Raise"
     ],
     "derived": true
@@ -11487,7 +11226,6 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Hanging Leg Raise",
-      "Lying Leg Raise",
       "Ab Wheel Rollout"
     ],
     "derived": true
@@ -11518,7 +11256,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Weighted Crunch",
       "Ab Crunch Machine",
       "Reverse Crunch"
     ],
@@ -11587,7 +11324,6 @@
     "similar": [
       "Toes to Bar",
       "Windshield Wiper",
-      "L-Sit",
       "V-Up",
       "Reverse Crunch"
     ],
@@ -11660,8 +11396,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Toes to Bar",
-      "Hanging Leg Raise",
-      "L-Sit (rings)"
+      "Hanging Leg Raise"
     ],
     "derived": true
   },
@@ -11693,8 +11428,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Toes to Bar (twist)",
-      "Russian Twist",
       "GHD Russian Twist"
     ],
     "derived": true
@@ -11728,7 +11461,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Barbell Rollout",
       "Plank",
       "Dead Bug",
       "Pallof Press",
@@ -11765,7 +11497,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Ab Wheel (hold)",
       "Dead Bug",
       "Hollow Body Hold",
       "Side Plank"
@@ -11804,8 +11535,7 @@
     "similar": [
       "Plank",
       "Copenhagen Adductor Plank",
-      "Pallof Press",
-      "Side Bridge"
+      "Pallof Press"
     ],
     "derived": true
   },
@@ -11872,8 +11602,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Hollow Body Hold",
-      "Plank",
-      "Bird Dog"
+      "Plank"
     ],
     "derived": true
   },
@@ -11906,10 +11635,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Cable Chop (hold)",
-      "Landmine Anti-rotation",
-      "Side Plank",
-      "Standing Anti-rotation Press"
+      "Side Plank"
     ],
     "derived": true
   },
@@ -11941,11 +11667,7 @@
     "loggingMetric": "time",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
-    "similar": [
-      "Hanging Leg Raise (strict)",
-      "Toes to Bar (slow)",
-      "Ab Wheel"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -11972,10 +11694,8 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Hanging Leg Raise (hold)",
       "V-Up",
-      "Hollow Body Hold",
-      "Knee Raise"
+      "Hollow Body Hold"
     ],
     "derived": true
   },
@@ -12006,9 +11726,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Hanging Leg Raise",
-      "Toes to Bar (lying)",
-      "L-Sit"
+      "Hanging Leg Raise"
     ],
     "derived": true
   },
@@ -12042,8 +11760,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Plank",
-      "TRX Mountain Climber",
-      "Ring Plank"
+      "TRX Mountain Climber"
     ],
     "derived": true,
     "movementSlug": "plank-core"
@@ -12075,8 +11792,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "TRX Plank",
-      "Hanging Leg Raise",
-      "Mountain Climber (floor)"
+      "Hanging Leg Raise"
     ],
     "derived": true
   },
@@ -12204,7 +11920,6 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Pistol Squat",
-      "TRX Squat",
       "Bulgarian Split Squat"
     ],
     "derived": true,
@@ -12236,9 +11951,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Goblet Squat",
-      "TRX Squat",
-      "Overhead Press (unstable)"
+      "Goblet Squat"
     ],
     "derived": true
   },
@@ -12272,8 +11985,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Hanging Leg Raise",
-      "Toes to Rings",
-      "TRX Knee Tuck"
+      "Toes to Rings"
     ],
     "derived": true,
     "movementSlug": "hanging-leg-raise-core"
@@ -12340,8 +12052,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Hanging Leg Raise",
-      "Toes to Rings",
-      "TRX Knee Tuck"
+      "Toes to Rings"
     ],
     "derived": true
   },
@@ -12374,10 +12085,7 @@
     "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
-    "similar": [
-      "Cable Side Bend",
-      "Oblique Extension"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -12410,8 +12118,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "GHD Russian Twist",
-      "Cable Chop"
+      "GHD Russian Twist"
     ],
     "derived": true
   },
@@ -12444,8 +12151,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Dumbbell Russian Twist",
-      "Windshield Wiper",
-      "Cable Twist"
+      "Windshield Wiper"
     ],
     "derived": true
   },
@@ -12510,8 +12216,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Dumbbell Side Bend",
-      "Cable Side Bend"
+      "Dumbbell Side Bend"
     ],
     "derived": true
   },
@@ -12543,7 +12248,6 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Ab Wheel Rollout",
-      "Barbell Rollout",
       "Plank"
     ],
     "derived": true
@@ -12571,11 +12275,7 @@
     "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
-    "similar": [
-      "Neck Curl",
-      "Neck Extension",
-      "Neck Side Flexion"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -12602,8 +12302,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Neck Curl",
-      "4-Way Neck",
       "Neck Harness Extension"
     ],
     "derived": true,
@@ -12633,8 +12331,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Neck Extension",
-      "4-Way Neck",
       "Neck Harness Curl"
     ],
     "derived": true,
@@ -12665,8 +12361,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Neck Harness Curl",
-      "Machine Neck Extension",
-      "Plate-Loaded Neck"
+      "Machine Neck Extension"
     ],
     "derived": true
   },
@@ -12723,11 +12418,7 @@
     "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
-    "similar": [
-      "4-Way Neck",
-      "Neck Harness Side",
-      "Manual Resistance Side Flexion"
-    ],
+    "similar": [],
     "derived": true,
     "movementSlug": "neck-side-flexion-core"
   },
@@ -12754,11 +12445,7 @@
     "loggingMetric": "weight_reps",
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
-    "similar": [
-      "4-Way Neck",
-      "Band Neck Rotation",
-      "Seated Neck Rotation (plate)"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -12908,9 +12595,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Machine Neck Side Flexion",
-      "Band Neck Rotation",
-      "Neck Harness Side"
+      "Machine Neck Side Flexion"
     ],
     "derived": true,
     "movementSlug": "neck-side-flexion-core"
@@ -13000,8 +12685,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Machine Neck Side Flexion",
-      "Band Neck Side Flexion",
-      "Self-Resisted Rotation"
+      "Band Neck Side Flexion"
     ],
     "derived": true
   },
@@ -13029,9 +12713,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Front Neck Bridge",
-      "Neck Harness Extension",
-      "4-Way Neck"
+      "Neck Harness Extension"
     ],
     "derived": true
   },
@@ -13059,7 +12741,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Supine Neck Bridge",
       "Neck Harness Curl",
       "Plate-Loaded Neck Curl"
     ],
@@ -13091,7 +12772,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Supine Neck Shrug",
       "Neck Harness Extension",
       "Band Neck Extension"
     ],
@@ -13123,7 +12803,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Prone Neck Shrug",
       "Neck Harness Curl",
       "Band Neck Flexion"
     ],
@@ -13156,8 +12835,7 @@
     "defaultRestSeconds": 60,
     "similar": [
       "Dead Bug",
-      "Plank",
-      "L-Sit (tuck)"
+      "Plank"
     ],
     "derived": true
   },
@@ -13189,9 +12867,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 60,
     "similar": [
-      "Reverse Hyper",
-      "Back Extension",
-      "Supermans"
+      "Reverse Hyperextension"
     ],
     "derived": true
   },
@@ -13221,7 +12897,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Handstand Push-Up (partial)",
       "Decline Push-Up",
       "Overhead Press",
       "Dumbbell Overhead Press"
@@ -13254,8 +12929,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 120,
     "similar": [
-      "Pike Push-Up",
-      "Handstand Push-Up (eccentric)"
+      "Pike Push-Up"
     ],
     "derived": true
   },
@@ -13290,9 +12964,7 @@
     "similar": [
       "Box Jump",
       "Broad Jump",
-      "Squat Jump",
-      "Trap Bar Jump Squat",
-      "Dumbbell Jump Squat"
+      "Trap Bar Jump Squat"
     ],
     "derived": true,
     "movementSlug": "jump-squat-squat"
@@ -13364,7 +13036,6 @@
     "similar": [
       "Ring Muscle-Up",
       "Bar Muscle-Up",
-      "Chest Dips + Pull-Up",
       "Kipping Muscle-Up"
     ],
     "derived": true
@@ -13401,8 +13072,7 @@
     "defaultRestSeconds": 240,
     "similar": [
       "Strict Muscle-Up",
-      "Bar Muscle-Up",
-      "Chest Dips + Kipping Pull-Up"
+      "Bar Muscle-Up"
     ],
     "derived": true
   },
@@ -13435,11 +13105,7 @@
     "loggingMetric": "reps",
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
-    "similar": [
-      "Negative Muscle-Up",
-      "Straight Bar Dips",
-      "Cross pull"
-    ],
+    "similar": [],
     "derived": true
   },
   {
@@ -13471,9 +13137,6 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
-      "Planche Lean",
-      "Tuck Planche",
-      "Adv Tuck Planche",
       "Pseudo Planche Push-Up"
     ],
     "derived": true
@@ -13507,9 +13170,7 @@
     "supportsWeightedBodyweight": true,
     "defaultRestSeconds": 180,
     "similar": [
-      "Skin the Cat",
-      "Front Lever",
-      "German Hang"
+      "Front Lever"
     ],
     "derived": true,
     "movementSlug": "back-lever-horizontal-pull"
@@ -13545,8 +13206,6 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Back Lever",
-      "Tuck Front Lever",
-      "Rows (advanced)",
       "Human Flag"
     ],
     "derived": true,
@@ -13582,8 +13241,7 @@
     "defaultRestSeconds": 180,
     "similar": [
       "Front Lever",
-      "Back Lever",
-      "Planche (prep)"
+      "Back Lever"
     ],
     "derived": true
   },
@@ -13617,9 +13275,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 120,
     "similar": [
-      "Hex Bar Farmers Walk",
       "Suitcase Carry",
-      "Waiter's Walk",
       "Dumbbell Farmers Walk",
       "Yoke Walk"
     ],
@@ -13695,7 +13351,7 @@
     "similar": [
       "Farmers Walk",
       "Suitcase Carry",
-      "Yoke Carry",
+      "Yoke Walk",
       "Dumbbell Farmers Walk"
     ],
     "derived": true
@@ -13731,7 +13387,6 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Farmers Walk",
-      "Waiter's Walk",
       "Side Plank",
       "Pallof Press"
     ],
@@ -14055,7 +13710,7 @@
     "defaultRestSeconds": 120,
     "similar": [
       "Barbell Row",
-      "T-Bar Row Machine",
+      "Chest-Supported T-Bar Row",
       "Meadows Row"
     ],
     "derived": false,
@@ -15174,8 +14829,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 150,
     "similar": [
-      "Power Snatch",
-      "High Pull"
+      "Power Snatch"
     ],
     "derived": false
   },
@@ -15860,8 +15514,7 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 180,
     "similar": [
-      "Power Clean",
-      "Atlas Stone Lift"
+      "Power Clean"
     ],
     "derived": false
   },
@@ -16281,8 +15934,6 @@
     "supportsWeightedBodyweight": false,
     "defaultRestSeconds": 60,
     "similar": [
-      "Strict Barbell Curl",
-      "Dumbbell Bicep Curl",
       "Incline Dumbbell Curl"
     ],
     "derived": true,
@@ -16322,8 +15973,7 @@
     "defaultRestSeconds": 90,
     "similar": [
       "Seated Low Row Machine (Chest-Supported)",
-      "Seated Cable Row (Neutral Single)",
-      "Single-Arm Cable Row"
+      "Seated Cable Row (Neutral Single)"
     ],
     "derived": true,
     "movementSlug": "seated-row-horizontal-pull"
@@ -16362,8 +16012,7 @@
     "defaultRestSeconds": 90,
     "similar": [
       "Seated Cable Row (V-Bar)",
-      "Seated Cable Row (Wide)",
-      "Underhand Lat Pulldown"
+      "Seated Cable Row (Wide)"
     ],
     "derived": true,
     "movementSlug": "seated-row-horizontal-pull"
@@ -16475,5 +16124,727 @@
     ],
     "derived": true,
     "movementSlug": "wrist-curl-isolation"
+  },
+  {
+    "slug": "high-bar-back-squat",
+    "name": "High-Bar Back Squat",
+    "aka": [
+      "High-Bar Squat",
+      "Olympic Back Squat"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "squat",
+    "movementPatternRaw": "Knee Dominant (High-Bar Squat)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads"
+    ],
+    "secondaryMuscles": [
+      "Glutes",
+      "Adductors"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Abs"
+    ],
+    "cnsScore": 8,
+    "recoveryImpact": 5,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 240,
+    "similar": [
+      "Low-Bar Back Squat",
+      "Barbell Back Squat",
+      "Front Squat",
+      "Paused Squat"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "squat_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "high-bar-back-squat-squat"
+  },
+  {
+    "slug": "low-bar-back-squat",
+    "name": "Low-Bar Back Squat",
+    "aka": [
+      "Low-Bar Squat",
+      "Powerlifting Back Squat"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "powerlifting",
+    "movementPattern": "squat",
+    "movementPatternRaw": "Knee Dominant (Low-Bar Squat)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads",
+      "Glutes"
+    ],
+    "secondaryMuscles": [
+      "Adductors",
+      "Hamstrings"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Abs"
+    ],
+    "cnsScore": 8,
+    "recoveryImpact": 5,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 240,
+    "similar": [
+      "High-Bar Back Squat",
+      "Barbell Back Squat",
+      "Box Squat",
+      "Paused Squat"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "squat_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "low-bar-back-squat-squat"
+  },
+  {
+    "slug": "paused-squat",
+    "name": "Paused Squat",
+    "aka": [
+      "Pause Squat"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "squat",
+    "movementPatternRaw": "Knee Dominant (Paused Squat)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads"
+    ],
+    "secondaryMuscles": [
+      "Glutes",
+      "Adductors"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Abs"
+    ],
+    "cnsScore": 8,
+    "recoveryImpact": 5,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 240,
+    "similar": [
+      "High-Bar Back Squat",
+      "Low-Bar Back Squat",
+      "Pin Squat",
+      "Tempo Squat"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "squat_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "paused-squat-squat"
+  },
+  {
+    "slug": "tempo-squat",
+    "name": "Tempo Squat",
+    "aka": [
+      "Eccentric Tempo Squat"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "squat",
+    "movementPatternRaw": "Knee Dominant (Tempo Squat)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads"
+    ],
+    "secondaryMuscles": [
+      "Glutes",
+      "Adductors"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Abs"
+    ],
+    "cnsScore": 7,
+    "recoveryImpact": 4,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 180,
+    "similar": [
+      "Paused Squat",
+      "High-Bar Back Squat",
+      "Low-Bar Back Squat"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "squat_rack"
+    ],
+    "maxEffortEligibility": "advanced_manual",
+    "movementSlug": "tempo-squat-squat"
+  },
+  {
+    "slug": "pin-squat",
+    "name": "Pin Squat",
+    "aka": [
+      "Anderson Squat",
+      "Bottom-Up Squat"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "squat",
+    "movementPatternRaw": "Knee Dominant (Dead-Stop Squat)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads",
+      "Glutes"
+    ],
+    "secondaryMuscles": [
+      "Adductors"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Abs"
+    ],
+    "cnsScore": 9,
+    "recoveryImpact": 5,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 300,
+    "similar": [
+      "Paused Squat",
+      "Box Squat",
+      "Low-Bar Back Squat"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "power_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "pin-squat-squat"
+  },
+  {
+    "slug": "hatfield-squat",
+    "name": "Hatfield Squat",
+    "aka": [
+      "Hand-Supported Safety Bar Squat"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "squat",
+    "movementPatternRaw": "Knee Dominant (Hand-Supported Squat)",
+    "modality": "barbell",
+    "equipment": "Safety Bar",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads",
+      "Glutes"
+    ],
+    "secondaryMuscles": [
+      "Adductors"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Abs"
+    ],
+    "cnsScore": 8,
+    "recoveryImpact": 5,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 240,
+    "similar": [
+      "Safety Bar Squat",
+      "High-Bar Back Squat",
+      "Belt Squat"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "safety_squat_bar",
+      "squat_rack",
+      "hand_support"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "hatfield-squat-squat"
+  },
+  {
+    "slug": "cambered-bar-squat",
+    "name": "Cambered Bar Squat",
+    "aka": [
+      "Cambered Squat"
+    ],
+    "bodyPart": "Lower Body",
+    "category": "strength",
+    "movementPattern": "squat",
+    "movementPatternRaw": "Knee Dominant (Specialty-Bar Squat)",
+    "modality": "barbell",
+    "equipment": "Cambered Bar",
+    "primaryMuscle": "Quads",
+    "primaryMuscles": [
+      "Quads",
+      "Glutes"
+    ],
+    "secondaryMuscles": [
+      "Adductors"
+    ],
+    "stabilizers": [
+      "Erectors",
+      "Abs"
+    ],
+    "cnsScore": 8,
+    "recoveryImpact": 5,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 240,
+    "similar": [
+      "Cambered Bar Box Squat",
+      "Safety Bar Squat",
+      "Low-Bar Back Squat"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "cambered_bar",
+      "squat_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "cambered-bar-squat-squat"
+  },
+  {
+    "slug": "larsen-press",
+    "name": "Larsen Press",
+    "aka": [
+      "Feet-Up Bench Press"
+    ],
+    "bodyPart": "Chest",
+    "category": "strength",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Horizontal Push (Feet-Up)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Serratus",
+      "Core"
+    ],
+    "cnsScore": 6,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 180,
+    "similar": [
+      "Barbell Bench Press",
+      "Paused Bench Press",
+      "Spoto Press"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "flat_bench",
+      "bench_rack"
+    ],
+    "maxEffortEligibility": "advanced_manual",
+    "movementSlug": "larsen-press-horizontal-push"
+  },
+  {
+    "slug": "spoto-press",
+    "name": "Spoto Press",
+    "aka": [
+      "Hover Pause Bench Press"
+    ],
+    "bodyPart": "Chest",
+    "category": "strength",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Horizontal Push (Hover Pause)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Serratus",
+      "Core"
+    ],
+    "cnsScore": 6,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 180,
+    "similar": [
+      "Paused Bench Press",
+      "Barbell Bench Press",
+      "Larsen Press"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "flat_bench",
+      "bench_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "spoto-press-horizontal-push"
+  },
+  {
+    "slug": "paused-bench-press",
+    "name": "Paused Bench Press",
+    "aka": [
+      "Pause Bench Press",
+      "Competition Pause Bench"
+    ],
+    "bodyPart": "Chest",
+    "category": "powerlifting",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Horizontal Push (Paused)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Serratus",
+      "Core"
+    ],
+    "cnsScore": 6,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 180,
+    "similar": [
+      "Barbell Bench Press",
+      "Spoto Press",
+      "Tempo Bench Press"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "flat_bench",
+      "bench_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "paused-bench-press-horizontal-push"
+  },
+  {
+    "slug": "tempo-bench-press",
+    "name": "Tempo Bench Press",
+    "aka": [
+      "Eccentric Tempo Bench Press"
+    ],
+    "bodyPart": "Chest",
+    "category": "strength",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Horizontal Push (Tempo)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest"
+    ],
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Serratus",
+      "Core"
+    ],
+    "cnsScore": 5,
+    "recoveryImpact": 3,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 180,
+    "similar": [
+      "Paused Bench Press",
+      "Barbell Bench Press",
+      "Spoto Press"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "flat_bench",
+      "bench_rack"
+    ],
+    "maxEffortEligibility": "advanced_manual",
+    "movementSlug": "tempo-bench-press-horizontal-push"
+  },
+  {
+    "slug": "pin-press",
+    "name": "Pin Press",
+    "aka": [
+      "Dead-Stop Bench Press"
+    ],
+    "bodyPart": "Chest",
+    "category": "strength",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Horizontal Push (Dead Stop from Pins)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest",
+      "Triceps"
+    ],
+    "secondaryMuscles": [
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Core"
+    ],
+    "cnsScore": 7,
+    "recoveryImpact": 4,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 240,
+    "similar": [
+      "Board Press",
+      "Floor Press",
+      "Paused Bench Press"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "flat_bench",
+      "power_rack"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "pin-press-horizontal-push"
+  },
+  {
+    "slug": "board-press",
+    "name": "Board Press",
+    "aka": [
+      "Bench Board Press"
+    ],
+    "bodyPart": "Chest",
+    "category": "strength",
+    "movementPattern": "horizontal_push",
+    "movementPatternRaw": "Horizontal Push (Partial Range)",
+    "modality": "barbell",
+    "equipment": "Barbell",
+    "primaryMuscle": "Chest",
+    "primaryMuscles": [
+      "Chest",
+      "Triceps"
+    ],
+    "secondaryMuscles": [
+      "Front Delts"
+    ],
+    "stabilizers": [
+      "Core"
+    ],
+    "cnsScore": 7,
+    "recoveryImpact": 4,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 240,
+    "similar": [
+      "Pin Press",
+      "Floor Press",
+      "Close Grip Bench Press"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "barbell",
+      "flat_bench",
+      "bench_rack",
+      "bench_board"
+    ],
+    "maxEffortEligibility": "suitable",
+    "movementSlug": "board-press-horizontal-push"
+  },
+  {
+    "slug": "kelso-shrug",
+    "name": "Kelso Shrug",
+    "aka": [
+      "Chest-Supported Shrug",
+      "Prone Shrug"
+    ],
+    "bodyPart": "Back",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Scapular Retraction (Chest Supported)",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
+    "primaryMuscle": "Back",
+    "primaryMuscles": [
+      "Traps",
+      "Rhomboids"
+    ],
+    "secondaryMuscles": [
+      "Rear Delts"
+    ],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 75,
+    "similar": [
+      "Chest-Supported Dumbbell Row",
+      "Dumbbell Shrug",
+      "Machine Mid Row"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "dumbbell",
+      "incline_bench"
+    ],
+    "maxEffortEligibility": "unsuitable",
+    "movementSlug": "kelso-shrug-isolation"
+  },
+  {
+    "slug": "cable-y-raise",
+    "name": "Cable Y-Raise",
+    "aka": [
+      "Cable Y Raise"
+    ],
+    "bodyPart": "Shoulders",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Scapular Upward Rotation (Y-Raise)",
+    "modality": "cable",
+    "equipment": "Cable",
+    "primaryMuscle": "Shoulders",
+    "primaryMuscles": [
+      "Side Delts",
+      "Lower Traps"
+    ],
+    "secondaryMuscles": [
+      "Front Delts",
+      "Serratus"
+    ],
+    "stabilizers": [
+      "Core"
+    ],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "Incline Y-Raise",
+      "Cable Lateral Raise",
+      "YTWLI Raises"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "cable_station",
+      "single_handles"
+    ],
+    "maxEffortEligibility": "unsuitable",
+    "movementSlug": "y-raise-isolation"
+  },
+  {
+    "slug": "incline-y-raise",
+    "name": "Incline Y-Raise",
+    "aka": [
+      "Incline Dumbbell Y-Raise",
+      "Prone Y-Raise"
+    ],
+    "bodyPart": "Shoulders",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Scapular Upward Rotation (Chest Supported)",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
+    "primaryMuscle": "Shoulders",
+    "primaryMuscles": [
+      "Lower Traps",
+      "Side Delts"
+    ],
+    "secondaryMuscles": [
+      "Rear Delts",
+      "Serratus"
+    ],
+    "stabilizers": [],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 60,
+    "similar": [
+      "Cable Y-Raise",
+      "YTWLI Raises",
+      "Dumbbell Lateral Raise"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "dumbbell",
+      "incline_bench"
+    ],
+    "maxEffortEligibility": "unsuitable",
+    "movementSlug": "incline-y-raise-isolation"
+  },
+  {
+    "slug": "rolling-dumbbell-triceps-extension",
+    "name": "Rolling Dumbbell Triceps Extension",
+    "aka": [
+      "Rolling Triceps Extension",
+      "Rolling DB Extension"
+    ],
+    "bodyPart": "Arms",
+    "category": "hypertrophy",
+    "movementPattern": "isolation",
+    "movementPatternRaw": "Elbow Extension (Rolling)",
+    "modality": "dumbbell",
+    "equipment": "Dumbbell",
+    "primaryMuscle": "Triceps",
+    "primaryMuscles": [
+      "Triceps"
+    ],
+    "secondaryMuscles": [],
+    "stabilizers": [
+      "Forearms"
+    ],
+    "cnsScore": 2,
+    "recoveryImpact": 1,
+    "loggingMetric": "weight_reps",
+    "supportsWeightedBodyweight": false,
+    "defaultRestSeconds": 75,
+    "similar": [
+      "Dumbbell Skullcrusher",
+      "Tate Press",
+      "JM Press"
+    ],
+    "derived": false,
+    "requiredEquipmentKeys": [
+      "dumbbell",
+      "flat_bench"
+    ],
+    "maxEffortEligibility": "unsuitable",
+    "movementSlug": "rolling-triceps-extension-isolation"
   }
 ]

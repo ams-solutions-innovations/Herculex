@@ -554,5 +554,150 @@
       "dumbbell"
     ],
     "canonicalExerciseSlug": "wrist-curl-barbell"
+  },
+  {
+    "slug": "board-press-horizontal-push",
+    "label": "Board Press",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "board-press"
+  },
+  {
+    "slug": "cambered-bar-squat-squat",
+    "label": "Cambered Bar Squat",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "cambered-bar-squat"
+  },
+  {
+    "slug": "chest-supported-row-horizontal-pull",
+    "label": "Chest-Supported Row",
+    "allowedEquipment": [
+      "dumbbell",
+      "machine_plate"
+    ],
+    "canonicalExerciseSlug": "dumbbell-incline-row"
+  },
+  {
+    "slug": "hatfield-squat-squat",
+    "label": "Hatfield Squat",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "hatfield-squat"
+  },
+  {
+    "slug": "high-bar-back-squat-squat",
+    "label": "High-Bar Back Squat",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "high-bar-back-squat"
+  },
+  {
+    "slug": "incline-y-raise-isolation",
+    "label": "Incline Y-Raise",
+    "allowedEquipment": [
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "incline-y-raise"
+  },
+  {
+    "slug": "kelso-shrug-isolation",
+    "label": "Kelso Shrug",
+    "allowedEquipment": [
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "kelso-shrug"
+  },
+  {
+    "slug": "larsen-press-horizontal-push",
+    "label": "Larsen Press",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "larsen-press"
+  },
+  {
+    "slug": "low-bar-back-squat-squat",
+    "label": "Low-Bar Back Squat",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "low-bar-back-squat"
+  },
+  {
+    "slug": "paused-bench-press-horizontal-push",
+    "label": "Paused Bench Press",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "paused-bench-press"
+  },
+  {
+    "slug": "paused-squat-squat",
+    "label": "Paused Squat",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "paused-squat"
+  },
+  {
+    "slug": "pin-press-horizontal-push",
+    "label": "Pin Press",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "pin-press"
+  },
+  {
+    "slug": "pin-squat-squat",
+    "label": "Pin Squat",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "pin-squat"
+  },
+  {
+    "slug": "rolling-triceps-extension-isolation",
+    "label": "Rolling Triceps Extension",
+    "allowedEquipment": [
+      "dumbbell"
+    ],
+    "canonicalExerciseSlug": "rolling-dumbbell-triceps-extension"
+  },
+  {
+    "slug": "spoto-press-horizontal-push",
+    "label": "Spoto Press",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "spoto-press"
+  },
+  {
+    "slug": "tempo-bench-press-horizontal-push",
+    "label": "Tempo Bench Press",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "tempo-bench-press"
+  },
+  {
+    "slug": "tempo-squat-squat",
+    "label": "Tempo Squat",
+    "allowedEquipment": [
+      "barbell"
+    ],
+    "canonicalExerciseSlug": "tempo-squat"
+  },
+  {
+    "slug": "y-raise-isolation",
+    "label": "Y-Raise",
+    "allowedEquipment": [
+      "cable"
+    ],
+    "canonicalExerciseSlug": "cable-y-raise"
   }
 ]

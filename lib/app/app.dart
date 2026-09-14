@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,7 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/theme_provider.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/buddy/application/buddy_providers.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/data/fasting_schedule_action_queue.dart';
 import 'package:herculex/features/fasting/domain/fasting_plan.dart';
@@ -23,6 +25,8 @@ import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dar
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:herculex/features/notifications/data/notification_sync_service.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/domain/meal.dart';
+import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
 import 'package:herculex/features/nutrition/presentation/views/barcode_scanner_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
@@ -36,9 +40,11 @@ import 'package:herculex/features/workouts/data/workout_quick_action_settings.da
 import 'package:herculex/features/workouts/domain/ongoing_workout_surface_snapshot.dart';
 import 'package:herculex/features/workouts/domain/workout_notification_command.dart';
 import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
+import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:herculex/services/platform/active_workout_surface_sync_policy.dart';
 import 'package:herculex/services/platform/workout_bubble_service.dart';
 import 'package:herculex/services/platform/workout_notification_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class HerculexApp extends ConsumerStatefulWidget {
   const HerculexApp({super.key});
@@ -160,6 +166,15 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
         ref.read(routerProvider).go(AppRoutes.app);
         return;
       }
+      if (call.method == 'addWater') {
+        // Quick Actions widget's "+250 ml" button. Mirrors the same
+        // DateTime.now() call already used for manual water logging in
+        // nutrition_providers.dart — no UI to reflect a Clock override here.
+        await ref
+            .read(nutritionRepositoryProvider)
+            .addWaterMl(DateTime.now(), 250);
+        return;
+      }
       if (call.method == 'openFoodSearch' && mounted) {
         ref.read(mainTabIndexProvider.notifier).state = 1;
         ref.read(routerProvider).go(AppRoutes.app);
@@ -182,6 +197,43 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
               builder: (_) => const BarcodeScannerView(),
               fullscreenDialog: true,
             ),
+          );
+        }
+      }
+      if (call.method == 'openCameraFoodLog' && mounted) {
+        // The Today's Calories widget's "Photo" button: go straight to the
+        // camera, same as tapping "Take a photo of food" inside
+        // FoodPickerSheet, instead of landing on the Nutrition tab and making
+        // the user find the camera action themselves.
+        ref.read(mainTabIndexProvider.notifier).state = 1;
+        ref.read(routerProvider).go(AppRoutes.app);
+        const mealKey = 'lunch'; // Same fallback openFoodSearch uses above.
+        final now = DateTime.now();
+        final date = DateTime(now.year, now.month, now.day);
+        await ref
+            .read(pendingAiScanServiceProvider)
+            .setPendingContext(
+              PendingAiScanContext(
+                type: AiScanContextType.food,
+                mealKey: mealKey,
+                dateIso: date.toIso8601String(),
+              ),
+            );
+        final picked = await ImagePicker().pickImage(
+          source: ImageSource.camera,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+        await ref.read(pendingAiScanServiceProvider).clearPendingContext();
+        final ctx = context;
+        if (picked != null && ctx.mounted) {
+          await GeminiPhotoAnalysisDialog.show(
+            ctx,
+            imageFile: File(picked.path),
+            meal: Meal.fromName(mealKey),
+            mealKey: mealKey,
+            date: date,
           );
         }
       }
@@ -643,6 +695,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     ref.watch(widgetMacroSyncControllerProvider);
     ref.watch(widgetCnsSyncControllerProvider);
     ref.watch(widgetRecoverySyncControllerProvider);
+    ref.watch(widgetTrainingSyncControllerProvider);
 
     // Starts/stops Phase 10 cloud sync off the auth session — see
     // syncServiceProvider in app/providers.dart.
