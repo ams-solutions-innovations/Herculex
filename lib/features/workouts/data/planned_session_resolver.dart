@@ -7,6 +7,7 @@ import 'package:herculex/features/programs/domain/prescription_resolver.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
+import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
 import 'package:uuid/uuid.dart';
 
 /// A set target frozen at the moment a workout starts.
@@ -228,6 +229,7 @@ class PlannedSessionResolver {
             .get();
 
     final exercises = <PlannedExerciseSnapshot>[];
+    var sawHeavyLiftInSession = false;
     for (final pde in rows) {
       ProgramExerciseSlotData? slot;
       if (pde.programExerciseSlotId != null) {
@@ -271,25 +273,33 @@ class PlannedSessionResolver {
           (assignment?.reason == null
               ? prescription.why
               : '${assignment!.reason} ${prescription.why}');
+      final isFirstHeavy = role.isHeavy && !sawHeavyLiftInSession;
+      if (role.isHeavy) sawHeavyLiftInSession = true;
       final copiedTemplateSets = _copiedTemplateSets(pde.prescriptionJson);
       final workingSets = method == SlotTrainingMethod.maxEffort
-          ? _maxEffortSets()
+          ? _maxEffortWorkingSets()
           : copiedTemplateSets ??
                 _setsFromPrescription(prescription.prescription);
-      final sets =
+      final warmupEligible =
           method == SlotTrainingMethod.maxEffort ||
-              !_hasAutomaticWarmups(pde.variantConfigJson)
-          ? workingSets
-          : [
-                  ..._automaticWarmups(
-                    role: role,
-                    mechanics: catalog.mechanics,
-                    modality: catalog.modality,
-                  ),
-                  ...workingSets,
-                ].indexed
-                .map((entry) => entry.$2.copyWith(index: entry.$1 + 1))
-                .toList(growable: false);
+          _hasAutomaticWarmups(pde.variantConfigJson);
+      final warmupTarget = method == SlotTrainingMethod.maxEffort
+          ? 0.90
+          : (prescription.prescription.segments.isEmpty
+                ? null
+                : prescription.prescription.segments.first.percentOf1Rm);
+      final warmups = warmupEligible
+          ? _warmupSnapshots(
+              role: role,
+              mechanics: catalog.mechanics,
+              modality: catalog.modality,
+              targetPercentOf1Rm: warmupTarget,
+              isFirstHeavyLiftInSession: isFirstHeavy,
+            )
+          : const <PlannedSetSnapshot>[];
+      final sets = [...warmups, ...workingSets].indexed
+          .map((entry) => entry.$2.copyWith(index: entry.$1 + 1))
+          .toList(growable: false);
 
       exercises.add(
         PlannedExerciseSnapshot(
@@ -494,31 +504,32 @@ class PlannedSessionResolver {
     }
   }
 
-  static List<PlannedSetSnapshot> _automaticWarmups({
+  static List<PlannedSetSnapshot> _warmupSnapshots({
     required SlotRole role,
     required String mechanics,
     required String modality,
+    required double? targetPercentOf1Rm,
+    required bool isFirstHeavyLiftInSession,
   }) {
-    final eligible =
-        (role == SlotRole.main || role == SlotRole.supplemental) &&
-        mechanics == 'compound' &&
-        const {'barbell', 'dumbbell', 'kettlebell'}.contains(modality);
-    if (!eligible) return const [];
-    final ramps = role == SlotRole.main
-        ? const [(0.40, 8), (0.55, 5), (0.70, 2)]
-        : const [(0.40, 8), (0.60, 4)];
+    final steps = WarmupResolver.resolve(
+      role: role,
+      mechanics: mechanics,
+      modality: modality,
+      targetPercentOf1Rm: targetPercentOf1Rm,
+      isFirstHeavyLiftInSession: isFirstHeavyLiftInSession,
+    );
     return [
-      for (final (index, ramp) in ramps.indexed)
+      for (final (index, step) in steps.indexed)
         PlannedSetSnapshot(
           index: index + 1,
-          repsMin: ramp.$2,
-          repsMax: ramp.$2,
+          repsMin: step.reps,
+          repsMax: step.reps,
           isWarmup: true,
           setType: 'standard',
           intent: Intent.technical.id,
           rir: Intent.technical.rir,
           rpeX10: (Intent.technical.rpe * 10).round(),
-          percentOf1Rm: ramp.$1,
+          percentOf1Rm: step.percentOf1Rm,
         ),
     ];
   }
@@ -589,25 +600,13 @@ class PlannedSessionResolver {
 
   /// Max Effort is represented explicitly rather than as one vague ramp set,
   /// so phone and Wear OS can display and log the complete safe sequence.
-  static List<PlannedSetSnapshot> _maxEffortSets() {
-    const warmups = <(double, int)>[(.4, 5), (.55, 3), (.7, 2), (.8, 1)];
+  ///
+  /// This returns only the top single and its back-off sets; the warmup ramp
+  /// leading into it now comes from [WarmupResolver] (D-10), prepended by the
+  /// caller alongside every other eligible slot's warmups.
+  static List<PlannedSetSnapshot> _maxEffortWorkingSets() {
     final out = <PlannedSetSnapshot>[];
     var index = 1;
-    for (final (percent, reps) in warmups) {
-      out.add(
-        PlannedSetSnapshot(
-          index: index++,
-          repsMin: reps,
-          repsMax: reps,
-          isWarmup: true,
-          setType: 'standard',
-          intent: Intent.technical.id,
-          rir: Intent.technical.rir,
-          rpeX10: 50,
-          percentOf1Rm: percent,
-        ),
-      );
-    }
     out.add(
       PlannedSetSnapshot(
         index: index++,

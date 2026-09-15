@@ -86,11 +86,14 @@ void main() {
       final resolver = PlannedSessionResolver(db);
       final plan = await resolver.resolveProgramDay(dayId);
       expect(plan.exercises.single.trainingMethod, 'max_effort');
-      expect(plan.exercises.single.sets.where((s) => s.isWarmup), hasLength(4));
-      expect(plan.exercises.single.sets, hasLength(8));
-      expect(plan.exercises.single.sets[4].repsMin, 1);
-      expect(plan.exercises.single.sets[4].repsMax, 3);
-      expect(plan.exercises.single.sets[4].rpeX10, 90);
+      // Max-effort warmups now come from WarmupResolver at a 0.90 target,
+      // which is the dense (5-step) ramp for the first heavy lift of the
+      // session (D-08/D-10), ahead of the top single + 3 back-off sets.
+      expect(plan.exercises.single.sets.where((s) => s.isWarmup), hasLength(5));
+      expect(plan.exercises.single.sets, hasLength(9));
+      expect(plan.exercises.single.sets[5].repsMin, 1);
+      expect(plan.exercises.single.sets[5].repsMax, 3);
+      expect(plan.exercises.single.sets[5].rpeX10, 90);
 
       final sessionId = await resolver.materialize(plan);
       final workoutExercise = await (db.select(
@@ -101,10 +104,10 @@ void main() {
                 ..where((t) => t.workoutExerciseId.equals(workoutExercise.id))
                 ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
               .get();
-      expect(sets, hasLength(8));
-      expect(sets[4].plannedRepsMin, 1);
-      expect(sets[4].plannedRepsMax, 3);
-      expect(sets[4].plannedRpeX10, 90);
+      expect(sets, hasLength(9));
+      expect(sets[5].plannedRepsMin, 1);
+      expect(sets[5].plannedRepsMax, 3);
+      expect(sets[5].plannedRpeX10, 90);
       expect(sets.every((s) => s.reps == 0 && s.weightKg == 0), isTrue);
 
       // Future plan edits cannot mutate the active workout snapshot.
@@ -116,7 +119,7 @@ void main() {
                 ..where((t) => t.workoutExerciseId.equals(workoutExercise.id))
                 ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
               .get();
-      expect(frozen[4].plannedRepsMin, 1);
+      expect(frozen[5].plannedRepsMin, 1);
     },
   );
 
@@ -260,10 +263,96 @@ void main() {
     final sets = (await PlannedSessionResolver(
       db,
     ).resolveProgramDay(dayId)).exercises.single.sets;
-    expect(sets.where((set) => set.isWarmup), hasLength(3));
-    expect(sets.skip(3).every((set) => !set.isWarmup), isTrue);
+    // No explicit %1RM target on this straight-sets slot, so WarmupResolver
+    // falls back to its 2-step light ramp (D-08).
+    expect(sets.where((set) => set.isWarmup), hasLength(2));
+    expect(sets.skip(2).every((set) => !set.isWarmup), isTrue);
     expect(sets.first.percentOf1Rm, .4);
   });
+
+  test(
+    'movement order abbreviates warmups for a later heavy lift at the same intensity',
+    () async {
+      final firstExerciseId = await db
+          .into(db.exerciseCatalog)
+          .insert(
+            ExerciseCatalogCompanion.insert(
+              name: 'Movement Order Squat',
+              primaryMuscle: 'Quads',
+              equipment: 'Barbell',
+              mechanics: 'compound',
+              force: 'push',
+              plane: 'axial',
+              modality: const Value('barbell'),
+            ),
+          );
+      final secondExerciseId = await db
+          .into(db.exerciseCatalog)
+          .insert(
+            ExerciseCatalogCompanion.insert(
+              name: 'Movement Order Row',
+              primaryMuscle: 'Back',
+              equipment: 'Barbell',
+              mechanics: 'compound',
+              force: 'pull',
+              plane: 'horizontal',
+              modality: const Value('barbell'),
+            ),
+          );
+      final programId = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'Movement Order Program'));
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
+      final dayId = await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: weekId,
+              dayOfWeek: 1,
+              name: 'Full Body',
+            ),
+          );
+      await db
+          .into(db.programDayExercises)
+          .insert(
+            ProgramDayExercisesCompanion.insert(
+              programDayId: dayId,
+              exerciseId: firstExerciseId,
+              orderIndex: 0,
+              slotRole: Value(SlotRole.main.id),
+              trainingMethod: Value(SlotTrainingMethod.straightSets.id),
+              percentOf1Rm: const Value(0.80),
+              variantConfigJson: const Value('{"autoWarmups":true}'),
+            ),
+          );
+      await db
+          .into(db.programDayExercises)
+          .insert(
+            ProgramDayExercisesCompanion.insert(
+              programDayId: dayId,
+              exerciseId: secondExerciseId,
+              orderIndex: 1,
+              slotRole: Value(SlotRole.supplemental.id),
+              trainingMethod: Value(SlotTrainingMethod.straightSets.id),
+              percentOf1Rm: const Value(0.80),
+              variantConfigJson: const Value('{"autoWarmups":true}'),
+            ),
+          );
+
+      final plan = await PlannedSessionResolver(db).resolveProgramDay(dayId);
+      final firstWarmups = plan.exercises[0].sets
+          .where((s) => s.isWarmup)
+          .length;
+      final secondWarmups = plan.exercises[1].sets
+          .where((s) => s.isWarmup)
+          .length;
+      expect(firstWarmups, greaterThan(secondWarmups));
+    },
+  );
 
   test(
     'linear novice workout session resolves straight sets matching targetSets and never 8x3',
