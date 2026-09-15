@@ -37,88 +37,93 @@ void main() {
     sessionId: 1,
     exerciseId: 1,
     orderIndex: 0,
+    plannedAllowsAdvancedTechniques: false,
   );
 
   for (final (name, theme) in [
     ('light', AppTheme.lightTheme),
     ('dark', AppTheme.darkTheme),
   ]) {
-    testWidgets('ExerciseReplacementSheet renders with opaque surface in $name mode', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            recentExerciseIdsProvider.overrideWith((ref) async => <int>{}),
-          ],
-          child: MaterialApp(
-            theme: theme,
-            home: Scaffold(
-              body: Align(
-                alignment: Alignment.bottomCenter,
-                child: ExerciseReplacementSheet(
-                  current: sampleExercise(),
-                  candidates: const [],
+    testWidgets(
+      'ExerciseReplacementSheet renders with opaque surface in $name mode',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              recentExerciseIdsProvider.overrideWith((ref) async => <int>{}),
+            ],
+            child: MaterialApp(
+              theme: theme,
+              home: Scaffold(
+                body: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: ExerciseReplacementSheet(
+                    current: sampleExercise(),
+                    candidates: const [],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byType(HxSheet), findsOneWidget);
-      final sheetMaterial = tester.widget<Material>(
-        find
-            .descendant(
-              of: find.byType(HxSheet),
-              matching: find.byType(Material),
-            )
-            .first,
-      );
-      expect(sheetMaterial.color, isNotNull);
-      expect(sheetMaterial.color!.a, 1.0);
-      expect(sheetMaterial.color, theme.colorScheme.surfaceContainer);
-    });
+        expect(find.byType(HxSheet), findsOneWidget);
+        final sheetMaterial = tester.widget<Material>(
+          find
+              .descendant(
+                of: find.byType(HxSheet),
+                matching: find.byType(Material),
+              )
+              .first,
+        );
+        expect(sheetMaterial.color, isNotNull);
+        expect(sheetMaterial.color!.a, 1.0);
+        expect(sheetMaterial.color, theme.colorScheme.surfaceContainer);
+      },
+    );
 
-    testWidgets('SmartSubstitutionSheet renders with opaque surface in $name mode', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            recentExerciseIdsProvider.overrideWith((ref) async => <int>{}),
-            exerciseCatalogProvider(const ExerciseCatalogFilter()).overrideWith(
-              (ref) => const AsyncValue.data(<ExerciseCatalogData>[]),
-            ),
-          ],
-          child: MaterialApp(
-            theme: theme,
-            home: Scaffold(
-              body: Align(
-                alignment: Alignment.bottomCenter,
-                child: SmartSubstitutionSheet(
-                  workoutExercise: sampleWorkoutExercise(),
-                  originalExercise: sampleExercise(),
+    testWidgets(
+      'SmartSubstitutionSheet renders with opaque surface in $name mode',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              recentExerciseIdsProvider.overrideWith((ref) async => <int>{}),
+              exerciseCatalogProvider(
+                const ExerciseCatalogFilter(),
+              ).overrideWith(
+                (ref) => const AsyncValue.data(<ExerciseCatalogData>[]),
+              ),
+            ],
+            child: MaterialApp(
+              theme: theme,
+              home: Scaffold(
+                body: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: SmartSubstitutionSheet(
+                    workoutExercise: sampleWorkoutExercise(),
+                    originalExercise: sampleExercise(),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byType(HxSheet), findsOneWidget);
-      expect(find.text('Smart Substitution'), findsOneWidget);
-      final sheetMaterial = tester.widget<Material>(
-        find
-            .descendant(
-              of: find.byType(HxSheet),
-              matching: find.byType(Material),
-            )
-            .first,
-      );
-      expect(sheetMaterial.color, isNotNull);
-      expect(sheetMaterial.color!.a, 1.0);
-      expect(sheetMaterial.color, theme.colorScheme.surfaceContainer);
-    });
+        expect(find.byType(HxSheet), findsOneWidget);
+        expect(find.text('Smart Substitution'), findsOneWidget);
+        final sheetMaterial = tester.widget<Material>(
+          find
+              .descendant(
+                of: find.byType(HxSheet),
+                matching: find.byType(Material),
+              )
+              .first,
+        );
+        expect(sheetMaterial.color, isNotNull);
+        expect(sheetMaterial.color!.a, 1.0);
+        expect(sheetMaterial.color, theme.colorScheme.surfaceContainer);
+      },
+    );
   }
 }

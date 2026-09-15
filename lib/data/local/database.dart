@@ -98,7 +98,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 42;
+  int get schemaVersion => 43;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1121,6 +1121,31 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 42 && to >= 42) {
         await m.createTable(programSlotExplanations);
+      }
+      if (from < 43 && to >= 43) {
+        Future<void> addIfMissing(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
+          ).get();
+          if (existing.isEmpty) return;
+          final names = existing.map((row) => row.read<String>('name')).toSet();
+          if (!names.contains(column.$name)) {
+            await m.addColumn(table, column);
+          }
+        }
+
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.prescriptionCodecJson,
+        );
+        await addIfMissing(programs, programs.allowTimeSavingSetTechniques);
+        await addIfMissing(
+          workoutExercises,
+          workoutExercises.plannedAllowsAdvancedTechniques,
+        );
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is

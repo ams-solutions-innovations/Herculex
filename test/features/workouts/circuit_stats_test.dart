@@ -20,6 +20,7 @@ void main() {
         orderIndex: 0,
         supersetGroup: 1,
         targetRestSeconds: 90,
+        plannedAllowsAdvancedTechniques: false,
       );
       final ex2 = WorkoutExerciseData(
         id: 102,
@@ -28,6 +29,7 @@ void main() {
         orderIndex: 1,
         supersetGroup: 1,
         targetRestSeconds: 90,
+        plannedAllowsAdvancedTechniques: false,
       );
 
       final now = DateTime(2026, 1, 1, 10, 0, 0);

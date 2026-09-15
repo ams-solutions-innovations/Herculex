@@ -287,6 +287,8 @@ class WorkoutExercises extends Table with SyncColumns, SyncTombstone {
   TextColumn get plannedPrescriptionWhy => text().nullable()();
   IntColumn get plannedWaveIndex => integer().nullable()();
   IntColumn get plannedWaveCount => integer().nullable()();
+  BoolColumn get plannedAllowsAdvancedTechniques =>
+      boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('SetEntryData')
@@ -724,6 +726,8 @@ class Programs extends Table with SyncColumns, SyncTombstone {
   // automatic_numeric | review_structural | locked
   TextColumn get adaptationMode =>
       text().withDefault(const Constant('review_structural'))();
+  BoolColumn get allowTimeSavingSetTechniques =>
+      boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('ProgramWeekData')
@@ -835,6 +839,7 @@ class ProgramDayExercises extends Table with SyncColumns, SyncTombstone {
   IntColumn get restSeconds => integer().nullable()();
   TextColumn get prescriptionWhy => text().nullable()();
   TextColumn get prescriptionJson => text().nullable()();
+  TextColumn get prescriptionCodecJson => text().nullable()();
   TextColumn get variantConfigJson => text().nullable()();
 }
 
