@@ -12,12 +12,15 @@ import 'package:herculex/features/dashboard/application/dashboard_providers.dart
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/domain/slot_prescription.dart'
+    as slot_prescription;
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/views/template_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:intl/intl.dart';
@@ -542,10 +545,7 @@ class _SessionCard extends ConsumerWidget {
 }
 
 class _WorkoutPlanPreviewSheet extends StatelessWidget {
-  const _WorkoutPlanPreviewSheet({
-    required this.plan,
-    required this.exercises,
-  });
+  const _WorkoutPlanPreviewSheet({required this.plan, required this.exercises});
 
   final PlannedSessionSnapshot plan;
   final Map<int, ExerciseCatalogData> exercises;
@@ -626,7 +626,7 @@ class _WorkoutPlanPreviewSheet extends StatelessWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              _setSummary(plannedExercise),
+                              formatPlannedExerciseSets(plannedExercise),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppColors.secondary,
                               ),
@@ -655,22 +655,66 @@ class _WorkoutPlanPreviewSheet extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _setSummary(PlannedExerciseSnapshot exercise) {
-    final working = exercise.sets.where((set) => !set.isWarmup).toList();
-    final warmups = exercise.sets.length - working.length;
-    if (working.isEmpty) {
-      return warmups == 0 ? 'No sets prescribed' : '$warmups warm-up sets';
+/// Formats [exercise]'s sets into the same segment-string convention as
+/// `SlotPrescription.format()` — consecutive sets sharing identical reps,
+/// set type, intent, %1RM and warmup status are grouped into one run (e.g.
+/// `"2x8 @40% + 3x8 @70%"`), so the calendar preview shows real set-by-set
+/// detail rather than a single compact summary line.
+///
+/// Public (not `_`-prefixed) so it can be unit-tested directly; used only by
+/// [_WorkoutPlanPreviewSheet] in this file otherwise.
+@visibleForTesting
+String formatPlannedExerciseSets(PlannedExerciseSnapshot exercise) {
+  if (exercise.sets.isEmpty) return 'No sets prescribed';
+  final runs = <List<PlannedSetSnapshot>>[];
+  for (final set in exercise.sets) {
+    final currentRun = runs.isEmpty ? null : runs.last;
+    if (currentRun != null && _sameSetRun(currentRun.last, set)) {
+      currentRun.add(set);
+    } else {
+      runs.add([set]);
     }
-    final first = working.first;
-    final reps = first.repsMin == first.repsMax
-        ? '${first.repsMin ?? '—'} reps'
-        : '${first.repsMin ?? '—'}–${first.repsMax ?? '—'} reps';
-    return [
-      '${working.length} × $reps',
-      if (warmups > 0) '$warmups warm-up ${warmups == 1 ? 'set' : 'sets'}',
-    ].join(' · ');
   }
+  final segments = runs.map(_formatSetRun).join(' + ');
+  return '$segments · Rest ${exercise.restSeconds}s';
+}
+
+bool _sameSetRun(PlannedSetSnapshot a, PlannedSetSnapshot b) {
+  return a.repsMin == b.repsMin &&
+      a.repsMax == b.repsMax &&
+      a.setType == b.setType &&
+      a.intent == b.intent &&
+      a.percentOf1Rm == b.percentOf1Rm &&
+      a.isWarmup == b.isWarmup;
+}
+
+String _formatSetRun(List<PlannedSetSnapshot> run) {
+  final first = run.first;
+  final count = run.length;
+  final reps = first.repsMin == first.repsMax
+      ? '${first.repsMin ?? '—'}'
+      : '${first.repsMin ?? '—'}-${first.repsMax ?? '—'}';
+  final buffer = StringBuffer('${count}x$reps');
+
+  if (first.percentOf1Rm != null) {
+    buffer.write(' @${(first.percentOf1Rm! * 100).round()}%');
+  } else {
+    final intent = slot_prescription.Intent.fromId(first.intent);
+    if (intent != slot_prescription.Intent.amrap &&
+        intent != slot_prescription.Intent.toFailure) {
+      buffer.write(' @RIR${intent.rir}');
+    }
+  }
+
+  final setType = SetType.fromId(first.setType);
+  if (setType != SetType.standard) {
+    buffer.write(' ${setType.label}');
+  }
+
+  final formatted = buffer.toString();
+  return first.isWarmup ? 'Warmup: $formatted' : formatted;
 }
 
 enum _TemplateScope { thisSession, everyFuture }
