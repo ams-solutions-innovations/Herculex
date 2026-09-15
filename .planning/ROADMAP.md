@@ -35,7 +35,7 @@ Blueprint reference: [`docs/training-programs-physique-gamification-plan-2026-09
 
 **Success:** Generation matrix is deterministic; hard constraints (injury, equipment, difficulty, style) are never relaxed to fill a slot; anchor lifts remain guaranteed across weeks; planner outputs human-readable rationales.
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -49,7 +49,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 17-04-PLAN.md — Wave 3: persist SelectionExplanation to ProgramSlotExplanations for every slot/week
+- [x] 17-04-PLAN.md — Wave 3: persist SelectionExplanation to ProgramSlotExplanations for every slot/week
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
