@@ -22,9 +22,19 @@ class ExerciseProgrammingEligibility {
     required String? technicalEligibility,
     String? modality,
     String? requiredEquipmentKeysJson,
+    String? primaryMuscle,
+    Set<String> excludedMuscles = const {},
   }) {
     final resolvedDifficulty = _difficulty(difficulty);
     if (_difficultyRank(resolvedDifficulty) > _experienceRank(experience)) {
+      return false;
+    }
+
+    // Hard, non-relaxable joint-pain exclusion (D-06). A missing
+    // [primaryMuscle] never participates in this gate either way — it is
+    // neither safe nor unsafe by this specific check, existing checks still
+    // apply.
+    if (primaryMuscle != null && excludedMuscles.contains(primaryMuscle)) {
       return false;
     }
 

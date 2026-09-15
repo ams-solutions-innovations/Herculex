@@ -6,11 +6,11 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
+import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/domain/squat_specialization.dart';
-import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
 
 import 'support/test_database.dart';
 
@@ -487,4 +487,412 @@ void main() {
       }
     },
   );
+
+  group('verifyPrerequisites wiring (Task 2)', () {
+    // `AppDatabase.forTesting`'s `onCreate` still seeds the full real
+    // exercise catalog (`ExerciseImporter.runFromAsset`), so a "fresh"
+    // fixture db is not catalog-empty. A default gym with zero equipment
+    // rows hard-excludes every real catalog exercise via the ordinary
+    // equipment gate (every real row needs at least one key, even the
+    // bodyweight modality fallback) while our synthetic fixture rows use
+    // `requiredEquipmentKeys: '[]'`, which trivially satisfies
+    // `_EquipmentProfile.allows` regardless of what's available. This keeps
+    // the fixture "synthetic, catalog-independent" (Pitfall 4) without
+    // needing an empty catalog.
+    late AppDatabase fixtureDb;
+    setUp(() async {
+      fixtureDb = await openTestDatabase();
+      await fixtureDb
+          .into(fixtureDb.gyms)
+          .insert(
+            GymsCompanion.insert(
+              name: 'Isolated fixture gym',
+              isDefault: const Value(true),
+              allEquipment: const Value(false),
+            ),
+          );
+    });
+    tearDown(() => fixtureDb.close());
+
+    Future<int> insertExercise({
+      required String slug,
+      required String name,
+      required String primaryMuscle,
+      String difficulty = 'novice',
+      String? prerequisiteSlugs,
+    }) => fixtureDb
+        .into(fixtureDb.exerciseCatalog)
+        .insert(
+          ExerciseCatalogCompanion.insert(
+            slug: Value(slug),
+            name: name,
+            primaryMuscle: primaryMuscle,
+            equipment: 'bodyweight',
+            mechanics: 'compound',
+            force: 'push',
+            plane: 'none',
+            category: const Value('cardio'),
+            modality: const Value('bodyweight'),
+            loggingMetric: const Value('time'),
+            programmingDifficulty: Value(difficulty),
+            programmingCommonness: const Value('basic'),
+            allowedTrainingStyles: const Value('["weightlifting"]'),
+            technicalEligibility: const Value('automatic'),
+            requiredEquipmentKeys: const Value('[]'),
+            prerequisiteSlugs: Value(prerequisiteSlugs),
+          ),
+        );
+
+    Future<int> createGppProgram() {
+      final plan = SplitTemplates.generate(
+        type: SplitType.custom,
+        daysPerWeek: 1,
+        customSlots: const ['GPP'],
+      );
+      return ProgramsRepository(fixtureDb).createProgramFromSplit(
+        name: 'Prerequisite fixture',
+        weeks: 1,
+        plan: plan,
+        startDate: DateTime(2026, 9, 7),
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.athletic,
+        experienceLevel: ExperienceLevel.novice,
+      );
+    }
+
+    test(
+      'a prerequisite-gated exercise is excluded until history satisfies it, then included',
+      () async {
+        // Always eligible (no prerequisiteSlugs) — proves bullet 3 of the
+        // plan's <behavior>: an exercise with no prerequisites is never
+        // excluded by this gate, and keeps the pool non-empty pre-Task-3.
+        final fillerId = await insertExercise(
+          slug: 'filler-exercise',
+          name: 'Filler Exercise',
+          primaryMuscle: 'Control',
+        );
+        // Deliberately harder than the novice test user so Condition (a)
+        // (experience >= prerequisite difficulty) fails, forcing reliance
+        // on Condition (b) (logged completion history).
+        final prereqId = await insertExercise(
+          slug: 'prerequisite-exercise',
+          name: 'Prerequisite Exercise',
+          primaryMuscle: 'Control',
+          difficulty: 'advanced',
+        );
+        final dependentId = await insertExercise(
+          slug: 'dependent-exercise',
+          name: 'Dependent Exercise',
+          primaryMuscle: 'Control',
+          prerequisiteSlugs: '["prerequisite-exercise"]',
+        );
+
+        // Excluded: novice user, no history satisfying the prerequisite.
+        final excludedProgramId = await createGppProgram();
+        await SmartProgramPlanner(fixtureDb).populate(
+          excludedProgramId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.athletic,
+            experience: ExperienceLevel.novice,
+          ),
+        );
+        final excludedDay = await (fixtureDb.select(
+          fixtureDb.programDays,
+        )..limit(1)).getSingle();
+        final excludedSlot = await (fixtureDb.select(
+          fixtureDb.programExerciseSlots,
+        )..where((t) => t.daySlotLabel.equals('GPP'))).getSingle();
+        final excludedMembers = await (fixtureDb.select(
+          fixtureDb.programSlotPoolMembers,
+        )..where((t) => t.slotId.equals(excludedSlot.id))).get();
+        expect(
+          excludedMembers.map((m) => m.exerciseId),
+          [fillerId],
+          reason:
+              'the dependent exercise must never enter the candidate pool '
+              'before its prerequisite has been satisfied, and the '
+              'advanced-difficulty prerequisite itself is separately '
+              'excluded from a novice plan',
+        );
+        final excludedExercises = await (fixtureDb.select(
+          fixtureDb.programDayExercises,
+        )..where((t) => t.programDayId.equals(excludedDay.id))).get();
+        expect(excludedExercises.single.exerciseId, fillerId);
+
+        // Included: a completed session referencing the prerequisite unlocks it.
+        final session = await fixtureDb
+            .into(fixtureDb.workoutSessions)
+            .insert(
+              WorkoutSessionsCompanion.insert(
+                startedAt: DateTime(2026, 8, 1),
+                endedAt: Value(DateTime(2026, 8, 1, 1)),
+              ),
+            );
+        await fixtureDb
+            .into(fixtureDb.workoutExercises)
+            .insert(
+              WorkoutExercisesCompanion.insert(
+                sessionId: session,
+                exerciseId: prereqId,
+                orderIndex: 0,
+              ),
+            );
+
+        final includedProgramId = await createGppProgram();
+        await SmartProgramPlanner(fixtureDb).populate(
+          includedProgramId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.athletic,
+            experience: ExperienceLevel.novice,
+          ),
+        );
+        final includedSlot = await (fixtureDb.select(
+          fixtureDb.programExerciseSlots,
+        )..where(
+          (t) =>
+              t.programId.equals(includedProgramId) &
+              t.daySlotLabel.equals('GPP'),
+        )).getSingle();
+        final includedMembers = await (fixtureDb.select(
+          fixtureDb.programSlotPoolMembers,
+        )..where((t) => t.slotId.equals(includedSlot.id))).get();
+        expect(
+          includedMembers.map((m) => m.exerciseId).toSet(),
+          {fillerId, dependentId},
+          reason:
+              'once the prerequisite is completed, the dependent exercise '
+              'becomes a valid candidate alongside the never-gated filler '
+              '(the advanced-difficulty prerequisite itself stays excluded '
+              'from this novice plan on its own difficulty ceiling)',
+        );
+      },
+    );
+  });
+
+  group('empty-slot resolution on hard-filter exhaustion (Task 3, D-01/D-03)', () {
+    // Same real-catalog-seeding caveat and zero-equipment-gym isolation
+    // trick as the Task 2 group above. `horizontal_pull` is used as the
+    // target need's pattern because no real catalog exercise carries that
+    // movementPattern with a scaling ladder attached (verified against
+    // assets/data/exercise_programming_metadata.json), so it exercises the
+    // "no ladder for this pattern" path cleanly without incidental
+    // real-catalog interference either way.
+    late AppDatabase fixtureDb;
+    setUp(() async {
+      fixtureDb = await openTestDatabase();
+      await fixtureDb
+          .into(fixtureDb.gyms)
+          .insert(
+            GymsCompanion.insert(
+              name: 'Isolated fixture gym',
+              isDefault: const Value(true),
+              allEquipment: const Value(false),
+            ),
+          );
+    });
+    tearDown(() => fixtureDb.close());
+
+    Future<int> insertExercise({
+      required String slug,
+      required String name,
+      required String primaryMuscle,
+      String? movementPattern,
+      String mechanics = 'compound',
+      String modality = 'barbell',
+      int cnsScore = 3,
+      String difficulty = 'novice',
+      String? scalingGroup,
+      int? scalingOrder,
+    }) => fixtureDb
+        .into(fixtureDb.exerciseCatalog)
+        .insert(
+          ExerciseCatalogCompanion.insert(
+            slug: Value(slug),
+            name: name,
+            primaryMuscle: primaryMuscle,
+            equipment: modality,
+            mechanics: mechanics,
+            force: 'push',
+            plane: 'none',
+            movementPattern: Value(movementPattern),
+            modality: Value(modality),
+            cnsScore: Value(cnsScore),
+            programmingDifficulty: Value(difficulty),
+            programmingCommonness: const Value('basic'),
+            allowedTrainingStyles: const Value('["weightlifting"]'),
+            technicalEligibility: const Value('automatic'),
+            requiredEquipmentKeys: const Value('[]'),
+            scalingGroup: Value(scalingGroup),
+            scalingOrder: Value(scalingOrder),
+          ),
+        );
+
+    Future<int> createPullDayProgram() {
+      final plan = SplitTemplates.generate(
+        type: SplitType.custom,
+        daysPerWeek: 1,
+        customSlots: const ['Pull Day'],
+      );
+      return ProgramsRepository(fixtureDb).createProgramFromSplit(
+        name: 'Empty-slot fixture',
+        weeks: 1,
+        plan: plan,
+        startDate: DateTime(2026, 9, 7),
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.hypertrophy,
+        experienceLevel: ExperienceLevel.novice,
+      );
+    }
+
+    test(
+      'a hard-filter-exhausted slot with no scaling ladder resolves to '
+      'empty; every other slot on the day still resolves',
+      () async {
+        // Deliberately no exercise matches `horizontal_pull` + `main` role
+        // eligibility (cnsScore >= 5 with a max-effort-capable modality),
+        // and none of these carry a scaling ladder, so the target slot must
+        // resolve to SelectionExplanation.empty(...) via the "no ladder"
+        // path.
+        final verticalPullId = await insertExercise(
+          slug: 'vertical-pull-filler',
+          name: 'Vertical Pull Filler',
+          primaryMuscle: 'Lats',
+          movementPattern: 'vertical_pull',
+        );
+        final horizontalPullAccessoryId = await insertExercise(
+          slug: 'horizontal-pull-accessory-filler',
+          name: 'Horizontal Pull Accessory Filler',
+          primaryMuscle: 'Back',
+          movementPattern: 'horizontal_pull',
+        );
+        final bicepId = await insertExercise(
+          slug: 'bicep-filler',
+          name: 'Bicep Filler',
+          primaryMuscle: 'Biceps',
+          mechanics: 'isolation',
+        );
+        final rearId = await insertExercise(
+          slug: 'rear-filler',
+          name: 'Rear Delt Filler',
+          primaryMuscle: 'Rear Delts',
+          mechanics: 'isolation',
+        );
+
+        final programId = await createPullDayProgram();
+        await SmartProgramPlanner(fixtureDb).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.hypertrophy,
+            experience: ExperienceLevel.novice,
+          ),
+        );
+
+        final day = await (fixtureDb.select(
+          fixtureDb.programDays,
+        )..limit(1)).getSingle();
+        final exercises = await (fixtureDb.select(
+          fixtureDb.programDayExercises,
+        )..where((t) => t.programDayId.equals(day.id))).get();
+        final byOrder = {for (final e in exercises) e.orderIndex: e};
+
+        expect(
+          byOrder.containsKey(0),
+          isFalse,
+          reason:
+              'the main horizontal_pull slot (index 0) has no eligible '
+              'candidate and no scaling ladder, so it must be skipped '
+              'entirely rather than throwing',
+        );
+        expect(byOrder[1]!.exerciseId, verticalPullId);
+        expect(byOrder[2]!.exerciseId, horizontalPullAccessoryId);
+        expect(byOrder[3]!.exerciseId, bicepId);
+        expect(byOrder[4]!.exerciseId, rearId);
+      },
+    );
+
+    test(
+      'a hard-filter-exhausted slot with a safe scaling regression is '
+      'filled by the regressed candidate instead of left empty',
+      () async {
+        // Excluded from the ordinary candidate search by its own difficulty
+        // ceiling (advanced > novice) — this is what forces the empty-pool
+        // resolver to run at all.
+        await insertExercise(
+          slug: 'pull-ladder-target',
+          name: 'Pull Ladder Target',
+          primaryMuscle: 'Lats',
+          movementPattern: 'horizontal_pull',
+          cnsScore: 5,
+          difficulty: 'advanced',
+          scalingGroup: 'pull_ladder',
+          scalingOrder: 3,
+        );
+        // Excluded from the ordinary candidate search by role (cnsScore < 5
+        // means it never earns the `main` eligibility flag), but a fully
+        // eligible, safe regression via ExerciseScalingResolver.
+        final regressionId = await insertExercise(
+          slug: 'pull-ladder-regression',
+          name: 'Pull Ladder Regression',
+          primaryMuscle: 'Lats',
+          movementPattern: 'horizontal_pull',
+          cnsScore: 3,
+          difficulty: 'novice',
+          scalingGroup: 'pull_ladder',
+          scalingOrder: 1,
+        );
+        final verticalPullId = await insertExercise(
+          slug: 'vertical-pull-filler-2',
+          name: 'Vertical Pull Filler',
+          primaryMuscle: 'Lats',
+          movementPattern: 'vertical_pull',
+        );
+        final horizontalPullAccessoryId = await insertExercise(
+          slug: 'horizontal-pull-accessory-filler-2',
+          name: 'Horizontal Pull Accessory Filler',
+          primaryMuscle: 'Back',
+          movementPattern: 'horizontal_pull',
+        );
+        final bicepId = await insertExercise(
+          slug: 'bicep-filler-2',
+          name: 'Bicep Filler',
+          primaryMuscle: 'Biceps',
+          mechanics: 'isolation',
+        );
+        final rearId = await insertExercise(
+          slug: 'rear-filler-2',
+          name: 'Rear Delt Filler',
+          primaryMuscle: 'Rear Delts',
+          mechanics: 'isolation',
+        );
+        final programId = await createPullDayProgram();
+        await SmartProgramPlanner(fixtureDb).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.hypertrophy,
+            experience: ExperienceLevel.novice,
+          ),
+        );
+
+        final day = await (fixtureDb.select(
+          fixtureDb.programDays,
+        )..limit(1)).getSingle();
+        final exercises = await (fixtureDb.select(
+          fixtureDb.programDayExercises,
+        )..where((t) => t.programDayId.equals(day.id))).get();
+        final byOrder = {for (final e in exercises) e.orderIndex: e};
+
+        expect(
+          byOrder[0]!.exerciseId,
+          regressionId,
+          reason:
+              'the safe regression candidate must fill the slot instead of '
+              'it being left empty',
+        );
+        expect(byOrder[1]!.exerciseId, verticalPullId);
+        expect(byOrder[2]!.exerciseId, horizontalPullAccessoryId);
+        expect(byOrder[3]!.exerciseId, bicepId);
+        expect(byOrder[4]!.exerciseId, rearId);
+      },
+    );
+  });
 }

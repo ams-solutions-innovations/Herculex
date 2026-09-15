@@ -2,11 +2,9 @@
 /// active workout snapshot. Persist enum [id] values, never enum indexes.
 library;
 
-import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/rotation_policy.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
-import 'package:herculex/features/programs/domain/split_template.dart';
 
 enum ProgramBuildMode {
   smart('smart', 'Build it for me'),
@@ -265,50 +263,6 @@ enum ProgressionRule {
     (value) => value.id == id,
     orElse: () => ProgressionRule.manual,
   );
-}
-
-/// Complete, serializable input to deterministic program generation.
-/// Photograph analysis can populate [musclePriorities], but never
-/// [experienceLevel] or final exercise IDs.
-class ProgramGenerationRequest {
-  const ProgramGenerationRequest({
-    required this.buildMode,
-    required this.goal,
-    required this.experienceLevel,
-    required this.split,
-    required this.daysPerWeek,
-    required this.periodization,
-    this.scheduleMode = ScheduleMode.weekly,
-    this.cycleLength,
-    this.gymId,
-    this.dayRoles = const {},
-    this.musclePriorities = const {},
-    this.exercisePreferences = const {},
-    this.slotMethods = const {},
-    this.waveOverrides = const {},
-    this.trainingStyle = TrainingStyle.weightlifting,
-    this.includeGppConditioning,
-  });
-
-  final ProgramBuildMode buildMode;
-  final TrainingGoal goal;
-  final ExperienceLevel experienceLevel;
-  final SplitType split;
-  final int daysPerWeek;
-  final PeriodizationModel periodization;
-  final ScheduleMode scheduleMode;
-  final int? cycleLength;
-  final int? gymId;
-  final Map<String, DayStressRole> dayRoles;
-  final Map<String, String> musclePriorities;
-  final Map<int, ExerciseAffinity> exercisePreferences;
-  final Map<String, SlotTrainingMethod> slotMethods;
-  final Map<String, int> waveOverrides;
-  final TrainingStyle trainingStyle;
-
-  /// `null` follows [trainingStyle]; `true`/`false` makes the optional GPP
-  /// finish an explicit program-generation choice.
-  final bool? includeGppConditioning;
 }
 
 /// Domain representation of one stable slot in a generated program. Database

@@ -3,15 +3,19 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/exercise_programming_eligibility.dart';
+import 'package:herculex/features/programs/domain/exercise_scaling_resolver.dart';
 import 'package:herculex/features/programs/domain/exercise_scorer.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
 import 'package:herculex/features/programs/domain/program_guardrails.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/rotation_policy.dart';
+import 'package:herculex/features/programs/domain/selection_explanation.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/squat_specialization.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+
+part 'smart_program_planner/slot_candidate_resolution.part.dart';
 
 class SmartProgramConfiguration {
   const SmartProgramConfiguration({
@@ -33,6 +37,7 @@ class SmartProgramConfiguration {
     this.includeAutomaticWarmups = false,
     this.squatSpecialization,
     this.primaryLiftSpecialization,
+    this.excludedMuscles = const {},
   });
 
   final TrainingGoal goal;
@@ -83,6 +88,12 @@ class SmartProgramConfiguration {
   final bool includeAutomaticWarmups;
   final SquatSpecialization? squatSpecialization;
   final PrimaryLiftSpecialization? primaryLiftSpecialization;
+
+  /// Precomputed once by the caller from
+  /// `JointPainRepository.watchCurrentStatuses()` (D-07) — the planner never
+  /// queries live joint-pain state itself, keeping `populate()` pure and
+  /// deterministic for a fixed input.
+  final Set<String> excludedMuscles;
 }
 
 /// Deterministic local planner used by both Smart and Guided builder modes.
@@ -120,6 +131,13 @@ class SmartProgramPlanner {
         ? configuration.musclePriorities
         : await _physiquePriorities();
     final catalogById = {for (final exercise in catalog) exercise.id: exercise};
+    final catalogBySlug = {
+      for (final exercise in catalog)
+        if (exercise.slug != null && exercise.slug!.isNotEmpty)
+          exercise.slug!: exercise,
+    };
+    final (completedExerciseSlugs, completedMovementSlugs) =
+        await _completedMovementHistory(catalogById);
     final slotCache = <String, List<_ResolvedSmartSlot>>{};
 
     await _db.transaction(() async {
@@ -170,6 +188,9 @@ class SmartProgramPlanner {
               configuration: configuration,
               model: model,
               physiquePriorities: physiquePriorities,
+              completedExerciseSlugs: completedExerciseSlugs,
+              completedMovementSlugs: completedMovementSlugs,
+              catalogBySlug: catalogBySlug,
             );
             slotCache[cacheKey] = slots;
           }
@@ -182,6 +203,7 @@ class SmartProgramPlanner {
           for (final slot in slots) {
             final assignment = slot.assignments[week.weekIndex];
             final exerciseId = assignment?.exerciseId ?? slot.anchorExerciseId;
+            if (exerciseId == null) continue;
             var target = _targetFor(
               slot.role,
               slot.method,
@@ -265,6 +287,9 @@ class SmartProgramPlanner {
     required SmartProgramConfiguration configuration,
     required PeriodizationModel model,
     required Map<String, String> physiquePriorities,
+    required Set<String> completedExerciseSlugs,
+    required Set<String> completedMovementSlugs,
+    required Map<String, ExerciseCatalogData> catalogBySlug,
   }) async {
     final needs = _needsFor(
       dayLabel,
@@ -273,6 +298,7 @@ class SmartProgramPlanner {
       trainingStyle: configuration.trainingStyle,
       includeGppConditioning: configuration.shouldIncludeGppConditioning,
     );
+    final catalogById = {for (final exercise in catalog) exercise.id: exercise};
     final result = <_ResolvedSmartSlot>[];
     final used = <int>{};
 
@@ -312,6 +338,15 @@ class SmartProgramPlanner {
         if (!_isEligibleForAutomaticProgramming(exercise, configuration)) {
           return false;
         }
+        if (!ExerciseProgrammingEligibility.verifyPrerequisites(
+          prerequisiteSlugsJson: exercise.prerequisiteSlugs,
+          userExperience: configuration.experience,
+          completedExerciseSlugs: completedExerciseSlugs,
+          completedMovementSlugs: completedMovementSlugs,
+          catalogBySlug: catalogBySlug,
+        )) {
+          return false;
+        }
         final patternMatches =
             need.pattern == null || exercise.movementPattern == need.pattern;
         final muscleMatches =
@@ -344,6 +379,17 @@ class SmartProgramPlanner {
           if (!_isEligibleForAutomaticProgramming(exercise, configuration)) {
             return false;
           }
+          // Prerequisites are one of the five named hard filters (D-02) — it
+          // must never relax in the fallback, unlike pattern/muscle.
+          if (!ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: exercise.prerequisiteSlugs,
+            userExperience: configuration.experience,
+            completedExerciseSlugs: completedExerciseSlugs,
+            completedMovementSlugs: completedMovementSlugs,
+            catalogBySlug: catalogBySlug,
+          )) {
+            return false;
+          }
           final mask = SlotRoleEligibility.derive(
             mechanics: exercise.mechanics,
             modality: exercise.modality,
@@ -356,6 +402,39 @@ class SmartProgramPlanner {
                   exercise.maxEffortEligibility ==
                       MaxEffortEligibility.eligible.id);
         }).toList();
+      }
+
+      if (candidates.isEmpty) {
+        // Both the primary and pattern/muscle-relaxed fallback passes came
+        // up empty — every hard filter (injury/pain, equipment, style,
+        // experience, prerequisites) is legitimately exhausted for this
+        // slot. Consult the scaling ladder for a safer regression (D-03)
+        // before accepting the slot is genuinely, safely empty (D-01):
+        // this one slot no longer aborts the whole populate() transaction.
+        final resolution = _resolveEmptyCandidatePool(
+          needPattern: need.pattern,
+          catalog: catalog,
+          equipment: equipment,
+          configuration: configuration,
+          completedExerciseSlugs: completedExerciseSlugs,
+          completedMovementSlugs: completedMovementSlugs,
+          catalogBySlug: catalogBySlug,
+        );
+        if (!resolution.isFilled) {
+          // TODO(17-04): still insert a ProgramExerciseSlots row (for the
+          // ProgramSlotExplanations FK to reference) while skipping only the
+          // pool/rotation/day-exercise writes below.
+          result.add(
+            _ResolvedSmartSlot.empty(
+              orderIndex: order,
+              role: need.role,
+              method: method,
+              explanation: resolution,
+            ),
+          );
+          continue;
+        }
+        candidates = [catalogById[resolution.exerciseId]!];
       }
 
       // A specialization may express a preferred *basic* movement. It is a
@@ -589,6 +668,40 @@ class SmartProgramPlanner {
     return result;
   }
 
+  /// Full "ever completed" exercise/movement history (D-08), not a
+  /// recency-bounded set — mirrors `getRecentExerciseIds`'s join/where
+  /// pattern without its `orderBy`/`limit(50)`.
+  Future<(Set<String>, Set<String>)> _completedMovementHistory(
+    Map<int, ExerciseCatalogData> catalogById,
+  ) async {
+    final rows =
+        await (_db.selectOnly(_db.workoutExercises, distinct: true)
+              ..addColumns([_db.workoutExercises.exerciseId])
+              ..join([
+                innerJoin(
+                  _db.workoutSessions,
+                  _db.workoutSessions.id.equalsExp(
+                    _db.workoutExercises.sessionId,
+                  ),
+                ),
+              ])
+              ..where(_db.workoutSessions.endedAt.isNotNull()))
+            .get();
+    final completedIds = rows
+        .map((row) => row.read(_db.workoutExercises.exerciseId)!)
+        .toSet();
+    final completedExerciseSlugs = {
+      for (final id in completedIds)
+        if (catalogById[id]?.slug != null) catalogById[id]!.slug!,
+    };
+    final completedMovementSlugs = {
+      for (final id in completedIds)
+        if (catalogById[id]?.movementSlug != null)
+          catalogById[id]!.movementSlug!,
+    };
+    return (completedExerciseSlugs, completedMovementSlugs);
+  }
+
   Future<Map<int, int>> _affinities(int programId) async {
     final rows = await _db.select(_db.exercisePreferences).get();
     final result = <int, int>{};
@@ -785,6 +898,8 @@ class SmartProgramPlanner {
     commonness: exercise.programmingCommonness,
     allowedTrainingStylesJson: exercise.allowedTrainingStyles,
     technicalEligibility: exercise.technicalEligibility,
+    primaryMuscle: exercise.primaryMuscle,
+    excludedMuscles: configuration.excludedMuscles,
   );
 
   Future<_EquipmentProfile> _equipment(int? requestedGymId) async {
@@ -1329,11 +1444,30 @@ class _ResolvedSmartSlot {
     required this.why,
     required this.loadingPreference,
     required this.assignments,
-  });
+  }) : explanation = null;
+
+  /// A hard-filter-exhausted slot for which no safe candidate — including
+  /// via the D-03 scaling-ladder regression — was found (D-01). No
+  /// `ProgramExerciseSlots` row is written for it yet (TODO(17-04)), so
+  /// [id] is a placeholder never read: `populate()`'s per-slot loop always
+  /// `continue`s before consulting it, since [anchorExerciseId] is null.
+  _ResolvedSmartSlot.empty({
+    required this.orderIndex,
+    required this.role,
+    required this.method,
+    required this.explanation,
+  }) : id = -1,
+       anchorExerciseId = null,
+       poolSize = 0,
+       priorityLevel = 'medium',
+       muscleId = '',
+       why = explanation!.rationale,
+       loadingPreference = _LoadingPreference.flexible,
+       assignments = const {};
 
   final int id;
   final int orderIndex;
-  final int anchorExerciseId;
+  final int? anchorExerciseId;
   final SlotRole role;
   final SlotTrainingMethod method;
   final int poolSize;
@@ -1342,6 +1476,10 @@ class _ResolvedSmartSlot {
   final String why;
   final _LoadingPreference loadingPreference;
   final Map<int, RotationAssignmentData> assignments;
+
+  /// Set only by [_ResolvedSmartSlot.empty] — consumed by Wave 3 (17-04)'s
+  /// `ProgramSlotExplanations` persistence, ignored otherwise.
+  final SelectionExplanation? explanation;
 }
 
 enum _LoadingPreference {

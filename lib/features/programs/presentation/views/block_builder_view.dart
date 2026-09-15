@@ -24,6 +24,8 @@ import 'package:herculex/features/programs/presentation/sheets/template_picker_s
 import 'package:herculex/features/programs/presentation/views/program_method_guide_view.dart';
 import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
+import 'package:herculex/features/recovery/application/recovery_providers.dart';
+import 'package:herculex/features/recovery/domain/joint_model.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:intl/intl.dart';
 
@@ -3265,12 +3267,22 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
       createdProgramId = programId;
 
       if (_buildMode != ProgramBuildMode.manual) {
+        final jointStatuses = await ref
+            .read(jointPainRepositoryProvider)
+            .watchCurrentStatuses()
+            .first;
+        final flaggedJoints = {
+          for (final status in jointStatuses.values)
+            if (status.isFlagged) status.joint,
+        };
+        final excludedMuscles = JointModel.excludedMusclesFor(flaggedJoints);
         await SmartProgramPlanner(ref.read(appDatabaseProvider)).populate(
           programId,
           SmartProgramConfiguration(
             goal: _goal,
             experience: _experience,
             trainingStyle: _trainingStyle,
+            excludedMuscles: excludedMuscles,
             workoutDurationMinutes: _workoutDurationMinutes,
             allowTimeSavingSetTechniques: _allowTimeSavingSetTechniques,
             includeAutomaticWarmups: _includeAutomaticWarmups,

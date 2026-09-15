@@ -249,6 +249,50 @@ void main() {
       },
     );
 
+    group('excludedMuscles hard gate (D-06)', () {
+      bool allowsWith({String? primaryMuscle, Set<String> excludedMuscles = const {}}) =>
+          ExerciseProgrammingEligibility.allows(
+            experience: ExperienceLevel.advanced,
+            style: TrainingStyle.weightlifting,
+            difficulty: 'novice',
+            commonness: 'basic',
+            allowedTrainingStylesJson: '["weightlifting"]',
+            technicalEligibility: 'automatic',
+            primaryMuscle: primaryMuscle,
+            excludedMuscles: excludedMuscles,
+          );
+
+      test(
+        'a flagged primaryMuscle is hard-excluded even when every other check would allow it',
+        () {
+          expect(
+            allowsWith(
+              primaryMuscle: 'Triceps',
+              excludedMuscles: {'Triceps'},
+            ),
+            isFalse,
+          );
+        },
+      );
+
+      test('a non-excluded primaryMuscle is unaffected by the exclusion set', () {
+        expect(
+          allowsWith(primaryMuscle: 'Chest', excludedMuscles: {'Triceps'}),
+          isTrue,
+        );
+      });
+
+      test(
+        'a null primaryMuscle never participates in this gate either way',
+        () {
+          expect(
+            allowsWith(primaryMuscle: null, excludedMuscles: {'Triceps'}),
+            isTrue,
+          );
+        },
+      );
+    });
+
     group('verifyPrerequisites', () {
       final pullUp = _makeCatalogEntry(
         id: 1,
