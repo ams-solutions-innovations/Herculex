@@ -33,6 +33,7 @@ class SmartProgramConfiguration {
     this.includeAutomaticWarmups = false,
     this.squatSpecialization,
     this.primaryLiftSpecialization,
+    this.excludedMuscles = const {},
   });
 
   final TrainingGoal goal;
@@ -83,6 +84,12 @@ class SmartProgramConfiguration {
   final bool includeAutomaticWarmups;
   final SquatSpecialization? squatSpecialization;
   final PrimaryLiftSpecialization? primaryLiftSpecialization;
+
+  /// Precomputed once by the caller from
+  /// `JointPainRepository.watchCurrentStatuses()` (D-07) — the planner never
+  /// queries live joint-pain state itself, keeping `populate()` pure and
+  /// deterministic for a fixed input.
+  final Set<String> excludedMuscles;
 }
 
 /// Deterministic local planner used by both Smart and Guided builder modes.
@@ -785,6 +792,8 @@ class SmartProgramPlanner {
     commonness: exercise.programmingCommonness,
     allowedTrainingStylesJson: exercise.allowedTrainingStyles,
     technicalEligibility: exercise.technicalEligibility,
+    primaryMuscle: exercise.primaryMuscle,
+    excludedMuscles: configuration.excludedMuscles,
   );
 
   Future<_EquipmentProfile> _equipment(int? requestedGymId) async {
