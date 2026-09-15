@@ -11,9 +11,13 @@ import 'package:herculex/features/programs/domain/program_guardrails.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/rotation_policy.dart';
 import 'package:herculex/features/programs/domain/selection_explanation.dart';
+import 'package:herculex/features/programs/domain/slot_prescription.dart';
+import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/squat_specialization.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
+import 'package:herculex/features/workouts/domain/workout_duration_estimator.dart';
 
 part 'smart_program_planner/anchor_lock.part.dart';
 part 'smart_program_planner/selection_explanation_writer.part.dart';
@@ -113,6 +117,18 @@ class SmartProgramPlanner {
     final program = await (_db.select(
       _db.programs,
     )..where((t) => t.id.equals(programId))).getSingle();
+    // Persist the generation-time opt-in onto the durable Programs row so it
+    // survives past generation for 18-03's live-workout gate and 18-04's
+    // resolver to read (PRES-04).
+    await (_db.update(
+      _db.programs,
+    )..where((t) => t.id.equals(programId))).write(
+      ProgramsCompanion(
+        allowTimeSavingSetTechniques: Value(
+          configuration.allowTimeSavingSetTechniques,
+        ),
+      ),
+    );
     final model = PeriodizationModel.fromId(program.periodizationModel);
     final weeks =
         await (_db.select(_db.programWeeks)
@@ -212,6 +228,12 @@ class SmartProgramPlanner {
           await (_db.delete(
             _db.programDayExercises,
           )..where((t) => t.programDayId.equals(day.id))).go();
+
+          // Pass 1: compute each slot's target/timePlan, tracking movement
+          // order (`sawHeavyLift`) the same way `resolveProgramDay`'s
+          // materialize-time resolver does, without inserting yet.
+          var sawHeavyLift = false;
+          final dayPlans = <_DaySlotPlan>[];
           for (final slot in slots) {
             final assignment = slot.assignments[week.weekIndex];
             final exerciseId = assignment?.exerciseId ?? slot.anchorExerciseId;
@@ -246,6 +268,70 @@ class SmartProgramPlanner {
               target: target,
               configuration: configuration,
             );
+            final isFirstHeavy = slot.role.isHeavy && !sawHeavyLift;
+            if (slot.role.isHeavy) sawHeavyLift = true;
+            dayPlans.add(
+              _DaySlotPlan(
+                slot: slot,
+                exerciseId: exerciseId,
+                target: target,
+                timePlan: timePlan,
+                isFirstHeavy: isFirstHeavy,
+                focusNote: focusNote,
+              ),
+            );
+          }
+
+          // Between pass 1 and pass 2: trim accessory/isolation slots until
+          // the day's projected duration fits the user's time budget (D-05,
+          // D-06, D-07), or no more trimmable slots remain. Never trims
+          // SlotRole.main/supplemental.
+          final budget = Duration(
+            minutes: (configuration.workoutDurationMinutes * 1.10).ceil(),
+          );
+          bool isTrimmableRole(SlotRole role) =>
+              role == SlotRole.isolation || role == SlotRole.accessory;
+          while (_estimateDayDuration(dayPlans, catalogById) > budget) {
+            final shrinkable = dayPlans.where(
+              (plan) =>
+                  isTrimmableRole(plan.slot.role) &&
+                  plan.timePlan.target.sets > 1,
+            );
+            final isolationShrinkable = shrinkable.where(
+              (plan) => plan.slot.role == SlotRole.isolation,
+            );
+            final shrinkTarget = isolationShrinkable.isNotEmpty
+                ? isolationShrinkable.first
+                : (shrinkable.isNotEmpty ? shrinkable.first : null);
+            if (shrinkTarget != null) {
+              shrinkTarget.timePlan = shrinkTarget.timePlan.copyWith(
+                target: shrinkTarget.timePlan.target.copyWith(
+                  sets: shrinkTarget.timePlan.target.sets - 1,
+                ),
+              );
+              continue;
+            }
+            final trimmable = dayPlans.where(
+              (plan) => isTrimmableRole(plan.slot.role),
+            );
+            final isolationTrimmable = trimmable.where(
+              (plan) => plan.slot.role == SlotRole.isolation,
+            );
+            final dropTarget = isolationTrimmable.isNotEmpty
+                ? isolationTrimmable.first
+                : (trimmable.isNotEmpty ? trimmable.first : null);
+            if (dropTarget == null) break;
+            dayPlans.remove(dropTarget);
+          }
+
+          // Pass 2: insert exactly as the previous single-pass code did, now
+          // sourced from the post-trim plan list.
+          for (final plan in dayPlans) {
+            final slot = plan.slot;
+            final exerciseId = plan.exerciseId;
+            final target = plan.target;
+            final timePlan = plan.timePlan;
+            final focusNote = plan.focusNote;
             await _db
                 .into(_db.programDayExercises)
                 .insert(
@@ -272,7 +358,9 @@ class SmartProgramPlanner {
                     prescriptionWhy: Value(
                       '${slot.why}${focusNote.message}${timePlan.why}',
                     ),
-                    prescriptionJson: Value(timePlan.prescriptionJson),
+                    prescriptionCodecJson: Value(
+                      timePlan.prescriptionCodecJson,
+                    ),
                     variantConfigJson: Value(
                       configuration.includeAutomaticWarmups
                           ? jsonEncode({'autoWarmups': true})
@@ -1312,6 +1400,49 @@ class SmartProgramPlanner {
     ];
   }
 
+  /// Projects the day's total duration from its current (possibly
+  /// mid-trim) plan list, itemizing each slot's real warmup ramp (via
+  /// [WarmupResolver]) and real unilateral doubling (from the catalog's
+  /// `movementPatternRaw`) so the trim decision matches what the
+  /// materialized session will actually incur (D-06/D-08/D-09, T-18-11).
+  static Duration _estimateDayDuration(
+    List<_DaySlotPlan> plans,
+    Map<int, ExerciseCatalogData> catalogById,
+  ) {
+    final durations = [
+      for (final plan in plans) _estimateSlotDuration(plan, catalogById),
+    ];
+    return WorkoutDurationEstimator.estimateSession(durations);
+  }
+
+  static Duration _estimateSlotDuration(
+    _DaySlotPlan plan,
+    Map<int, ExerciseCatalogData> catalogById,
+  ) {
+    final exercise = catalogById[plan.exerciseId]!;
+    final warmupSteps = WarmupResolver.resolve(
+      role: plan.slot.role,
+      mechanics: exercise.mechanics,
+      modality: exercise.modality,
+      targetPercentOf1Rm: plan.slot.method == SlotTrainingMethod.maxEffort
+          ? 0.90
+          : null,
+      isFirstHeavyLiftInSession: plan.isFirstHeavy,
+    );
+    final isUnilateral = (exercise.movementPatternRaw ?? '')
+        .toLowerCase()
+        .contains('unilateral');
+    return WorkoutDurationEstimator.estimateExercise(
+      workingSets: plan.timePlan.target.sets,
+      repsMin: plan.timePlan.target.repsMin,
+      repsMax: plan.timePlan.target.repsMax,
+      restSeconds: plan.timePlan.target.restSeconds,
+      setType: plan.timePlan.setType,
+      warmupSteps: warmupSteps,
+      isUnilateral: isUnilateral,
+    );
+  }
+
   static _Target _targetFor(
     SlotRole role,
     SlotTrainingMethod method,
@@ -1362,25 +1493,25 @@ class SmartProgramPlanner {
         role == SlotRole.isolation;
     if (!canCompress) return _TimePlan.standard(target);
     const compressed = _Target(1, 12, 20, 0, 45);
+    const prescription = SlotPrescription(
+      name: 'Time-saving myo-reps',
+      segments: [
+        WorkSegment(
+          sets: 1,
+          repsMin: 12,
+          repsMax: 20,
+          intent: Intent.rir2,
+          setType: SetType.myoReps,
+          meta: {'activationReps': 15, 'miniSets': 3},
+        ),
+      ],
+    );
     return _TimePlan(
       target: compressed,
       setType: SetType.myoReps,
       why:
           ' Myo-reps are used here because you chose a ${configuration.workoutDurationMinutes}-minute session.',
-      prescriptionJson: jsonEncode({
-        'templateSets': [
-          {
-            'setOrder': 1,
-            'targetRepsMin': 12,
-            'targetRepsMax': 20,
-            'setType': SetType.myoReps.id,
-            'setTypeMetaJson': jsonEncode({
-              'activationReps': 15,
-              'miniSets': 3,
-            }),
-          },
-        ],
-      }),
+      prescriptionCodecJson: SlotPrescriptionCodec.encode(prescription),
     );
   }
 
@@ -1500,7 +1631,7 @@ class _TimePlan {
     required this.target,
     required this.setType,
     required this.why,
-    this.prescriptionJson,
+    this.prescriptionCodecJson,
   });
 
   const _TimePlan.standard(_Target target)
@@ -1509,7 +1640,40 @@ class _TimePlan {
   final _Target target;
   final SetType setType;
   final String why;
-  final String? prescriptionJson;
+  final String? prescriptionCodecJson;
+
+  _TimePlan copyWith({_Target? target}) => _TimePlan(
+    target: target ?? this.target,
+    setType: setType,
+    why: why,
+    prescriptionCodecJson: prescriptionCodecJson,
+  );
+}
+
+/// A slot's fully-computed pass-1 plan for one day: the target/timePlan the
+/// existing single-pass code would have inserted immediately, plus the
+/// movement-order flag needed to feed [WarmupResolver] the same
+/// first-heavy-lift-in-session input the materialize-time resolver uses.
+/// [timePlan] is mutated in place by the time-budget trim loop between pass 1
+/// and pass 2 (D-05/D-07); [target] stays fixed since weekly-set-cap
+/// accounting and `restSeconds` are read from the pre-trim target, matching
+/// the previous single-pass behavior unchanged by this plan.
+class _DaySlotPlan {
+  _DaySlotPlan({
+    required this.slot,
+    required this.exerciseId,
+    required this.target,
+    required this.timePlan,
+    required this.isFirstHeavy,
+    required this.focusNote,
+  });
+
+  final _ResolvedSmartSlot slot;
+  final int exerciseId;
+  final _Target target;
+  _TimePlan timePlan;
+  final bool isFirstHeavy;
+  final _FocusNote focusNote;
 }
 
 class _FocusNote {
