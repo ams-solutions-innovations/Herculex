@@ -127,6 +127,13 @@ class SmartProgramPlanner {
         ? configuration.musclePriorities
         : await _physiquePriorities();
     final catalogById = {for (final exercise in catalog) exercise.id: exercise};
+    final catalogBySlug = {
+      for (final exercise in catalog)
+        if (exercise.slug != null && exercise.slug!.isNotEmpty)
+          exercise.slug!: exercise,
+    };
+    final (completedExerciseSlugs, completedMovementSlugs) =
+        await _completedMovementHistory(catalogById);
     final slotCache = <String, List<_ResolvedSmartSlot>>{};
 
     await _db.transaction(() async {
@@ -177,6 +184,9 @@ class SmartProgramPlanner {
               configuration: configuration,
               model: model,
               physiquePriorities: physiquePriorities,
+              completedExerciseSlugs: completedExerciseSlugs,
+              completedMovementSlugs: completedMovementSlugs,
+              catalogBySlug: catalogBySlug,
             );
             slotCache[cacheKey] = slots;
           }
@@ -272,6 +282,9 @@ class SmartProgramPlanner {
     required SmartProgramConfiguration configuration,
     required PeriodizationModel model,
     required Map<String, String> physiquePriorities,
+    required Set<String> completedExerciseSlugs,
+    required Set<String> completedMovementSlugs,
+    required Map<String, ExerciseCatalogData> catalogBySlug,
   }) async {
     final needs = _needsFor(
       dayLabel,
@@ -319,6 +332,15 @@ class SmartProgramPlanner {
         if (!_isEligibleForAutomaticProgramming(exercise, configuration)) {
           return false;
         }
+        if (!ExerciseProgrammingEligibility.verifyPrerequisites(
+          prerequisiteSlugsJson: exercise.prerequisiteSlugs,
+          userExperience: configuration.experience,
+          completedExerciseSlugs: completedExerciseSlugs,
+          completedMovementSlugs: completedMovementSlugs,
+          catalogBySlug: catalogBySlug,
+        )) {
+          return false;
+        }
         final patternMatches =
             need.pattern == null || exercise.movementPattern == need.pattern;
         final muscleMatches =
@@ -349,6 +371,17 @@ class SmartProgramPlanner {
           // particular, a fallback must never re-introduce advanced,
           // specialty basic-style, or manual-only exercises.
           if (!_isEligibleForAutomaticProgramming(exercise, configuration)) {
+            return false;
+          }
+          // Prerequisites are one of the five named hard filters (D-02) — it
+          // must never relax in the fallback, unlike pattern/muscle.
+          if (!ExerciseProgrammingEligibility.verifyPrerequisites(
+            prerequisiteSlugsJson: exercise.prerequisiteSlugs,
+            userExperience: configuration.experience,
+            completedExerciseSlugs: completedExerciseSlugs,
+            completedMovementSlugs: completedMovementSlugs,
+            catalogBySlug: catalogBySlug,
+          )) {
             return false;
           }
           final mask = SlotRoleEligibility.derive(
@@ -594,6 +627,40 @@ class SmartProgramPlanner {
     final blocking = issues.where((issue) => issue.isBlocking);
     if (blocking.isNotEmpty) throw StateError(blocking.first.message);
     return result;
+  }
+
+  /// Full "ever completed" exercise/movement history (D-08), not a
+  /// recency-bounded set — mirrors `getRecentExerciseIds`'s join/where
+  /// pattern without its `orderBy`/`limit(50)`.
+  Future<(Set<String>, Set<String>)> _completedMovementHistory(
+    Map<int, ExerciseCatalogData> catalogById,
+  ) async {
+    final rows =
+        await (_db.selectOnly(_db.workoutExercises, distinct: true)
+              ..addColumns([_db.workoutExercises.exerciseId])
+              ..join([
+                innerJoin(
+                  _db.workoutSessions,
+                  _db.workoutSessions.id.equalsExp(
+                    _db.workoutExercises.sessionId,
+                  ),
+                ),
+              ])
+              ..where(_db.workoutSessions.endedAt.isNotNull()))
+            .get();
+    final completedIds = rows
+        .map((row) => row.read(_db.workoutExercises.exerciseId)!)
+        .toSet();
+    final completedExerciseSlugs = {
+      for (final id in completedIds)
+        if (catalogById[id]?.slug != null) catalogById[id]!.slug!,
+    };
+    final completedMovementSlugs = {
+      for (final id in completedIds)
+        if (catalogById[id]?.movementSlug != null)
+          catalogById[id]!.movementSlug!,
+    };
+    return (completedExerciseSlugs, completedMovementSlugs);
   }
 
   Future<Map<int, int>> _affinities(int programId) async {
