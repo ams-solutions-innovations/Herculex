@@ -63,13 +63,13 @@ Plans:
 
 **Success:** `SlotPrescriptionCodec` ensures byte-equivalent prescriptions from preview to active session; automatic warmup sets scale with target intensity; time estimator maintains session length within ±10% tolerance; intensity techniques require opt-in.
 
-**Plans:** 6 plans
+**Plans:** 2/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 18-01-PLAN.md — SlotPrescriptionCodec + schema v43 (3 new columns, full 5-chore migration)
-- [ ] 18-02-PLAN.md — WarmupResolver + WorkoutDurationEstimator (pure domain services)
+- [x] 18-01-PLAN.md — SlotPrescriptionCodec + schema v43 (3 new columns, full 5-chore migration)
+- [x] 18-02-PLAN.md — WarmupResolver + WorkoutDurationEstimator (pure domain services)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
