@@ -33,6 +33,10 @@ void main() {
     testWidgets(
       'hides hypertrophy items and amrap when allowAdvancedTechniques is false',
       (tester) async {
+        tester.view.physicalSize = const Size(800, 3200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -62,6 +66,10 @@ void main() {
     testWidgets(
       'shows hypertrophy items and amrap when allowAdvancedTechniques is true',
       (tester) async {
+        tester.view.physicalSize = const Size(800, 3200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(

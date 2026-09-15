@@ -1021,6 +1021,12 @@ class _TemplateSetRowState extends State<_TemplateSetRow> {
                   context,
                   current: setType,
                   isWarmup: isWarmup,
+                  // Manual workout templates have no SlotRole/program opt-in
+                  // context (they're user-authored, not generator slots) —
+                  // preserve pre-existing unrestricted behavior here. The
+                  // D-11/D-12 gate applies only to generator-materialized
+                  // workout exercises (see active_exercise_card.dart).
+                  allowAdvancedTechniques: true,
                 );
                 if (selection != null) {
                   widget.onUpdateSetType(selection);
