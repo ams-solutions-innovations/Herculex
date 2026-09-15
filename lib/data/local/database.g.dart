@@ -5396,6 +5396,21 @@ class $ProgramsTable extends Programs
     requiredDuringInsert: false,
     defaultValue: const Constant('review_structural'),
   );
+  static const VerificationMeta _allowTimeSavingSetTechniquesMeta =
+      const VerificationMeta('allowTimeSavingSetTechniques');
+  @override
+  late final GeneratedColumn<bool> allowTimeSavingSetTechniques =
+      GeneratedColumn<bool>(
+        'allow_time_saving_set_techniques',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("allow_time_saving_set_techniques" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     syncUuid,
@@ -5421,6 +5436,7 @@ class $ProgramsTable extends Programs
     trainingGoal,
     experienceLevel,
     adaptationMode,
+    allowTimeSavingSetTechniques,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5604,6 +5620,15 @@ class $ProgramsTable extends Programs
         ),
       );
     }
+    if (data.containsKey('allow_time_saving_set_techniques')) {
+      context.handle(
+        _allowTimeSavingSetTechniquesMeta,
+        allowTimeSavingSetTechniques.isAcceptableOrUnknown(
+          data['allow_time_saving_set_techniques']!,
+          _allowTimeSavingSetTechniquesMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -5705,6 +5730,10 @@ class $ProgramsTable extends Programs
         DriftSqlType.string,
         data['${effectivePrefix}adaptation_mode'],
       )!,
+      allowTimeSavingSetTechniques: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}allow_time_saving_set_techniques'],
+      )!,
     );
   }
 
@@ -5755,6 +5784,7 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
   final String trainingGoal;
   final String experienceLevel;
   final String adaptationMode;
+  final bool allowTimeSavingSetTechniques;
   const ProgramData({
     this.syncUuid,
     this.updatedAt,
@@ -5779,6 +5809,7 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
     required this.trainingGoal,
     required this.experienceLevel,
     required this.adaptationMode,
+    required this.allowTimeSavingSetTechniques,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5822,6 +5853,9 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
     map['training_goal'] = Variable<String>(trainingGoal);
     map['experience_level'] = Variable<String>(experienceLevel);
     map['adaptation_mode'] = Variable<String>(adaptationMode);
+    map['allow_time_saving_set_techniques'] = Variable<bool>(
+      allowTimeSavingSetTechniques,
+    );
     return map;
   }
 
@@ -5866,6 +5900,7 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
       trainingGoal: Value(trainingGoal),
       experienceLevel: Value(experienceLevel),
       adaptationMode: Value(adaptationMode),
+      allowTimeSavingSetTechniques: Value(allowTimeSavingSetTechniques),
     );
   }
 
@@ -5902,6 +5937,9 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
       trainingGoal: serializer.fromJson<String>(json['trainingGoal']),
       experienceLevel: serializer.fromJson<String>(json['experienceLevel']),
       adaptationMode: serializer.fromJson<String>(json['adaptationMode']),
+      allowTimeSavingSetTechniques: serializer.fromJson<bool>(
+        json['allowTimeSavingSetTechniques'],
+      ),
     );
   }
   @override
@@ -5931,6 +5969,9 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
       'trainingGoal': serializer.toJson<String>(trainingGoal),
       'experienceLevel': serializer.toJson<String>(experienceLevel),
       'adaptationMode': serializer.toJson<String>(adaptationMode),
+      'allowTimeSavingSetTechniques': serializer.toJson<bool>(
+        allowTimeSavingSetTechniques,
+      ),
     };
   }
 
@@ -5958,6 +5999,7 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
     String? trainingGoal,
     String? experienceLevel,
     String? adaptationMode,
+    bool? allowTimeSavingSetTechniques,
   }) => ProgramData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -5982,6 +6024,8 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
     trainingGoal: trainingGoal ?? this.trainingGoal,
     experienceLevel: experienceLevel ?? this.experienceLevel,
     adaptationMode: adaptationMode ?? this.adaptationMode,
+    allowTimeSavingSetTechniques:
+        allowTimeSavingSetTechniques ?? this.allowTimeSavingSetTechniques,
   );
   ProgramData copyWithCompanion(ProgramsCompanion data) {
     return ProgramData(
@@ -6030,6 +6074,9 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
       adaptationMode: data.adaptationMode.present
           ? data.adaptationMode.value
           : this.adaptationMode,
+      allowTimeSavingSetTechniques: data.allowTimeSavingSetTechniques.present
+          ? data.allowTimeSavingSetTechniques.value
+          : this.allowTimeSavingSetTechniques,
     );
   }
 
@@ -6058,7 +6105,8 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
           ..write('buildMode: $buildMode, ')
           ..write('trainingGoal: $trainingGoal, ')
           ..write('experienceLevel: $experienceLevel, ')
-          ..write('adaptationMode: $adaptationMode')
+          ..write('adaptationMode: $adaptationMode, ')
+          ..write('allowTimeSavingSetTechniques: $allowTimeSavingSetTechniques')
           ..write(')'))
         .toString();
   }
@@ -6088,6 +6136,7 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
     trainingGoal,
     experienceLevel,
     adaptationMode,
+    allowTimeSavingSetTechniques,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -6115,7 +6164,9 @@ class ProgramData extends DataClass implements Insertable<ProgramData> {
           other.buildMode == this.buildMode &&
           other.trainingGoal == this.trainingGoal &&
           other.experienceLevel == this.experienceLevel &&
-          other.adaptationMode == this.adaptationMode);
+          other.adaptationMode == this.adaptationMode &&
+          other.allowTimeSavingSetTechniques ==
+              this.allowTimeSavingSetTechniques);
 }
 
 class ProgramsCompanion extends UpdateCompanion<ProgramData> {
@@ -6142,6 +6193,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
   final Value<String> trainingGoal;
   final Value<String> experienceLevel;
   final Value<String> adaptationMode;
+  final Value<bool> allowTimeSavingSetTechniques;
   const ProgramsCompanion({
     this.syncUuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -6166,6 +6218,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
     this.trainingGoal = const Value.absent(),
     this.experienceLevel = const Value.absent(),
     this.adaptationMode = const Value.absent(),
+    this.allowTimeSavingSetTechniques = const Value.absent(),
   });
   ProgramsCompanion.insert({
     this.syncUuid = const Value.absent(),
@@ -6191,6 +6244,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
     this.trainingGoal = const Value.absent(),
     this.experienceLevel = const Value.absent(),
     this.adaptationMode = const Value.absent(),
+    this.allowTimeSavingSetTechniques = const Value.absent(),
   }) : name = Value(name);
   static Insertable<ProgramData> custom({
     Expression<String>? syncUuid,
@@ -6216,6 +6270,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
     Expression<String>? trainingGoal,
     Expression<String>? experienceLevel,
     Expression<String>? adaptationMode,
+    Expression<bool>? allowTimeSavingSetTechniques,
   }) {
     return RawValuesInsertable({
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -6242,6 +6297,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
       if (trainingGoal != null) 'training_goal': trainingGoal,
       if (experienceLevel != null) 'experience_level': experienceLevel,
       if (adaptationMode != null) 'adaptation_mode': adaptationMode,
+      if (allowTimeSavingSetTechniques != null)
+        'allow_time_saving_set_techniques': allowTimeSavingSetTechniques,
     });
   }
 
@@ -6269,6 +6326,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
     Value<String>? trainingGoal,
     Value<String>? experienceLevel,
     Value<String>? adaptationMode,
+    Value<bool>? allowTimeSavingSetTechniques,
   }) {
     return ProgramsCompanion(
       syncUuid: syncUuid ?? this.syncUuid,
@@ -6294,6 +6352,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
       trainingGoal: trainingGoal ?? this.trainingGoal,
       experienceLevel: experienceLevel ?? this.experienceLevel,
       adaptationMode: adaptationMode ?? this.adaptationMode,
+      allowTimeSavingSetTechniques:
+          allowTimeSavingSetTechniques ?? this.allowTimeSavingSetTechniques,
     );
   }
 
@@ -6369,6 +6429,11 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
     if (adaptationMode.present) {
       map['adaptation_mode'] = Variable<String>(adaptationMode.value);
     }
+    if (allowTimeSavingSetTechniques.present) {
+      map['allow_time_saving_set_techniques'] = Variable<bool>(
+        allowTimeSavingSetTechniques.value,
+      );
+    }
     return map;
   }
 
@@ -6397,7 +6462,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramData> {
           ..write('buildMode: $buildMode, ')
           ..write('trainingGoal: $trainingGoal, ')
           ..write('experienceLevel: $experienceLevel, ')
-          ..write('adaptationMode: $adaptationMode')
+          ..write('adaptationMode: $adaptationMode, ')
+          ..write('allowTimeSavingSetTechniques: $allowTimeSavingSetTechniques')
           ..write(')'))
         .toString();
   }
@@ -8359,6 +8425,21 @@ class $WorkoutExercisesTable extends WorkoutExercises
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _plannedAllowsAdvancedTechniquesMeta =
+      const VerificationMeta('plannedAllowsAdvancedTechniques');
+  @override
+  late final GeneratedColumn<bool> plannedAllowsAdvancedTechniques =
+      GeneratedColumn<bool>(
+        'planned_allows_advanced_techniques',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("planned_allows_advanced_techniques" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     syncUuid,
@@ -8380,6 +8461,7 @@ class $WorkoutExercisesTable extends WorkoutExercises
     plannedPrescriptionWhy,
     plannedWaveIndex,
     plannedWaveCount,
+    plannedAllowsAdvancedTechniques,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -8543,6 +8625,15 @@ class $WorkoutExercisesTable extends WorkoutExercises
         ),
       );
     }
+    if (data.containsKey('planned_allows_advanced_techniques')) {
+      context.handle(
+        _plannedAllowsAdvancedTechniquesMeta,
+        plannedAllowsAdvancedTechniques.isAcceptableOrUnknown(
+          data['planned_allows_advanced_techniques']!,
+          _plannedAllowsAdvancedTechniquesMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -8628,6 +8719,10 @@ class $WorkoutExercisesTable extends WorkoutExercises
         DriftSqlType.int,
         data['${effectivePrefix}planned_wave_count'],
       ),
+      plannedAllowsAdvancedTechniques: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}planned_allows_advanced_techniques'],
+      )!,
     );
   }
 
@@ -8665,6 +8760,7 @@ class WorkoutExerciseData extends DataClass
   final String? plannedPrescriptionWhy;
   final int? plannedWaveIndex;
   final int? plannedWaveCount;
+  final bool plannedAllowsAdvancedTechniques;
   const WorkoutExerciseData({
     this.syncUuid,
     this.updatedAt,
@@ -8685,6 +8781,7 @@ class WorkoutExerciseData extends DataClass
     this.plannedPrescriptionWhy,
     this.plannedWaveIndex,
     this.plannedWaveCount,
+    required this.plannedAllowsAdvancedTechniques,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -8740,6 +8837,9 @@ class WorkoutExerciseData extends DataClass
     if (!nullToAbsent || plannedWaveCount != null) {
       map['planned_wave_count'] = Variable<int>(plannedWaveCount);
     }
+    map['planned_allows_advanced_techniques'] = Variable<bool>(
+      plannedAllowsAdvancedTechniques,
+    );
     return map;
   }
 
@@ -8794,6 +8894,7 @@ class WorkoutExerciseData extends DataClass
       plannedWaveCount: plannedWaveCount == null && nullToAbsent
           ? const Value.absent()
           : Value(plannedWaveCount),
+      plannedAllowsAdvancedTechniques: Value(plannedAllowsAdvancedTechniques),
     );
   }
 
@@ -8832,6 +8933,9 @@ class WorkoutExerciseData extends DataClass
       ),
       plannedWaveIndex: serializer.fromJson<int?>(json['plannedWaveIndex']),
       plannedWaveCount: serializer.fromJson<int?>(json['plannedWaveCount']),
+      plannedAllowsAdvancedTechniques: serializer.fromJson<bool>(
+        json['plannedAllowsAdvancedTechniques'],
+      ),
     );
   }
   @override
@@ -8861,6 +8965,9 @@ class WorkoutExerciseData extends DataClass
       ),
       'plannedWaveIndex': serializer.toJson<int?>(plannedWaveIndex),
       'plannedWaveCount': serializer.toJson<int?>(plannedWaveCount),
+      'plannedAllowsAdvancedTechniques': serializer.toJson<bool>(
+        plannedAllowsAdvancedTechniques,
+      ),
     };
   }
 
@@ -8884,6 +8991,7 @@ class WorkoutExerciseData extends DataClass
     Value<String?> plannedPrescriptionWhy = const Value.absent(),
     Value<int?> plannedWaveIndex = const Value.absent(),
     Value<int?> plannedWaveCount = const Value.absent(),
+    bool? plannedAllowsAdvancedTechniques,
   }) => WorkoutExerciseData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -8926,6 +9034,8 @@ class WorkoutExerciseData extends DataClass
     plannedWaveCount: plannedWaveCount.present
         ? plannedWaveCount.value
         : this.plannedWaveCount,
+    plannedAllowsAdvancedTechniques:
+        plannedAllowsAdvancedTechniques ?? this.plannedAllowsAdvancedTechniques,
   );
   WorkoutExerciseData copyWithCompanion(WorkoutExercisesCompanion data) {
     return WorkoutExerciseData(
@@ -8974,6 +9084,10 @@ class WorkoutExerciseData extends DataClass
       plannedWaveCount: data.plannedWaveCount.present
           ? data.plannedWaveCount.value
           : this.plannedWaveCount,
+      plannedAllowsAdvancedTechniques:
+          data.plannedAllowsAdvancedTechniques.present
+          ? data.plannedAllowsAdvancedTechniques.value
+          : this.plannedAllowsAdvancedTechniques,
     );
   }
 
@@ -8998,7 +9112,10 @@ class WorkoutExerciseData extends DataClass
           ..write('plannedTrainingMethod: $plannedTrainingMethod, ')
           ..write('plannedPrescriptionWhy: $plannedPrescriptionWhy, ')
           ..write('plannedWaveIndex: $plannedWaveIndex, ')
-          ..write('plannedWaveCount: $plannedWaveCount')
+          ..write('plannedWaveCount: $plannedWaveCount, ')
+          ..write(
+            'plannedAllowsAdvancedTechniques: $plannedAllowsAdvancedTechniques',
+          )
           ..write(')'))
         .toString();
   }
@@ -9024,6 +9141,7 @@ class WorkoutExerciseData extends DataClass
     plannedPrescriptionWhy,
     plannedWaveIndex,
     plannedWaveCount,
+    plannedAllowsAdvancedTechniques,
   );
   @override
   bool operator ==(Object other) =>
@@ -9047,7 +9165,9 @@ class WorkoutExerciseData extends DataClass
           other.plannedTrainingMethod == this.plannedTrainingMethod &&
           other.plannedPrescriptionWhy == this.plannedPrescriptionWhy &&
           other.plannedWaveIndex == this.plannedWaveIndex &&
-          other.plannedWaveCount == this.plannedWaveCount);
+          other.plannedWaveCount == this.plannedWaveCount &&
+          other.plannedAllowsAdvancedTechniques ==
+              this.plannedAllowsAdvancedTechniques);
 }
 
 class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
@@ -9070,6 +9190,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
   final Value<String?> plannedPrescriptionWhy;
   final Value<int?> plannedWaveIndex;
   final Value<int?> plannedWaveCount;
+  final Value<bool> plannedAllowsAdvancedTechniques;
   const WorkoutExercisesCompanion({
     this.syncUuid = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -9090,6 +9211,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     this.plannedPrescriptionWhy = const Value.absent(),
     this.plannedWaveIndex = const Value.absent(),
     this.plannedWaveCount = const Value.absent(),
+    this.plannedAllowsAdvancedTechniques = const Value.absent(),
   });
   WorkoutExercisesCompanion.insert({
     this.syncUuid = const Value.absent(),
@@ -9111,6 +9233,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     this.plannedPrescriptionWhy = const Value.absent(),
     this.plannedWaveIndex = const Value.absent(),
     this.plannedWaveCount = const Value.absent(),
+    this.plannedAllowsAdvancedTechniques = const Value.absent(),
   }) : sessionId = Value(sessionId),
        exerciseId = Value(exerciseId),
        orderIndex = Value(orderIndex);
@@ -9134,6 +9257,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     Expression<String>? plannedPrescriptionWhy,
     Expression<int>? plannedWaveIndex,
     Expression<int>? plannedWaveCount,
+    Expression<bool>? plannedAllowsAdvancedTechniques,
   }) {
     return RawValuesInsertable({
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -9159,6 +9283,8 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
         'planned_prescription_why': plannedPrescriptionWhy,
       if (plannedWaveIndex != null) 'planned_wave_index': plannedWaveIndex,
       if (plannedWaveCount != null) 'planned_wave_count': plannedWaveCount,
+      if (plannedAllowsAdvancedTechniques != null)
+        'planned_allows_advanced_techniques': plannedAllowsAdvancedTechniques,
     });
   }
 
@@ -9182,6 +9308,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     Value<String?>? plannedPrescriptionWhy,
     Value<int?>? plannedWaveIndex,
     Value<int?>? plannedWaveCount,
+    Value<bool>? plannedAllowsAdvancedTechniques,
   }) {
     return WorkoutExercisesCompanion(
       syncUuid: syncUuid ?? this.syncUuid,
@@ -9206,6 +9333,9 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
           plannedPrescriptionWhy ?? this.plannedPrescriptionWhy,
       plannedWaveIndex: plannedWaveIndex ?? this.plannedWaveIndex,
       plannedWaveCount: plannedWaveCount ?? this.plannedWaveCount,
+      plannedAllowsAdvancedTechniques:
+          plannedAllowsAdvancedTechniques ??
+          this.plannedAllowsAdvancedTechniques,
     );
   }
 
@@ -9275,6 +9405,11 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     if (plannedWaveCount.present) {
       map['planned_wave_count'] = Variable<int>(plannedWaveCount.value);
     }
+    if (plannedAllowsAdvancedTechniques.present) {
+      map['planned_allows_advanced_techniques'] = Variable<bool>(
+        plannedAllowsAdvancedTechniques.value,
+      );
+    }
     return map;
   }
 
@@ -9299,7 +9434,10 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
           ..write('plannedTrainingMethod: $plannedTrainingMethod, ')
           ..write('plannedPrescriptionWhy: $plannedPrescriptionWhy, ')
           ..write('plannedWaveIndex: $plannedWaveIndex, ')
-          ..write('plannedWaveCount: $plannedWaveCount')
+          ..write('plannedWaveCount: $plannedWaveCount, ')
+          ..write(
+            'plannedAllowsAdvancedTechniques: $plannedAllowsAdvancedTechniques',
+          )
           ..write(')'))
         .toString();
   }
@@ -22594,6 +22732,17 @@ class $ProgramDayExercisesTable extends ProgramDayExercises
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _prescriptionCodecJsonMeta =
+      const VerificationMeta('prescriptionCodecJson');
+  @override
+  late final GeneratedColumn<String> prescriptionCodecJson =
+      GeneratedColumn<String>(
+        'prescription_codec_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _variantConfigJsonMeta = const VerificationMeta(
     'variantConfigJson',
   );
@@ -22631,6 +22780,7 @@ class $ProgramDayExercisesTable extends ProgramDayExercises
     restSeconds,
     prescriptionWhy,
     prescriptionJson,
+    prescriptionCodecJson,
     variantConfigJson,
   ];
   @override
@@ -22816,6 +22966,15 @@ class $ProgramDayExercisesTable extends ProgramDayExercises
         ),
       );
     }
+    if (data.containsKey('prescription_codec_json')) {
+      context.handle(
+        _prescriptionCodecJsonMeta,
+        prescriptionCodecJson.isAcceptableOrUnknown(
+          data['prescription_codec_json']!,
+          _prescriptionCodecJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('variant_config_json')) {
       context.handle(
         _variantConfigJsonMeta,
@@ -22926,6 +23085,10 @@ class $ProgramDayExercisesTable extends ProgramDayExercises
         DriftSqlType.string,
         data['${effectivePrefix}prescription_json'],
       ),
+      prescriptionCodecJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prescription_codec_json'],
+      ),
       variantConfigJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}variant_config_json'],
@@ -22973,6 +23136,7 @@ class ProgramDayExerciseData extends DataClass
   final int? restSeconds;
   final String? prescriptionWhy;
   final String? prescriptionJson;
+  final String? prescriptionCodecJson;
   final String? variantConfigJson;
   const ProgramDayExerciseData({
     this.syncUuid,
@@ -22998,6 +23162,7 @@ class ProgramDayExerciseData extends DataClass
     this.restSeconds,
     this.prescriptionWhy,
     this.prescriptionJson,
+    this.prescriptionCodecJson,
     this.variantConfigJson,
   });
   @override
@@ -23055,6 +23220,9 @@ class ProgramDayExerciseData extends DataClass
     }
     if (!nullToAbsent || prescriptionJson != null) {
       map['prescription_json'] = Variable<String>(prescriptionJson);
+    }
+    if (!nullToAbsent || prescriptionCodecJson != null) {
+      map['prescription_codec_json'] = Variable<String>(prescriptionCodecJson);
     }
     if (!nullToAbsent || variantConfigJson != null) {
       map['variant_config_json'] = Variable<String>(variantConfigJson);
@@ -23117,6 +23285,9 @@ class ProgramDayExerciseData extends DataClass
       prescriptionJson: prescriptionJson == null && nullToAbsent
           ? const Value.absent()
           : Value(prescriptionJson),
+      prescriptionCodecJson: prescriptionCodecJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(prescriptionCodecJson),
       variantConfigJson: variantConfigJson == null && nullToAbsent
           ? const Value.absent()
           : Value(variantConfigJson),
@@ -23154,6 +23325,9 @@ class ProgramDayExerciseData extends DataClass
       restSeconds: serializer.fromJson<int?>(json['restSeconds']),
       prescriptionWhy: serializer.fromJson<String?>(json['prescriptionWhy']),
       prescriptionJson: serializer.fromJson<String?>(json['prescriptionJson']),
+      prescriptionCodecJson: serializer.fromJson<String?>(
+        json['prescriptionCodecJson'],
+      ),
       variantConfigJson: serializer.fromJson<String?>(
         json['variantConfigJson'],
       ),
@@ -23186,6 +23360,9 @@ class ProgramDayExerciseData extends DataClass
       'restSeconds': serializer.toJson<int?>(restSeconds),
       'prescriptionWhy': serializer.toJson<String?>(prescriptionWhy),
       'prescriptionJson': serializer.toJson<String?>(prescriptionJson),
+      'prescriptionCodecJson': serializer.toJson<String?>(
+        prescriptionCodecJson,
+      ),
       'variantConfigJson': serializer.toJson<String?>(variantConfigJson),
     };
   }
@@ -23214,6 +23391,7 @@ class ProgramDayExerciseData extends DataClass
     Value<int?> restSeconds = const Value.absent(),
     Value<String?> prescriptionWhy = const Value.absent(),
     Value<String?> prescriptionJson = const Value.absent(),
+    Value<String?> prescriptionCodecJson = const Value.absent(),
     Value<String?> variantConfigJson = const Value.absent(),
   }) => ProgramDayExerciseData(
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
@@ -23251,6 +23429,9 @@ class ProgramDayExerciseData extends DataClass
     prescriptionJson: prescriptionJson.present
         ? prescriptionJson.value
         : this.prescriptionJson,
+    prescriptionCodecJson: prescriptionCodecJson.present
+        ? prescriptionCodecJson.value
+        : this.prescriptionCodecJson,
     variantConfigJson: variantConfigJson.present
         ? variantConfigJson.value
         : this.variantConfigJson,
@@ -23308,6 +23489,9 @@ class ProgramDayExerciseData extends DataClass
       prescriptionJson: data.prescriptionJson.present
           ? data.prescriptionJson.value
           : this.prescriptionJson,
+      prescriptionCodecJson: data.prescriptionCodecJson.present
+          ? data.prescriptionCodecJson.value
+          : this.prescriptionCodecJson,
       variantConfigJson: data.variantConfigJson.present
           ? data.variantConfigJson.value
           : this.variantConfigJson,
@@ -23340,6 +23524,7 @@ class ProgramDayExerciseData extends DataClass
           ..write('restSeconds: $restSeconds, ')
           ..write('prescriptionWhy: $prescriptionWhy, ')
           ..write('prescriptionJson: $prescriptionJson, ')
+          ..write('prescriptionCodecJson: $prescriptionCodecJson, ')
           ..write('variantConfigJson: $variantConfigJson')
           ..write(')'))
         .toString();
@@ -23370,6 +23555,7 @@ class ProgramDayExerciseData extends DataClass
     restSeconds,
     prescriptionWhy,
     prescriptionJson,
+    prescriptionCodecJson,
     variantConfigJson,
   ]);
   @override
@@ -23399,6 +23585,7 @@ class ProgramDayExerciseData extends DataClass
           other.restSeconds == this.restSeconds &&
           other.prescriptionWhy == this.prescriptionWhy &&
           other.prescriptionJson == this.prescriptionJson &&
+          other.prescriptionCodecJson == this.prescriptionCodecJson &&
           other.variantConfigJson == this.variantConfigJson);
 }
 
@@ -23427,6 +23614,7 @@ class ProgramDayExercisesCompanion
   final Value<int?> restSeconds;
   final Value<String?> prescriptionWhy;
   final Value<String?> prescriptionJson;
+  final Value<String?> prescriptionCodecJson;
   final Value<String?> variantConfigJson;
   const ProgramDayExercisesCompanion({
     this.syncUuid = const Value.absent(),
@@ -23452,6 +23640,7 @@ class ProgramDayExercisesCompanion
     this.restSeconds = const Value.absent(),
     this.prescriptionWhy = const Value.absent(),
     this.prescriptionJson = const Value.absent(),
+    this.prescriptionCodecJson = const Value.absent(),
     this.variantConfigJson = const Value.absent(),
   });
   ProgramDayExercisesCompanion.insert({
@@ -23478,6 +23667,7 @@ class ProgramDayExercisesCompanion
     this.restSeconds = const Value.absent(),
     this.prescriptionWhy = const Value.absent(),
     this.prescriptionJson = const Value.absent(),
+    this.prescriptionCodecJson = const Value.absent(),
     this.variantConfigJson = const Value.absent(),
   }) : programDayId = Value(programDayId),
        exerciseId = Value(exerciseId),
@@ -23506,6 +23696,7 @@ class ProgramDayExercisesCompanion
     Expression<int>? restSeconds,
     Expression<String>? prescriptionWhy,
     Expression<String>? prescriptionJson,
+    Expression<String>? prescriptionCodecJson,
     Expression<String>? variantConfigJson,
   }) {
     return RawValuesInsertable({
@@ -23533,6 +23724,8 @@ class ProgramDayExercisesCompanion
       if (restSeconds != null) 'rest_seconds': restSeconds,
       if (prescriptionWhy != null) 'prescription_why': prescriptionWhy,
       if (prescriptionJson != null) 'prescription_json': prescriptionJson,
+      if (prescriptionCodecJson != null)
+        'prescription_codec_json': prescriptionCodecJson,
       if (variantConfigJson != null) 'variant_config_json': variantConfigJson,
     });
   }
@@ -23561,6 +23754,7 @@ class ProgramDayExercisesCompanion
     Value<int?>? restSeconds,
     Value<String?>? prescriptionWhy,
     Value<String?>? prescriptionJson,
+    Value<String?>? prescriptionCodecJson,
     Value<String?>? variantConfigJson,
   }) {
     return ProgramDayExercisesCompanion(
@@ -23588,6 +23782,8 @@ class ProgramDayExercisesCompanion
       restSeconds: restSeconds ?? this.restSeconds,
       prescriptionWhy: prescriptionWhy ?? this.prescriptionWhy,
       prescriptionJson: prescriptionJson ?? this.prescriptionJson,
+      prescriptionCodecJson:
+          prescriptionCodecJson ?? this.prescriptionCodecJson,
       variantConfigJson: variantConfigJson ?? this.variantConfigJson,
     );
   }
@@ -23666,6 +23862,11 @@ class ProgramDayExercisesCompanion
     if (prescriptionJson.present) {
       map['prescription_json'] = Variable<String>(prescriptionJson.value);
     }
+    if (prescriptionCodecJson.present) {
+      map['prescription_codec_json'] = Variable<String>(
+        prescriptionCodecJson.value,
+      );
+    }
     if (variantConfigJson.present) {
       map['variant_config_json'] = Variable<String>(variantConfigJson.value);
     }
@@ -23698,6 +23899,7 @@ class ProgramDayExercisesCompanion
           ..write('restSeconds: $restSeconds, ')
           ..write('prescriptionWhy: $prescriptionWhy, ')
           ..write('prescriptionJson: $prescriptionJson, ')
+          ..write('prescriptionCodecJson: $prescriptionCodecJson, ')
           ..write('variantConfigJson: $variantConfigJson')
           ..write(')'))
         .toString();
@@ -47577,6 +47779,7 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<String> trainingGoal,
       Value<String> experienceLevel,
       Value<String> adaptationMode,
+      Value<bool> allowTimeSavingSetTechniques,
     });
 typedef $$ProgramsTableUpdateCompanionBuilder =
     ProgramsCompanion Function({
@@ -47603,6 +47806,7 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<String> trainingGoal,
       Value<String> experienceLevel,
       Value<String> adaptationMode,
+      Value<bool> allowTimeSavingSetTechniques,
     });
 
 final class $$ProgramsTableReferences
@@ -47834,6 +48038,11 @@ class $$ProgramsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get allowTimeSavingSetTechniques => $composableBuilder(
+    column: $table.allowTimeSavingSetTechniques,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> programExerciseSlotsRefs(
     Expression<bool> Function($$ProgramExerciseSlotsTableFilterComposer f) f,
   ) {
@@ -48058,6 +48267,11 @@ class $$ProgramsTableOrderingComposer
     column: $table.adaptationMode,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get allowTimeSavingSetTechniques => $composableBuilder(
+    column: $table.allowTimeSavingSetTechniques,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProgramsTableAnnotationComposer
@@ -48157,6 +48371,11 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<String> get adaptationMode => $composableBuilder(
     column: $table.adaptationMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get allowTimeSavingSetTechniques => $composableBuilder(
+    column: $table.allowTimeSavingSetTechniques,
     builder: (column) => column,
   );
 
@@ -48320,6 +48539,7 @@ class $$ProgramsTableTableManager
                 Value<String> trainingGoal = const Value.absent(),
                 Value<String> experienceLevel = const Value.absent(),
                 Value<String> adaptationMode = const Value.absent(),
+                Value<bool> allowTimeSavingSetTechniques = const Value.absent(),
               }) => ProgramsCompanion(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -48344,6 +48564,7 @@ class $$ProgramsTableTableManager
                 trainingGoal: trainingGoal,
                 experienceLevel: experienceLevel,
                 adaptationMode: adaptationMode,
+                allowTimeSavingSetTechniques: allowTimeSavingSetTechniques,
               ),
           createCompanionCallback:
               ({
@@ -48370,6 +48591,7 @@ class $$ProgramsTableTableManager
                 Value<String> trainingGoal = const Value.absent(),
                 Value<String> experienceLevel = const Value.absent(),
                 Value<String> adaptationMode = const Value.absent(),
+                Value<bool> allowTimeSavingSetTechniques = const Value.absent(),
               }) => ProgramsCompanion.insert(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -48394,6 +48616,7 @@ class $$ProgramsTableTableManager
                 trainingGoal: trainingGoal,
                 experienceLevel: experienceLevel,
                 adaptationMode: adaptationMode,
+                allowTimeSavingSetTechniques: allowTimeSavingSetTechniques,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -50335,6 +50558,7 @@ typedef $$WorkoutExercisesTableCreateCompanionBuilder =
       Value<String?> plannedPrescriptionWhy,
       Value<int?> plannedWaveIndex,
       Value<int?> plannedWaveCount,
+      Value<bool> plannedAllowsAdvancedTechniques,
     });
 typedef $$WorkoutExercisesTableUpdateCompanionBuilder =
     WorkoutExercisesCompanion Function({
@@ -50357,6 +50581,7 @@ typedef $$WorkoutExercisesTableUpdateCompanionBuilder =
       Value<String?> plannedPrescriptionWhy,
       Value<int?> plannedWaveIndex,
       Value<int?> plannedWaveCount,
+      Value<bool> plannedAllowsAdvancedTechniques,
     });
 
 final class $$WorkoutExercisesTableReferences
@@ -50600,6 +50825,11 @@ class $$WorkoutExercisesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get plannedAllowsAdvancedTechniques => $composableBuilder(
+    column: $table.plannedAllowsAdvancedTechniques,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$WorkoutSessionsTableFilterComposer get sessionId {
     final $$WorkoutSessionsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -50828,6 +51058,12 @@ class $$WorkoutExercisesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get plannedAllowsAdvancedTechniques =>
+      $composableBuilder(
+        column: $table.plannedAllowsAdvancedTechniques,
+        builder: (column) => ColumnOrderings(column),
+      );
+
   $$WorkoutSessionsTableOrderingComposer get sessionId {
     final $$WorkoutSessionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -50996,6 +51232,12 @@ class $$WorkoutExercisesTableAnnotationComposer
     column: $table.plannedWaveCount,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get plannedAllowsAdvancedTechniques =>
+      $composableBuilder(
+        column: $table.plannedAllowsAdvancedTechniques,
+        builder: (column) => column,
+      );
 
   $$WorkoutSessionsTableAnnotationComposer get sessionId {
     final $$WorkoutSessionsTableAnnotationComposer composer = $composerBuilder(
@@ -51199,6 +51441,8 @@ class $$WorkoutExercisesTableTableManager
                 Value<String?> plannedPrescriptionWhy = const Value.absent(),
                 Value<int?> plannedWaveIndex = const Value.absent(),
                 Value<int?> plannedWaveCount = const Value.absent(),
+                Value<bool> plannedAllowsAdvancedTechniques =
+                    const Value.absent(),
               }) => WorkoutExercisesCompanion(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -51219,6 +51463,8 @@ class $$WorkoutExercisesTableTableManager
                 plannedPrescriptionWhy: plannedPrescriptionWhy,
                 plannedWaveIndex: plannedWaveIndex,
                 plannedWaveCount: plannedWaveCount,
+                plannedAllowsAdvancedTechniques:
+                    plannedAllowsAdvancedTechniques,
               ),
           createCompanionCallback:
               ({
@@ -51241,6 +51487,8 @@ class $$WorkoutExercisesTableTableManager
                 Value<String?> plannedPrescriptionWhy = const Value.absent(),
                 Value<int?> plannedWaveIndex = const Value.absent(),
                 Value<int?> plannedWaveCount = const Value.absent(),
+                Value<bool> plannedAllowsAdvancedTechniques =
+                    const Value.absent(),
               }) => WorkoutExercisesCompanion.insert(
                 syncUuid: syncUuid,
                 updatedAt: updatedAt,
@@ -51261,6 +51509,8 @@ class $$WorkoutExercisesTableTableManager
                 plannedPrescriptionWhy: plannedPrescriptionWhy,
                 plannedWaveIndex: plannedWaveIndex,
                 plannedWaveCount: plannedWaveCount,
+                plannedAllowsAdvancedTechniques:
+                    plannedAllowsAdvancedTechniques,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -60834,6 +61084,7 @@ typedef $$ProgramDayExercisesTableCreateCompanionBuilder =
       Value<int?> restSeconds,
       Value<String?> prescriptionWhy,
       Value<String?> prescriptionJson,
+      Value<String?> prescriptionCodecJson,
       Value<String?> variantConfigJson,
     });
 typedef $$ProgramDayExercisesTableUpdateCompanionBuilder =
@@ -60861,6 +61112,7 @@ typedef $$ProgramDayExercisesTableUpdateCompanionBuilder =
       Value<int?> restSeconds,
       Value<String?> prescriptionWhy,
       Value<String?> prescriptionJson,
+      Value<String?> prescriptionCodecJson,
       Value<String?> variantConfigJson,
     });
 
@@ -61073,6 +61325,11 @@ class $$ProgramDayExercisesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get prescriptionCodecJson => $composableBuilder(
+    column: $table.prescriptionCodecJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get variantConfigJson => $composableBuilder(
     column: $table.variantConfigJson,
     builder: (column) => ColumnFilters(column),
@@ -61275,6 +61532,11 @@ class $$ProgramDayExercisesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get prescriptionCodecJson => $composableBuilder(
+    column: $table.prescriptionCodecJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get variantConfigJson => $composableBuilder(
     column: $table.variantConfigJson,
     builder: (column) => ColumnOrderings(column),
@@ -61460,6 +61722,11 @@ class $$ProgramDayExercisesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get prescriptionCodecJson => $composableBuilder(
+    column: $table.prescriptionCodecJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get variantConfigJson => $composableBuilder(
     column: $table.variantConfigJson,
     builder: (column) => column,
@@ -61624,6 +61891,7 @@ class $$ProgramDayExercisesTableTableManager
                 Value<int?> restSeconds = const Value.absent(),
                 Value<String?> prescriptionWhy = const Value.absent(),
                 Value<String?> prescriptionJson = const Value.absent(),
+                Value<String?> prescriptionCodecJson = const Value.absent(),
                 Value<String?> variantConfigJson = const Value.absent(),
               }) => ProgramDayExercisesCompanion(
                 syncUuid: syncUuid,
@@ -61649,6 +61917,7 @@ class $$ProgramDayExercisesTableTableManager
                 restSeconds: restSeconds,
                 prescriptionWhy: prescriptionWhy,
                 prescriptionJson: prescriptionJson,
+                prescriptionCodecJson: prescriptionCodecJson,
                 variantConfigJson: variantConfigJson,
               ),
           createCompanionCallback:
@@ -61676,6 +61945,7 @@ class $$ProgramDayExercisesTableTableManager
                 Value<int?> restSeconds = const Value.absent(),
                 Value<String?> prescriptionWhy = const Value.absent(),
                 Value<String?> prescriptionJson = const Value.absent(),
+                Value<String?> prescriptionCodecJson = const Value.absent(),
                 Value<String?> variantConfigJson = const Value.absent(),
               }) => ProgramDayExercisesCompanion.insert(
                 syncUuid: syncUuid,
@@ -61701,6 +61971,7 @@ class $$ProgramDayExercisesTableTableManager
                 restSeconds: restSeconds,
                 prescriptionWhy: prescriptionWhy,
                 prescriptionJson: prescriptionJson,
+                prescriptionCodecJson: prescriptionCodecJson,
                 variantConfigJson: variantConfigJson,
               ),
           withReferenceMapper: (p0) => p0

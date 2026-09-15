@@ -252,6 +252,7 @@ WorkoutExerciseData _exercise({
     exerciseId: exerciseId,
     orderIndex: orderIndex,
     equipmentVariant: equipmentVariant,
+    plannedAllowsAdvancedTechniques: false,
   );
 }
 

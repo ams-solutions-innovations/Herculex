@@ -257,6 +257,7 @@ void main() {
           exerciseId: 20,
           orderIndex: 0,
           equipmentVariant: 'weighted',
+          plannedAllowsAdvancedTechniques: false,
         );
         const set = SetEntryData(
           id: 1,
@@ -298,6 +299,7 @@ void main() {
         exerciseId: 20,
         orderIndex: 0,
         equipmentVariant: 'bodyweight',
+        plannedAllowsAdvancedTechniques: false,
       );
       const set = SetEntryData(
         id: 2,

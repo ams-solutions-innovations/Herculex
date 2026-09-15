@@ -40,6 +40,7 @@ ResolvedSet _resolved({
     sessionId: session.id,
     exerciseId: exercise.id,
     orderIndex: 0,
+    plannedAllowsAdvancedTechniques: false,
   );
   return ResolvedSet(
     set: SetEntryData(

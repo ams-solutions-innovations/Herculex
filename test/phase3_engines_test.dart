@@ -51,6 +51,7 @@ WorkoutExerciseData _we(
   exerciseId: exerciseId,
   orderIndex: 0,
   equipmentVariant: variant,
+  plannedAllowsAdvancedTechniques: false,
 );
 
 SetEntryData _set(
