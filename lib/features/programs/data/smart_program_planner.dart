@@ -16,6 +16,7 @@ import 'package:herculex/features/programs/domain/squat_specialization.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
 part 'smart_program_planner/anchor_lock.part.dart';
+part 'smart_program_planner/selection_explanation_writer.part.dart';
 part 'smart_program_planner/slot_candidate_resolution.part.dart';
 
 class SmartProgramConfiguration {
@@ -433,9 +434,76 @@ class SmartProgramPlanner {
           catalogBySlug: catalogBySlug,
         );
         if (!resolution.isFilled) {
-          // TODO(17-04): still insert a ProgramExerciseSlots row (for the
-          // ProgramSlotExplanations FK to reference) while skipping only the
-          // pool/rotation/day-exercise writes below.
+          // The slot still needs a stable ProgramExerciseSlots row (so the
+          // ProgramSlotExplanations FK below has something to reference)
+          // even though it has no pool members, no rotation assignments,
+          // and no ProgramDayExercises row. Every field here describes the
+          // SLOT, not the chosen exercise, so it is computable identically
+          // to the filled path below — mirror that insert exactly.
+          var emptyPolicy = RotationPolicy.forSlot(
+            model: method == SlotTrainingMethod.maxEffort
+                ? PeriodizationModel.maxEffort
+                : model,
+            role: need.role,
+            blockPhase: weeks.firstOrNull?.blockPhase,
+          );
+          if (configuration.waveOverrideWeeks != null &&
+              method != SlotTrainingMethod.maxEffort &&
+              model != PeriodizationModel.block) {
+            emptyPolicy = RotationPolicy(
+              everyWeeks: configuration.waveOverrideWeeks!,
+              minGapWeeks: emptyPolicy.minGapWeeks,
+              minPoolSize: emptyPolicy.minPoolSize,
+              tier: emptyPolicy.tier,
+              lockedInPhase: emptyPolicy.lockedInPhase,
+              forceOnPhaseChange: emptyPolicy.forceOnPhaseChange,
+            );
+          }
+          if (method == SlotTrainingMethod.maxEffort &&
+              need.role == SlotRole.main &&
+              configuration.experience == ExperienceLevel.advanced) {
+            emptyPolicy = const RotationPolicy(
+              everyWeeks: 1,
+              minGapWeeks: 4,
+              minPoolSize: 3,
+            );
+          }
+          final emptySlotKey = _slug(
+            '$dayLabel-${stressRole.id}-${need.role.id}-$order',
+          );
+          final emptySlotId = await _db
+              .into(_db.programExerciseSlots)
+              .insert(
+                ProgramExerciseSlotsCompanion.insert(
+                  programId: program.id,
+                  slotKey: emptySlotKey,
+                  daySlotLabel: dayLabel,
+                  orderIndex: order,
+                  role: Value(need.role.id),
+                  movementPattern: Value(need.pattern),
+                  primaryMuscle: Value(need.muscle),
+                  trainingMethod: Value(method.id),
+                  rotationPolicyJson: Value(
+                    jsonEncode({
+                      'everyWeeks': emptyPolicy.everyWeeks,
+                      'minGapWeeks': emptyPolicy.minGapWeeks,
+                      'minPoolSize': emptyPolicy.minPoolSize,
+                      'tier': emptyPolicy.tier.id,
+                    }),
+                  ),
+                  fatigueBudget: Value(
+                    method == SlotTrainingMethod.maxEffort ? 8 : 3,
+                  ),
+                  waveOverrideWeeks: Value(configuration.waveOverrideWeeks),
+                ),
+              );
+          await _writeSlotExplanations(
+            db: _db,
+            slotId: emptySlotId,
+            weeks: weeks,
+            assignments: const {},
+            emptyExplanation: resolution,
+          );
           result.add(
             _ResolvedSmartSlot.empty(
               orderIndex: order,
@@ -634,6 +702,12 @@ class SmartProgramPlanner {
           _db.rotationAssignments,
         )..where((t) => t.id.equals(id))).getSingle();
       }
+      await _writeSlotExplanations(
+        db: _db,
+        slotId: slotId,
+        weeks: weeks,
+        assignments: assignments,
+      );
 
       result.add(
         _ResolvedSmartSlot(
@@ -1466,10 +1540,12 @@ class _ResolvedSmartSlot {
   }) : explanation = null;
 
   /// A hard-filter-exhausted slot for which no safe candidate — including
-  /// via the D-03 scaling-ladder regression — was found (D-01). No
-  /// `ProgramExerciseSlots` row is written for it yet (TODO(17-04)), so
-  /// [id] is a placeholder never read: `populate()`'s per-slot loop always
-  /// `continue`s before consulting it, since [anchorExerciseId] is null.
+  /// via the D-03 scaling-ladder regression — was found (D-01). A stable
+  /// `ProgramExerciseSlots` row (and a `ProgramSlotExplanations` row per
+  /// week, `status: 'empty'`) is written for it at the call site in
+  /// `_createStableSlots`, but [id] here remains a placeholder never read:
+  /// `populate()`'s per-slot loop always `continue`s before consulting it,
+  /// since [anchorExerciseId] is null.
   _ResolvedSmartSlot.empty({
     required this.orderIndex,
     required this.role,
@@ -1496,8 +1572,9 @@ class _ResolvedSmartSlot {
   final _LoadingPreference loadingPreference;
   final Map<int, RotationAssignmentData> assignments;
 
-  /// Set only by [_ResolvedSmartSlot.empty] — consumed by Wave 3 (17-04)'s
-  /// `ProgramSlotExplanations` persistence, ignored otherwise.
+  /// Set only by [_ResolvedSmartSlot.empty] — its `rationale` is persisted
+  /// to `ProgramSlotExplanations` at the empty-slot call site above,
+  /// ignored otherwise.
   final SelectionExplanation? explanation;
 }
 
