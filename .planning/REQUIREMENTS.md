@@ -27,7 +27,7 @@
 - [ ] **PLAN-01**: Unified `ProgramGenerationRequest` acts as single authoritative entry point for all generation parameters.
 - [ ] **PLAN-02**: Hard filters (injury/pain, equipment, style, experience, prerequisites) execute before scoring and are never relaxed to fill a slot.
 - [x] **PLAN-03**: Core anchor movements remain guaranteed across block weeks rather than rotating out on affinity scoring.
-- [ ] **PLAN-04**: Planner returns human-readable selection rationales (`SelectionExplanation`) for every chosen and excluded movement.
+- [x] **PLAN-04**: Planner returns human-readable selection rationales (`SelectionExplanation`) for every chosen and excluded movement.
 
 ### 4. Time Budget, Warmups & Prescriptions (Phase 18)
 
