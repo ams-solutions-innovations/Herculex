@@ -482,7 +482,10 @@ void main() {
         isTrue,
       );
       expect(compressed.every((row) => row.targetRir == 0), isTrue);
-      expect(compressed.every((row) => row.prescriptionJson != null), isTrue);
+      expect(
+        compressed.every((row) => row.prescriptionCodecJson != null),
+        isTrue,
+      );
     },
   );
 
