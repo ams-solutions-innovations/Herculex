@@ -668,4 +668,231 @@ void main() {
       },
     );
   });
+
+  group('empty-slot resolution on hard-filter exhaustion (Task 3, D-01/D-03)', () {
+    // Same real-catalog-seeding caveat and zero-equipment-gym isolation
+    // trick as the Task 2 group above. `horizontal_pull` is used as the
+    // target need's pattern because no real catalog exercise carries that
+    // movementPattern with a scaling ladder attached (verified against
+    // assets/data/exercise_programming_metadata.json), so it exercises the
+    // "no ladder for this pattern" path cleanly without incidental
+    // real-catalog interference either way.
+    late AppDatabase fixtureDb;
+    setUp(() async {
+      fixtureDb = await openTestDatabase();
+      await fixtureDb
+          .into(fixtureDb.gyms)
+          .insert(
+            GymsCompanion.insert(
+              name: 'Isolated fixture gym',
+              isDefault: const Value(true),
+              allEquipment: const Value(false),
+            ),
+          );
+    });
+    tearDown(() => fixtureDb.close());
+
+    Future<int> insertExercise({
+      required String slug,
+      required String name,
+      required String primaryMuscle,
+      String? movementPattern,
+      String mechanics = 'compound',
+      String modality = 'barbell',
+      int cnsScore = 3,
+      String difficulty = 'novice',
+      String? scalingGroup,
+      int? scalingOrder,
+    }) => fixtureDb
+        .into(fixtureDb.exerciseCatalog)
+        .insert(
+          ExerciseCatalogCompanion.insert(
+            slug: Value(slug),
+            name: name,
+            primaryMuscle: primaryMuscle,
+            equipment: modality,
+            mechanics: mechanics,
+            force: 'push',
+            plane: 'none',
+            movementPattern: Value(movementPattern),
+            modality: Value(modality),
+            cnsScore: Value(cnsScore),
+            programmingDifficulty: Value(difficulty),
+            programmingCommonness: const Value('basic'),
+            allowedTrainingStyles: const Value('["weightlifting"]'),
+            technicalEligibility: const Value('automatic'),
+            requiredEquipmentKeys: const Value('[]'),
+            scalingGroup: Value(scalingGroup),
+            scalingOrder: Value(scalingOrder),
+          ),
+        );
+
+    Future<int> createPullDayProgram() {
+      final plan = SplitTemplates.generate(
+        type: SplitType.custom,
+        daysPerWeek: 1,
+        customSlots: const ['Pull Day'],
+      );
+      return ProgramsRepository(fixtureDb).createProgramFromSplit(
+        name: 'Empty-slot fixture',
+        weeks: 1,
+        plan: plan,
+        startDate: DateTime(2026, 9, 7),
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.hypertrophy,
+        experienceLevel: ExperienceLevel.novice,
+      );
+    }
+
+    test(
+      'a hard-filter-exhausted slot with no scaling ladder resolves to '
+      'empty; every other slot on the day still resolves',
+      () async {
+        // Deliberately no exercise matches `horizontal_pull` + `main` role
+        // eligibility (cnsScore >= 5 with a max-effort-capable modality),
+        // and none of these carry a scaling ladder, so the target slot must
+        // resolve to SelectionExplanation.empty(...) via the "no ladder"
+        // path.
+        final verticalPullId = await insertExercise(
+          slug: 'vertical-pull-filler',
+          name: 'Vertical Pull Filler',
+          primaryMuscle: 'Lats',
+          movementPattern: 'vertical_pull',
+        );
+        final horizontalPullAccessoryId = await insertExercise(
+          slug: 'horizontal-pull-accessory-filler',
+          name: 'Horizontal Pull Accessory Filler',
+          primaryMuscle: 'Back',
+          movementPattern: 'horizontal_pull',
+        );
+        final bicepId = await insertExercise(
+          slug: 'bicep-filler',
+          name: 'Bicep Filler',
+          primaryMuscle: 'Biceps',
+          mechanics: 'isolation',
+        );
+        final rearId = await insertExercise(
+          slug: 'rear-filler',
+          name: 'Rear Delt Filler',
+          primaryMuscle: 'Rear Delts',
+          mechanics: 'isolation',
+        );
+
+        final programId = await createPullDayProgram();
+        await SmartProgramPlanner(fixtureDb).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.hypertrophy,
+            experience: ExperienceLevel.novice,
+          ),
+        );
+
+        final day = await (fixtureDb.select(
+          fixtureDb.programDays,
+        )..limit(1)).getSingle();
+        final exercises = await (fixtureDb.select(
+          fixtureDb.programDayExercises,
+        )..where((t) => t.programDayId.equals(day.id))).get();
+        final byOrder = {for (final e in exercises) e.orderIndex: e};
+
+        expect(
+          byOrder.containsKey(0),
+          isFalse,
+          reason:
+              'the main horizontal_pull slot (index 0) has no eligible '
+              'candidate and no scaling ladder, so it must be skipped '
+              'entirely rather than throwing',
+        );
+        expect(byOrder[1]!.exerciseId, verticalPullId);
+        expect(byOrder[2]!.exerciseId, horizontalPullAccessoryId);
+        expect(byOrder[3]!.exerciseId, bicepId);
+        expect(byOrder[4]!.exerciseId, rearId);
+      },
+    );
+
+    test(
+      'a hard-filter-exhausted slot with a safe scaling regression is '
+      'filled by the regressed candidate instead of left empty',
+      () async {
+        // Excluded from the ordinary candidate search by its own difficulty
+        // ceiling (advanced > novice) — this is what forces the empty-pool
+        // resolver to run at all.
+        await insertExercise(
+          slug: 'pull-ladder-target',
+          name: 'Pull Ladder Target',
+          primaryMuscle: 'Lats',
+          movementPattern: 'horizontal_pull',
+          cnsScore: 5,
+          difficulty: 'advanced',
+          scalingGroup: 'pull_ladder',
+          scalingOrder: 3,
+        );
+        // Excluded from the ordinary candidate search by role (cnsScore < 5
+        // means it never earns the `main` eligibility flag), but a fully
+        // eligible, safe regression via ExerciseScalingResolver.
+        final regressionId = await insertExercise(
+          slug: 'pull-ladder-regression',
+          name: 'Pull Ladder Regression',
+          primaryMuscle: 'Lats',
+          movementPattern: 'horizontal_pull',
+          cnsScore: 3,
+          difficulty: 'novice',
+          scalingGroup: 'pull_ladder',
+          scalingOrder: 1,
+        );
+        final verticalPullId = await insertExercise(
+          slug: 'vertical-pull-filler-2',
+          name: 'Vertical Pull Filler',
+          primaryMuscle: 'Lats',
+          movementPattern: 'vertical_pull',
+        );
+        final horizontalPullAccessoryId = await insertExercise(
+          slug: 'horizontal-pull-accessory-filler-2',
+          name: 'Horizontal Pull Accessory Filler',
+          primaryMuscle: 'Back',
+          movementPattern: 'horizontal_pull',
+        );
+        final bicepId = await insertExercise(
+          slug: 'bicep-filler-2',
+          name: 'Bicep Filler',
+          primaryMuscle: 'Biceps',
+          mechanics: 'isolation',
+        );
+        final rearId = await insertExercise(
+          slug: 'rear-filler-2',
+          name: 'Rear Delt Filler',
+          primaryMuscle: 'Rear Delts',
+          mechanics: 'isolation',
+        );
+        final programId = await createPullDayProgram();
+        await SmartProgramPlanner(fixtureDb).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.hypertrophy,
+            experience: ExperienceLevel.novice,
+          ),
+        );
+
+        final day = await (fixtureDb.select(
+          fixtureDb.programDays,
+        )..limit(1)).getSingle();
+        final exercises = await (fixtureDb.select(
+          fixtureDb.programDayExercises,
+        )..where((t) => t.programDayId.equals(day.id))).get();
+        final byOrder = {for (final e in exercises) e.orderIndex: e};
+
+        expect(
+          byOrder[0]!.exerciseId,
+          regressionId,
+          reason:
+              'the safe regression candidate must fill the slot instead of '
+              'it being left empty',
+        );
+        expect(byOrder[1]!.exerciseId, verticalPullId);
+        expect(byOrder[2]!.exerciseId, horizontalPullAccessoryId);
+        expect(byOrder[3]!.exerciseId, bicepId);
+        expect(byOrder[4]!.exerciseId, rearId);
+      },
+    );
+  });
 }

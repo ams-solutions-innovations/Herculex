@@ -3,15 +3,19 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/exercise_programming_eligibility.dart';
+import 'package:herculex/features/programs/domain/exercise_scaling_resolver.dart';
 import 'package:herculex/features/programs/domain/exercise_scorer.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
 import 'package:herculex/features/programs/domain/program_guardrails.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/rotation_policy.dart';
+import 'package:herculex/features/programs/domain/selection_explanation.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/squat_specialization.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+
+part 'smart_program_planner/slot_candidate_resolution.part.dart';
 
 class SmartProgramConfiguration {
   const SmartProgramConfiguration({
@@ -199,6 +203,7 @@ class SmartProgramPlanner {
           for (final slot in slots) {
             final assignment = slot.assignments[week.weekIndex];
             final exerciseId = assignment?.exerciseId ?? slot.anchorExerciseId;
+            if (exerciseId == null) continue;
             var target = _targetFor(
               slot.role,
               slot.method,
@@ -293,6 +298,7 @@ class SmartProgramPlanner {
       trainingStyle: configuration.trainingStyle,
       includeGppConditioning: configuration.shouldIncludeGppConditioning,
     );
+    final catalogById = {for (final exercise in catalog) exercise.id: exercise};
     final result = <_ResolvedSmartSlot>[];
     final used = <int>{};
 
@@ -396,6 +402,39 @@ class SmartProgramPlanner {
                   exercise.maxEffortEligibility ==
                       MaxEffortEligibility.eligible.id);
         }).toList();
+      }
+
+      if (candidates.isEmpty) {
+        // Both the primary and pattern/muscle-relaxed fallback passes came
+        // up empty — every hard filter (injury/pain, equipment, style,
+        // experience, prerequisites) is legitimately exhausted for this
+        // slot. Consult the scaling ladder for a safer regression (D-03)
+        // before accepting the slot is genuinely, safely empty (D-01):
+        // this one slot no longer aborts the whole populate() transaction.
+        final resolution = _resolveEmptyCandidatePool(
+          needPattern: need.pattern,
+          catalog: catalog,
+          equipment: equipment,
+          configuration: configuration,
+          completedExerciseSlugs: completedExerciseSlugs,
+          completedMovementSlugs: completedMovementSlugs,
+          catalogBySlug: catalogBySlug,
+        );
+        if (!resolution.isFilled) {
+          // TODO(17-04): still insert a ProgramExerciseSlots row (for the
+          // ProgramSlotExplanations FK to reference) while skipping only the
+          // pool/rotation/day-exercise writes below.
+          result.add(
+            _ResolvedSmartSlot.empty(
+              orderIndex: order,
+              role: need.role,
+              method: method,
+              explanation: resolution,
+            ),
+          );
+          continue;
+        }
+        candidates = [catalogById[resolution.exerciseId]!];
       }
 
       // A specialization may express a preferred *basic* movement. It is a
@@ -1405,11 +1444,30 @@ class _ResolvedSmartSlot {
     required this.why,
     required this.loadingPreference,
     required this.assignments,
-  });
+  }) : explanation = null;
+
+  /// A hard-filter-exhausted slot for which no safe candidate — including
+  /// via the D-03 scaling-ladder regression — was found (D-01). No
+  /// `ProgramExerciseSlots` row is written for it yet (TODO(17-04)), so
+  /// [id] is a placeholder never read: `populate()`'s per-slot loop always
+  /// `continue`s before consulting it, since [anchorExerciseId] is null.
+  _ResolvedSmartSlot.empty({
+    required this.orderIndex,
+    required this.role,
+    required this.method,
+    required this.explanation,
+  }) : id = -1,
+       anchorExerciseId = null,
+       poolSize = 0,
+       priorityLevel = 'medium',
+       muscleId = '',
+       why = explanation!.rationale,
+       loadingPreference = _LoadingPreference.flexible,
+       assignments = const {};
 
   final int id;
   final int orderIndex;
-  final int anchorExerciseId;
+  final int? anchorExerciseId;
   final SlotRole role;
   final SlotTrainingMethod method;
   final int poolSize;
@@ -1418,6 +1476,10 @@ class _ResolvedSmartSlot {
   final String why;
   final _LoadingPreference loadingPreference;
   final Map<int, RotationAssignmentData> assignments;
+
+  /// Set only by [_ResolvedSmartSlot.empty] — consumed by Wave 3 (17-04)'s
+  /// `ProgramSlotExplanations` persistence, ignored otherwise.
+  final SelectionExplanation? explanation;
 }
 
 enum _LoadingPreference {
