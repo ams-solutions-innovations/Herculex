@@ -63,7 +63,7 @@ Plans:
 
 **Success:** `SlotPrescriptionCodec` ensures byte-equivalent prescriptions from preview to active session; automatic warmup sets scale with target intensity; time estimator maintains session length within ±10% tolerance; intensity techniques require opt-in.
 
-**Plans:** 2/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 **Wave 1**
@@ -73,9 +73,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 18-03-PLAN.md — Hard-hide advanced set types for SlotRole.main / opt-in gating
-- [ ] 18-04-PLAN.md — planned_session_resolver.dart: codec decode + WarmupResolver wiring
-- [ ] 18-05-PLAN.md — smart_program_planner.dart: duration-estimator trim loop + codec encode + persisted opt-in
+- [x] 18-03-PLAN.md — Hard-hide advanced set types for SlotRole.main / opt-in gating
+- [x] 18-04-PLAN.md — planned_session_resolver.dart: codec decode + WarmupResolver wiring
+- [x] 18-05-PLAN.md — smart_program_planner.dart: duration-estimator trim loop + codec encode + persisted opt-in
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
