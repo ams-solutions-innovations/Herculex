@@ -152,6 +152,16 @@ class SmartProgramPlanner {
         ),
       );
 
+      // Regenerating the same program (D-12: e.g. a new joint-pain exclusion
+      // discovered after week 1) must not leave stale ProgramExerciseSlots
+      // behind — `_createStableSlots` always inserts fresh rows keyed by
+      // `(programId, slotKey)`, so a prior generation's rows would otherwise
+      // violate that unique constraint. Cascades to
+      // ProgramSlotPoolMembers/RotationAssignments/ProgramSlotExplanations.
+      await (_db.delete(
+        _db.programExerciseSlots,
+      )..where((t) => t.programId.equals(programId))).go();
+
       for (final week in weeks) {
         final weeklySetsByMuscle = <String, int>{};
         final days =
