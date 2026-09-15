@@ -14,6 +14,7 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
@@ -432,10 +433,18 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                       },
                       // One-tap set-type switch (§15, §26).
                       onTypeTap: () async {
+                        final role = SlotRole.fromId(
+                          widget.workoutExercise.plannedSlotRole,
+                        );
+                        final allowed = isAdvancedTechniqueAllowed(
+                          role,
+                          widget.workoutExercise.plannedAllowsAdvancedTechniques,
+                        );
                         final sel = await SetTypeMenu.show(
                           context,
                           current: SetType.fromId(rows[i].setType),
                           isWarmup: rows[i].isWarmup,
+                          allowAdvancedTechniques: allowed,
                         );
                         if (sel != null) {
                           if (sel.delete) {
