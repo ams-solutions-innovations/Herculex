@@ -63,7 +63,7 @@ Plans:
 
 **Success:** `SlotPrescriptionCodec` ensures byte-equivalent prescriptions from preview to active session; automatic warmup sets scale with target intensity; time estimator maintains session length within ±10% tolerance; intensity techniques require opt-in.
 
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 **Wave 1**
@@ -79,7 +79,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 18-06-PLAN.md — Calendar preview renders full set-by-set prescription detail
+- [x] 18-06-PLAN.md — Calendar preview renders full set-by-set prescription detail
 
 ### Phase 19: Program & Wave Editor with Explainable Periodization
 
