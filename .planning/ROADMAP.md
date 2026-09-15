@@ -35,13 +35,13 @@ Blueprint reference: [`docs/training-programs-physique-gamification-plan-2026-09
 
 **Success:** Generation matrix is deterministic; hard constraints (injury, equipment, difficulty, style) are never relaxed to fill a slot; anchor lifts remain guaranteed across weeks; planner outputs human-readable rationales.
 
-**Plans:** 5 plans
+**Plans:** 2/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 17-01-PLAN.md — Wave 0: ProgramSlotExplanations table (schema v42), SelectionExplanation model, JointModel.excludedMusclesFor helper, EmptySlotNotice widget
-- [ ] 17-02-PLAN.md — Wave 1: injury/pain + prerequisites hard filters, delete unused ProgramGenerationRequest, replace crash-on-exhaustion with D-01/D-03 graceful empty-slot resolution
+- [x] 17-01-PLAN.md — Wave 0: ProgramSlotExplanations table (schema v42), SelectionExplanation model, JointModel.excludedMusclesFor helper, EmptySlotNotice widget
+- [x] 17-02-PLAN.md — Wave 1: injury/pain + prerequisites hard filters, delete unused ProgramGenerationRequest, replace crash-on-exhaustion with D-01/D-03 graceful empty-slot resolution
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
