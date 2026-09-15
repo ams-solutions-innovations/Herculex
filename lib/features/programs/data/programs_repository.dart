@@ -8,7 +8,10 @@ import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/schedule_walk.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/domain/slot_prescription.dart';
+import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// One exercise a program day will produce, from whichever source the day uses
 /// (a linked template, or its own inline [ProgramDayExercises]).
@@ -1096,6 +1099,39 @@ class ProgramsRepository {
                 'isWarmup': set.isWarmup,
               },
           ];
+          // The prescription codec (Phase 18, PRES-01) has no field for a
+          // literal per-set target weight or an isWarmup flag — it describes
+          // reps/intent/%1RM archetypes, not a copied workout-template blob.
+          // Non-warmup sets survive the freeze as one segment each (sets: 1)
+          // so the exact rep target and set type is still immutable against
+          // future template edits; warmup sets are dropped here since
+          // automatic warmup computation (WarmupResolver) now owns that.
+          final workingTemplateSets = sets
+              .where((set) => !set.isWarmup)
+              .toList(growable: false);
+          final codecPrescription = workingTemplateSets.isEmpty
+              ? null
+              : SlotPrescription(
+                  name: 'Copied template',
+                  segments: [
+                    for (final set in workingTemplateSets)
+                      WorkSegment(
+                        sets: 1,
+                        repsMin:
+                            set.targetRepsMin ??
+                            set.targetReps ??
+                            exercise.targetRepsMin ??
+                            8,
+                        repsMax:
+                            set.targetRepsMax ??
+                            set.targetReps ??
+                            set.targetRepsMin ??
+                            exercise.targetRepsMax ??
+                            exercise.targetRepsMin,
+                        setType: SetType.fromId(set.setType),
+                      ),
+                  ],
+                );
           await _db
               .into(_db.programDayExercises)
               .insert(
@@ -1117,6 +1153,9 @@ class ProgramsRepository {
                   prescriptionJson: copiedSets.isEmpty
                       ? const Value.absent()
                       : Value(jsonEncode({'templateSets': copiedSets})),
+                  prescriptionCodecJson: codecPrescription == null
+                      ? const Value.absent()
+                      : Value(SlotPrescriptionCodec.encode(codecPrescription)),
                 ),
               );
         }
