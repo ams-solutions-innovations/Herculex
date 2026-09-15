@@ -107,6 +107,82 @@ void main() {
     },
   );
 
+  test(
+    'a SlotRole.main slot stays locked to the same exercise across every '
+    'week of a generated block (D-09/D-10)',
+    () async {
+      final plan = SplitTemplates.generate(
+        type: SplitType.upperLowerFullBody,
+        daysPerWeek: 3,
+      );
+      final programId = await ProgramsRepository(db).createProgramFromSplit(
+        name: 'Anchor lock U/L/FB',
+        weeks: 4,
+        plan: plan,
+        startDate: DateTime(2026, 9, 7),
+        periodizationModel: 'concurrent',
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.powerbuilding,
+        experienceLevel: ExperienceLevel.intermediate,
+      );
+
+      await SmartProgramPlanner(db).populate(
+        programId,
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.powerbuilding,
+          experience: ExperienceLevel.intermediate,
+        ),
+      );
+
+      final firstWeek =
+          await (db.select(db.programWeeks)
+                ..where((t) => t.programId.equals(programId))
+                ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)])
+                ..limit(1))
+              .getSingle();
+      final firstWeekDays =
+          await (db.select(db.programDays)
+                ..where((t) => t.programWeekId.equals(firstWeek.id))
+                ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+              .get();
+
+      var checkedAtLeastOneMainSlot = false;
+      for (final day in firstWeekDays) {
+        final dayExercises =
+            await (db.select(db.programDayExercises)
+                  ..where((t) => t.programDayId.equals(day.id))
+                  ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+                .get();
+        for (final exercise in dayExercises) {
+          final slotId = exercise.programExerciseSlotId;
+          if (slotId == null || exercise.slotRole != SlotRole.main.id) {
+            continue;
+          }
+          final assignments =
+              await (db.select(db.rotationAssignments)
+                    ..where((t) => t.slotId.equals(slotId))
+                    ..orderBy([
+                      (t) => OrderingTerm(expression: t.weekIndex),
+                    ]))
+                  .get();
+          expect(
+            assignments.map((a) => a.exerciseId).toSet().length,
+            1,
+            reason:
+                'SlotRole.main slot $slotId must resolve to the identical '
+                'exerciseId across all weeks',
+          );
+          checkedAtLeastOneMainSlot = true;
+        }
+      }
+      expect(
+        checkedAtLeastOneMainSlot,
+        isTrue,
+        reason: 'the generated program must contain at least one main slot',
+      );
+    },
+  );
+
   test('gym inventory remains a hard exercise-selection filter', () async {
     final gymId = await db
         .into(db.gyms)
@@ -232,7 +308,12 @@ void main() {
               ..where((t) => t.slotId.equals(firstMain.programExerciseSlotId!))
               ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
             .get();
-    expect(rotation[0].exerciseId, isNot(rotation[1].exerciseId));
+    // D-09/D-10 (Phase 17): SlotRole.main is anchor-locked to a specific
+    // exercise across every week of the block, superseding the previous
+    // week-to-week Max Effort rotation cadence — the slot's pool of 3+
+    // variations remains available for the (future, Phase 19) manual
+    // replacement flow, but automatic rotation no longer swaps the anchor.
+    expect(rotation[0].exerciseId, rotation[1].exerciseId);
   });
 
   test(
@@ -892,6 +973,211 @@ void main() {
         expect(byOrder[2]!.exerciseId, horizontalPullAccessoryId);
         expect(byOrder[3]!.exerciseId, bicepId);
         expect(byOrder[4]!.exerciseId, rearId);
+      },
+    );
+  });
+
+  group('anchor lock broken by a newly-injury-excluded exercise (Task 2, D-12)', () {
+    // Same real-catalog-seeding caveat and zero-equipment-gym isolation
+    // trick as the Task 2/3 groups above.
+    late AppDatabase fixtureDb;
+    setUp(() async {
+      fixtureDb = await openTestDatabase();
+      await fixtureDb
+          .into(fixtureDb.gyms)
+          .insert(
+            GymsCompanion.insert(
+              name: 'Isolated fixture gym',
+              isDefault: const Value(true),
+              allEquipment: const Value(false),
+            ),
+          );
+    });
+    tearDown(() => fixtureDb.close());
+
+    Future<int> insertExercise({
+      required String slug,
+      required String name,
+      required String primaryMuscle,
+      String? movementPattern,
+      String mechanics = 'compound',
+      String modality = 'barbell',
+      int cnsScore = 3,
+    }) => fixtureDb
+        .into(fixtureDb.exerciseCatalog)
+        .insert(
+          ExerciseCatalogCompanion.insert(
+            slug: Value(slug),
+            name: name,
+            primaryMuscle: primaryMuscle,
+            equipment: modality,
+            mechanics: mechanics,
+            force: 'push',
+            plane: 'none',
+            movementPattern: Value(movementPattern),
+            modality: Value(modality),
+            cnsScore: Value(cnsScore),
+            programmingDifficulty: const Value('novice'),
+            programmingCommonness: const Value('basic'),
+            allowedTrainingStyles: const Value('["weightlifting"]'),
+            technicalEligibility: const Value('automatic'),
+            requiredEquipmentKeys: const Value('[]'),
+          ),
+        );
+
+    Future<int> createPullDayProgram() {
+      final plan = SplitTemplates.generate(
+        type: SplitType.custom,
+        daysPerWeek: 1,
+        customSlots: const ['Pull Day'],
+      );
+      return ProgramsRepository(fixtureDb).createProgramFromSplit(
+        name: 'Anchor break fixture',
+        weeks: 3,
+        plan: plan,
+        startDate: DateTime(2026, 9, 7),
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.hypertrophy,
+        experienceLevel: ExperienceLevel.novice,
+      );
+    }
+
+    test(
+      'regenerating after a new muscle exclusion re-locks a different, '
+      'safe exercise instead of keeping the now-unsafe anchor',
+      () async {
+        // Two candidates eligible for SlotRole.main on the same pattern
+        // (cnsScore >= 5 with a max-effort-capable modality), so whichever
+        // the scorer ranks first becomes the initial anchor and the other
+        // remains available once the first is excluded. Every filler below
+        // keeps the default cnsScore of 3 so it never also qualifies for
+        // SlotRole.main and pollutes the two-candidate pool.
+        final candidateAId = await insertExercise(
+          slug: 'pull-candidate-a',
+          name: 'Pull Candidate A',
+          primaryMuscle: 'Lats',
+          movementPattern: 'horizontal_pull',
+          cnsScore: 5,
+        );
+        final candidateBId = await insertExercise(
+          slug: 'pull-candidate-b',
+          name: 'Pull Candidate B',
+          primaryMuscle: 'Traps',
+          movementPattern: 'horizontal_pull',
+          cnsScore: 5,
+        );
+        final verticalPullId = await insertExercise(
+          slug: 'vertical-pull-filler-3',
+          name: 'Vertical Pull Filler',
+          primaryMuscle: 'Rhomboids',
+          movementPattern: 'vertical_pull',
+        );
+        final horizontalPullAccessoryId = await insertExercise(
+          slug: 'horizontal-pull-accessory-filler-3',
+          name: 'Horizontal Pull Accessory Filler',
+          primaryMuscle: 'Back',
+          movementPattern: 'horizontal_pull',
+        );
+        final bicepId = await insertExercise(
+          slug: 'bicep-filler-3',
+          name: 'Bicep Filler',
+          primaryMuscle: 'Biceps',
+          mechanics: 'isolation',
+        );
+        final rearId = await insertExercise(
+          slug: 'rear-filler-3',
+          name: 'Rear Delt Filler',
+          primaryMuscle: 'Rear Delts',
+          mechanics: 'isolation',
+        );
+
+        Future<int> mainSlotIdForCurrentRun() async {
+          final day = await (fixtureDb.select(
+            fixtureDb.programDays,
+          )..limit(1)).getSingle();
+          final exercises = await (fixtureDb.select(
+            fixtureDb.programDayExercises,
+          )..where((t) => t.programDayId.equals(day.id))).get();
+          return exercises
+              .firstWhere((e) => e.slotRole == SlotRole.main.id)
+              .programExerciseSlotId!;
+        }
+
+        final programId = await createPullDayProgram();
+        await SmartProgramPlanner(fixtureDb).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.hypertrophy,
+            experience: ExperienceLevel.novice,
+          ),
+        );
+
+        final firstSlotId = await mainSlotIdForCurrentRun();
+        final firstAssignments =
+            await (fixtureDb.select(fixtureDb.rotationAssignments)
+                  ..where((t) => t.slotId.equals(firstSlotId)))
+                .get();
+        expect(
+          firstAssignments.map((a) => a.exerciseId).toSet().length,
+          1,
+          reason: 'the first generation already locks the main slot',
+        );
+        final firstExerciseId = firstAssignments.first.exerciseId;
+        expect({candidateAId, candidateBId}, contains(firstExerciseId));
+        final firstExercise = await (fixtureDb.select(
+          fixtureDb.exerciseCatalog,
+        )..where((t) => t.id.equals(firstExerciseId))).getSingle();
+
+        // Regenerate on the SAME programId with the first exercise's muscle
+        // now injury-excluded — no exception should be thrown, and the hard
+        // filter must win over the stale lock.
+        await SmartProgramPlanner(fixtureDb).populate(
+          programId,
+          SmartProgramConfiguration(
+            goal: TrainingGoal.hypertrophy,
+            experience: ExperienceLevel.novice,
+            excludedMuscles: {firstExercise.primaryMuscle},
+          ),
+        );
+
+        final secondSlotId = await mainSlotIdForCurrentRun();
+        final secondAssignments =
+            await (fixtureDb.select(fixtureDb.rotationAssignments)
+                  ..where((t) => t.slotId.equals(secondSlotId))
+                  ..orderBy([
+                    (t) => OrderingTerm(expression: t.weekIndex),
+                  ]))
+                .get();
+        expect(
+          secondAssignments.map((a) => a.exerciseId).toSet(),
+          isNot(contains(firstExerciseId)),
+          reason:
+              'the now-unsafe first anchor must never reappear once its '
+              'muscle is excluded',
+        );
+        expect(
+          secondAssignments.map((a) => a.exerciseId).toSet().length,
+          1,
+          reason:
+              'the regenerated block must still lock to a single exercise '
+              'across all weeks — just a new, safe one',
+        );
+        final theOtherCandidate = firstExerciseId == candidateAId
+            ? candidateBId
+            : candidateAId;
+        expect(secondAssignments.first.exerciseId, theOtherCandidate);
+
+        // Sanity: the filler slots for the other roles are still present.
+        final day = await (fixtureDb.select(
+          fixtureDb.programDays,
+        )..limit(1)).getSingle();
+        final secondRunExercises = await (fixtureDb.select(
+          fixtureDb.programDayExercises,
+        )..where((t) => t.programDayId.equals(day.id))).get();
+        expect(
+          secondRunExercises.map((e) => e.exerciseId),
+          containsAll([verticalPullId, horizontalPullAccessoryId, bicepId, rearId]),
+        );
       },
     );
   });

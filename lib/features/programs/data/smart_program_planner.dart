@@ -15,6 +15,7 @@ import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/squat_specialization.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
+part 'smart_program_planner/anchor_lock.part.dart';
 part 'smart_program_planner/slot_candidate_resolution.part.dart';
 
 class SmartProgramConfiguration {
@@ -150,6 +151,16 @@ class SmartProgramPlanner {
           experienceLevel: Value(configuration.experience.id),
         ),
       );
+
+      // Regenerating the same program (D-12: e.g. a new joint-pain exclusion
+      // discovered after week 1) must not leave stale ProgramExerciseSlots
+      // behind — `_createStableSlots` always inserts fresh rows keyed by
+      // `(programId, slotKey)`, so a prior generation's rows would otherwise
+      // violate that unique constraint. Cascades to
+      // ProgramSlotPoolMembers/RotationAssignments/ProgramSlotExplanations.
+      await (_db.delete(
+        _db.programExerciseSlots,
+      )..where((t) => t.programId.equals(programId))).go();
 
       for (final week in weeks) {
         final weeklySetsByMuscle = <String, int>{};
@@ -301,6 +312,7 @@ class SmartProgramPlanner {
     final catalogById = {for (final exercise in catalog) exercise.id: exercise};
     final result = <_ResolvedSmartSlot>[];
     final used = <int>{};
+    final lockedAnchors = <String, int>{};
 
     for (final (order, need) in needs.indexed) {
       var method = _methodFor(
@@ -600,7 +612,14 @@ class SmartProgramPlanner {
       final phases = RotationPolicy.phasesFor(model, program.weeks);
       for (final week in weeks) {
         final epoch = policy.epochFor(week.weekIndex, phases: phases);
-        final selected = pool[epoch % pool.length];
+        final selected = _resolveWeeklyAssignment(
+          role: need.role,
+          weekIndex: week.weekIndex,
+          epoch: epoch,
+          pool: pool,
+          lockedAnchors: lockedAnchors,
+          slotKey: slotKey,
+        );
         final id = await _db
             .into(_db.rotationAssignments)
             .insert(
