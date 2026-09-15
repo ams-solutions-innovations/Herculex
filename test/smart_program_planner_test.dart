@@ -107,6 +107,82 @@ void main() {
     },
   );
 
+  test(
+    'a SlotRole.main slot stays locked to the same exercise across every '
+    'week of a generated block (D-09/D-10)',
+    () async {
+      final plan = SplitTemplates.generate(
+        type: SplitType.upperLowerFullBody,
+        daysPerWeek: 3,
+      );
+      final programId = await ProgramsRepository(db).createProgramFromSplit(
+        name: 'Anchor lock U/L/FB',
+        weeks: 4,
+        plan: plan,
+        startDate: DateTime(2026, 9, 7),
+        periodizationModel: 'concurrent',
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.powerbuilding,
+        experienceLevel: ExperienceLevel.intermediate,
+      );
+
+      await SmartProgramPlanner(db).populate(
+        programId,
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.powerbuilding,
+          experience: ExperienceLevel.intermediate,
+        ),
+      );
+
+      final firstWeek =
+          await (db.select(db.programWeeks)
+                ..where((t) => t.programId.equals(programId))
+                ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)])
+                ..limit(1))
+              .getSingle();
+      final firstWeekDays =
+          await (db.select(db.programDays)
+                ..where((t) => t.programWeekId.equals(firstWeek.id))
+                ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+              .get();
+
+      var checkedAtLeastOneMainSlot = false;
+      for (final day in firstWeekDays) {
+        final dayExercises =
+            await (db.select(db.programDayExercises)
+                  ..where((t) => t.programDayId.equals(day.id))
+                  ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+                .get();
+        for (final exercise in dayExercises) {
+          final slotId = exercise.programExerciseSlotId;
+          if (slotId == null || exercise.slotRole != SlotRole.main.id) {
+            continue;
+          }
+          final assignments =
+              await (db.select(db.rotationAssignments)
+                    ..where((t) => t.slotId.equals(slotId))
+                    ..orderBy([
+                      (t) => OrderingTerm(expression: t.weekIndex),
+                    ]))
+                  .get();
+          expect(
+            assignments.map((a) => a.exerciseId).toSet().length,
+            1,
+            reason:
+                'SlotRole.main slot $slotId must resolve to the identical '
+                'exerciseId across all weeks',
+          );
+          checkedAtLeastOneMainSlot = true;
+        }
+      }
+      expect(
+        checkedAtLeastOneMainSlot,
+        isTrue,
+        reason: 'the generated program must contain at least one main slot',
+      );
+    },
+  );
+
   test('gym inventory remains a hard exercise-selection filter', () async {
     final gymId = await db
         .into(db.gyms)
@@ -232,7 +308,12 @@ void main() {
               ..where((t) => t.slotId.equals(firstMain.programExerciseSlotId!))
               ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
             .get();
-    expect(rotation[0].exerciseId, isNot(rotation[1].exerciseId));
+    // D-09/D-10 (Phase 17): SlotRole.main is anchor-locked to a specific
+    // exercise across every week of the block, superseding the previous
+    // week-to-week Max Effort rotation cadence — the slot's pool of 3+
+    // variations remains available for the (future, Phase 19) manual
+    // replacement flow, but automatic rotation no longer swaps the anchor.
+    expect(rotation[0].exerciseId, rotation[1].exerciseId);
   });
 
   test(
