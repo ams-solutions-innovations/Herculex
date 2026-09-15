@@ -117,3 +117,12 @@ None - no external service configuration required.
 ---
 *Phase: 18-workout-time-budget-warmups-set-method-prescriptions*
 *Completed: 2026-09-15*
+
+## Self-Check: PASSED
+
+- FOUND: lib/features/workouts/data/planned_session_resolver.dart
+- FOUND: lib/features/programs/data/programs_repository.dart
+- FOUND: test/planned_session_resolver_test.dart
+- FOUND: .planning/phases/18-workout-time-budget-warmups-set-method-prescriptions/18-04-SUMMARY.md
+- FOUND commit: be377ff (Task 1)
+- FOUND commit: 1855631 (Task 2)
