@@ -3,8 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
+import 'package:herculex/features/programs/domain/slot_prescription.dart';
+import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 import 'support/test_database.dart';
 
@@ -198,21 +201,25 @@ void main() {
       )..where((row) => row.id.equals(dayId))).getSingle();
       expect(day.templateId, isNull);
 
+      // The frozen blueprint is stored through SlotPrescriptionCodec
+      // (PRES-01), which describes reps/setType — not a literal per-set
+      // weight or warmup flag, so only the working (non-warmup) template set
+      // survives into the codec-decoded prescription.
       final firstPlan = await PlannedSessionResolver(
         db,
       ).resolveProgramDay(dayId);
-      expect(firstPlan.exercises.single.sets, hasLength(2));
-      expect(firstPlan.exercises.single.sets.first.isWarmup, isTrue);
-      expect(firstPlan.exercises.single.sets.last.weightKg, 100);
-      expect(firstPlan.exercises.single.sets.last.setType, 'pause');
+      expect(firstPlan.exercises.single.sets, hasLength(1));
+      expect(firstPlan.exercises.single.sets.single.repsMin, 6);
+      expect(firstPlan.exercises.single.sets.single.repsMax, 8);
+      expect(firstPlan.exercises.single.sets.single.setType, 'pause');
 
       await (db.update(db.templateSets)
             ..where((row) => row.templateExerciseId.equals(templateExerciseId)))
-          .write(const TemplateSetsCompanion(targetWeightKg: Value(20)));
+          .write(const TemplateSetsCompanion(targetRepsMin: Value(99)));
       final unchanged = await PlannedSessionResolver(
         db,
       ).resolveProgramDay(dayId);
-      expect(unchanged.exercises.single.sets.last.weightKg, 100);
+      expect(unchanged.exercises.single.sets.single.repsMin, 6);
     },
   );
 
@@ -351,6 +358,169 @@ void main() {
           .where((s) => s.isWarmup)
           .length;
       expect(firstWarmups, greaterThan(secondWarmups));
+    },
+  );
+
+  test(
+    'a stored prescriptionCodecJson overrides the template-resolved prescription',
+    () async {
+      final exerciseId = await db
+          .into(db.exerciseCatalog)
+          .insert(
+            ExerciseCatalogCompanion.insert(
+              name: 'Codec Override Bench',
+              primaryMuscle: 'Chest',
+              equipment: 'Barbell',
+              mechanics: 'compound',
+              force: 'push',
+              plane: 'horizontal',
+              modality: const Value('barbell'),
+            ),
+          );
+      final programId = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'Codec Override Program'));
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
+      final dayId = await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: weekId,
+              dayOfWeek: 1,
+              name: 'Push',
+            ),
+          );
+      const storedPrescription = SlotPrescription(
+        name: 'Stored override',
+        segments: [
+          WorkSegment(
+            sets: 5,
+            repsMin: 3,
+            repsMax: 3,
+            intent: Intent.rir1,
+            percentOf1Rm: 0.82,
+            setType: SetType.standard,
+          ),
+        ],
+      );
+      await db
+          .into(db.programDayExercises)
+          .insert(
+            ProgramDayExercisesCompanion.insert(
+              programDayId: dayId,
+              exerciseId: exerciseId,
+              orderIndex: 0,
+              slotRole: Value(SlotRole.main.id),
+              trainingMethod: Value(SlotTrainingMethod.straightSets.id),
+              prescriptionCodecJson: Value(
+                SlotPrescriptionCodec.encode(storedPrescription),
+              ),
+            ),
+          );
+
+      final plan = await PlannedSessionResolver(db).resolveProgramDay(dayId);
+      final workSets = plan.exercises.single.sets
+          .where((s) => !s.isWarmup)
+          .toList();
+      expect(workSets, hasLength(5));
+      expect(
+        workSets.every(
+          (s) =>
+              s.repsMin == 3 &&
+              s.repsMax == 3 &&
+              s.percentOf1Rm == 0.82 &&
+              s.rir == 1,
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'allowsAdvancedTechniques is sourced from the program opt-in and materialized',
+    () async {
+      final exerciseId = await db
+          .into(db.exerciseCatalog)
+          .insert(
+            ExerciseCatalogCompanion.insert(
+              name: 'Advanced Technique Curl',
+              primaryMuscle: 'Biceps',
+              equipment: 'Dumbbell',
+              mechanics: 'isolation',
+              force: 'pull',
+              plane: 'sagittal',
+            ),
+          );
+      final programId = await db
+          .into(db.programs)
+          .insert(
+            ProgramsCompanion.insert(
+              name: 'Advanced Technique Program',
+              allowTimeSavingSetTechniques: const Value(true),
+            ),
+          );
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
+      final dayId = await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: weekId,
+              dayOfWeek: 1,
+              name: 'Arms',
+            ),
+          );
+      await db
+          .into(db.programDayExercises)
+          .insert(
+            ProgramDayExercisesCompanion.insert(
+              programDayId: dayId,
+              exerciseId: exerciseId,
+              orderIndex: 0,
+              slotRole: Value(SlotRole.isolation.id),
+              trainingMethod: Value(SlotTrainingMethod.straightSets.id),
+            ),
+          );
+
+      final resolver = PlannedSessionResolver(db);
+      final plan = await resolver.resolveProgramDay(dayId);
+      expect(plan.exercises.single.allowsAdvancedTechniques, isTrue);
+
+      final sessionId = await resolver.materialize(plan);
+      final workoutExercise = await (db.select(
+        db.workoutExercises,
+      )..where((t) => t.sessionId.equals(sessionId))).getSingle();
+      expect(workoutExercise.plannedAllowsAdvancedTechniques, isTrue);
+
+      // resolveTemplate has no program config, so it always materializes
+      // plannedAllowsAdvancedTechniques = false, regardless of any program's
+      // opt-in.
+      final templateId = await db
+          .into(db.workoutTemplates)
+          .insert(WorkoutTemplatesCompanion.insert(name: 'Arms Only'));
+      await db
+          .into(db.templateExercises)
+          .insert(
+            TemplateExercisesCompanion.insert(
+              templateId: templateId,
+              exerciseId: exerciseId,
+              orderIndex: 0,
+            ),
+          );
+      final templatePlan = await resolver.resolveTemplate(templateId);
+      expect(templatePlan.exercises.single.allowsAdvancedTechniques, isFalse);
+      final templateSessionId = await resolver.materialize(templatePlan);
+      final templateWorkoutExercise = await (db.select(
+        db.workoutExercises,
+      )..where((t) => t.sessionId.equals(templateSessionId))).getSingle();
+      expect(templateWorkoutExercise.plannedAllowsAdvancedTechniques, isFalse);
     },
   );
 

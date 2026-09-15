@@ -6,6 +6,7 @@ import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/prescription_resolver.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
+import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
 import 'package:uuid/uuid.dart';
@@ -62,6 +63,7 @@ class PlannedExerciseSnapshot {
     required this.trainingMethod,
     required this.why,
     required this.sets,
+    required this.allowsAdvancedTechniques,
     this.programExerciseSlotId,
     this.rotationAssignmentId,
     this.equipmentVariant,
@@ -77,6 +79,7 @@ class PlannedExerciseSnapshot {
   final String trainingMethod;
   final String why;
   final List<PlannedSetSnapshot> sets;
+  final bool allowsAdvancedTechniques;
   final int? programExerciseSlotId;
   final int? rotationAssignmentId;
   final String? equipmentVariant;
@@ -168,6 +171,7 @@ class PlannedSessionResolver {
           why: 'Copied from the workout template when this session started.',
           equipmentVariant: null,
           supersetGroup: te.supersetGroup,
+          allowsAdvancedTechniques: false,
           sets: [
             for (final (index, set) in selected.indexed)
               PlannedSetSnapshot(
@@ -275,11 +279,14 @@ class PlannedSessionResolver {
               : '${assignment!.reason} ${prescription.why}');
       final isFirstHeavy = role.isHeavy && !sawHeavyLiftInSession;
       if (role.isHeavy) sawHeavyLiftInSession = true;
-      final copiedTemplateSets = _copiedTemplateSets(pde.prescriptionJson);
+      final decodedPrescription = SlotPrescriptionCodec.decode(
+        pde.prescriptionCodecJson,
+      );
       final workingSets = method == SlotTrainingMethod.maxEffort
           ? _maxEffortWorkingSets()
-          : copiedTemplateSets ??
-                _setsFromPrescription(prescription.prescription);
+          : decodedPrescription != null
+          ? _setsFromPrescription(decodedPrescription)
+          : _setsFromPrescription(prescription.prescription);
       final warmupEligible =
           method == SlotTrainingMethod.maxEffort ||
           _hasAutomaticWarmups(pde.variantConfigJson);
@@ -315,6 +322,7 @@ class PlannedSessionResolver {
           waveIndex: week.weekIndex,
           waveCount: program.weeks,
           sets: sets,
+          allowsAdvancedTechniques: program.allowTimeSavingSetTechniques,
         ),
       );
     }
@@ -358,6 +366,9 @@ class PlannedSessionResolver {
                 plannedPrescriptionWhy: Value(exercise.why),
                 plannedWaveIndex: Value(exercise.waveIndex),
                 plannedWaveCount: Value(exercise.waveCount),
+                plannedAllowsAdvancedTechniques: Value(
+                  exercise.allowsAdvancedTechniques,
+                ),
               ),
             );
         for (final set in exercise.sets) {
@@ -560,42 +571,6 @@ class PlannedSessionResolver {
       }
     }
     return out;
-  }
-
-  static List<PlannedSetSnapshot>? _copiedTemplateSets(String? raw) {
-    if (raw == null || raw.isEmpty) return null;
-    try {
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      final rows = decoded['templateSets'];
-      if (rows is! List || rows.isEmpty) return null;
-      return [
-        for (final (index, value) in rows.indexed)
-          if (value is Map)
-            PlannedSetSnapshot(
-              index: (value['setOrder'] as num?)?.toInt() ?? index + 1,
-              repsMin:
-                  (value['targetRepsMin'] as num?)?.toInt() ??
-                  (value['targetReps'] as num?)?.toInt(),
-              repsMax:
-                  (value['targetRepsMax'] as num?)?.toInt() ??
-                  (value['targetReps'] as num?)?.toInt() ??
-                  (value['targetRepsMin'] as num?)?.toInt(),
-              weightKg: (value['targetWeightKg'] as num?)?.toDouble(),
-              isWarmup: value['isWarmup'] == true,
-              setType: value['setType'] as String? ?? 'standard',
-              intent: value['isWarmup'] == true
-                  ? Intent.technical.id
-                  : Intent.rir2.id,
-              rir: value['isWarmup'] == true
-                  ? Intent.technical.rir
-                  : Intent.rir2.rir,
-              rpeX10: value['isWarmup'] == true ? 50 : 80,
-              setTypeMetaJson: value['setTypeMetaJson'] as String?,
-            ),
-      ];
-    } catch (_) {
-      return null;
-    }
   }
 
   /// Max Effort is represented explicitly rather than as one vague ramp set,
