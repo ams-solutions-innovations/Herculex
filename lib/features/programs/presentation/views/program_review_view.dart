@@ -11,6 +11,7 @@ import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/presentation/views/block_detail_view.dart';
+import 'package:herculex/features/programs/presentation/widgets/empty_slot_notice.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/exercise_substitution.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
@@ -81,6 +82,11 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
                 db.exerciseCatalog,
               )..where((t) => t.id.isIn(ids))).get();
         final byId = {for (final exercise in catalog) exercise.id: exercise};
+        final emptyReasons = await _emptyReasonsFor(
+          db,
+          day: day,
+          weekIndex: selectedWeek.weekIndex,
+        );
         rows.add(
           _ReviewDay(
             day: day,
@@ -88,6 +94,7 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
               for (final row in exercises)
                 _ReviewExercise(row: row, exercise: byId[row.exerciseId]),
             ],
+            emptyReasons: emptyReasons,
           ),
         );
       }
@@ -108,6 +115,33 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
         _error = 'Could not prepare the exercise review.';
       });
     }
+  }
+
+  /// Fetches the planner's own rationale text for any of [day]'s slots left
+  /// empty in the given [weekIndex] (D-04: a visible, human-readable message
+  /// instead of a silently missing exercise row).
+  Future<List<String>> _emptyReasonsFor(
+    AppDatabase db, {
+    required ProgramDayData day,
+    required int weekIndex,
+  }) async {
+    final slots =
+        await (db.select(db.programExerciseSlots)..where(
+              (t) =>
+                  t.programId.equals(widget.programId) &
+                  t.daySlotLabel.equals(day.slotLabel ?? day.name),
+            ))
+            .get();
+    if (slots.isEmpty) return const [];
+    final emptyRows =
+        await (db.select(db.programSlotExplanations)..where(
+              (t) =>
+                  t.slotId.isIn(slots.map((slot) => slot.id)) &
+                  t.weekIndex.equals(weekIndex) &
+                  t.status.equals('empty'),
+            ))
+            .get();
+    return [for (final row in emptyRows) row.rationale];
   }
 
   Future<List<_RotationLine>> _loadRotations(
@@ -563,7 +597,7 @@ class _DayCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          if (day.exercises.isEmpty)
+          if (day.exercises.isEmpty && day.emptyReasons.isEmpty)
             Text(
               'No exercises have been added for this day.',
               style: theme.textTheme.bodySmall?.copyWith(
@@ -573,6 +607,11 @@ class _DayCard extends StatelessWidget {
           else
             for (final item in day.exercises)
               _ExerciseRow(item: item, onTap: () => onReplace(item)),
+          for (final reason in day.emptyReasons)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: EmptySlotNotice(reason: reason),
+            ),
         ],
       ),
     );
@@ -917,9 +956,14 @@ class _Notice extends StatelessWidget {
 }
 
 class _ReviewDay {
-  const _ReviewDay({required this.day, required this.exercises});
+  const _ReviewDay({
+    required this.day,
+    required this.exercises,
+    this.emptyReasons = const [],
+  });
   final ProgramDayData day;
   final List<_ReviewExercise> exercises;
+  final List<String> emptyReasons;
 }
 
 class _ReviewExercise {
