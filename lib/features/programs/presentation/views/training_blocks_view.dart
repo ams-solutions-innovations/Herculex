@@ -52,17 +52,28 @@ class TrainingBlocksView extends ConsumerWidget {
                     anchor: selected,
                     programId: program.id,
                     onOpenDay: (date) => _openDay(context, ref, date, program),
-                    onOpenSession: (row) =>
-                        _openDay(context, ref, row.date, program),
+                    onOpenSession: (row) => _openDay(
+                      context,
+                      ref,
+                      row.date,
+                      program,
+                      initialScheduleId: row.id,
+                    ),
                   )
                 else
                   MonthCalendar(
                     anchor: selected,
                     programId: program.id,
                     selected: selected,
-                    onSelect: (date) {
+                    onSelect: (date, {scheduleId}) {
                       ref.read(selectedBlockDateProvider.notifier).state = date;
-                      _openDay(context, ref, date, program);
+                      _openDay(
+                        context,
+                        ref,
+                        date,
+                        program,
+                        initialScheduleId: scheduleId,
+                      );
                     },
                   ),
               ],
@@ -77,9 +88,15 @@ class TrainingBlocksView extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     DateTime date,
-    ProgramData program,
-  ) {
-    DayDetailSheet.show(context, date: date, programId: program.id);
+    ProgramData program, {
+    int? initialScheduleId,
+  }) {
+    DayDetailSheet.show(
+      context,
+      date: date,
+      programId: program.id,
+      initialScheduleId: initialScheduleId,
+    );
   }
 }
 

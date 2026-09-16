@@ -22,36 +22,66 @@ import 'package:intl/intl.dart';
 
 /// Everything you can do to one day of a block: see its sessions, attach or
 /// swap templates, start, skip, move or delete.
-class DayDetailSheet extends ConsumerWidget {
+class DayDetailSheet extends ConsumerStatefulWidget {
   const DayDetailSheet({
     super.key,
     required this.date,
     required this.programId,
+    this.initialScheduleId,
   });
 
   final DateTime date;
   final int? programId;
 
+  /// When set, the matching session's card scrolls into view and renders
+  /// with a highlighted border on open — the sheet still lists every
+  /// session for the day (D-05); this only marks which one was tapped.
+  final int? initialScheduleId;
+
   static Future<void> show(
     BuildContext context, {
     required DateTime date,
     required int? programId,
+    int? initialScheduleId,
   }) {
     return HxSheet.show(
       context,
-      builder: (_) => DayDetailSheet(date: date, programId: programId),
+      builder: (_) => DayDetailSheet(
+        date: date,
+        programId: programId,
+        initialScheduleId: initialScheduleId,
+      ),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DayDetailSheet> createState() => _DayDetailSheetState();
+}
+
+class _DayDetailSheetState extends ConsumerState<DayDetailSheet> {
+  final _highlightKey = GlobalKey();
+  bool _didScrollToInitial = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final range = ScheduleRange.week(date, programId: programId);
+    final range = ScheduleRange.week(widget.date, programId: widget.programId);
     final byDate = ref.watch(scheduleByDateProvider(range));
-    final iso = _iso(date);
+    final iso = _iso(widget.date);
     final rows = sortedByStartTime(
       byDate.value?[iso] ?? const <ScheduledWorkoutRow>[],
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_didScrollToInitial) return;
+      final context = _highlightKey.currentContext;
+      if (context == null) return;
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 300),
+      );
+      _didScrollToInitial = true;
+    });
 
     return HxSheet(
       initialSize: 0.65,
@@ -59,7 +89,7 @@ class DayDetailSheet extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            DateFormat('EEEE, MMMM d').format(date),
+            DateFormat('EEEE, MMMM d').format(widget.date),
             textAlign: TextAlign.center,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
@@ -115,7 +145,12 @@ class DayDetailSheet extends ConsumerWidget {
             for (final row in rows)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _SessionCard(row: row),
+                child: row.id == widget.initialScheduleId
+                    ? KeyedSubtree(
+                        key: _highlightKey,
+                        child: _SessionCard(row: row, highlighted: true),
+                      )
+                    : _SessionCard(row: row),
               ),
         ],
       ),
@@ -129,9 +164,14 @@ class DayDetailSheet extends ConsumerWidget {
 }
 
 class _SessionCard extends ConsumerWidget {
-  const _SessionCard({required this.row});
+  const _SessionCard({required this.row, this.highlighted = false});
 
   final ScheduledWorkoutRow row;
+
+  /// True when this is the exact session the user tapped to open the sheet
+  /// (`DayDetailSheet.initialScheduleId`) — renders a visually-distinguishable
+  /// border so it's clear which of the day's sessions was selected.
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -144,7 +184,10 @@ class _SessionCard extends ConsumerWidget {
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          color: highlighted
+              ? AppColors.primary
+              : AppColors.outlineVariant.withValues(alpha: 0.4),
+          width: highlighted ? 2 : 1,
         ),
       ),
       child: Column(
