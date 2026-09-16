@@ -301,15 +301,13 @@ final catalog = await ref.read(appDatabaseProvider).select(
 
 ## Open Questions
 
-1. **Should `formatPlannedExerciseSets` move with the preview body, and does any test import it directly?**
+1. **(RESOLVED)** ~~Should `formatPlannedExerciseSets` move with the preview body, and does any test import it directly?~~
    - What we know: it's `@visibleForTesting` and public specifically so it can be unit-tested; it currently lives in `day_detail_sheet.dart`.
-   - What's unclear: whether a test file imports `formatPlannedExerciseSets` from `day_detail_sheet.dart` today (a grep across `test/` for `formatPlannedExerciseSets` did not surface a direct test file within the scope of this research pass — worth a quick re-check at plan time since this research did not exhaustively grep every test file for that specific symbol).
-   - Recommendation: grep `test/` for `formatPlannedExerciseSets` before moving the function; update the import if found.
+   - Resolution: Plan 20-03 Task 3 greps `test/` for `formatPlannedExerciseSets` before moving the function and updates the import if found.
 
-2. **What should `PlannedWorkoutPreviewView` show for a `skipped` row navigated to directly (e.g. via a future deep link), given its CTA is Start-only for planned/moved?**
+2. **(RESOLVED)** ~~What should `PlannedWorkoutPreviewView` show for a `skipped` row navigated to directly (e.g. via a future deep link), given its CTA is Start-only for planned/moved?~~
    - What we know: D-11/discretion notes say `skipped` rows' "View workout" still targets `PlannedWorkoutPreviewView` (unchanged), and the CTA should show for planned/moved rows.
-   - What's unclear: whether `skipped` should show the Start CTA (un-skipping implicitly) or hide it — CONTEXT.md doesn't say.
-   - Recommendation: hide the Start CTA for `skipped` (matches `ScheduleStatus.isOpen` which excludes `skipped`), consistent with `_SessionCard`'s existing gate (`if (ScheduleStatus.isOpen(row.status) && !row.isEmpty)`).
+   - Resolution: Plans gate the Start CTA to `planned`/`moved` rows only, hiding it for `skipped` — matches `ScheduleStatus.isOpen` (which excludes `skipped`), consistent with `_SessionCard`'s existing gate (`if (ScheduleStatus.isOpen(row.status) && !row.isEmpty)`).
 
 ## Validation Architecture
 
