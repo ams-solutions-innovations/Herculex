@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/hx_nav_bar.dart';
+import 'package:herculex/design_system/components/keyboard_obstruction_scope.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_view.dart';
 import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
@@ -280,41 +281,22 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
                 action(context, ref);
               },
             ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            left: 0,
-            right: 0,
-            bottom: hideWorkoutChrome ? -120 : 0,
-            // Do not leave an invisible navigation bar in the accessibility
-            // tree while a set-entry field owns the keyboard.
-            child: ExcludeSemantics(
-              excluding: hideWorkoutChrome,
-              child: IgnorePointer(
-                ignoring: hideWorkoutChrome,
-                child: AnimatedOpacity(
-                  // Hiding is immediate: the keyboard must never overlap a
-                  // visible control. Restoring still uses the standard fade.
-                  duration: hideWorkoutChrome
-                      ? Duration.zero
-                      : const Duration(milliseconds: 150),
-                  opacity: hideWorkoutChrome ? 0 : 1,
-                  child: HxNavBar(
-                    currentIndex: index,
-                    onTap: (i) =>
-                        ref.read(mainTabIndexProvider.notifier).state = i,
-                    quickAddOpen: _quickAddOpen,
-                    onQuickAddTap: () {
-                      if (_quickAddOpen) {
-                        // Same reverse animation as tapping the backdrop.
-                        _quickAddMenuKey.currentState?.close();
-                      } else {
-                        setState(() => _quickAddOpen = true);
-                      }
-                    },
-                  ),
-                ),
-              ),
+          KeyboardObstructionScope(
+            hidden: hideWorkoutChrome,
+            hiddenOffset: 120,
+            child: HxNavBar(
+              currentIndex: index,
+              onTap: (i) =>
+                  ref.read(mainTabIndexProvider.notifier).state = i,
+              quickAddOpen: _quickAddOpen,
+              onQuickAddTap: () {
+                if (_quickAddOpen) {
+                  // Same reverse animation as tapping the backdrop.
+                  _quickAddMenuKey.currentState?.close();
+                } else {
+                  setState(() => _quickAddOpen = true);
+                }
+              },
             ),
           ),
         ],
