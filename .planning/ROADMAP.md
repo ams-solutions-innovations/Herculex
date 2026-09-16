@@ -110,7 +110,7 @@ Plans:
 
 **Success:** `KeyboardObstructionScope` reliably hides navigation and action buttons; scheduled workout preview renders details without writing to the database; calendar routing cleanly distinguishes preview/start, resume, and history detail.
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 **Wave 0**
@@ -128,7 +128,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion — 20-04)*
 
-- [ ] 20-05-PLAN.md — Calendar occurrence wiring: initialScheduleId + highlight for MonthCalendar and WeekBoard (FLOW-03)
+- [x] 20-05-PLAN.md — Calendar occurrence wiring: initialScheduleId + highlight for MonthCalendar and WeekBoard (FLOW-03)
 
 
 ### Phase 21: CrossFit & GPP Training Tracks
