@@ -176,6 +176,26 @@ class ProgramMethodGuide {
           'Deload',
           'Reduce volume and intensity before the next ramp.',
         ),
+        ProgramMethodGuideWeek(
+          5,
+          'Build',
+          'Resume progression from the deload with a fresh, modest ramp.',
+        ),
+        ProgramMethodGuideWeek(
+          6,
+          'Build',
+          'Add another small load or rep increase while form stays crisp.',
+        ),
+        ProgramMethodGuideWeek(
+          7,
+          'Build',
+          'Keep pushing the ramp while quality and recovery allow it.',
+        ),
+        ProgramMethodGuideWeek(
+          8,
+          'Deload',
+          'Reduce volume and intensity again before the next block.',
+        ),
       ],
     ),
     PeriodizationModel.concurrent => const ProgramMethodGuide(
@@ -215,6 +235,26 @@ class ProgramMethodGuide {
           'Review',
           'Keep, rotate or deload according to performance and recovery.',
         ),
+        ProgramMethodGuideWeek(
+          5,
+          'Establish',
+          'Return to the heavy/volume/mixed-day rhythm with lessons from weeks 1-4.',
+        ),
+        ProgramMethodGuideWeek(
+          6,
+          'Build',
+          'Progress the primary lift again while accessories keep supporting weak links.',
+        ),
+        ProgramMethodGuideWeek(
+          7,
+          'Wave',
+          'Shift stress emphasis once more to manage accumulated fatigue.',
+        ),
+        ProgramMethodGuideWeek(
+          8,
+          'Review',
+          "Keep, rotate or deload based on this cycle's performance and recovery.",
+        ),
       ],
     ),
     PeriodizationModel.block => const ProgramMethodGuide(
@@ -241,9 +281,19 @@ class ProgramMethodGuide {
           'Higher-volume foundational work.',
         ),
         ProgramMethodGuideWeek(
+          2,
+          'Accumulation',
+          'Add a modest load increase while volume stays high.',
+        ),
+        ProgramMethodGuideWeek(
           3,
           'Accumulation',
           'Build capacity without chasing max loads.',
+        ),
+        ProgramMethodGuideWeek(
+          4,
+          'Accumulation',
+          'Hold volume steady as the phase closes out.',
         ),
         ProgramMethodGuideWeek(
           5,
@@ -251,7 +301,17 @@ class ProgramMethodGuide {
           'Use heavier, more specific work.',
         ),
         ProgramMethodGuideWeek(
+          6,
+          'Transmutation',
+          'Narrow the exercise pool toward the anchor lift.',
+        ),
+        ProgramMethodGuideWeek(
           7,
+          'Transmutation',
+          'Sharpen intensity as accumulation-style volume fades.',
+        ),
+        ProgramMethodGuideWeek(
+          8,
           'Realization',
           'Lower volume; sharpen the primary lift.',
         ),
@@ -295,6 +355,26 @@ class ProgramMethodGuide {
           'Deload',
           'Reduce fatigue before another rotation cycle.',
         ),
+        ProgramMethodGuideWeek(
+          5,
+          'Max Effort A',
+          'Heavy top set plus controlled supplemental work, next rotation.',
+        ),
+        ProgramMethodGuideWeek(
+          6,
+          'Max Effort B',
+          'Rotate the main variation again; retain the movement pattern.',
+        ),
+        ProgramMethodGuideWeek(
+          7,
+          'Dynamic',
+          'Speed-focused work with clearly shown set and rest targets.',
+        ),
+        ProgramMethodGuideWeek(
+          8,
+          'Deload',
+          'Reduce fatigue again before the next rotation cycle.',
+        ),
       ],
     ),
     PeriodizationModel.none => const ProgramMethodGuide(
@@ -306,6 +386,8 @@ class ProgramMethodGuide {
       rotation: [
         'Any rotation shown in review follows your selected interval.',
       ],
+      // D-06: `none` has no periodization phases to map onto 8 weeks, so its
+      // example stays short by deliberate choice rather than a silent default.
       weeks: [
         ProgramMethodGuideWeek(
           1,
