@@ -38,10 +38,10 @@
 
 ### 5. Program & Wave Editor (Phase 19)
 
-- [ ] **EDIT-01**: Program viewer renders single active week with dedicated Week dropdown and exercise wave indicators (`Week N of M`, `Wave X of Y`).
-- [ ] **EDIT-02**: Exercise replacements offer scoped choices: `thisWave`, `thisAndFutureWaves`, or `entireBlock`.
-- [ ] **EDIT-03**: Program edits never mutate or overwrite previously started or completed workout occurrences.
-- [ ] **EDIT-04**: Periodization options (Linear, Concurrent, Westside, Block) display dedicated educational guides with 8-week examples.
+- [x] **EDIT-01**: Program viewer renders single active week with dedicated Week dropdown and exercise wave indicators (`Week N of M`, `Wave X of Y`).
+- [x] **EDIT-02**: Exercise replacements offer scoped choices: `thisWave`, `thisAndFutureWaves`, or `entireBlock`.
+- [x] **EDIT-03**: Program edits never mutate or overwrite previously started or completed workout occurrences.
+- [x] **EDIT-04**: Periodization options (Linear, Concurrent, Westside, Block) display dedicated educational guides with 8-week examples.
 
 ### 6. Active Workout Shell & Calendar Execution Flow (Phase 20)
 
@@ -91,7 +91,7 @@
 | META-01–04 | 16 | Pending |
 | PLAN-01–04 | 17 | Pending |
 | PRES-01–04 | 18 | Pending |
-| EDIT-01–04 | 19 | Pending |
+| EDIT-01–04 | 19 | Complete |
 | FLOW-01–03 | 20 | Pending |
 | CF-01–03 | 21 | Pending |
 | SPEC-01–03 | 22 | Pending |
