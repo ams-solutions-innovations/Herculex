@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:herculex/app/providers.dart';
-import 'package:herculex/data/local/database.dart';
+import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -12,17 +12,12 @@ import 'package:herculex/features/dashboard/application/dashboard_providers.dart
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
-import 'package:herculex/features/programs/domain/slot_prescription.dart'
-    as slot_prescription;
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
-import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
-import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/views/template_builder_view.dart';
-import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:intl/intl.dart';
 
 /// Everything you can do to one day of a block: see its sessions, attach or
@@ -423,33 +418,14 @@ class _SessionCard extends ConsumerWidget {
     }
   }
 
-  /// Shows the resolved plan without materializing a session, so looking ahead
-  /// in the calendar never changes the user's workout history or schedule.
+  /// Pushes the standalone preview route rather than a sheet-on-sheet, so
+  /// looking ahead in the calendar gets a real back-stack entry — and never
+  /// materializes a session, since the preview resolves its own plan
+  /// read-only via `plannedWorkoutPreviewProvider`.
   Future<void> _viewWorkout(BuildContext context, WidgetRef ref) async {
-    final plan = await ref
-        .read(scheduledWorkoutServiceProvider)
-        .previewScheduledWorkout(row.id);
+    Navigator.of(context).pop();
     if (!context.mounted) return;
-    if (plan == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This scheduled workout no longer exists.'),
-        ),
-      );
-      return;
-    }
-
-    final catalog = await ref
-        .read(appDatabaseProvider)
-        .select(ref.read(appDatabaseProvider).exerciseCatalog)
-        .get();
-    if (!context.mounted) return;
-    final exercises = {for (final exercise in catalog) exercise.id: exercise};
-    await HxSheet.show(
-      context,
-      builder: (_) =>
-          _WorkoutPlanPreviewSheet(plan: plan, exercises: exercises),
-    );
+    context.push(AppPaths.plannedWorkoutPreview(row.id));
   }
 
   Future<void> _assignTemplate(BuildContext context, WidgetRef ref) async {
@@ -542,179 +518,6 @@ class _SessionCard extends ConsumerWidget {
       unawaited(calService.syncWorkoutNow(row.id, targetCalendarId: calId));
     }
   }
-}
-
-class _WorkoutPlanPreviewSheet extends StatelessWidget {
-  const _WorkoutPlanPreviewSheet({required this.plan, required this.exercises});
-
-  final PlannedSessionSnapshot plan;
-  final Map<int, ExerciseCatalogData> exercises;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return HxSheet(
-      title: 'Planned workout',
-      subtitle: '${plan.name} · ${plan.exercises.length} exercises',
-      initialSize: 0.55,
-      child: Column(
-        children: [
-          for (final (index, plannedExercise) in plan.exercises.indexed) ...[
-            Builder(
-              builder: (context) {
-                final exercise = exercises[plannedExercise.exerciseId];
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${index + 1}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      if (exercise != null)
-                        ExerciseArtwork(
-                          exercise: exercise,
-                          size: 44,
-                          radius: 10,
-                          equipmentVariant: plannedExercise.equipmentVariant,
-                        )
-                      else
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.fitness_center_rounded,
-                            size: 20,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              exercise?.name ?? 'Exercise',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              formatPlannedExerciseSets(plannedExercise),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.secondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            if (index != plan.exercises.length - 1) const SizedBox(height: 8),
-          ],
-          if (plan.exercises.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              child: Text(
-                'No exercises are planned yet.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Formats [exercise]'s sets into the same segment-string convention as
-/// `SlotPrescription.format()` — consecutive sets sharing identical reps,
-/// set type, intent, %1RM and warmup status are grouped into one run (e.g.
-/// `"2x8 @40% + 3x8 @70%"`), so the calendar preview shows real set-by-set
-/// detail rather than a single compact summary line.
-///
-/// Public (not `_`-prefixed) so it can be unit-tested directly; used only by
-/// [_WorkoutPlanPreviewSheet] in this file otherwise.
-@visibleForTesting
-String formatPlannedExerciseSets(PlannedExerciseSnapshot exercise) {
-  if (exercise.sets.isEmpty) return 'No sets prescribed';
-  final runs = <List<PlannedSetSnapshot>>[];
-  for (final set in exercise.sets) {
-    final currentRun = runs.isEmpty ? null : runs.last;
-    if (currentRun != null && _sameSetRun(currentRun.last, set)) {
-      currentRun.add(set);
-    } else {
-      runs.add([set]);
-    }
-  }
-  final segments = runs.map(_formatSetRun).join(' + ');
-  return '$segments · Rest ${exercise.restSeconds}s';
-}
-
-bool _sameSetRun(PlannedSetSnapshot a, PlannedSetSnapshot b) {
-  return a.repsMin == b.repsMin &&
-      a.repsMax == b.repsMax &&
-      a.setType == b.setType &&
-      a.intent == b.intent &&
-      a.percentOf1Rm == b.percentOf1Rm &&
-      a.isWarmup == b.isWarmup;
-}
-
-String _formatSetRun(List<PlannedSetSnapshot> run) {
-  final first = run.first;
-  final count = run.length;
-  final reps = first.repsMin == first.repsMax
-      ? '${first.repsMin ?? '—'}'
-      : '${first.repsMin ?? '—'}-${first.repsMax ?? '—'}';
-  final buffer = StringBuffer('${count}x$reps');
-
-  if (first.percentOf1Rm != null) {
-    buffer.write(' @${(first.percentOf1Rm! * 100).round()}%');
-  } else {
-    final intent = slot_prescription.Intent.fromId(first.intent);
-    if (intent != slot_prescription.Intent.amrap &&
-        intent != slot_prescription.Intent.toFailure) {
-      buffer.write(' @RIR${intent.rir}');
-    }
-  }
-
-  final setType = SetType.fromId(first.setType);
-  if (setType != SetType.standard) {
-    buffer.write(' ${setType.label}');
-  }
-
-  final formatted = buffer.toString();
-  return first.isWarmup ? 'Warmup: $formatted' : formatted;
 }
 
 enum _TemplateScope { thisSession, everyFuture }
