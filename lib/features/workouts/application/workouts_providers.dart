@@ -4,6 +4,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
@@ -11,6 +12,7 @@ import 'package:herculex/features/nutrition/application/nutrition_providers.dart
 import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/workouts/data/media_sync_service.dart';
 import 'package:herculex/features/workouts/data/micro_workouts_repository.dart';
+import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
@@ -179,6 +181,42 @@ final sessionSummaryProvider = FutureProvider.autoDispose
         photoPath: session.photoPath,
         savedCalories: session.caloriesBurned,
         userWeightKg: profile?.weightKg,
+      );
+    });
+
+/// Data for [PlannedWorkoutPreviewView] (FLOW-02): a scheduled workout's
+/// resolved plan, the exercise catalog needed to render it, and the
+/// schedule's current status (used only to gate the Start CTA).
+class PlannedWorkoutPreviewData {
+  final PlannedSessionSnapshot plan;
+  final Map<int, ExerciseCatalogData> exercises;
+  final String status;
+
+  const PlannedWorkoutPreviewData({
+    required this.plan,
+    required this.exercises,
+    required this.status,
+  });
+}
+
+/// Resolves a pushed [PlannedWorkoutPreviewView]'s data from a `scheduleId`
+/// alone — matching [sessionSummaryProvider]'s pattern for a route-pushed
+/// detail view. Reuses [ScheduledWorkoutService] end-to-end rather than
+/// re-deriving plan resolution or the "started" check.
+final plannedWorkoutPreviewProvider = FutureProvider.autoDispose
+    .family<PlannedWorkoutPreviewData?, int>((ref, scheduleId) async {
+      final service = ref.watch(scheduledWorkoutServiceProvider);
+      final today = await service.workoutForSchedule(scheduleId);
+      if (today == null) return null;
+      final plan = await service.previewScheduledWorkout(scheduleId);
+      if (plan == null) return null;
+      final db = ref.watch(appDatabaseProvider);
+      final catalog = await db.select(db.exerciseCatalog).get();
+      final exercises = {for (final e in catalog) e.id: e};
+      return PlannedWorkoutPreviewData(
+        plan: plan,
+        exercises: exercises,
+        status: today.schedule.status,
       );
     });
 
