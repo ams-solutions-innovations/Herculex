@@ -110,7 +110,7 @@ Plans:
 
 **Success:** `KeyboardObstructionScope` reliably hides navigation and action buttons; scheduled workout preview renders details without writing to the database; calendar routing cleanly distinguishes preview/start, resume, and history detail.
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 0**
@@ -124,7 +124,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion — 20-03)*
 
-- [ ] 20-04-PLAN.md — Status-gated View-workout routing: done/in-progress to WorkoutHistoryView (FLOW-03)
+- [x] 20-04-PLAN.md — Status-gated View-workout routing: done/in-progress to WorkoutHistoryView (FLOW-03)
 
 **Wave 3** *(blocked on Wave 2 completion — 20-04)*
 
