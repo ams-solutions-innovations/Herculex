@@ -48,6 +48,7 @@ import 'package:herculex/features/shell/splash_view.dart';
 import 'package:herculex/features/workouts/presentation/views/exercise_details_view.dart';
 import 'package:herculex/features/workouts/presentation/views/exercise_library_view.dart';
 import 'package:herculex/features/workouts/presentation/views/micro_workouts_view.dart';
+import 'package:herculex/features/workouts/presentation/views/planned_workout_preview_view.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_history_view.dart';
 
 /// Bridges the Riverpod profile stream into a [Listenable] so
@@ -125,6 +126,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = _intParam(state, 'id');
           if (id == null) return _badParam(context, state, 'id');
           return WorkoutHistoryView(sessionId: id);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.plannedWorkoutPreview,
+        builder: (context, state) {
+          final id = _intParam(state, 'id');
+          if (id == null) return _badParam(context, state, 'id');
+          return PlannedWorkoutPreviewView(scheduleId: id);
         },
       ),
       GoRoute(
