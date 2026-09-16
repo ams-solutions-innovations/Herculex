@@ -7,6 +7,11 @@ import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
 import 'package:intl/intl.dart';
 
+/// Opens a day, optionally scrolled to and highlighting one specific
+/// scheduled session within that day (when the caller tapped a session tile
+/// rather than the whole-day cell).
+typedef OpenDayCallback = void Function(DateTime date, {int? scheduleId});
+
 /// Hand-rolled month grid. Each cell shows status dots for the day's sessions
 /// and accepts a session dragged from the day sheet, so a move is: open a day,
 /// drag its session onto another cell.
@@ -26,7 +31,7 @@ class MonthCalendar extends ConsumerWidget {
   final DateTime anchor;
   final int? programId;
   final DateTime selected;
-  final ValueChanged<DateTime> onSelect;
+  final OpenDayCallback onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -252,7 +257,7 @@ class _SelectedDayList extends StatelessWidget {
 
   final DateTime date;
   final List<ScheduledWorkoutRow> rows;
-  final ValueChanged<DateTime> onOpenSession;
+  final OpenDayCallback onOpenSession;
 
   @override
   Widget build(BuildContext context) {
@@ -306,7 +311,10 @@ class _SelectedDayList extends StatelessWidget {
                   opacity: 0.3,
                   child: SessionTile(row: row, compact: true),
                 ),
-                child: SessionTile(row: row, onTap: () => onOpenSession(date)),
+                child: SessionTile(
+                  row: row,
+                  onTap: () => onOpenSession(date, scheduleId: row.id),
+                ),
               ),
             ),
         if (rows.isNotEmpty)
