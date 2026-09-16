@@ -59,6 +59,7 @@ void main() {
   Future<ScheduledWorkoutRow> createTestRow({
     required int scheduleId,
     required String status,
+    int? completedSessionId,
   }) async {
     final programId = await db.into(db.programs).insert(
       ProgramsCompanion.insert(name: '4-Week Hypertrophy'),
@@ -86,6 +87,7 @@ void main() {
         orderIndex: 0,
         occurrenceIndex: 0,
         status: status,
+        completedSessionId: completedSessionId,
       ),
       day: day,
       week: week,
@@ -234,6 +236,154 @@ void main() {
 
       expect(find.text('PlannedWorkoutPreview:303'), findsOneWidget);
       expect(fakeService.startCalls, 0);
+    },
+  );
+
+  Future<void> pumpAndOpenDayDetail(
+    WidgetTester tester, {
+    required ProviderContainer container,
+    required GoRouterTestHarness harness,
+  }) async {
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: harness.app),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+  }
+
+  GoRouterTestHarness harnessFor({required int? programId}) {
+    return GoRouterTestHarness(
+      home: (context) => Scaffold(
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () => DayDetailSheet.show(
+              context,
+              date: date,
+              programId: programId,
+            ),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+      stubRoutes: {
+        AppRoutes.workoutHistory: (context, state) => StubRouteScreen(
+          label: 'WorkoutHistory',
+          value: state.pathParameters['id'],
+        ),
+        AppRoutes.plannedWorkoutPreview: (context, state) => StubRouteScreen(
+          label: 'PlannedWorkoutPreview',
+          value: state.pathParameters['id'],
+        ),
+      },
+    );
+  }
+
+  testWidgets(
+    'Tapping View workout on a done row pushes WorkoutHistoryView(sessionId: completedSessionId)',
+    (tester) async {
+      final row = await createTestRow(
+        scheduleId: 404,
+        status: ScheduleStatus.done,
+        completedSessionId: 555,
+      );
+      final range = ScheduleRange.week(date, programId: row.program.id);
+
+      final container = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
+          scheduleByDateProvider(range).overrideWith(
+            (ref) => Stream.value({iso: [row]}),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final harness = harnessFor(programId: row.program.id);
+
+      await pumpAndOpenDayDetail(tester, container: container, harness: harness);
+
+      expect(find.text('View workout'), findsOneWidget);
+
+      await tester.tap(find.text('View workout'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('WorkoutHistory:555'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Tapping View workout on an in-progress row pushes the same WorkoutHistoryView route (D-07)',
+    (tester) async {
+      final row = await createTestRow(
+        scheduleId: 505,
+        status: ScheduleStatus.inProgress,
+        completedSessionId: 666,
+      );
+      final range = ScheduleRange.week(date, programId: row.program.id);
+
+      final container = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
+          scheduleByDateProvider(range).overrideWith(
+            (ref) => Stream.value({iso: [row]}),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final harness = harnessFor(programId: row.program.id);
+
+      await pumpAndOpenDayDetail(tester, container: container, harness: harness);
+
+      expect(find.text('View workout'), findsOneWidget);
+
+      await tester.tap(find.text('View workout'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('WorkoutHistory:666'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Tapping View workout on a done row with null completedSessionId shows the '
+    '"no longer exists" SnackBar and does not navigate',
+    (tester) async {
+      final row = await createTestRow(
+        scheduleId: 606,
+        status: ScheduleStatus.done,
+      );
+      final range = ScheduleRange.week(date, programId: row.program.id);
+
+      final container = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
+          scheduleByDateProvider(range).overrideWith(
+            (ref) => Stream.value({iso: [row]}),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final harness = harnessFor(programId: row.program.id);
+
+      await pumpAndOpenDayDetail(tester, container: container, harness: harness);
+
+      expect(find.text('View workout'), findsOneWidget);
+
+      await tester.tap(find.text('View workout'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('This scheduled workout no longer exists.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('WorkoutHistory:'), findsNothing);
+      expect(find.textContaining('PlannedWorkoutPreview:'), findsNothing);
     },
   );
 }
