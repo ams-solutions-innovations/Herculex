@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: Phase 17 complete
-last_updated: "2026-09-16T14:19:52.552Z"
+last_updated: "2026-09-16T14:21:50.537Z"
 progress:
   total_phases: 11
   completed_phases: 5
@@ -20,7 +20,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system.  
-**Current focus:** Phase 19 — program-wave-editor-with-explainable-periodization
+**Current focus:** Phase 20 — active-workout-shell-calendar-execution-flow
 
 ---
 
