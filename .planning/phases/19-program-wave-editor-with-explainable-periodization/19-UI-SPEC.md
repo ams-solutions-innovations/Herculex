@@ -66,22 +66,34 @@ scale but pre-existing and out of this phase's scope to change).
 
 ## Typography
 
-Reuse the app's existing `TextTheme` exactly (`app_theme.dart` `_buildTextTheme`) —
-this phase does not define new type styles:
+Scoped to only the roles this phase's new/changed UI actually introduces or
+touches — reusing the app's existing `TextTheme` exactly (`app_theme.dart`
+`_buildTextTheme`); no new type styles are defined:
 
 | Role | Size | Weight | Line Height / Notes |
 |------|------|--------|-------------|
-| Guide page title (`headlineSmall`) | 24px | 600 | `SpaceGrotesk`, letterSpacing -0.3 |
 | Week dropdown value / section title (`titleMedium`) | 17px | 600 | `Manrope`, letterSpacing -0.2 |
-| Wave-strip label, day/exercise name (`titleSmall`) | 15px | 600 | `Manrope`, letterSpacing -0.1 |
-| Body copy, scope descriptions (`bodyMedium`) | 15px | 400 | `Manrope`, color `onSurfaceVariant` |
-| Secondary/meta text, "Week N of M" caption (`labelMedium`) | 13px | 500 | `Manrope`, color `secondary` |
-| Fine print, tooltips, badge text (`labelSmall`) | 12px | 500 | `Manrope`, color `secondary` |
+| Wave-strip label, primary line — "Week N of M" (`titleSmall`) | 15px | 600 | `Manrope`, letterSpacing -0.1 |
+| Wave-strip label, secondary line — "Exercise wave X of Y · Weeks A–B" (`labelMedium`) | 13px | 500 | `Manrope`, color `secondary` |
 
-No new font sizes or weights are declared. The Week/Wave label pair (EDIT-01) uses
-`titleSmall` for "Week N of M" (primary) and `labelMedium` for "Exercise wave X of Y ·
-Weeks A–B" (secondary, directly beneath) — this satisfies D-05/the spec's requirement
-that the two labels are visually distinct and never merged into one string.
+3 sizes, 2 weights — within the dimension's 4-size/2-weight cap.
+
+The Week/Wave label pair (EDIT-01) uses `titleSmall` for "Week N of M" (primary) and
+`labelMedium` for "Exercise wave X of Y · Weeks A–B" (secondary, directly beneath) —
+this satisfies D-05/the spec's requirement that the two labels are visually distinct
+and never merged into one string.
+
+**Reused, unchanged roles — not part of this phase's size/weight budget** (listed for
+context only; no executor action needed, do not re-declare or extend these):
+
+- Guide page title (`headlineSmall`, 24px/600) — `program_method_guide_view.dart` is
+  visually unchanged per D-06 ("no new visual chrome"); only its `weeks` data list grows.
+- `ExerciseReplacementSheet` body copy, scope descriptions (`bodyMedium`, 15px/400) —
+  extraction-only per D-02, "visually and behaviorally unchanged" from
+  `program_review_view.dart`.
+- Fine print / tooltip / badge text (`labelSmall`, 12px/500) — no new label in this
+  phase uses this role; the "Replace this exercise" tooltip and empty-state strings
+  render via existing surrounding widget styles, not a new `labelSmall` usage.
 
 ---
 
@@ -106,6 +118,26 @@ its existing `primary` tint too — pre-existing, not newly introduced by this p
 `isDeload`/phase-tint pattern (existing in `_WeekCard`) — deload weeks use `tertiary`
 tint instead of `primary`; carry this same convention into the new single-active-week
 Week dropdown / wave-strip view so a deload week reads the same way it does today.
+
+---
+
+## Visual Hierarchy
+
+Primary focal point of the retrofitted week view, in descending order of visual
+weight:
+
+1. **Week dropdown** — the top-of-view control (`titleMedium`, 17px/600, `primary`
+   accent when active). This is what the eye lands on first and what the user taps to
+   navigate; it owns the top of the hierarchy.
+2. **Active week's exercise/day list** — the bulk of the view's real estate and the
+   thing the user is actually editing (existing `_WeekCard`/`_DayRow` styling,
+   unchanged). Visually dominant by area even though it isn't the highest-contrast
+   element.
+3. **Wave-strip label** — a quiet, secondary caption directly beneath the Week
+   dropdown (`titleSmall`/`labelMedium`, no card chrome of its own). It is
+   explanatory context, not a navigation control, and must not compete with the
+   dropdown or the exercise list for attention — this is why it renders as plain
+   stacked text rather than a bordered chip or its own card.
 
 ---
 
