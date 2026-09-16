@@ -11,6 +11,7 @@ import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/wave_label.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// One exercise a program day will produce, from whichever source the day uses
@@ -53,6 +54,8 @@ class ProgramLiftProgress {
 
 class ProgramDayExerciseSummary {
   const ProgramDayExerciseSummary({
+    required this.id,
+    required this.exerciseId,
     required this.name,
     required this.role,
     required this.method,
@@ -62,6 +65,13 @@ class ProgramDayExerciseSummary {
     this.why,
   });
 
+  /// The underlying `ProgramDayExercises` row id — the target of a
+  /// per-exercise replacement.
+  final int id;
+
+  /// The catalog exercise id currently filling this slot — used to resolve
+  /// `current` for `ExerciseReplacementSheet`.
+  final int exerciseId;
   final String name;
   final String role;
   final String method;
@@ -144,6 +154,8 @@ class ProgramsRepository {
           return [
             for (final row in rows)
               ProgramDayExerciseSummary(
+                id: row.id,
+                exerciseId: row.exerciseId,
                 name: byId[row.exerciseId]?.name ?? 'Unknown exercise',
                 role: row.slotRole,
                 method: row.trainingMethod,
@@ -656,6 +668,43 @@ class ProgramsRepository {
             (t) => OrderingTerm(expression: t.orderIndex),
           ]))
         .get();
+  }
+
+  /// D-05's "Exercise wave X of Y · Weeks A–B" indicator for one viewed week.
+  ///
+  /// Resolves the week's anchor `main` slot ([WaveLabel.selectAnchorSlot]),
+  /// then walks its [RotationAssignments] across every week to derive the
+  /// current wave via [WaveLabel.compute]. Returns `null` when the week has
+  /// no anchor `main` slot at all — the wave-strip line is omitted entirely
+  /// in that case, never rendered with a misleading default.
+  Future<WaveLabelInfo?> getWaveLabelInfo({
+    required int programId,
+    required int programWeekId,
+    required int weekIndex,
+    required int totalWeeks,
+  }) async {
+    final days = await getProgramDaysForWeek(programWeekId);
+    final allSlots = await (_db.select(
+      _db.programExerciseSlots,
+    )..where((t) => t.programId.equals(programId))).get();
+    final anchor = WaveLabel.selectAnchorSlot(
+      daysInOrder: days,
+      allSlots: allSlots,
+    );
+    if (anchor == null) return null;
+
+    final assignments = await (_db.select(
+      _db.rotationAssignments,
+    )..where((t) => t.slotId.equals(anchor.id))).get();
+    final exerciseIdByWeek = <int, int?>{
+      for (final assignment in assignments)
+        assignment.weekIndex: assignment.exerciseId,
+    };
+    return WaveLabel.compute(
+      totalWeeks: totalWeeks,
+      currentWeekIndex: weekIndex,
+      exerciseIdByWeek: exerciseIdByWeek,
+    );
   }
 
   Stream<List<ProgramDayData>> watchProgramDaysForWeek(int weekId) {
