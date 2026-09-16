@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
@@ -14,6 +15,7 @@ import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 
+import '../support/go_router_test_harness.dart';
 import '../support/test_database.dart';
 
 class _FakeScheduledWorkoutService extends Fake implements ScheduledWorkoutService {
@@ -174,7 +176,7 @@ void main() {
   );
 
   testWidgets(
-    'Tapping View workout opens preview sheet and creates no sessions',
+    'Tapping View workout pushes the planned workout preview route and creates no sessions',
     (tester) async {
       final row = await createTestRow(scheduleId: 303, status: ScheduleStatus.planned);
       final range = ScheduleRange.week(date, programId: row.program.id);
@@ -190,16 +192,39 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            home: Scaffold(
-              body: DayDetailSheet(date: date, programId: row.program.id),
+      // DayDetailSheet is only ever shown as a modal (`HxSheet.show`, which
+      // pushes an imperative `ModalBottomSheetRoute` on the Navigator,
+      // separate from GoRouter's declarative route stack) — mirror that here
+      // rather than pumping it as the harness's page-level `home`, so
+      // `_viewWorkout`'s `Navigator.of(context).pop()` pops the modal, not
+      // GoRouter's only remaining route.
+      final harness = GoRouterTestHarness(
+        home: (context) => Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () => DayDetailSheet.show(
+                context,
+                date: date,
+                programId: row.program.id,
+              ),
+              child: const Text('Open'),
             ),
           ),
         ),
+        stubRoutes: {
+          AppRoutes.plannedWorkoutPreview: (context, state) => StubRouteScreen(
+            label: 'PlannedWorkoutPreview',
+            value: state.pathParameters['id'],
+          ),
+        },
       );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: harness.app),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
       expect(find.text('View workout'), findsOneWidget);
@@ -207,8 +232,7 @@ void main() {
       await tester.tap(find.text('View workout'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Planned workout'), findsOneWidget);
-      expect(find.text('Preview Upper Body · 0 exercises'), findsOneWidget);
+      expect(find.text('PlannedWorkoutPreview:303'), findsOneWidget);
       expect(fakeService.startCalls, 0);
     },
   );

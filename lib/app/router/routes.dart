@@ -26,6 +26,7 @@ abstract final class AppRoutes {
 
   // Workouts
   static const workoutHistory = '/workout-history/:id';
+  static const plannedWorkoutPreview = '/planned-workout-preview/:id';
   static const exercise = '/exercise/:id';
   static const exercises = '/exercises';
   static const microWorkouts = '/micro-workouts';
@@ -94,6 +95,8 @@ abstract final class AppRoutes {
 /// Passing one to `context.push` would navigate to the literal `:id`.
 abstract final class AppPaths {
   static String workoutHistory(int id) => '/workout-history/$id';
+  static String plannedWorkoutPreview(int id) =>
+      '/planned-workout-preview/$id';
   static String exercise(int id) => '/exercise/$id';
   static String measurementDetail(String metric) => '/measurements/$metric';
   static String muscleVolumeDetail(String muscle) => '/muscle-volume/$muscle';

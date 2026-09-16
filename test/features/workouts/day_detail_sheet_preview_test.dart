@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/features/programs/presentation/sheets/day_detail_sheet.dart';
 import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
+import 'package:herculex/features/workouts/presentation/views/planned_workout_preview_view.dart';
 
 PlannedSetSnapshot _set({
   required int index,
