@@ -110,6 +110,27 @@ Plans:
 
 **Success:** `KeyboardObstructionScope` reliably hides navigation and action buttons; scheduled workout preview renders details without writing to the database; calendar routing cleanly distinguishes preview/start, resume, and history detail.
 
+**Plans:** 5 plans
+
+Plans:
+**Wave 0**
+
+- [ ] 20-01-PLAN.md — GoRouter widget-test harness (infra for FLOW-02/FLOW-03 test coverage)
+
+**Wave 1**
+
+- [ ] 20-02-PLAN.md — KeyboardObstructionScope extraction (FLOW-01)
+- [ ] 20-03-PLAN.md — plannedWorkoutPreview route + provider + PlannedWorkoutPreviewView (FLOW-02)
+
+**Wave 2** *(blocked on Wave 1 completion — 20-03)*
+
+- [ ] 20-04-PLAN.md — Status-gated View-workout routing: done/in-progress to WorkoutHistoryView (FLOW-03)
+
+**Wave 3** *(blocked on Wave 2 completion — 20-04)*
+
+- [ ] 20-05-PLAN.md — Calendar occurrence wiring: initialScheduleId + highlight for MonthCalendar and WeekBoard (FLOW-03)
+
+
 ### Phase 21: CrossFit & GPP Training Tracks
 
 **Goal:** Support structured CrossFit and GPP training programs with multi-segment session blueprints and scaled gymnastics/metcons.
