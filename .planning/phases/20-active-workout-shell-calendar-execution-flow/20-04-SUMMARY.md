@@ -95,3 +95,7 @@ None - no external service configuration required.
 ---
 *Phase: 20-active-workout-shell-calendar-execution-flow*
 *Completed: 2026-09-16*
+
+## Self-Check: PASSED
+
+All created/modified files and referenced commits (730c1af, 686580c, ed1bd98) verified present.
