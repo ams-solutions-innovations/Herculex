@@ -34,6 +34,11 @@ class ScheduledWorkoutRow {
   String get status => schedule.status;
   int get orderIndex => schedule.orderIndex;
 
+  /// The real session this occurrence started, set at start time (not
+  /// completion) by `ScheduledWorkoutService.startScheduledWorkoutById` — so
+  /// it is already populated for both `in_progress` and `done` rows.
+  int? get completedSessionId => schedule.completedSessionId;
+
   /// Minutes since midnight this occurrence is scheduled to start, or null
   /// for "no particular time" (v28).
   int? get startTimeMinutes => schedule.startTimeMinutes;
