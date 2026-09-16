@@ -3,6 +3,18 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/wave_label.dart';
 
 void main() {
+  group('WaveLabelInfo.label', () {
+    test('matches 19-UI-SPEC.md copy example verbatim', () {
+      const info = WaveLabelInfo(
+        waveIndex: 2,
+        waveCount: 4,
+        waveStartWeek: 2,
+        waveEndWeek: 3,
+      );
+      expect(info.label, 'Exercise wave 2 of 4 · Weeks 3–4');
+    });
+  });
+
   group('WaveLabel.compute', () {
     test(
       'A,A,B,B rotation: viewing week 1 (0-based) returns wave 1 of 2, weeks 0-1',
