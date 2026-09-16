@@ -139,6 +139,28 @@ Plans:
 
 **Success:** Sessions structured into warmup, skill/strength, metcon, and cooldown segments; AMRAP, EMOM, and For Time formats preserve time caps; Full Body 2× + GPP split delivers dedicated conditioning without 8×3 sets.
 
+**Plans:** 7 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 21-01-PLAN.md — Wave 1: SessionSegment enum + CrossfitSlotNeed descriptor + schema v44 (sessionSegment ×2, supersetGroup, plannedSessionSegment) + matching Supabase migration [BLOCKING]
+- [ ] 21-02-PLAN.md — Wave 1: CrossfitScalingPolicy — time caps per level, complexity ceiling, recovery-reserve day-spacing check (D-06)
+- [ ] 21-03-PLAN.md — Wave 1: WorkoutDurationEstimator.estimateCappedSegment + prerequisiteSlugs metadata curation (kipping/strict muscle-up, 6 Olympic lifts)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 21-04-PLAN.md — Wave 2: CrossfitProgramPlanner — warmup/skill/strength/metcon/cooldown segment assembly, AMRAP/EMOM/For-Time format rotation (D-01–D-05)
+- [ ] 21-05-PLAN.md — Wave 2: GppProgramPlanner — standalone GPP day content, Dynamic-Effort guard hardening (CF-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 21-06-PLAN.md — Wave 3: Wire CrossfitProgramPlanner/GppProgramPlanner into smart_program_planner.dart, week-driven format rotation, capped-duration trim, end-to-end regression tests
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 21-07-PLAN.md — Wave 4: Thread sessionSegment/supersetGroup through planned_session_resolver.dart materialization, end-to-end threading tests
+
 ### Phase 22: Primary Lift Strength Specialization
 
 **Goal:** Enable specialized strength programs centered around a single target lift (e.g. Squat) with sticking point transfer exercises and baseline volume maintenance.
