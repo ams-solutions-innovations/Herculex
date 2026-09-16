@@ -6,6 +6,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 
