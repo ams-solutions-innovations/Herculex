@@ -94,3 +94,12 @@ None - no external service configuration required.
 ---
 *Phase: 19-program-wave-editor-with-explainable-periodization*
 *Completed: 2026-09-16*
+
+## Self-Check: PASSED
+
+- FOUND: lib/features/programs/presentation/views/program_method_guide_view.dart
+- FOUND: test/program_method_guide_test.dart
+- FOUND: test/program_exercise_replacement_scope_test.dart
+- FOUND: .planning/phases/19-program-wave-editor-with-explainable-periodization/19-03-SUMMARY.md
+- FOUND commit: c1f8047 (Task 1)
+- FOUND commit: 5be90eb (Task 2)
