@@ -8,6 +8,7 @@ import 'package:herculex/features/programs/data/rotations_repository.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/domain/wave_label.dart';
 
 final programsRepositoryProvider = Provider<ProgramsRepository>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -62,6 +63,29 @@ final programDayExerciseSummariesProvider =
           .watch(programsRepositoryProvider)
           .watchDayExerciseSummaries(dayId);
     });
+
+/// D-05's "Exercise wave X of Y · Weeks A–B" indicator for one viewed week.
+/// `null` when the week has no anchor `main` slot.
+typedef WaveLabelArgs = ({
+  int programId,
+  int programWeekId,
+  int weekIndex,
+  int totalWeeks,
+});
+
+final waveLabelProvider = FutureProvider.family<WaveLabelInfo?, WaveLabelArgs>((
+  ref,
+  args,
+) {
+  return ref
+      .watch(programsRepositoryProvider)
+      .getWaveLabelInfo(
+        programId: args.programId,
+        programWeekId: args.programWeekId,
+        weekIndex: args.weekIndex,
+        totalWeeks: args.totalWeeks,
+      );
+});
 
 /// A date window to load the schedule for. A value type, so the family does not
 /// mint (and leak) a fresh provider on every rebuild the way a raw `DateTime`
