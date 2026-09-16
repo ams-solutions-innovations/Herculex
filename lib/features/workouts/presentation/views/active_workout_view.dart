@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/keyboard_obstruction_scope.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/buddy/application/buddy_providers.dart';
@@ -370,104 +371,84 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
         // ── Floating action bar ─────────────────────────────────────────
         // Hidden while the keyboard is up (logging kg/reps/RPE) so it never
         // covers the field being edited; slides back in once it closes.
-        AnimatedPositioned(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          left: 0,
-          right: 0,
-          bottom: keyboardOpen ? -140 : 0,
-          // Exclude the hidden controls as well as ignoring their pointers:
-          // screen readers must not announce actions that cannot be used
-          // while a numeric input has the keyboard open.
-          child: ExcludeSemantics(
-            excluding: keyboardOpen,
-            child: IgnorePointer(
-              ignoring: keyboardOpen,
-              child: AnimatedOpacity(
-                // Hide immediately when typing so this bar cannot overlap the
-                // focused field; retain the app's usual fade on return.
-                duration: keyboardOpen
-                    ? Duration.zero
-                    : const Duration(milliseconds: 150),
-                opacity: keyboardOpen ? 0 : 1,
-                child: SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _FloatyButton(
-                            text: 'Exercise',
-                            icon: Icons.add,
-                            isPrimary: false,
-                            onTap: () async {
-                              final results = await ExercisePickerSheet.show(
-                                context,
-                              );
-                              if (results == null ||
-                                  results.isEmpty ||
-                                  !context.mounted) {
-                                return;
-                              }
-                              final circuitIds = <int>{};
-                              for (final result in results) {
-                                if (!context.mounted) return;
-                                if (result.circuitId != null) {
-                                  if (!circuitIds.contains(result.circuitId!)) {
-                                    circuitIds.add(result.circuitId!);
-                                    await ref
-                                        .read(circuitsRepositoryProvider)
-                                        .addCircuitToSession(
-                                          sessionId: session.id,
-                                          circuitId: result.circuitId!,
-                                        );
-                                  }
-                                  continue;
-                                }
-                                final picked = result.exercise;
-                                final String? variant =
-                                    result.equipmentVariant ??
-                                    ((results.length > 1 ||
-                                            result.equipmentAlreadyChosen)
-                                        ? picked.modality
-                                        : await EquipmentVariantSheet.show(
-                                            context,
-                                            picked,
-                                          ));
-                                if (variant == null) continue;
-                                if (buddySender != null) {
-                                  await buddySender.addExercise(
-                                    exerciseId: picked.id,
-                                    equipmentVariant: variant,
-                                    scope: BuddyScope.both,
-                                  );
-                                } else {
-                                  await repo.addExerciseToSession(
+        KeyboardObstructionScope(
+          hidden: keyboardOpen,
+          hiddenOffset: 140,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _FloatyButton(
+                      text: 'Exercise',
+                      icon: Icons.add,
+                      isPrimary: false,
+                      onTap: () async {
+                        final results = await ExercisePickerSheet.show(
+                          context,
+                        );
+                        if (results == null ||
+                            results.isEmpty ||
+                            !context.mounted) {
+                          return;
+                        }
+                        final circuitIds = <int>{};
+                        for (final result in results) {
+                          if (!context.mounted) return;
+                          if (result.circuitId != null) {
+                            if (!circuitIds.contains(result.circuitId!)) {
+                              circuitIds.add(result.circuitId!);
+                              await ref
+                                  .read(circuitsRepositoryProvider)
+                                  .addCircuitToSession(
                                     sessionId: session.id,
-                                    exerciseId: picked.id,
-                                    equipmentVariant: variant,
+                                    circuitId: result.circuitId!,
                                   );
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _FloatyButton(
-                            text: 'Finish',
-                            icon: Icons.check,
-                            isPrimary: true,
-                            onTap: () async {
-                              await _showFinishSummary(session);
-                            },
-                          ),
-                        ),
-                      ],
+                            }
+                            continue;
+                          }
+                          final picked = result.exercise;
+                          final String? variant =
+                              result.equipmentVariant ??
+                              ((results.length > 1 ||
+                                      result.equipmentAlreadyChosen)
+                                  ? picked.modality
+                                  : await EquipmentVariantSheet.show(
+                                      context,
+                                      picked,
+                                    ));
+                          if (variant == null) continue;
+                          if (buddySender != null) {
+                            await buddySender.addExercise(
+                              exerciseId: picked.id,
+                              equipmentVariant: variant,
+                              scope: BuddyScope.both,
+                            );
+                          } else {
+                            await repo.addExerciseToSession(
+                              sessionId: session.id,
+                              exerciseId: picked.id,
+                              equipmentVariant: variant,
+                            );
+                          }
+                        }
+                      },
                     ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _FloatyButton(
+                      text: 'Finish',
+                      icon: Icons.check,
+                      isPrimary: true,
+                      onTap: () async {
+                        await _showFinishSummary(session);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
