@@ -89,7 +89,7 @@ Plans:
 
 **Success:** Single active week view with Week dropdown and Wave indicator; exercise replacement supports `thisWave`, `thisAndFutureWaves`, and `entireBlock` scopes; periodization guide provides transparent 8-week examples; edits never alter started workouts.
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -100,7 +100,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion — 19-01, 19-02)*
 
-- [ ] 19-04-PLAN.md — Retrofit block_detail_view.dart: Week dropdown + wave-strip + per-exercise replacement (part/part-of split)
+- [x] 19-04-PLAN.md — Retrofit block_detail_view.dart: Week dropdown + wave-strip + per-exercise replacement (part/part-of split)
 
 ### Phase 20: Active Workout Shell & Calendar Execution Flow
 
