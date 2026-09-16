@@ -62,8 +62,9 @@ class _PlanBody extends StatelessWidget {
   final int scheduleId;
 
   bool get _showStartCta =>
-      data.status == ScheduleStatus.planned ||
-      data.status == ScheduleStatus.moved;
+      data.plan.exercises.isNotEmpty &&
+      (data.status == ScheduleStatus.planned ||
+          data.status == ScheduleStatus.moved);
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     try {
