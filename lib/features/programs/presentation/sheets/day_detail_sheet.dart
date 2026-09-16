@@ -418,11 +418,29 @@ class _SessionCard extends ConsumerWidget {
     }
   }
 
-  /// Pushes the standalone preview route rather than a sheet-on-sheet, so
-  /// looking ahead in the calendar gets a real back-stack entry — and never
-  /// materializes a session, since the preview resolves its own plan
-  /// read-only via `plannedWorkoutPreviewProvider`.
+  /// Status-gated: `done`/`in_progress` rows already have a real session
+  /// (`completedSessionId` is set at start time, not completion) so they open
+  /// the actual logged/live `WorkoutHistoryView` — never the stale plan.
+  /// Every other status (`planned`, `moved`, `skipped`) still pushes the
+  /// standalone preview route, so looking ahead in the calendar gets a real
+  /// back-stack entry and never materializes a session, since the preview
+  /// resolves its own plan read-only via `plannedWorkoutPreviewProvider`.
   Future<void> _viewWorkout(BuildContext context, WidgetRef ref) async {
+    if (row.isDone || row.isInProgress) {
+      final completedSessionId = row.completedSessionId;
+      if (completedSessionId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This scheduled workout no longer exists.'),
+          ),
+        );
+        return;
+      }
+      Navigator.of(context).pop();
+      if (!context.mounted) return;
+      context.push(AppPaths.workoutHistory(completedSessionId));
+      return;
+    }
     Navigator.of(context).pop();
     if (!context.mounted) return;
     context.push(AppPaths.plannedWorkoutPreview(row.id));
