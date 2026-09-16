@@ -89,14 +89,14 @@ Plans:
 
 **Success:** Single active week view with Week dropdown and Wave indicator; exercise replacement supports `thisWave`, `thisAndFutureWaves`, and `entireBlock` scopes; periodization guide provides transparent 8-week examples; edits never alter started workouts.
 
-**Plans:** 4 plans
+**Plans:** 3/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 19-01-PLAN.md — WaveLabel domain function (anchor-slot wave-boundary walk + count, TDD)
-- [ ] 19-02-PLAN.md — Extract ExerciseReplacementSheet into a shared presentation/sheets/ file
-- [ ] 19-03-PLAN.md — Periodization guide 8-week expansion + EDIT-03 replace/rematerialize safety regression test
+- [x] 19-01-PLAN.md — WaveLabel domain function (anchor-slot wave-boundary walk + count, TDD)
+- [x] 19-02-PLAN.md — Extract ExerciseReplacementSheet into a shared presentation/sheets/ file
+- [x] 19-03-PLAN.md — Periodization guide 8-week expansion + EDIT-03 replace/rematerialize safety regression test
 
 **Wave 2** *(blocked on Wave 1 completion — 19-01, 19-02)*
 
