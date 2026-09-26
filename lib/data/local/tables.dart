@@ -283,6 +283,7 @@ class WorkoutExercises extends Table with SyncColumns, SyncTombstone {
     onDelete: KeyAction.setNull,
   )();
   TextColumn get plannedSlotRole => text().nullable()();
+  TextColumn get plannedSessionSegment => text().nullable()();
   TextColumn get plannedTrainingMethod => text().nullable()();
   TextColumn get plannedPrescriptionWhy => text().nullable()();
   IntColumn get plannedWaveIndex => integer().nullable()();
@@ -834,6 +835,9 @@ class ProgramDayExercises extends Table with SyncColumns, SyncTombstone {
     onDelete: KeyAction.setNull,
   )();
   TextColumn get slotRole => text().withDefault(const Constant('accessory'))();
+  TextColumn get sessionSegment => text().nullable()();
+  // Same group number across rows ⇒ superset/metcon group. Null = standalone.
+  IntColumn get supersetGroup => integer().nullable()();
   TextColumn get trainingMethod => text().withDefault(const Constant('auto'))();
   IntColumn get targetRir => integer().nullable()();
   IntColumn get restSeconds => integer().nullable()();
@@ -855,6 +859,7 @@ class ProgramExerciseSlots extends Table with SyncColumns, SyncTombstone {
   TextColumn get daySlotLabel => text()();
   IntColumn get orderIndex => integer()();
   TextColumn get role => text().withDefault(const Constant('accessory'))();
+  TextColumn get sessionSegment => text().nullable()();
   TextColumn get movementPattern => text().nullable()();
   TextColumn get primaryMuscle => text().nullable()();
   TextColumn get trainingMethod => text().withDefault(const Constant('auto'))();
