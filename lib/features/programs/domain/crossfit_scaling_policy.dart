@@ -22,19 +22,19 @@ class CrossfitTimeCapResult {
   const CrossfitTimeCapResult.capped({
     required this.capSeconds,
     required this.rationale,
-  })  : hasCap = true,
-        minutes = null;
+  }) : hasCap = true,
+       minutes = null;
 
   const CrossfitTimeCapResult.emomMinutes({
     required this.minutes,
     required this.rationale,
-  })  : hasCap = true,
-        capSeconds = null;
+  }) : hasCap = true,
+       capSeconds = null;
 
   const CrossfitTimeCapResult.noCap({required this.rationale})
-      : hasCap = false,
-        capSeconds = null,
-        minutes = null;
+    : hasCap = false,
+      capSeconds = null,
+      minutes = null;
 
   final bool hasCap;
   final int? capSeconds;
@@ -45,10 +45,10 @@ class CrossfitTimeCapResult {
 /// Result of [CrossfitScalingPolicy.complexityCheck].
 class CrossfitComplexityResult {
   const CrossfitComplexityResult.success({required this.rationale})
-      : isSafe = true;
+    : isSafe = true;
 
   const CrossfitComplexityResult.exceedsCeiling({required this.rationale})
-      : isSafe = false;
+    : isSafe = false;
 
   final bool isSafe;
   final String rationale;
@@ -109,7 +109,8 @@ class CrossfitScalingPolicy {
       final minutes = (_baseEmomMinutes * multiplier).round();
       return CrossfitTimeCapResult.emomMinutes(
         minutes: minutes,
-        rationale: 'EMOM length scaled to ${level.label} '
+        rationale:
+            'EMOM length scaled to ${level.label} '
             '(${multiplier}x base ${_baseEmomMinutes}min) = $minutes min.',
       );
     }
@@ -124,11 +125,12 @@ class CrossfitScalingPolicy {
     final capSeconds = (baseSeconds * multiplier).round();
     final boundNote = format == SetType.forTime
         ? ' This is a conservative time-budget upper bound, not a predicted '
-            'completion time.'
+              'completion time.'
         : '';
     return CrossfitTimeCapResult.capped(
       capSeconds: capSeconds,
-      rationale: '${format.label} time cap scaled to ${level.label} '
+      rationale:
+          '${format.label} time cap scaled to ${level.label} '
           '(${multiplier}x base ${baseSeconds}s) = ${capSeconds}s.$boundNote',
     );
   }
@@ -147,7 +149,8 @@ class CrossfitScalingPolicy {
   }) {
     if (advancedMovementCount >= 2) {
       return CrossfitComplexityResult.exceedsCeiling(
-        rationale: 'Stacking $advancedMovementCount advanced/just-unlocked '
+        rationale:
+            'Stacking $advancedMovementCount advanced/just-unlocked '
             'movements in one metcon is never allowed, regardless of level.',
       );
     }
@@ -155,14 +158,57 @@ class CrossfitScalingPolicy {
     final ceiling = movementCeilingFor(level);
     if (movementCount > ceiling) {
       return CrossfitComplexityResult.exceedsCeiling(
-        rationale: 'Metcon has $movementCount movements, exceeding the '
+        rationale:
+            'Metcon has $movementCount movements, exceeding the '
             '${level.label} ceiling of $ceiling.',
       );
     }
 
     return CrossfitComplexityResult.success(
-      rationale: 'Metcon has $movementCount movements within the '
+      rationale:
+          'Metcon has $movementCount movements within the '
           '${level.label} ceiling of $ceiling.',
     );
+  }
+
+  /// Advisory back-to-back CrossFit/GPP day-spacing warnings.
+  ///
+  /// Scope boundary: this only inspects weekly `ScheduleMode` layouts, where
+  /// [labelsByDayOfWeek] keys are `dayOfWeek` values 1-7 (mirrors
+  /// `SplitDaySpec.dayOfWeek`). Cycle-mode schedules are out of scope for
+  /// this phase, since the shipped CrossFit/GPP split templates
+  /// (`SplitType.crossfit`, `SplitType.fullBodyAbGpp`) both use
+  /// `ScheduleMode.weekly`.
+  ///
+  /// This is explicitly advisory — it returns warnings, not a hard block.
+  /// CONTEXT.md's D-06 only requires the axis be resolved with a real
+  /// mechanism, not that it become a new hard filter alongside
+  /// injury/equipment/style/experience/prerequisites.
+  static List<String> recoveryReserveWarning({
+    required Map<int, String> labelsByDayOfWeek,
+  }) {
+    final warnings = <String>[];
+    for (final day in labelsByDayOfWeek.keys) {
+      final nextDay = day + 1;
+      final label = labelsByDayOfWeek[day];
+      final nextLabel = labelsByDayOfWeek[nextDay];
+      if (label == null || nextLabel == null) continue;
+      if (_isCrossfitOrGpp(label) && _isCrossfitOrGpp(nextLabel)) {
+        warnings.add(
+          'Day $day ("$label") and day $nextDay ("$nextLabel") are '
+          'back-to-back high-fatigue CrossFit/GPP days with no rest day '
+          'between them.',
+        );
+      }
+    }
+    return warnings;
+  }
+
+  static bool _isCrossfitOrGpp(String label) {
+    final lower = label.toLowerCase();
+    return lower == 'crossfit' ||
+        lower == 'gpp' ||
+        lower.contains('crossfit') ||
+        lower.contains('gpp');
   }
 }

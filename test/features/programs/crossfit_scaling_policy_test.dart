@@ -64,9 +64,7 @@ void main() {
         2,
       );
       expect(
-        CrossfitScalingPolicy.movementCeilingFor(
-          ExperienceLevel.intermediate,
-        ),
+        CrossfitScalingPolicy.movementCeilingFor(ExperienceLevel.intermediate),
         3,
       );
       expect(
@@ -97,15 +95,17 @@ void main() {
       expect(result.rationale, isNotEmpty);
     });
 
-    test('advanced with a single advanced movement within ceiling succeeds',
-        () {
-      final result = CrossfitScalingPolicy.complexityCheck(
-        movementCount: 2,
-        hasAdvancedMovement: true,
-        level: ExperienceLevel.advanced,
-      );
-      expect(result.isSafe, isTrue);
-    });
+    test(
+      'advanced with a single advanced movement within ceiling succeeds',
+      () {
+        final result = CrossfitScalingPolicy.complexityCheck(
+          movementCount: 2,
+          hasAdvancedMovement: true,
+          level: ExperienceLevel.advanced,
+        );
+        expect(result.isSafe, isTrue);
+      },
+    );
 
     test('stacking two advanced movements fails regardless of level', () {
       final result = CrossfitScalingPolicy.complexityCheck(
@@ -118,4 +118,28 @@ void main() {
     });
   });
 
+  group('CrossfitScalingPolicy.recoveryReserveWarning', () {
+    test('back-to-back CrossFit/GPP days produce a warning', () {
+      final warnings = CrossfitScalingPolicy.recoveryReserveWarning(
+        labelsByDayOfWeek: {1: 'CrossFit', 2: 'GPP'},
+      );
+      expect(warnings, isNotEmpty);
+      expect(warnings.first, contains('1'));
+      expect(warnings.first, contains('2'));
+    });
+
+    test('a rest day between CrossFit/GPP days produces no warning', () {
+      final warnings = CrossfitScalingPolicy.recoveryReserveWarning(
+        labelsByDayOfWeek: {1: 'CrossFit', 3: 'GPP'},
+      );
+      expect(warnings, isEmpty);
+    });
+
+    test('only one of two adjacent days labeled CrossFit/GPP is fine', () {
+      final warnings = CrossfitScalingPolicy.recoveryReserveWarning(
+        labelsByDayOfWeek: {1: 'CrossFit', 2: 'Push'},
+      );
+      expect(warnings, isEmpty);
+    });
+  });
 }
