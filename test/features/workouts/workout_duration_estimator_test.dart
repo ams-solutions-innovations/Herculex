@@ -126,6 +126,38 @@ void main() {
     });
   });
 
+  group('WorkoutDurationEstimator.estimateCappedSegment', () {
+    test('returns the cap verbatim as a Duration, no per-rep math applied', () {
+      final capped = WorkoutDurationEstimator.estimateCappedSegment(
+        capSeconds: 600,
+      );
+      expect(capped, const Duration(seconds: 600));
+    });
+
+    test('composes with estimateSession alongside a per-rep exercise', () {
+      final cappedSegment = WorkoutDurationEstimator.estimateCappedSegment(
+        capSeconds: 600,
+      );
+      final exercise = WorkoutDurationEstimator.estimateExercise(
+        workingSets: 3,
+        repsMin: 8,
+        repsMax: 8,
+        restSeconds: 90,
+        setType: SetType.standard,
+      );
+
+      final total = WorkoutDurationEstimator.estimateSession([
+        cappedSegment,
+        exercise,
+      ]);
+
+      expect(
+        total,
+        cappedSegment + exercise + const Duration(seconds: 2 * 90),
+      );
+    });
+  });
+
   group('WorkoutDurationEstimator.estimateSession', () {
     test(
       'total accounts for one inter-exercise transition per exercise, '
