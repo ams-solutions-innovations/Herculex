@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/exercise_programming_eligibility.dart';
 import 'package:herculex/features/programs/domain/exercise_scaling_resolver.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 
@@ -323,6 +324,144 @@ void main() {
           result.rationale,
           contains('No safe candidate found in scaling ladder "vertical_pull"'),
         );
+      },
+    );
+  });
+
+  group('CrossFit prerequisite gating (CF-02)', () {
+    final frontSquat = _makeExercise(
+      id: 101,
+      slug: 'front-squat',
+      name: 'Front Squat',
+      programmingDifficulty: 'intermediate',
+      programmingCommonness: 'basic',
+      allowedTrainingStyles: '["basic", "weightlifting", "crossfit"]',
+      modality: 'barbell',
+    );
+
+    final overheadPress = _makeExercise(
+      id: 102,
+      slug: 'overhead-press',
+      name: 'Overhead Press',
+      programmingDifficulty: 'intermediate',
+      programmingCommonness: 'basic',
+      allowedTrainingStyles: '["basic", "weightlifting", "crossfit"]',
+      modality: 'barbell',
+    );
+
+    final powerClean = _makeExercise(
+      id: 103,
+      slug: 'power-clean',
+      name: 'Power Clean',
+      programmingDifficulty: 'advanced',
+      programmingCommonness: 'basic',
+      technicalEligibility: 'technical_review',
+      allowedTrainingStyles: '["crossfit", "weightlifting"]',
+      modality: 'barbell',
+      prerequisiteSlugs: '["front-squat","overhead-press"]',
+    );
+
+    final cleanCatalogBySlug = {
+      frontSquat.slug!: frontSquat,
+      overheadPress.slug!: overheadPress,
+      powerClean.slug!: powerClean,
+    };
+
+    test(
+      'power-clean gates a novice with no completed front-squat/overhead-press history',
+      () {
+        final result = ExerciseProgrammingEligibility.verifyPrerequisites(
+          prerequisiteSlugsJson: powerClean.prerequisiteSlugs,
+          userExperience: ExperienceLevel.novice,
+          completedExerciseSlugs: const {},
+          completedMovementSlugs: const {},
+          catalogBySlug: cleanCatalogBySlug,
+        );
+
+        expect(result, isFalse);
+      },
+    );
+
+    test(
+      'power-clean admits a novice once front-squat and overhead-press are both completed',
+      () {
+        final result = ExerciseProgrammingEligibility.verifyPrerequisites(
+          prerequisiteSlugsJson: powerClean.prerequisiteSlugs,
+          userExperience: ExperienceLevel.novice,
+          completedExerciseSlugs: const {'front-squat', 'overhead-press'},
+          completedMovementSlugs: const {},
+          catalogBySlug: cleanCatalogBySlug,
+        );
+
+        expect(result, isTrue);
+      },
+    );
+
+    final pullUpGate = _makeExercise(
+      id: 104,
+      slug: 'pull-up',
+      name: 'Pull-Up',
+      programmingDifficulty: 'intermediate',
+      programmingCommonness: 'basic',
+      allowedTrainingStyles: '["basic", "calisthenics"]',
+      modality: 'bodyweight',
+    );
+
+    final chestDips = _makeExercise(
+      id: 105,
+      slug: 'chest-dips',
+      name: 'Chest Dips',
+      programmingDifficulty: 'intermediate',
+      programmingCommonness: 'basic',
+      allowedTrainingStyles: '["basic", "calisthenics"]',
+      modality: 'bodyweight',
+    );
+
+    final kippingMuscleUp = _makeExercise(
+      id: 106,
+      slug: 'kipping-muscle-up',
+      name: 'Kipping Muscle-Up',
+      programmingDifficulty: 'advanced',
+      programmingCommonness: 'specialty',
+      technicalEligibility: 'manual_only',
+      allowedTrainingStyles: '["calisthenics", "crossfit"]',
+      modality: 'bodyweight',
+      prerequisiteSlugs: '["pull-up","chest-dips"]',
+    );
+
+    final muscleUpCatalogBySlug = {
+      pullUpGate.slug!: pullUpGate,
+      chestDips.slug!: chestDips,
+      kippingMuscleUp.slug!: kippingMuscleUp,
+    };
+
+    test(
+      'kipping-muscle-up gates a novice with no completed pull-up/chest-dips history',
+      () {
+        final result = ExerciseProgrammingEligibility.verifyPrerequisites(
+          prerequisiteSlugsJson: kippingMuscleUp.prerequisiteSlugs,
+          userExperience: ExperienceLevel.novice,
+          completedExerciseSlugs: const {},
+          completedMovementSlugs: const {},
+          catalogBySlug: muscleUpCatalogBySlug,
+        );
+
+        expect(result, isFalse);
+      },
+    );
+
+    test(
+      'kipping-muscle-up admits a novice once pull-up and chest-dips are both completed',
+      () {
+        final result = ExerciseProgrammingEligibility.verifyPrerequisites(
+          prerequisiteSlugsJson: kippingMuscleUp.prerequisiteSlugs,
+          userExperience: ExperienceLevel.novice,
+          completedExerciseSlugs: const {'pull-up', 'chest-dips'},
+          completedMovementSlugs: const {},
+          catalogBySlug: muscleUpCatalogBySlug,
+        );
+
+        expect(result, isTrue);
       },
     );
   });

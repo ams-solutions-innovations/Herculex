@@ -381,7 +381,10 @@
         "weights",
         "crossfit"
       ],
-      "prerequisiteSlugs": [],
+      "prerequisiteSlugs": [
+        "front-squat",
+        "overhead-press"
+      ],
       "scalingGroup": null,
       "scalingOrder": null,
       "competitionAnchor": null,
@@ -400,7 +403,10 @@
         "weights",
         "crossfit"
       ],
-      "prerequisiteSlugs": [],
+      "prerequisiteSlugs": [
+        "front-squat",
+        "overhead-press"
+      ],
       "scalingGroup": null,
       "scalingOrder": null,
       "competitionAnchor": null,
@@ -419,7 +425,10 @@
         "weights",
         "crossfit"
       ],
-      "prerequisiteSlugs": [],
+      "prerequisiteSlugs": [
+        "front-squat",
+        "overhead-press"
+      ],
       "scalingGroup": null,
       "scalingOrder": null,
       "competitionAnchor": null,
@@ -438,7 +447,10 @@
         "weights",
         "crossfit"
       ],
-      "prerequisiteSlugs": [],
+      "prerequisiteSlugs": [
+        "front-squat",
+        "overhead-press"
+      ],
       "scalingGroup": null,
       "scalingOrder": null,
       "competitionAnchor": null,
@@ -457,7 +469,10 @@
         "weights",
         "crossfit"
       ],
-      "prerequisiteSlugs": [],
+      "prerequisiteSlugs": [
+        "front-squat",
+        "overhead-press"
+      ],
       "scalingGroup": null,
       "scalingOrder": null,
       "competitionAnchor": null,
@@ -476,7 +491,10 @@
         "weights",
         "crossfit"
       ],
-      "prerequisiteSlugs": [],
+      "prerequisiteSlugs": [
+        "front-squat",
+        "overhead-press"
+      ],
       "scalingGroup": null,
       "scalingOrder": null,
       "competitionAnchor": null,
@@ -1236,7 +1254,10 @@
       "disciplines": [
         "calisthenics"
       ],
-      "prerequisiteSlugs": [],
+      "prerequisiteSlugs": [
+        "pull-up",
+        "chest-dips"
+      ],
       "scalingGroup": null,
       "scalingOrder": null,
       "competitionAnchor": null,
@@ -1254,7 +1275,10 @@
         "calisthenics",
         "crossfit"
       ],
-      "prerequisiteSlugs": [],
+      "prerequisiteSlugs": [
+        "pull-up",
+        "chest-dips"
+      ],
       "scalingGroup": null,
       "scalingOrder": null,
       "competitionAnchor": null,
