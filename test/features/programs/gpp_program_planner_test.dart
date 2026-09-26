@@ -13,17 +13,14 @@ void main() {
       expect(needs.single.segment, SessionSegment.metcon);
     });
 
-    test(
-      'never emits SlotRole.main or SlotRole.supplemental — the '
-      'role.isHeavy-gated Dynamic-Effort guard structurally cannot fire',
-      () {
-        final needs = GppProgramPlanner.segmentNeedsFor();
+    test('never emits SlotRole.main or SlotRole.supplemental — the '
+        'role.isHeavy-gated Dynamic-Effort guard structurally cannot fire', () {
+      final needs = GppProgramPlanner.segmentNeedsFor();
 
-        expect(needs.any((n) => n.role == SlotRole.main), isFalse);
-        expect(needs.any((n) => n.role == SlotRole.supplemental), isFalse);
-        expect(needs.any((n) => n.role.isHeavy), isFalse);
-      },
-    );
+      expect(needs.any((n) => n.role == SlotRole.main), isFalse);
+      expect(needs.any((n) => n.role == SlotRole.supplemental), isFalse);
+      expect(needs.any((n) => n.role.isHeavy), isFalse);
+    });
 
     test(
       'no warmup/skill/strength/cooldown segments — GPP is narrow, '
@@ -40,13 +37,13 @@ void main() {
     );
   });
 
-  group('SlotRoleEligibility DE-guard interaction (documented, not re-tested here)', () {
-    test(
-      'SlotRole.conditioning is derivable for a synthetic cardio/timed '
-      'exercise, but GppProgramPlanner never returns SlotRole.main or '
-      '.supplemental, so it never becomes eligible for the .isHeavy-gated '
-      'Dynamic-Effort branch in smart_program_planner.dart',
-      () {
+  group(
+    'SlotRoleEligibility DE-guard interaction (documented, not re-tested here)',
+    () {
+      test('SlotRole.conditioning is derivable for a synthetic cardio/timed '
+          'exercise, but GppProgramPlanner never returns SlotRole.main or '
+          '.supplemental, so it never becomes eligible for the .isHeavy-gated '
+          'Dynamic-Effort branch in smart_program_planner.dart', () {
         final mask = SlotRoleEligibility.derive(
           mechanics: 'isolation',
           modality: 'bodyweight',
@@ -57,7 +54,10 @@ void main() {
 
         expect(SlotRoleEligibility.allows(mask, SlotRole.conditioning), isTrue);
         expect(SlotRoleEligibility.allows(mask, SlotRole.main), isFalse);
-        expect(SlotRoleEligibility.allows(mask, SlotRole.supplemental), isFalse);
+        expect(
+          SlotRoleEligibility.allows(mask, SlotRole.supplemental),
+          isFalse,
+        );
 
         // The full end-to-end "populate() never emits dynamicEffort for a
         // GPP day" regression test (exercising `_methodFor` through
@@ -68,7 +68,7 @@ void main() {
         for (final need in needs) {
           expect(need.role.isHeavy, isFalse);
         }
-      },
-    );
-  });
+      });
+    },
+  );
 }
