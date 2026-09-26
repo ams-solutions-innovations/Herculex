@@ -52,7 +52,7 @@
 ### 7. CrossFit & GPP Training Tracks (Phase 21)
 
 - [x] **CF-01**: CrossFit sessions structure into ordered blueprint segments (warmup, skill/strength, metcon, cooldown) with time caps.
-- [ ] **CF-02**: CrossFit experience levels scale movement complexity and metcon formats (AMRAP, EMOM, For Time).
+- [x] **CF-02**: CrossFit experience levels scale movement complexity and metcon formats (AMRAP, EMOM, For Time).
 - [ ] **CF-03**: Full Body 2× + GPP split delivers dedicated conditioning sessions without unintended Dynamic Effort sets.
 
 ### 8. Primary Lift Strength Specialization (Phase 22)
