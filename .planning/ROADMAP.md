@@ -139,13 +139,13 @@ Plans:
 
 **Success:** Sessions structured into warmup, skill/strength, metcon, and cooldown segments; AMRAP, EMOM, and For Time formats preserve time caps; Full Body 2× + GPP split delivers dedicated conditioning without 8×3 sets.
 
-**Plans:** 1/7 plans executed
+**Plans:** 2/7 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 21-01-PLAN.md — Wave 1: SessionSegment enum + CrossfitSlotNeed descriptor + schema v44 (sessionSegment ×2, supersetGroup, plannedSessionSegment) + matching Supabase migration [BLOCKING]
-- [ ] 21-02-PLAN.md — Wave 1: CrossfitScalingPolicy — time caps per level, complexity ceiling, recovery-reserve day-spacing check (D-06)
+- [x] 21-02-PLAN.md — Wave 1: CrossfitScalingPolicy — time caps per level, complexity ceiling, recovery-reserve day-spacing check (D-06)
 - [ ] 21-03-PLAN.md — Wave 1: WorkoutDurationEstimator.estimateCappedSegment + prerequisiteSlugs metadata curation (kipping/strict muscle-up, 6 Olympic lifts)
 
 **Wave 2** *(blocked on Wave 1 completion)*
