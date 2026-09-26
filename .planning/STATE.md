@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-26T10:36:55.488Z"
+last_updated: "2026-09-26T10:53:27.775Z"
 progress:
   total_phases: 11
   completed_phases: 6
   total_plans: 33
-  completed_plans: 30
+  completed_plans: 31
   percent: 55
 ---
 
@@ -32,11 +32,24 @@ Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 - **Phase 18: Workout Time Budget, Warmups & Set Method Prescriptions** — Pending.
 - **Phase 19: Program & Wave Editor with Explainable Periodization** — Pending.
 - **Phase 20: Active Workout Shell & Calendar Execution Flow** — Pending.
-- **Phase 21: CrossFit & GPP Training Tracks** — In progress, 4/7 plans (`/gsd:execute-phase 21`).
+- **Phase 21: CrossFit & GPP Training Tracks** — In progress, 5/7 plans (`/gsd:execute-phase 21`).
 - **Phase 22: Primary Lift Strength Specialization** — Pending.
 - **Phase 23: Persistent Dream Physique & Multi-Phase Nutrition** — Pending.
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending.
+
+---
+
+## Session update — 2026-09-26 (Phase 21 Plan 05 Completed)
+
+- Completed Plan 21-05 (CF-03): `GppProgramPlanner` segment-assembly domain service for the GPP conditioning day:
+  - Added `GppProgramPlanner.segmentNeedsFor()` in `lib/features/programs/domain/gpp_program_planner.dart`, returning exactly one `CrossfitSlotNeed(role: SlotRole.conditioning, segment: SessionSegment.metcon)`.
+  - Resolved both CONTEXT.md discretion items in code comments: GPP day shape is a standalone 3rd day matching the already-shipped `SplitType.fullBodyAbGpp` skeleton; the GPP/Dynamic-Effort guard relies on the existing `role.isHeavy`-gated structural exclude in `smart_program_planner.dart` as primary, with `SlotRoleEligibility`'s isTimed/cardio-only gate as secondary — no new disciplines-based filter added.
+  - 4-exercise gpp pool (burpee, rowing-erg, air-bike, stationary-bike) ships as-is this phase, documented as a known content-curation limitation rather than silently widened or ignored.
+  - TDD RED/GREEN: `test/features/programs/gpp_program_planner_test.dart` (4 tests) confirmed failing (compile error against non-existent class) before implementation existed, then passing after.
+  - Full end-to-end "`populate()` never emits `dynamicEffort` for a GPP day" regression explicitly deferred to Plan 21-06, where the `smart_program_planner.dart` wiring exists to exercise it.
+- Validation: 0 analyzer errors; all 4 new tests passing.
+- Next implementation focus: Plan 21-06 (wires `CrossfitProgramPlanner`/`GppProgramPlanner` into `smart_program_planner.dart`'s `_needsFor` dispatch).
 
 ---
 
