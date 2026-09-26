@@ -98,7 +98,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 43;
+  int get schemaVersion => 44;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1145,6 +1145,38 @@ class AppDatabase extends _$AppDatabase {
         await addIfMissing(
           workoutExercises,
           workoutExercises.plannedAllowsAdvancedTechniques,
+        );
+      }
+      if (from < 44 && to >= 44) {
+        Future<void> addIfMissing(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
+          ).get();
+          if (existing.isEmpty) return;
+          final names = existing.map((row) => row.read<String>('name')).toSet();
+          if (!names.contains(column.$name)) {
+            await m.addColumn(table, column);
+          }
+        }
+
+        await addIfMissing(
+          programExerciseSlots,
+          programExerciseSlots.sessionSegment,
+        );
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.sessionSegment,
+        );
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.supersetGroup,
+        );
+        await addIfMissing(
+          workoutExercises,
+          workoutExercises.plannedSessionSegment,
         );
       }
     },

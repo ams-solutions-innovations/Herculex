@@ -6591,6 +6591,17 @@ class $ProgramExerciseSlotsTable extends ProgramExerciseSlots
     requiredDuringInsert: false,
     defaultValue: const Constant('accessory'),
   );
+  static const VerificationMeta _sessionSegmentMeta = const VerificationMeta(
+    'sessionSegment',
+  );
+  @override
+  late final GeneratedColumn<String> sessionSegment = GeneratedColumn<String>(
+    'session_segment',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _movementPatternMeta = const VerificationMeta(
     'movementPattern',
   );
@@ -6697,6 +6708,7 @@ class $ProgramExerciseSlotsTable extends ProgramExerciseSlots
     daySlotLabel,
     orderIndex,
     role,
+    sessionSegment,
     movementPattern,
     primaryMuscle,
     trainingMethod,
@@ -6784,6 +6796,15 @@ class $ProgramExerciseSlotsTable extends ProgramExerciseSlots
       context.handle(
         _roleMeta,
         role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    }
+    if (data.containsKey('session_segment')) {
+      context.handle(
+        _sessionSegmentMeta,
+        sessionSegment.isAcceptableOrUnknown(
+          data['session_segment']!,
+          _sessionSegmentMeta,
+        ),
       );
     }
     if (data.containsKey('movement_pattern')) {
@@ -6911,6 +6932,10 @@ class $ProgramExerciseSlotsTable extends ProgramExerciseSlots
         DriftSqlType.string,
         data['${effectivePrefix}role'],
       )!,
+      sessionSegment: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_segment'],
+      ),
       movementPattern: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}movement_pattern'],
@@ -6964,6 +6989,7 @@ class ProgramExerciseSlotData extends DataClass
   final String daySlotLabel;
   final int orderIndex;
   final String role;
+  final String? sessionSegment;
   final String? movementPattern;
   final String? primaryMuscle;
   final String trainingMethod;
@@ -6983,6 +7009,7 @@ class ProgramExerciseSlotData extends DataClass
     required this.daySlotLabel,
     required this.orderIndex,
     required this.role,
+    this.sessionSegment,
     this.movementPattern,
     this.primaryMuscle,
     required this.trainingMethod,
@@ -7013,6 +7040,9 @@ class ProgramExerciseSlotData extends DataClass
     map['day_slot_label'] = Variable<String>(daySlotLabel);
     map['order_index'] = Variable<int>(orderIndex);
     map['role'] = Variable<String>(role);
+    if (!nullToAbsent || sessionSegment != null) {
+      map['session_segment'] = Variable<String>(sessionSegment);
+    }
     if (!nullToAbsent || movementPattern != null) {
       map['movement_pattern'] = Variable<String>(movementPattern);
     }
@@ -7054,6 +7084,9 @@ class ProgramExerciseSlotData extends DataClass
       daySlotLabel: Value(daySlotLabel),
       orderIndex: Value(orderIndex),
       role: Value(role),
+      sessionSegment: sessionSegment == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sessionSegment),
       movementPattern: movementPattern == null && nullToAbsent
           ? const Value.absent()
           : Value(movementPattern),
@@ -7091,6 +7124,7 @@ class ProgramExerciseSlotData extends DataClass
       daySlotLabel: serializer.fromJson<String>(json['daySlotLabel']),
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
       role: serializer.fromJson<String>(json['role']),
+      sessionSegment: serializer.fromJson<String?>(json['sessionSegment']),
       movementPattern: serializer.fromJson<String?>(json['movementPattern']),
       primaryMuscle: serializer.fromJson<String?>(json['primaryMuscle']),
       trainingMethod: serializer.fromJson<String>(json['trainingMethod']),
@@ -7117,6 +7151,7 @@ class ProgramExerciseSlotData extends DataClass
       'daySlotLabel': serializer.toJson<String>(daySlotLabel),
       'orderIndex': serializer.toJson<int>(orderIndex),
       'role': serializer.toJson<String>(role),
+      'sessionSegment': serializer.toJson<String?>(sessionSegment),
       'movementPattern': serializer.toJson<String?>(movementPattern),
       'primaryMuscle': serializer.toJson<String?>(primaryMuscle),
       'trainingMethod': serializer.toJson<String>(trainingMethod),
@@ -7139,6 +7174,7 @@ class ProgramExerciseSlotData extends DataClass
     String? daySlotLabel,
     int? orderIndex,
     String? role,
+    Value<String?> sessionSegment = const Value.absent(),
     Value<String?> movementPattern = const Value.absent(),
     Value<String?> primaryMuscle = const Value.absent(),
     String? trainingMethod,
@@ -7158,6 +7194,9 @@ class ProgramExerciseSlotData extends DataClass
     daySlotLabel: daySlotLabel ?? this.daySlotLabel,
     orderIndex: orderIndex ?? this.orderIndex,
     role: role ?? this.role,
+    sessionSegment: sessionSegment.present
+        ? sessionSegment.value
+        : this.sessionSegment,
     movementPattern: movementPattern.present
         ? movementPattern.value
         : this.movementPattern,
@@ -7195,6 +7234,9 @@ class ProgramExerciseSlotData extends DataClass
           ? data.orderIndex.value
           : this.orderIndex,
       role: data.role.present ? data.role.value : this.role,
+      sessionSegment: data.sessionSegment.present
+          ? data.sessionSegment.value
+          : this.sessionSegment,
       movementPattern: data.movementPattern.present
           ? data.movementPattern.value
           : this.movementPattern,
@@ -7235,6 +7277,7 @@ class ProgramExerciseSlotData extends DataClass
           ..write('daySlotLabel: $daySlotLabel, ')
           ..write('orderIndex: $orderIndex, ')
           ..write('role: $role, ')
+          ..write('sessionSegment: $sessionSegment, ')
           ..write('movementPattern: $movementPattern, ')
           ..write('primaryMuscle: $primaryMuscle, ')
           ..write('trainingMethod: $trainingMethod, ')
@@ -7259,6 +7302,7 @@ class ProgramExerciseSlotData extends DataClass
     daySlotLabel,
     orderIndex,
     role,
+    sessionSegment,
     movementPattern,
     primaryMuscle,
     trainingMethod,
@@ -7282,6 +7326,7 @@ class ProgramExerciseSlotData extends DataClass
           other.daySlotLabel == this.daySlotLabel &&
           other.orderIndex == this.orderIndex &&
           other.role == this.role &&
+          other.sessionSegment == this.sessionSegment &&
           other.movementPattern == this.movementPattern &&
           other.primaryMuscle == this.primaryMuscle &&
           other.trainingMethod == this.trainingMethod &&
@@ -7304,6 +7349,7 @@ class ProgramExerciseSlotsCompanion
   final Value<String> daySlotLabel;
   final Value<int> orderIndex;
   final Value<String> role;
+  final Value<String?> sessionSegment;
   final Value<String?> movementPattern;
   final Value<String?> primaryMuscle;
   final Value<String> trainingMethod;
@@ -7323,6 +7369,7 @@ class ProgramExerciseSlotsCompanion
     this.daySlotLabel = const Value.absent(),
     this.orderIndex = const Value.absent(),
     this.role = const Value.absent(),
+    this.sessionSegment = const Value.absent(),
     this.movementPattern = const Value.absent(),
     this.primaryMuscle = const Value.absent(),
     this.trainingMethod = const Value.absent(),
@@ -7343,6 +7390,7 @@ class ProgramExerciseSlotsCompanion
     required String daySlotLabel,
     required int orderIndex,
     this.role = const Value.absent(),
+    this.sessionSegment = const Value.absent(),
     this.movementPattern = const Value.absent(),
     this.primaryMuscle = const Value.absent(),
     this.trainingMethod = const Value.absent(),
@@ -7366,6 +7414,7 @@ class ProgramExerciseSlotsCompanion
     Expression<String>? daySlotLabel,
     Expression<int>? orderIndex,
     Expression<String>? role,
+    Expression<String>? sessionSegment,
     Expression<String>? movementPattern,
     Expression<String>? primaryMuscle,
     Expression<String>? trainingMethod,
@@ -7386,6 +7435,7 @@ class ProgramExerciseSlotsCompanion
       if (daySlotLabel != null) 'day_slot_label': daySlotLabel,
       if (orderIndex != null) 'order_index': orderIndex,
       if (role != null) 'role': role,
+      if (sessionSegment != null) 'session_segment': sessionSegment,
       if (movementPattern != null) 'movement_pattern': movementPattern,
       if (primaryMuscle != null) 'primary_muscle': primaryMuscle,
       if (trainingMethod != null) 'training_method': trainingMethod,
@@ -7409,6 +7459,7 @@ class ProgramExerciseSlotsCompanion
     Value<String>? daySlotLabel,
     Value<int>? orderIndex,
     Value<String>? role,
+    Value<String?>? sessionSegment,
     Value<String?>? movementPattern,
     Value<String?>? primaryMuscle,
     Value<String>? trainingMethod,
@@ -7429,6 +7480,7 @@ class ProgramExerciseSlotsCompanion
       daySlotLabel: daySlotLabel ?? this.daySlotLabel,
       orderIndex: orderIndex ?? this.orderIndex,
       role: role ?? this.role,
+      sessionSegment: sessionSegment ?? this.sessionSegment,
       movementPattern: movementPattern ?? this.movementPattern,
       primaryMuscle: primaryMuscle ?? this.primaryMuscle,
       trainingMethod: trainingMethod ?? this.trainingMethod,
@@ -7473,6 +7525,9 @@ class ProgramExerciseSlotsCompanion
     if (role.present) {
       map['role'] = Variable<String>(role.value);
     }
+    if (sessionSegment.present) {
+      map['session_segment'] = Variable<String>(sessionSegment.value);
+    }
     if (movementPattern.present) {
       map['movement_pattern'] = Variable<String>(movementPattern.value);
     }
@@ -7513,6 +7568,7 @@ class ProgramExerciseSlotsCompanion
           ..write('daySlotLabel: $daySlotLabel, ')
           ..write('orderIndex: $orderIndex, ')
           ..write('role: $role, ')
+          ..write('sessionSegment: $sessionSegment, ')
           ..write('movementPattern: $movementPattern, ')
           ..write('primaryMuscle: $primaryMuscle, ')
           ..write('trainingMethod: $trainingMethod, ')
@@ -8381,6 +8437,17 @@ class $WorkoutExercisesTable extends WorkoutExercises
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _plannedSessionSegmentMeta =
+      const VerificationMeta('plannedSessionSegment');
+  @override
+  late final GeneratedColumn<String> plannedSessionSegment =
+      GeneratedColumn<String>(
+        'planned_session_segment',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _plannedTrainingMethodMeta =
       const VerificationMeta('plannedTrainingMethod');
   @override
@@ -8457,6 +8524,7 @@ class $WorkoutExercisesTable extends WorkoutExercises
     programExerciseSlotId,
     rotationAssignmentId,
     plannedSlotRole,
+    plannedSessionSegment,
     plannedTrainingMethod,
     plannedPrescriptionWhy,
     plannedWaveIndex,
@@ -8589,6 +8657,15 @@ class $WorkoutExercisesTable extends WorkoutExercises
         ),
       );
     }
+    if (data.containsKey('planned_session_segment')) {
+      context.handle(
+        _plannedSessionSegmentMeta,
+        plannedSessionSegment.isAcceptableOrUnknown(
+          data['planned_session_segment']!,
+          _plannedSessionSegmentMeta,
+        ),
+      );
+    }
     if (data.containsKey('planned_training_method')) {
       context.handle(
         _plannedTrainingMethodMeta,
@@ -8703,6 +8780,10 @@ class $WorkoutExercisesTable extends WorkoutExercises
         DriftSqlType.string,
         data['${effectivePrefix}planned_slot_role'],
       ),
+      plannedSessionSegment: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}planned_session_segment'],
+      ),
       plannedTrainingMethod: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}planned_training_method'],
@@ -8756,6 +8837,7 @@ class WorkoutExerciseData extends DataClass
   final int? programExerciseSlotId;
   final int? rotationAssignmentId;
   final String? plannedSlotRole;
+  final String? plannedSessionSegment;
   final String? plannedTrainingMethod;
   final String? plannedPrescriptionWhy;
   final int? plannedWaveIndex;
@@ -8777,6 +8859,7 @@ class WorkoutExerciseData extends DataClass
     this.programExerciseSlotId,
     this.rotationAssignmentId,
     this.plannedSlotRole,
+    this.plannedSessionSegment,
     this.plannedTrainingMethod,
     this.plannedPrescriptionWhy,
     this.plannedWaveIndex,
@@ -8822,6 +8905,9 @@ class WorkoutExerciseData extends DataClass
     }
     if (!nullToAbsent || plannedSlotRole != null) {
       map['planned_slot_role'] = Variable<String>(plannedSlotRole);
+    }
+    if (!nullToAbsent || plannedSessionSegment != null) {
+      map['planned_session_segment'] = Variable<String>(plannedSessionSegment);
     }
     if (!nullToAbsent || plannedTrainingMethod != null) {
       map['planned_training_method'] = Variable<String>(plannedTrainingMethod);
@@ -8882,6 +8968,9 @@ class WorkoutExerciseData extends DataClass
       plannedSlotRole: plannedSlotRole == null && nullToAbsent
           ? const Value.absent()
           : Value(plannedSlotRole),
+      plannedSessionSegment: plannedSessionSegment == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plannedSessionSegment),
       plannedTrainingMethod: plannedTrainingMethod == null && nullToAbsent
           ? const Value.absent()
           : Value(plannedTrainingMethod),
@@ -8925,6 +9014,9 @@ class WorkoutExerciseData extends DataClass
         json['rotationAssignmentId'],
       ),
       plannedSlotRole: serializer.fromJson<String?>(json['plannedSlotRole']),
+      plannedSessionSegment: serializer.fromJson<String?>(
+        json['plannedSessionSegment'],
+      ),
       plannedTrainingMethod: serializer.fromJson<String?>(
         json['plannedTrainingMethod'],
       ),
@@ -8957,6 +9049,9 @@ class WorkoutExerciseData extends DataClass
       'programExerciseSlotId': serializer.toJson<int?>(programExerciseSlotId),
       'rotationAssignmentId': serializer.toJson<int?>(rotationAssignmentId),
       'plannedSlotRole': serializer.toJson<String?>(plannedSlotRole),
+      'plannedSessionSegment': serializer.toJson<String?>(
+        plannedSessionSegment,
+      ),
       'plannedTrainingMethod': serializer.toJson<String?>(
         plannedTrainingMethod,
       ),
@@ -8987,6 +9082,7 @@ class WorkoutExerciseData extends DataClass
     Value<int?> programExerciseSlotId = const Value.absent(),
     Value<int?> rotationAssignmentId = const Value.absent(),
     Value<String?> plannedSlotRole = const Value.absent(),
+    Value<String?> plannedSessionSegment = const Value.absent(),
     Value<String?> plannedTrainingMethod = const Value.absent(),
     Value<String?> plannedPrescriptionWhy = const Value.absent(),
     Value<int?> plannedWaveIndex = const Value.absent(),
@@ -9022,6 +9118,9 @@ class WorkoutExerciseData extends DataClass
     plannedSlotRole: plannedSlotRole.present
         ? plannedSlotRole.value
         : this.plannedSlotRole,
+    plannedSessionSegment: plannedSessionSegment.present
+        ? plannedSessionSegment.value
+        : this.plannedSessionSegment,
     plannedTrainingMethod: plannedTrainingMethod.present
         ? plannedTrainingMethod.value
         : this.plannedTrainingMethod,
@@ -9072,6 +9171,9 @@ class WorkoutExerciseData extends DataClass
       plannedSlotRole: data.plannedSlotRole.present
           ? data.plannedSlotRole.value
           : this.plannedSlotRole,
+      plannedSessionSegment: data.plannedSessionSegment.present
+          ? data.plannedSessionSegment.value
+          : this.plannedSessionSegment,
       plannedTrainingMethod: data.plannedTrainingMethod.present
           ? data.plannedTrainingMethod.value
           : this.plannedTrainingMethod,
@@ -9109,6 +9211,7 @@ class WorkoutExerciseData extends DataClass
           ..write('programExerciseSlotId: $programExerciseSlotId, ')
           ..write('rotationAssignmentId: $rotationAssignmentId, ')
           ..write('plannedSlotRole: $plannedSlotRole, ')
+          ..write('plannedSessionSegment: $plannedSessionSegment, ')
           ..write('plannedTrainingMethod: $plannedTrainingMethod, ')
           ..write('plannedPrescriptionWhy: $plannedPrescriptionWhy, ')
           ..write('plannedWaveIndex: $plannedWaveIndex, ')
@@ -9121,7 +9224,7 @@ class WorkoutExerciseData extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     syncUuid,
     updatedAt,
     syncedAt,
@@ -9137,12 +9240,13 @@ class WorkoutExerciseData extends DataClass
     programExerciseSlotId,
     rotationAssignmentId,
     plannedSlotRole,
+    plannedSessionSegment,
     plannedTrainingMethod,
     plannedPrescriptionWhy,
     plannedWaveIndex,
     plannedWaveCount,
     plannedAllowsAdvancedTechniques,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -9162,6 +9266,7 @@ class WorkoutExerciseData extends DataClass
           other.programExerciseSlotId == this.programExerciseSlotId &&
           other.rotationAssignmentId == this.rotationAssignmentId &&
           other.plannedSlotRole == this.plannedSlotRole &&
+          other.plannedSessionSegment == this.plannedSessionSegment &&
           other.plannedTrainingMethod == this.plannedTrainingMethod &&
           other.plannedPrescriptionWhy == this.plannedPrescriptionWhy &&
           other.plannedWaveIndex == this.plannedWaveIndex &&
@@ -9186,6 +9291,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
   final Value<int?> programExerciseSlotId;
   final Value<int?> rotationAssignmentId;
   final Value<String?> plannedSlotRole;
+  final Value<String?> plannedSessionSegment;
   final Value<String?> plannedTrainingMethod;
   final Value<String?> plannedPrescriptionWhy;
   final Value<int?> plannedWaveIndex;
@@ -9207,6 +9313,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     this.programExerciseSlotId = const Value.absent(),
     this.rotationAssignmentId = const Value.absent(),
     this.plannedSlotRole = const Value.absent(),
+    this.plannedSessionSegment = const Value.absent(),
     this.plannedTrainingMethod = const Value.absent(),
     this.plannedPrescriptionWhy = const Value.absent(),
     this.plannedWaveIndex = const Value.absent(),
@@ -9229,6 +9336,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     this.programExerciseSlotId = const Value.absent(),
     this.rotationAssignmentId = const Value.absent(),
     this.plannedSlotRole = const Value.absent(),
+    this.plannedSessionSegment = const Value.absent(),
     this.plannedTrainingMethod = const Value.absent(),
     this.plannedPrescriptionWhy = const Value.absent(),
     this.plannedWaveIndex = const Value.absent(),
@@ -9253,6 +9361,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     Expression<int>? programExerciseSlotId,
     Expression<int>? rotationAssignmentId,
     Expression<String>? plannedSlotRole,
+    Expression<String>? plannedSessionSegment,
     Expression<String>? plannedTrainingMethod,
     Expression<String>? plannedPrescriptionWhy,
     Expression<int>? plannedWaveIndex,
@@ -9277,6 +9386,8 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
       if (rotationAssignmentId != null)
         'rotation_assignment_id': rotationAssignmentId,
       if (plannedSlotRole != null) 'planned_slot_role': plannedSlotRole,
+      if (plannedSessionSegment != null)
+        'planned_session_segment': plannedSessionSegment,
       if (plannedTrainingMethod != null)
         'planned_training_method': plannedTrainingMethod,
       if (plannedPrescriptionWhy != null)
@@ -9304,6 +9415,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     Value<int?>? programExerciseSlotId,
     Value<int?>? rotationAssignmentId,
     Value<String?>? plannedSlotRole,
+    Value<String?>? plannedSessionSegment,
     Value<String?>? plannedTrainingMethod,
     Value<String?>? plannedPrescriptionWhy,
     Value<int?>? plannedWaveIndex,
@@ -9327,6 +9439,8 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
           programExerciseSlotId ?? this.programExerciseSlotId,
       rotationAssignmentId: rotationAssignmentId ?? this.rotationAssignmentId,
       plannedSlotRole: plannedSlotRole ?? this.plannedSlotRole,
+      plannedSessionSegment:
+          plannedSessionSegment ?? this.plannedSessionSegment,
       plannedTrainingMethod:
           plannedTrainingMethod ?? this.plannedTrainingMethod,
       plannedPrescriptionWhy:
@@ -9389,6 +9503,11 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
     if (plannedSlotRole.present) {
       map['planned_slot_role'] = Variable<String>(plannedSlotRole.value);
     }
+    if (plannedSessionSegment.present) {
+      map['planned_session_segment'] = Variable<String>(
+        plannedSessionSegment.value,
+      );
+    }
     if (plannedTrainingMethod.present) {
       map['planned_training_method'] = Variable<String>(
         plannedTrainingMethod.value,
@@ -9431,6 +9550,7 @@ class WorkoutExercisesCompanion extends UpdateCompanion<WorkoutExerciseData> {
           ..write('programExerciseSlotId: $programExerciseSlotId, ')
           ..write('rotationAssignmentId: $rotationAssignmentId, ')
           ..write('plannedSlotRole: $plannedSlotRole, ')
+          ..write('plannedSessionSegment: $plannedSessionSegment, ')
           ..write('plannedTrainingMethod: $plannedTrainingMethod, ')
           ..write('plannedPrescriptionWhy: $plannedPrescriptionWhy, ')
           ..write('plannedWaveIndex: $plannedWaveIndex, ')
@@ -22676,6 +22796,28 @@ class $ProgramDayExercisesTable extends ProgramDayExercises
     requiredDuringInsert: false,
     defaultValue: const Constant('accessory'),
   );
+  static const VerificationMeta _sessionSegmentMeta = const VerificationMeta(
+    'sessionSegment',
+  );
+  @override
+  late final GeneratedColumn<String> sessionSegment = GeneratedColumn<String>(
+    'session_segment',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _supersetGroupMeta = const VerificationMeta(
+    'supersetGroup',
+  );
+  @override
+  late final GeneratedColumn<int> supersetGroup = GeneratedColumn<int>(
+    'superset_group',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _trainingMethodMeta = const VerificationMeta(
     'trainingMethod',
   );
@@ -22775,6 +22917,8 @@ class $ProgramDayExercisesTable extends ProgramDayExercises
     equipmentVariant,
     programExerciseSlotId,
     slotRole,
+    sessionSegment,
+    supersetGroup,
     trainingMethod,
     targetRir,
     restSeconds,
@@ -22924,6 +23068,24 @@ class $ProgramDayExercisesTable extends ProgramDayExercises
         slotRole.isAcceptableOrUnknown(data['slot_role']!, _slotRoleMeta),
       );
     }
+    if (data.containsKey('session_segment')) {
+      context.handle(
+        _sessionSegmentMeta,
+        sessionSegment.isAcceptableOrUnknown(
+          data['session_segment']!,
+          _sessionSegmentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('superset_group')) {
+      context.handle(
+        _supersetGroupMeta,
+        supersetGroup.isAcceptableOrUnknown(
+          data['superset_group']!,
+          _supersetGroupMeta,
+        ),
+      );
+    }
     if (data.containsKey('training_method')) {
       context.handle(
         _trainingMethodMeta,
@@ -23065,6 +23227,14 @@ class $ProgramDayExercisesTable extends ProgramDayExercises
         DriftSqlType.string,
         data['${effectivePrefix}slot_role'],
       )!,
+      sessionSegment: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_segment'],
+      ),
+      supersetGroup: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}superset_group'],
+      ),
       trainingMethod: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}training_method'],
@@ -23131,6 +23301,8 @@ class ProgramDayExerciseData extends DataClass
   final String? equipmentVariant;
   final int? programExerciseSlotId;
   final String slotRole;
+  final String? sessionSegment;
+  final int? supersetGroup;
   final String trainingMethod;
   final int? targetRir;
   final int? restSeconds;
@@ -23157,6 +23329,8 @@ class ProgramDayExerciseData extends DataClass
     this.equipmentVariant,
     this.programExerciseSlotId,
     required this.slotRole,
+    this.sessionSegment,
+    this.supersetGroup,
     required this.trainingMethod,
     this.targetRir,
     this.restSeconds,
@@ -23208,6 +23382,12 @@ class ProgramDayExerciseData extends DataClass
       map['program_exercise_slot_id'] = Variable<int>(programExerciseSlotId);
     }
     map['slot_role'] = Variable<String>(slotRole);
+    if (!nullToAbsent || sessionSegment != null) {
+      map['session_segment'] = Variable<String>(sessionSegment);
+    }
+    if (!nullToAbsent || supersetGroup != null) {
+      map['superset_group'] = Variable<int>(supersetGroup);
+    }
     map['training_method'] = Variable<String>(trainingMethod);
     if (!nullToAbsent || targetRir != null) {
       map['target_rir'] = Variable<int>(targetRir);
@@ -23272,6 +23452,12 @@ class ProgramDayExerciseData extends DataClass
           ? const Value.absent()
           : Value(programExerciseSlotId),
       slotRole: Value(slotRole),
+      sessionSegment: sessionSegment == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sessionSegment),
+      supersetGroup: supersetGroup == null && nullToAbsent
+          ? const Value.absent()
+          : Value(supersetGroup),
       trainingMethod: Value(trainingMethod),
       targetRir: targetRir == null && nullToAbsent
           ? const Value.absent()
@@ -23320,6 +23506,8 @@ class ProgramDayExerciseData extends DataClass
         json['programExerciseSlotId'],
       ),
       slotRole: serializer.fromJson<String>(json['slotRole']),
+      sessionSegment: serializer.fromJson<String?>(json['sessionSegment']),
+      supersetGroup: serializer.fromJson<int?>(json['supersetGroup']),
       trainingMethod: serializer.fromJson<String>(json['trainingMethod']),
       targetRir: serializer.fromJson<int?>(json['targetRir']),
       restSeconds: serializer.fromJson<int?>(json['restSeconds']),
@@ -23355,6 +23543,8 @@ class ProgramDayExerciseData extends DataClass
       'equipmentVariant': serializer.toJson<String?>(equipmentVariant),
       'programExerciseSlotId': serializer.toJson<int?>(programExerciseSlotId),
       'slotRole': serializer.toJson<String>(slotRole),
+      'sessionSegment': serializer.toJson<String?>(sessionSegment),
+      'supersetGroup': serializer.toJson<int?>(supersetGroup),
       'trainingMethod': serializer.toJson<String>(trainingMethod),
       'targetRir': serializer.toJson<int?>(targetRir),
       'restSeconds': serializer.toJson<int?>(restSeconds),
@@ -23386,6 +23576,8 @@ class ProgramDayExerciseData extends DataClass
     Value<String?> equipmentVariant = const Value.absent(),
     Value<int?> programExerciseSlotId = const Value.absent(),
     String? slotRole,
+    Value<String?> sessionSegment = const Value.absent(),
+    Value<int?> supersetGroup = const Value.absent(),
     String? trainingMethod,
     Value<int?> targetRir = const Value.absent(),
     Value<int?> restSeconds = const Value.absent(),
@@ -23420,6 +23612,12 @@ class ProgramDayExerciseData extends DataClass
         ? programExerciseSlotId.value
         : this.programExerciseSlotId,
     slotRole: slotRole ?? this.slotRole,
+    sessionSegment: sessionSegment.present
+        ? sessionSegment.value
+        : this.sessionSegment,
+    supersetGroup: supersetGroup.present
+        ? supersetGroup.value
+        : this.supersetGroup,
     trainingMethod: trainingMethod ?? this.trainingMethod,
     targetRir: targetRir.present ? targetRir.value : this.targetRir,
     restSeconds: restSeconds.present ? restSeconds.value : this.restSeconds,
@@ -23476,6 +23674,12 @@ class ProgramDayExerciseData extends DataClass
           ? data.programExerciseSlotId.value
           : this.programExerciseSlotId,
       slotRole: data.slotRole.present ? data.slotRole.value : this.slotRole,
+      sessionSegment: data.sessionSegment.present
+          ? data.sessionSegment.value
+          : this.sessionSegment,
+      supersetGroup: data.supersetGroup.present
+          ? data.supersetGroup.value
+          : this.supersetGroup,
       trainingMethod: data.trainingMethod.present
           ? data.trainingMethod.value
           : this.trainingMethod,
@@ -23519,6 +23723,8 @@ class ProgramDayExerciseData extends DataClass
           ..write('equipmentVariant: $equipmentVariant, ')
           ..write('programExerciseSlotId: $programExerciseSlotId, ')
           ..write('slotRole: $slotRole, ')
+          ..write('sessionSegment: $sessionSegment, ')
+          ..write('supersetGroup: $supersetGroup, ')
           ..write('trainingMethod: $trainingMethod, ')
           ..write('targetRir: $targetRir, ')
           ..write('restSeconds: $restSeconds, ')
@@ -23550,6 +23756,8 @@ class ProgramDayExerciseData extends DataClass
     equipmentVariant,
     programExerciseSlotId,
     slotRole,
+    sessionSegment,
+    supersetGroup,
     trainingMethod,
     targetRir,
     restSeconds,
@@ -23580,6 +23788,8 @@ class ProgramDayExerciseData extends DataClass
           other.equipmentVariant == this.equipmentVariant &&
           other.programExerciseSlotId == this.programExerciseSlotId &&
           other.slotRole == this.slotRole &&
+          other.sessionSegment == this.sessionSegment &&
+          other.supersetGroup == this.supersetGroup &&
           other.trainingMethod == this.trainingMethod &&
           other.targetRir == this.targetRir &&
           other.restSeconds == this.restSeconds &&
@@ -23609,6 +23819,8 @@ class ProgramDayExercisesCompanion
   final Value<String?> equipmentVariant;
   final Value<int?> programExerciseSlotId;
   final Value<String> slotRole;
+  final Value<String?> sessionSegment;
+  final Value<int?> supersetGroup;
   final Value<String> trainingMethod;
   final Value<int?> targetRir;
   final Value<int?> restSeconds;
@@ -23635,6 +23847,8 @@ class ProgramDayExercisesCompanion
     this.equipmentVariant = const Value.absent(),
     this.programExerciseSlotId = const Value.absent(),
     this.slotRole = const Value.absent(),
+    this.sessionSegment = const Value.absent(),
+    this.supersetGroup = const Value.absent(),
     this.trainingMethod = const Value.absent(),
     this.targetRir = const Value.absent(),
     this.restSeconds = const Value.absent(),
@@ -23662,6 +23876,8 @@ class ProgramDayExercisesCompanion
     this.equipmentVariant = const Value.absent(),
     this.programExerciseSlotId = const Value.absent(),
     this.slotRole = const Value.absent(),
+    this.sessionSegment = const Value.absent(),
+    this.supersetGroup = const Value.absent(),
     this.trainingMethod = const Value.absent(),
     this.targetRir = const Value.absent(),
     this.restSeconds = const Value.absent(),
@@ -23691,6 +23907,8 @@ class ProgramDayExercisesCompanion
     Expression<String>? equipmentVariant,
     Expression<int>? programExerciseSlotId,
     Expression<String>? slotRole,
+    Expression<String>? sessionSegment,
+    Expression<int>? supersetGroup,
     Expression<String>? trainingMethod,
     Expression<int>? targetRir,
     Expression<int>? restSeconds,
@@ -23719,6 +23937,8 @@ class ProgramDayExercisesCompanion
       if (programExerciseSlotId != null)
         'program_exercise_slot_id': programExerciseSlotId,
       if (slotRole != null) 'slot_role': slotRole,
+      if (sessionSegment != null) 'session_segment': sessionSegment,
+      if (supersetGroup != null) 'superset_group': supersetGroup,
       if (trainingMethod != null) 'training_method': trainingMethod,
       if (targetRir != null) 'target_rir': targetRir,
       if (restSeconds != null) 'rest_seconds': restSeconds,
@@ -23749,6 +23969,8 @@ class ProgramDayExercisesCompanion
     Value<String?>? equipmentVariant,
     Value<int?>? programExerciseSlotId,
     Value<String>? slotRole,
+    Value<String?>? sessionSegment,
+    Value<int?>? supersetGroup,
     Value<String>? trainingMethod,
     Value<int?>? targetRir,
     Value<int?>? restSeconds,
@@ -23777,6 +23999,8 @@ class ProgramDayExercisesCompanion
       programExerciseSlotId:
           programExerciseSlotId ?? this.programExerciseSlotId,
       slotRole: slotRole ?? this.slotRole,
+      sessionSegment: sessionSegment ?? this.sessionSegment,
+      supersetGroup: supersetGroup ?? this.supersetGroup,
       trainingMethod: trainingMethod ?? this.trainingMethod,
       targetRir: targetRir ?? this.targetRir,
       restSeconds: restSeconds ?? this.restSeconds,
@@ -23847,6 +24071,12 @@ class ProgramDayExercisesCompanion
     if (slotRole.present) {
       map['slot_role'] = Variable<String>(slotRole.value);
     }
+    if (sessionSegment.present) {
+      map['session_segment'] = Variable<String>(sessionSegment.value);
+    }
+    if (supersetGroup.present) {
+      map['superset_group'] = Variable<int>(supersetGroup.value);
+    }
     if (trainingMethod.present) {
       map['training_method'] = Variable<String>(trainingMethod.value);
     }
@@ -23894,6 +24124,8 @@ class ProgramDayExercisesCompanion
           ..write('equipmentVariant: $equipmentVariant, ')
           ..write('programExerciseSlotId: $programExerciseSlotId, ')
           ..write('slotRole: $slotRole, ')
+          ..write('sessionSegment: $sessionSegment, ')
+          ..write('supersetGroup: $supersetGroup, ')
           ..write('trainingMethod: $trainingMethod, ')
           ..write('targetRir: $targetRir, ')
           ..write('restSeconds: $restSeconds, ')
@@ -48767,6 +48999,7 @@ typedef $$ProgramExerciseSlotsTableCreateCompanionBuilder =
       required String daySlotLabel,
       required int orderIndex,
       Value<String> role,
+      Value<String?> sessionSegment,
       Value<String?> movementPattern,
       Value<String?> primaryMuscle,
       Value<String> trainingMethod,
@@ -48788,6 +49021,7 @@ typedef $$ProgramExerciseSlotsTableUpdateCompanionBuilder =
       Value<String> daySlotLabel,
       Value<int> orderIndex,
       Value<String> role,
+      Value<String?> sessionSegment,
       Value<String?> movementPattern,
       Value<String?> primaryMuscle,
       Value<String> trainingMethod,
@@ -49018,6 +49252,11 @@ class $$ProgramExerciseSlotsTableFilterComposer
 
   ColumnFilters<String> get role => $composableBuilder(
     column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sessionSegment => $composableBuilder(
+    column: $table.sessionSegment,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -49266,6 +49505,11 @@ class $$ProgramExerciseSlotsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get sessionSegment => $composableBuilder(
+    column: $table.sessionSegment,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get movementPattern => $composableBuilder(
     column: $table.movementPattern,
     builder: (column) => ColumnOrderings(column),
@@ -49369,6 +49613,11 @@ class $$ProgramExerciseSlotsTableAnnotationComposer
 
   GeneratedColumn<String> get role =>
       $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get sessionSegment => $composableBuilder(
+    column: $table.sessionSegment,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get movementPattern => $composableBuilder(
     column: $table.movementPattern,
@@ -49617,6 +49866,7 @@ class $$ProgramExerciseSlotsTableTableManager
                 Value<String> daySlotLabel = const Value.absent(),
                 Value<int> orderIndex = const Value.absent(),
                 Value<String> role = const Value.absent(),
+                Value<String?> sessionSegment = const Value.absent(),
                 Value<String?> movementPattern = const Value.absent(),
                 Value<String?> primaryMuscle = const Value.absent(),
                 Value<String> trainingMethod = const Value.absent(),
@@ -49636,6 +49886,7 @@ class $$ProgramExerciseSlotsTableTableManager
                 daySlotLabel: daySlotLabel,
                 orderIndex: orderIndex,
                 role: role,
+                sessionSegment: sessionSegment,
                 movementPattern: movementPattern,
                 primaryMuscle: primaryMuscle,
                 trainingMethod: trainingMethod,
@@ -49657,6 +49908,7 @@ class $$ProgramExerciseSlotsTableTableManager
                 required String daySlotLabel,
                 required int orderIndex,
                 Value<String> role = const Value.absent(),
+                Value<String?> sessionSegment = const Value.absent(),
                 Value<String?> movementPattern = const Value.absent(),
                 Value<String?> primaryMuscle = const Value.absent(),
                 Value<String> trainingMethod = const Value.absent(),
@@ -49676,6 +49928,7 @@ class $$ProgramExerciseSlotsTableTableManager
                 daySlotLabel: daySlotLabel,
                 orderIndex: orderIndex,
                 role: role,
+                sessionSegment: sessionSegment,
                 movementPattern: movementPattern,
                 primaryMuscle: primaryMuscle,
                 trainingMethod: trainingMethod,
@@ -50554,6 +50807,7 @@ typedef $$WorkoutExercisesTableCreateCompanionBuilder =
       Value<int?> programExerciseSlotId,
       Value<int?> rotationAssignmentId,
       Value<String?> plannedSlotRole,
+      Value<String?> plannedSessionSegment,
       Value<String?> plannedTrainingMethod,
       Value<String?> plannedPrescriptionWhy,
       Value<int?> plannedWaveIndex,
@@ -50577,6 +50831,7 @@ typedef $$WorkoutExercisesTableUpdateCompanionBuilder =
       Value<int?> programExerciseSlotId,
       Value<int?> rotationAssignmentId,
       Value<String?> plannedSlotRole,
+      Value<String?> plannedSessionSegment,
       Value<String?> plannedTrainingMethod,
       Value<String?> plannedPrescriptionWhy,
       Value<int?> plannedWaveIndex,
@@ -50802,6 +51057,11 @@ class $$WorkoutExercisesTableFilterComposer
 
   ColumnFilters<String> get plannedSlotRole => $composableBuilder(
     column: $table.plannedSlotRole,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plannedSessionSegment => $composableBuilder(
+    column: $table.plannedSessionSegment,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -51038,6 +51298,11 @@ class $$WorkoutExercisesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get plannedSessionSegment => $composableBuilder(
+    column: $table.plannedSessionSegment,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get plannedTrainingMethod => $composableBuilder(
     column: $table.plannedTrainingMethod,
     builder: (column) => ColumnOrderings(column),
@@ -51210,6 +51475,11 @@ class $$WorkoutExercisesTableAnnotationComposer
 
   GeneratedColumn<String> get plannedSlotRole => $composableBuilder(
     column: $table.plannedSlotRole,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get plannedSessionSegment => $composableBuilder(
+    column: $table.plannedSessionSegment,
     builder: (column) => column,
   );
 
@@ -51437,6 +51707,7 @@ class $$WorkoutExercisesTableTableManager
                 Value<int?> programExerciseSlotId = const Value.absent(),
                 Value<int?> rotationAssignmentId = const Value.absent(),
                 Value<String?> plannedSlotRole = const Value.absent(),
+                Value<String?> plannedSessionSegment = const Value.absent(),
                 Value<String?> plannedTrainingMethod = const Value.absent(),
                 Value<String?> plannedPrescriptionWhy = const Value.absent(),
                 Value<int?> plannedWaveIndex = const Value.absent(),
@@ -51459,6 +51730,7 @@ class $$WorkoutExercisesTableTableManager
                 programExerciseSlotId: programExerciseSlotId,
                 rotationAssignmentId: rotationAssignmentId,
                 plannedSlotRole: plannedSlotRole,
+                plannedSessionSegment: plannedSessionSegment,
                 plannedTrainingMethod: plannedTrainingMethod,
                 plannedPrescriptionWhy: plannedPrescriptionWhy,
                 plannedWaveIndex: plannedWaveIndex,
@@ -51483,6 +51755,7 @@ class $$WorkoutExercisesTableTableManager
                 Value<int?> programExerciseSlotId = const Value.absent(),
                 Value<int?> rotationAssignmentId = const Value.absent(),
                 Value<String?> plannedSlotRole = const Value.absent(),
+                Value<String?> plannedSessionSegment = const Value.absent(),
                 Value<String?> plannedTrainingMethod = const Value.absent(),
                 Value<String?> plannedPrescriptionWhy = const Value.absent(),
                 Value<int?> plannedWaveIndex = const Value.absent(),
@@ -51505,6 +51778,7 @@ class $$WorkoutExercisesTableTableManager
                 programExerciseSlotId: programExerciseSlotId,
                 rotationAssignmentId: rotationAssignmentId,
                 plannedSlotRole: plannedSlotRole,
+                plannedSessionSegment: plannedSessionSegment,
                 plannedTrainingMethod: plannedTrainingMethod,
                 plannedPrescriptionWhy: plannedPrescriptionWhy,
                 plannedWaveIndex: plannedWaveIndex,
@@ -61079,6 +61353,8 @@ typedef $$ProgramDayExercisesTableCreateCompanionBuilder =
       Value<String?> equipmentVariant,
       Value<int?> programExerciseSlotId,
       Value<String> slotRole,
+      Value<String?> sessionSegment,
+      Value<int?> supersetGroup,
       Value<String> trainingMethod,
       Value<int?> targetRir,
       Value<int?> restSeconds,
@@ -61107,6 +61383,8 @@ typedef $$ProgramDayExercisesTableUpdateCompanionBuilder =
       Value<String?> equipmentVariant,
       Value<int?> programExerciseSlotId,
       Value<String> slotRole,
+      Value<String?> sessionSegment,
+      Value<int?> supersetGroup,
       Value<String> trainingMethod,
       Value<int?> targetRir,
       Value<int?> restSeconds,
@@ -61297,6 +61575,16 @@ class $$ProgramDayExercisesTableFilterComposer
 
   ColumnFilters<String> get slotRole => $composableBuilder(
     column: $table.slotRole,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sessionSegment => $composableBuilder(
+    column: $table.sessionSegment,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get supersetGroup => $composableBuilder(
+    column: $table.supersetGroup,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -61507,6 +61795,16 @@ class $$ProgramDayExercisesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get sessionSegment => $composableBuilder(
+    column: $table.sessionSegment,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get supersetGroup => $composableBuilder(
+    column: $table.supersetGroup,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get trainingMethod => $composableBuilder(
     column: $table.trainingMethod,
     builder: (column) => ColumnOrderings(column),
@@ -61699,6 +61997,16 @@ class $$ProgramDayExercisesTableAnnotationComposer
   GeneratedColumn<String> get slotRole =>
       $composableBuilder(column: $table.slotRole, builder: (column) => column);
 
+  GeneratedColumn<String> get sessionSegment => $composableBuilder(
+    column: $table.sessionSegment,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get supersetGroup => $composableBuilder(
+    column: $table.supersetGroup,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get trainingMethod => $composableBuilder(
     column: $table.trainingMethod,
     builder: (column) => column,
@@ -61886,6 +62194,8 @@ class $$ProgramDayExercisesTableTableManager
                 Value<String?> equipmentVariant = const Value.absent(),
                 Value<int?> programExerciseSlotId = const Value.absent(),
                 Value<String> slotRole = const Value.absent(),
+                Value<String?> sessionSegment = const Value.absent(),
+                Value<int?> supersetGroup = const Value.absent(),
                 Value<String> trainingMethod = const Value.absent(),
                 Value<int?> targetRir = const Value.absent(),
                 Value<int?> restSeconds = const Value.absent(),
@@ -61912,6 +62222,8 @@ class $$ProgramDayExercisesTableTableManager
                 equipmentVariant: equipmentVariant,
                 programExerciseSlotId: programExerciseSlotId,
                 slotRole: slotRole,
+                sessionSegment: sessionSegment,
+                supersetGroup: supersetGroup,
                 trainingMethod: trainingMethod,
                 targetRir: targetRir,
                 restSeconds: restSeconds,
@@ -61940,6 +62252,8 @@ class $$ProgramDayExercisesTableTableManager
                 Value<String?> equipmentVariant = const Value.absent(),
                 Value<int?> programExerciseSlotId = const Value.absent(),
                 Value<String> slotRole = const Value.absent(),
+                Value<String?> sessionSegment = const Value.absent(),
+                Value<int?> supersetGroup = const Value.absent(),
                 Value<String> trainingMethod = const Value.absent(),
                 Value<int?> targetRir = const Value.absent(),
                 Value<int?> restSeconds = const Value.absent(),
@@ -61966,6 +62280,8 @@ class $$ProgramDayExercisesTableTableManager
                 equipmentVariant: equipmentVariant,
                 programExerciseSlotId: programExerciseSlotId,
                 slotRole: slotRole,
+                sessionSegment: sessionSegment,
+                supersetGroup: supersetGroup,
                 trainingMethod: trainingMethod,
                 targetRir: targetRir,
                 restSeconds: restSeconds,
