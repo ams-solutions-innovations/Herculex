@@ -44,6 +44,20 @@ abstract final class WorkoutDurationEstimator {
     return Duration(seconds: totalSeconds.round());
   }
 
+  /// Returns [capSeconds] verbatim as a [Duration] for fixed/capped-duration
+  /// metcon segments (AMRAP, EMOM, For Time), bypassing the per-rep formula
+  /// entirely — that formula is meaningless for "as many rounds as possible
+  /// in 10 minutes."
+  ///
+  /// This is a conservative *upper bound*, not a predicted actual completion
+  /// time (RESEARCH.md Pitfall 3): an advanced athlete who finishes a For
+  /// Time segment well under the cap will still show as taking the full cap
+  /// in this estimate. That is the safe direction to be wrong in for a
+  /// time-budget check — it never under-promises how long a session might
+  /// take.
+  static Duration estimateCappedSegment({required int capSeconds}) =>
+      Duration(seconds: capSeconds);
+
   /// Sums per-exercise durations plus one inter-exercise transition per
   /// exercise.
   static Duration estimateSession(
