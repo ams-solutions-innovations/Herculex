@@ -98,6 +98,15 @@ RED gate: `ee7d0c6` (test commit, confirmed compile-failure before implementatio
 GREEN gate: `22a8c27` (feat commit, all 7 tests passing).
 No REFACTOR commit was needed — implementation required no cleanup pass.
 
+## Self-Check: PASSED
+
+- FOUND: lib/features/programs/domain/crossfit_program_planner.dart
+- FOUND: test/features/programs/crossfit_program_planner_test.dart
+- FOUND: .planning/phases/21-crossfit-gpp-training-tracks/21-04-SUMMARY.md
+- FOUND commit: ee7d0c6 (test, RED)
+- FOUND commit: 22a8c27 (feat, GREEN)
+- FOUND commit: 8931e83 (docs, plan metadata)
+
 ---
 *Phase: 21-crossfit-gpp-training-tracks*
 *Completed: 2026-09-26*
