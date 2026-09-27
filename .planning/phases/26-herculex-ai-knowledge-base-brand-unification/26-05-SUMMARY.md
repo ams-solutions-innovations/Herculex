@@ -93,3 +93,7 @@ None - no external service configuration required.
 ---
 *Phase: 26-herculex-ai-knowledge-base-brand-unification*
 *Completed: 2026-09-27*
+
+## Self-Check: PASSED
+
+All 4 modified files confirmed present on disk; commits `ca72665`, `ff4ea06` confirmed in `git log --oneline --all`.
