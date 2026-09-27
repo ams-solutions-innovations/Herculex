@@ -1,8 +1,9 @@
 # Requirements: Milestone v2.0 — Training Programs Revamp, Dream Physique & Gamification
 
 **Defined:** 2026-09-13  
+**Amended:** 2026-09-27 — Herculex AI scope added (Phases 26–29, PHYS-05–08). See [`docs/herculex-ai-plan-2026-09-27.md`](../docs/herculex-ai-plan-2026-09-27.md).  
 **Source Blueprint:** [`docs/training-programs-physique-gamification-plan-2026-09-10.md`](../docs/training-programs-physique-gamification-plan-2026-09-10.md)  
-**Core Value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition; and an authentic 15-tier XP gamification system.
+**Core Value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.
 
 ---
 
@@ -67,6 +68,10 @@
 - [ ] **PHYS-02**: Physique photos are stored in app-sandboxed local documents with EXIF stripped and optional facial blur.
 - [ ] **PHYS-03**: Multi-phase nutrition roadmaps (`cut`, `maintain`, `recomp`, `maingain`, `bulk`) compute realistic deficit/surplus pacing.
 - [ ] **PHYS-04**: Underage users and low-confidence visual assessments are barred from aggressive caloric deficits or surpluses.
+- [ ] **PHYS-05**: Progress screen shows the active body-composition phase (`cut`, `recomp`, `maingain`, `bulk`, `maintain`), position within the multi-phase roadmap, time in phase, and exit criteria, driven by the persisted plan from PHYS-03.
+- [ ] **PHYS-06**: Check-in photos are rate-limited to at most one per 7 days per goal, enforced in the repository rather than the widget, with the next eligible date surfaced in the UI.
+- [ ] **PHYS-07**: Each check-in returns a Herculex AI directional verdict (on track, off track, inconclusive) as a confidence-banded range against the baseline, never a false-precision percentage, and never auto-changes calorie targets.
+- [ ] **PHYS-08**: Progress screen charts bodyweight trend, strength trend (e1RM on canonical lifts), training level, and the phase-target band across the goal horizon.
 
 ### 10. Gamification & 15-Rank XP Ledger (Phase 24)
 
@@ -80,6 +85,38 @@
 - [ ] **SYNC-01**: Drift schemas and Supabase migrations support all v2.0 tables with strict foreign keys, outbox triggers, and owner-only RLS.
 - [ ] **SYNC-02**: Local data wipe completely purges all v2.0 tables, XP ledgers, and physical image assets.
 - [ ] **SYNC-03**: Full structured JSON export packages all workout, program, physique, and gamification history for user download.
+
+### 12. Herculex AI Knowledge Base & Brand Unification (Phase 26)
+
+- [ ] **KB-01**: A versioned coaching knowledge base ships server-side beside `prompts.ts`, is injected as system instruction for knowledge-grounded kinds, and never appears in the app bundle.
+- [ ] **KB-02**: Every AI result records `knowledgeVersion` and `modelVersion`, so any recommendation is traceable to the corpus that produced it.
+- [ ] **KB-03**: No user-visible string reads "Gemini"; every AI surface reads "Herculex AI", while provider naming remains internal to class names, `kind` values, and docs.
+- [ ] **KB-04**: Hercul gains a labelled AI advice channel alongside the deterministic engine; `hercul_rules.json`, `HerculSignals.all`, and the closed-vocabulary test stay intact and keep working offline.
+- [ ] **KB-05**: Per-kind AI quotas replace the single shared daily cap, and quota exhaustion fails closed with a clear message rather than silently.
+
+### 13. Herculex AI Program Generation (Phase 27)
+
+- [ ] **AIP-01**: `ProgramBuildMode` gains a fourth mode so the builder offers both a manual path and a Herculex AI path.
+- [ ] **AIP-02**: Herculex AI returns a program design brief (split, periodization model, weekly day roles, muscle priorities, phase intent, rationale) and never an exercise list; `SmartProgramPlanner` remains the sole exercise selector.
+- [ ] **AIP-03**: The brief is validated against a strict schema and rejected, falling back to the deterministic recommendation, if it violates any existing guardrail.
+- [ ] **AIP-04**: An AI-generated program enters the existing review gate archived and unactivated, shows its rationale per day, and requires explicit user confirmation.
+- [ ] **AIP-05**: AI generation degrades to the existing Smart/Guided path when offline, unconfigured, or over quota.
+
+### 14. Adaptive TDEE & Activity Calibration (Phase 28)
+
+- [ ] **TDEE-01**: An observed-expenditure estimator derives TDEE from logged intake and the bodyweight trend over a rolling window, and becomes the baseline source when adherence passes a stated threshold.
+- [ ] **TDEE-02**: When adherence is insufficient, an activity classifier derives the activity level from `HealthSamples` plus logged training, and Mifflin-St Jeor runs with the derived multiplier instead of the hand-picked one.
+- [ ] **TDEE-03**: The app chooses its own calibration window and re-calibration cadence from data density; the user never picks a measurement duration.
+- [ ] **TDEE-04**: Every estimate carries method, confidence, sample window, and inputs, is visible to the user, and never overrides a manually-set maintenance value.
+- [ ] **TDEE-05**: A material TDEE shift is surfaced in the weekly report and never silently rewrites confirmed targets.
+
+### 15. Weekly Report & Herculex AI Narrative (Phase 29)
+
+- [ ] **RPT-01**: One persisted report row per ISO week, opt-in, covering nutrition adherence, frequent foods, training volume and strength, recovery/sleep/activity, physique progress, and TDEE drift.
+- [ ] **RPT-02**: The measured section is computed locally from existing analytics; Herculex AI adds a knowledge-grounded narrative on top, visually separated from the numbers.
+- [ ] **RPT-03**: A Sunday notification uses `DateTimeComponents.dayOfWeekAndTime` and deep-links into the report; the report is generated on open, never in the notification callback.
+- [ ] **RPT-04**: Reports are browsable as history and never regenerate differently for a past week.
+- [ ] **RPT-05**: The report attributes how recovery, sleep, and activity correlate with performance using existing correlation providers, stated as correlation rather than causation.
 
 ---
 
@@ -95,6 +132,10 @@
 | FLOW-01–03 | 20 | Complete |
 | CF-01–03 | 21 | Complete |
 | SPEC-01–03 | 22 | Pending |
-| PHYS-01–04 | 23 | Pending |
+| PHYS-01–08 | 23 | Pending |
 | XP-01–04 | 24 | Pending |
 | SYNC-01–03 | 25 | Pending |
+| KB-01–05 | 26 | Pending |
+| AIP-01–05 | 27 | Pending |
+| TDEE-01–05 | 28 | Pending |
+| RPT-01–05 | 29 | Pending |

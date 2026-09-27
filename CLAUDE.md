@@ -108,10 +108,20 @@ outstanding; apply in order before shipping a build that carries local v37.
 
 Two roadmaps are live and own parts of the tree. Coordinate before editing:
 
-- `.planning/ROADMAP.md` — GSD project roadmap. Phase 11 (Gym Buddy) is the
-  current focus, 4.5/11 plans. Phase 10 (assisted rep tracking) was removed
-  from the roadmap entirely on 2026-09-01 — `lib/features/reps/` no longer
-  exists, and no feature is exempt from the layout rules below any more.
+- `.planning/ROADMAP.md` — GSD project roadmap, milestone **v2.0, Phases 15–29**.
+  Phases 15–21 are complete; 22–29 are pending. Phase 11 (Gym Buddy) shipped
+  with v1.0 and now lives in `.planning/milestones/v1.0-ROADMAP.md` — it is not
+  the current focus. Phase 10 (assisted rep tracking) was removed from the
+  roadmap entirely on 2026-09-01 — `lib/features/reps/` no longer exists, and
+  no feature is exempt from the layout rules below any more.
+
+  **Execution order is not numeric** — see the roadmap's own note. Phases 26–29
+  (Herculex AI: knowledge base, AI program generation, adaptive TDEE, weekly
+  report) were appended on 2026-09-27 to preserve numbering, but run
+  `26 → 28 → 27 → 22 → 23 → 29 → 24 → 25`. Design detail lives in
+  [docs/herculex-ai-plan-2026-09-27.md](docs/herculex-ai-plan-2026-09-27.md).
+  House rule for all AI work, unchanged since `06-AI-SPEC.md`: deterministic
+  primary, AI bounded, AI never writes to the database, user confirms.
 - `docs/ui-rework/ROADMAP.md` — UI/UX rework. Phase 9 (in progress) owns
   deleting the `AppColors` shim (`design_system/theme/colors.dart`, ~119
   importers) and the app-wide literal-colour sweep. Phase 7 owns splitting
