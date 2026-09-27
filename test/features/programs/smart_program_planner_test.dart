@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
@@ -47,6 +48,9 @@ void main() {
     String modality = 'barbell',
     int cnsScore = 5,
     String? movementPatternRaw,
+    String allowedTrainingStylesJson = '["weightlifting"]',
+    String loggingMetric = 'weight_reps',
+    String category = 'strength',
   }) => db
       .into(db.exerciseCatalog)
       .insert(
@@ -64,9 +68,11 @@ void main() {
           cnsScore: Value(cnsScore),
           programmingDifficulty: const Value('novice'),
           programmingCommonness: const Value('basic'),
-          allowedTrainingStyles: const Value('["weightlifting"]'),
+          allowedTrainingStyles: Value(allowedTrainingStylesJson),
           technicalEligibility: const Value('automatic'),
           requiredEquipmentKeys: const Value('[]'),
+          loggingMetric: Value(loggingMetric),
+          category: Value(category),
         ),
       );
 
@@ -584,4 +590,293 @@ void main() {
       expect(decoded!.segments.single.setType, SetType.myoReps);
     },
   );
+
+  group('CrossFit/GPP segment wiring (CF-01/CF-02/CF-03)', () {
+    Future<void> seedCrossfitCatalog() async {
+      for (final slug in [
+        'warmup',
+        'skill',
+        'strength',
+        'metcon-a',
+        'metcon-b',
+        'metcon-c',
+        'cooldown',
+      ]) {
+        await insertExercise(
+          slug: 'fixture-crossfit-$slug',
+          name: 'Fixture CrossFit $slug',
+          primaryMuscle: 'Full body',
+          allowedTrainingStylesJson: '["crossfit"]',
+        );
+      }
+    }
+
+    Future<void> seedConditioningFixture() => insertExercise(
+      slug: 'fixture-conditioning',
+      name: 'Fixture Conditioning',
+      primaryMuscle: 'Full body',
+      loggingMetric: 'time',
+    );
+
+    /// All `ProgramDayExercises` rows for [programId], across every week,
+    /// paired with the owning week's `weekIndex` and ordered by
+    /// (weekIndex, orderIndex) — the shape both the format-rotation and
+    /// DE-guard tests need.
+    Future<List<({int weekIndex, ProgramDayExerciseData row})>> allRowsFor(
+      int programId,
+    ) async {
+      final joined =
+          await (db.select(db.programDayExercises).join([
+                innerJoin(
+                  db.programDays,
+                  db.programDays.id.equalsExp(
+                    db.programDayExercises.programDayId,
+                  ),
+                ),
+                innerJoin(
+                  db.programWeeks,
+                  db.programWeeks.id.equalsExp(db.programDays.programWeekId),
+                ),
+              ])
+              ..where(db.programWeeks.programId.equals(programId))
+              ..orderBy([
+                OrderingTerm(expression: db.programWeeks.weekIndex),
+                OrderingTerm(expression: db.programDayExercises.orderIndex),
+              ]))
+              .get();
+      return [
+        for (final row in joined)
+          (
+            weekIndex: row.readTable(db.programWeeks).weekIndex,
+            row: row.readTable(db.programDayExercises),
+          ),
+      ];
+    }
+
+    Future<List<({int weekIndex, ProgramDayExerciseData row})>>
+    rowsForDayLabel(int programId, String label) async {
+      final all = await allRowsFor(programId);
+      final dayIds = await (db.select(db.programDays)
+            ..where((t) => t.slotLabel.equals(label)))
+          .get();
+      final dayIdSet = dayIds.map((d) => d.id).toSet();
+      return all.where((r) => dayIdSet.contains(r.row.programDayId)).toList();
+    }
+
+    test(
+      'a generated GPP-labeled day never produces trainingMethod == '
+      "'dynamic_effort', for maxEffort AND linear periodization models "
+      '(CF-03)',
+      () async {
+        await seedBaseDayCatalog();
+        await seedConditioningFixture();
+
+        Future<void> checkModel(PeriodizationModel model) async {
+          final plan = SplitTemplates.generate(
+            type: SplitType.fullBodyAbGpp,
+            daysPerWeek: 3,
+          );
+          final programId = await ProgramsRepository(db).createProgramFromSplit(
+            name: 'GPP DE-guard fixture (${model.id})',
+            weeks: 1,
+            plan: plan,
+            startDate: DateTime(2026, 9, 7),
+            periodizationModel: model.id,
+            buildMode: ProgramBuildMode.smart,
+            trainingGoal: TrainingGoal.strength,
+            experienceLevel: ExperienceLevel.novice,
+          );
+          await SmartProgramPlanner(db).populate(
+            programId,
+            const SmartProgramConfiguration(
+              goal: TrainingGoal.strength,
+              experience: ExperienceLevel.novice,
+              trainingStyle: TrainingStyle.fullBody2xGpp,
+            ),
+          );
+
+          final gppRows = await rowsForDayLabel(programId, 'GPP');
+          expect(
+            gppRows,
+            isNotEmpty,
+            reason: 'the GPP day must produce at least one row (${model.id})',
+          );
+          expect(
+            gppRows.any(
+              (r) =>
+                  r.row.trainingMethod ==
+                  SlotTrainingMethod.dynamicEffort.id,
+            ),
+            isFalse,
+            reason:
+                'GPP day must never contain a dynamic_effort row '
+                '(periodization: ${model.id})',
+          );
+        }
+
+        await checkModel(PeriodizationModel.maxEffort);
+        await checkModel(PeriodizationModel.linear);
+      },
+    );
+
+    test(
+      'a generated CrossFit day writes ProgramDayExercises.sessionSegment in '
+      'warmup->skill->strength->metcon->cooldown order, with every metcon row '
+      'sharing one non-null supersetGroup (CF-01)',
+      () async {
+        await seedCrossfitCatalog();
+        final plan = SplitTemplates.generate(
+          type: SplitType.crossfit,
+          daysPerWeek: 1,
+        );
+        final programId = await ProgramsRepository(db).createProgramFromSplit(
+          name: 'CrossFit segment-order fixture',
+          weeks: 1,
+          plan: plan,
+          startDate: DateTime(2026, 9, 7),
+          buildMode: ProgramBuildMode.smart,
+          trainingGoal: TrainingGoal.athletic,
+          experienceLevel: ExperienceLevel.novice,
+        );
+        await SmartProgramPlanner(db).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.athletic,
+            experience: ExperienceLevel.novice,
+            trainingStyle: TrainingStyle.crossfit,
+          ),
+        );
+
+        final rows = await rowsForDayLabel(programId, 'CrossFit');
+        expect(
+          rows.map((r) => r.row.sessionSegment).toList(),
+          ['warmup', 'skill', 'strength', 'metcon', 'metcon', 'cooldown'],
+          reason: 'novice movement ceiling is 2, so exactly 2 metcon rows',
+        );
+        final metconGroups = rows
+            .where((r) => r.row.sessionSegment == 'metcon')
+            .map((r) => r.row.supersetGroup)
+            .toSet();
+        expect(
+          metconGroups.length,
+          1,
+          reason: 'all metcon rows must share one supersetGroup value',
+        );
+        expect(metconGroups.single, isNotNull);
+      },
+    );
+
+    test(
+      "a generated CrossFit program's metcon format rotates AMRAP -> EMOM -> "
+      'For Time across weeks 1-3, matching variationSeed: week.weekIndex '
+      '(CF-01)',
+      () async {
+        await seedCrossfitCatalog();
+        final plan = SplitTemplates.generate(
+          type: SplitType.crossfit,
+          daysPerWeek: 1,
+        );
+        final programId = await ProgramsRepository(db).createProgramFromSplit(
+          name: 'CrossFit format-rotation fixture',
+          weeks: 3,
+          plan: plan,
+          startDate: DateTime(2026, 9, 7),
+          buildMode: ProgramBuildMode.smart,
+          trainingGoal: TrainingGoal.athletic,
+          experienceLevel: ExperienceLevel.novice,
+        );
+        await SmartProgramPlanner(db).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.athletic,
+            experience: ExperienceLevel.novice,
+            trainingStyle: TrainingStyle.crossfit,
+          ),
+        );
+
+        final rows = await rowsForDayLabel(programId, 'CrossFit');
+        const expectedFormats = [SetType.amrap, SetType.emom, SetType.forTime];
+        for (var weekIndex = 0; weekIndex < 3; weekIndex++) {
+          final metconRow = rows.firstWhere(
+            (r) =>
+                r.weekIndex == weekIndex && r.row.sessionSegment == 'metcon',
+          );
+          final decoded = SlotPrescriptionCodec.decode(
+            metconRow.row.prescriptionCodecJson,
+          );
+          expect(
+            decoded,
+            isNotNull,
+            reason: 'week $weekIndex metcon row must decode',
+          );
+          expect(
+            decoded!.segments.single.setType,
+            expectedFormats[weekIndex],
+            reason: 'week $weekIndex must use ${expectedFormats[weekIndex]}',
+          );
+        }
+      },
+    );
+
+    test(
+      'a Full Body 2x + GPP program produces exactly 2 non-GPP strength days '
+      'plus 1 GPP day, and no row has both a heavy slotRole and a '
+      'sessionSegment tag (CF-03)',
+      () async {
+        await seedBaseDayCatalog();
+        await seedConditioningFixture();
+
+        final plan = SplitTemplates.generate(
+          type: SplitType.fullBodyAbGpp,
+          daysPerWeek: 3,
+        );
+        final programId = await ProgramsRepository(db).createProgramFromSplit(
+          name: 'Full Body 2x + GPP shape fixture',
+          weeks: 1,
+          plan: plan,
+          startDate: DateTime(2026, 9, 7),
+          buildMode: ProgramBuildMode.smart,
+          trainingGoal: TrainingGoal.strength,
+          experienceLevel: ExperienceLevel.intermediate,
+        );
+        await SmartProgramPlanner(db).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.strength,
+            experience: ExperienceLevel.intermediate,
+            trainingStyle: TrainingStyle.fullBody2xGpp,
+          ),
+        );
+
+        final days = await (db.select(db.programDays).join([
+          innerJoin(
+            db.programWeeks,
+            db.programWeeks.id.equalsExp(db.programDays.programWeekId),
+          ),
+        ])..where(db.programWeeks.programId.equals(programId))).get();
+        final labels = days
+            .map((r) => r.readTable(db.programDays).slotLabel)
+            .toList();
+        expect(labels.where((l) => l == 'GPP').length, 1);
+        expect(
+          labels.where((l) => l == 'Full Body A' || l == 'Full Body B').length,
+          2,
+        );
+
+        final all = await allRowsFor(programId);
+        const heavyRoles = {'main', 'supplemental'};
+        expect(
+          all.any(
+            (r) =>
+                heavyRoles.contains(r.row.slotRole) &&
+                r.row.sessionSegment != null,
+          ),
+          isFalse,
+          reason:
+              'a main/supplemental slot must never carry a CrossFit/GPP '
+              'sessionSegment tag',
+        );
+      },
+    );
+  });
 }
