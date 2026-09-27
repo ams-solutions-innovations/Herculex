@@ -885,8 +885,8 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                       : const Icon(Icons.auto_awesome),
                   label: Text(
                     _isAnalyzing
-                        ? 'Razčlenjujem z Gemini AI...'
-                        : 'Analiziraj z Gemini AI',
+                        ? 'Razčlenjujem z Herculex AI...'
+                        : 'Analiziraj z Herculex AI',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,

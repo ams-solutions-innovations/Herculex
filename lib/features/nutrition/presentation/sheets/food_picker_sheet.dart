@@ -208,7 +208,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               leading: Icon(Icons.camera_alt, color: AppColors.primary),
               title: const Text('Take a photo of food with camera'),
               subtitle: const Text(
-                'Gemini AI will estimate composition and nutritional values',
+                'Herculex AI will estimate composition and nutritional values',
               ),
               onTap: () => Navigator.pop(
                 ctx,
@@ -230,7 +230,7 @@ class _FoodPickerSheetState extends ConsumerState<FoodPickerSheet>
               ),
               title: const Text('Take a photo of nutrition label'),
               subtitle: const Text(
-                'OCR reads the label; Gemini resolves low-confidence scans',
+                'OCR reads the label; Herculex AI resolves low-confidence scans',
               ),
               onTap: () => Navigator.pop(
                 ctx,
