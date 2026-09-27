@@ -220,14 +220,14 @@ Plans:
 
 **Success:** The knowledge corpus lives beside `prompts.ts` and never ships in the app bundle; every AI result carries `knowledgeVersion` and `modelVersion`; no user-visible string reads "Gemini" while internal provider naming is untouched; Hercul's deterministic rule engine and its closed-vocabulary test keep working offline beside a clearly-labelled AI advice channel; per-kind quota exhaustion fails closed with a clear message.
 
-**Plans:** 2/7 plans executed
+**Plans:** 3/7 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 26-01-PLAN.md — Wave 1: knowledge_base.ts corpus + system_instruction/modelVersion provenance plumbing (KB-01, KB-02)
 - [x] 26-03-PLAN.md — Wave 1: brand-data consistency across prompts.ts + gemini_food_analyzer_service.dart + gemini_photo_analysis_dialog.dart (KB-03)
-- [ ] 26-04-PLAN.md — Wave 1: dream_physique_view.dart consent reword + Pitfall-1-safe rename (KB-03)
+- [x] 26-04-PLAN.md — Wave 1: dream_physique_view.dart consent reword + Pitfall-1-safe rename (KB-03)
 - [ ] 26-05-PLAN.md — Wave 1: measurements feature brand rename (KB-03)
 - [ ] 26-06-PLAN.md — Wave 1: nutrition feature brand rename, non-data sites (KB-03)
 - [ ] 26-07-PLAN.md — Wave 1: supplements/workouts/profile-services brand rename (KB-03)

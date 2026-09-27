@@ -245,7 +245,8 @@
       "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; grep \"^requirements:\" {}')",
       "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\('passed:',j.passed,'covered:',j.covered+'/'+j.total\\);console.log\\('uncovered:',JSON.stringify\\(j.uncovered.map\\(u=>u.id\\)\\)\\);}\\)\")",
       "Bash(command -v deno)",
-      "Bash(deno test *)"
+      "Bash(deno test *)",
+      "Bash(echo \"EXIT CODE: $?\")"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",
