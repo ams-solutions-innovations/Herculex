@@ -179,29 +179,29 @@ Deno.serve(async (req) => {
       case "food_photo": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [image],
           promptText: foodPhotoPrompt(payload.userNote),
           temperature: 0.2,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       case "nutrition_label": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [image],
           promptText: nutritionLabelPrompt(payload.ocrText ?? ""),
           temperature: 0.1,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       case "exercise_identification": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [image],
           promptText: exerciseIdentificationPrompt(),
           temperature: 0.1,
@@ -209,18 +209,22 @@ Deno.serve(async (req) => {
         const name = typeof result.identifiedName === "string"
           ? result.identifiedName.trim()
           : "Unknown";
-        return json({ text: name || "Unknown", result });
+        return json({
+          text: name || "Unknown",
+          result,
+          provenance: { modelVersion },
+        });
       }
 
       case "supplement_photo": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [image],
           promptText: supplementPhotoPrompt(payload.userNote),
           temperature: 0.1,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       case "barcode_product": {
@@ -229,14 +233,15 @@ Deno.serve(async (req) => {
         const barcode = payload.barcode?.trim();
         if (!barcode) return json({ error: "Barcode is required." }, 400);
 
-        const { result, groundingSources } = await generateGroundedJson({
-          image,
-          promptText: barcodeProductPrompt(barcode, payload.userNote),
-        });
+        const { result, groundingSources, modelVersion } =
+          await generateGroundedJson({
+            image,
+            promptText: barcodeProductPrompt(barcode, payload.userNote),
+          });
         // `groundingSources` je edini dokaz, ki ga ta pot proizvede. Klient
         // ga nese naprej v `product_catalogue_submissions`; brez njega je
         // sporna skupna stevilka nepreverljiva.
-        return json({ result, groundingSources });
+        return json({ result, groundingSources, provenance: { modelVersion } });
       }
 
       case "body_fat_estimate": {
@@ -254,12 +259,12 @@ Deno.serve(async (req) => {
         const validated = validateImages(rawImages);
         if ("error" in validated) return json({ error: validated.error }, 400);
 
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: validated.images,
           promptText: bodyFatPrompt(payload.biometrics, payload.userNote),
           temperature: 0.2,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       case "dream_physique": {
@@ -311,6 +316,7 @@ Deno.serve(async (req) => {
             processor: "Google Gemini",
             imagesPersistedByHerculex: false,
           },
+          provenance: { modelVersion: generated.modelVersion },
         });
         response.headers.set("Cache-Control", "no-store");
         return response;
@@ -321,12 +327,12 @@ Deno.serve(async (req) => {
         if (!text) {
           return json({ error: "Text description of food is required." }, 400);
         }
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [],
           promptText: ramblerFoodPrompt(text, payload.mealKey),
           temperature: 0.1,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       default:
@@ -650,37 +656,53 @@ async function generateJson({
   images,
   promptText,
   temperature,
+  systemInstruction,
 }: {
   images: ValidImage[];
   promptText: string;
   temperature: number;
-}): Promise<{ result: Record<string, unknown> }> {
-  const { text } = await generate({
+  systemInstruction?: string;
+}): Promise<{ result: Record<string, unknown>; modelVersion: string }> {
+  const { text, modelVersion } = await generate({
     images,
     promptText,
     temperature,
     responseMimeType: "application/json",
+    systemInstruction,
   });
   const parsed = JSON.parse(text);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Gemini returned non-object JSON.");
   }
-  return { result: parsed as Record<string, unknown> };
+  return { result: parsed as Record<string, unknown>, modelVersion };
 }
 
-async function generate({
+/// Ovije prosto besedilo v REST obliko `system_instruction` (snake_case,
+/// sosednji kljuc `contents`-u). Vrne `undefined`, ce ni kaj vbrizgati — noben
+/// od 8 obstojecih `kind`-ov tega se ne pocne (D-04); ta funkcija samo dokazuje
+/// pot, ki jo bo Faza 27+ uporabila za injekcijo `knowledge_base.ts` segmentov.
+export function buildSystemInstruction(
+  text?: string,
+): { parts: { text: string }[] } | undefined {
+  if (!text) return undefined;
+  return { parts: [{ text }] };
+}
+
+export async function generate({
   images,
   promptText,
   temperature,
   responseMimeType,
   tools,
+  systemInstruction,
 }: {
   images: ValidImage[];
   promptText: string;
   temperature: number;
   responseMimeType?: string;
   tools?: Record<string, unknown>[];
-}): Promise<{ text: string; groundingSources: string[] }> {
+  systemInstruction?: string;
+}): Promise<{ text: string; groundingSources: string[]; modelVersion: string }> {
   const parts: Record<string, unknown>[] = [{ text: promptText }];
   for (const img of images) {
     parts.push({
@@ -694,12 +716,16 @@ async function generate({
     // `tools` se na tem API-ju izkljucujeta — klicatelji podajo eno ali
     // drugo, nikoli obojega (glej generateGroundedJson).
     ...(tools ? { tools } : {}),
+    ...(systemInstruction
+      ? { system_instruction: buildSystemInstruction(systemInstruction) }
+      : {}),
     generationConfig: {
       temperature,
       ...(responseMimeType ? { response_mime_type: responseMimeType } : {}),
     },
   });
 
+  let usedModel = geminiModel;
   let response = await callGemini(geminiModel, body);
 
   // 429 = kvota, 503 = preobremenjen. Oboje je stanje primarnega modela,
@@ -714,6 +740,7 @@ async function generate({
     console.warn(
       `Gemini ${response.status} on ${geminiModel}, retrying on ${geminiFallbackModel}`,
     );
+    usedModel = geminiFallbackModel;
     response = await callGemini(geminiFallbackModel, body);
   }
 
@@ -755,14 +782,18 @@ async function generate({
   const usage = root?.usageMetadata;
   if (usage) {
     console.log("gemini usage", {
-      model: geminiModel,
+      model: usedModel,
       prompt: usage.promptTokenCount,
       output: usage.candidatesTokenCount,
       total: usage.totalTokenCount,
     });
   }
 
-  return { text, groundingSources: extractGroundingSources(candidate) };
+  return {
+    text,
+    groundingSources: extractGroundingSources(candidate),
+    modelVersion: usedModel,
+  };
 }
 
 function callGemini(model: string, body: string): Promise<Response> {
@@ -810,23 +841,25 @@ async function generateGroundedJson({
 }: {
   image: ValidImage;
   promptText: string;
-}): Promise<{ result: Record<string, unknown>; groundingSources: string[] }> {
+}): Promise<
+  { result: Record<string, unknown>; groundingSources: string[]; modelVersion: string }
+> {
   try {
-    const { text, groundingSources } = await generate({
+    const { text, groundingSources, modelVersion } = await generate({
       images: [image],
       promptText,
       temperature: 0.1,
       tools: [{ google_search: {} }],
     });
     const parsed = extractJsonObject(text);
-    if (parsed) return { result: parsed, groundingSources };
+    if (parsed) return { result: parsed, groundingSources, modelVersion };
     throw new Error("Grounded response did not contain valid JSON.");
   } catch (error) {
     console.error(
       "Grounded barcode lookup failed, falling back",
       String(error),
     );
-    const { result } = await generateJson({
+    const { result, modelVersion } = await generateJson({
       images: [image],
       promptText:
         `${promptText}\n\nIf you cannot identify this product, return exactly {"found": false} instead of guessing.`,
@@ -834,7 +867,7 @@ async function generateGroundedJson({
     });
     // Namerno prazno: ungrounded odgovor NIMA virov, in prazen seznam je
     // bolj posten kot seznam, ki izgleda, kot da je bil preverjen.
-    return { result, groundingSources: [] };
+    return { result, groundingSources: [], modelVersion };
   }
 }
 
