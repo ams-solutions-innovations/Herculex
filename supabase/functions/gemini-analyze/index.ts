@@ -179,29 +179,29 @@ Deno.serve(async (req) => {
       case "food_photo": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [image],
           promptText: foodPhotoPrompt(payload.userNote),
           temperature: 0.2,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       case "nutrition_label": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [image],
           promptText: nutritionLabelPrompt(payload.ocrText ?? ""),
           temperature: 0.1,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       case "exercise_identification": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [image],
           promptText: exerciseIdentificationPrompt(),
           temperature: 0.1,
@@ -209,18 +209,22 @@ Deno.serve(async (req) => {
         const name = typeof result.identifiedName === "string"
           ? result.identifiedName.trim()
           : "Unknown";
-        return json({ text: name || "Unknown", result });
+        return json({
+          text: name || "Unknown",
+          result,
+          provenance: { modelVersion },
+        });
       }
 
       case "supplement_photo": {
         const image = validateImage(payload.image);
         if ("error" in image) return json({ error: image.error }, 400);
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [image],
           promptText: supplementPhotoPrompt(payload.userNote),
           temperature: 0.1,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       case "barcode_product": {
@@ -229,14 +233,15 @@ Deno.serve(async (req) => {
         const barcode = payload.barcode?.trim();
         if (!barcode) return json({ error: "Barcode is required." }, 400);
 
-        const { result, groundingSources } = await generateGroundedJson({
-          image,
-          promptText: barcodeProductPrompt(barcode, payload.userNote),
-        });
+        const { result, groundingSources, modelVersion } =
+          await generateGroundedJson({
+            image,
+            promptText: barcodeProductPrompt(barcode, payload.userNote),
+          });
         // `groundingSources` je edini dokaz, ki ga ta pot proizvede. Klient
         // ga nese naprej v `product_catalogue_submissions`; brez njega je
         // sporna skupna stevilka nepreverljiva.
-        return json({ result, groundingSources });
+        return json({ result, groundingSources, provenance: { modelVersion } });
       }
 
       case "body_fat_estimate": {
@@ -254,12 +259,12 @@ Deno.serve(async (req) => {
         const validated = validateImages(rawImages);
         if ("error" in validated) return json({ error: validated.error }, 400);
 
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: validated.images,
           promptText: bodyFatPrompt(payload.biometrics, payload.userNote),
           temperature: 0.2,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       case "dream_physique": {
@@ -311,6 +316,7 @@ Deno.serve(async (req) => {
             processor: "Google Gemini",
             imagesPersistedByHerculex: false,
           },
+          provenance: { modelVersion: generated.modelVersion },
         });
         response.headers.set("Cache-Control", "no-store");
         return response;
@@ -321,12 +327,12 @@ Deno.serve(async (req) => {
         if (!text) {
           return json({ error: "Text description of food is required." }, 400);
         }
-        const { result } = await generateJson({
+        const { result, modelVersion } = await generateJson({
           images: [],
           promptText: ramblerFoodPrompt(text, payload.mealKey),
           temperature: 0.1,
         });
-        return json({ result });
+        return json({ result, provenance: { modelVersion } });
       }
 
       default:
