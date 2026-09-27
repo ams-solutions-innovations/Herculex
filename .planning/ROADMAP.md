@@ -139,7 +139,7 @@ Plans:
 
 **Success:** Sessions structured into warmup, skill/strength, metcon, and cooldown segments; AMRAP, EMOM, and For Time formats preserve time caps; Full Body 2× + GPP split delivers dedicated conditioning without 8×3 sets.
 
-**Plans:** 5/7 plans executed
+**Plans:** 6/7 plans executed
 
 Plans:
 **Wave 1**
@@ -155,7 +155,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 21-06-PLAN.md — Wave 3: Wire CrossfitProgramPlanner/GppProgramPlanner into smart_program_planner.dart, week-driven format rotation, capped-duration trim, end-to-end regression tests
+- [x] 21-06-PLAN.md — Wave 3: Wire CrossfitProgramPlanner/GppProgramPlanner into smart_program_planner.dart, week-driven format rotation, capped-duration trim, end-to-end regression tests
 
 **Wave 4** *(blocked on Wave 3 completion)*
 

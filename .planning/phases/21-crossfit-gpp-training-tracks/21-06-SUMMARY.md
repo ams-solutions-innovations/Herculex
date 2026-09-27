@@ -121,3 +121,7 @@ None - no external service configuration required.
 ---
 *Phase: 21-crossfit-gpp-training-tracks*
 *Completed: 2026-09-27*
+
+## Self-Check: PASSED
+
+All claimed files exist on disk and all claimed commit hashes (aad7102, 5c243fa, cc28105, 34e2f24) are present in git history.
