@@ -61,7 +61,7 @@ class _MetricDetailViewState extends ConsumerState<MetricDetailView> {
         if (widget.metric == 'body_fat')
           IconButton(
             icon: Icon(Icons.auto_awesome, color: AppColors.primary),
-            tooltip: 'Gemini AI Estimate',
+            tooltip: 'Herculex AI Estimate',
             onPressed: () {
               Haptics.selection();
               BodyFatAiDialog.show(context);
