@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-27T12:46:41.105Z"
+last_updated: "2026-09-27T13:24:07.589Z"
 progress:
   total_phases: 11
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 35
-  completed_plans: 34
-  percent: 55
+  completed_plans: 35
+  percent: 64
 ---
 
 # Project State: Milestone v2.0
@@ -20,7 +20,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system.  
-**Current focus:** Phase 21 — crossfit-gpp-training-tracks (gap closure in progress, 8/9 plans — 21-09 remains)
+**Current focus:** Phase 21 — crossfit-gpp-training-tracks complete (9/9 plans). Ready for `/gsd:verify-phase 21`.
 
 ---
 
@@ -32,11 +32,46 @@ Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 - **Phase 18: Workout Time Budget, Warmups & Set Method Prescriptions** — Pending.
 - **Phase 19: Program & Wave Editor with Explainable Periodization** — Pending.
 - **Phase 20: Active Workout Shell & Calendar Execution Flow** — Pending.
-- **Phase 21: CrossFit & GPP Training Tracks** — Gap closure in progress, 8/9 plans (21-09 remains).
+- **Phase 21: CrossFit & GPP Training Tracks** — Complete, 9/9 plans. Ready for `/gsd:verify-phase 21`.
 - **Phase 22: Primary Lift Strength Specialization** — Pending.
 - **Phase 23: Persistent Dream Physique & Multi-Phase Nutrition** — Pending.
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending.
+
+---
+
+## Session update — 2026-09-27 (Phase 21 Plan 09 Completed — gap closure, Phase 21 complete)
+
+- Completed Plan 21-09 (CF-01), the second and final gap-closure plan found by
+  Phase 21 verification: `program_review_view.dart`'s `_ExerciseRow` rendered
+  the raw placeholder `targetSets`/`targetRepsMin`/`targetRepsMax` columns
+  directly for every row, including CrossFit metcon rows, so the program
+  review screen showed "1 sets · 1 reps" for metcons even though the real
+  AMRAP/EMOM/For-Time prescription was already correctly encoded in
+  `prescriptionCodecJson` and correctly decoded on the active-workout path
+  (21-07).
+
+  - `_ExerciseRow` now decodes `prescriptionCodecJson` via
+    `SlotPrescriptionCodec.decode` whenever `item.row.sessionSegment ==
+    SessionSegment.metcon.id`, rendering a real one-line summary ("AMRAP
+    7:30", "EMOM 12 min", "For Time, cap 9:00") via new `_metconSummary`/
+    `_formatCap` helpers. Non-metcon rows and metcon rows whose decode
+    fails are unchanged — the pre-existing placeholder text is the fallback,
+    never a crash or blank subtitle.
+
+  - New widget test seeds a metcon `programDayExercises` row with a real
+    encoded AMRAP prescription (`capSeconds: 450`) and proves "AMRAP" renders
+    while "1 sets" is absent.
+
+- Validation: 0 analyzer errors; `flutter test test/program_review_view_test.dart`
+  7/7 passing (1 new).
+
+- **Phase 21 (CrossFit & GPP Training Tracks) gap closure is complete — 9/9
+  plans.** CF-01/02/03 all closed end-to-end, including both gaps
+  VERIFICATION.md found. Ready for `/gsd:verify-phase 21`.
+
+- Next implementation focus: `/gsd:verify-phase 21`, then Phase 17 or 22
+  planning.
 
 ---
 

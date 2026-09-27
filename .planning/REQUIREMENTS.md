@@ -93,7 +93,7 @@
 | PRES-01–04 | 18 | Pending |
 | EDIT-01–04 | 19 | Complete |
 | FLOW-01–03 | 20 | Complete |
-| CF-01–03 | 21 | Pending |
+| CF-01–03 | 21 | Complete |
 | SPEC-01–03 | 22 | Pending |
 | PHYS-01–04 | 23 | Pending |
 | XP-01–04 | 24 | Pending |
