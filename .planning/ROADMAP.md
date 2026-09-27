@@ -3,13 +3,27 @@
 ## Milestones
 
 - **v1.0 Nutrition & Workout Core**: [Shipped 2026-09-13](milestones/v1.0-ROADMAP.md) — 11 phases, 27 plans, 36/39 requirements satisfied (3 deferred). [Audit Report](v1.0-MILESTONE-AUDIT.md).
-- **v2.0 Training Programs Revamp, Dream Physique & Gamification**: In Progress (Phases 15–25).
+- **v2.0 Training Programs Revamp, Dream Physique & Gamification**: In Progress (Phases 15–29).
 
 ---
 
 ## Milestone v2.0: Training Programs Revamp, Dream Physique & Gamification
 
 Blueprint reference: [`docs/training-programs-physique-gamification-plan-2026-09-10.md`](../docs/training-programs-physique-gamification-plan-2026-09-10.md)
+
+Herculex AI amendment (2026-09-27, Phases 26–29 and PHYS-05–08): [`docs/herculex-ai-plan-2026-09-27.md`](../docs/herculex-ai-plan-2026-09-27.md)
+
+**Execution order — not numeric.** Phases 26–29 were appended to preserve existing
+numbering, but they have real dependencies that cut across 22–25:
+
+```
+26 → 28 → 27 → 22 → 23 → 29 → 24 → 25
+```
+
+Phase 26 is foundational: it ships the knowledge-base contract, the Herculex AI rename,
+and the per-kind quota model that 27, 29 and PHYS-07 all consume. Phase 28 carries no AI
+dependency and feeds both 23 and 29. Phase 25 must stay last so its sync, wipe, and export
+hardening can cover every table the new phases add.
 
 ### Phase 15: Program Generator Regression Fixes & Interaction Hardening
 
@@ -176,11 +190,11 @@ Plans:
 
 ### Phase 23: Persistent Dream Physique & Multi-Phase Nutrition
 
-**Goal:** Transform Dream Physique into a persistent goal with synchronized assessment history, private local photo storage, and structured multi-phase nutrition roadmaps.
+**Goal:** Transform Dream Physique into a persistent goal with synchronized assessment history, private local photo storage, structured multi-phase nutrition roadmaps, and a progress screen that shows where the user stands against that goal.
 
-**Requirements:** PHYS-01–04
+**Requirements:** PHYS-01–08
 
-**Success:** Goals and assessments persist across app restarts and sync; photos stored locally with EXIF stripped and optional blur; phased nutrition plans (`cut`, `maintain`, `recomp`, `bulk`) compute realistic tempos; underage users protected from aggressive deficits/surpluses.
+**Success:** Goals and assessments persist across app restarts and sync; photos stored locally with EXIF stripped and optional blur; phased nutrition plans (`cut`, `maintain`, `recomp`, `bulk`) compute realistic tempos; underage users protected from aggressive deficits/surpluses; the progress screen names the active phase and position in the roadmap; check-ins are capped at one photo per 7 days and return a confidence-banded directional verdict rather than a false-precision percentage; bodyweight, strength, and training-level trends chart against the goal horizon.
 
 ### Phase 24: Gamification System & 15-Rank XP Ledger
 
@@ -197,6 +211,54 @@ Plans:
 **Requirements:** SYNC-01–03
 
 **Success:** Drift schemas (v39/v40+) and Supabase migrations apply cleanly with verified replay tests; local data wipe purges all v2.0 rows and photos; JSON export delivers complete user history.
+
+### Phase 26: Herculex AI Knowledge Base & Brand Unification
+
+**Goal:** Establish the server-side coaching knowledge base that grounds every Herculex AI output, make provenance traceable, unify the user-facing brand on "Herculex AI", and replace the shared daily AI cap with per-kind quotas that fail closed.
+
+**Requirements:** KB-01–05
+
+**Success:** The knowledge corpus lives beside `prompts.ts` and never ships in the app bundle; every AI result carries `knowledgeVersion` and `modelVersion`; no user-visible string reads "Gemini" while internal provider naming is untouched; Hercul's deterministic rule engine and its closed-vocabulary test keep working offline beside a clearly-labelled AI advice channel; per-kind quota exhaustion fails closed with a clear message.
+
+**Plans:** 7 plans planned
+
+Plans:
+**Wave 1**
+
+- [ ] 26-01-PLAN.md — Wave 1: knowledge_base.ts corpus + system_instruction/modelVersion provenance plumbing (KB-01, KB-02)
+- [ ] 26-03-PLAN.md — Wave 1: brand-data consistency across prompts.ts + gemini_food_analyzer_service.dart + gemini_photo_analysis_dialog.dart (KB-03)
+- [ ] 26-04-PLAN.md — Wave 1: dream_physique_view.dart consent reword + Pitfall-1-safe rename (KB-03)
+- [ ] 26-05-PLAN.md — Wave 1: measurements feature brand rename (KB-03)
+- [ ] 26-06-PLAN.md — Wave 1: nutrition feature brand rename, non-data sites (KB-03)
+- [ ] 26-07-PLAN.md — Wave 1: supplements/workouts/profile-services brand rename (KB-03)
+
+**Wave 2** *(blocked on Wave 1 completion — 26-01)*
+
+- [ ] 26-02-PLAN.md — Wave 2: per-kind AI quotas, fail-closed retry, KB-03 index.ts renames, migration 0021 + [BLOCKING] db push (KB-03, KB-04, KB-05)
+
+### Phase 27: Herculex AI Program Generation
+
+**Goal:** Add a Herculex AI path to program creation that proposes a program design brief grounded in the knowledge base, while the deterministic planner remains the sole selector of every exercise.
+
+**Requirements:** AIP-01–05
+
+**Success:** The builder offers a manual path and a Herculex AI path; the AI returns a design brief (split, periodization, day roles, muscle priorities, phase intent, rationale) and never an exercise list; a brief violating any Phase 16–21 guardrail is rejected with fallback to the deterministic recommendation; generated programs land archived and unactivated in the existing review gate with per-day rationale; offline, unconfigured, or over-quota states degrade to the existing Smart/Guided path.
+
+### Phase 28: Adaptive TDEE & Activity Calibration
+
+**Goal:** Replace the hand-picked activity multiplier with a measured expenditure estimate that the app calibrates and re-calibrates on its own cadence.
+
+**Requirements:** TDEE-01–05
+
+**Success:** Observed expenditure from logged intake and bodyweight trend becomes the baseline when adherence passes threshold; an activity classifier over `HealthSamples` and logged training supplies the multiplier otherwise; the app picks its own calibration window and cadence without asking the user for a duration; every estimate exposes method, confidence, window, and inputs, and never overrides a manually-set maintenance value; a material shift surfaces in the weekly report instead of silently rewriting confirmed targets.
+
+### Phase 29: Weekly Report & Herculex AI Narrative
+
+**Goal:** Deliver an opt-in Sunday report that snapshots the week across nutrition, training, recovery, physique, and TDEE drift, with a knowledge-grounded narrative layered over measured numbers.
+
+**Requirements:** RPT-01–05
+
+**Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
 ---
 
