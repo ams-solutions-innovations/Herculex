@@ -89,3 +89,10 @@ None - no external service configuration required.
 ---
 *Phase: 26-herculex-ai-knowledge-base-brand-unification*
 *Completed: 2026-09-27*
+
+## Self-Check: PASSED
+
+- FOUND: `lib/features/profile/presentation/dream_physique_view.dart`
+- FOUND: `.planning/phases/26-herculex-ai-knowledge-base-brand-unification/26-04-SUMMARY.md`
+- FOUND: commit `af56d7f`
+- FOUND: commit `c914372`
