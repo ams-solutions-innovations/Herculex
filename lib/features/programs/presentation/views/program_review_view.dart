@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +9,13 @@ import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/session_segment.dart';
+import 'package:herculex/features/programs/domain/slot_prescription.dart';
+import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/block_detail_view.dart';
 import 'package:herculex/features/programs/presentation/widgets/empty_slot_notice.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 
 /// A review-only screen placed between building and activating a block.
@@ -624,12 +629,21 @@ class _ExerciseRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final exercise = item.exercise;
+    final isMetcon = item.row.sessionSegment == SessionSegment.metcon.id;
+    final metconSegment = isMetcon
+        ? SlotPrescriptionCodec.decode(
+            item.row.prescriptionCodecJson,
+          )?.segments.firstOrNull
+        : null;
     final reps = switch ((item.row.targetRepsMin, item.row.targetRepsMax)) {
       (final int min, final int max) when min != max => '$min–$max reps',
       (final int min, _) => '$min reps',
       (_, final int max) => '$max reps',
       _ => 'Custom reps',
     };
+    final subtitle = isMetcon && metconSegment != null
+        ? _metconSummary(metconSegment)
+        : '${item.row.targetSets} sets · $reps${exercise?.movementPattern == null ? '' : ' · ${exercise!.movementPattern!.replaceAll('_', ' ')}'}';
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -655,7 +669,7 @@ class _ExerciseRow extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${item.row.targetSets} sets · $reps${exercise?.movementPattern == null ? '' : ' · ${exercise!.movementPattern!.replaceAll('_', ' ')}'}',
+                      subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.secondary,
                       ),
@@ -670,6 +684,29 @@ class _ExerciseRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _metconSummary(WorkSegment segment) {
+  final capSeconds = (segment.meta['capSeconds'] as num?)?.toInt();
+  final minutes = (segment.meta['minutes'] as num?)?.toInt();
+  switch (segment.setType) {
+    case SetType.amrap:
+      return capSeconds != null ? 'AMRAP ${_formatCap(capSeconds)}' : 'AMRAP';
+    case SetType.emom:
+      return minutes != null ? 'EMOM $minutes min' : 'EMOM';
+    case SetType.forTime:
+      return capSeconds != null
+          ? 'For Time, cap ${_formatCap(capSeconds)}'
+          : 'For Time';
+    default:
+      return segment.setType.label;
+  }
+}
+
+String _formatCap(int totalSeconds) {
+  final minutes = totalSeconds ~/ 60;
+  final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+  return '$minutes:$seconds';
 }
 
 class _Notice extends StatelessWidget {
