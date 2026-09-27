@@ -1,4 +1,6 @@
-import 'package:drift/drift.dart' hide isNull;
+import 'dart:convert';
+
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
@@ -586,6 +588,147 @@ void main() {
       expect(workSets, hasLength(3));
       expect(workSets.every((s) => s.repsMin == 5 && s.repsMax == 5), isTrue);
       expect(workSets, isNot(hasLength(8)));
+    },
+  );
+
+  test(
+    'sessionSegment and supersetGroup survive Program-day resolution and '
+    'materialization into WorkoutExercises (CF-01)',
+    () async {
+      final exerciseId = await db
+          .into(db.exerciseCatalog)
+          .insert(
+            ExerciseCatalogCompanion.insert(
+              name: 'Metcon Thruster',
+              primaryMuscle: 'Quads',
+              equipment: 'Barbell',
+              mechanics: 'compound',
+              force: 'push',
+              plane: 'axial',
+              modality: const Value('barbell'),
+            ),
+          );
+      final programId = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'CrossFit Segment Program'));
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
+      final dayId = await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: weekId,
+              dayOfWeek: 1,
+              name: 'Metcon Day',
+            ),
+          );
+      await db
+          .into(db.programDayExercises)
+          .insert(
+            ProgramDayExercisesCompanion.insert(
+              programDayId: dayId,
+              exerciseId: exerciseId,
+              orderIndex: 0,
+              slotRole: Value(SlotRole.main.id),
+              trainingMethod: Value(SlotTrainingMethod.straightSets.id),
+              sessionSegment: const Value('metcon'),
+              supersetGroup: const Value(7),
+            ),
+          );
+
+      final resolver = PlannedSessionResolver(db);
+      final plan = await resolver.resolveProgramDay(dayId);
+      expect(plan.exercises.single.sessionSegment, 'metcon');
+      expect(plan.exercises.single.supersetGroup, 7);
+
+      final sessionId = await resolver.materialize(plan);
+      final workoutExercise = await (db.select(
+        db.workoutExercises,
+      )..where((t) => t.sessionId.equals(sessionId))).getSingle();
+      expect(workoutExercise.plannedSessionSegment, 'metcon');
+      expect(workoutExercise.supersetGroup, 7);
+    },
+  );
+
+  test(
+    'an AMRAP cap on a Program-day prescriptionCodecJson survives into '
+    'SetEntries.setTypeMetaJson (CF-01)',
+    () async {
+      final exerciseId = await db
+          .into(db.exerciseCatalog)
+          .insert(
+            ExerciseCatalogCompanion.insert(
+              name: 'Metcon AMRAP Row',
+              primaryMuscle: 'Back',
+              equipment: 'Rower',
+              mechanics: 'compound',
+              force: 'pull',
+              plane: 'horizontal',
+              modality: const Value('machine'),
+            ),
+          );
+      final programId = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'AMRAP Cap Program'));
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
+      final dayId = await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: weekId,
+              dayOfWeek: 1,
+              name: 'AMRAP Day',
+            ),
+          );
+      const storedPrescription = SlotPrescription(
+        name: 'Metcon',
+        segments: [
+          WorkSegment(
+            sets: 1,
+            repsMin: 1,
+            setType: SetType.amrap,
+            meta: {'capSeconds': 600},
+          ),
+        ],
+      );
+      await db
+          .into(db.programDayExercises)
+          .insert(
+            ProgramDayExercisesCompanion.insert(
+              programDayId: dayId,
+              exerciseId: exerciseId,
+              orderIndex: 0,
+              slotRole: Value(SlotRole.main.id),
+              trainingMethod: Value(SlotTrainingMethod.straightSets.id),
+              sessionSegment: const Value('metcon'),
+              prescriptionCodecJson: Value(
+                SlotPrescriptionCodec.encode(storedPrescription),
+              ),
+            ),
+          );
+
+      final resolver = PlannedSessionResolver(db);
+      final plan = await resolver.resolveProgramDay(dayId);
+      final sessionId = await resolver.materialize(plan);
+      final workoutExercise = await (db.select(
+        db.workoutExercises,
+      )..where((t) => t.sessionId.equals(sessionId))).getSingle();
+      final setEntry = await (db.select(
+        db.setEntries,
+      )..where((t) => t.workoutExerciseId.equals(workoutExercise.id))).getSingle();
+
+      expect(setEntry.setType, SetType.amrap.id);
+      expect(setEntry.setTypeMetaJson, isNotNull);
+      final decodedMeta =
+          jsonDecode(setEntry.setTypeMetaJson!) as Map<String, dynamic>;
+      expect(decodedMeta['capSeconds'], 600);
     },
   );
 }
