@@ -286,7 +286,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                           Icons.camera_alt_outlined,
                           color: AppColors.primary,
                         ),
-                        tooltip: 'Gemini AI: Skeniraj napravo / vajo',
+                        tooltip: 'Herculex AI: Skeniraj napravo / vajo',
                         onPressed: () async {
                           final match = await ExerciseAiScanDialog.show(
                             context,
