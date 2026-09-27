@@ -22,12 +22,24 @@ class TodayMacrosMediumWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         val prefs = CnsWidgetProvider.getPrefs(context)
-        val carbsCurrent = prefs.getInt(CarbsWidgetProvider.KEY_CARBS_CURRENT, 0)
-        val carbsTarget = prefs.getInt(CarbsWidgetProvider.KEY_CARBS_TARGET, 0)
-        val fatCurrent = prefs.getInt(FatWidgetProvider.KEY_FAT_CURRENT, 0)
-        val fatTarget = prefs.getInt(FatWidgetProvider.KEY_FAT_TARGET, 0)
-        val proteinCurrent = prefs.getInt(ProteinWidgetProvider.KEY_PROTEIN_CURRENT, 0)
-        val proteinTarget = prefs.getInt(ProteinWidgetProvider.KEY_PROTEIN_TARGET, 0)
+
+        // Never present another day's macros as today's: on a stale (or not yet
+        // synced) store, feed the placeholder sentinels through instead. -1,
+        // not 0, so an empty state is distinguishable from a real zero.
+        val stale = isWidgetDataStale(prefs)
+
+        val carbsCurrent =
+            if (stale) -1 else prefs.getInt(CarbsWidgetProvider.KEY_CARBS_CURRENT, -1)
+        val carbsTarget =
+            if (stale) 0 else prefs.getInt(CarbsWidgetProvider.KEY_CARBS_TARGET, 0)
+        val fatCurrent =
+            if (stale) -1 else prefs.getInt(FatWidgetProvider.KEY_FAT_CURRENT, -1)
+        val fatTarget =
+            if (stale) 0 else prefs.getInt(FatWidgetProvider.KEY_FAT_TARGET, 0)
+        val proteinCurrent =
+            if (stale) -1 else prefs.getInt(ProteinWidgetProvider.KEY_PROTEIN_CURRENT, -1)
+        val proteinTarget =
+            if (stale) 0 else prefs.getInt(ProteinWidgetProvider.KEY_PROTEIN_TARGET, 0)
 
         for (id in appWidgetIds) {
             val views = buildViews(
@@ -54,63 +66,35 @@ class TodayMacrosMediumWidgetProvider : AppWidgetProvider() {
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_today_macros_medium)
 
-        val carbsColor = Color.parseColor("#64D2FF") // Cyan / Teal
-        val fatColor = Color.parseColor("#BF5AF2")   // Purple
-        val proteinColor = Color.parseColor("#FF9F0A") // Orange
-        val trackColor = Color.parseColor("#2C2C32")
-
-        // 1. Carbs
-        val carbsProgress = if (carbsTarget > 0) (carbsCurrent.toFloat() / carbsTarget).coerceIn(0f, 1f) else 0f
-        val carbsRing = WidgetRingRenderer.drawRing(
-            sizePx = 160,
-            strokeWidthPx = 14f,
-            progress = carbsProgress,
-            progressColor = carbsColor,
-            trackColor = trackColor
+        bindColumn(
+            views,
+            ringId = R.id.carbs_ring_image,
+            currentId = R.id.carbs_current_value,
+            targetId = R.id.carbs_target_value,
+            remainingId = R.id.carbs_remaining_value,
+            current = carbsCurrent,
+            target = carbsTarget,
+            color = Color.parseColor("#64D2FF"), // Cyan / Teal
         )
-        views.setImageViewBitmap(R.id.carbs_ring_image, carbsRing)
-        views.setTextViewText(R.id.carbs_current_value, "$carbsCurrent")
-        views.setTextViewText(R.id.carbs_target_value, if (carbsTarget > 0) "/${carbsTarget}g" else "/—")
-        val carbsRemaining = carbsTarget - carbsCurrent
-        views.setTextViewText(
-            R.id.carbs_remaining_value,
-            if (carbsTarget <= 0) "—" else if (carbsRemaining >= 0) "$carbsRemaining g left" else "Over ${-carbsRemaining}g"
+        bindColumn(
+            views,
+            ringId = R.id.fat_ring_image,
+            currentId = R.id.fat_current_value,
+            targetId = R.id.fat_target_value,
+            remainingId = R.id.fat_remaining_value,
+            current = fatCurrent,
+            target = fatTarget,
+            color = Color.parseColor("#BF5AF2"), // Purple
         )
-
-        // 2. Fat
-        val fatProgress = if (fatTarget > 0) (fatCurrent.toFloat() / fatTarget).coerceIn(0f, 1f) else 0f
-        val fatRing = WidgetRingRenderer.drawRing(
-            sizePx = 160,
-            strokeWidthPx = 14f,
-            progress = fatProgress,
-            progressColor = fatColor,
-            trackColor = trackColor
-        )
-        views.setImageViewBitmap(R.id.fat_ring_image, fatRing)
-        views.setTextViewText(R.id.fat_current_value, "$fatCurrent")
-        views.setTextViewText(R.id.fat_target_value, if (fatTarget > 0) "/${fatTarget}g" else "/—")
-        val fatRemaining = fatTarget - fatCurrent
-        views.setTextViewText(
-            R.id.fat_remaining_value,
-            if (fatTarget <= 0) "—" else if (fatRemaining >= 0) "$fatRemaining g left" else "Over ${-fatRemaining}g"
-        )
-
-        // 3. Protein
-        val proteinProgress = if (proteinTarget > 0) (proteinCurrent.toFloat() / proteinTarget).coerceIn(0f, 1f) else 0f
-        val proteinRing = WidgetRingRenderer.drawRing(
-            sizePx = 160,
-            strokeWidthPx = 14f,
-            progress = proteinProgress,
-            progressColor = proteinColor,
-            trackColor = trackColor
-        )
-        views.setImageViewBitmap(R.id.protein_ring_image, proteinRing)
-        views.setTextViewText(R.id.protein_current_value, "$proteinCurrent")
-        views.setTextViewText(R.id.protein_target_value, if (proteinTarget > 0) "/${proteinTarget}g" else "/—")
-        val proteinRemaining = proteinTarget - proteinCurrent
-        views.setTextViewText(
-            R.id.protein_remaining_value,
-            if (proteinTarget <= 0) "—" else if (proteinRemaining >= 0) "$proteinRemaining g left" else "Over ${-proteinRemaining}g"
+        bindColumn(
+            views,
+            ringId = R.id.protein_ring_image,
+            currentId = R.id.protein_current_value,
+            targetId = R.id.protein_target_value,
+            remainingId = R.id.protein_remaining_value,
+            current = proteinCurrent,
+            target = proteinTarget,
+            color = Color.parseColor("#FF9F0A"), // Orange
         )
 
         // Action: Tap card opens Nutrition tab
@@ -127,5 +111,49 @@ class TodayMacrosMediumWidgetProvider : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.widget_root, nutritionPendingIntent)
 
         return views
+    }
+
+    /**
+     * Paints one macro column. A negative [current] means "no data for today"
+     * and renders the em-dash placeholder with an empty ring.
+     */
+    private fun bindColumn(
+        views: RemoteViews,
+        ringId: Int,
+        currentId: Int,
+        targetId: Int,
+        remainingId: Int,
+        current: Int,
+        target: Int,
+        color: Int,
+    ) {
+        val trackColor = Color.parseColor("#2C2C32")
+        val hasData = current >= 0
+
+        val progress =
+            if (hasData && target > 0) (current.toFloat() / target).coerceIn(0f, 1f) else 0f
+        views.setImageViewBitmap(
+            ringId,
+            WidgetRingRenderer.drawRing(
+                sizePx = 240,
+                strokeWidthPx = 21f,
+                progress = progress,
+                progressColor = if (hasData) color else Color.parseColor("#E5E5EA"),
+                trackColor = trackColor,
+            )
+        )
+
+        views.setTextViewText(currentId, if (hasData) "$current" else "—")
+        views.setTextViewText(targetId, if (target > 0) "/${target}g" else "/—")
+
+        val remaining = target - current
+        views.setTextViewText(
+            remainingId,
+            when {
+                !hasData || target <= 0 -> "—"
+                remaining >= 0 -> "$remaining g left"
+                else -> "Over ${-remaining}g"
+            }
+        )
     }
 }

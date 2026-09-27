@@ -20,7 +20,7 @@ class RecoveryWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         val prefs = CnsWidgetProvider.getPrefs(context)
-        val score = prefs.getInt(KEY_RECOVERY_SCORE, -1)
+        val score = if (isWidgetDataStale(prefs)) -1 else prefs.getInt(KEY_RECOVERY_SCORE, -1)
 
         for (id in appWidgetIds) {
             val views = buildViews(context, score)

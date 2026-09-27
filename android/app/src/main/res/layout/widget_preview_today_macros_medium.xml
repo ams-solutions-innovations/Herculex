@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Widget-picker preview for Today's Macros (4x2). Mirrors
+     widget_today_macros_medium with sample values baked in. Rings are static
+     shapes here; at runtime WidgetRingRenderer paints real arc bitmaps.
+     Keep in sync with widget_today_macros_medium.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
@@ -20,7 +23,6 @@
         android:gravity="center_horizontal">
 
         <TextView
-            android:id="@+id/carbs_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Carbs"
@@ -37,11 +39,11 @@
             android:layout_marginBottom="4dp">
 
             <ImageView
-                android:id="@+id/carbs_ring_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitCenter"
-                android:contentDescription="Carbs ring" />
+                android:src="@drawable/widget_preview_ring_teal"
+                android:contentDescription="@null" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -51,20 +53,18 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/carbs_current_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0"
+                    android:text="186"
                     android:textSize="15sp"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
                 <TextView
-                    android:id="@+id/carbs_target_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="/0g"
+                    android:text="/240g"
                     android:textSize="10sp"
                     android:textColor="#8E8E93"
                     android:includeFontPadding="false" />
@@ -74,10 +74,9 @@
         </FrameLayout>
 
         <TextView
-            android:id="@+id/carbs_remaining_value"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0 g left"
+            android:text="54 g left"
             android:textSize="11sp"
             android:textColor="#8E8E93"
             android:includeFontPadding="false" />
@@ -93,7 +92,6 @@
         android:gravity="center_horizontal">
 
         <TextView
-            android:id="@+id/fat_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Fat"
@@ -110,11 +108,11 @@
             android:layout_marginBottom="4dp">
 
             <ImageView
-                android:id="@+id/fat_ring_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitCenter"
-                android:contentDescription="Fat ring" />
+                android:src="@drawable/widget_preview_ring_purple"
+                android:contentDescription="@null" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -124,20 +122,18 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/fat_current_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0"
+                    android:text="52"
                     android:textSize="15sp"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
                 <TextView
-                    android:id="@+id/fat_target_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="/0g"
+                    android:text="/70g"
                     android:textSize="10sp"
                     android:textColor="#8E8E93"
                     android:includeFontPadding="false" />
@@ -147,10 +143,9 @@
         </FrameLayout>
 
         <TextView
-            android:id="@+id/fat_remaining_value"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0 g left"
+            android:text="18 g left"
             android:textSize="11sp"
             android:textColor="#8E8E93"
             android:includeFontPadding="false" />
@@ -166,7 +161,6 @@
         android:gravity="center_horizontal">
 
         <TextView
-            android:id="@+id/protein_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Protein"
@@ -183,11 +177,11 @@
             android:layout_marginBottom="4dp">
 
             <ImageView
-                android:id="@+id/protein_ring_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitCenter"
-                android:contentDescription="Protein ring" />
+                android:src="@drawable/widget_preview_ring_orange"
+                android:contentDescription="@null" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -197,20 +191,18 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/protein_current_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0"
+                    android:text="142"
                     android:textSize="15sp"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
                 <TextView
-                    android:id="@+id/protein_target_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="/0g"
+                    android:text="/180g"
                     android:textSize="10sp"
                     android:textColor="#8E8E93"
                     android:includeFontPadding="false" />
@@ -220,10 +212,9 @@
         </FrameLayout>
 
         <TextView
-            android:id="@+id/protein_remaining_value"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0 g left"
+            android:text="38 g left"
             android:textSize="11sp"
             android:textColor="#8E8E93"
             android:includeFontPadding="false" />

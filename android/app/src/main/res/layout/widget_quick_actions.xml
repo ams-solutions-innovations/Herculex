@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Quick Actions row (4x1): water, scan, log food, start workout.
+     Purely static tap targets — no dynamic data, never synced. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="10dp"
+    android:paddingEnd="10dp"
+    android:background="@drawable/widget_card_bg">
+
+    <!-- Water -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/btn_quick_water"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:padding="8dp"
+            android:background="@drawable/widget_action_btn_bg"
+            android:src="@drawable/ic_widget_water_drop"
+            android:contentDescription="Add 250 ml water" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="+250 ml"
+            android:textSize="9sp"
+            android:textColor="#8E8E93" />
+
+    </LinearLayout>
+
+    <!-- Divider. FrameLayout, not View: RemoteViews only inflates @RemoteView
+         classes and plain android.view.View is not one of them. -->
+    <FrameLayout
+        android:layout_width="1dp"
+        android:layout_height="34dp"
+        android:background="#2C2C32" />
+
+    <!-- Scan -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/btn_quick_scan"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:padding="8dp"
+            android:background="@drawable/widget_action_btn_bg"
+            android:src="@drawable/ic_widget_barcode"
+            android:contentDescription="Scan a barcode" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Scan"
+            android:textSize="9sp"
+            android:textColor="#8E8E93" />
+
+    </LinearLayout>
+
+    <!-- Divider. FrameLayout, not View: RemoteViews only inflates @RemoteView
+         classes and plain android.view.View is not one of them. -->
+    <FrameLayout
+        android:layout_width="1dp"
+        android:layout_height="34dp"
+        android:background="#2C2C32" />
+
+    <!-- Log food -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/btn_quick_log_food"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:padding="8dp"
+            android:background="@drawable/widget_action_btn_bg"
+            android:src="@drawable/ic_widget_cutlery"
+            android:contentDescription="Log food" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Log food"
+            android:textSize="9sp"
+            android:textColor="#8E8E93" />
+
+    </LinearLayout>
+
+    <!-- Divider. FrameLayout, not View: RemoteViews only inflates @RemoteView
+         classes and plain android.view.View is not one of them. -->
+    <FrameLayout
+        android:layout_width="1dp"
+        android:layout_height="34dp"
+        android:background="#2C2C32" />
+
+    <!-- Start workout -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/btn_quick_workout"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:padding="8dp"
+            android:background="@drawable/widget_action_btn_bg_highlight"
+            android:src="@drawable/ic_widget_play"
+            android:contentDescription="Start workout" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Workout"
+            android:textSize="9sp"
+            android:textColor="#8E8E93" />
+
+    </LinearLayout>
+
+</LinearLayout>

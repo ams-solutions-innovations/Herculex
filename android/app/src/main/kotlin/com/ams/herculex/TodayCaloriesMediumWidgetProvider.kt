@@ -11,8 +11,9 @@ import android.widget.RemoteViews
 /**
  * Medium 4x2 "Today's Calories" widget.
  *
- * Displays circular calorie gauge with remaining calories, detailed breakdown
- * (Base Goal, Food, Exercise), and quick-action shortcuts (Food Search, Barcode Scanner).
+ * Displays a circular calorie gauge with remaining calories, per-macro
+ * progress bars (Protein / Carbs / Fat), and quick-action shortcuts (Food
+ * Search, Barcode Scanner, Photo/Camera).
  */
 class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
 
@@ -22,16 +23,50 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         val prefs = CnsWidgetProvider.getPrefs(context)
-        val baseGoal = prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_BASE_GOAL, 0)
-        val food = prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_FOOD, 0)
-        val exercise = prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_EXERCISE, 0)
-        val remaining = prefs.getInt(
+
+        // Never present another day's totals as today's: on a stale (or not yet
+        // synced) store, feed the placeholder sentinels through instead. -1,
+        // not 0, so an empty state is distinguishable from a real zero.
+        val stale = isWidgetDataStale(prefs)
+
+        val baseGoal =
+            if (stale) 0 else prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_BASE_GOAL, 0)
+        val food =
+            if (stale) 0 else prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_FOOD, 0)
+        val exercise =
+            if (stale) 0 else prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_EXERCISE, 0)
+        val remaining = if (stale) -1 else prefs.getInt(
             TodayCaloriesSmallWidgetProvider.KEY_CALORIES_REMAINING,
             if (baseGoal > 0) baseGoal - food + exercise else -1
         )
 
+        val proteinCurrent =
+            if (stale) -1 else prefs.getInt(ProteinWidgetProvider.KEY_PROTEIN_CURRENT, -1)
+        val proteinTarget =
+            if (stale) 0 else prefs.getInt(ProteinWidgetProvider.KEY_PROTEIN_TARGET, 0)
+        val carbsCurrent =
+            if (stale) -1 else prefs.getInt(CarbsWidgetProvider.KEY_CARBS_CURRENT, -1)
+        val carbsTarget =
+            if (stale) 0 else prefs.getInt(CarbsWidgetProvider.KEY_CARBS_TARGET, 0)
+        val fatCurrent =
+            if (stale) -1 else prefs.getInt(FatWidgetProvider.KEY_FAT_CURRENT, -1)
+        val fatTarget =
+            if (stale) 0 else prefs.getInt(FatWidgetProvider.KEY_FAT_TARGET, 0)
+
         for (id in appWidgetIds) {
-            val views = buildViews(context, baseGoal, food, exercise, remaining)
+            val views = buildViews(
+                context,
+                baseGoal,
+                food,
+                exercise,
+                remaining,
+                proteinCurrent,
+                proteinTarget,
+                carbsCurrent,
+                carbsTarget,
+                fatCurrent,
+                fatTarget,
+            )
             appWidgetManager.updateAppWidget(id, views)
         }
     }
@@ -41,18 +76,21 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
         baseGoal: Int,
         food: Int,
         exercise: Int,
-        remaining: Int
+        remaining: Int,
+        proteinCurrent: Int,
+        proteinTarget: Int,
+        carbsCurrent: Int,
+        carbsTarget: Int,
+        fatCurrent: Int,
+        fatTarget: Int,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_today_calories_medium)
 
         if (baseGoal <= 0 && remaining < 0) {
             views.setTextViewText(R.id.calories_remaining_value, "—")
-            views.setTextViewText(R.id.calories_base_goal, "—")
-            views.setTextViewText(R.id.calories_food_value, "0")
-            views.setTextViewText(R.id.calories_exercise_value, "0")
             val emptyRing = WidgetRingRenderer.drawRing(
-                sizePx = 240,
-                strokeWidthPx = 18f,
+                sizePx = 288,
+                strokeWidthPx = 21f,
                 progress = 0f,
                 progressColor = Color.parseColor("#E5E5EA"),
                 trackColor = Color.parseColor("#2C2C32")
@@ -64,13 +102,12 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
 
             val ringColor = when {
                 remaining < 0 -> Color.parseColor("#FF453A")
-                food > 0 -> Color.parseColor("#E5E5EA")
                 else -> Color.parseColor("#E5E5EA")
             }
 
             val ringBitmap = WidgetRingRenderer.drawRing(
-                sizePx = 240,
-                strokeWidthPx = 18f,
+                sizePx = 288,
+                strokeWidthPx = 21f,
                 progress = progress,
                 progressColor = ringColor,
                 trackColor = Color.parseColor("#2C2C32")
@@ -78,10 +115,11 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
             views.setImageViewBitmap(R.id.calories_ring_image, ringBitmap)
 
             views.setTextViewText(R.id.calories_remaining_value, String.format("%,d", remaining.coerceAtLeast(0)))
-            views.setTextViewText(R.id.calories_base_goal, String.format("%,d", baseGoal))
-            views.setTextViewText(R.id.calories_food_value, String.format("%,d", food))
-            views.setTextViewText(R.id.calories_exercise_value, String.format("%,d", exercise))
         }
+
+        bindMacroRow(views, R.id.macro_progress_protein, R.id.macro_text_protein, proteinCurrent, proteinTarget)
+        bindMacroRow(views, R.id.macro_progress_carbs, R.id.macro_text_carbs, carbsCurrent, carbsTarget)
+        bindMacroRow(views, R.id.macro_progress_fat, R.id.macro_text_fat, fatCurrent, fatTarget)
 
         // Action: Tap card opens Nutrition tab
         val nutritionIntent = Intent(context, MainActivity::class.java).apply {
@@ -122,10 +160,43 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
         )
         views.setOnClickPendingIntent(R.id.btn_scan_food, scanPendingIntent)
 
+        // Action: Camera button opens the food-photo camera capture directly,
+        // matching its icon (same principle as the scan button opening the
+        // barcode viewfinder directly instead of a generic tab).
+        val cameraIntent = Intent(context, MainActivity::class.java).apply {
+            action = ACTION_OPEN_CAMERA_FOOD_LOG
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val cameraPendingIntent = PendingIntent.getActivity(
+            context,
+            205,
+            cameraIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        views.setOnClickPendingIntent(R.id.btn_camera_food, cameraPendingIntent)
+
         return views
+    }
+
+    private fun bindMacroRow(
+        views: RemoteViews,
+        progressId: Int,
+        textId: Int,
+        current: Int,
+        target: Int,
+    ) {
+        if (current < 0) {
+            views.setProgressBar(progressId, 100, 0, false)
+            views.setTextViewText(textId, "—")
+            return
+        }
+        val pct = if (target > 0) ((current.toFloat() / target) * 100).toInt().coerceIn(0, 100) else 0
+        views.setProgressBar(progressId, 100, pct, false)
+        views.setTextViewText(textId, "${current}/${if (target > 0) target else "—"}")
     }
 
     companion object {
         const val ACTION_SEARCH_FOOD = "com.ams.herculex.ACTION_SEARCH_FOOD"
+        const val ACTION_OPEN_CAMERA_FOOD_LOG = "com.ams.herculex.ACTION_OPEN_CAMERA_FOOD_LOG"
     }
 }

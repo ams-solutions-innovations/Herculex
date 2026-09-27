@@ -13,6 +13,10 @@
     <string name="widget_today_calories_medium_description">Today\'s Calories — track calorie goal, exercise, and log food fast</string>
     <string name="widget_today_macros_medium_label">Today\'s Macros</string>
     <string name="widget_today_macros_medium_description">Today\'s Macros — keep your daily carb, fat, and protein goals on track</string>
+    <string name="widget_training_label">Training</string>
+    <string name="widget_training_description">Training — today\'s planned workout and supplement checklist</string>
+    <string name="widget_quick_actions_label">Quick Actions</string>
+    <string name="widget_quick_actions_description">Quick Actions — log water, scan a barcode, log food, or start a workout</string>
     <string name="workout_bubble_content_description">Herculex workout in progress — tap to open</string>
     <string name="workout_bubble_dismiss_content_description">Dismiss the workout bubble</string>
     <string name="workout_bubble_open_app">Open in Herculex</string>

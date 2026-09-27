@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Root is now vertical: a top row (ring + macro breakdown) over a bottom row
-     of action buttons, instead of a 3-column layout with buttons stacked down
-     the right edge. Matches the icon+label button style used in
-     widget_quick_actions.xml for a consistent look across widgets. -->
+<!-- Widget-picker preview for Today's Calories (4x2). Mirrors
+     widget_today_calories_medium with sample values baked in. The ring is a
+     static shape here; at runtime WidgetRingRenderer paints a real arc bitmap.
+     Keep in sync with widget_today_calories_medium.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -14,8 +13,7 @@
     android:paddingBottom="8dp"
     android:background="@drawable/widget_card_bg">
 
-    <!-- Top: ring + macro breakdown. Takes all height left over after the
-         button row below claims its wrap_content share. -->
+    <!-- Top: ring + macro breakdown -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -23,20 +21,16 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <!-- Calorie Gauge Ring.
-             Height is match_parent with a fixed width and a fitCenter image, so
-             the ring grows into whatever height the host gives and scales down
-             instead of clipping when the widget is resized short. -->
         <FrameLayout
             android:layout_width="108dp"
             android:layout_height="match_parent">
 
             <ImageView
-                android:id="@+id/calories_ring_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitCenter"
-                android:contentDescription="Calorie ring" />
+                android:src="@drawable/widget_preview_ring_green"
+                android:contentDescription="@null" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -46,17 +40,15 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/calories_remaining_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="—"
+                    android:text="642"
                     android:textSize="19sp"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:includeFontPadding="false" />
 
                 <TextView
-                    android:id="@+id/calories_remaining_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Remaining"
@@ -69,9 +61,6 @@
 
         </FrameLayout>
 
-        <!-- P/C/F progress rows. match_parent height with one weight each, so
-             the three rows spread over the available height instead of
-             clustering in the middle and leaving dead space. -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -91,10 +80,10 @@
                     android:layout_width="10dp"
                     android:layout_height="10dp"
                     android:background="@drawable/widget_dot"
-                    android:backgroundTint="#FF9F0A" />
+                    android:backgroundTint="#FF9F0A"
+                    android:contentDescription="@null" />
 
                 <ProgressBar
-                    android:id="@+id/macro_progress_protein"
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="0dp"
                     android:layout_height="8dp"
@@ -102,15 +91,14 @@
                     android:layout_marginStart="6dp"
                     android:layout_marginEnd="6dp"
                     android:max="100"
-                    android:progress="0"
+                    android:progress="79"
                     android:progressTint="#FF9F0A"
                     android:progressBackgroundTint="#2C2C32" />
 
                 <TextView
-                    android:id="@+id/macro_text_protein"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0/0"
+                    android:text="142/180"
                     android:textSize="10sp"
                     android:textColor="#8E8E93" />
 
@@ -128,10 +116,10 @@
                     android:layout_width="10dp"
                     android:layout_height="10dp"
                     android:background="@drawable/widget_dot"
-                    android:backgroundTint="#64D2FF" />
+                    android:backgroundTint="#64D2FF"
+                    android:contentDescription="@null" />
 
                 <ProgressBar
-                    android:id="@+id/macro_progress_carbs"
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="0dp"
                     android:layout_height="8dp"
@@ -139,15 +127,14 @@
                     android:layout_marginStart="6dp"
                     android:layout_marginEnd="6dp"
                     android:max="100"
-                    android:progress="0"
+                    android:progress="78"
                     android:progressTint="#64D2FF"
                     android:progressBackgroundTint="#2C2C32" />
 
                 <TextView
-                    android:id="@+id/macro_text_carbs"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0/0"
+                    android:text="186/240"
                     android:textSize="10sp"
                     android:textColor="#8E8E93" />
 
@@ -165,10 +152,10 @@
                     android:layout_width="10dp"
                     android:layout_height="10dp"
                     android:background="@drawable/widget_dot"
-                    android:backgroundTint="#BF5AF2" />
+                    android:backgroundTint="#BF5AF2"
+                    android:contentDescription="@null" />
 
                 <ProgressBar
-                    android:id="@+id/macro_progress_fat"
                     style="?android:attr/progressBarStyleHorizontal"
                     android:layout_width="0dp"
                     android:layout_height="8dp"
@@ -176,15 +163,14 @@
                     android:layout_marginStart="6dp"
                     android:layout_marginEnd="6dp"
                     android:max="100"
-                    android:progress="0"
+                    android:progress="74"
                     android:progressTint="#BF5AF2"
                     android:progressBackgroundTint="#2C2C32" />
 
                 <TextView
-                    android:id="@+id/macro_text_fat"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0/0"
+                    android:text="52/70"
                     android:textSize="10sp"
                     android:textColor="#8E8E93" />
 
@@ -204,9 +190,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp" />
 
-    <!-- Bottom: action buttons row, each tap taking the user straight to what
-         its icon shows (search → food search, scan → barcode viewfinder,
-         photo → camera capture) instead of a generic "open Nutrition tab". -->
+    <!-- Bottom: action buttons row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -222,13 +206,12 @@
             android:gravity="center">
 
             <ImageView
-                android:id="@+id/btn_search_food"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
                 android:padding="8dp"
                 android:background="@drawable/widget_action_btn_bg"
                 android:src="@drawable/ic_widget_search"
-                android:contentDescription="Search food" />
+                android:contentDescription="@null" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -240,9 +223,6 @@
 
         </LinearLayout>
 
-        <!-- Divider. FrameLayout, not View: RemoteViews only inflates
-             @RemoteView classes and plain android.view.View is not one of
-             them. -->
         <FrameLayout
             android:layout_width="1dp"
             android:layout_height="34dp"
@@ -257,13 +237,12 @@
             android:gravity="center">
 
             <ImageView
-                android:id="@+id/btn_scan_food"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
                 android:padding="8dp"
                 android:background="@drawable/widget_action_btn_bg"
                 android:src="@drawable/ic_widget_barcode"
-                android:contentDescription="Scan food barcode" />
+                android:contentDescription="@null" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -275,9 +254,6 @@
 
         </LinearLayout>
 
-        <!-- Divider. FrameLayout, not View: RemoteViews only inflates
-             @RemoteView classes and plain android.view.View is not one of
-             them. -->
         <FrameLayout
             android:layout_width="1dp"
             android:layout_height="34dp"
@@ -292,13 +268,12 @@
             android:gravity="center">
 
             <ImageView
-                android:id="@+id/btn_camera_food"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
                 android:padding="8dp"
                 android:background="@drawable/widget_action_btn_bg_highlight"
                 android:src="@drawable/ic_widget_camera"
-                android:contentDescription="Log food from photo" />
+                android:contentDescription="@null" />
 
             <TextView
                 android:layout_width="wrap_content"

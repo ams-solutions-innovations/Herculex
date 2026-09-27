@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- CNS Load ring card (2x2). Renamed conceptually from the old 2x1 pill,
-     filename kept as widget_pill_cns to minimize the manifest/provider
-     blast radius — see CnsWidgetProvider.kt. -->
+<!-- Widget-picker preview for the CNS Load ring card. Mirrors widget_pill_cns
+     with sample values baked in. The ring is a static shape here; at runtime
+     WidgetRingRenderer paints a real arc bitmap into cns_ring_image.
+     Keep in sync with widget_pill_cns.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -17,7 +17,6 @@
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/cns_label"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -28,10 +27,9 @@
             android:textAllCaps="true" />
 
         <TextView
-            android:id="@+id/cns_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="—"
+            android:text="Ready"
             android:textSize="9sp"
             android:textStyle="bold"
             android:textColor="#30D158"
@@ -55,11 +53,11 @@
             android:layout_gravity="center">
 
             <ImageView
-                android:id="@+id/cns_ring_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitCenter"
-                android:contentDescription="CNS readiness ring" />
+                android:src="@drawable/widget_preview_ring_green"
+                android:contentDescription="@null" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -69,10 +67,9 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/cns_readiness"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="—"
+                    android:text="84%"
                     android:textSize="20sp"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"

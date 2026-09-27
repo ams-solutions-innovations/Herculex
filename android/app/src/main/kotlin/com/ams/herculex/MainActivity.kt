@@ -132,6 +132,10 @@ class MainActivity : FlutterFragmentActivity() {
                     performMediaActionNative(action)
                     result.success(null)
                 }
+                "openMediaControlsPermission" -> {
+                    startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                    result.success(null)
+                }
                 "sendAchievement" -> {
                     val achievementJson = call.argument<String>("achievement_json") ?: ""
                     sendAchievementToWear(achievementJson)
@@ -206,6 +210,13 @@ class MainActivity : FlutterFragmentActivity() {
             .setMethodCallHandler { call, result ->
                 val prefs = CnsWidgetProvider.getPrefs(applicationContext)
                 val editor = prefs.edit()
+
+                // Stamp the day the payload belongs to (Dart derives it from
+                // Clock). Providers compare it against today and fall back to
+                // their placeholder rather than showing yesterday's numbers.
+                call.argument<Int>("epochDay")?.let {
+                    editor.putLong(KEY_SYNCED_EPOCH_DAY, it.toLong())
+                }
 
                 when (call.method) {
                     "syncNutrition", "syncMacros" -> {
@@ -282,6 +293,50 @@ class MainActivity : FlutterFragmentActivity() {
                         )
                         editor.apply()
                         refreshWidgets(RecoveryWidgetProvider::class.java)
+                        result.success(null)
+                    }
+
+                    "syncTraining" -> {
+                        editor.putString(
+                            TrainingWidgetProvider.KEY_TITLE,
+                            call.argument<String>("title")
+                        )
+                        editor.putInt(
+                            TrainingWidgetProvider.KEY_WEEK,
+                            call.argument<Int>("week") ?: -1
+                        )
+                        editor.putInt(
+                            TrainingWidgetProvider.KEY_EXERCISE_COUNT,
+                            call.argument<Int>("exerciseCount") ?: 0
+                        )
+                        val delimiter = TrainingWidgetProvider.FIELD_DELIMITER
+                        editor.putString(
+                            TrainingWidgetProvider.KEY_SUPP_NAMES,
+                            (call.argument<List<String>>("supplementNames") ?: emptyList()).joinToString(delimiter)
+                        )
+                        editor.putString(
+                            TrainingWidgetProvider.KEY_SUPP_DOSES,
+                            (call.argument<List<String>>("supplementDoses") ?: emptyList()).joinToString(delimiter)
+                        )
+                        editor.putString(
+                            TrainingWidgetProvider.KEY_SUPP_TIMES,
+                            (call.argument<List<String>>("supplementTimes") ?: emptyList()).joinToString(delimiter)
+                        )
+                        editor.putString(
+                            TrainingWidgetProvider.KEY_SUPP_TAKEN,
+                            (call.argument<List<Boolean>>("supplementTaken") ?: emptyList())
+                                .joinToString(delimiter) { if (it) "1" else "0" }
+                        )
+                        editor.putInt(
+                            TrainingWidgetProvider.KEY_SUPP_TAKEN_COUNT,
+                            call.argument<Int>("supplementTakenCount") ?: 0
+                        )
+                        editor.putInt(
+                            TrainingWidgetProvider.KEY_SUPP_TOTAL_COUNT,
+                            call.argument<Int>("supplementTotalCount") ?: 0
+                        )
+                        editor.apply()
+                        refreshWidgets(TrainingWidgetProvider::class.java)
                         result.success(null)
                     }
 
@@ -374,21 +429,13 @@ class MainActivity : FlutterFragmentActivity() {
     private var pendingSessionJson: String? = null
     private var pendingJumpToWorkout: Boolean = false
 
-    private fun refreshWidgets(vararg providerClasses: Class<*>) {
-        val manager = AppWidgetManager.getInstance(applicationContext)
-        for (cls in providerClasses) {
-            @Suppress("UNCHECKED_CAST")
-            val ids = manager.getAppWidgetIds(
-                ComponentName(applicationContext, cls as Class<android.appwidget.AppWidgetProvider>)
-            )
-            if (ids.isNotEmpty()) {
-                val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
-                    component = ComponentName(applicationContext, cls)
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-                }
-                sendBroadcast(intent)
-            }
-        }
+    /**
+     * Thin wrapper over the shared [broadcastWidgetUpdate] helper in
+     * CnsWidgetProvider.kt, kept so the vararg call sites above read unchanged.
+     * WidgetBootReceiver calls the shared helper directly.
+     */
+    private fun refreshWidgets(vararg providerClasses: Class<out android.appwidget.AppWidgetProvider>) {
+        broadcastWidgetUpdate(applicationContext, providerClasses.toList())
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -433,9 +480,23 @@ class MainActivity : FlutterFragmentActivity() {
             intent?.action = null
         }
 
+        if (intent?.action == TodayCaloriesMediumWidgetProvider.ACTION_OPEN_CAMERA_FOOD_LOG) {
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                MethodChannel(messenger, widgetChannel).invokeMethod("openCameraFoodLog", null)
+            }
+            intent?.action = null
+        }
+
         if (intent?.action == TodayCaloriesSmallWidgetProvider.ACTION_OPEN_NUTRITION) {
             flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
                 MethodChannel(messenger, widgetChannel).invokeMethod("openNutrition", null)
+            }
+            intent?.action = null
+        }
+
+        if (intent?.action == QuickActionsWidgetProvider.ACTION_ADD_WATER) {
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                MethodChannel(messenger, widgetChannel).invokeMethod("addWater", null)
             }
             intent?.action = null
         }
@@ -647,16 +708,22 @@ class MainActivity : FlutterFragmentActivity() {
         try {
             val controllers = mediaSessionManager.getActiveSessions(componentName)
             val controller = controllers.firstOrNull {
-                it.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
+                it.playbackState.isAudiblyPlaying()
             } ?: controllers.firstOrNull()
             if (controller != null) {
                 val metadata = controller.metadata
-                val isPlaying = controller.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
+                val isPlaying = controller.playbackState.isAudiblyPlaying()
                 val artwork = metadata?.getBitmap(android.media.MediaMetadata.METADATA_KEY_ART)
                     ?: metadata?.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART)
                 val thumbnailBase64 = artwork?.let { bitmap ->
                     val out = java.io.ByteArrayOutputStream()
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                    // Wear Data Layer messages have a practical payload ceiling;
+                    // 160px JPEG keeps cover art comfortably below it.
+                    val size = minOf(bitmap.width, bitmap.height, 160)
+                    val scaled = if (bitmap.width > size || bitmap.height > size) {
+                        android.graphics.Bitmap.createScaledBitmap(bitmap, size, size, true)
+                    } else bitmap
+                    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out)
                     android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.DEFAULT)
                 } ?: ""
                 return mapOf(
@@ -665,6 +732,8 @@ class MainActivity : FlutterFragmentActivity() {
                     "isPlaying" to isPlaying,
                     "packageName" to controller.packageName,
                     "thumbnailUrl" to thumbnailBase64,
+                    "positionMs" to (controller.playbackState?.position ?: 0L),
+                    "durationMs" to (metadata?.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION) ?: 0L),
                     "hasPermission" to true,
                 )
             }
@@ -689,13 +758,13 @@ class MainActivity : FlutterFragmentActivity() {
         try {
             val controllers = mediaSessionManager.getActiveSessions(componentName)
             val controller = controllers.firstOrNull {
-                it.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
+                it.playbackState.isAudiblyPlaying()
             } ?: controllers.firstOrNull() ?: return
             when (action) {
                 "previous" -> controller.transportControls.skipToPrevious()
                 "next" -> controller.transportControls.skipToNext()
                 "playPause", "play_pause" -> {
-                    if (controller.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING) {
+                    if (controller.playbackState.isAudiblyPlaying()) {
                         controller.transportControls.pause()
                     } else {
                         controller.transportControls.play()
@@ -706,6 +775,11 @@ class MainActivity : FlutterFragmentActivity() {
             Log.w("MediaInfo", "Notification listener access not granted for MediaNotificationListener", e)
         }
     }
+
+    private fun android.media.session.PlaybackState?.isAudiblyPlaying(): Boolean =
+        this?.state == android.media.session.PlaybackState.STATE_PLAYING ||
+            this?.state == android.media.session.PlaybackState.STATE_BUFFERING ||
+            this?.state == android.media.session.PlaybackState.STATE_CONNECTING
 
     private fun sendAchievementToWear(achievementJson: String) {
         if (achievementJson.isBlank()) return

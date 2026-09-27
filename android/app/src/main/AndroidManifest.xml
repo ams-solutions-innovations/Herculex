@@ -134,7 +134,7 @@
 
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
@@ -162,7 +162,7 @@
         <service
             android:name="com.example.flutter_media_controller.MediaNotificationListener"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
@@ -285,6 +285,44 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_today_macros_medium" />
+        </receiver>
+
+        <!-- Training (4x4) -->
+        <receiver
+            android:name=".TrainingWidgetProvider"
+            android:exported="true"
+            android:label="Training">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_training" />
+        </receiver>
+
+        <!-- Quick Actions (4x1) -->
+        <receiver
+            android:name=".QuickActionsWidgetProvider"
+            android:exported="true"
+            android:label="Quick Actions">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_quick_actions" />
+        </receiver>
+
+        <!-- Repaints all widgets after a reboot / app update. Every provider
+             uses updatePeriodMillis="0", so Android sends them nothing on its
+             own and they would stay blank until the app is next opened. -->
+        <receiver
+            android:name=".WidgetBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
         </receiver>
 
     </application>

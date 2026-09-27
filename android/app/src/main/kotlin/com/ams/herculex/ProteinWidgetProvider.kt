@@ -20,8 +20,9 @@ class ProteinWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         val prefs = CnsWidgetProvider.getPrefs(context)
-        val current = prefs.getInt(KEY_PROTEIN_CURRENT, -1)
-        val target = prefs.getInt(KEY_PROTEIN_TARGET, 0)
+        val stale = isWidgetDataStale(prefs)
+        val current = if (stale) -1 else prefs.getInt(KEY_PROTEIN_CURRENT, -1)
+        val target = if (stale) 0 else prefs.getInt(KEY_PROTEIN_TARGET, 0)
 
         for (id in appWidgetIds) {
             val views = buildViews(context, current, target)
