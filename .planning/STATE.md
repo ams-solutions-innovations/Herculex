@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-27T16:13:47.756Z"
+last_updated: "2026-09-27T16:19:22.473Z"
 progress:
   total_phases: 15
   completed_phases: 7
@@ -20,7 +20,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.  
-**Current focus:** Phase 21 — crossfit-gpp-training-tracks complete (9/9 plans). Ready for `/gsd:verify-phase 21`. Scope amended 2026-09-27 with Phases 26–29 (Herculex AI); recommended next entry point is `/gsd:discuss-phase 26`.
+**Current focus:** Phase 26 — herculex-ai-knowledge-base-brand-unification
 
 ---
 
