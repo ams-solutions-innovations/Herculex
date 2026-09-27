@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-27T13:24:07.589Z"
+last_updated: "2026-09-27T16:13:47.756Z"
 progress:
-  total_phases: 11
+  total_phases: 15
   completed_phases: 7
-  total_plans: 35
+  total_plans: 42
   completed_plans: 35
-  percent: 64
+  percent: 47
 ---
 
 # Project State: Milestone v2.0
@@ -19,24 +19,83 @@ progress:
 See: `.planning/PROJECT.md` (initiated 2026-09-13)  
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
-**Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system.  
-**Current focus:** Phase 21 — crossfit-gpp-training-tracks complete (9/9 plans). Ready for `/gsd:verify-phase 21`.
+**Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.  
+**Current focus:** Phase 21 — crossfit-gpp-training-tracks complete (9/9 plans). Ready for `/gsd:verify-phase 21`. Scope amended 2026-09-27 with Phases 26–29 (Herculex AI); recommended next entry point is `/gsd:discuss-phase 26`.
 
 ---
 
-## Current Roadmap (Phases 15–25)
+## Current Roadmap (Phases 15–29)
+
+Execution order is **not** numeric — see ROADMAP.md. Recommended:
+`26 → 28 → 27 → 22 → 23 → 29 → 24 → 25`.
 
 - **Phase 15: Program Generator Regression Fixes & Interaction Hardening** — Completed (2026-09-13).
 - **Phase 16: Exercise Programming Metadata & Discipline Taxonomy** — Completed (2026-09-13).
-- **Phase 17: Deterministic Program Planner & Hard Guardrails** — Ready to execute (`/gsd:execute-phase 17`), 5 plans.
-- **Phase 18: Workout Time Budget, Warmups & Set Method Prescriptions** — Pending.
-- **Phase 19: Program & Wave Editor with Explainable Periodization** — Pending.
-- **Phase 20: Active Workout Shell & Calendar Execution Flow** — Pending.
+- **Phase 17: Deterministic Program Planner & Hard Guardrails** — Complete, 5/5 plans.
+- **Phase 18: Workout Time Budget, Warmups & Set Method Prescriptions** — Complete, 6/6 plans.
+- **Phase 19: Program & Wave Editor with Explainable Periodization** — Complete, 4/4 plans.
+- **Phase 20: Active Workout Shell & Calendar Execution Flow** — Complete, 5/5 plans.
 - **Phase 21: CrossFit & GPP Training Tracks** — Complete, 9/9 plans. Ready for `/gsd:verify-phase 21`.
 - **Phase 22: Primary Lift Strength Specialization** — Pending.
-- **Phase 23: Persistent Dream Physique & Multi-Phase Nutrition** — Pending.
+- **Phase 23: Persistent Dream Physique & Multi-Phase Nutrition** — Pending. Scope widened 2026-09-27 (PHYS-05–08: progress screen, weekly check-in cadence, AI verdict, trend charts). PHYS-07 depends on Phase 26.
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
-- **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending.
+- **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending. Must stay last; covers every table added by 23/28/29.
+- **Phase 26: Herculex AI Knowledge Base & Brand Unification** — Pending. Foundational for 27, 29, PHYS-07.
+- **Phase 27: Herculex AI Program Generation** — Pending. Blocked on 26.
+- **Phase 28: Adaptive TDEE & Activity Calibration** — Pending. No AI dependency; feeds 23 and 29.
+- **Phase 29: Weekly Report & Herculex AI Narrative** — Pending. Blocked on 26, 28, 23.
+
+---
+
+## Session update — 2026-09-27 (Scope amendment — Herculex AI, Phases 26–29)
+
+- User-directed scope change: custom program preparation gains a Herculex AI path
+  alongside the manual one, grounded in a coaching "textbook" (a mentality corpus the
+  user will supply). Four new phases appended and Phase 23 widened. No Dart written —
+  this session amended planning documents only.
+
+- **Four decisions taken with the user:**
+
+  1. **Hercul stays deterministic.** `hercul_rules.json`, `HerculSignals.all` and the
+     closed-vocabulary test are untouched and keep working offline. Herculex AI is an
+     additive, clearly-labelled second advice channel, not a replacement (KB-04).
+
+  2. **Adaptive TDEE is hybrid.** Observed energy balance (mean intake + bodyweight
+     trend × 7700 kcal/kg over a rolling window) is primary, because it measures real
+     expenditure from data the app already holds; activity classification over
+     `HealthSamples` is the fallback when logging adherence is too thin (TDEE-01/02).
+
+  3. **The textbook lives server-side**, versioned beside
+     `supabase/functions/gemini-analyze/prompts.ts` — not extractable from the APK,
+     updatable by deploy without an app release, and stamped onto every output as
+     `knowledgeVersion` (KB-01/02). Consistent with RB-01.
+
+  4. **Existing numbering preserved.** Phase 23 extended rather than split; new work
+     appended as 26–29 with an explicit non-numeric execution order.
+
+- **Architectural constraint carried into every new phase.** The project's house rule
+  from `06-AI-SPEC.md` — deterministic primary, AI bounded, AI never writes directly to
+  the database, user confirms — governs all of this. Herculex AI returns a *program
+  design brief* (split, periodization, day roles, muscle priorities, phase intent,
+  rationale); `SmartProgramPlanner` remains the sole exercise selector, so every
+  Phase 16–21 guardrail stays in force and cannot be argued away by a model (AIP-02/03).
+  `smart_program_planner.dart:109` already documents exactly this seam.
+
+- **Risks logged for the phase contexts** (detail in the amendment blueprint):
+  Supabase migrations `0015`/`0016` are still unapplied and three new phases add tables;
+  local drift is at v44 and each new table is a five-chore bump; `block_builder_view.dart`
+  (3398 lines) and `nutrition_targets_view.dart` (1450+) both breach the 600-line rule
+  before any new mode is added; the AI daily cap is a single shared 50/day that
+  **fails open** on RPC error; no AI response is cached today, so weekly reports and
+  program briefs must be persisted rather than recomputed; `flutter_local_notifications`
+  cannot run Dart on fire, so the Sunday report must be generated on open and deep-linked.
+
+- Files changed: `.planning/ROADMAP.md`, `.planning/REQUIREMENTS.md`, `.planning/STATE.md`,
+  `docs/herculex-ai-plan-2026-09-27.md` (new), `CLAUDE.md` (stale active-track line).
+
+- Next implementation focus: `/gsd:discuss-phase 26`. Phase 26 is the only new phase with
+  no upstream dependency, and it can ship the corpus contract, versioning and injection
+  path against a placeholder corpus — so waiting on the user's textbook blocks nothing.
 
 ---
 
