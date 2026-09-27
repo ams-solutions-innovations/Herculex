@@ -6,9 +6,12 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/features/programs/domain/slot_prescription.dart';
+import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 import 'support/test_database.dart';
 
@@ -242,6 +245,78 @@ void main() {
           find.text('No exercises have been added for this day.'),
           findsNothing,
         );
+      },
+    );
+
+    testWidgets(
+      'a metcon row renders the decoded AMRAP summary, not the placeholder',
+      (tester) async {
+        final programId = await db
+            .into(db.programs)
+            .insert(ProgramsCompanion.insert(name: 'Test Program'));
+        final weekId = await db
+            .into(db.programWeeks)
+            .insert(
+              ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+            );
+        final dayId = await db
+            .into(db.programDays)
+            .insert(
+              ProgramDaysCompanion.insert(
+                programWeekId: weekId,
+                dayOfWeek: 1,
+                name: 'Metcon',
+                slotLabel: const Value('Metcon'),
+              ),
+            );
+        final exerciseId = await db
+            .into(db.exerciseCatalog)
+            .insert(
+              ExerciseCatalogCompanion.insert(
+                name: 'Wall Ball',
+                primaryMuscle: 'Quads',
+                equipment: 'medicine_ball',
+                mechanics: 'compound',
+                force: 'push',
+                plane: 'axial',
+              ),
+            );
+
+        await db
+            .into(db.programDayExercises)
+            .insert(
+              ProgramDayExercisesCompanion.insert(
+                programDayId: dayId,
+                exerciseId: exerciseId,
+                orderIndex: 0,
+                sessionSegment: const Value('metcon'),
+                targetSets: const Value(1),
+                targetRepsMin: const Value(1),
+                targetRepsMax: const Value(1),
+                prescriptionCodecJson: Value(
+                  SlotPrescriptionCodec.encode(
+                    const SlotPrescription(
+                      name: 'Metcon',
+                      segments: [
+                        WorkSegment(
+                          sets: 1,
+                          repsMin: 1,
+                          setType: SetType.amrap,
+                          meta: {'capSeconds': 450},
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+
+        await tester.pumpWidget(harness(programId));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.textContaining('AMRAP'), findsOneWidget);
+        expect(find.textContaining('1 sets'), findsNothing);
       },
     );
   });
