@@ -306,7 +306,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
     final message = error.toString().replaceAll('Exception: ', '');
     if (message.contains('Gemini API request failed (401)') ||
         message.contains('Gemini server authorization failed')) {
-      return 'Gemini is not authorised on the server yet. Your photos are '
+      return 'Herculex AI is not authorised on the server yet. Your photos are '
           'still selected; ask the administrator to replace the server '
           'GEMINI_API_KEY with a valid Google AI Studio API key, then try again.';
     }
@@ -816,7 +816,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             controlAffinity: ListTileControlAffinity.leading,
             activeColor: AppColors.primary,
             title: const Text(
-              'I agree to send these photos to Google Gemini',
+              'I agree to send these photos to Herculex AI (powered by Google Gemini)',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             subtitle: const Padding(
@@ -839,7 +839,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             onPressed: _privacyConsentGranted ? _startAnalysis : null,
             icon: const Icon(Icons.auto_awesome),
             label: const Text(
-              'Compare and create plan with Gemini AI',
+              'Compare and create plan with Herculex AI',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: FilledButton.styleFrom(
@@ -877,7 +877,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             const CircularProgressIndicator(),
             const SizedBox(height: 24),
             Text(
-              'Gemini AI is comparing physiques...',
+              'Herculex AI is comparing physiques...',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
