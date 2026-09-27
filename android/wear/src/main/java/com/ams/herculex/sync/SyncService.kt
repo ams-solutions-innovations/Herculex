@@ -156,7 +156,6 @@ class SyncService : WearableListenerService() {
                         )
                         if (accepted && !hadActiveSession) {
                             startOngoingServiceIfNeeded(sessionJson, isNewStart = true)
-                            openActiveWorkoutScreenOnWatch()
                         } else if (accepted) {
                             updateOngoingService(sessionJson)
                         }

@@ -54,6 +54,19 @@ class WorkoutOngoingService : Service() {
             return START_NOT_STICKY
         }
 
+        // START_STICKY can recreate the service with a null intent after the
+        // process was reclaimed. Never recreate a phantom workout indicator:
+        // only continue when the durable workout state still says it is active.
+        if (intent == null) {
+            val savedSession = WorkoutStore.getActiveSessionJson(this)
+            if (savedSession.isNullOrBlank()) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            startEpochMs = WorkoutStore.getActiveSessionStartEpoch(this)
+                ?: System.currentTimeMillis()
+        }
+
         if (intent?.hasExtra(EXTRA_START_EPOCH_MS) == true) {
             startEpochMs = intent.getLongExtra(EXTRA_START_EPOCH_MS, System.currentTimeMillis())
         }

@@ -13,6 +13,10 @@ data class PlannedSet(
     val targetRepsMin: Int? = null,
     val targetRepsMax: Int? = null,
     val targetWeightKg: Double? = null,
+    val targetRpe: Double? = null,
+    val targetRir: Int? = null,
+    val targetPercentOf1Rm: Double? = null,
+    val plannedIntent: String? = null,
     val durationSeconds: Int? = null,
     val targetDistanceMeters: Double? = null,
     val setTypeMetaJson: String? = null,
@@ -41,6 +45,9 @@ data class ExerciseTemplate(
     val plannedSets: List<PlannedSet> = emptyList(),
     val supersetGroup: Int? = null,
     val performanceHint: String? = null,
+    val trainingMethod: String? = null,
+    val waveLabel: String? = null,
+    val prescriptionReason: String? = null,
 ) {
     fun isBodyweightOnly(): Boolean {
         val metric = loggingMetric?.lowercase()?.trim()
@@ -222,6 +229,33 @@ data class WorkoutTemplate(
 
 // ── Live session state ────────────────────────────────────────────────────────
 
+/// Per-field conflict metadata for values users can edit on both the phone
+/// and watch. Whole-session envelopes repair missed delivery, but cannot use
+/// arrival order to resolve a stale weight/reps snapshot safely.
+data class SetSyncStamp(
+    val revision: Long,
+    val origin: String,
+) : Comparable<SetSyncStamp> {
+    override fun compareTo(other: SetSyncStamp): Int {
+        val revisionComparison = revision.compareTo(other.revision)
+        return if (revisionComparison != 0) revisionComparison else origin.compareTo(other.origin)
+    }
+}
+
+data class SetSyncVersions(
+    val weight: SetSyncStamp,
+    val reps: SetSyncStamp,
+    val completion: SetSyncStamp,
+) {
+    companion object {
+        fun uniform(stamp: SetSyncStamp) = SetSyncVersions(
+            weight = stamp,
+            reps = stamp,
+            completion = stamp,
+        )
+    }
+}
+
 data class LoggedSet(
     val wireId: String? = null,
     val setIndex: Int? = null,
@@ -238,6 +272,7 @@ data class LoggedSet(
     val bodyweightKg: Double? = null,
     val chainsKg: Double? = null,
     val completedAtEpochMs: Long? = null,
+    val syncVersions: SetSyncVersions? = null,
 ) {
     fun getMiniSets(): List<Int> {
         if (setTypeMetaJson.isNullOrBlank()) return emptyList()

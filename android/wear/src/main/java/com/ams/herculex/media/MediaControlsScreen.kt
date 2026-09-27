@@ -131,6 +131,21 @@ fun MediaControlsScreen() {
 
             Spacer(Modifier.height(6.dp))
 
+            if (!controller.hasMediaAccess() && state.source != "phone") {
+                Text(
+                    text = "Media controls permission",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF1F1F1F))
+                        .clickable { controller.openMediaAccessSettings() }
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+
             // Track Title (bold, high-contrast white)
             Text(
                 text = state.title,

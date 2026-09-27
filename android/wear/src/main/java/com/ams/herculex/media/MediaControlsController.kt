@@ -134,7 +134,12 @@ class MediaControlsController(private val context: Context) {
         WearMediaStore.updateOptimisticPlaying(targetPlaying)
         _stateFlow.value = snapshot()
 
-        // 1. If local active session exists, toggle local transport
+        // A phone session is mirrored over the data layer.  Do not also emit a
+        // watch media key: that used to toggle the same remote session twice.
+        if (WearMediaStore.current()?.hasContent == true) {
+            scope.launch { syncManager.sendMediaCommand("play_pause") }
+            return
+        }
         val local = activeLocalController
         if (local != null) {
             if (local.playbackState?.state == PlaybackState.STATE_PLAYING) {
@@ -142,36 +147,30 @@ class MediaControlsController(private val context: Context) {
             } else {
                 local.transportControls.play()
             }
-        }
-
-        // 2. Dispatch local media key event
-        sendMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-
-        // 3. Send remote command to phone companion
-        scope.launch {
-            syncManager.sendMediaCommand("play_pause")
+        } else {
+            sendMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
         }
     }
 
     fun next() {
         val local = activeLocalController
-        if (local != null) {
+        if (WearMediaStore.current()?.hasContent == true) {
+            scope.launch { syncManager.sendMediaCommand("next") }
+        } else if (local != null) {
             local.transportControls.skipToNext()
-        }
-        sendMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
-        scope.launch {
-            syncManager.sendMediaCommand("next")
+        } else {
+            sendMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
         }
     }
 
     fun previous() {
         val local = activeLocalController
-        if (local != null) {
+        if (WearMediaStore.current()?.hasContent == true) {
+            scope.launch { syncManager.sendMediaCommand("previous") }
+        } else if (local != null) {
             local.transportControls.skipToPrevious()
-        }
-        sendMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
-        scope.launch {
-            syncManager.sendMediaCommand("previous")
+        } else {
+            sendMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
         }
     }
 
@@ -205,6 +204,21 @@ class MediaControlsController(private val context: Context) {
             }
     }
 
+    fun hasMediaAccess(): Boolean {
+        val enabled = Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners",
+        ).orEmpty()
+        return enabled.contains(WatchMediaNotificationListenerService::class.java.name)
+    }
+
+    fun openMediaAccessSettings() {
+        context.startActivity(
+            android.content.Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+
     private fun attachToActiveLocalSession() {
         activeLocalController?.unregisterCallback(controllerCallback)
         val next = findActiveLocalController()
@@ -215,7 +229,8 @@ class MediaControlsController(private val context: Context) {
 
     private fun findActiveLocalController(): MediaController? {
         return try {
-            val sessions = sessionManager.getActiveSessions(null)
+            val listener = ComponentName(context, WatchMediaNotificationListenerService::class.java)
+            val sessions = sessionManager.getActiveSessions(listener)
             sessions.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
                 ?: sessions.firstOrNull()
         } catch (_: Exception) {
@@ -276,7 +291,7 @@ class MediaControlsController(private val context: Context) {
                 source = "phone",
                 volume = vol,
                 maxVolume = maxVol,
-                artwork = localArtwork,
+                artwork = synced.artwork ?: localArtwork,
                 positionMs = synced.positionMs,
                 durationMs = synced.durationMs,
                 isSpotify = synced.isSpotify,

@@ -167,7 +167,13 @@ fun ActiveWorkoutScreen(navController: NavController, viewModel: WorkoutViewMode
                 val isFirst = groupIndex == 0
                 val isLast = groupIndex == groupRows.size - 1
 
-                val statLabelText = if (infoStr != null) "Sets • $infoStr" else "Sets"
+                val effortTarget = buildList {
+                    targetPlannedSet?.targetRpe?.let { add("RPE ${"%.1f".format(it)}") }
+                    targetPlannedSet?.targetRir?.let { add("RIR $it") }
+                    targetPlannedSet?.targetPercentOf1Rm?.let { add("${"%.0f".format(it)}% 1RM") }
+                }.joinToString(" • ")
+                val targetSummary = listOfNotNull(infoStr, effortTarget.takeIf { it.isNotBlank() }).joinToString(" • ")
+                val statLabelText = if (targetSummary.isNotBlank()) "Target • $targetSummary" else "Sets"
 
                 Box(
                     modifier = Modifier

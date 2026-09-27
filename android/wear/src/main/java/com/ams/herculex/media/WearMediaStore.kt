@@ -2,6 +2,9 @@ package com.ams.herculex.media
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +23,7 @@ data class SyncedMediaInfo(
     val durationMs: Long = 0L,
     val volume: Int = 0,
     val updatedAtEpochMs: Long = 0L,
+    val artwork: Bitmap? = null,
 ) {
     val hasContent: Boolean get() = title.isNotBlank() && title != "No track playing"
 }
@@ -82,6 +86,12 @@ object WearMediaStore {
                 durationMs = obj.optLong("durationMs", 0L),
                 volume = obj.optInt("volume", 0),
                 updatedAtEpochMs = obj.optLong("updatedAtEpochMs", System.currentTimeMillis()),
+                artwork = obj.optString("artworkBase64", "").takeIf { it.isNotBlank() }?.let { encoded ->
+                    runCatching {
+                        val bytes = Base64.decode(encoded, Base64.DEFAULT)
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    }.getOrNull()
+                },
             )
         } catch (_: Exception) {
             null

@@ -148,12 +148,21 @@ class WorkoutStoreTest {
             prevWeight = 60.0,
             prevReps = 10,
             performanceHint = "Next: 60.0 kg × 10",
+            trainingMethod = "max_effort",
+            waveLabel = "Wave 2/4",
+            prescriptionReason = "Heavy squat variation for this wave.",
             plannedSets = listOf(
                 PlannedSet(
                     wireId = "set_1",
                     setIndex = 0,
                     targetWeightKg = 60.0,
                     targetReps = 10,
+                    targetRepsMin = 8,
+                    targetRepsMax = 10,
+                    targetRpe = 9.0,
+                    targetRir = 1,
+                    targetPercentOf1Rm = 85.0,
+                    plannedIntent = "top_set",
                 )
             )
         )
@@ -163,8 +172,17 @@ class WorkoutStoreTest {
         assertEquals(60.0, parsed.prevWeight, 0.001)
         assertEquals(10, parsed.prevReps)
         assertEquals("Next: 60.0 kg × 10", parsed.performanceHint)
+        assertEquals("max_effort", parsed.trainingMethod)
+        assertEquals("Wave 2/4", parsed.waveLabel)
+        assertEquals("Heavy squat variation for this wave.", parsed.prescriptionReason)
         assertEquals(1, parsed.plannedSets.size)
         assertEquals(60.0, parsed.plannedSets[0].targetWeightKg!!, 0.001)
         assertEquals(10, parsed.plannedSets[0].targetReps)
+        assertEquals(8, parsed.plannedSets[0].targetRepsMin)
+        assertEquals(10, parsed.plannedSets[0].targetRepsMax)
+        assertEquals(9.0, parsed.plannedSets[0].targetRpe!!, 0.001)
+        assertEquals(1, parsed.plannedSets[0].targetRir)
+        assertEquals(85.0, parsed.plannedSets[0].targetPercentOf1Rm!!, 0.001)
+        assertEquals("top_set", parsed.plannedSets[0].plannedIntent)
     }
 }

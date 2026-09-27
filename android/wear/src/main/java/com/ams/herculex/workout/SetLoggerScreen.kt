@@ -451,12 +451,6 @@ fun SetLoggerScreen(
                                         horizontalArrangement = Arrangement.Center,
                                         modifier = Modifier.padding(horizontal = 8.dp),
                                     ) {
-                                        ExerciseArtwork(
-                                            name = exercise.template.name,
-                                            slug = exercise.template.slug,
-                                            size = 22.dp,
-                                            modifier = Modifier.padding(end = 6.dp),
-                                        )
                                         Text(
                                             text = mainName,
                                             color = Color.White,
