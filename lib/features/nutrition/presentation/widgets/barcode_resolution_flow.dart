@@ -89,7 +89,7 @@ Future<bool?> _confirmPhotoPrompt(BuildContext context) {
     builder: (dialogContext) => AlertDialog(
       title: const Text('Product not found'),
       content: const Text(
-        'This product is not in our database. Would you like to take a photo so Gemini AI '
+        'This product is not in our database. Would you like to take a photo so Herculex AI '
         'can find the nutrition facts online?',
       ),
       actions: [
