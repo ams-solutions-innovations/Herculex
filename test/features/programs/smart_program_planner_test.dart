@@ -51,6 +51,8 @@ void main() {
     String allowedTrainingStylesJson = '["weightlifting"]',
     String loggingMetric = 'weight_reps',
     String category = 'strength',
+    String programmingDifficulty = 'novice',
+    String? prerequisiteSlugsJson,
   }) => db
       .into(db.exerciseCatalog)
       .insert(
@@ -66,13 +68,14 @@ void main() {
           movementPatternRaw: Value(movementPatternRaw),
           modality: Value(modality),
           cnsScore: Value(cnsScore),
-          programmingDifficulty: const Value('novice'),
+          programmingDifficulty: Value(programmingDifficulty),
           programmingCommonness: const Value('basic'),
           allowedTrainingStyles: Value(allowedTrainingStylesJson),
           technicalEligibility: const Value('automatic'),
           requiredEquipmentKeys: const Value('[]'),
           loggingMetric: Value(loggingMetric),
           category: Value(category),
+          prerequisiteSlugs: Value(prerequisiteSlugsJson),
         ),
       );
 
@@ -875,6 +878,205 @@ void main() {
           reason:
               'a main/supplemental slot must never carry a CrossFit/GPP '
               'sessionSegment tag',
+        );
+      },
+    );
+
+    /// Seeds only the non-metcon fixtures (warmup/skill/strength/cooldown)
+    /// so tests can control the metcon pool's `programmingDifficulty`
+    /// directly, instead of using `seedCrossfitCatalog`'s fixed 3-novice
+    /// metcon pool (D-06 stacking-guard gap closure, CF-02).
+    Future<void> seedCrossfitNonMetconFixtures() async {
+      for (final slug in ['warmup', 'skill', 'strength', 'cooldown']) {
+        await insertExercise(
+          slug: 'fixture-crossfit-$slug',
+          name: 'Fixture CrossFit $slug',
+          primaryMuscle: 'Full body',
+          allowedTrainingStylesJson: '["crossfit"]',
+        );
+      }
+    }
+
+    test(
+      'a novice CrossFit metcon never stacks 2+ advanced/just-unlocked '
+      'movements when a safe substitute exists in the slot pool (D-06 hard '
+      'rule, CF-02)',
+      () async {
+        await seedCrossfitNonMetconFixtures();
+        // Two "just-unlocked" (gated behind a satisfied prerequisite) +
+        // one plain novice metcon candidate. Difficulty is deliberately
+        // kept at 'novice' throughout -- `ExerciseProgrammingEligibility
+        // .allows` hard-gates 'advanced'-difficulty exercises out of a
+        // novice's candidate pool entirely (D-06 difficulty ceiling), so
+        // 'advanced'-tagged fixtures would never even reach the stacking
+        // guard at novice level. `prerequisiteSlugs` is the mechanism the
+        // guard actually needs to exercise here: a non-empty, already-
+        // satisfied prerequisite list marks a movement "just-unlocked"
+        // without excluding it from eligibility. With a novice movement
+        // ceiling of 2, exactly 2 of these 3 candidates get resolved. The
+        // guard must ensure the second resolved slot is never also
+        // just-unlocked, regardless of which candidate the scorer's
+        // jitter-based tie-break picks first.
+        await insertExercise(
+          slug: 'fixture-crossfit-metcon-a',
+          name: 'Fixture CrossFit metcon-a',
+          primaryMuscle: 'Full body',
+          allowedTrainingStylesJson: '["crossfit"]',
+          prerequisiteSlugsJson: '["fixture-crossfit-warmup"]',
+        );
+        await insertExercise(
+          slug: 'fixture-crossfit-metcon-b',
+          name: 'Fixture CrossFit metcon-b',
+          primaryMuscle: 'Full body',
+          allowedTrainingStylesJson: '["crossfit"]',
+          prerequisiteSlugsJson: '["fixture-crossfit-warmup"]',
+        );
+        await insertExercise(
+          slug: 'fixture-crossfit-metcon-c',
+          name: 'Fixture CrossFit metcon-c',
+          primaryMuscle: 'Full body',
+          allowedTrainingStylesJson: '["crossfit"]',
+        );
+
+        final plan = SplitTemplates.generate(
+          type: SplitType.crossfit,
+          daysPerWeek: 1,
+        );
+        final programId = await ProgramsRepository(db).createProgramFromSplit(
+          name: 'CrossFit stacking-guard substitution fixture',
+          weeks: 1,
+          plan: plan,
+          startDate: DateTime(2026, 9, 7),
+          buildMode: ProgramBuildMode.smart,
+          trainingGoal: TrainingGoal.athletic,
+          experienceLevel: ExperienceLevel.novice,
+        );
+        await SmartProgramPlanner(db).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.athletic,
+            experience: ExperienceLevel.novice,
+            trainingStyle: TrainingStyle.crossfit,
+          ),
+        );
+
+        final rows = await rowsForDayLabel(programId, 'CrossFit');
+        final metconRows = rows
+            .where((r) => r.row.sessionSegment == 'metcon')
+            .toList();
+        expect(
+          metconRows.length,
+          2,
+          reason: 'novice movement ceiling is 2, so exactly 2 metcon rows',
+        );
+
+        var justUnlockedCount = 0;
+        for (final metconRow in metconRows) {
+          final exercise = await (db.select(
+            db.exerciseCatalog,
+          )..where((t) => t.id.equals(metconRow.row.exerciseId))).getSingle();
+          final prereq = exercise.prerequisiteSlugs;
+          if (prereq != null && prereq.trim().isNotEmpty && prereq != '[]') {
+            justUnlockedCount++;
+          }
+        }
+        expect(
+          justUnlockedCount,
+          lessThanOrEqualTo(1),
+          reason:
+              'a safe (non-just-unlocked) substitute existed in the pool, '
+              'so the guard must never let a second just-unlocked movement '
+              'be picked for this metcon group',
+        );
+      },
+    );
+
+    test(
+      'when no safe substitute exists, the D-06 exception is recorded in '
+      "prescriptionWhy, not silently accepted (CF-02)",
+      () async {
+        // Segment role masks are identical for every generic fixture here
+        // (no pattern/muscle hint distinguishes warmup/skill/strength/
+        // metcon/cooldown -- see CrossfitProgramPlanner.segmentNeedsFor),
+        // so the scorer's deterministic tie-break can route ANY fixture to
+        // ANY segment slot. To make "no safe substitute exists anywhere"
+        // true regardless of which fixture lands in which slot, every
+        // CrossFit-eligible fixture in this gym is "just-unlocked" -- there
+        // is no safe candidate anywhere in the pool for the guard to fall
+        // back to, so the exceedsCeiling branch is unavoidable no matter
+        // how the day's other 4 needs get filled.
+        //
+        // The prerequisite itself points at a `weightlifting`-tagged
+        // anchor exercise: it is real, satisfied (novice difficulty, no
+        // history needed), and never itself eligible for a CrossFit day
+        // (style mismatch), so it can never leak into a slot and dilute
+        // the "just-unlocked" pool.
+        await insertExercise(
+          slug: 'fixture-prereq-anchor',
+          name: 'Fixture Prereq Anchor',
+          primaryMuscle: 'Full body',
+        );
+        for (final slug in [
+          'warmup',
+          'skill',
+          'strength',
+          'metcon-a',
+          'metcon-b',
+          'cooldown',
+        ]) {
+          await insertExercise(
+            slug: 'fixture-crossfit-$slug',
+            name: 'Fixture CrossFit $slug',
+            primaryMuscle: 'Full body',
+            allowedTrainingStylesJson: '["crossfit"]',
+            prerequisiteSlugsJson: '["fixture-prereq-anchor"]',
+          );
+        }
+
+        final plan = SplitTemplates.generate(
+          type: SplitType.crossfit,
+          daysPerWeek: 1,
+        );
+        final programId = await ProgramsRepository(db).createProgramFromSplit(
+          name: 'CrossFit stacking-guard forced-exception fixture',
+          weeks: 1,
+          plan: plan,
+          startDate: DateTime(2026, 9, 7),
+          buildMode: ProgramBuildMode.smart,
+          trainingGoal: TrainingGoal.athletic,
+          experienceLevel: ExperienceLevel.novice,
+        );
+        await SmartProgramPlanner(db).populate(
+          programId,
+          const SmartProgramConfiguration(
+            goal: TrainingGoal.athletic,
+            experience: ExperienceLevel.novice,
+            trainingStyle: TrainingStyle.crossfit,
+          ),
+        );
+
+        final rows = await rowsForDayLabel(programId, 'CrossFit');
+        final metconRows = rows
+            .where((r) => r.row.sessionSegment == 'metcon')
+            .toList();
+        expect(
+          metconRows.length,
+          2,
+          reason: 'novice movement ceiling is 2, so exactly 2 metcon rows',
+        );
+        expect(
+          metconRows.any(
+            (r) =>
+                r.row.prescriptionWhy?.contains(
+                  'is never allowed, regardless of level',
+                ) ??
+                false,
+          ),
+          isTrue,
+          reason:
+              'complexityCheck\'s exceedsCeiling rationale must be recorded '
+              'in prescriptionWhy when no safe substitute existed, proving '
+              'the unsafe branch executed and was surfaced, not swallowed',
         );
       },
     );
