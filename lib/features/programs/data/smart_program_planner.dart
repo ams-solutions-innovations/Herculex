@@ -2,15 +2,19 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/domain/crossfit_program_planner.dart';
+import 'package:herculex/features/programs/domain/crossfit_scaling_policy.dart';
 import 'package:herculex/features/programs/domain/exercise_programming_eligibility.dart';
 import 'package:herculex/features/programs/domain/exercise_scaling_resolver.dart';
 import 'package:herculex/features/programs/domain/exercise_scorer.dart';
+import 'package:herculex/features/programs/domain/gpp_program_planner.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
 import 'package:herculex/features/programs/domain/program_guardrails.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/rotation_policy.dart';
 import 'package:herculex/features/programs/domain/selection_explanation.dart';
+import 'package:herculex/features/programs/domain/session_segment.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
@@ -186,6 +190,12 @@ class SmartProgramPlanner {
                   ..where((t) => t.programWeekId.equals(week.id))
                   ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
                 .get();
+        // D-06/CF-03: back-to-back CrossFit/GPP day-spacing is advisory-only
+        // and weekly-mode-only (CrossfitScalingPolicy.recoveryReserveWarning
+        // docs). Accumulated across this week's non-rest days, keyed by
+        // dayOfWeek so adjacency mirrors SplitDaySpec.dayOfWeek.
+        final labelsByDayOfWeek = <int, String>{};
+        int? firstSegmentDaySlotId;
         for (final day in days) {
           if (day.isRest || day.templateId != null) continue;
           final inferredStress = _stressRole(
@@ -202,7 +212,18 @@ class SmartProgramPlanner {
               .write(ProgramDaysCompanion(stressRole: Value(stress.id)));
 
           final label = day.slotLabel ?? day.name;
-          final cacheKey = '$label|${stress.id}';
+          labelsByDayOfWeek[day.dayOfWeek] = label;
+          // CrossFit/GPP days re-derive their needs every week (metcon
+          // format rotates via CrossfitProgramPlanner's variationSeed), so
+          // their cache key must be week-scoped too — otherwise every week
+          // after the first silently reuses week 1's cached slot list and
+          // the format never actually rotates.
+          final usesWeeklySegments =
+              configuration.trainingStyle.isConditioningFirst ||
+              label.trim().toLowerCase() == 'gpp';
+          final cacheKey = usesWeeklySegments
+              ? '$label|${stress.id}|${week.weekIndex}'
+              : '$label|${stress.id}';
           var slots = slotCache[cacheKey];
           if (slots == null) {
             slots = await _createStableSlots(
@@ -219,8 +240,15 @@ class SmartProgramPlanner {
               completedExerciseSlugs: completedExerciseSlugs,
               completedMovementSlugs: completedMovementSlugs,
               catalogBySlug: catalogBySlug,
+              weekIndex: week.weekIndex,
             );
             slotCache[cacheKey] = slots;
+          }
+          if (usesWeeklySegments &&
+              firstSegmentDaySlotId == null &&
+              slots.isNotEmpty &&
+              slots.first.id != -1) {
+            firstSegmentDaySlotId = slots.first.id;
           }
 
           // The new builder writes a stable owned blueprint. Re-running the
@@ -263,11 +291,44 @@ class SmartProgramPlanner {
               if (remaining <= 0 && slot.role != SlotRole.main) continue;
               target = target.copyWith(sets: remaining.clamp(1, target.sets));
             }
-            final timePlan = _timePlanFor(
-              role: slot.role,
-              target: target,
-              configuration: configuration,
-            );
+            // CrossFit metcon slots bypass the normal per-rep-target time
+            // plan entirely: a metcon's duration comes from its capped
+            // segment estimator (below), not a sets×reps formula, and its
+            // prescription is a single AMRAP/EMOM/For Time work segment
+            // rather than a straight-sets/myo-reps target (21-06).
+            final timePlan = slot.metconFormat != null
+                ? _TimePlan(
+                    // A minimal placeholder — the real duration comes from
+                    // the capped-segment estimator below, not sets/reps.
+                    target: const _Target(1, 1, 1, 0, 0),
+                    setType: slot.metconFormat!,
+                    segment: slot.segment,
+                    metconCapSeconds: slot.metconCapSeconds,
+                    why: 'CrossFit metcon, ${slot.metconFormat!.label} format.',
+                    prescriptionCodecJson: SlotPrescriptionCodec.encode(
+                      SlotPrescription(
+                        name: 'Metcon',
+                        segments: [
+                          WorkSegment(
+                            sets: 1,
+                            repsMin: 1,
+                            setType: slot.metconFormat!,
+                            meta: {
+                              if (slot.metconCapSeconds != null)
+                                'capSeconds': slot.metconCapSeconds,
+                              if (slot.metconMinutes != null)
+                                'minutes': slot.metconMinutes,
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _timePlanFor(
+                    role: slot.role,
+                    target: target,
+                    configuration: configuration,
+                  );
             final isFirstHeavy = slot.role.isHeavy && !sawHeavyLift;
             if (slot.role.isHeavy) sawHeavyLift = true;
             dayPlans.add(
@@ -292,10 +353,13 @@ class SmartProgramPlanner {
           bool isTrimmableRole(SlotRole role) =>
               role == SlotRole.isolation || role == SlotRole.accessory;
           while (_estimateDayDuration(dayPlans, catalogById) > budget) {
+            // A metcon slot's duration is fixed (capped-segment estimate),
+            // never per-rep-trimmed like a normal accessory slot (21-06).
             final shrinkable = dayPlans.where(
               (plan) =>
                   isTrimmableRole(plan.slot.role) &&
-                  plan.timePlan.target.sets > 1,
+                  plan.timePlan.target.sets > 1 &&
+                  plan.timePlan.segment != SessionSegment.metcon,
             );
             final isolationShrinkable = shrinkable.where(
               (plan) => plan.slot.role == SlotRole.isolation,
@@ -312,7 +376,9 @@ class SmartProgramPlanner {
               continue;
             }
             final trimmable = dayPlans.where(
-              (plan) => isTrimmableRole(plan.slot.role),
+              (plan) =>
+                  isTrimmableRole(plan.slot.role) &&
+                  plan.timePlan.segment != SessionSegment.metcon,
             );
             final isolationTrimmable = trimmable.where(
               (plan) => plan.slot.role == SlotRole.isolation,
@@ -326,12 +392,19 @@ class SmartProgramPlanner {
 
           // Pass 2: insert exactly as the previous single-pass code did, now
           // sourced from the post-trim plan list.
+          final metconGroupIds = <String, int>{};
           for (final plan in dayPlans) {
             final slot = plan.slot;
             final exerciseId = plan.exerciseId;
             final target = plan.target;
             final timePlan = plan.timePlan;
             final focusNote = plan.focusNote;
+            final supersetGroup = slot.metconGroupKey == null
+                ? null
+                : metconGroupIds.putIfAbsent(
+                    slot.metconGroupKey!,
+                    () => metconGroupIds.length + 1,
+                  );
             await _db
                 .into(_db.programDayExercises)
                 .insert(
@@ -347,6 +420,8 @@ class SmartProgramPlanner {
                     restSeconds: Value(target.restSeconds),
                     setType: Value(timePlan.setType.id),
                     slotRole: Value(slot.role.id),
+                    sessionSegment: Value(slot.segment?.id),
+                    supersetGroup: Value(supersetGroup),
                     trainingMethod: Value(slot.method.id),
                     equipmentVariant: Value(
                       _equipmentVariantFor(
@@ -372,6 +447,28 @@ class SmartProgramPlanner {
                 (weeklySetsByMuscle[slot.muscleId] ?? 0) + target.sets;
           }
         }
+
+        final recoveryWarnings = CrossfitScalingPolicy.recoveryReserveWarning(
+          labelsByDayOfWeek: labelsByDayOfWeek,
+        );
+        if (recoveryWarnings.isNotEmpty && firstSegmentDaySlotId != null) {
+          final existing = await (_db.select(_db.programSlotExplanations)..where(
+            (t) =>
+                t.slotId.equals(firstSegmentDaySlotId!) &
+                t.weekIndex.equals(week.weekIndex),
+          )).getSingleOrNull();
+          if (existing != null) {
+            await (_db.update(_db.programSlotExplanations)
+                  ..where((t) => t.id.equals(existing.id)))
+                .write(
+                  ProgramSlotExplanationsCompanion(
+                    rationale: Value(
+                      '${existing.rationale} ${recoveryWarnings.first}',
+                    ),
+                  ),
+                );
+          }
+        }
       }
     });
   }
@@ -390,6 +487,7 @@ class SmartProgramPlanner {
     required Set<String> completedExerciseSlugs,
     required Set<String> completedMovementSlugs,
     required Map<String, ExerciseCatalogData> catalogBySlug,
+    required int weekIndex,
   }) async {
     final needs = _needsFor(
       dayLabel,
@@ -397,7 +495,17 @@ class SmartProgramPlanner {
       primaryLiftSpecialization: configuration.primaryLiftSpecialization,
       trainingStyle: configuration.trainingStyle,
       includeGppConditioning: configuration.shouldIncludeGppConditioning,
+      experience: configuration.experience,
+      weekIndex: weekIndex,
     );
+    // CrossFit/GPP days re-derive their needs every week (metcon format
+    // rotates via variationSeed), so their slotKey must be week-scoped too —
+    // otherwise the second week's insert collides with the first week's
+    // ProgramExerciseSlots.slotKey unique constraint. Mirrors the slotCache
+    // key change in populate().
+    final usesWeeklySegments =
+        configuration.trainingStyle.isConditioningFirst ||
+        dayLabel.trim().toLowerCase() == 'gpp';
     final catalogById = {for (final exercise in catalog) exercise.id: exercise};
     final result = <_ResolvedSmartSlot>[];
     final used = <int>{};
@@ -411,6 +519,12 @@ class SmartProgramPlanner {
         experience: configuration.experience,
         model: model,
       );
+      // Categorical guard closing RESEARCH.md's Pitfall 2 (T-21-01): every
+      // segment-tagged (CrossFit/GPP) slot is forced to `technique`
+      // regardless of role, periodization model, or day-label override, so
+      // no future codepath can reopen Dynamic-Effort eligibility for segment
+      // content even if a role mistake is made elsewhere.
+      if (need.segment != null) method = SlotTrainingMethod.technique;
       final override = configuration.mainMethodByDayLabel[dayLabel];
       if (need.role == SlotRole.main && override != null) {
         // A repeated Upper/Lower/PPL volume day stays a volume day even when
@@ -557,7 +671,9 @@ class SmartProgramPlanner {
             );
           }
           final emptySlotKey = _slug(
-            '$dayLabel-${stressRole.id}-${need.role.id}-$order',
+            usesWeeklySegments
+                ? '$dayLabel-${stressRole.id}-${need.role.id}-$order-w$weekIndex'
+                : '$dayLabel-${stressRole.id}-${need.role.id}-$order',
           );
           final emptySlotId = await _db
               .into(_db.programExerciseSlots)
@@ -571,6 +687,7 @@ class SmartProgramPlanner {
                   movementPattern: Value(need.pattern),
                   primaryMuscle: Value(need.muscle),
                   trainingMethod: Value(method.id),
+                  sessionSegment: Value(need.segment?.id),
                   rotationPolicyJson: Value(
                     jsonEncode({
                       'everyWeeks': emptyPolicy.everyWeeks,
@@ -723,7 +840,9 @@ class SmartProgramPlanner {
       final anchor = pool.first;
       used.add(anchor.candidate.exerciseId);
       final slotKey = _slug(
-        '$dayLabel-${stressRole.id}-${need.role.id}-$order',
+        usesWeeklySegments
+            ? '$dayLabel-${stressRole.id}-${need.role.id}-$order-w$weekIndex'
+            : '$dayLabel-${stressRole.id}-${need.role.id}-$order',
       );
       final slotId = await _db
           .into(_db.programExerciseSlots)
@@ -737,6 +856,7 @@ class SmartProgramPlanner {
               movementPattern: Value(need.pattern),
               primaryMuscle: Value(need.muscle),
               trainingMethod: Value(method.id),
+              sessionSegment: Value(need.segment?.id),
               rotationPolicyJson: Value(
                 jsonEncode({
                   'everyWeeks': policy.everyWeeks,
@@ -825,6 +945,11 @@ class SmartProgramPlanner {
               '${anchor.why} ${_loadingReason(loadingPreference)} ${method.label} matches the ${stressRole.label.toLowerCase()} role of this day.',
           loadingPreference: loadingPreference,
           assignments: assignments,
+          segment: need.segment,
+          metconGroupKey: need.metconGroupKey,
+          metconFormat: need.metconFormat,
+          metconCapSeconds: need.metconCapSeconds,
+          metconMinutes: need.metconMinutes,
         ),
       );
     }
@@ -1207,6 +1332,8 @@ class SmartProgramPlanner {
     PrimaryLiftSpecialization? primaryLiftSpecialization,
     required TrainingStyle trainingStyle,
     required bool includeGppConditioning,
+    required ExperienceLevel experience,
+    required int weekIndex,
   }) {
     final value = label.toLowerCase();
     if (primaryLiftSpecialization != null &&
@@ -1218,17 +1345,24 @@ class SmartProgramPlanner {
     }
     // A standalone GPP day is intentionally narrow: one conventional cardio
     // / carry slot, not an opaque high-fatigue WOD. It remains easy to edit or
-    // remove through the normal program editor.
+    // remove through the normal program editor. Routes through
+    // GppProgramPlanner (CF-03) instead of a bare literal so the day gets a
+    // real, segment-tagged, categorically-Dynamic-Effort-safe need.
     if (value.trim() == 'gpp') {
-      return const [_SlotNeed(null, null, SlotRole.conditioning)];
+      return GppProgramPlanner.segmentNeedsFor()
+          .map(_fromCrossfitNeed)
+          .toList(growable: false);
     }
     // CrossFit starts conditioning-first. The catalogue policy below still
     // blocks uncurated, technical-review novice, and manual-only movements.
+    // Routes through CrossfitProgramPlanner (CF-01/CF-02) instead of the bare
+    // 2-slot stub, so the day gets a full warmup/skill/strength/metcon/
+    // cooldown blueprint with a week-driven metcon format rotation.
     if (trainingStyle.isConditioningFirst) {
-      return const [
-        _SlotNeed(null, null, SlotRole.conditioning),
-        _SlotNeed(null, null, SlotRole.conditioning),
-      ];
+      return CrossfitProgramPlanner.segmentNeedsFor(
+        experience: experience,
+        variationSeed: weekIndex,
+      ).map(_fromCrossfitNeed).toList(growable: false);
     }
     final isSquatFocused =
         squatSpecialization != null &&
@@ -1341,6 +1475,21 @@ class SmartProgramPlanner {
         : base;
   }
 
+  /// Maps the shared public [CrossfitSlotNeed] descriptor (returned by
+  /// `CrossfitProgramPlanner`/`GppProgramPlanner`) onto this file's private
+  /// [_SlotNeed], 1:1 field-for-field.
+  static _SlotNeed _fromCrossfitNeed(CrossfitSlotNeed need) => _SlotNeed(
+    need.pattern,
+    need.muscle,
+    need.role,
+    preferredSlugs: need.preferredSlugs,
+    segment: need.segment,
+    metconGroupKey: need.metconGroupKey,
+    metconFormat: need.metconFormat,
+    metconCapSeconds: need.metconCapSeconds,
+    metconMinutes: need.metconMinutes,
+  );
+
   static List<_SlotNeed> _needsForPrimaryLift(
     PrimaryLiftSpecialization specialization,
   ) {
@@ -1419,6 +1568,18 @@ class SmartProgramPlanner {
     _DaySlotPlan plan,
     Map<int, ExerciseCatalogData> catalogById,
   ) {
+    // A metcon's duration is a fixed cap, not a per-rep estimate — an EMOM
+    // need expresses its length via `metconMinutes` (no `metconCapSeconds`),
+    // so derive capSeconds inline for that one case rather than adding a 6th
+    // field to _TimePlan (21-06).
+    if (plan.timePlan.segment == SessionSegment.metcon) {
+      final capSeconds =
+          plan.timePlan.metconCapSeconds ??
+          ((plan.slot.metconMinutes ?? 0) * 60);
+      return WorkoutDurationEstimator.estimateCappedSegment(
+        capSeconds: capSeconds,
+      );
+    }
     final exercise = catalogById[plan.exerciseId]!;
     final warmupSteps = WarmupResolver.resolve(
       role: plan.slot.role,
@@ -1601,11 +1762,24 @@ class _SlotNeed {
     this.muscle,
     this.role, {
     this.preferredSlugs = const {},
+    this.segment,
+    this.metconGroupKey,
+    this.metconFormat,
+    this.metconCapSeconds,
+    this.metconMinutes,
   });
   final String? pattern;
   final String? muscle;
   final SlotRole role;
   final Set<String> preferredSlugs;
+
+  /// CrossFit/GPP session-segment tag (21-01/21-04/21-05). Null for every
+  /// non-CrossFit/GPP need — this is the overwhelming majority of call sites.
+  final SessionSegment? segment;
+  final String? metconGroupKey;
+  final SetType? metconFormat;
+  final int? metconCapSeconds;
+  final int? metconMinutes;
 }
 
 class _Target {
@@ -1632,6 +1806,9 @@ class _TimePlan {
     required this.setType,
     required this.why,
     this.prescriptionCodecJson,
+    this.segment,
+    this.supersetGroup,
+    this.metconCapSeconds,
   });
 
   const _TimePlan.standard(_Target target)
@@ -1642,11 +1819,21 @@ class _TimePlan {
   final String why;
   final String? prescriptionCodecJson;
 
+  /// Set only for metcon-segment slots (bypassing [_timePlanFor] entirely) —
+  /// lets [_estimateSlotDuration] and the time-budget trim loop treat a
+  /// metcon's duration as fixed rather than per-rep-estimated (21-06).
+  final SessionSegment? segment;
+  final int? supersetGroup;
+  final int? metconCapSeconds;
+
   _TimePlan copyWith({_Target? target}) => _TimePlan(
     target: target ?? this.target,
     setType: setType,
     why: why,
     prescriptionCodecJson: prescriptionCodecJson,
+    segment: segment,
+    supersetGroup: supersetGroup,
+    metconCapSeconds: metconCapSeconds,
   );
 }
 
@@ -1701,6 +1888,11 @@ class _ResolvedSmartSlot {
     required this.why,
     required this.loadingPreference,
     required this.assignments,
+    this.segment,
+    this.metconGroupKey,
+    this.metconFormat,
+    this.metconCapSeconds,
+    this.metconMinutes,
   }) : explanation = null;
 
   /// A hard-filter-exhausted slot for which no safe candidate — including
@@ -1722,7 +1914,12 @@ class _ResolvedSmartSlot {
        muscleId = '',
        why = explanation!.rationale,
        loadingPreference = _LoadingPreference.flexible,
-       assignments = const {};
+       assignments = const {},
+       segment = null,
+       metconGroupKey = null,
+       metconFormat = null,
+       metconCapSeconds = null,
+       metconMinutes = null;
 
   final int id;
   final int orderIndex;
@@ -1735,6 +1932,15 @@ class _ResolvedSmartSlot {
   final String why;
   final _LoadingPreference loadingPreference;
   final Map<int, RotationAssignmentData> assignments;
+
+  /// CrossFit/GPP session-segment tag and metcon descriptors, carried
+  /// verbatim from the `_SlotNeed` this slot was resolved from (21-06). Null
+  /// for every non-CrossFit/GPP slot.
+  final SessionSegment? segment;
+  final String? metconGroupKey;
+  final SetType? metconFormat;
+  final int? metconCapSeconds;
+  final int? metconMinutes;
 
   /// Set only by [_ResolvedSmartSlot.empty] — its `rationale` is persisted
   /// to `ProgramSlotExplanations` at the empty-slot call site above,
