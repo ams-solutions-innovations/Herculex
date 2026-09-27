@@ -139,7 +139,7 @@ Plans:
 
 **Success:** Sessions structured into warmup, skill/strength, metcon, and cooldown segments; AMRAP, EMOM, and For Time formats preserve time caps; Full Body 2× + GPP split delivers dedicated conditioning without 8×3 sets.
 
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans complete
 
 Plans:
 **Wave 1**
@@ -159,7 +159,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 21-07-PLAN.md — Wave 4: Thread sessionSegment/supersetGroup through planned_session_resolver.dart materialization, end-to-end threading tests
+- [x] 21-07-PLAN.md — Wave 4: Thread sessionSegment/supersetGroup through planned_session_resolver.dart materialization, end-to-end threading tests
 
 ### Phase 22: Primary Lift Strength Specialization
 

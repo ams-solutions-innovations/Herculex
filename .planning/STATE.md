@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-27T10:30:00.000Z"
+last_updated: "2026-09-27T10:29:33.752Z"
 progress:
   total_phases: 11
-  completed_phases: 6
-  total_plans: 33
-  completed_plans: 33
-  percent: 55
+  completed_phases: 7
+  total_plans: 34
+  completed_plans: 34
+  percent: 66
 ---
 
 # Project State: Milestone v2.0
@@ -20,7 +20,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system.  
-**Current focus:** Phase 21 — crossfit-gpp-training-tracks
+**Current focus:** Phase 21 — crossfit-gpp-training-tracks (complete, ready for verification)
 
 ---
 
@@ -32,11 +32,35 @@ Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 - **Phase 18: Workout Time Budget, Warmups & Set Method Prescriptions** — Pending.
 - **Phase 19: Program & Wave Editor with Explainable Periodization** — Pending.
 - **Phase 20: Active Workout Shell & Calendar Execution Flow** — Pending.
-- **Phase 21: CrossFit & GPP Training Tracks** — In progress, 6/7 plans (`/gsd:execute-phase 21`).
+- **Phase 21: CrossFit & GPP Training Tracks** — Complete, 7/7 plans. Ready for phase verification.
 - **Phase 22: Primary Lift Strength Specialization** — Pending.
 - **Phase 23: Persistent Dream Physique & Multi-Phase Nutrition** — Pending.
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending.
+
+---
+
+## Session update — 2026-09-27 (Phase 21 Plan 07 Completed — Phase 21 Complete)
+
+- Completed Plan 21-07 (CF-01), the final plan in Phase 21:
+  - `PlannedExerciseSnapshot` gained a `sessionSegment` field; `resolveProgramDay`
+    now reads both `pde.sessionSegment` and `pde.supersetGroup` (the Program
+    path never populated `supersetGroup` before — only `resolveTemplate` did).
+  - `materialize()`'s `WorkoutExercisesCompanion.insert` now writes
+    `plannedSessionSegment: Value(exercise.sessionSegment)` alongside the
+    already-correct `supersetGroup` write.
+  - Two new end-to-end tests in `test/planned_session_resolver_test.dart`:
+    segment/superset-group threading through resolution + materialization,
+    and AMRAP `capSeconds` meta survival into `SetEntries.setTypeMetaJson`
+    (proving existing `_setsFromPrescription` behavior, no new production
+    code needed for that half).
+- Validation: 0 analyzer errors (whole repo); `test/planned_session_resolver_test.dart`
+  9/9 passing. Full `flutter test`: only the pre-existing `schema_v25/27/28/29_test.dart`
+  failures remain (stale v39 fixture targets from before Plan 21-01, already
+  logged in `deferred-items.md`, out of scope for this plan).
+- **Phase 21 (CrossFit & GPP Training Tracks) is now complete — 7/7 plans.**
+  CF-01/02/03 all closed end-to-end. Ready for `/gsd:verify-phase 21`.
+- Next implementation focus: Phase 22 (Primary Lift Strength Specialization) planning.
 
 ---
 
@@ -46,29 +70,37 @@ Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
   (21-04) and `GppProgramPlanner` (21-05) into
   `smart_program_planner.dart`'s `_needsFor` dispatch, replacing the bare
   2-slot CrossFit stub and the inline GPP `_SlotNeed` literal:
+
   - `_SlotNeed`/`_ResolvedSmartSlot`/`_TimePlan` extended with
     segment/metcon fields (source-compatible, every existing call site
     untouched).
+
   - Every segment-tagged slot is categorically forced to
     `SlotTrainingMethod.technique`, unconditionally — closes RESEARCH.md's
     Pitfall 2 (T-21-01), proven end-to-end for both `maxEffort` and
     `linear` periodization models.
+
   - `slotCache`/`ProgramExerciseSlots.slotKey` are week-scoped for
     CrossFit/GPP days so metcon format genuinely rotates
     AMRAP → EMOM → For Time via `variationSeed: week.weekIndex`.
+
   - `sessionSegment`/`supersetGroup` persisted through `populate()`;
     metcon duration uses `WorkoutDurationEstimator.estimateCappedSegment`
     and is excluded from the time-budget trim loop.
+
   - `CrossfitScalingPolicy.recoveryReserveWarning` surfaced through the
     existing `ProgramSlotExplanations` rationale channel.
+
   - Deviation (Rule 1): updated the pre-existing
     `test/crossfit_gpp_program_test.dart` CrossFit assertion, which
     guarded the old bare-stub shape this plan intentionally replaces.
+
 - Validation: 0 analyzer errors; `smart_program_planner_test.dart` (9/9,
   4 new) and `crossfit_gpp_program_test.dart` (3/3) pass. Full
   `flutter test`: only the 7 pre-existing `schema_v25/27/28/29_test.dart`
   failures remain (stale v39 targets, logged in this phase's
   `deferred-items.md` during 21-01, unrelated to this plan).
+
 - Next implementation focus: Plan 21-07 (if any remain), else Phase 21
   closeout.
 
