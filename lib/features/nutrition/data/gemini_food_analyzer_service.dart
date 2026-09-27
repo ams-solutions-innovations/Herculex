@@ -21,7 +21,7 @@ class GeminiFoodAnalysisResult {
 
   const GeminiFoodAnalysisResult({
     required this.name,
-    this.brand = 'Gemini AI',
+    this.brand = 'Herculex AI',
     required this.estimatedServingGrams,
     required this.portionAmount,
     required this.portionUnit,
@@ -37,7 +37,7 @@ class GeminiFoodAnalysisResult {
   factory GeminiFoodAnalysisResult.fromJson(Map<String, dynamic> json) {
     return GeminiFoodAnalysisResult(
       name: json['name'] as String? ?? 'Unknown food',
-      brand: json['brand'] as String? ?? 'Gemini AI',
+      brand: json['brand'] as String? ?? 'Herculex AI',
       estimatedServingGrams:
           (json['estimatedServingGrams'] as num?)?.toDouble() ?? 100.0,
       portionAmount: (json['portionAmount'] as num?)?.toDouble() ?? 1.0,
@@ -49,7 +49,7 @@ class GeminiFoodAnalysisResult {
       fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
       rating: (json['rating'] as num?)?.toDouble() ?? 7.0,
       ratingReason:
-          json['ratingReason'] as String? ?? 'Evaluated with Gemini AI.',
+          json['ratingReason'] as String? ?? 'Evaluated with Herculex AI.',
     );
   }
 }
