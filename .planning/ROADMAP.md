@@ -139,7 +139,7 @@ Plans:
 
 **Success:** Sessions structured into warmup, skill/strength, metcon, and cooldown segments; AMRAP, EMOM, and For Time formats preserve time caps; Full Body 2× + GPP split delivers dedicated conditioning without 8×3 sets.
 
-**Plans:** 7/7 original plans complete; 2 gap-closure plans in progress (verification found 5/7 must-haves — CrossfitScalingPolicy.complexityCheck dead code, program review UI metcon placeholder display)
+**Plans:** 8/9 plans executed
 
 Plans:
 **Wave 1**
@@ -163,7 +163,7 @@ Plans:
 
 **Gap closure (Wave 1, parallel, no interdependency)**
 
-- [ ] 21-08-PLAN.md — Wire CrossfitScalingPolicy.complexityCheck into smart_program_planner.dart's _createStableSlots (real candidate-pool substitution + explicit accepted-exception rationale), 2 new regression tests (CF-02)
+- [x] 21-08-PLAN.md — Wire CrossfitScalingPolicy.complexityCheck into smart_program_planner.dart's _createStableSlots (real candidate-pool substitution + explicit accepted-exception rationale), 2 new regression tests (CF-02)
 - [ ] 21-09-PLAN.md — Decode prescriptionCodecJson in program_review_view.dart's _ExerciseRow for metcon rows, replacing the "1 sets · 1 reps" placeholder with the real AMRAP/EMOM/For-Time summary (CF-01)
 
 ### Phase 22: Primary Lift Strength Specialization
