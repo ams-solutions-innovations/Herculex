@@ -220,7 +220,7 @@ Plans:
 
 **Success:** The knowledge corpus lives beside `prompts.ts` and never ships in the app bundle; every AI result carries `knowledgeVersion` and `modelVersion`; no user-visible string reads "Gemini" while internal provider naming is untouched; Hercul's deterministic rule engine and its closed-vocabulary test keep working offline beside a clearly-labelled AI advice channel; per-kind quota exhaustion fails closed with a clear message.
 
-**Plans:** 5/7 plans executed
+**Plans:** 6/7 plans executed
 
 Plans:
 **Wave 1**
@@ -230,7 +230,7 @@ Plans:
 - [x] 26-04-PLAN.md — Wave 1: dream_physique_view.dart consent reword + Pitfall-1-safe rename (KB-03)
 - [x] 26-05-PLAN.md — Wave 1: measurements feature brand rename (KB-03)
 - [x] 26-06-PLAN.md — Wave 1: nutrition feature brand rename, non-data sites (KB-03)
-- [ ] 26-07-PLAN.md — Wave 1: supplements/workouts/profile-services brand rename (KB-03)
+- [x] 26-07-PLAN.md — Wave 1: supplements/workouts/profile-services brand rename (KB-03)
 
 **Wave 2** *(blocked on Wave 1 completion — 26-01)*
 
