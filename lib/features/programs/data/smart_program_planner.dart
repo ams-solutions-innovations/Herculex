@@ -510,6 +510,11 @@ class SmartProgramPlanner {
     final result = <_ResolvedSmartSlot>[];
     final used = <int>{};
     final lockedAnchors = <String, int>{};
+    // D-06 hard rule tracking: per-metcon-group movement/advanced-movement
+    // counts, incremented once per resolved metcon slot below. Scoped to
+    // this single call (one day/week resolution), matching `used`.
+    final metconGroupMovementCount = <String, int>{};
+    final metconGroupAdvancedCount = <String, int>{};
 
     for (final (order, need) in needs.indexed) {
       var method = _methodFor(
@@ -734,6 +739,22 @@ class SmartProgramPlanner {
         if (preferred.isNotEmpty) candidates = preferred;
       }
 
+      // D-06 hard rule: never let the scorer be offered a second
+      // advanced/just-unlocked movement for the same metcon group once one
+      // is already committed. This is a real candidate-pool substitution,
+      // not a passive/logged-only check -- it only applies when a safe
+      // (non-advanced) alternative actually exists in this slot's own pool;
+      // otherwise `candidates` is left as-is and the forced exception is
+      // recorded explicitly below once `complexityCheck` runs.
+      if (need.segment == SessionSegment.metcon &&
+          need.metconGroupKey != null &&
+          (metconGroupAdvancedCount[need.metconGroupKey!] ?? 0) >= 1) {
+        final safeCandidates = candidates
+            .where((exercise) => !_isCrossfitAdvancedOrJustUnlocked(exercise))
+            .toList(growable: false);
+        if (safeCandidates.isNotEmpty) candidates = safeCandidates;
+      }
+
       var policy = RotationPolicy.forSlot(
         model: method == SlotTrainingMethod.maxEffort
             ? PeriodizationModel.maxEffort
@@ -839,6 +860,37 @@ class SmartProgramPlanner {
       }
       final anchor = pool.first;
       used.add(anchor.candidate.exerciseId);
+      // D-06 hard rule enforcement: run `complexityCheck` once per resolved
+      // metcon slot, against this slot's just-committed anchor. The
+      // group-scoped counts are incremented here (not before the guard
+      // filter above) because they must reflect the slot that was actually
+      // *chosen*, not merely offered.
+      String? complexityExceptionNote;
+      if (need.segment == SessionSegment.metcon &&
+          need.metconGroupKey != null) {
+        final groupKey = need.metconGroupKey!;
+        final anchorExercise = candidates.firstWhere(
+          (exercise) => exercise.id == anchor.candidate.exerciseId,
+        );
+        final isAdvanced = _isCrossfitAdvancedOrJustUnlocked(anchorExercise);
+        final movementCount = (metconGroupMovementCount[groupKey] ?? 0) + 1;
+        final advancedCount =
+            (metconGroupAdvancedCount[groupKey] ?? 0) + (isAdvanced ? 1 : 0);
+        metconGroupMovementCount[groupKey] = movementCount;
+        metconGroupAdvancedCount[groupKey] = advancedCount;
+        final complexityResult = CrossfitScalingPolicy.complexityCheck(
+          movementCount: movementCount,
+          hasAdvancedMovement: isAdvanced,
+          advancedMovementCount: advancedCount,
+          level: configuration.experience,
+        );
+        if (!complexityResult.isSafe) {
+          complexityExceptionNote =
+              ' ${complexityResult.rationale} No safe non-advanced '
+              'substitute existed in this slot\'s own candidate pool, so '
+              'this exception was accepted explicitly rather than silently.';
+        }
+      }
       final slotKey = _slug(
         usesWeeklySegments
             ? '$dayLabel-${stressRole.id}-${need.role.id}-$order-w$weekIndex'
@@ -942,7 +994,8 @@ class SmartProgramPlanner {
                 .primaryMuscle,
           ),
           why:
-              '${anchor.why} ${_loadingReason(loadingPreference)} ${method.label} matches the ${stressRole.label.toLowerCase()} role of this day.',
+              '${anchor.why} ${_loadingReason(loadingPreference)} ${method.label} matches the ${stressRole.label.toLowerCase()} role of this day.'
+              '${complexityExceptionNote ?? ''}',
           loadingPreference: loadingPreference,
           assignments: assignments,
           segment: need.segment,
@@ -1185,6 +1238,25 @@ class SmartProgramPlanner {
     }
     if (preference == _LoadingPreference.calisthenics) return 'bodyweight';
     return null;
+  }
+
+  /// D-06 hard rule helper: an exercise counts as "advanced/just-unlocked"
+  /// for the metcon stacking guard when it is explicitly tagged advanced,
+  /// or when it carries a non-empty prerequisite gate (i.e. it was only
+  /// just unlocked once its prerequisite was cleared). Mirrors
+  /// [ExerciseScalingResolver._hasRequiredEquipment]'s decode-failure
+  /// convention: a malformed `prerequisiteSlugs` JSON payload is treated
+  /// as "not advanced" rather than thrown.
+  static bool _isCrossfitAdvancedOrJustUnlocked(ExerciseCatalogData exercise) {
+    if (exercise.programmingDifficulty == 'advanced') return true;
+    final raw = exercise.prerequisiteSlugs;
+    if (raw == null || raw.trim().isEmpty) return false;
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is List && decoded.isNotEmpty;
+    } on FormatException {
+      return false;
+    }
   }
 
   static int _affinityScore(String value) => switch (value) {
