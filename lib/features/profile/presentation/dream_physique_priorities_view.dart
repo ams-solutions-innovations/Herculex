@@ -545,7 +545,7 @@ class _DreamPhysiquePrioritiesViewState
           ),
           const SizedBox(height: 8),
           Text(
-            'Take or upload photos to let Gemini analyze your physique and propose custom muscle volume targets.',
+            'Take or upload photos to let Herculex AI analyze your physique and propose custom muscle volume targets.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.secondary,

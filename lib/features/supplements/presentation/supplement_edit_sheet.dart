@@ -124,7 +124,7 @@ class _SupplementEditSheetState extends ConsumerState<SupplementEditSheet> {
           }
         }
       }
-      _scanMessage = 'Gemini AI je uspešno prebral podatke o dopolnilu.';
+      _scanMessage = 'Herculex AI je uspešno prebral podatke o dopolnilu.';
     });
   }
 

@@ -353,7 +353,7 @@ class SupabaseGeminiBackend implements GeminiBackend {
       );
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Error connecting to Gemini AI: $e');
+      throw Exception('Error connecting to Herculex AI: $e');
     }
   }
 
