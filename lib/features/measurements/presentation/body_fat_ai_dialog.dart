@@ -241,7 +241,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Gemini AI Body Fat Estimation',
+                          'Herculex AI Body Fat Estimation',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -324,7 +324,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                           icon: const Icon(Icons.auto_awesome),
                           label: Text(
                             _selectedFiles.isNotEmpty
-                                ? 'Analyze (${_selectedFiles.length} photos) with Gemini AI'
+                                ? 'Analyze (${_selectedFiles.length} photos) with Herculex AI'
                                 : 'Calculate estimate from measurements & profile',
                             style: const TextStyle(
                               fontSize: 15,
@@ -347,7 +347,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                             const CircularProgressIndicator(),
                             const SizedBox(height: 20),
                             Text(
-                              'Gemini AI is analyzing body composition...',
+                              'Herculex AI is analyzing body composition...',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -752,7 +752,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                         const SizedBox(width: 4),
                         Text(
                           r.isAiGenerated
-                              ? 'Gemini Multimodal Estimate'
+                              ? 'Herculex AI Multimodal Estimate'
                               : 'Biometric Calculation',
                           style: const TextStyle(
                             color: Colors.white,
