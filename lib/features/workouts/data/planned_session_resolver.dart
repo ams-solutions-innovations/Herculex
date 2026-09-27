@@ -67,6 +67,7 @@ class PlannedExerciseSnapshot {
     this.programExerciseSlotId,
     this.rotationAssignmentId,
     this.equipmentVariant,
+    this.sessionSegment,
     this.supersetGroup,
     this.waveIndex,
     this.waveCount,
@@ -83,6 +84,7 @@ class PlannedExerciseSnapshot {
   final int? programExerciseSlotId;
   final int? rotationAssignmentId;
   final String? equipmentVariant;
+  final String? sessionSegment;
   final int? supersetGroup;
   final int? waveIndex;
   final int? waveCount;
@@ -319,6 +321,8 @@ class PlannedSessionResolver {
           programExerciseSlotId: slot?.id,
           rotationAssignmentId: assignment?.id,
           equipmentVariant: pde.equipmentVariant,
+          sessionSegment: pde.sessionSegment,
+          supersetGroup: pde.supersetGroup,
           waveIndex: week.weekIndex,
           waveCount: program.weeks,
           sets: sets,
@@ -357,6 +361,7 @@ class PlannedSessionResolver {
                 exerciseId: exercise.exerciseId,
                 orderIndex: exercise.orderIndex,
                 targetRestSeconds: Value(exercise.restSeconds),
+                plannedSessionSegment: Value(exercise.sessionSegment),
                 supersetGroup: Value(exercise.supersetGroup),
                 equipmentVariant: Value(exercise.equipmentVariant),
                 programExerciseSlotId: Value(exercise.programExerciseSlotId),
