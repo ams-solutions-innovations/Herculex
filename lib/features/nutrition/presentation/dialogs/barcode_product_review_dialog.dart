@@ -256,7 +256,7 @@ class _BarcodeProductReviewDialogState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Gemini AI · Product Lookup',
+                      'Herculex AI · Product Lookup',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -309,7 +309,7 @@ class _BarcodeProductReviewDialogState
                           const CircularProgressIndicator(),
                           const SizedBox(height: 16),
                           const Text(
-                            'Gemini AI is searching for product online...',
+                            'Herculex AI is searching for product online...',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),

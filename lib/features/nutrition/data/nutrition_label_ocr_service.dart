@@ -30,7 +30,7 @@ class NutritionLabelOcrService {
         );
       } catch (_) {
         return ocrDraft.withWarning(
-          'OCR confidence is low and Gemini fallback failed. Check all fields before saving.',
+          'OCR confidence is low and Herculex AI fallback failed. Check all fields before saving.',
         );
       }
     } finally {

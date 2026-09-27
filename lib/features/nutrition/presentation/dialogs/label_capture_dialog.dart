@@ -106,7 +106,7 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
       if (!mounted) return;
       setState(() {
         _analyzing = false;
-        _error = 'OCR/Gemini analiza ni uspela: $e';
+        _error = 'OCR/Herculex AI analiza ni uspela: $e';
       });
     }
   }
@@ -254,7 +254,7 @@ class _LabelCaptureDialogState extends ConsumerState<LabelCaptureDialog> {
                     CircularProgressIndicator(),
                     SizedBox(height: 12),
                     Text(
-                      'OCR is reading the label; Gemini will refine the result if needed…',
+                      'OCR is reading the label; Herculex AI will refine the result if needed…',
                     ),
                   ],
                 ),
@@ -352,7 +352,7 @@ class _SourceBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final source = draft.source == LabelExtractionSource.gemini
-        ? 'Gemini fallback'
+        ? 'Herculex AI fallback'
         : 'On-device OCR';
     return Card(
       color: AppColors.surfaceContainer,
