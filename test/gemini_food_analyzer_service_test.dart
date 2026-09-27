@@ -29,6 +29,22 @@ void main() {
   );
 
   test(
+    'food photo analysis falls back to the Herculex AI brand default when the backend response omits brand',
+    () async {
+      final backend = _FakeGeminiBackendNoBrand();
+      final service = GeminiFoodAnalyzerService(backend);
+      final image = await _tempImage('.png');
+
+      final result = await service.analyzeFoodPhoto(
+        imageFile: image,
+        userNote: null,
+      );
+
+      expect(result.brand, 'Herculex AI');
+    },
+  );
+
+  test(
     'nutrition label fallback maps backend JSON into an editable draft',
     () async {
       final backend = _FakeGeminiBackend();
@@ -98,7 +114,7 @@ class _FakeGeminiBackend implements GeminiBackend {
     lastUserNote = userNote;
     return {
       'name': 'Test meal',
-      'brand': 'Gemini AI',
+      'brand': 'Herculex AI',
       'estimatedServingGrams': 250,
       'portionAmount': 1,
       'portionUnit': 'scoop',
@@ -282,6 +298,36 @@ class _FakeGeminiBackend implements GeminiBackend {
           'confidence': 0.9,
         },
       ],
+    };
+  }
+}
+
+/// Same fixture as [_FakeGeminiBackend] but with the `brand` key omitted
+/// entirely from the `analyzeFoodPhoto` response, to prove the
+/// `GeminiFoodAnalysisResult` fallback path when the model's JSON simply
+/// doesn't include a brand.
+class _FakeGeminiBackendNoBrand extends _FakeGeminiBackend {
+  @override
+  Future<Map<String, dynamic>> analyzeFoodPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) async {
+    lastKind = 'food_photo';
+    lastMimeType = mimeType;
+    lastUserNote = userNote;
+    return {
+      'name': 'Test meal',
+      'estimatedServingGrams': 250,
+      'portionAmount': 1,
+      'portionUnit': 'scoop',
+      'kcalPer100g': 123,
+      'proteinPer100g': 12,
+      'carbsPer100g': 20,
+      'fatPer100g': 5,
+      'fiberPer100g': 2,
+      'rating': 8,
+      'ratingReason': 'Looks balanced.',
     };
   }
 }
