@@ -358,7 +358,7 @@ class DreamPhysiqueService {
         return DreamPhysiqueAnalysisResult.fromJson(resultJson);
       } on FormatException {
         throw const DreamPhysiqueAnalysisException(
-          'Gemini returned an incomplete analysis. Your selections were kept; please try again.',
+          'Herculex AI returned an incomplete analysis. Your selections were kept; please try again.',
         );
       }
     } on DreamPhysiqueAnalysisException {
@@ -366,7 +366,7 @@ class DreamPhysiqueService {
     } catch (error) {
       final detail = error.toString().replaceFirst('Exception: ', '').trim();
       final message = detail.isEmpty
-          ? 'Gemini analysis is temporarily unavailable.'
+          ? 'Herculex AI analysis is temporarily unavailable.'
           : detail;
       throw DreamPhysiqueAnalysisException(
         '$message Your selections were kept; please try again.',
