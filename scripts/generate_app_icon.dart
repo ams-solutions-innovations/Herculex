@@ -1,134 +1,106 @@
 // ignore_for_file: avoid_print
+
 import 'dart:io';
+
 import 'package:image/image.dart' as img;
 
-void main() async {
-  final logoFile = File('assets/images/logo.png');
-  if (!logoFile.existsSync()) {
-    print('\n[ERROR] Logo file not found!');
-    return;
+final _navy = img.ColorRgba8(9, 19, 34, 255);
+final _transparent = img.ColorRgba8(0, 0, 0, 0);
+final _white = img.ColorRgba8(255, 255, 255, 255);
+
+img.Image _loadMaster() {
+  final image = img.decodeImage(
+    File('assets/images/app_icon_master.png').readAsBytesSync(),
+  );
+  if (image == null) {
+    throw StateError('Unable to decode assets/images/app_icon_master.png');
   }
+  return image;
+}
 
-  print('Reading logo...');
-  var logo = img.decodeImage(logoFile.readAsBytesSync());
-  if (logo == null) {
-    print('Failed to decode logo');
-    return;
-  }
-
-  print('Cropping to true bounding box to fix off-center issues...');
-  int minX = logo.width;
-  int minY = logo.height;
-  int maxX = 0;
-  int maxY = 0;
-
-  for (int y = 0; y < logo.height; y++) {
-    for (int x = 0; x < logo.width; x++) {
-      final pixel = logo.getPixel(x, y);
-      if (pixel.a > 0) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-
-  if (minX <= maxX && minY <= maxY) {
-    logo = img.copyCrop(
-      logo,
-      x: minX,
-      y: minY,
-      width: maxX - minX + 1,
-      height: maxY - minY + 1,
-    );
-  }
-
-  // Create a 1024x1024 transparent canvas for Android adaptive foreground (4 channels for alpha!)
-  final transparentCanvas = img.Image(
-    width: 1024,
-    height: 1024,
+/// Keeps the selected render's exact H/barbell geometry and blue treatment,
+/// while removing its navy canvas for Android adaptive icon foregrounds.
+img.Image _extractForeground(img.Image master) {
+  final result = img.Image(
+    width: master.width,
+    height: master.height,
     numChannels: 4,
   );
-  img.fill(
-    transparentCanvas,
-    color: img.ColorRgba8(0, 0, 0, 0),
-  ); // Ensure it's fully transparent
-
-  // Create a 1024x1024 black canvas for iOS and legacy Android
-  final blackCanvas = img.Image(width: 1024, height: 1024, numChannels: 4);
-  img.fill(blackCanvas, color: img.ColorRgba8(0, 0, 0, 255));
-
-  // We want the logo to take up about 65% of the canvas to ensure it's centered and not clipped by circular masks
-  final targetSize = (1024 * 0.65).toInt();
-
-  // Calculate scale
-  double scale = targetSize / logo.width;
-  if (targetSize / logo.height < scale) {
-    scale = targetSize / logo.height;
+  img.fill(result, color: _transparent);
+  for (final pixel in master) {
+    // The mark is bright cyan/blue; the navy field remains below this range.
+    // The low threshold preserves the anti-aliased outer edge and subtle blue
+    // depth from the approved design.
+    if (pixel.b > 82 && pixel.g > 52 && pixel.b > pixel.r * 1.8) {
+      result.setPixelRgba(pixel.x, pixel.y, pixel.r, pixel.g, pixel.b, 255);
+    }
   }
+  return result;
+}
 
-  final newWidth = (logo.width * scale).toInt();
-  final newHeight = (logo.height * scale).toInt();
-
-  print('Resizing and padding...');
-  final resizedLogo = img.copyResize(
-    logo,
-    width: newWidth,
-    height: newHeight,
-    interpolation: img.Interpolation.linear,
+img.Image _monochrome(img.Image foreground) {
+  final result = img.Image(
+    width: foreground.width,
+    height: foreground.height,
+    numChannels: 4,
   );
+  img.fill(result, color: _transparent);
+  for (final pixel in foreground) {
+    if (pixel.a > 0) {
+      result.setPixelRgba(pixel.x, pixel.y, _white.r, _white.g, _white.b, pixel.a);
+    }
+  }
+  return result;
+}
 
-  // Center coordinates
-  final dx = (1024 - newWidth) ~/ 2;
-  final dy = (1024 - newHeight) ~/ 2;
+void _save(String path, img.Image image) {
+  File(path).writeAsBytesSync(img.encodePng(image));
+  print('Generated $path');
+}
 
-  // Draw onto canvases
-  img.compositeImage(transparentCanvas, resizedLogo, dstX: dx, dstY: dy);
-  img.compositeImage(blackCanvas, resizedLogo, dstX: dx, dstY: dy);
+void main() {
+  final master = _loadMaster();
+  final foreground = _extractForeground(master);
+  final monochrome = _monochrome(foreground);
 
-  // Save for flutter_launcher_icons
-  File(
-    'assets/images/app_icon_foreground.png',
-  ).writeAsBytesSync(img.encodePng(transparentCanvas));
-  File(
-    'assets/images/app_icon_ios.png',
-  ).writeAsBytesSync(img.encodePng(blackCanvas));
+  // The master image is the approved visual, used without redrawing or
+  // simplifying it for standard launchers and UI.
+  _save('assets/images/logo.png', master);
+  _save('assets/images/app_icon_ios.png', master);
+  _save('assets/images/app_icon_foreground.png', foreground);
+  _save('assets/images/app_icon_monochrome.png', monochrome);
+  _save('assets/images/app_icon_ios_dark.png', monochrome);
+  _save('assets/images/app_icon_ios_tinted.png', monochrome);
 
-  print('Generated app icons for Flutter app.');
-
-  // Now let's generate icons for the Watch App directly!
-  print('Generating icons for Watch app...');
-  final watchResDir = Directory('../Herculex Android Watch/app/src/main/res');
+  final watchResDir = Directory('android/wear/src/main/res');
   if (watchResDir.existsSync()) {
-    final sizes = {
+    const sizes = {
       'mdpi': 48,
       'hdpi': 72,
       'xhdpi': 96,
       'xxhdpi': 144,
       'xxxhdpi': 192,
     };
-
     for (final entry in sizes.entries) {
-      final size = entry.value;
-      final folder = Directory('${watchResDir.path}/mipmap-${entry.key}');
-      if (!folder.existsSync()) folder.createSync(recursive: true);
-
-      final resizedForWatch = img.copyResize(
-        blackCanvas,
-        width: size,
-        height: size,
-        interpolation: img.Interpolation.linear,
+      final mipmap = Directory('${watchResDir.path}/mipmap-${entry.key}')
+        ..createSync(recursive: true);
+      final drawable = Directory('${watchResDir.path}/drawable-${entry.key}')
+        ..createSync(recursive: true);
+      final standardResized = img.copyResize(
+        master,
+        width: entry.value,
+        height: entry.value,
       );
-      File(
-        '${folder.path}/ic_launcher.png',
-      ).writeAsBytesSync(img.encodePng(resizedForWatch));
-      File(
-        '${folder.path}/ic_launcher_round.png',
-      ).writeAsBytesSync(img.encodePng(resizedForWatch));
+      _save('${mipmap.path}/ic_launcher.png', standardResized);
+      _save('${mipmap.path}/ic_launcher_round.png', standardResized);
+      _save(
+        '${drawable.path}/ic_launcher_foreground.png',
+        img.copyResize(foreground, width: entry.value, height: entry.value),
+      );
+      _save(
+        '${drawable.path}/ic_launcher_monochrome.png',
+        img.copyResize(monochrome, width: entry.value, height: entry.value),
+      );
     }
-    print('Successfully applied icons to the Watch app!');
-  } else {
-    print('Watch app directory not found at ${watchResDir.path}');
   }
 }
