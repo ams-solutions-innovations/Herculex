@@ -142,7 +142,7 @@ class _GeminiPhotoAnalysisDialogState
       final repo = ref.read(nutritionRepositoryProvider);
       final food = await repo.createCustomFood(
         name: name,
-        brand: _result?.brand ?? 'Gemini AI',
+        brand: _result?.brand ?? 'Herculex AI',
         kcalPer100g: kcalPer100g,
         proteinPer100g: proteinPer100g,
         carbsPer100g: carbsPer100g,
@@ -218,7 +218,7 @@ class _GeminiPhotoAnalysisDialogState
                   Icon(Icons.auto_awesome, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Gemini AI Food Analysis',
+                    'Herculex AI Food Analysis',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -293,7 +293,7 @@ class _GeminiPhotoAnalysisDialogState
                         onPressed: _startAnalysis,
                         icon: const Icon(Icons.auto_awesome),
                         label: const Text(
-                          'Analyze with Gemini AI',
+                          'Analyze with Herculex AI',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -314,7 +314,7 @@ class _GeminiPhotoAnalysisDialogState
                           const CircularProgressIndicator(),
                           const SizedBox(height: 16),
                           const Text(
-                            'Gemini AI is analyzing photo and ingredients...',
+                            'Herculex AI is analyzing photo and ingredients...',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),

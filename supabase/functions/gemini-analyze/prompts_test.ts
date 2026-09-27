@@ -35,4 +35,5 @@ Deno.test("food prompts require a practical, physically grounded portion", () =>
   }
   assert(photo.includes("Never use ml for meat"));
   assert(label.includes("Do not use ml for solid foods"));
+  assert(photo.includes('"brand": "Herculex AI"'));
 });

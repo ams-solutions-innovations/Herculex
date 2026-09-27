@@ -33,7 +33,7 @@ Estimate:
 Return only a JSON object:
 {
   "name": "Ime obroka v slovenscini",
-  "brand": "Gemini AI",
+  "brand": "Herculex AI",
   "estimatedServingGrams": 250.0,
   "portionAmount": 1.0,
   "portionUnit": "serving",
