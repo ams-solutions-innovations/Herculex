@@ -252,6 +252,41 @@ Plans:
 
 **Success:** Observed expenditure from logged intake and bodyweight trend becomes the baseline when adherence passes threshold; an activity classifier over `HealthSamples` and logged training supplies the multiplier otherwise; the app picks its own calibration window and cadence without asking the user for a duration; every estimate exposes method, confidence, window, and inputs, and never overrides a manually-set maintenance value; a material shift surfaces in the weekly report instead of silently rewriting confirmed targets.
 
+**Plans:** 11 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 28-01-PLAN.md — Wave 1: TdeeEstimateResult/badge-state types + ActivityClassifier (HealthSamples to continuous multiplier)
+- [ ] 28-02-PLAN.md — Wave 1: MacroTargets split (bmr, multiplierFor, fromMaintenance) with characterization test + TargetResolver TDEE-04 test
+- [ ] 28-03-PLAN.md — Wave 1: TdeeEstimates drift table + schema v45 + sync registration + migration test retarget
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 28-04-PLAN.md — Wave 2: TdeeEstimator — EWMA trend, observed expenditure, gates, hysteresis/grace, cadence, material shift (D-01–D-04, D-09)
+- [ ] 28-05-PLAN.md — Wave 2: Supabase migration 20260928000000_tdee_estimates_v45.sql + column-parity test
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 28-06-PLAN.md — Wave 3: TdeeEstimatesRepository + TdeeInputsRepository (Clock-injected, presence-based adherence)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 28-07-PLAN.md — Wave 4: tdee providers, baselineTargetsProvider rewire, recalibration controller registered in app.dart
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 28-08-PLAN.md — Wave 5: Route editor, phase planner and dream-physique through maintenanceKcalProvider/baselineTargetsProvider
+- [ ] 28-10-PLAN.md — Wave 5: Onboarding copy (D-12) + Profile reset caption/confirm/snackbar (D-13–D-15)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 28-09-PLAN.md — Wave 6: TdeeEstimateBadge + TdeeEstimateSheet under the maintenance field (D-05–D-08)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
+- [ ] 28-11-PLAN.md — Wave 7: [BLOCKING] user-run Supabase push (0015, 0016 first) + phase-level verification
+
 ### Phase 29: Weekly Report & Herculex AI Narrative
 
 **Goal:** Deliver an opt-in Sunday report that snapshots the week across nutrition, training, recovery, physique, and TDEE drift, with a knowledge-grounded narrative layered over measured numbers.
