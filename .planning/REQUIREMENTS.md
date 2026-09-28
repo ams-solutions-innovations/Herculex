@@ -108,7 +108,7 @@
 - [x] **TDEE-02**: When adherence is insufficient, an activity classifier derives the activity level from `HealthSamples` plus logged training, and Mifflin-St Jeor runs with the derived multiplier instead of the hand-picked one.
 - [x] **TDEE-03**: The app chooses its own calibration window and re-calibration cadence from data density; the user never picks a measurement duration.
 - [x] **TDEE-04**: Every estimate carries method, confidence, sample window, and inputs, is visible to the user, and never overrides a manually-set maintenance value.
-- [x] **TDEE-05**: A material TDEE shift is surfaced in the weekly report and never silently rewrites confirmed targets.
+- [x] **TDEE-05**: A material TDEE shift is surfaced in the weekly report and never silently rewrites confirmed targets. _(Non-regression half delivered: `TdeeEstimator.isMaterialShift` persists every shift to `tdee_estimates` and never overwrites a saved manual target, per D-11. The "surfaced in the weekly report" half is deferred to Phase 29 by design (D-10/D-11) — no accept/dismiss UI or material-shift event exists yet.)_
 
 ### 15. Weekly Report & Herculex AI Narrative (Phase 29)
 
