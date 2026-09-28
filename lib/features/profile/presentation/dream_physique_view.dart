@@ -12,7 +12,6 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
-import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/data/dream_physique_summary_repository.dart';
@@ -407,7 +406,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
   Widget _buildSetupView(ThemeData theme, Profile? profile) {
     final weight = profile?.weightKg;
     final height = profile?.heightCm;
-    final macro = profile != null ? MacroTargets.fromProfile(profile) : null;
+    final macro = ref.watch(baselineTargetsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

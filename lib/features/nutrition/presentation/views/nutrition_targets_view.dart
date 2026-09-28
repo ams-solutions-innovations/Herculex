@@ -11,10 +11,10 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
-import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 
 /// Presentation-only chip/card styling for a [DietPhase]. Kept as a single
 /// extension so the quick planner card and its chip buttons can't drift
@@ -187,8 +187,7 @@ class _QuickPhasePlannerSectionState
   Widget build(BuildContext context) {
     final hx = context.hx;
     final profile = ref.watch(profileProvider).asData?.value;
-    final baseline = ref.watch(baselineTargetsProvider);
-    final baselineKcal = baseline?.kcal ?? 2500;
+    final baselineKcal = ref.watch(maintenanceKcalProvider) ?? 2500;
     final bwKg = profile?.weightKg;
 
     final paceOptions = DietPhaseCalculator.paceOptionsFor(_selectedPhase);
@@ -201,6 +200,7 @@ class _QuickPhasePlannerSectionState
     final minProteinG = minTargets.resolvedMinProteinG(bwKg);
     final minKcal = minTargets.effectiveMinCaloriesKcal;
 
+    // PHYS-04 (Phase 23) deficit gate belongs at or after this call.
     final targets = DietPhaseCalculator.apply(
       phase: _selectedPhase,
       baselineKcal: baselineKcal,
@@ -1383,8 +1383,8 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   @override
   void initState() {
     super.initState();
-    final profile = ref.read(profileProvider).asData?.value;
-    final baseline = profile == null ? null : MacroTargets.fromProfile(profile);
+    final baseline = ref.read(baselineTargetsProvider);
+    final maintenance = ref.read(maintenanceKcalProvider);
 
     if (widget.initialTarget != null) {
       final t = widget.initialTarget!;
@@ -1401,14 +1401,11 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
       if (t.fiberG != null && t.fiberG! > 0) {
         _fiber.text = t.fiberG.toString();
       }
-      if (baseline != null) {
-        _maintenanceKcal.text = baseline.kcal.toString();
-      } else {
-        _maintenanceKcal.text = t.kcal.toString();
-      }
+      _maintenanceKcal.text = (maintenance ?? baseline?.kcal ?? t.kcal)
+          .toString();
     } else {
       if (baseline != null) {
-        _maintenanceKcal.text = baseline.kcal.toString();
+        _maintenanceKcal.text = (maintenance ?? baseline.kcal).toString();
         _kcal.text = baseline.kcal.toString();
         _protein.text = baseline.proteinG.toString();
         _carbs.text = baseline.carbsG.toString();
@@ -1446,6 +1443,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
     setState(() {
       _phase = phase;
       if (baseline == null || baseline <= 0) return;
+      // PHYS-04 (Phase 23) deficit gate belongs at or after this call.
       final t = DietPhaseCalculator.apply(
         phase: phase,
         baselineKcal: baseline,

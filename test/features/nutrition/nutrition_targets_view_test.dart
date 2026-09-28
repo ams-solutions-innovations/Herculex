@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/widgets/remaining_calories_card.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/application/tdee_providers.dart';
+import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,19 +33,57 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  Widget testApp(Widget child, {List<Override> overrides = const []}) {
-    return ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        profileProvider.overrideWith((ref) => Stream.value(testProfile)),
-        nutritionTargetsProvider.overrideWith((ref) => Stream.value([])),
-        ...overrides,
-      ],
-      child: MaterialApp(
-        theme: AppTheme.darkTheme,
-        home: Scaffold(body: child),
-      ),
+  Finder fieldWith(String text) => find.byWidgetPredicate(
+    (w) => w is TextField && w.controller?.text == text,
+  );
+
+  final observed2650 = TdeeEstimateResult(
+    kcal: 2650,
+    method: TdeeMethod.observed,
+    confidence: TdeeConfidence.medium,
+    windowDays: 28,
+    observedQualified: true,
+    inputs: const {},
+    estimatedAt: DateTime(2026, 9, 1, 8),
+  );
+
+  List<Override> baseOverrides({TdeeEstimateResult? estimate}) => [
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    profileProvider.overrideWith((ref) => Stream.value(testProfile)),
+    nutritionTargetsProvider.overrideWith((ref) => Stream.value([])),
+    latestTdeeEstimateProvider.overrideWith((ref) => Stream.value(estimate)),
+  ];
+
+  Widget testApp(
+    Widget child, {
+    List<Override> overrides = const [],
+    ProviderContainer? container,
+  }) {
+    final app = MaterialApp(
+      theme: AppTheme.darkTheme,
+      home: Scaffold(body: child),
     );
+    if (container != null) {
+      return UncontrolledProviderScope(container: container, child: app);
+    }
+    return ProviderScope(
+      overrides: [...baseOverrides(), ...overrides],
+      child: app,
+    );
+  }
+
+  /// Builds a container whose profile and estimate streams have already
+  /// emitted, because TargetEditorView.initState reads them once.
+  Future<ProviderContainer> warmContainer({
+    TdeeEstimateResult? estimate,
+  }) async {
+    final container = ProviderContainer(
+      overrides: baseOverrides(estimate: estimate),
+    );
+    addTearDown(container.dispose);
+    await container.read(profileProvider.future);
+    await container.read(latestTdeeEstimateProvider.future);
+    return container;
   }
 
   testWidgets(
@@ -137,6 +179,97 @@ void main() {
       expect(find.text('SAVE BULK'), findsOneWidget);
     },
   );
+
+  testWidgets('TargetEditorView maintenance field shows observed estimate', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 4000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    final container = await warmContainer(estimate: observed2650);
+    await tester.pumpWidget(
+      testApp(const TargetEditorView(), container: container),
+    );
+    await tester.pumpAndSettle();
+
+    // Pure maintenance, not the goal-adjusted fromProfile figure.
+    expect(fieldWith('2650'), findsOneWidget);
+    // Daily calories stay goal-adjusted: 2650 + 300 (muscle gain).
+    expect(fieldWith('2950'), findsOneWidget);
+    expect(
+      container.read(baselineTargetsProvider)!.kcal,
+      MacroTargets.fromMaintenance(testProfile, 2650)!.kcal,
+    );
+  });
+
+  testWidgets(
+    'TargetEditorView cold start seeds maintenance from the profile',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      final container = await warmContainer();
+      await tester.pumpWidget(
+        testApp(const TargetEditorView(), container: container),
+      );
+      await tester.pumpAndSettle();
+
+      final seed = MacroTargets.seedMaintenanceKcal(testProfile)!.round();
+      expect(seed, 2775);
+      expect(fieldWith('$seed'), findsOneWidget);
+      expect(
+        fieldWith(MacroTargets.fromProfile(testProfile)!.kcal.toString()),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('TargetEditorView editing a saved target still shows estimate', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 4000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    final container = await warmContainer(estimate: observed2650);
+    await tester.pumpWidget(
+      testApp(
+        const TargetEditorView(
+          initialTarget: NutritionTargetData(
+            id: 1,
+            label: 'Custom',
+            kcal: 2100,
+            proteinG: 180,
+            carbsG: 200,
+            fatG: 60,
+            appliesTo: 'all',
+          ),
+        ),
+        container: container,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(fieldWith('2650'), findsOneWidget);
+    expect(fieldWith('2100'), findsOneWidget);
+  });
+
+  testWidgets('Quick phase planner baselines on pure maintenance', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      testApp(
+        const NutritionTargetsView(),
+        overrides: [maintenanceKcalProvider.overrideWithValue(3000)],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Baseline: 3000 kcal (TDEE)'), findsOneWidget);
+  });
 
   testWidgets('RemainingCaloriesCard renders Set a goal when null', (
     tester,
