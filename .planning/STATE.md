@@ -3,16 +3,38 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-28T13:50:58.455Z"
+last_updated: "2026-09-28T14:21:10.385Z"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 53
-  completed_plans: 49
+  completed_plans: 52
   percent: 53
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-28 (Phase 28 Plan 09 Completed)
+
+- Completed Plan 28-09 (TDEE-04): `TdeeEstimateBadge` (public, `presentation/widgets`) under
+  the "Maintenance calories" field and a read-only `TdeeEstimateSheet` (public,
+  `presentation/sheets`) with method, confidence, window and per-method inputs, plus
+  `savedTargetForTodayProvider` for the no-delta comparison against the saved manual
+  target. Both are public files so Phase 29's weekly report can reuse them.
+
+- Decisions: the window shown is `span_days + 1`, never the winning candidate;
+  classifier active calories, sleep and resting HR appear only under "Also recorded (not
+  used in the estimate)"; no accept/dismiss controls (D-10 stays in Phase 29).
+  `HxStatTile` label and value became `Flexible` (Rule 3) because the unmodified tile
+  overflowed at 360dp with 2x text. `nutrition_targets_view.dart` is 2618 lines (+3).
+
+- Validation: full `flutter test` 1627 passed / 9 skipped / 0 failed, 0 analyzer errors.
+  Progress 10/11 plans in Phase 28. SDK `state.advance-plan` still cannot parse this
+  STATE.md, so this note is hand-written.
+
+- Next implementation focus: Plan 28-11 (human-gated migration apply).
+
+---
 
 ## Session update — 2026-09-28 (Phase 28 Plan 10 Completed)
 
@@ -43,16 +65,20 @@ progress:
   maintenance); the dream-physique setup view reads `baselineTargetsProvider`. No UI
   code calls `MacroTargets.fromProfile` any more (only `nutrition_providers.dart`
   does, as the cold-start fallback).
+
 - Decision: the estimate is pure maintenance wherever a value is labelled maintenance,
   so the goal delta is applied once per path. Side effect: for weight-loss and
   muscle-gain users the planner/editor maintenance figures move by the old goal delta
   (-500/+300), correcting a pre-existing double application. PHYS-04 marker comments
   sit at both `DietPhaseCalculator.apply` call sites; no gate implemented.
+
 - `nutrition_targets_view.dart` is 2615 lines (was 2617), so plan 28-09 keeps its
   full edit budget.
+
 - Validation: full `flutter test` 1558 passed / 9 skipped / 0 failed, 0 analyzer
   errors. Progress 8/11 plans in Phase 28. SDK state-advance verbs still no-op, so
   this note is hand-written.
+
 - Next implementation focus: Plan 28-09 (badge, detail sheet, material-shift prompt).
 
 ---
@@ -65,13 +91,16 @@ progress:
   cold start, loading and error return exactly `MacroTargets.fromProfile`).
   `TdeeRecalibrator` plus `tdeeRecalibrationControllerProvider` (app open, resume,
   forced on ActivityLevel change) registered once in `app.dart`.
+
 - Decisions: a stored coldStart row's kcal is ignored so a manual reset reseeds at
   once; the recalibrator reads the latest emitted profile, not `profileProvider.future`
   (that returned a stale profile on reset, fixed as a Rule 1 bug). No background
   scheduler exists, so a user who never opens or resumes the app is not recalibrated.
+
 - Validation: full `flutter test` 1554 passed / 9 skipped / 0 failed, 0 analyzer
   errors. Progress 7/11 plans in Phase 28. SDK `state.advance-plan` still cannot
   parse this STATE.md, so this note is hand-written.
+
 - Next implementation focus: Plan 28-08 (UI: badge, detail sheet, route
   "Maintenance calories" to `maintenanceKcalProvider`).
 
