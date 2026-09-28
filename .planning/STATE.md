@@ -14,6 +14,22 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-09-28 (Phase 28 Plan 06 Completed)
+
+- Completed Plan 28-06 (TDEE-01, TDEE-02, TDEE-05): `TdeeEstimatesRepository`
+  (record with kcal/windowDays validation, latest/watchLatest/recent newest-first
+  by estimatedAt then id, fromName validation and safe inputsJson decode) and
+  `TdeeInputsRepository.load()` (presence-based food days, snapshot-aware per-day
+  kcal reused from `NutritionRepository`, bodyweight, steps-only map, 14-day
+  health means, workouts/week). Both take an injected `Clock`.
+- Decision: history and observation reads are separate repositories so
+  `baselineTargetsProvider` can depend on history alone (no import cycle).
+- 23 tests passing, 0 analyzer errors. Progress 6/11 plans in Phase 28. SDK
+  state-advance verbs still no-op, so this note is hand-written.
+- Next implementation focus: Plan 28-07 (providers and controller).
+
+---
+
 ## Session update — 2026-09-28 (Phase 28 Plan 05 Completed)
 
 - Completed Plan 28-05 (TDEE-05): `supabase/migrations/20260928000000_tdee_estimates_v45.sql`

@@ -252,7 +252,7 @@ Plans:
 
 **Success:** Observed expenditure from logged intake and bodyweight trend becomes the baseline when adherence passes threshold; an activity classifier over `HealthSamples` and logged training supplies the multiplier otherwise; the app picks its own calibration window and cadence without asking the user for a duration; every estimate exposes method, confidence, window, and inputs, and never overrides a manually-set maintenance value; a material shift surfaces in the weekly report instead of silently rewriting confirmed targets.
 
-**Plans:** 5/11 plans executed
+**Plans:** 6/11 plans executed
 
 Plans:
 **Wave 1**
@@ -268,7 +268,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 28-06-PLAN.md — Wave 3: TdeeEstimatesRepository + TdeeInputsRepository (Clock-injected, presence-based adherence)
+- [x] 28-06-PLAN.md — Wave 3: TdeeEstimatesRepository + TdeeInputsRepository (Clock-injected, presence-based adherence)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
