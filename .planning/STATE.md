@@ -3,17 +3,44 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: 2026-09-28T07:34:20.410Z
+last_updated: "2026-09-28T07:46:40.674Z"
 progress:
   total_phases: 15
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 42
-  completed_plans: 65
-  percent: 47
-stopped_at: Phase 26 complete (7/7) — ready to discuss Phase 27
+  completed_plans: 42
+  percent: 53
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-28 (Phase 28 context gathered)
+
+- Ran `/gsd:discuss-phase 28`. No SPEC.md, no blocking anti-patterns, no prior CONTEXT.md/plans
+  for this phase. Discussed 4 areas: Adherence threshold, Estimate visibility, Material-shift
+  handling, Onboarding activity picker (15 decisions, D-01–D-15).
+- Key fixes: adherence bar is ~70% of window days with food logged (D-02) plus any bodyweight
+  logs in the window (D-01), with sustained-crossing hysteresis (D-03) and a grace period before
+  falling back to the classifier (D-04). Estimate surfaces as a badge + tap-through detail next
+  to "Maintenance calories" in `nutrition_targets_view.dart` (D-05), classifier inputs shown
+  individually (D-06), compared side-by-side with any saved manual target (D-07), with a
+  "Calibrating" cold-start state (D-08). Material shift = bigger of ±100 kcal or ±5% (D-09),
+  surfaced as an explicit accept/dismiss prompt (D-10) — Phase 28 persists estimate history only,
+  Phase 29 diffs it itself (D-11), keeping the Phase 28/29 boundary clean since Phase 29 doesn't
+  exist yet. Onboarding `ActivityLevel` picker stays, reframed as a starting estimate (D-12),
+  and stays editable in Profile post-calibration as a reseed-only manual reset (D-13–D-15).
+- Confirmed via code read: the existing `TargetResolver`/`TargetRule` resolution order in
+  `target_resolver.dart` already makes TDEE-04 ("never overrides a manually-set value") true by
+  construction — a saved `NutritionTargetData` row always wins over `baselineTargetsProvider`,
+  so the adaptive estimator only needs to change what the *fallback* returns.
+- Deferred: PHYS-04 (underage/low-confidence deficit guardrails) applying to adaptive TDEE is
+  noted as a cross-phase constraint on Phase 23 (not yet built) — Phase 28 must not create a
+  bypass but doesn't implement the gate itself.
+- Files changed: `.planning/phases/28-adaptive-tdee-activity-calibration/28-CONTEXT.md` (new),
+  `28-DISCUSSION-LOG.md` (new).
+- Next implementation focus: `/gsd:plan-phase 28`.
+
+---
 
 ## Project Reference
 
@@ -21,7 +48,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.  
-**Current focus:** Phase 27 — herculex ai program generation
+**Current focus:** Phase 28 — adaptive tdee & activity calibration (context gathered, ready to plan)
 
 ---
 
