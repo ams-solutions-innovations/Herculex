@@ -21,7 +21,7 @@ key-files:
   created: []
   modified: []
 key-decisions:
-  - "Supabase push recorded as user-reported, not independently verified"
+  - "Supabase push independently verified 2026-09-28 via supabase CLI + 4 read-only queries; the earlier user 'Pushed' report was unverified and turned out to be wrong (migration was still pending)"
   - "The 9 skipped tests are pre-existing live-Supabase tests, not introduced by Phase 28"
 requirements-completed: [TDEE-01, TDEE-02, TDEE-03, TDEE-04, TDEE-05]
 duration: ~30min
@@ -30,16 +30,22 @@ completed: 2026-09-28
 
 # Phase 28 Plan 11: Supabase push gate and phase-level verification Summary
 
-The full suite is green (1627 passed / 9 skipped / 0 failed), the analyzer has 0 errors, no new structure violation was introduced, and every TDEE requirement and D decision traces to code or a documented deferral. The Supabase push is user-reported and NOT independently verified.
+The full suite is green (1627 passed / 9 skipped / 0 failed), the analyzer has 0 errors, no new structure violation was introduced, and every TDEE requirement and D decision traces to code or a documented deferral. The Supabase push, originally only user-reported, was independently verified and (since it turned out not to have actually happened) applied on 2026-09-28.
 
 ## Task 1: Supabase migration push (user-run gate)
 
-**Status: reported pushed by the user on 2026-09-28; not independently verified.**
+**Status: independently verified live on 2026-09-28.**
 
-- The user replied "Pushed" to the blocking checkpoint.
-- The user did not supply the project ref, the migration list or apply order, or the results of the four read-only verification queries. The Supabase MCP was not authorized in this session, and no `supabase` command was run by the executor.
-- Therefore the following are **not confirmed**: that the target was `ldzgyzigvbwofbswitrv` (and not `jioesomepkauponjrena`); that `0015` and `0016` were applied before `20260928000000_tdee_estimates_v45.sql`; that `tdee_estimates` has its 12 columns, the four `tdee_estimates_{select,insert,update,delete}_own` policies, both triggers (`t_set_updated_at_tdee_estimates`, `t_record_tombstone_tdee_estimates`) and the `tdee_estimates_user_updated_idx` index.
-- **Recommendation:** run the four verification queries from the Task 1 how-to-verify list against `ldzgyzigvbwofbswitrv` to close the gap (columns via `information_schema.columns`, policies via `pg_policies`, triggers via `pg_trigger`, index via `pg_indexes`), and ideally the optional smoke test (a recalibration row reaches `tdee_estimates` and `pending_sync_ops` drains without PGRST204). Until then the sync half of TDEE-05 is "reported live", not "verified live". The local side is fully covered by `test/tdee_supabase_migration_test.dart` (text and column-parity guard), which does not touch the live project.
+- The original "Pushed" reply to the blocking checkpoint carried no evidence and the Supabase MCP was not authorized in that session, so it went unverified (see prior revision of this summary).
+- On 2026-09-28, with the Supabase CLI linked to this repo (`supabase/config.toml` and `supabase/.temp/project-ref` both confirm `ldzgyzigvbwofbswitrv`, not `jioesomepkauponjrena`), `supabase migration list` showed `0015` through `20260916000000` already applied remotely — CLAUDE.md's "0015/0016 outstanding" note is stale — but **`20260928000000_tdee_estimates_v45.sql` was still pending**, meaning the earlier "Pushed" report was incorrect.
+- `supabase db push --dry-run` confirmed only that one migration was pending. With the user's explicit go-ahead, ran `supabase db push`, which applied it.
+- Verified with the four read-only queries from the how-to-verify list, run via `supabase db query <sql> --linked`:
+  - `information_schema.columns` → exactly the 12 expected columns (confidence, date_iso, deleted_at, estimated_at, id, inputs_json, kcal, method, observed_qualified, updated_at, user_id, window_days).
+  - `pg_policies` → all four `tdee_estimates_{select,insert,update,delete}_own` policies.
+  - `pg_trigger` → both `t_set_updated_at_tdee_estimates` and `t_record_tombstone_tdee_estimates`.
+  - `pg_indexes` → `tdee_estimates_user_updated_idx` present (plus the implicit `tdee_estimates_pkey`).
+- Not run: the optional real-device smoke test (a live recalibration row draining through `pending_sync_ops` without PGRST204) — that's UAT item 6, still pending, since it needs a real device with Health data over ~14 days.
+- `.planning/phases/28-adaptive-tdee-activity-calibration/28-HUMAN-UAT.md` item 1 updated to `pass` with this evidence.
 
 ## Task 2: Phase-level verification (real command output)
 
@@ -116,9 +122,9 @@ None.
 
 ## Threat Flags
 
-None new. Regarding the register: T-28-43 (wrong project), T-28-45 (migration order) and T-28-46 (RLS gap) are mitigated only by the user's checklist and are **unconfirmed** because the reply carried no evidence; T-28-44 held (the executor ran no `supabase` command and no Supabase MCP tool).
+None new. T-28-43 (wrong project), T-28-45 (migration order) and T-28-46 (RLS gap) are now confirmed mitigated by the 2026-09-28 verification queries, not just the user's checklist. T-28-44 (executor applying production migrations) was explicitly waived for this one push: the user was asked and gave explicit go-ahead for the executor to run `supabase db push` in this session, rather than running it themselves, since the CLI was already linked here and the earlier unverified report needed correcting.
 
 ## Outstanding
 
-- Close the Supabase verification gap (four read-only queries) before treating Phase 28 as sync-verified.
+- UAT item 6 (real-device ~14-day calibration progression) is still pending — needs a physical device with Health data.
 - `.planning/ROADMAP.md`: Phase 28 progress updated with `roadmap update-plan-progress`.
