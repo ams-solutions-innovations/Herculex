@@ -3,16 +3,36 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-28T13:27:35.130Z"
+last_updated: "2026-09-28T13:50:58.455Z"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 53
-  completed_plans: 45
+  completed_plans: 49
   percent: 53
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-28 (Phase 28 Plan 07 Completed)
+
+- Completed Plan 28-07 (TDEE-01..05): `tdee_providers.dart` (latest estimate stream,
+  `tdeeEstimateProvider`, pure `maintenanceKcalProvider`) and the
+  `baselineTargetsProvider` rewire (goal delta re-added once via `fromMaintenance`;
+  cold start, loading and error return exactly `MacroTargets.fromProfile`).
+  `TdeeRecalibrator` plus `tdeeRecalibrationControllerProvider` (app open, resume,
+  forced on ActivityLevel change) registered once in `app.dart`.
+- Decisions: a stored coldStart row's kcal is ignored so a manual reset reseeds at
+  once; the recalibrator reads the latest emitted profile, not `profileProvider.future`
+  (that returned a stale profile on reset, fixed as a Rule 1 bug). No background
+  scheduler exists, so a user who never opens or resumes the app is not recalibrated.
+- Validation: full `flutter test` 1554 passed / 9 skipped / 0 failed, 0 analyzer
+  errors. Progress 7/11 plans in Phase 28. SDK `state.advance-plan` still cannot
+  parse this STATE.md, so this note is hand-written.
+- Next implementation focus: Plan 28-08 (UI: badge, detail sheet, route
+  "Maintenance calories" to `maintenanceKcalProvider`).
+
+---
 
 ## Session update — 2026-09-28 (Phase 28 Plan 06 Completed)
 
@@ -22,10 +42,13 @@ progress:
   `TdeeInputsRepository.load()` (presence-based food days, snapshot-aware per-day
   kcal reused from `NutritionRepository`, bodyweight, steps-only map, 14-day
   health means, workouts/week). Both take an injected `Clock`.
+
 - Decision: history and observation reads are separate repositories so
   `baselineTargetsProvider` can depend on history alone (no import cycle).
+
 - 23 tests passing, 0 analyzer errors. Progress 6/11 plans in Phase 28. SDK
   state-advance verbs still no-op, so this note is hand-written.
+
 - Next implementation focus: Plan 28-07 (providers and controller).
 
 ---
@@ -38,12 +61,16 @@ progress:
   `(user_id, updated_at, id)` pull index. `test/tdee_supabase_migration_test.dart`
   asserts column parity with drift `TdeeEstimates` (sync_uuid/synced_at excluded
   as local-only, matching 0014).
+
 - Decision: no check constraints on `method`/`confidence`; validation stays at
   the Dart repository boundary.
+
 - Ordering: 0015 and 0016 remain outstanding and must be applied before this
   file; applying all three is the plan 28-11 human-gated step.
+
 - Progress 5/11 plans in Phase 28. SDK state-advance verbs still no-op, so this
   note is hand-written.
+
 - Next implementation focus: Plan 28-06.
 
 ---
@@ -66,6 +93,7 @@ progress:
 - Validation: 91 tests passing across the estimator, classifier and estimate
   suites, 0 analyzer errors. Progress 4/11 plans in Phase 28. SDK state-advance
   verbs still no-op on this STATE.md format, so this note is hand-written.
+
 - Next implementation focus: Plan 28-05 (Supabase migration for tdee_estimates).
 
 ---
@@ -78,18 +106,23 @@ progress:
   guards `createTable` via `sqlite_master`, adds `idx_sync_uuid_tdee_estimates`
   and runs `installSyncTriggers`; registered in `syncedTableNames` and
   `syncTableSpecs` (`estimated_at` as dateTimeColumn).
+
 - Chores 1-4 of the schema bump done (schemaVersion, dump, generate, test
   retarget); `drift_schema_v45.json` and `schema_v45.dart` generated,
   `test/migration_test.dart` retargeted with a v44 to v45 replay. Chore 5
   (Supabase SQL) is plan 28-05; applying it is plan 28-11. Until then local v45
   would quarantine `tdee_estimates` rows on push (PGRST204).
+
 - `schema_v25/27/28/29_test.dart` retargeted from stale v39 to v45 and now pass
   (the 7 long-standing failures logged since Phase 21 are gone).
+
 - Gotcha: `dart run drift_dev schema dump` writes the JSON but the process may
   never exit; kill it once the file exists and run `schema generate` separately.
+
 - Validation: full `flutter test` 1443 passed / 9 skipped / 0 failed, 0 analyzer
   errors. Progress 3/11 plans in Phase 28. SDK state-advance verbs still no-op
   on this STATE.md format, so this note is hand-written.
+
 - Next implementation focus: Plan 28-04.
 
 ---

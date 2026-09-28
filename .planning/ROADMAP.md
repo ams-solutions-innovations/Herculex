@@ -252,7 +252,7 @@ Plans:
 
 **Success:** Observed expenditure from logged intake and bodyweight trend becomes the baseline when adherence passes threshold; an activity classifier over `HealthSamples` and logged training supplies the multiplier otherwise; the app picks its own calibration window and cadence without asking the user for a duration; every estimate exposes method, confidence, window, and inputs, and never overrides a manually-set maintenance value; a material shift surfaces in the weekly report instead of silently rewriting confirmed targets.
 
-**Plans:** 6/11 plans executed
+**Plans:** 7/11 plans executed
 
 Plans:
 **Wave 1**
@@ -272,7 +272,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 28-07-PLAN.md — Wave 4: tdee providers, baselineTargetsProvider rewire, recalibration controller registered in app.dart
+- [x] 28-07-PLAN.md — Wave 4: tdee providers, baselineTargetsProvider rewire, recalibration controller registered in app.dart
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
