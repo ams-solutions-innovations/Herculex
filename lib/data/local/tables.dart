@@ -1168,6 +1168,36 @@ class JointPainLogs extends Table with SyncColumns, SyncTombstone {
   TextColumn get note => text().nullable()();
 }
 
+/// One adaptive-TDEE recalibration result (Phase 28, D-11). Append-mostly
+/// history, roughly one row per recalibration: Phase 29 diffs consecutive
+/// rows to describe change, so the history has to survive a reinstall. That
+/// is why this table syncs, unlike [HealthSamples] which is raw local
+/// telemetry and carries no [SyncColumns].
+///
+/// [estimatedAt] is a domain timestamp, deliberately separate from the
+/// sync-owned `updated_at`: two estimates on one [dateIso] must still order
+/// deterministically, and a local `updated_at` must not carry domain meaning
+/// (see `SyncTableSpec.columnRenames`).
+///
+/// [observedQualified] records that the adherence gates passed at that
+/// recalibration, whether or not the observed method was actually promoted.
+/// [inputsJson] is a display-only snapshot and is never used for control
+/// flow.
+@DataClassName('TdeeEstimateData')
+class TdeeEstimates extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get dateIso => text()(); // local calendar day key from Clock
+  DateTimeColumn get estimatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  TextColumn get method => text()(); // observed | classifier | coldStart
+  TextColumn get confidence => text()(); // high | medium | low
+  IntColumn get windowDays => integer()();
+  IntColumn get kcal => integer()();
+  BoolColumn get observedQualified =>
+      boolean().withDefault(const Constant(false))();
+  TextColumn get inputsJson => text()(); // display-only snapshot
+}
+
 @DataClassName('PendingSyncOpData')
 class PendingSyncOps extends Table {
   IntColumn get id => integer().autoIncrement()();

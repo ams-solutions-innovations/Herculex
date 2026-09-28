@@ -53,6 +53,7 @@ const List<String> syncedTableNames = [
   'joint_pain_logs',
   'workout_circuits',
   'circuit_exercises',
+  'tdee_estimates',
 ];
 
 /// Catalogue tables whose sync trigger must only fire for `is_custom = 1`

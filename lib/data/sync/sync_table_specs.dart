@@ -142,6 +142,7 @@ final List<SyncTableSpec> syncTableSpecs = [
   const SyncTableSpec('cycle_logs'),
   const SyncTableSpec('cycle_settings', dateTimeColumns: ['last_period_start']),
   const SyncTableSpec('joint_pain_logs', dateTimeColumns: ['logged_at']),
+  const SyncTableSpec('tdee_estimates', dateTimeColumns: ['estimated_at']),
   const SyncTableSpec('exercise_rotations'),
   const SyncTableSpec('daily_summaries'),
   const SyncTableSpec('external_events'),

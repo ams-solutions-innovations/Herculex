@@ -27526,6 +27526,766 @@ class JointPainLogsCompanion extends UpdateCompanion<JointPainLogData> {
   }
 }
 
+class $TdeeEstimatesTable extends TdeeEstimates
+    with TableInfo<$TdeeEstimatesTable, TdeeEstimateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TdeeEstimatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _dateIsoMeta = const VerificationMeta(
+    'dateIso',
+  );
+  @override
+  late final GeneratedColumn<String> dateIso = GeneratedColumn<String>(
+    'date_iso',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _estimatedAtMeta = const VerificationMeta(
+    'estimatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> estimatedAt = GeneratedColumn<DateTime>(
+    'estimated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<String> confidence = GeneratedColumn<String>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _windowDaysMeta = const VerificationMeta(
+    'windowDays',
+  );
+  @override
+  late final GeneratedColumn<int> windowDays = GeneratedColumn<int>(
+    'window_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kcalMeta = const VerificationMeta('kcal');
+  @override
+  late final GeneratedColumn<int> kcal = GeneratedColumn<int>(
+    'kcal',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _observedQualifiedMeta = const VerificationMeta(
+    'observedQualified',
+  );
+  @override
+  late final GeneratedColumn<bool> observedQualified = GeneratedColumn<bool>(
+    'observed_qualified',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("observed_qualified" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _inputsJsonMeta = const VerificationMeta(
+    'inputsJson',
+  );
+  @override
+  late final GeneratedColumn<String> inputsJson = GeneratedColumn<String>(
+    'inputs_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    dateIso,
+    estimatedAt,
+    method,
+    confidence,
+    windowDays,
+    kcal,
+    observedQualified,
+    inputsJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tdee_estimates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TdeeEstimateData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('date_iso')) {
+      context.handle(
+        _dateIsoMeta,
+        dateIso.isAcceptableOrUnknown(data['date_iso']!, _dateIsoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateIsoMeta);
+    }
+    if (data.containsKey('estimated_at')) {
+      context.handle(
+        _estimatedAtMeta,
+        estimatedAt.isAcceptableOrUnknown(
+          data['estimated_at']!,
+          _estimatedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('method')) {
+      context.handle(
+        _methodMeta,
+        method.isAcceptableOrUnknown(data['method']!, _methodMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_methodMeta);
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    if (data.containsKey('window_days')) {
+      context.handle(
+        _windowDaysMeta,
+        windowDays.isAcceptableOrUnknown(data['window_days']!, _windowDaysMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_windowDaysMeta);
+    }
+    if (data.containsKey('kcal')) {
+      context.handle(
+        _kcalMeta,
+        kcal.isAcceptableOrUnknown(data['kcal']!, _kcalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kcalMeta);
+    }
+    if (data.containsKey('observed_qualified')) {
+      context.handle(
+        _observedQualifiedMeta,
+        observedQualified.isAcceptableOrUnknown(
+          data['observed_qualified']!,
+          _observedQualifiedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inputs_json')) {
+      context.handle(
+        _inputsJsonMeta,
+        inputsJson.isAcceptableOrUnknown(data['inputs_json']!, _inputsJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_inputsJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TdeeEstimateData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TdeeEstimateData(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      dateIso: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date_iso'],
+      )!,
+      estimatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}estimated_at'],
+      )!,
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}confidence'],
+      )!,
+      windowDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}window_days'],
+      )!,
+      kcal: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}kcal'],
+      )!,
+      observedQualified: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}observed_qualified'],
+      )!,
+      inputsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}inputs_json'],
+      )!,
+    );
+  }
+
+  @override
+  $TdeeEstimatesTable createAlias(String alias) {
+    return $TdeeEstimatesTable(attachedDatabase, alias);
+  }
+}
+
+class TdeeEstimateData extends DataClass
+    implements Insertable<TdeeEstimateData> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final int id;
+  final String dateIso;
+  final DateTime estimatedAt;
+  final String method;
+  final String confidence;
+  final int windowDays;
+  final int kcal;
+  final bool observedQualified;
+  final String inputsJson;
+  const TdeeEstimateData({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.dateIso,
+    required this.estimatedAt,
+    required this.method,
+    required this.confidence,
+    required this.windowDays,
+    required this.kcal,
+    required this.observedQualified,
+    required this.inputsJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<int>(id);
+    map['date_iso'] = Variable<String>(dateIso);
+    map['estimated_at'] = Variable<DateTime>(estimatedAt);
+    map['method'] = Variable<String>(method);
+    map['confidence'] = Variable<String>(confidence);
+    map['window_days'] = Variable<int>(windowDays);
+    map['kcal'] = Variable<int>(kcal);
+    map['observed_qualified'] = Variable<bool>(observedQualified);
+    map['inputs_json'] = Variable<String>(inputsJson);
+    return map;
+  }
+
+  TdeeEstimatesCompanion toCompanion(bool nullToAbsent) {
+    return TdeeEstimatesCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      dateIso: Value(dateIso),
+      estimatedAt: Value(estimatedAt),
+      method: Value(method),
+      confidence: Value(confidence),
+      windowDays: Value(windowDays),
+      kcal: Value(kcal),
+      observedQualified: Value(observedQualified),
+      inputsJson: Value(inputsJson),
+    );
+  }
+
+  factory TdeeEstimateData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TdeeEstimateData(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<int>(json['id']),
+      dateIso: serializer.fromJson<String>(json['dateIso']),
+      estimatedAt: serializer.fromJson<DateTime>(json['estimatedAt']),
+      method: serializer.fromJson<String>(json['method']),
+      confidence: serializer.fromJson<String>(json['confidence']),
+      windowDays: serializer.fromJson<int>(json['windowDays']),
+      kcal: serializer.fromJson<int>(json['kcal']),
+      observedQualified: serializer.fromJson<bool>(json['observedQualified']),
+      inputsJson: serializer.fromJson<String>(json['inputsJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<int>(id),
+      'dateIso': serializer.toJson<String>(dateIso),
+      'estimatedAt': serializer.toJson<DateTime>(estimatedAt),
+      'method': serializer.toJson<String>(method),
+      'confidence': serializer.toJson<String>(confidence),
+      'windowDays': serializer.toJson<int>(windowDays),
+      'kcal': serializer.toJson<int>(kcal),
+      'observedQualified': serializer.toJson<bool>(observedQualified),
+      'inputsJson': serializer.toJson<String>(inputsJson),
+    };
+  }
+
+  TdeeEstimateData copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    int? id,
+    String? dateIso,
+    DateTime? estimatedAt,
+    String? method,
+    String? confidence,
+    int? windowDays,
+    int? kcal,
+    bool? observedQualified,
+    String? inputsJson,
+  }) => TdeeEstimateData(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    dateIso: dateIso ?? this.dateIso,
+    estimatedAt: estimatedAt ?? this.estimatedAt,
+    method: method ?? this.method,
+    confidence: confidence ?? this.confidence,
+    windowDays: windowDays ?? this.windowDays,
+    kcal: kcal ?? this.kcal,
+    observedQualified: observedQualified ?? this.observedQualified,
+    inputsJson: inputsJson ?? this.inputsJson,
+  );
+  TdeeEstimateData copyWithCompanion(TdeeEstimatesCompanion data) {
+    return TdeeEstimateData(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      dateIso: data.dateIso.present ? data.dateIso.value : this.dateIso,
+      estimatedAt: data.estimatedAt.present
+          ? data.estimatedAt.value
+          : this.estimatedAt,
+      method: data.method.present ? data.method.value : this.method,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      windowDays: data.windowDays.present
+          ? data.windowDays.value
+          : this.windowDays,
+      kcal: data.kcal.present ? data.kcal.value : this.kcal,
+      observedQualified: data.observedQualified.present
+          ? data.observedQualified.value
+          : this.observedQualified,
+      inputsJson: data.inputsJson.present
+          ? data.inputsJson.value
+          : this.inputsJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TdeeEstimateData(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('dateIso: $dateIso, ')
+          ..write('estimatedAt: $estimatedAt, ')
+          ..write('method: $method, ')
+          ..write('confidence: $confidence, ')
+          ..write('windowDays: $windowDays, ')
+          ..write('kcal: $kcal, ')
+          ..write('observedQualified: $observedQualified, ')
+          ..write('inputsJson: $inputsJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    dateIso,
+    estimatedAt,
+    method,
+    confidence,
+    windowDays,
+    kcal,
+    observedQualified,
+    inputsJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TdeeEstimateData &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.dateIso == this.dateIso &&
+          other.estimatedAt == this.estimatedAt &&
+          other.method == this.method &&
+          other.confidence == this.confidence &&
+          other.windowDays == this.windowDays &&
+          other.kcal == this.kcal &&
+          other.observedQualified == this.observedQualified &&
+          other.inputsJson == this.inputsJson);
+}
+
+class TdeeEstimatesCompanion extends UpdateCompanion<TdeeEstimateData> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> id;
+  final Value<String> dateIso;
+  final Value<DateTime> estimatedAt;
+  final Value<String> method;
+  final Value<String> confidence;
+  final Value<int> windowDays;
+  final Value<int> kcal;
+  final Value<bool> observedQualified;
+  final Value<String> inputsJson;
+  const TdeeEstimatesCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.dateIso = const Value.absent(),
+    this.estimatedAt = const Value.absent(),
+    this.method = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.windowDays = const Value.absent(),
+    this.kcal = const Value.absent(),
+    this.observedQualified = const Value.absent(),
+    this.inputsJson = const Value.absent(),
+  });
+  TdeeEstimatesCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    required String dateIso,
+    this.estimatedAt = const Value.absent(),
+    required String method,
+    required String confidence,
+    required int windowDays,
+    required int kcal,
+    this.observedQualified = const Value.absent(),
+    required String inputsJson,
+  }) : dateIso = Value(dateIso),
+       method = Value(method),
+       confidence = Value(confidence),
+       windowDays = Value(windowDays),
+       kcal = Value(kcal),
+       inputsJson = Value(inputsJson);
+  static Insertable<TdeeEstimateData> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? id,
+    Expression<String>? dateIso,
+    Expression<DateTime>? estimatedAt,
+    Expression<String>? method,
+    Expression<String>? confidence,
+    Expression<int>? windowDays,
+    Expression<int>? kcal,
+    Expression<bool>? observedQualified,
+    Expression<String>? inputsJson,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (dateIso != null) 'date_iso': dateIso,
+      if (estimatedAt != null) 'estimated_at': estimatedAt,
+      if (method != null) 'method': method,
+      if (confidence != null) 'confidence': confidence,
+      if (windowDays != null) 'window_days': windowDays,
+      if (kcal != null) 'kcal': kcal,
+      if (observedQualified != null) 'observed_qualified': observedQualified,
+      if (inputsJson != null) 'inputs_json': inputsJson,
+    });
+  }
+
+  TdeeEstimatesCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? id,
+    Value<String>? dateIso,
+    Value<DateTime>? estimatedAt,
+    Value<String>? method,
+    Value<String>? confidence,
+    Value<int>? windowDays,
+    Value<int>? kcal,
+    Value<bool>? observedQualified,
+    Value<String>? inputsJson,
+  }) {
+    return TdeeEstimatesCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      dateIso: dateIso ?? this.dateIso,
+      estimatedAt: estimatedAt ?? this.estimatedAt,
+      method: method ?? this.method,
+      confidence: confidence ?? this.confidence,
+      windowDays: windowDays ?? this.windowDays,
+      kcal: kcal ?? this.kcal,
+      observedQualified: observedQualified ?? this.observedQualified,
+      inputsJson: inputsJson ?? this.inputsJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (dateIso.present) {
+      map['date_iso'] = Variable<String>(dateIso.value);
+    }
+    if (estimatedAt.present) {
+      map['estimated_at'] = Variable<DateTime>(estimatedAt.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<String>(confidence.value);
+    }
+    if (windowDays.present) {
+      map['window_days'] = Variable<int>(windowDays.value);
+    }
+    if (kcal.present) {
+      map['kcal'] = Variable<int>(kcal.value);
+    }
+    if (observedQualified.present) {
+      map['observed_qualified'] = Variable<bool>(observedQualified.value);
+    }
+    if (inputsJson.present) {
+      map['inputs_json'] = Variable<String>(inputsJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TdeeEstimatesCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('dateIso: $dateIso, ')
+          ..write('estimatedAt: $estimatedAt, ')
+          ..write('method: $method, ')
+          ..write('confidence: $confidence, ')
+          ..write('windowDays: $windowDays, ')
+          ..write('kcal: $kcal, ')
+          ..write('observedQualified: $observedQualified, ')
+          ..write('inputsJson: $inputsJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PendingSyncOpsTable extends PendingSyncOps
     with TableInfo<$PendingSyncOpsTable, PendingSyncOpData> {
   @override
@@ -42546,6 +43306,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CycleLogsTable cycleLogs = $CycleLogsTable(this);
   late final $CycleSettingsTable cycleSettings = $CycleSettingsTable(this);
   late final $JointPainLogsTable jointPainLogs = $JointPainLogsTable(this);
+  late final $TdeeEstimatesTable tdeeEstimates = $TdeeEstimatesTable(this);
   late final $PendingSyncOpsTable pendingSyncOps = $PendingSyncOpsTable(this);
   late final $TemplateExercisesTable templateExercises =
       $TemplateExercisesTable(this);
@@ -42634,6 +43395,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cycleLogs,
     cycleSettings,
     jointPainLogs,
+    tdeeEstimates,
     pendingSyncOps,
     templateExercises,
     templateSets,
@@ -64499,6 +65261,366 @@ typedef $$JointPainLogsTableProcessedTableManager =
       JointPainLogData,
       PrefetchHooks Function()
     >;
+typedef $$TdeeEstimatesTableCreateCompanionBuilder =
+    TdeeEstimatesCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      required String dateIso,
+      Value<DateTime> estimatedAt,
+      required String method,
+      required String confidence,
+      required int windowDays,
+      required int kcal,
+      Value<bool> observedQualified,
+      required String inputsJson,
+    });
+typedef $$TdeeEstimatesTableUpdateCompanionBuilder =
+    TdeeEstimatesCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<String> dateIso,
+      Value<DateTime> estimatedAt,
+      Value<String> method,
+      Value<String> confidence,
+      Value<int> windowDays,
+      Value<int> kcal,
+      Value<bool> observedQualified,
+      Value<String> inputsJson,
+    });
+
+class $$TdeeEstimatesTableFilterComposer
+    extends Composer<_$AppDatabase, $TdeeEstimatesTable> {
+  $$TdeeEstimatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dateIso => $composableBuilder(
+    column: $table.dateIso,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get estimatedAt => $composableBuilder(
+    column: $table.estimatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get windowDays => $composableBuilder(
+    column: $table.windowDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get kcal => $composableBuilder(
+    column: $table.kcal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get observedQualified => $composableBuilder(
+    column: $table.observedQualified,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get inputsJson => $composableBuilder(
+    column: $table.inputsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TdeeEstimatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TdeeEstimatesTable> {
+  $$TdeeEstimatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dateIso => $composableBuilder(
+    column: $table.dateIso,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get estimatedAt => $composableBuilder(
+    column: $table.estimatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get windowDays => $composableBuilder(
+    column: $table.windowDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get kcal => $composableBuilder(
+    column: $table.kcal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get observedQualified => $composableBuilder(
+    column: $table.observedQualified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get inputsJson => $composableBuilder(
+    column: $table.inputsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TdeeEstimatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TdeeEstimatesTable> {
+  $$TdeeEstimatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get dateIso =>
+      $composableBuilder(column: $table.dateIso, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get estimatedAt => $composableBuilder(
+    column: $table.estimatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get windowDays => $composableBuilder(
+    column: $table.windowDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get kcal =>
+      $composableBuilder(column: $table.kcal, builder: (column) => column);
+
+  GeneratedColumn<bool> get observedQualified => $composableBuilder(
+    column: $table.observedQualified,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get inputsJson => $composableBuilder(
+    column: $table.inputsJson,
+    builder: (column) => column,
+  );
+}
+
+class $$TdeeEstimatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TdeeEstimatesTable,
+          TdeeEstimateData,
+          $$TdeeEstimatesTableFilterComposer,
+          $$TdeeEstimatesTableOrderingComposer,
+          $$TdeeEstimatesTableAnnotationComposer,
+          $$TdeeEstimatesTableCreateCompanionBuilder,
+          $$TdeeEstimatesTableUpdateCompanionBuilder,
+          (
+            TdeeEstimateData,
+            BaseReferences<
+              _$AppDatabase,
+              $TdeeEstimatesTable,
+              TdeeEstimateData
+            >,
+          ),
+          TdeeEstimateData,
+          PrefetchHooks Function()
+        > {
+  $$TdeeEstimatesTableTableManager(_$AppDatabase db, $TdeeEstimatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TdeeEstimatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TdeeEstimatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TdeeEstimatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<String> dateIso = const Value.absent(),
+                Value<DateTime> estimatedAt = const Value.absent(),
+                Value<String> method = const Value.absent(),
+                Value<String> confidence = const Value.absent(),
+                Value<int> windowDays = const Value.absent(),
+                Value<int> kcal = const Value.absent(),
+                Value<bool> observedQualified = const Value.absent(),
+                Value<String> inputsJson = const Value.absent(),
+              }) => TdeeEstimatesCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                dateIso: dateIso,
+                estimatedAt: estimatedAt,
+                method: method,
+                confidence: confidence,
+                windowDays: windowDays,
+                kcal: kcal,
+                observedQualified: observedQualified,
+                inputsJson: inputsJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required String dateIso,
+                Value<DateTime> estimatedAt = const Value.absent(),
+                required String method,
+                required String confidence,
+                required int windowDays,
+                required int kcal,
+                Value<bool> observedQualified = const Value.absent(),
+                required String inputsJson,
+              }) => TdeeEstimatesCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                dateIso: dateIso,
+                estimatedAt: estimatedAt,
+                method: method,
+                confidence: confidence,
+                windowDays: windowDays,
+                kcal: kcal,
+                observedQualified: observedQualified,
+                inputsJson: inputsJson,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TdeeEstimatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TdeeEstimatesTable,
+      TdeeEstimateData,
+      $$TdeeEstimatesTableFilterComposer,
+      $$TdeeEstimatesTableOrderingComposer,
+      $$TdeeEstimatesTableAnnotationComposer,
+      $$TdeeEstimatesTableCreateCompanionBuilder,
+      $$TdeeEstimatesTableUpdateCompanionBuilder,
+      (
+        TdeeEstimateData,
+        BaseReferences<_$AppDatabase, $TdeeEstimatesTable, TdeeEstimateData>,
+      ),
+      TdeeEstimateData,
+      PrefetchHooks Function()
+    >;
 typedef $$PendingSyncOpsTableCreateCompanionBuilder =
     PendingSyncOpsCompanion Function({
       Value<int> id,
@@ -74763,6 +75885,8 @@ class $AppDatabaseManager {
       $$CycleSettingsTableTableManager(_db, _db.cycleSettings);
   $$JointPainLogsTableTableManager get jointPainLogs =>
       $$JointPainLogsTableTableManager(_db, _db.jointPainLogs);
+  $$TdeeEstimatesTableTableManager get tdeeEstimates =>
+      $$TdeeEstimatesTableTableManager(_db, _db.tdeeEstimates);
   $$PendingSyncOpsTableTableManager get pendingSyncOps =>
       $$PendingSyncOpsTableTableManager(_db, _db.pendingSyncOps);
   $$TemplateExercisesTableTableManager get templateExercises =>

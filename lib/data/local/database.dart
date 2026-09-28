@@ -51,6 +51,7 @@ part 'database.g.dart';
     CycleLogs,
     CycleSettings,
     JointPainLogs,
+    TdeeEstimates,
     PendingSyncOps,
     WorkoutFolders,
     WorkoutTemplates,
@@ -98,7 +99,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 44;
+  int get schemaVersion => 45;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1178,6 +1179,25 @@ class AppDatabase extends _$AppDatabase {
           workoutExercises,
           workoutExercises.plannedSessionSegment,
         );
+      }
+      if (from < 45 && to >= 45) {
+        // Phase 28: adaptive-TDEE estimate history. Synced, so it needs the
+        // same sync_uuid unique index and outbox triggers as every other
+        // synced table (same idiom as the v32 block). The sqlite_master
+        // guard exists because fixtures sit on both sides of a step and
+        // createTable on an existing table throws.
+        final exists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'tdee_estimates'",
+        ).getSingleOrNull();
+        if (exists == null) {
+          await m.createTable(tdeeEstimates);
+        }
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_tdee_estimates '
+          'ON tdee_estimates(sync_uuid)',
+        );
+        await installSyncTriggers(this);
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is
