@@ -45,16 +45,19 @@ void main() {
           ),
         );
 
-    Future<void> weight(String date, double kg, {String metric = 'bodyweight'}) =>
-        db
-            .into(db.bodyMeasurements)
-            .insert(
-              BodyMeasurementsCompanion.insert(
-                dateIso: date,
-                metric: metric,
-                value: kg,
-              ),
-            );
+    Future<void> weight(
+      String date,
+      double kg, {
+      String metric = 'bodyweight',
+    }) => db
+        .into(db.bodyMeasurements)
+        .insert(
+          BodyMeasurementsCompanion.insert(
+            dateIso: date,
+            metric: metric,
+            value: kg,
+          ),
+        );
 
     setUp(() async {
       db = await openTestDatabase();
@@ -99,15 +102,17 @@ void main() {
       });
     });
 
-    test('a zero-kcal entry still counts the day as logged (presence)',
-        () async {
-      final water = await food('Water', 0);
-      await logAt(water, DateTime(2026, 9, 10));
+    test(
+      'a zero-kcal entry still counts the day as logged (presence)',
+      () async {
+        final water = await food('Water', 0);
+        await logAt(water, DateTime(2026, 9, 10));
 
-      final i = await repo.load();
-      expect(i.foodLoggedDays, contains('2026-09-10'));
-      expect(i.dailyKcalByDate['2026-09-10'], 0);
-    });
+        final i = await repo.load();
+        expect(i.foodLoggedDays, contains('2026-09-10'));
+        expect(i.dailyKcalByDate['2026-09-10'], 0);
+      },
+    );
 
     test('dailyKcalByDate sums snapshot-aware totals per logged day', () async {
       final a = await food('A', 100); // 100 kcal per 100 g
@@ -143,12 +148,14 @@ void main() {
       final f = await food('Rice', 130);
       await logAt(f, DateTime(2026, 9, 10));
       await weight('2026-09-10', 80);
-      await db.update(db.foodEntries).write(
-        FoodEntriesCompanion(deletedAt: Value(DateTime(2026, 9, 11))),
-      );
-      await db.update(db.bodyMeasurements).write(
-        BodyMeasurementsCompanion(deletedAt: Value(DateTime(2026, 9, 11))),
-      );
+      await db
+          .update(db.foodEntries)
+          .write(FoodEntriesCompanion(deletedAt: Value(DateTime(2026, 9, 11))));
+      await db
+          .update(db.bodyMeasurements)
+          .write(
+            BodyMeasurementsCompanion(deletedAt: Value(DateTime(2026, 9, 11))),
+          );
 
       final i = await repo.load();
       expect(i.foodLoggedDays, isEmpty);
