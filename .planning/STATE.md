@@ -14,6 +14,27 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-09-28 (Phase 28 Plan 08 Completed)
+
+- Completed Plan 28-08 (TDEE-01, TDEE-04): the editor's "Maintenance calories" field
+  and the Quick Calories & Phase Planner now read `maintenanceKcalProvider` (pure
+  maintenance); the dream-physique setup view reads `baselineTargetsProvider`. No UI
+  code calls `MacroTargets.fromProfile` any more (only `nutrition_providers.dart`
+  does, as the cold-start fallback).
+- Decision: the estimate is pure maintenance wherever a value is labelled maintenance,
+  so the goal delta is applied once per path. Side effect: for weight-loss and
+  muscle-gain users the planner/editor maintenance figures move by the old goal delta
+  (-500/+300), correcting a pre-existing double application. PHYS-04 marker comments
+  sit at both `DietPhaseCalculator.apply` call sites; no gate implemented.
+- `nutrition_targets_view.dart` is 2615 lines (was 2617), so plan 28-09 keeps its
+  full edit budget.
+- Validation: full `flutter test` 1558 passed / 9 skipped / 0 failed, 0 analyzer
+  errors. Progress 8/11 plans in Phase 28. SDK state-advance verbs still no-op, so
+  this note is hand-written.
+- Next implementation focus: Plan 28-09 (badge, detail sheet, material-shift prompt).
+
+---
+
 ## Session update — 2026-09-28 (Phase 28 Plan 07 Completed)
 
 - Completed Plan 28-07 (TDEE-01..05): `tdee_providers.dart` (latest estimate stream,
