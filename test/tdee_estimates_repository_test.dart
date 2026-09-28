@@ -50,29 +50,33 @@ void main() {
       await db.close();
     });
 
-    test('record stores dateIso from the Clock and estimatedAt from result',
-        () async {
-      // Result stamped a different day than the clock: dateIso follows Clock.
-      await repo.record(_result(estimatedAt: DateTime(2026, 9, 20, 6)));
+    test(
+      'record stores dateIso from the Clock and estimatedAt from result',
+      () async {
+        // Result stamped a different day than the clock: dateIso follows Clock.
+        await repo.record(_result(estimatedAt: DateTime(2026, 9, 20, 6)));
 
-      final rows = await db.select(db.tdeeEstimates).get();
-      expect(rows, hasLength(1));
-      final row = rows.single;
-      expect(row.dateIso, '2026-09-28');
-      expect(row.estimatedAt, DateTime(2026, 9, 20, 6));
-      expect(row.method, 'observed');
-      expect(row.confidence, 'medium');
-      expect(row.windowDays, 28);
-      expect(row.kcal, 2500);
-      expect(row.observedQualified, isTrue);
-      expect(row.inputsJson, contains('span_days'));
-    });
+        final rows = await db.select(db.tdeeEstimates).get();
+        expect(rows, hasLength(1));
+        final row = rows.single;
+        expect(row.dateIso, '2026-09-28');
+        expect(row.estimatedAt, DateTime(2026, 9, 20, 6));
+        expect(row.method, 'observed');
+        expect(row.confidence, 'medium');
+        expect(row.windowDays, 28);
+        expect(row.kcal, 2500);
+        expect(row.observedQualified, isTrue);
+        expect(row.inputsJson, contains('span_days'));
+      },
+    );
 
-    test('latest is null and watchLatest emits null on an empty table',
-        () async {
-      expect(await repo.latest(), isNull);
-      expect(await repo.watchLatest().first, isNull);
-    });
+    test(
+      'latest is null and watchLatest emits null on an empty table',
+      () async {
+        expect(await repo.latest(), isNull);
+        expect(await repo.watchLatest().first, isNull);
+      },
+    );
 
     test('watchLatest emits null then the new row after record', () async {
       final emissions = <TdeeEstimateResult?>[];
@@ -87,36 +91,40 @@ void main() {
       expect(emissions.last!.kcal, 2600);
     });
 
-    test('latest returns newest by estimatedAt then id, deletedAt null only',
-        () async {
-      await repo.record(
-        _result(kcal: 2000, estimatedAt: DateTime(2026, 9, 1)),
-      );
-      await repo.record(
-        _result(kcal: 2100, estimatedAt: DateTime(2026, 9, 10)),
-      );
-      await repo.record(
-        _result(kcal: 2200, estimatedAt: DateTime(2026, 9, 10)),
-      );
-
-      final latest = await repo.latest();
-      expect(latest!.kcal, 2200); // same estimatedAt, higher id wins
-    });
-
-    test('recent is newest-first, limited, ties broken by highest id',
-        () async {
-      for (var i = 0; i < 10; i++) {
+    test(
+      'latest returns newest by estimatedAt then id, deletedAt null only',
+      () async {
         await repo.record(
-          _result(kcal: 2000 + i, estimatedAt: DateTime(2026, 9, 1 + i ~/ 2)),
+          _result(kcal: 2000, estimatedAt: DateTime(2026, 9, 1)),
         );
-      }
-      final recent = await repo.recent(limit: 4);
-      expect(recent, hasLength(4));
-      expect(recent.map((r) => r.kcal), [2009, 2008, 2007, 2006]);
+        await repo.record(
+          _result(kcal: 2100, estimatedAt: DateTime(2026, 9, 10)),
+        );
+        await repo.record(
+          _result(kcal: 2200, estimatedAt: DateTime(2026, 9, 10)),
+        );
 
-      final defaults = await repo.recent();
-      expect(defaults, hasLength(8));
-    });
+        final latest = await repo.latest();
+        expect(latest!.kcal, 2200); // same estimatedAt, higher id wins
+      },
+    );
+
+    test(
+      'recent is newest-first, limited, ties broken by highest id',
+      () async {
+        for (var i = 0; i < 10; i++) {
+          await repo.record(
+            _result(kcal: 2000 + i, estimatedAt: DateTime(2026, 9, 1 + i ~/ 2)),
+          );
+        }
+        final recent = await repo.recent(limit: 4);
+        expect(recent, hasLength(4));
+        expect(recent.map((r) => r.kcal), [2009, 2008, 2007, 2006]);
+
+        final defaults = await repo.recent();
+        expect(defaults, hasLength(8));
+      },
+    );
 
     test('round trip preserves every field', () async {
       final original = _result(
@@ -163,45 +171,49 @@ void main() {
       expect(rows.last.method, TdeeMethod.coldStart);
     });
 
-    test('unknown method / confidence and corrupt inputsJson read safely',
-        () async {
-      await db
-          .into(db.tdeeEstimates)
-          .insert(
-            TdeeEstimatesCompanion.insert(
-              dateIso: '2026-09-28',
-              method: 'garbage',
-              confidence: 'garbage',
-              windowDays: 7,
-              kcal: 2300,
-              inputsJson: 'not json',
-              estimatedAt: Value(DateTime(2026, 9, 28)),
-            ),
-          );
+    test(
+      'unknown method / confidence and corrupt inputsJson read safely',
+      () async {
+        await db
+            .into(db.tdeeEstimates)
+            .insert(
+              TdeeEstimatesCompanion.insert(
+                dateIso: '2026-09-28',
+                method: 'garbage',
+                confidence: 'garbage',
+                windowDays: 7,
+                kcal: 2300,
+                inputsJson: 'not json',
+                estimatedAt: Value(DateTime(2026, 9, 28)),
+              ),
+            );
 
-      final r = (await repo.latest())!;
-      expect(r.method, TdeeMethod.coldStart);
-      expect(r.confidence, TdeeConfidence.low);
-      expect(r.inputs, isEmpty);
-    });
+        final r = (await repo.latest())!;
+        expect(r.method, TdeeMethod.coldStart);
+        expect(r.confidence, TdeeConfidence.low);
+        expect(r.inputs, isEmpty);
+      },
+    );
 
-    test('inputsJson that is valid JSON but not an object reads as empty',
-        () async {
-      await db
-          .into(db.tdeeEstimates)
-          .insert(
-            TdeeEstimatesCompanion.insert(
-              dateIso: '2026-09-28',
-              method: 'observed',
-              confidence: 'high',
-              windowDays: 7,
-              kcal: 2300,
-              inputsJson: '[1,2,3]',
-            ),
-          );
-      final r = (await repo.latest())!;
-      expect(r.inputs, isEmpty);
-    });
+    test(
+      'inputsJson that is valid JSON but not an object reads as empty',
+      () async {
+        await db
+            .into(db.tdeeEstimates)
+            .insert(
+              TdeeEstimatesCompanion.insert(
+                dateIso: '2026-09-28',
+                method: 'observed',
+                confidence: 'high',
+                windowDays: 7,
+                kcal: 2300,
+                inputsJson: '[1,2,3]',
+              ),
+            );
+        final r = (await repo.latest())!;
+        expect(r.inputs, isEmpty);
+      },
+    );
 
     test('record rejects out-of-range kcal and negative windowDays', () async {
       expect(() => repo.record(_result(kcal: 0)), throwsArgumentError);
@@ -216,14 +228,15 @@ void main() {
     });
 
     test('soft-deleted rows are excluded from latest and recent', () async {
-      await repo.record(
-        _result(kcal: 2000, estimatedAt: DateTime(2026, 9, 1)),
-      );
+      await repo.record(_result(kcal: 2000, estimatedAt: DateTime(2026, 9, 1)));
       await repo.record(
         _result(kcal: 2900, estimatedAt: DateTime(2026, 9, 20)),
       );
-      await (db.update(db.tdeeEstimates)..where((t) => t.kcal.equals(2900)))
-          .write(TdeeEstimatesCompanion(deletedAt: Value(DateTime(2026, 9, 21))));
+      await (db.update(
+        db.tdeeEstimates,
+      )..where((t) => t.kcal.equals(2900))).write(
+        TdeeEstimatesCompanion(deletedAt: Value(DateTime(2026, 9, 21))),
+      );
 
       expect((await repo.latest())!.kcal, 2000);
       expect((await repo.recent()).map((r) => r.kcal), [2000]);
