@@ -9,6 +9,7 @@ import 'package:herculex/core/utils/auth_validator.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 
@@ -369,8 +370,15 @@ class _OnboardingViewState extends ConsumerState<OnboardingView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "What is your activity level?",
+          "How active are you right now?",
           style: theme.textTheme.displayMedium,
+        ),
+        const SizedBox(height: HxSpace.x2),
+        Text(
+          "This is just a starting point. We'll refine it automatically as you log.",
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: context.hx.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 32),
         ...ActivityLevel.values.map((a) {

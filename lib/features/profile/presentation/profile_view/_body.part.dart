@@ -438,21 +438,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         // ── Activity level ────────────────────────────────────────────────
         _SectionHeader('Activity Level'),
         const SizedBox(height: 12),
-        Column(
-          children: ActivityLevel.values.map((a) {
-            final selected = _activityLevel == a;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _ActivityTile(
-                level: a,
-                selected: selected,
-                onTap: () {
-                  setState(() => _activityLevel = a);
-                  _onFieldChanged();
-                },
-              ),
-            );
-          }).toList(),
+        ActivityLevelSection(
+          selected: _activityLevel,
+          onChanged: (a) {
+            setState(() => _activityLevel = a);
+            _onFieldChanged();
+          },
         ),
 
         const SizedBox(height: 20),

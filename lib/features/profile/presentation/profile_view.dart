@@ -25,6 +25,7 @@ import 'package:herculex/features/nutrition/data/wear_sync_service.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/profile/presentation/widgets/activity_level_section.dart';
 import 'package:herculex/features/profile/presentation/widgets/dream_physique_summary_card.dart';
 import 'package:herculex/features/profile/presentation/widgets/dream_physique_nutrition_direction_card.dart';
 import 'package:herculex/features/profile/presentation/widgets/sync_status_badge.dart';
