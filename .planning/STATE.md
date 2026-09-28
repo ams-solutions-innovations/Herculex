@@ -14,6 +14,24 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-09-28 (Phase 28 Plan 05 Completed)
+
+- Completed Plan 28-05 (TDEE-05): `supabase/migrations/20260928000000_tdee_estimates_v45.sql`
+  written (NOT applied), completing schema chore 5 for v45. Owner-only RLS,
+  updated_at and tombstone triggers, realtime publication and the
+  `(user_id, updated_at, id)` pull index. `test/tdee_supabase_migration_test.dart`
+  asserts column parity with drift `TdeeEstimates` (sync_uuid/synced_at excluded
+  as local-only, matching 0014).
+- Decision: no check constraints on `method`/`confidence`; validation stays at
+  the Dart repository boundary.
+- Ordering: 0015 and 0016 remain outstanding and must be applied before this
+  file; applying all three is the plan 28-11 human-gated step.
+- Progress 5/11 plans in Phase 28. SDK state-advance verbs still no-op, so this
+  note is hand-written.
+- Next implementation focus: Plan 28-06.
+
+---
+
 ## Session update — 2026-09-28 (Phase 28 Plan 04 Completed)
 
 - Completed Plan 28-04 (TDEE-01, TDEE-03, TDEE-05): pure-Dart `TdeeEstimator`
