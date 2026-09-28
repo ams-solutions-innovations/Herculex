@@ -252,14 +252,14 @@ Plans:
 
 **Success:** Observed expenditure from logged intake and bodyweight trend becomes the baseline when adherence passes threshold; an activity classifier over `HealthSamples` and logged training supplies the multiplier otherwise; the app picks its own calibration window and cadence without asking the user for a duration; every estimate exposes method, confidence, window, and inputs, and never overrides a manually-set maintenance value; a material shift surfaces in the weekly report instead of silently rewriting confirmed targets.
 
-**Plans:** 2/11 plans executed
+**Plans:** 3/11 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 28-01-PLAN.md — Wave 1: TdeeEstimateResult/badge-state types + ActivityClassifier (HealthSamples to continuous multiplier)
 - [x] 28-02-PLAN.md — Wave 1: MacroTargets split (bmr, multiplierFor, fromMaintenance) with characterization test + TargetResolver TDEE-04 test
-- [ ] 28-03-PLAN.md — Wave 1: TdeeEstimates drift table + schema v45 + sync registration + migration test retarget
+- [x] 28-03-PLAN.md — Wave 1: TdeeEstimates drift table + schema v45 + sync registration + migration test retarget
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

@@ -3,16 +3,40 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-28T12:45:44.466Z"
+last_updated: "2026-09-28T13:27:35.130Z"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 53
-  completed_plans: 44
+  completed_plans: 45
   percent: 53
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-28 (Phase 28 Plan 03 Completed)
+
+- Completed Plan 28-03 (TDEE-05): drift schema v44 to v45. New synced
+  `TdeeEstimates` table (`@DataClassName('TdeeEstimateData')`) with a domain
+  `estimatedAt` distinct from sync-owned `updated_at`. The v45 onUpgrade branch
+  guards `createTable` via `sqlite_master`, adds `idx_sync_uuid_tdee_estimates`
+  and runs `installSyncTriggers`; registered in `syncedTableNames` and
+  `syncTableSpecs` (`estimated_at` as dateTimeColumn).
+- Chores 1-4 of the schema bump done (schemaVersion, dump, generate, test
+  retarget); `drift_schema_v45.json` and `schema_v45.dart` generated,
+  `test/migration_test.dart` retargeted with a v44 to v45 replay. Chore 5
+  (Supabase SQL) is plan 28-05; applying it is plan 28-11. Until then local v45
+  would quarantine `tdee_estimates` rows on push (PGRST204).
+- `schema_v25/27/28/29_test.dart` retargeted from stale v39 to v45 and now pass
+  (the 7 long-standing failures logged since Phase 21 are gone).
+- Gotcha: `dart run drift_dev schema dump` writes the JSON but the process may
+  never exit; kill it once the file exists and run `schema generate` separately.
+- Validation: full `flutter test` 1443 passed / 9 skipped / 0 failed, 0 analyzer
+  errors. Progress 3/11 plans in Phase 28. SDK state-advance verbs still no-op
+  on this STATE.md format, so this note is hand-written.
+- Next implementation focus: Plan 28-04.
+
+---
 
 ## Session update — 2026-09-28 (Phase 28 Plan 02 Completed)
 
@@ -21,12 +45,15 @@ progress:
   in `macro_targets.dart`; `fromProfile` output is byte-identical (32-combination
   characterization test). New `test/target_resolver_test.dart` proves a saved manual
   rule always beats the fallback (TDEE-04).
+
 - Decision: the estimate is always PURE maintenance; `fromMaintenance` adds the
   -500/+300/0 goal delta exactly once, so it is never double-applied. Plan 07 uses
   `fromMaintenance` for fallback targets; plan 08 reads pure maintenance for
   maintenance-labelled UI.
+
 - Validation: 35 tests passing across the three touched suites, 0 analyzer errors.
   Progress 2/11 plans in Phase 28.
+
 - Next implementation focus: Plan 28-03.
 
 ---
