@@ -21,12 +21,15 @@
 --    old shared-cap number for any future direct SQL caller that forgets
 --    the third argument.
 --
--- `create or replace function` preserves the existing `(uuid, text,
--- integer)` signature's grants from 0018 (parameter types are unchanged —
--- only the default value, which is not part of a function's identity for
--- `create or replace` purposes), so the `revoke execute ... from public,
--- anon, authenticated` statement is not repeated here.
-create or replace function public.ai_usage_bump(
+-- Postgres refuses to remove a parameter default via `create or replace
+-- function` (SQLSTATE 42P13, "cannot remove parameter defaults from
+-- existing function") — confirmed against the live project. The function
+-- must be dropped and recreated instead, which resets its grants to the
+-- Postgres default (EXECUTE granted to PUBLIC) — the `revoke` from 0018
+-- is therefore re-run below, not skipped.
+drop function if exists public.ai_usage_bump(uuid, text, integer);
+
+create function public.ai_usage_bump(
   p_user_id     uuid,
   p_kind        text,
   p_daily_limit integer
@@ -68,3 +71,5 @@ begin
   return jsonb_build_object('allowed', true, 'used', v_today + 1, 'limit', p_daily_limit);
 end;
 $$;
+
+revoke execute on function public.ai_usage_bump(uuid, text, integer) from public, anon, authenticated;
