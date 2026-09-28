@@ -1,10 +1,11 @@
 ---
 phase: 28
 slug: adaptive-tdee-activity-calibration
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-09-28
+reviewed_at: 2026-09-28
 ---
 
 # Phase 28 — UI Design Contract
@@ -59,15 +60,14 @@ Profile and onboarding edits modify existing files in place (`profile_view/_body
 
 ## Spacing Scale
 
-Declared values use the project's `HxSpace` scale (every value is a multiple of 4). Use the constants, never numeric literals.
+Declared values use the project's `HxSpace` scale. Every value authored in this phase is one of the standard set
+(4, 8, 16, 24, 32, 48, 64). Use the constants, never numeric literals.
 
 | Token | Value | Usage in this phase |
 |-------|-------|---------------------|
 | `HxSpace.x1` | 4px | Icon-to-label gap inside badge; badge vertical padding |
-| `HxSpace.x2` | 8px | Gap between maintenance field and badge row; gap between badge row and phase subtitle; gap between stacked info rows |
-| `HxSpace.x3` | 12px | Badge horizontal padding; gap between the two comparison tiles |
-| `HxSpace.x4` | 16px | Sheet section gaps; inner padding of the "What we used" card |
-| `HxSpace.x5` | 20px | Sheet side padding (HxSheet default, unchanged) |
+| `HxSpace.x2` | 8px | Badge horizontal padding; gap between maintenance field and badge row; gap between badge row and phase subtitle; gap between stacked info rows |
+| `HxSpace.x4` | 16px | Gap between the two comparison tiles; sheet section gaps; inner padding of the "What we used" card |
 | `HxSpace.x6` | 24px | Gap between sheet sections |
 | `HxSpace.x8` | 32px | Onboarding: gap between subtitle and first activity tile (existing value retained) |
 
@@ -77,9 +77,13 @@ Exceptions:
   `ConstrainedBox(minHeight: 44)` with the pill vertically centred, so the hit area meets the platform minimum without
   inflating the visual. 44 is a multiple of 4.
 - **Do not use `HxTextPill`** for the badge: its vertical padding is `HxSpace.x1 + 2` (6px), off-scale. Use `HxPill` with an
-  explicit `padding: EdgeInsets.symmetric(horizontal: HxSpace.x3, vertical: HxSpace.x1)`.
+  explicit `padding: EdgeInsets.symmetric(horizontal: HxSpace.x2, vertical: HxSpace.x1)`.
 - Badge icon is **16px** (not the 14px used by `SyncStatusBadge`) to stay on the 4px grid.
-- Inherited from `HxSheet` and left untouched: 40 x 4 grab handle, 10px top gap, `HxSpace.x5` side padding.
+- **20px sheet side padding (`HxSpace.x5`) is inherited from `HxSheet` and not authored in this phase.** It is deliberately
+  absent from the scale table above; this phase writes no `x5` value anywhere. Do not override it.
+- Also inherited from `HxSheet` and left untouched: 40 x 4 grab handle, 10px top gap.
+- No 12px (`HxSpace.x3`) value is authored in this phase. Badge horizontal padding is 8px (`x2`) and the comparison-tile gap
+  is 16px (`x4`).
 
 Placement inside `TargetEditorView` (replaces the current single 6px gap after the maintenance `_NumField`):
 
@@ -211,7 +215,7 @@ Frozen snapshot from the estimate's `inputsJson`, not a live re-query (RESEARCH.
 | Caption, calibrated | `Manual reset. Use this only if your routine changed a lot. It reseeds the estimate and keeps your history.` |
 | Confirm dialog title (calibrated only) | `Reset activity level?` |
 | Confirm dialog body | `This becomes your new starting point. It won't erase your calibration history.` |
-| Confirm dialog actions | `Cancel` and `Reset` |
+| Confirm dialog actions | `Keep Current Level` (dismiss) and `Reset Activity Level` (confirm) |
 | Snackbar after reset, user currently Measured (D-15) | `Saved. Your estimate stays measured from your logs.` |
 | Snackbar after reset, Classified / Aging / Calibrating (D-14) | `Saved. We'll use this as the starting point at the next recalibration.` |
 
@@ -230,7 +234,7 @@ Layout: heading, `HxSpace.x2` gap, subtitle (Body, `hx.onSurfaceVariant`), then 
 
 | Element | Copy |
 |---------|------|
-| Primary CTA | `Reset` (confirm action of the Profile reset dialog). The badge itself is the discovery affordance for the sheet and carries no button label. |
+| Primary CTA | `Reset Activity Level` (confirm action of the Profile reset dialog). The badge itself is the discovery affordance for the sheet and carries no button label. |
 | Empty state heading | Badge reads `Calibrating — using onboarding estimate` (the cold-start state doubles as this feature's empty state) |
 | Empty state body | Sheet method line for Calibrating, plus the input row `Onboarding activity level`. Adds: `Log food and your weight for about two weeks and this switches to a measured number automatically.` (proposed) |
 | Error state | No red UI, no error string. If the estimate read or compute fails, render the Calibrating state with identical copy and report the failure through the existing error-reporting path. Follows D-08 "never blank, never an error state". |
@@ -264,16 +268,16 @@ Layout: heading, `HxSpace.x2` gap, subtitle (Body, `hx.onSurfaceVariant`), then 
   `_SectionTitle` convention in this view).
 - Input rows: label left (Body/400, `hx.onSurfaceVariant`), value right (Body/700, `hx.onSurface`, tabular figures),
   `HxSpace.x2` between rows, no dividers.
-- Comparison tiles: `Row` of two `Expanded` `HxStatTile`s with `HxSpace.x3` between. "Your saved target" uses
-  `accent: hx.onSurfaceVariant`; "Maintenance estimate" uses the state accent from the badge table.
+- Comparison tiles: `Row` of two `Expanded` `HxStatTile`s with `SizedBox(width: HxSpace.x4)` (16px) between.
+  "Your saved target" uses `accent: hx.onSurfaceVariant`; "Maintenance estimate" uses the state accent from the badge table.
 - Source of "saved target": the resolved saved `NutritionTargetData` via `nutritionTargetsProvider` / `TargetResolver` for
   today's scope, not the in-progress editor field.
 
 ### Profile reset
 
 - Calibrated state only: selecting a different tile shows the confirm `AlertDialog` (theme `dialogTheme`, no custom styling);
-  `Cancel` leaves `_activityLevel` unchanged; `Reset` saves via the existing `_onFieldChanged()` path, then shows the snackbar
-  variant that matches the current method (D-14 vs D-15).
+  `Keep Current Level` leaves `_activityLevel` unchanged; `Reset Activity Level` saves via the existing `_onFieldChanged()`
+  path, then shows the snackbar variant that matches the current method (D-14 vs D-15).
 - Never clears or hides prior `TdeeEstimates` history (D-14).
 
 ### Motion
@@ -313,11 +317,11 @@ No custom curves. No looping animation on the Calibrating state (a pulsing hourg
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: FLAG (non-blocking: no declared focal point)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: FLAG (non-blocking: 15/17px close; 28px onboarding heading and 500-weight HxStatTile caption are inherited)
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-09-28 (1 revision)
