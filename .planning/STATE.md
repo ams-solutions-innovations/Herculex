@@ -3,16 +3,30 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-28T12:10:54.080Z"
+last_updated: "2026-09-28T12:41:43.810Z"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 53
-  completed_plans: 42
+  completed_plans: 43
   percent: 53
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-28 (Phase 28 Plan 01 Completed)
+
+- Completed Plan 28-01 (TDEE-02, TDEE-04): plain-Dart `TdeeEstimateResult` /
+  `TdeeMethod` / `TdeeConfidence` / `TdeeBadgeState` (locked UI-SPEC badge copy) in
+  `lib/features/nutrition/domain/tdee_estimate.dart`, and `ActivityClassifier` in
+  `activity_classifier.dart` (continuous 1.15-1.90 multiplier from steps + training,
+  seed blended by sparsity, unavailable below 3 step days, never high confidence).
+- Decision: `active_kcal`, `sleep_hours`, `resting_hr` are recorded-only inputs, never
+  used in the multiplier or confidence (would double-count with `countBurnedCalories`).
+- Validation: 33 tests passing, 0 analyzer errors. Progress 1/11 plans in Phase 28.
+- Next implementation focus: Plan 28-02.
+
+---
 
 ## Session update — 2026-09-28 (Phase 28 context gathered)
 
@@ -53,7 +67,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.  
-**Current focus:** Phase 28 — adaptive tdee & activity calibration (context gathered, ready to plan)
+**Current focus:** Phase 28 — adaptive-tdee-activity-calibration
 
 ---
 

@@ -105,9 +105,9 @@
 ### 14. Adaptive TDEE & Activity Calibration (Phase 28)
 
 - [ ] **TDEE-01**: An observed-expenditure estimator derives TDEE from logged intake and the bodyweight trend over a rolling window, and becomes the baseline source when adherence passes a stated threshold.
-- [ ] **TDEE-02**: When adherence is insufficient, an activity classifier derives the activity level from `HealthSamples` plus logged training, and Mifflin-St Jeor runs with the derived multiplier instead of the hand-picked one.
+- [x] **TDEE-02**: When adherence is insufficient, an activity classifier derives the activity level from `HealthSamples` plus logged training, and Mifflin-St Jeor runs with the derived multiplier instead of the hand-picked one.
 - [ ] **TDEE-03**: The app chooses its own calibration window and re-calibration cadence from data density; the user never picks a measurement duration.
-- [ ] **TDEE-04**: Every estimate carries method, confidence, sample window, and inputs, is visible to the user, and never overrides a manually-set maintenance value.
+- [x] **TDEE-04**: Every estimate carries method, confidence, sample window, and inputs, is visible to the user, and never overrides a manually-set maintenance value.
 - [ ] **TDEE-05**: A material TDEE shift is surfaced in the weekly report and never silently rewrites confirmed targets.
 
 ### 15. Weekly Report & Herculex AI Narrative (Phase 29)
