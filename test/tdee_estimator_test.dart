@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/nutrition/domain/activity_classifier.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimator.dart';
 
@@ -322,6 +323,490 @@ void main() {
       expect(early.kcal, late.kcal);
       expect(early.windowDays, late.windowDays);
       expect(early.toInputs(), late.toInputs());
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Task 2: recalibrate, shouldRecalibrate, isMaterialShift
+  // ---------------------------------------------------------------------
+
+  const steadyWeigh = [
+    -27, -25, -23, -21, -19, -17, -15, -13, -11, -9, -7, -5, -3, -1, 0, //
+  ];
+
+  final classification = ActivityClassifier.classify(
+    dailySteps: List.filled(14, 8000.0),
+    workoutsPerWeek: 3,
+    seedMultiplier: 1.375,
+  );
+  const bmr = 1800.0;
+  const seedKcal = 2400.0;
+  const seedInputs = <String, Object?>{'seed': true};
+
+  TdeeEstimateResult row({
+    required TdeeMethod method,
+    required bool qualified,
+    required int ageDays,
+    int kcal = 2300,
+    int windowDays = 14,
+    Map<String, Object?> inputs = const {},
+    DateTime? base,
+  }) => TdeeEstimateResult(
+    kcal: kcal,
+    method: method,
+    confidence: TdeeConfidence.medium,
+    windowDays: windowDays,
+    observedQualified: qualified,
+    inputs: inputs,
+    estimatedAt: day(-ageDays, base),
+  );
+
+  /// Recalibrates at [at]. By default the data qualifies for observed mode;
+  /// pass `qualifying: false` for no data, or explicit [food] / [weigh]
+  /// offsets (relative to [at]).
+  TdeeEstimateResult recal({
+    required DateTime at,
+    List<TdeeEstimateResult> history = const [],
+    bool qualifying = true,
+    Iterable<int>? food,
+    Iterable<int>? weigh,
+    ActivityClassification? classified,
+  }) {
+    final f = food ?? (qualifying ? range(-27, 0) : const <int>[]);
+    final w = weigh ?? (qualifying ? steadyWeigh : const <int>[]);
+    return TdeeEstimator.recalibrate(
+      asOf: at,
+      foodLoggedDays: {for (final o in f) iso(day(o, at))},
+      dailyKcalByDate: {for (final o in f) iso(day(o, at)): 2500.0},
+      weightLogs: [for (final o in w) WeightLog(day(o, at), 80)],
+      classification: classified ?? classification,
+      bmrKcal: bmr,
+      seedMaintenanceKcal: seedKcal,
+      seedInputs: seedInputs,
+      history: history,
+    );
+  }
+
+  final classifierKcal = (bmr * classification.multiplier).round();
+
+  group('recalibrate: promotion and hysteresis (D-03)', () {
+    test('qualifying with empty history is not promoted', () {
+      final r = recal(at: asOf);
+      expect(r.method, TdeeMethod.classifier);
+      expect(r.observedQualified, isTrue);
+      expect(r.kcal, classifierKcal);
+      expect(r.estimatedAt, asOf);
+    });
+
+    test('qualifying with empty history and no classifier is cold start', () {
+      final r = recal(at: asOf, classified: ActivityClassification.unavailable);
+      expect(r.method, TdeeMethod.coldStart);
+      expect(r.observedQualified, isTrue);
+      expect(r.kcal, seedKcal.round());
+      expect(r.confidence, TdeeConfidence.low);
+      expect(r.windowDays, 0);
+      expect(r.inputs, seedInputs);
+    });
+
+    test('a qualified row at least 7 days old promotes', () {
+      for (final age in [7, 20]) {
+        final r = recal(
+          at: asOf,
+          history: [
+            row(method: TdeeMethod.classifier, qualified: true, ageDays: age),
+          ],
+        );
+        expect(r.method, TdeeMethod.observed, reason: 'age $age');
+        expect(r.observedQualified, isTrue);
+        expect(r.kcal, 2500);
+        expect(r.windowDays, 35);
+        expect(r.inputs['span_days'], 27);
+      }
+    });
+
+    test('a coldStart qualified row promotes too', () {
+      final r = recal(
+        at: asOf,
+        history: [
+          row(method: TdeeMethod.coldStart, qualified: true, ageDays: 8),
+        ],
+      );
+      expect(r.method, TdeeMethod.observed);
+    });
+
+    test('a qualified row 1 or 6 days old does not promote', () {
+      for (final age in [1, 6]) {
+        final r = recal(
+          at: asOf,
+          history: [
+            row(method: TdeeMethod.classifier, qualified: true, ageDays: age),
+          ],
+        );
+        expect(r.method, TdeeMethod.classifier, reason: 'age $age');
+        expect(r.observedQualified, isTrue, reason: 'pending promotion');
+      }
+    });
+
+    test('an unqualified previous row does not promote', () {
+      final r = recal(
+        at: asOf,
+        history: [
+          row(method: TdeeMethod.classifier, qualified: false, ageDays: 10),
+        ],
+      );
+      expect(r.method, TdeeMethod.classifier);
+      expect(r.observedQualified, isTrue);
+    });
+
+    test('two qualifying runs one day apart never promote', () {
+      final r0 = recal(at: day(0));
+      final r1 = recal(at: day(1), history: [r0]);
+      expect(r1.method, isNot(TdeeMethod.observed));
+      expect(r1.observedQualified, isTrue);
+    });
+
+    test('two qualifying runs 7 days apart promote', () {
+      final r0 = recal(at: day(0));
+      final r7 = recal(at: day(7), history: [r0]);
+      expect(r7.method, TdeeMethod.observed);
+    });
+
+    test('a forced run restarts the 7-day clock', () {
+      final r0 = recal(at: day(0));
+      final r1 = recal(at: day(1), history: [r0]); // forced run
+      // Day 7 sees the day-1 row only 6 days old.
+      final r7 = recal(at: day(7), history: [r1, r0]);
+      expect(r7.method, isNot(TdeeMethod.observed));
+      // With the day-1 row as the newest, day 8 is exactly 7 days later.
+      final r8 = recal(at: day(8), history: [r1, r0]);
+      expect(r8.method, TdeeMethod.observed);
+      // When the day-7 run is persisted, the next promotion is day 14.
+      final r14 = recal(at: day(14), history: [r7, r1, r0]);
+      expect(r14.method, TdeeMethod.observed);
+    });
+
+    test('an already-observed user stays observed and fresh at once', () {
+      final r = recal(
+        at: asOf,
+        history: [
+          row(
+            method: TdeeMethod.observed,
+            qualified: true,
+            ageDays: 7,
+            kcal: 2200,
+          ),
+        ],
+      );
+      expect(r.method, TdeeMethod.observed);
+      expect(r.observedQualified, isTrue);
+      expect(r.kcal, 2500);
+      expect(r.isHeld, isFalse);
+    });
+
+    test('a held observed row also recovers to fresh when data qualifies', () {
+      final r = recal(
+        at: asOf,
+        history: [
+          row(method: TdeeMethod.observed, qualified: false, ageDays: 3),
+          row(method: TdeeMethod.observed, qualified: true, ageDays: 10),
+        ],
+      );
+      expect(r.method, TdeeMethod.observed);
+      expect(r.observedQualified, isTrue);
+    });
+  });
+
+  group('recalibrate: hold, grace and fallback (D-04)', () {
+    test('holds the fresh observed estimate while it is under 14 days old', () {
+      for (final age in [7, 13]) {
+        final r = recal(
+          at: asOf,
+          qualifying: false,
+          history: [
+            row(
+              method: TdeeMethod.observed,
+              qualified: true,
+              ageDays: age,
+              kcal: 2650,
+              windowDays: 28,
+              inputs: const {'span_days': 20},
+            ),
+          ],
+        );
+        expect(r.method, TdeeMethod.observed, reason: 'age $age');
+        expect(r.observedQualified, isFalse);
+        expect(r.isHeld, isTrue);
+        expect(r.kcal, 2650);
+        expect(r.confidence, TdeeConfidence.low);
+        expect(r.windowDays, 28);
+        expect(r.inputs['held'], isTrue);
+        expect(r.inputs['measured_at'], iso(day(-age)));
+        expect(r.inputs['span_days'], 20);
+        expect(r.estimatedAt, asOf);
+      }
+    });
+
+    test('falls back once the fresh row is 14 days old', () {
+      final r = recal(
+        at: asOf,
+        qualifying: false,
+        history: [
+          row(method: TdeeMethod.observed, qualified: true, ageDays: 14),
+        ],
+      );
+      expect(r.method, TdeeMethod.classifier);
+      expect(r.observedQualified, isFalse);
+      expect(r.kcal, classifierKcal);
+    });
+
+    test('falls back to cold start when the classifier is unavailable', () {
+      final r = recal(
+        at: asOf,
+        qualifying: false,
+        classified: ActivityClassification.unavailable,
+        history: [
+          row(method: TdeeMethod.observed, qualified: true, ageDays: 20),
+        ],
+      );
+      expect(r.method, TdeeMethod.coldStart);
+      expect(r.observedQualified, isFalse);
+    });
+
+    test('consecutive held rows keep the same measured_at', () {
+      final fresh = row(
+        method: TdeeMethod.observed,
+        qualified: true,
+        ageDays: 10,
+        kcal: 2600,
+      );
+      final held1 = row(
+        method: TdeeMethod.observed,
+        qualified: false,
+        ageDays: 3,
+        kcal: 2600,
+        inputs: {'held': true, 'measured_at': iso(day(-10))},
+      );
+      final r = recal(at: asOf, qualifying: false, history: [held1, fresh]);
+      expect(r.method, TdeeMethod.observed);
+      expect(r.isHeld, isTrue);
+      expect(r.inputs['measured_at'], iso(day(-10)));
+      expect(r.kcal, 2600);
+    });
+
+    test('a held row with no fresh observed row behind it falls back', () {
+      final r = recal(
+        at: asOf,
+        qualifying: false,
+        history: [
+          row(method: TdeeMethod.observed, qualified: false, ageDays: 2),
+        ],
+      );
+      expect(r.method, TdeeMethod.classifier);
+    });
+
+    test('no observed rows: classifier when available, else cold start', () {
+      final c = recal(at: asOf, qualifying: false);
+      expect(c.method, TdeeMethod.classifier);
+      expect(c.observedQualified, isFalse);
+      expect(c.kcal, classifierKcal);
+      expect(c.confidence, classification.confidence);
+      expect(c.windowDays, ActivityClassifier.windowDays);
+      expect(c.inputs, classification.toInputs());
+
+      final s = recal(
+        at: asOf,
+        qualifying: false,
+        classified: ActivityClassification.unavailable,
+      );
+      expect(s.method, TdeeMethod.coldStart);
+      expect(s.kcal, seedKcal.round());
+    });
+  });
+
+  group('recalibrate: recency composes with the grace period', () {
+    // Dense food ending [foodEnd] days from asOf, weigh-ins through asOf.
+    TdeeEstimateResult stale({required int foodEnd, required int freshAge}) =>
+        recal(
+          at: asOf,
+          food: range(foodEnd - 34, foodEnd),
+          weigh: everySecondDayEndingAt(0),
+          history: [
+            row(
+              method: TdeeMethod.observed,
+              qualified: true,
+              ageDays: freshAge,
+              kcal: 2400,
+            ),
+          ],
+        );
+
+    test('newest food 7 days old: fresh row 7 days old is held', () {
+      final r = stale(foodEnd: -7, freshAge: 7);
+      expect(r.method, TdeeMethod.observed);
+      expect(r.observedQualified, isFalse);
+      expect(r.inputs['measured_at'], iso(day(-7)));
+    });
+
+    test('newest food 7 days old: fresh row 14 days old falls back', () {
+      final r = stale(foodEnd: -7, freshAge: 14);
+      expect(r.method, TdeeMethod.classifier);
+      expect(r.observedQualified, isFalse);
+    });
+
+    test('newest food 6 days old: stays observed and fresh', () {
+      final r = stale(foodEnd: -6, freshAge: 7);
+      expect(r.method, TdeeMethod.observed);
+      expect(r.observedQualified, isTrue);
+    });
+  });
+
+  group('shouldRecalibrate', () {
+    TdeeEstimateResult last(int ageDays, {DateTime? at}) => TdeeEstimateResult(
+      kcal: 2400,
+      method: TdeeMethod.classifier,
+      confidence: TdeeConfidence.medium,
+      windowDays: 14,
+      observedQualified: false,
+      inputs: const {},
+      estimatedAt: day(-ageDays, at),
+    );
+
+    RecalibrationReason check({
+      required List<TdeeEstimateResult> history,
+      List<WeightLog> weights = const [],
+      Map<String, double> steps = const {},
+      bool force = false,
+      DateTime? at,
+    }) => TdeeEstimator.shouldRecalibrate(
+      asOf: at ?? asOf,
+      history: history,
+      weightLogs: weights,
+      stepsByDate: steps,
+      force: force,
+    );
+
+    test('empty history needs an estimate', () {
+      expect(check(history: const []), RecalibrationReason.noEstimate);
+    });
+
+    test('force overrides the once-per-day gate', () {
+      expect(
+        check(history: [last(0)], force: true),
+        RecalibrationReason.forced,
+      );
+    });
+
+    test('a row from the same calendar day blocks everything else', () {
+      final sameDay = TdeeEstimateResult(
+        kcal: 2400,
+        method: TdeeMethod.classifier,
+        confidence: TdeeConfidence.medium,
+        windowDays: 14,
+        observedQualified: false,
+        inputs: const {},
+        estimatedAt: DateTime(2026, 9, 28, 6),
+      );
+      expect(
+        check(
+          history: [sameDay],
+          at: DateTime(2026, 9, 28, 22),
+          weights: [WeightLog(day(-1), 80), WeightLog(day(0), 95)],
+        ),
+        RecalibrationReason.none,
+      );
+    });
+
+    test('elapsed fires at 7 days, not at 6', () {
+      expect(check(history: [last(7)]), RecalibrationReason.elapsed);
+      expect(check(history: [last(6)]), RecalibrationReason.none);
+    });
+
+    test('a trend shift of 1.0 kg fires, 0.9 kg does not', () {
+      // Trend on the last row's day is 80; one day later it moves by
+      // alpha * (weigh-in - 80).
+      RecalibrationReason withWeight(double kg) => check(
+        history: [last(1)],
+        weights: [WeightLog(day(-1), 80), WeightLog(day(0), kg)],
+      );
+      expect(withWeight(90), RecalibrationReason.weightTrendShift);
+      expect(withWeight(89), RecalibrationReason.none);
+      expect(withWeight(70), RecalibrationReason.weightTrendShift);
+    });
+
+    test('weight shift needs at least two logs', () {
+      expect(
+        check(history: [last(1)], weights: [WeightLog(day(0), 95)]),
+        RecalibrationReason.none,
+      );
+    });
+
+    Map<String, double> steps(Map<int, double> byOffset) => {
+      for (final e in byOffset.entries) iso(day(e.key)): e.value,
+    };
+
+    test('a 25% step-count shift fires, 24.9% does not', () {
+      // Last row 6 days ago: previous window is [-19, -6], current [-13, 0].
+      final prev = {-19: 8000.0, -18: 8000.0, -17: 8000.0};
+      expect(
+        check(
+          history: [last(6)],
+          steps: steps({...prev, -3: 10000, -2: 10000, -1: 10000, 0: 10000}),
+        ),
+        RecalibrationReason.activityShift,
+      );
+      expect(
+        check(
+          history: [last(6)],
+          steps: steps({...prev, -3: 9990, -2: 9990, -1: 9990, 0: 9990}),
+        ),
+        RecalibrationReason.none,
+      );
+    });
+
+    test('step shift needs 3 step days in each window', () {
+      expect(
+        check(
+          history: [last(6)],
+          steps: steps({-19: 8000, -18: 8000, -17: 8000, -1: 20000, 0: 20000}),
+        ),
+        RecalibrationReason.none,
+      );
+      expect(
+        check(
+          history: [last(6)],
+          steps: steps({-19: 8000, -18: 8000, -2: 20000, -1: 20000, 0: 20000}),
+        ),
+        RecalibrationReason.none,
+      );
+    });
+  });
+
+  group('isMaterialShift (D-09)', () {
+    bool material(int current, int next) => TdeeEstimator.isMaterialShift(
+      currentBaselineKcal: current,
+      newEstimateKcal: next,
+    );
+
+    test('2000: 5 percent ties with the 100 floor, strictly greater wins', () {
+      expect(material(2000, 2100), isFalse);
+      expect(material(2000, 2101), isTrue);
+    });
+
+    test('1500: the 100 floor beats 5 percent (75)', () {
+      expect(material(1500, 1600), isFalse);
+      expect(material(1500, 1601), isTrue);
+    });
+
+    test('3000: 5 percent (150) beats the floor', () {
+      expect(material(3000, 3150), isFalse);
+      expect(material(3000, 3151), isTrue);
+    });
+
+    test('works for a negative delta', () {
+      expect(material(3000, 2850), isFalse);
+      expect(material(3000, 2849), isTrue);
+      expect(material(2000, 1900), isFalse);
+      expect(material(2000, 1899), isTrue);
     });
   });
 

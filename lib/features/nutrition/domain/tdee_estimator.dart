@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:herculex/features/nutrition/domain/activity_classifier.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/features/nutrition/domain/tdee_trend.dart';
 
@@ -256,6 +257,201 @@ abstract final class TdeeEstimator {
     }
     return null;
   }
+
+  /// Decides which estimate to show now. [history] is newest first.
+  ///
+  /// PHYS-04 boundary: this only estimates maintenance. Any aggressive-deficit
+  /// gate (Phase 23) belongs at or after `DietPhaseCalculator.apply`, not here.
+  ///
+  /// - Observed data qualifies and the user is already on observed (fresh or
+  ///   held): the fresh observed result, at once (D-15).
+  /// - Qualifies and [TdeeTuning.hysteresisCycles] qualifying runs at least
+  ///   [TdeeTuning.cadenceDays] apart have happened: promoted to observed
+  ///   (D-03). Otherwise the row is the classifier/cold-start value with
+  ///   `observedQualified` true, meaning "promotion pending". A forced run
+  ///   restarts the clock, by design.
+  /// - Does not qualify but the newest fresh observed row is younger than
+  ///   [TdeeTuning.observedHoldMaxAgeDays]: that estimate is held (D-04).
+  /// - Otherwise: classifier if available, else cold start seeded by the
+  ///   onboarding activity level. A Profile reset (D-14) only changes the seed,
+  ///   which the classifier multiplier blends in by data sparsity; it never
+  ///   touches history, and an observed user never reads the seed (D-15).
+  static TdeeEstimateResult recalibrate({
+    required DateTime asOf,
+    required Set<String> foodLoggedDays,
+    required Map<String, double> dailyKcalByDate,
+    required List<WeightLog> weightLogs,
+    required ActivityClassification classification,
+    required double bmrKcal,
+    required double seedMaintenanceKcal,
+    required Map<String, Object?> seedInputs,
+    required List<TdeeEstimateResult> history,
+  }) {
+    final measured = estimateObserved(
+      asOf: asOf,
+      foodLoggedDays: foodLoggedDays,
+      dailyKcalByDate: dailyKcalByDate,
+      weightLogs: weightLogs,
+    );
+    final qualified = measured != null;
+    final onObserved =
+        history.isNotEmpty && history.first.method == TdeeMethod.observed;
+
+    if (measured != null && (onObserved || _promotionDue(asOf, history))) {
+      return TdeeEstimateResult(
+        kcal: measured.kcal,
+        method: TdeeMethod.observed,
+        confidence: measured.confidence,
+        windowDays: measured.windowDays,
+        observedQualified: true,
+        inputs: measured.toInputs(),
+        estimatedAt: asOf,
+      );
+    }
+
+    if (onObserved) {
+      // Time-based grace: an early triggered run cannot burn it.
+      final fresh = history
+          .where((r) => r.method == TdeeMethod.observed && r.observedQualified)
+          .firstOrNull;
+      if (fresh != null &&
+          _daysBetween(fresh.estimatedAt, asOf) <
+              TdeeTuning.observedHoldMaxAgeDays) {
+        return TdeeEstimateResult(
+          kcal: fresh.kcal,
+          method: TdeeMethod.observed,
+          confidence: TdeeConfidence.low,
+          windowDays: fresh.windowDays,
+          observedQualified: false,
+          inputs: {
+            ...fresh.inputs,
+            'held': true,
+            'measured_at': _iso(fresh.estimatedAt),
+          },
+          estimatedAt: asOf,
+        );
+      }
+    }
+
+    if (classification.isAvailable) {
+      return TdeeEstimateResult(
+        kcal: (bmrKcal * classification.multiplier).round(),
+        method: TdeeMethod.classifier,
+        confidence: classification.confidence,
+        windowDays: ActivityClassifier.windowDays,
+        observedQualified: qualified,
+        inputs: classification.toInputs(),
+        estimatedAt: asOf,
+      );
+    }
+    return TdeeEstimateResult(
+      kcal: seedMaintenanceKcal.round(),
+      method: TdeeMethod.coldStart,
+      confidence: TdeeConfidence.low,
+      windowDays: 0,
+      observedQualified: qualified,
+      inputs: seedInputs,
+      estimatedAt: asOf,
+    );
+  }
+
+  /// D-03 hysteresis by elapsed time: the newest `hysteresisCycles - 1` rows
+  /// must all be qualified non-observed rows, each at least `cadenceDays`
+  /// whole calendar days before the next-newer timestamp (the first one before
+  /// [asOf]). With the default of 2 cycles that reduces to "the newest row is
+  /// a qualified non-observed row dated 7 or more days before [asOf]".
+  static bool _promotionDue(DateTime asOf, List<TdeeEstimateResult> history) {
+    final needed = TdeeTuning.hysteresisCycles - 1;
+    if (history.length < needed) return false;
+    var newer = asOf;
+    for (var i = 0; i < needed; i++) {
+      final r = history[i];
+      if (r.method == TdeeMethod.observed || !r.observedQualified) return false;
+      if (_daysBetween(r.estimatedAt, newer) < TdeeTuning.cadenceDays) {
+        return false;
+      }
+      newer = r.estimatedAt;
+    }
+    return true;
+  }
+
+  /// Whether a recalibration should run now (TDEE-03). There is no scheduler
+  /// (the project has no background-task capability), so the caller evaluates
+  /// this opportunistically at app open. At most once per calendar day unless
+  /// [force] is set.
+  static RecalibrationReason shouldRecalibrate({
+    required DateTime asOf,
+    required List<TdeeEstimateResult> history,
+    required List<WeightLog> weightLogs,
+    required Map<String, double> stepsByDate,
+    bool force = false,
+  }) {
+    if (history.isEmpty) return RecalibrationReason.noEstimate;
+    if (force) return RecalibrationReason.forced;
+
+    final lastAt = history.first.estimatedAt;
+    final elapsed = _daysBetween(lastAt, asOf);
+    if (elapsed <= 0) return RecalibrationReason.none;
+    if (elapsed >= TdeeTuning.cadenceDays) return RecalibrationReason.elapsed;
+
+    final asOfDay = TrendSeries.dayNumber(asOf);
+    final series = TrendSeries.fromLogs([
+      for (final l in weightLogs)
+        if (TrendSeries.dayNumber(l.date) <= asOfDay) l,
+    ]);
+    if (!series.isEmpty && series.firstDate != series.lastDate) {
+      final shift = series.valueOn(asOf) - series.valueOn(lastAt);
+      if (shift.abs() >= TdeeTuning.weightShiftKg) {
+        return RecalibrationReason.weightTrendShift;
+      }
+    }
+
+    final now = _meanSteps(stepsByDate, asOf);
+    final before = _meanSteps(stepsByDate, lastAt);
+    if (now != null && before != null && before > 0) {
+      if ((now - before).abs() >= TdeeTuning.stepShiftFraction * before) {
+        return RecalibrationReason.activityShift;
+      }
+    }
+    return RecalibrationReason.none;
+  }
+
+  /// D-09 / TDEE-05: a change is material when it exceeds the bigger of the
+  /// 100 kcal floor or 5% of the current baseline. Strictly greater-than and
+  /// unrounded, so a tie on the threshold is not material. Phase 28 emits no
+  /// record or prompt; Phase 29 diffs persisted history with this (D-11, D-10).
+  static bool isMaterialShift({
+    required int currentBaselineKcal,
+    required int newEstimateKcal,
+  }) {
+    final delta = (newEstimateKcal - currentBaselineKcal).abs();
+    final threshold = max(
+      TdeeTuning.materialShiftFloorKcal.toDouble(),
+      currentBaselineKcal * TdeeTuning.materialShiftPct,
+    );
+    return delta > threshold;
+  }
+
+  /// Mean steps over the 14 days ending on [end], or null with fewer than
+  /// [ActivityClassifier.minStepDays] usable days.
+  static double? _meanSteps(Map<String, double> steps, DateTime end) {
+    final endDate = _dateOnly(end);
+    var sum = 0.0;
+    var count = 0;
+    for (var i = 0; i < ActivityClassifier.windowDays; i++) {
+      final v = steps[_iso(_addDays(endDate, -i))];
+      if (v != null && v.isFinite && v >= 0) {
+        sum += v;
+        count++;
+      }
+    }
+    return count < ActivityClassifier.minStepDays ? null : sum / count;
+  }
+
+  /// Whole calendar days from [from] to [to] (date-only, so the time of day
+  /// never matters).
+  static int _daysBetween(DateTime from, DateTime to) =>
+      TrendSeries.dayNumber(to) - TrendSeries.dayNumber(from);
 
   static bool _hasFoodBetween(
     Set<String> food,
