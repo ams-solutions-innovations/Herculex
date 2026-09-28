@@ -14,6 +14,28 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-09-28 (Phase 28 Plan 04 Completed)
+
+- Completed Plan 28-04 (TDEE-01, TDEE-03, TDEE-05): pure-Dart `TdeeEstimator`
+  in `tdee_estimator.dart` (498 lines) plus `WeightLog`/`TrendSeries` daily-grid
+  EWMA in `tdee_trend.dart`, re-exported so downstream plans import both from
+  the estimator. Every tunable is on `TdeeTuning`.
+
+- Decisions: `windowDays` is the winning candidate (35/28/21/14), the measured
+  span is `span_days` and the UI prints `span_days + 1`. `observedRecencyDays`
+  is 6 so a week-old window fails the gate and the D-04 hold starts at the first
+  cadence run after logging stops. Hysteresis counts elapsed days (rows must be
+  >= 7 calendar days apart), so every persisted qualified non-observed row
+  restarts the promotion clock; plan 07 should keep that in mind. Mean intake
+  averages logged days only. `isMaterialShift` is strict and unrounded.
+
+- Validation: 91 tests passing across the estimator, classifier and estimate
+  suites, 0 analyzer errors. Progress 4/11 plans in Phase 28. SDK state-advance
+  verbs still no-op on this STATE.md format, so this note is hand-written.
+- Next implementation focus: Plan 28-05 (Supabase migration for tdee_estimates).
+
+---
+
 ## Session update — 2026-09-28 (Phase 28 Plan 03 Completed)
 
 - Completed Plan 28-03 (TDEE-05): drift schema v44 to v45. New synced

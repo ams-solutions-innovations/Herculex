@@ -252,7 +252,7 @@ Plans:
 
 **Success:** Observed expenditure from logged intake and bodyweight trend becomes the baseline when adherence passes threshold; an activity classifier over `HealthSamples` and logged training supplies the multiplier otherwise; the app picks its own calibration window and cadence without asking the user for a duration; every estimate exposes method, confidence, window, and inputs, and never overrides a manually-set maintenance value; a material shift surfaces in the weekly report instead of silently rewriting confirmed targets.
 
-**Plans:** 3/11 plans executed
+**Plans:** 4/11 plans executed
 
 Plans:
 **Wave 1**
@@ -263,7 +263,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 28-04-PLAN.md — Wave 2: TdeeEstimator — EWMA trend, observed expenditure, gates, hysteresis/grace, cadence, material shift (D-01–D-04, D-09)
+- [x] 28-04-PLAN.md — Wave 2: TdeeEstimator — EWMA trend, observed expenditure, gates, hysteresis/grace, cadence, material shift (D-01–D-04, D-09)
 - [ ] 28-05-PLAN.md — Wave 2: Supabase migration 20260928000000_tdee_estimates_v45.sql + column-parity test
 
 **Wave 3** *(blocked on Wave 2 completion)*
