@@ -3,16 +3,33 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-28T12:41:43.810Z"
+last_updated: "2026-09-28T12:45:44.466Z"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 53
-  completed_plans: 43
+  completed_plans: 44
   percent: 53
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-28 (Phase 28 Plan 02 Completed)
+
+- Completed Plan 28-02 (TDEE-02, TDEE-04): `MacroTargets.fromProfile` split into
+  `bmr`, `multiplierFor`, `goalDeltaKcal`, `seedMaintenanceKcal`, `fromMaintenance`
+  in `macro_targets.dart`; `fromProfile` output is byte-identical (32-combination
+  characterization test). New `test/target_resolver_test.dart` proves a saved manual
+  rule always beats the fallback (TDEE-04).
+- Decision: the estimate is always PURE maintenance; `fromMaintenance` adds the
+  -500/+300/0 goal delta exactly once, so it is never double-applied. Plan 07 uses
+  `fromMaintenance` for fallback targets; plan 08 reads pure maintenance for
+  maintenance-labelled UI.
+- Validation: 35 tests passing across the three touched suites, 0 analyzer errors.
+  Progress 2/11 plans in Phase 28.
+- Next implementation focus: Plan 28-03.
+
+---
 
 ## Session update — 2026-09-28 (Phase 28 Plan 01 Completed)
 
@@ -21,8 +38,10 @@ progress:
   `lib/features/nutrition/domain/tdee_estimate.dart`, and `ActivityClassifier` in
   `activity_classifier.dart` (continuous 1.15-1.90 multiplier from steps + training,
   seed blended by sparsity, unavailable below 3 step days, never high confidence).
+
 - Decision: `active_kcal`, `sleep_hours`, `resting_hr` are recorded-only inputs, never
   used in the multiplier or confidence (would double-count with `countBurnedCalories`).
+
 - Validation: 33 tests passing, 0 analyzer errors. Progress 1/11 plans in Phase 28.
 - Next implementation focus: Plan 28-02.
 
