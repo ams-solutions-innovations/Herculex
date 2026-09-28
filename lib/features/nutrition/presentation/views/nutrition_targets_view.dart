@@ -15,6 +15,7 @@ import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/tdee_estimate_badge.dart';
 
 /// Presentation-only chip/card styling for a [DietPhase]. Kept as a single
 /// extension so the quick planner card and its chip buttons can't drift
@@ -1594,7 +1595,9 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           suffix: 'kcal',
           onChanged: (_) => _applyPhase(_phase),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: HxSpace.x2),
+        const TdeeEstimateBadge(),
+        const SizedBox(height: HxSpace.x2),
         Text(
           _phase.subtitle,
           style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
