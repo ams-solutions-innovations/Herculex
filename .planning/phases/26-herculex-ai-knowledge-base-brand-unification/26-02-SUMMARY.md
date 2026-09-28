@@ -9,7 +9,7 @@ requires:
   - phase: 26-01
     provides: "knowledge_base.ts corpus, buildSystemInstruction()/modelVersion threading, provenance.modelVersion envelope"
 provides:
-  - "supabase/migrations/0021_ai_usage_bump_per_kind.sql — kind-scoped ai_usage_bump RPC (written, NOT yet applied to the live project — blocked at Task 3 checkpoint)"
+  - "supabase/migrations/0021_ai_usage_bump_per_kind.sql — kind-scoped ai_usage_bump RPC, live on ldzgyzigvbwofbswitrv"
   - "Per-kind AI quota enforcement in index.ts: kindLimits/limitForKind() via 8 GEMINI_LIMIT_* env vars"
   - "bumpUsage() fails closed after exactly one retry, uniformly across all 8 kinds"
   - "Kind-specific 429 messages naming the capped feature and its limit, with a manual-logging hint for food_photo/rambler_food"
@@ -31,31 +31,23 @@ key-files:
 
 key-decisions:
   - "bumpUsage() reads SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY via Deno.env.get() at call time instead of as module-load-time consts (deviation, see below) — the plan's own required fail-closed/retry test behavior was otherwise untestable without a live Supabase project, since module-level consts are computed once at import and Deno.env.set() calls inside a test's Deno.test() body run after that import already evaluated"
-  - "Task 3 (push migration 0021 to the live ldzgyzigvbwofbswitrv project) is a blocking human-verify checkpoint per the plan's own frontmatter (autonomous: false) and explicit orchestrator instructions not to touch the live database from this worktree — execution stops here, unresolved"
+  - "Task 3's migration originally used create-or-replace to drop p_daily_limit's default; Postgres rejects that (SQLSTATE 42P13). Fixed to drop+recreate the function, with 0018's revoke re-applied since a drop resets grants to the Postgres default (PUBLIC gets EXECUTE)"
 
-requirements-completed: []
-# KB-03 and KB-05 are code-complete and unit-tested (Tasks 1-2), but KB-05's
-# must_haves truth "the corrected ai_usage_bump SQL is live on the remote
-# Supabase project, not just written locally" is NOT yet satisfied — Task 3
-# (the live db push) is a blocking checkpoint awaiting human confirmation.
-# Do not mark KB-03/KB-05 complete in REQUIREMENTS.md until Task 3 lands.
-# KB-04 (Hercul non-regression) was verified via `flutter test
-# test/hercul_engine_test.dart` (25/25 passing) but is not "completed" by
-# this plan — it is a pre-existing requirement this plan must not regress.
+requirements-completed: [KB-03, KB-04, KB-05]
 
 # Metrics
-duration: ~25min (partial — stopped at Task 3 checkpoint)
+duration: ~30min (Tasks 1-2: ~25min: Task 3 checkpoint + migration fix + push: ~5min)
 completed: 2026-09-28
 ---
 
-# Phase 26: Herculex AI Knowledge Base & Brand Unification — Plan 02 Summary (PARTIAL — checkpoint pending)
+# Phase 26: Herculex AI Knowledge Base & Brand Unification — Plan 02 Summary
 
-**Per-kind AI quota enforcement with fail-closed retry, kind-specific 429 messages, and the final 3 KB-03 brand-rename strings in `index.ts`; the corresponding `ai_usage_bump` SQL fix is written but NOT yet pushed to the live Supabase project — Task 3 is a blocking human-verify checkpoint**
+**Per-kind AI quota enforcement with fail-closed retry, kind-specific 429 messages, the final 3 KB-03 brand-rename strings in `index.ts`, and the corrected `ai_usage_bump` SQL live on the production Supabase project**
 
 ## Performance
 
-- **Duration:** ~25 min (Tasks 1-2 only; Task 3 not started — requires human confirmation before touching the live database)
-- **Tasks:** 2 of 3 completed; Task 3 is a `checkpoint:human-verify` (`gate="blocking"`) that this plan's own frontmatter (`autonomous: false`) and the orchestrator's explicit instructions require stopping for
+- **Duration:** ~30 min (Tasks 1-2: ~25 min; Task 3, including the orchestrator's migration-bug fix and live push: ~5 min)
+- **Tasks:** 3 of 3 completed
 - **Files modified:** 3 (1 new migration, 1 new test file, 1 modified edge function)
 
 ## Accomplishments
@@ -71,7 +63,7 @@ completed: 2026-09-28
 
 1. **Task 1: Write migration 0021_ai_usage_bump_per_kind.sql** — `83c7326` (feat)
 2. **Task 2: Per-kind quota enforcement, fail-closed retry, kind-specific messages, KB-03 index.ts renames** — `f6478d0` (test, RED), `9ba7b05` (feat, GREEN)
-3. **Task 3: [BLOCKING] Confirm Hercul non-regression, then push migration 0021 to the live database** — NOT STARTED (checkpoint reached; see below)
+3. **Task 3: Confirm Hercul non-regression, then push migration 0021 to the live database** — `cfa861d` (fix: drop+recreate instead of create-or-replace, found when the first push attempt failed), then `npx supabase db push --include-all --yes` against `ldzgyzigvbwofbswitrv` — all 4 pending migrations applied, confirmed via `npx supabase migration list` (local == remote across the board)
 
 ## Files Created/Modified
 - `supabase/migrations/0021_ai_usage_bump_per_kind.sql` — kind-scoped `ai_usage_bump`, dropped default limit param; `0018` untouched
@@ -103,30 +95,20 @@ completed: 2026-09-28
 Task 2's acceptance criteria state `grep -c "Gemini server authorization failed" supabase/functions/gemini-analyze/index.ts` should return `1`. It actually returns `2` — but this is **pre-existing and untouched by this plan**: the file has always contained both the literal sentinel string (line ~846: `"Gemini server authorization failed. Configure GEMINI_API_KEY..."`) and an unrelated `.startsWith("Gemini server authorization failed")` check a few lines earlier (line ~426) that happens to contain the same substring. `git diff` confirms neither line was touched by this plan's edits. Not fixed because CLAUDE.md/plan scope boundary excludes pre-existing, out-of-scope issues; flagging here per the deviation-rules "scope boundary" guidance rather than silently ignoring it.
 
 ## Issues Encountered
-None beyond the deviation documented above.
+
+**Migration 0021 as originally written failed to apply to the live database.** The plan's Task 1 called for `create or replace function` to drop `p_daily_limit`'s `default 50`, but Postgres rejects removing a parameter default that way (`SQLSTATE 42P13: cannot remove parameter defaults from existing function`). The first `supabase db push --include-all --yes` attempt failed cleanly at statement 0 with no partial state (confirmed via `npx supabase migration list` immediately after — all 4 migrations still showed an empty Remote column). Fixed by switching to `drop function if exists ... ; create function ...`, and re-adding 0018's `revoke execute ... from public, anon, authenticated` (a drop+recreate resets grants to the Postgres default of PUBLIC-executable, unlike `create or replace` which preserves them) — committed as `cfa861d`. Re-running the push then succeeded; `migration list` afterward shows local == remote for all migrations including `0021` and the 3 previously-pending v41/v43/v44 ones.
 
 ## User Setup Required
-
-**Task 3 is a blocking `checkpoint:human-verify` (`gate="blocking"`) that this execution run stopped at, per the plan's own frontmatter (`autonomous: false`) and explicit orchestrator instructions not to touch the live Supabase database from this worktree.**
-
-What was already verified automatically in this run:
-- `flutter test test/hercul_engine_test.dart` — **25/25 passing** (KB-04 non-regression confirmed; file untouched by this phase).
-
-What still requires a human, from a machine with `SUPABASE_ACCESS_TOKEN` configured (this worktree has neither the token nor network access to the live project):
-1. Run `npx supabase link --project-ref ldzgyzigvbwofbswitrv` (never `jioesomepkauponjrena` — see `docs/supabase-migrations.md` and `CLAUDE.md`).
-2. Run `npx supabase migration list` and confirm it shows exactly 4 pending migrations with an empty Remote column: this plan's `0021_ai_usage_bump_per_kind.sql`, plus 3 pre-existing unrelated ones (`20260913000000` v41, `20260915000000` v43, `20260916000000` v44 — already reviewed/merged in Phases 16/18/21; this is expected, not a defect).
-3. Confirm the 3 unrelated pending migrations aren't accidentally reverting anything (sanity check only, not new review work).
-4. Run `npx supabase db push --yes` and confirm it reports all 4 migrations applied successfully.
-5. Only after that, KB-03 and KB-05 can be marked complete in `.planning/REQUIREMENTS.md` — do not mark them complete based on this plan's code/tests alone, since KB-05's must-have truth explicitly requires the SQL fix to be **live**, not just written.
+None - no external service configuration required. The live database push (Task 3) was completed by the orchestrator with explicit user approval before running `supabase db push`.
 
 ## Next Phase Readiness
-- Code and tests for per-kind quota enforcement and the KB-03 brand sweep are complete and merged into this worktree's history (commits `83c7326`, `f6478d0`, `9ba7b05`).
-- **Blocker:** `ai_usage_bump` migration `0021` is not yet live on `ldzgyzigvbwofbswitrv`. Until it is pushed, the OLD (fail-open, cross-kind-summing) RPC remains authoritative in production — `index.ts`'s new `p_daily_limit: limit` 3-arg call will still work against the old signature (since `create or replace` in 0018 already made the 3rd arg non-defaulted... actually the OLD migration 0018 gave `p_daily_limit` a `default 50`, so a 3-arg call works identically against either version), but the *quota-scoping bug* (summing across all kinds) is NOT fixed until 0021 is pushed. This is the entire reason Task 3 exists and must not be skipped.
-- No other blockers for Phase 27/28/29/PHYS-07, which depend on this phase's `knowledge_base.ts` (26-01) and brand-unification work, not specifically on the quota fix.
+- Per-kind quota enforcement and the KB-03 brand sweep are complete, tested, and merged (commits `83c7326`, `f6478d0`, `9ba7b05`, `cfa861d`).
+- `ai_usage_bump` migration `0021` is live on `ldzgyzigvbwofbswitrv`, along with 3 previously-outstanding, unrelated migrations (v41/v43/v44 — additive `add column if not exists` changes matching local Drift schema versions already shipped in Phases 16/18/21, so this also closes a real pre-existing local/remote schema drift, not just a bookkeeping catch-up).
+- No blockers for Phase 27/28/29/PHYS-07.
 
 ---
 *Phase: 26-herculex-ai-knowledge-base-brand-unification*
-*Completed: 2026-09-28 (partial — Task 3 checkpoint pending)*
+*Completed: 2026-09-28*
 
 ## Self-Check: PASSED
 - FOUND: supabase/migrations/0021_ai_usage_bump_per_kind.sql
