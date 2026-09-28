@@ -127,3 +127,12 @@ What still requires a human, from a machine with `SUPABASE_ACCESS_TOKEN` configu
 ---
 *Phase: 26-herculex-ai-knowledge-base-brand-unification*
 *Completed: 2026-09-28 (partial — Task 3 checkpoint pending)*
+
+## Self-Check: PASSED
+- FOUND: supabase/migrations/0021_ai_usage_bump_per_kind.sql
+- FOUND: supabase/functions/gemini-analyze/usage_test.ts
+- FOUND: .planning/phases/26-herculex-ai-knowledge-base-brand-unification/26-02-SUMMARY.md
+- FOUND commit: 83c7326 (Task 1)
+- FOUND commit: f6478d0 (Task 2 RED)
+- FOUND commit: 9ba7b05 (Task 2 GREEN)
+- FOUND commit: 33a7d72 (SUMMARY)
