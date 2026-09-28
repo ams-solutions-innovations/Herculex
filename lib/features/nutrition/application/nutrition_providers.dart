@@ -11,6 +11,7 @@ import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
+import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
@@ -23,6 +24,7 @@ import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
+import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/services/platform/widget_sync_service.dart';
 import 'package:intl/intl.dart';
 
@@ -64,12 +66,18 @@ final dailyTotalsProvider = StreamProvider.autoDispose
       return ref.watch(nutritionRepositoryProvider).watchDailyTotals(date);
     });
 
-/// Profile-derived baseline target (Mifflin-St Jeor). Used as the fallback
-/// when no day-specific rule applies.
+/// Baseline target used as the fallback when no day-specific rule applies.
+/// Maintenance comes from the adaptive estimate; the goal delta is re-added
+/// once inside [MacroTargets.fromMaintenance]. Cold start is exactly the
+/// legacy profile seed (D-08).
 final baselineTargetsProvider = Provider<MacroTargets?>((ref) {
   final profile = ref.watch(profileProvider).asData?.value;
   if (profile == null) return null;
-  return MacroTargets.fromProfile(profile);
+  final est = ref.watch(tdeeEstimateProvider);
+  if (est == null || est.method == TdeeMethod.coldStart) {
+    return MacroTargets.fromProfile(profile);
+  }
+  return MacroTargets.fromMaintenance(profile, est.kcal.toDouble());
 });
 
 final nutritionTargetsProvider = StreamProvider<List<NutritionTargetData>>((
