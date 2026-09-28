@@ -220,7 +220,7 @@ Plans:
 
 **Success:** The knowledge corpus lives beside `prompts.ts` and never ships in the app bundle; every AI result carries `knowledgeVersion` and `modelVersion`; no user-visible string reads "Gemini" while internal provider naming is untouched; Hercul's deterministic rule engine and its closed-vocabulary test keep working offline beside a clearly-labelled AI advice channel; per-kind quota exhaustion fails closed with a clear message.
 
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans complete
 
 Plans:
 **Wave 1**
@@ -234,7 +234,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion — 26-01)*
 
-- [ ] 26-02-PLAN.md — Wave 2: per-kind AI quotas, fail-closed retry, KB-03 index.ts renames, migration 0021 + [BLOCKING] db push (KB-03, KB-04, KB-05)
+- [x] 26-02-PLAN.md — Wave 2: per-kind AI quotas, fail-closed retry, KB-03 index.ts renames, migration 0021 + [BLOCKING] db push (KB-03, KB-04, KB-05)
 
 ### Phase 27: Herculex AI Program Generation
 

@@ -88,11 +88,11 @@
 
 ### 12. Herculex AI Knowledge Base & Brand Unification (Phase 26)
 
-- [ ] **KB-01**: A versioned coaching knowledge base ships server-side beside `prompts.ts`, is injected as system instruction for knowledge-grounded kinds, and never appears in the app bundle.
-- [ ] **KB-02**: Every AI result records `knowledgeVersion` and `modelVersion`, so any recommendation is traceable to the corpus that produced it.
-- [ ] **KB-03**: No user-visible string reads "Gemini"; every AI surface reads "Herculex AI", while provider naming remains internal to class names, `kind` values, and docs.
-- [ ] **KB-04**: Hercul gains a labelled AI advice channel alongside the deterministic engine; `hercul_rules.json`, `HerculSignals.all`, and the closed-vocabulary test stay intact and keep working offline.
-- [ ] **KB-05**: Per-kind AI quotas replace the single shared daily cap, and quota exhaustion fails closed with a clear message rather than silently.
+- [x] **KB-01**: A versioned coaching knowledge base ships server-side beside `prompts.ts`, is injected as system instruction for knowledge-grounded kinds, and never appears in the app bundle. _(Foundational scope per 26-CONTEXT.md D-04: corpus + injection plumbing shipped; no kind consumes it yet — that's a later phase's job.)_
+- [x] **KB-02**: Every AI result records `knowledgeVersion` and `modelVersion`, so any recommendation is traceable to the corpus that produced it. _(Foundational scope per D-06: modelVersion ships on all 8 kinds now; knowledgeVersion intentionally deferred until a kind injects a corpus segment.)_
+- [x] **KB-03**: No user-visible string reads "Gemini"; every AI surface reads "Herculex AI", while provider naming remains internal to class names, `kind` values, and docs.
+- [x] **KB-04**: Hercul gains a labelled AI advice channel alongside the deterministic engine; `hercul_rules.json`, `HerculSignals.all`, and the closed-vocabulary test stay intact and keep working offline. _(Non-regression half verified. The "labelled AI advice channel" itself is deferred — human decision 2026-09-28, see 26-VERIFICATION.md — and not yet claimed by any future phase; Phase 27/28/29 planning should pick this up.)_
+- [x] **KB-05**: Per-kind AI quotas replace the single shared daily cap, and quota exhaustion fails closed with a clear message rather than silently.
 
 ### 13. Herculex AI Program Generation (Phase 27)
 
@@ -135,7 +135,7 @@
 | PHYS-01–08 | 23 | Pending |
 | XP-01–04 | 24 | Pending |
 | SYNC-01–03 | 25 | Pending |
-| KB-01–05 | 26 | Pending |
+| KB-01–05 | 26 | Complete |
 | AIP-01–05 | 27 | Pending |
 | TDEE-01–05 | 28 | Pending |
 | RPT-01–05 | 29 | Pending |
