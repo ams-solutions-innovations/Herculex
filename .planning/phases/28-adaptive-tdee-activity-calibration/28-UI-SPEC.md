@@ -45,14 +45,16 @@ colours app-wide; new code must use `context.hx.*` only. Do not import the `AppC
 
 ### New components (file placement obeys CLAUDE.md 600-line rule)
 
-`nutrition_targets_view.dart` is already 1450+ lines. Add nothing inline. Use `part`/`part of` in a subfolder named after the
-file so the public import path is unchanged (parts cannot have their own imports; declare imports in the parent).
+`nutrition_targets_view.dart` is already 2617 lines. Add nothing inline beyond the one placement edit (at most 6 lines). The badge and sheet are
+public files (not `part` files) so that Phase 29's weekly report can reuse them and so each can carry its own imports.
 
 | Component | File | Notes |
 |-----------|------|-------|
-| `_TdeeBadge` | `lib/features/nutrition/presentation/views/nutrition_targets_view/_tdee_badge.part.dart` | Private to the view; wraps `HxPill` |
-| `_TdeeDetailSheet` | `lib/features/nutrition/presentation/views/nutrition_targets_view/_tdee_detail_sheet.part.dart` | Opened with `HxSheet.show`; body composed of `HxSheet`, `HxStatTile`, `HxCard` |
+| `TdeeEstimateBadge` | `lib/features/nutrition/presentation/widgets/tdee_estimate_badge.dart` | Public widget; wraps `HxPill` |
+| `TdeeEstimateSheet` (+ `showTdeeEstimateSheet`) | `lib/features/nutrition/presentation/sheets/tdee_estimate_sheet.dart` | Opened with `HxSheet.show`; body composed of `HxSheet`, `HxStatTile`, `HxCard` |
 | View-model (`TdeeBadgeState`) | `lib/features/nutrition/domain/tdee_estimate.dart` (already planned by RESEARCH.md) | Pure Dart. Presentation maps `TdeeEstimateResult` to a display state here, no Flutter imports in `domain/` |
+
+Note: this deviates from the earlier idea of private `part` files (`_tdee_badge.part.dart`, `_tdee_detail_sheet.part.dart`) because Phase 29 reuses both widgets (D-07 comparison) and a `part` cannot be imported or carry its own imports.
 
 Profile and onboarding edits modify existing files in place (`profile_view/_body.part.dart`, `onboarding_view.dart`); no new files.
 
@@ -90,7 +92,7 @@ Placement inside `TargetEditorView` (replaces the current single 6px gap after t
 ```
 _NumField(Maintenance calories)
 SizedBox(height: HxSpace.x2)
-Align(centerLeft) -> _TdeeBadge            // min hit height 44
+Align(centerLeft) -> TdeeEstimateBadge     // min hit height 44
 SizedBox(height: HxSpace.x2)
 Text(_phase.subtitle)                      // existing, unchanged
 ```
@@ -183,7 +185,7 @@ Rules: Classified never shows "High confidence" (RESEARCH.md #6). Badge is never
 | Method line: Classified | `Worked out from your daily activity and training.` |
 | Method line: Aging | `Measured from your logs {N} days ago. Log again to refresh it.` |
 | Method line: Calibrating | `Using the activity level you chose at setup until there is enough data to measure.` |
-| Section: window | `WINDOW` then `Based on the last {N} days` and `Updated {relative date}` |
+| Section: window | `WINDOW` then `Based on the last {N} days` and `Updated {relative date}`. `{N}` for Measured / Aging is `span_days + 1` from the persisted inputs (the calendar days the data actually covers), never the winning candidate window (`window_days`, which can be larger, e.g. 35 for 28 dense days); when `span_days` is missing the `Based on the last {N} days` line is omitted. For Classified `{N}` is the classifier's own window (14) |
 | Section: inputs | `WHAT WE USED` |
 | Comparison tile labels | `YOUR SAVED TARGET` (caption `set manually`) and `MAINTENANCE ESTIMATE` |
 | Comparison footnote | `Your saved target includes any cut or bulk adjustment, so it can sit above or below maintenance on purpose.` |
@@ -193,7 +195,7 @@ Input rows (D-06). Render only rows that have data; never render a "-" or "N/A" 
 
 | Method | Rows (label : value) |
 |--------|----------------------|
-| Measured / Aging | `Average intake : 2,310 kcal/day`, `Days with food logged : 12 of 14`, `Weight trend : -0.4 kg`, `Weigh-ins : 6`; Aging adds `Last measured : 9 days ago` |
+| Measured / Aging | `Average intake : 2,310 kcal/day`, `Days with food logged : 12 of 14` (`{logged_days} of {span_days + 1}`, the same `{N}` as the window line; row omitted when `span_days` is missing), `Weight trend : -0.4 kg`, `Weigh-ins : 6`; Aging adds `Last measured : 9 days ago` |
 | Classified | `Average steps : 9,200/day`, `Logged workouts : 3/week`, `Activity factor : 1.55` (only inputs the classifier uses) |
 | Classified, also recorded | Caption `Also recorded (not used in the estimate)` below the `WHAT WE USED` card, then `Active calories : {X} kcal/day`, `Sleep : 7.4 h/night`, `Resting heart rate : 58 bpm`. Each row only when present; no caption when none is present. Never inside `WHAT WE USED`: the classifier does not use them. |
 | Calibrating | `Onboarding activity level : Lightly Active`, `Activity factor : 1.375` |
@@ -272,8 +274,13 @@ Layout: heading, `HxSpace.x2` gap, subtitle (Body, `hx.onSurfaceVariant`), then 
   `_SectionTitle` convention in this view).
 - Input rows: label left (Body/400, `hx.onSurfaceVariant`), value right (Body/700, `hx.onSurface`, tabular figures),
   `HxSpace.x2` between rows, no dividers.
-- Comparison tiles: `Row` of two `Expanded` `HxStatTile`s with `SizedBox(width: HxSpace.x4)` (16px) between.
-  "Your saved target" uses `accent: hx.onSurfaceVariant`; "Maintenance estimate" uses the state accent from the badge table.
+- Comparison tiles: `Row` of two `Expanded` items with `SizedBox(width: HxSpace.x4)` (16px) between. "Your saved target" is an
+  `HxStatTile` (`icon: Icons.flag_rounded`, `accent: hx.onSurfaceVariant`, value `{n} kcal`) in a `Column` with the caption
+  `set manually` as a plain `Text` (Label/400, `hx.onSurfaceVariant`) placed under the tile; `HxStatTile.secondaryValue` is not
+  used for it because that slot sits inline beside the value and would overflow a half-width tile. "Maintenance estimate" is an
+  `HxStatTile` (`icon: Icons.timeline_rounded`, value `{n} kcal`) using the state accent from the badge table. Both icons are
+  already used in the nutrition feature (`Icons.flag_rounded` for 'Daily Targets', `Icons.timeline_rounded` for 'Active Schedule');
+  the state icon (insights / directions_run / hourglass) appears only in the status row.
 - Source of "saved target": the resolved saved `NutritionTargetData` via `nutritionTargetsProvider` / `TargetResolver` for
   today's scope, not the in-progress editor field.
 
