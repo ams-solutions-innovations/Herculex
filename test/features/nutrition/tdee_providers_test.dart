@@ -29,19 +29,16 @@ const _profile = Profile(
   sex: BiologicalSex.male,
 );
 
-TdeeEstimateResult _row(
-  int kcal,
-  TdeeMethod method, {
-  bool qualified = true,
-}) => TdeeEstimateResult(
-  kcal: kcal,
-  method: method,
-  confidence: TdeeConfidence.medium,
-  windowDays: method == TdeeMethod.coldStart ? 0 : 28,
-  observedQualified: qualified,
-  inputs: const {},
-  estimatedAt: DateTime(2026, 9, 20, 9),
-);
+TdeeEstimateResult _row(int kcal, TdeeMethod method, {bool qualified = true}) =>
+    TdeeEstimateResult(
+      kcal: kcal,
+      method: method,
+      confidence: TdeeConfidence.medium,
+      windowDays: method == TdeeMethod.coldStart ? 0 : 28,
+      observedQualified: qualified,
+      inputs: const {},
+      estimatedAt: DateTime(2026, 9, 20, 9),
+    );
 
 void _expectSameTargets(MacroTargets? actual, MacroTargets? expected) {
   expect(actual, isNotNull);
@@ -63,7 +60,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         clockProvider.overrideWithValue(clock),
-        profileProvider.overrideWith((ref) => profile ?? Stream.value(_profile)),
+        profileProvider.overrideWith(
+          (ref) => profile ?? Stream.value(_profile),
+        ),
         latestTdeeEstimateProvider.overrideWith((ref) => estimate),
         ...extra,
       ],
@@ -105,18 +104,21 @@ void main() {
       );
     });
 
-    test('loading estimate stream degrades to the seed without error', () async {
-      final controller = StreamController<TdeeEstimateResult?>();
-      addTearDown(controller.close);
-      final c = make(estimate: controller.stream);
-      await settle(c);
+    test(
+      'loading estimate stream degrades to the seed without error',
+      () async {
+        final controller = StreamController<TdeeEstimateResult?>();
+        addTearDown(controller.close);
+        final c = make(estimate: controller.stream);
+        await settle(c);
 
-      expectSeedEstimate(c.read(tdeeEstimateProvider));
-      _expectSameTargets(
-        c.read(baselineTargetsProvider),
-        MacroTargets.fromProfile(_profile),
-      );
-    });
+        expectSeedEstimate(c.read(tdeeEstimateProvider));
+        _expectSameTargets(
+          c.read(baselineTargetsProvider),
+          MacroTargets.fromProfile(_profile),
+        );
+      },
+    );
 
     test('estimate stream error degrades to the seed without error', () async {
       final c = make(estimate: Stream.error(StateError('boom')));
@@ -136,7 +138,10 @@ void main() {
       expect(c.read(tdeeEstimateProvider)!.kcal, 2600);
       expect(c.read(maintenanceKcalProvider), 2600);
       final baseline = c.read(baselineTargetsProvider)!;
-      _expectSameTargets(baseline, MacroTargets.fromMaintenance(_profile, 2600));
+      _expectSameTargets(
+        baseline,
+        MacroTargets.fromMaintenance(_profile, 2600),
+      );
       // muscleGain: +300 exactly once.
       expect(baseline.kcal, 2900);
     });
@@ -149,16 +154,21 @@ void main() {
       expect(c.read(baselineTargetsProvider)!.kcal, 2700);
     });
 
-    test('stored coldStart kcal is ignored in favour of the live seed', () async {
-      final c = make(estimate: Stream.value(_row(2000, TdeeMethod.coldStart)));
-      await settle(c);
+    test(
+      'stored coldStart kcal is ignored in favour of the live seed',
+      () async {
+        final c = make(
+          estimate: Stream.value(_row(2000, TdeeMethod.coldStart)),
+        );
+        await settle(c);
 
-      expect(c.read(maintenanceKcalProvider), seed.round());
-      _expectSameTargets(
-        c.read(baselineTargetsProvider),
-        MacroTargets.fromProfile(_profile),
-      );
-    });
+        expect(c.read(maintenanceKcalProvider), seed.round());
+        _expectSameTargets(
+          c.read(baselineTargetsProvider),
+          MacroTargets.fromProfile(_profile),
+        );
+      },
+    );
 
     test('changing ActivityLevel reseeds without any new row', () async {
       final profiles = StreamController<Profile?>();

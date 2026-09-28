@@ -25,6 +25,7 @@ import 'package:herculex/features/fasting/domain/fasting_schedule_occurrence.dar
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:herculex/features/notifications/data/notification_sync_service.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/application/tdee_recalibration_controller.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/sheets/food_picker_sheet.dart';
@@ -693,6 +694,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
 
     // Initialize Android home-screen widget sync.
     ref.watch(widgetMacroSyncControllerProvider);
+    // Adaptive TDEE: recalibrates on app open, on resume and on ActivityLevel change
+    ref.watch(tdeeRecalibrationControllerProvider);
     ref.watch(widgetCnsSyncControllerProvider);
     ref.watch(widgetRecoverySyncControllerProvider);
     ref.watch(widgetTrainingSyncControllerProvider);
