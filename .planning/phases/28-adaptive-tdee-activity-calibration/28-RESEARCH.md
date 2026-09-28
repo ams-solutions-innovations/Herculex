@@ -720,25 +720,33 @@ reseed) rather than the sole source of truth.
 
 **If this table is empty:** N/A — see entries above.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Exact classifier coefficients (A7).** No amount of research produces a "correct" answer
+1. **Exact classifier coefficients (A7).** (RESOLVED) No amount of research produces a "correct" answer
    here without real usage data — recommend the plan implement the interpolation model as
    described, ship it, and treat post-launch calibration (comparing classifier output against
    observed-expenditure output for the same user once they cross the adherence bar) as expected
    follow-up work, not a gap in this phase.
+   RESOLVED: accepted as tunable assumption A7. The coefficients are `static const` values on
+   `ActivityClassifier` (plan 28-01 Task 2), retunable in one place after real usage.
 2. **Whether `MacroTargets.fromProfile`'s refactor (Open Questions Resolved #6) should also
-   change its public signature**, or whether a new sibling function (e.g.
+   change its public signature** (RESOLVED), or whether a new sibling function (e.g.
    `MacroTargets.fromMultiplier(profile, multiplier)`) is cleaner than modifying `fromProfile`
    itself. Both are viable; the planner should pick one and keep `fromProfile`'s existing
    callers (there may be others beyond `nutrition_targets_view.dart` — worth a repo-wide grep
    for `MacroTargets.fromProfile` during planning) unbroken either way.
+   RESOLVED: a new sibling `MacroTargets.fromMaintenance(profile, maintenanceKcal)` plus shared
+   `bmr` / `multiplierFor` / `seedMaintenanceKcal` helpers; `fromProfile` keeps its signature
+   (plan 28-02 Task 1). The other callers found by the repo-wide grep are rerouted in plans
+   28-07 and 28-08.
 3. **Whether the D-06 detail sheet needs live re-query of current `HealthSamples` averages, or
-   only the frozen `inputsJson` snapshot from the last recalibration.** This research recommends
+   only the frozen `inputsJson` snapshot from the last recalibration.** (RESOLVED) This research recommends
    the frozen snapshot (matches "every estimate exposes... inputs" — TDEE-04 — as a property of
    the *estimate*, not a live dashboard), but the planner should confirm this reading matches
    D-06's intent literally ("shown individually in the detail sheet" doesn't specify live vs.
    snapshotted).
+   RESOLVED: frozen snapshot. The sheet renders `TdeeEstimateResult.inputs` as persisted, with no
+   live re-query (plan 28-09 Task 1).
 
 ## Validation Architecture
 

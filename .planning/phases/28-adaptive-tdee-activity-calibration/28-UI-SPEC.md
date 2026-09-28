@@ -194,7 +194,8 @@ Input rows (D-06). Render only rows that have data; never render a "-" or "N/A" 
 | Method | Rows (label : value) |
 |--------|----------------------|
 | Measured / Aging | `Average intake : 2,310 kcal/day`, `Days with food logged : 12 of 14`, `Weight trend : -0.4 kg`, `Weigh-ins : 6`; Aging adds `Last measured : 9 days ago` |
-| Classified | `Average steps : 9,200/day`, `Logged workouts : 3/week`, `Active calories : {X} kcal/day`, `Sleep : 7.4 h/night`, `Activity factor : 1.55` |
+| Classified | `Average steps : 9,200/day`, `Logged workouts : 3/week`, `Activity factor : 1.55` (only inputs the classifier uses) |
+| Classified, also recorded | Caption `Also recorded (not used in the estimate)` below the `WHAT WE USED` card, then `Active calories : {X} kcal/day`, `Sleep : 7.4 h/night`, `Resting heart rate : 58 bpm`. Each row only when present; no caption when none is present. Never inside `WHAT WE USED`: the classifier does not use them. |
 | Calibrating | `Onboarding activity level : Lightly Active`, `Activity factor : 1.375` |
 
 Numbers above are format examples. Group thousands with `NumberFormat` as the rest of the app does; unit suffixes as shown.
@@ -254,6 +255,7 @@ Layout: heading, `HxSpace.x2` gap, subtitle (Body, `hx.onSurfaceVariant`), then 
 | Loading (first frame of the estimate stream) | Reserve the row height (`SizedBox(height: 44)`), draw nothing, fade in with `HxMotion.base`. No spinner: it is a local drift read. This is layout-stability only, not the data-state "blank" that D-08 forbids. |
 | Editing the field | Badge always describes the **estimate**, never the text the user is typing. Changing `_maintenanceKcal` does not change the badge. |
 | Semantics | `Semantics(button: true, label: 'Maintenance estimate: {method}, {confidence}. Double tap for details.')` |
+| No estimate possible (profile missing weight, height or age) | Badge is not rendered (`SizedBox.shrink()`): there is no estimate to describe. This is not the D-08 blank state, which applies whenever an estimate exists. |
 
 ### Detail sheet
 
@@ -263,7 +265,9 @@ Layout: heading, `HxSpace.x2` gap, subtitle (Body, `hx.onSurfaceVariant`), then 
   Accept/dismiss (D-10) belongs to Phase 29 and must not be prototyped here.
 - Section order, top to bottom: status row (state icon + `{Method} · {Confidence}` at Body/700, then the method line at
   Body/400 in `hx.onSurfaceVariant`) -> comparison tile(s) -> `WINDOW` -> `WHAT WE USED` in an `HxCard`
-  (`padding: EdgeInsets.all(HxSpace.x4)`, `radius: HxRadius.md`) -> trust footnote.
+  (`padding: EdgeInsets.all(HxSpace.x4)`, `radius: HxRadius.md`) -> classified only, when present: caption
+  `Also recorded (not used in the estimate)` (Label/400, `hx.onSurfaceVariant`, not uppercase) with its unboxed rows
+  -> trust footnote.
 - Section headers: Label style, uppercase, `letterSpacing: 1.0`, `hx.secondary` (same as `HxStatTile` captions and the existing
   `_SectionTitle` convention in this view).
 - Input rows: label left (Body/400, `hx.onSurfaceVariant`), value right (Body/700, `hx.onSurface`, tabular figures),
