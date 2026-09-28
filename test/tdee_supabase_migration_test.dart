@@ -14,7 +14,11 @@ void main() {
   String readSql() {
     final file = File(path);
     expect(file.existsSync(), isTrue, reason: '$path must exist');
-    return file.readAsStringSync().toLowerCase();
+    // Collapse whitespace so assertions do not depend on line wrapping.
+    return file.readAsStringSync().toLowerCase().replaceAll(
+      RegExp(r'\s+'),
+      ' ',
+    );
   }
 
   test('creates tdee_estimates with the exact column definitions', () {
@@ -94,8 +98,9 @@ void main() {
 
   test('does not constrain method/confidence vocabulary', () {
     final sql = readSql();
-    expect(sql, isNot(contains('check (')));
-    expect(sql, isNot(contains(' check(')));
+    // Only RLS `with check (...)` clauses are allowed; no column constraint.
+    expect(RegExp(r'(?<!with )check\s*\(').hasMatch(sql), isFalse);
+    expect(sql, isNot(contains('constraint')));
   });
 
   test('header names the right project and the ordering requirement', () {
