@@ -56,7 +56,10 @@ ObservedEstimate? observed({
 /// the first day plus the last day (15 logs).
 ObservedEstimate? steady28({DateTime? at}) => observed(
   food: range(-27, 0),
-  weigh: [...[for (var i = 0; i < 14; i++) -27 + 2 * i], 0],
+  weigh: [
+    ...[for (var i = 0; i < 14; i++) -27 + 2 * i],
+    0,
+  ],
   at: at,
 );
 
@@ -126,7 +129,10 @@ void main() {
     test('24 dense days fails the 35-day food gate and picks 28', () {
       final e = observed(
         food: range(-23, 0),
-        weigh: [...[for (var i = 0; i < 12; i++) -23 + 2 * i], 0],
+        weigh: [
+          ...[for (var i = 0; i < 12; i++) -23 + 2 * i],
+          0,
+        ],
       )!;
       expect(e.windowDays, 28);
       expect(e.spanDays, 23);
@@ -166,17 +172,11 @@ void main() {
     test('food gate is 70%: 9 of 14 fails, 10 of 14 passes', () {
       final weigh = [-13, -10, -7, -4, -1, 0];
       expect(
-        observed(
-          food: [...range(-12, -9), ...range(-4, 0)],
-          weigh: weigh,
-        ),
+        observed(food: [...range(-12, -9), ...range(-4, 0)], weigh: weigh),
         isNull,
       );
       expect(
-        observed(
-          food: [...range(-13, -9), ...range(-4, 0)],
-          weigh: weigh,
-        ),
+        observed(food: [...range(-13, -9), ...range(-4, 0)], weigh: weigh),
         isNotNull,
       );
     });
@@ -330,7 +330,10 @@ void main() {
       expect(
         observed(
           food: range(-27, 0),
-          weigh: [...[for (var i = 0; i < 14; i++) -27 + 2 * i], 0],
+          weigh: [
+            ...[for (var i = 0; i < 14; i++) -27 + 2 * i],
+            0,
+          ],
           kcal: 700,
         ),
         isNull,
@@ -338,11 +341,20 @@ void main() {
     });
 
     test('TDEE below 1000 or above 6000 returns null', () {
-      final weigh = [...[for (var i = 0; i < 14; i++) -27 + 2 * i], 0];
+      final weigh = [
+        ...[for (var i = 0; i < 14; i++) -27 + 2 * i],
+        0,
+      ];
       expect(observed(food: range(-27, 0), weigh: weigh, kcal: 900), isNull);
       expect(observed(food: range(-27, 0), weigh: weigh, kcal: 6500), isNull);
-      expect(observed(food: range(-27, 0), weigh: weigh, kcal: 1000), isNotNull);
-      expect(observed(food: range(-27, 0), weigh: weigh, kcal: 6000), isNotNull);
+      expect(
+        observed(food: range(-27, 0), weigh: weigh, kcal: 1000),
+        isNotNull,
+      );
+      expect(
+        observed(food: range(-27, 0), weigh: weigh, kcal: 6000),
+        isNotNull,
+      );
     });
   });
 }
