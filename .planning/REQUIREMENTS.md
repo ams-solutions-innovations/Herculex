@@ -137,5 +137,5 @@
 | SYNC-01–03 | 25 | Pending |
 | KB-01–05 | 26 | Complete |
 | AIP-01–05 | 27 | Pending |
-| TDEE-01–05 | 28 | Pending |
+| TDEE-01–05 | 28 | Complete |
 | RPT-01–05 | 29 | Pending |

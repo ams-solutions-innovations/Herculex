@@ -47,4 +47,4 @@ Herculex is a Flutter fitness application built on an offline-first architecture
 </details>
 
 ---
-*Last updated: 2026-09-13 after initiating Milestone v2.0*
+*Last updated: 2026-09-28 after Phase 28 (Adaptive TDEE & Activity Calibration) completion*
