@@ -14,6 +14,28 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-09-28 (Phase 28 Plan 11 Completed, Phase 28 code-complete)
+
+- Completed Plan 28-11: phase-level verification. Full `flutter test` 1627 passed / 9 skipped /
+  0 failed; `flutter analyze` 0 errors (44 pre-existing warnings/info); `check_structure` 58
+  pre-existing violations, none new. The 9 skips are the opt-in live-Supabase tests in
+  `test/sync/live_*_test.dart`, unchanged since 2026-09-02 (CLAUDE.md's "4 skipped" is stale).
+
+- Supabase: the user reported "Pushed" for `20260928000000_tdee_estimates_v45.sql` (after 0015
+  and 0016), but supplied no project ref, migration list or verification-query results, and the
+  Supabase MCP was not authorized. This is USER-REPORTED, NOT independently verified. Run the
+  four read-only queries (columns, four RLS policies, two triggers, index) against
+  `ldzgyzigvbwofbswitrv` to close the gap.
+
+- Known limitations (not fixed): the classifier needs step data, so users without Health data
+  stay on the ActivityLevel seed until observed mode qualifies; the `goals_view.dart` activity
+  sheet is not relabelled and has no reset confirm. D-10 (accept/dismiss) is deferred to
+  Phase 29.
+
+- SDK state-advance verbs still no-op on this STATE.md, so this note is hand-written.
+
+---
+
 ## Session update — 2026-09-28 (Phase 28 Plan 09 Completed)
 
 - Completed Plan 28-09 (TDEE-04): `TdeeEstimateBadge` (public, `presentation/widgets`) under

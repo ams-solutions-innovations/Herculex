@@ -252,7 +252,7 @@ Plans:
 
 **Success:** Observed expenditure from logged intake and bodyweight trend becomes the baseline when adherence passes threshold; an activity classifier over `HealthSamples` and logged training supplies the multiplier otherwise; the app picks its own calibration window and cadence without asking the user for a duration; every estimate exposes method, confidence, window, and inputs, and never overrides a manually-set maintenance value; a material shift surfaces in the weekly report instead of silently rewriting confirmed targets.
 
-**Plans:** 10/11 plans executed
+**Plans:** 11/11 plans complete
 
 Plans:
 **Wave 1**
@@ -285,7 +285,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 28-11-PLAN.md — Wave 7: [BLOCKING] user-run Supabase push (0015, 0016 first) + phase-level verification
+- [x] 28-11-PLAN.md — Wave 7: [BLOCKING] user-run Supabase push (0015, 0016 first) + phase-level verification
 
 ### Phase 29: Weekly Report & Herculex AI Narrative
 
