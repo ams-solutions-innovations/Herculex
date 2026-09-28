@@ -14,6 +14,28 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-09-28 (Phase 28 Plan 10 Completed)
+
+- Completed Plan 28-10 (TDEE-02, TDEE-04): `ActivityResetPolicy` (nutrition/domain,
+  pure, unit-tested) and a new `ActivityLevelSection` widget that owns the Profile
+  tiles, caption, confirm dialog and snackbar. Onboarding step reads "How active are
+  you right now?" with a starting-point subtitle. The reset is still just the existing
+  `_onFieldChanged` profile save; plan 07's controller forces the recalibration.
+
+- Decisions: calibrated users get a confirm dialog; a Measured user's snackbar says the
+  estimate stays measured (D-15), others get the next-recalibration text (D-14); the
+  loading state counts as calibrating. `goals_view.dart`'s activity sheet is left
+  unrelabelled (out of UI-SPEC scope) and is a possible follow-up.
+
+- Validation: full `flutter test` 1586 passed / 9 skipped / 0 failed, 0 analyzer
+  errors. Progress 9/11 plans in Phase 28 (28-09 not yet executed). SDK state-advance
+  verbs still no-op, so this note is hand-written.
+
+- Next implementation focus: Plan 28-09 (badge, detail sheet, material-shift prompt),
+  then Plan 28-11 (human-gated migration apply).
+
+---
+
 ## Session update — 2026-09-28 (Phase 28 Plan 08 Completed)
 
 - Completed Plan 28-08 (TDEE-01, TDEE-04): the editor's "Maintenance calories" field
