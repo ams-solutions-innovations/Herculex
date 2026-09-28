@@ -8,6 +8,12 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
+// `bumpUsage()` reads SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY fresh on every
+// call (not as module-load-time constants) specifically so a test can set
+// them here, at test-run time, and have them take effect.
+Deno.env.set("SUPABASE_URL", "https://example.supabase.co");
+Deno.env.set("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key");
+
 const dailyLimit = Number(Deno.env.get("GEMINI_DAILY_LIMIT") ?? "50");
 const dreamPhysiqueLimit = Number(
   Deno.env.get("GEMINI_LIMIT_DREAM_PHYSIQUE") ?? "10",

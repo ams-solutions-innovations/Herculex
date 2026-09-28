@@ -72,13 +72,67 @@ const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.7-flash";
 const geminiFallbackModel = Deno.env.get("GEMINI_FALLBACK_MODEL") ??
   "gemini-3.5-flash-lite";
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL");
-const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+// Namerno brana znotraj `bumpUsage()` ob vsakem klicu (ne kot modulna
+// konstanta) — edini razlog je testljivost: `usage_test.ts` nastavi ti dve
+// spremenljivki znotraj `Deno.test()` (izvede se ob zagonu testa, ne ob
+// uvozu modula), kar modulno konstanto ne bi nikoli ujela. Produkcijsko
+// obnasanje je enako: `Deno.env.get()` med hladnim zagonom funkcije je
+// prakticno brezplacen in se ne spreminja med zivljenjsko dobo instance.
 
-/// Dnevna kvota klicev na uporabnika, skupno cez vse `kind`-e.
+/// Dnevna kvota klicev na uporabnika, ce `kind` ni v `kindLimits` (npr.
+/// neznan/manjkajoc `kind`). Za vseh 8 obstojecih vrst se uporabi
+/// `limitForKind()` spodaj namesto te skupne stevilke.
 /// Nastavljiva prek projektne skrivnosti, da je za spremembo ni treba
 /// redeployati.
 const dailyLimit = Number(Deno.env.get("GEMINI_DAILY_LIMIT") ?? "50");
+
+/// Dnevna kvota na `kind`, locena (D-10, D-11) — izcrpanje ene vrste (npr.
+/// `dream_physique`) ne sme nikoli blokirati druge (npr. `food_photo`) za
+/// preostanek dneva. Vsaka meja je nastavljiva prek svoje projektne
+/// skrivnosti; privzete vrednosti so grobo razvrscene po ceni/pogostosti
+/// klica.
+const kindLimits: Record<GeminiKind, number> = {
+  food_photo: Number(Deno.env.get("GEMINI_LIMIT_FOOD_PHOTO") ?? "30"),
+  rambler_food: Number(Deno.env.get("GEMINI_LIMIT_RAMBLER_FOOD") ?? "30"),
+  nutrition_label: Number(
+    Deno.env.get("GEMINI_LIMIT_NUTRITION_LABEL") ?? "30",
+  ),
+  barcode_product: Number(
+    Deno.env.get("GEMINI_LIMIT_BARCODE_PRODUCT") ?? "30",
+  ),
+  exercise_identification: Number(
+    Deno.env.get("GEMINI_LIMIT_EXERCISE_IDENTIFICATION") ?? "15",
+  ),
+  supplement_photo: Number(
+    Deno.env.get("GEMINI_LIMIT_SUPPLEMENT_PHOTO") ?? "15",
+  ),
+  body_fat_estimate: Number(
+    Deno.env.get("GEMINI_LIMIT_BODY_FAT_ESTIMATE") ?? "15",
+  ),
+  dream_physique: Number(Deno.env.get("GEMINI_LIMIT_DREAM_PHYSIQUE") ?? "10"),
+};
+
+/// Vrne dnevno mejo za `kind`; neznan ali manjkajoc `kind` pade nazaj na
+/// skupni `dailyLimit` (varnostna mreza, ne uveljavljena omejitev).
+export function limitForKind(kind: string | undefined): number {
+  if (kind && Object.prototype.hasOwnProperty.call(kindLimits, kind)) {
+    return kindLimits[kind as GeminiKind];
+  }
+  return dailyLimit;
+}
+
+/// Prikazna imena za D-14 sporocila o preseženi kvoti — poimenujejo tocno
+/// tisto funkcijo, ki je trenutno omejena, namesto splosnega "AI analize".
+const kindDisplayNames: Record<GeminiKind, string> = {
+  food_photo: "Photo food scans",
+  rambler_food: "Voice/text food logging",
+  nutrition_label: "Nutrition label scans",
+  barcode_product: "Barcode lookups",
+  exercise_identification: "Exercise identification scans",
+  supplement_photo: "Supplement scans",
+  body_fat_estimate: "Body fat estimates",
+  dream_physique: "Dream Physique comparisons",
+};
 
 /// Najvecja base64 dolzina ene slike (~1,9 MB izvirnika, ker je base64
 /// +33 %). Prej 12 MB, kar je bilo brez koristi: Gemini slike interno
@@ -127,7 +181,10 @@ Deno.serve(async (req) => {
   }
 
   if (!geminiApiKey) {
-    return json({ error: "Gemini is not configured on the server." }, 503);
+    return json(
+      { error: "Herculex AI is not configured on the server." },
+      503,
+    );
   }
 
   // `verify_jwt = true` (config.toml) pomeni, da je platforma podpis in
@@ -161,12 +218,26 @@ Deno.serve(async (req) => {
     );
   }
 
-  const quota = await bumpUsage(userId, payload.kind ?? "unknown");
+  const quota = await bumpUsage(
+    userId,
+    payload.kind ?? "unknown",
+    limitForKind(payload.kind),
+  );
+  if ("error" in quota) {
+    return json({ error: quota.error }, 503);
+  }
   if (!quota.allowed) {
+    const featureName = payload.kind
+      ? kindDisplayNames[payload.kind as GeminiKind] ?? "AI analyses"
+      : "AI analyses";
+    const manualFallback = payload.kind === "food_photo" ||
+        payload.kind === "rambler_food"
+      ? ", or log this meal manually"
+      : "";
     return json(
       {
         error:
-          `Dnevna kvota za AI analize (${quota.limit}/dan) je presežena. Poskusi jutri.`,
+          `Today's ${featureName} (${quota.limit}/day) are used up — try again tomorrow${manualFallback}.`,
         used: quota.used,
         limit: quota.limit,
       },
@@ -336,7 +407,10 @@ Deno.serve(async (req) => {
       }
 
       default:
-        return json({ error: "Unsupported Gemini analysis kind." }, 400);
+        return json(
+          { error: "Unsupported Herculex AI analysis kind." },
+          400,
+        );
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -351,7 +425,7 @@ Deno.serve(async (req) => {
       errorMessage.startsWith("Gemini API request failed") ||
       errorMessage.startsWith("Gemini server authorization failed")
         ? errorMessage
-        : "Gemini analysis failed. Please try again.";
+        : "Herculex AI analysis failed. Please try again.";
     return json({ error: safeMessage }, 502);
   }
 });
@@ -552,67 +626,78 @@ function stringArray(value: unknown, label: string): string[] {
 
 // ── Kvota ──────────────────────────────────────────────────────────────
 
-/// Steje klic v `public.ai_usage` prek `ai_usage_bump` (migracija 0018) in
-/// pove, ali je dovoljen.
+/// Steje klic v `public.ai_usage` prek `ai_usage_bump` (migracija 0021,
+/// na kind-scoped naslednik 0018-ove razlicice) in pove, ali je dovoljen.
 ///
 /// Steje se PRED klicem na Gemini. Ce bi steli po uspehu, bi bila kvota
 /// obvod za vsakogar, ki zna sprozati zahtevke, ki padejo — zato neuspesen
 /// klic uporabnika stane eno enoto. To je namerno.
 ///
-/// Ce odpove stetje samo (baza nedosegljiva, RPC manjka), zahtevek
-/// SPUSTIMO naprej. AI analiza je uporabnikova funkcionalnost; izpad
-/// obracuna je nasa tezava. Ta izbira je pomembna: ce se kdaj obrne v
-/// "fail closed", naj bo to zavestna odlocitev in ne stranski ucinek
-/// refaktorja.
-///
-/// OPOMBA: podpis RPC-ja je `(p_user_id uuid, p_kind text,
-/// p_daily_limit integer)` in `p_kind` NIMA privzete vrednosti. Klic brez
-/// njega pade, konca tu v fail-open veji, in kvota se tiho nikoli ne
-/// uveljavi — brez sledi v logih razen enega `console.warn`.
-async function bumpUsage(
+/// D-13: ce RPC ne uspe (baza nedosegljiva, ne-200 odgovor), poskusimo se
+/// enkrat; ce odpovesta oba poskusa, zahtevek zavrnemo (fail CLOSED) za
+/// vseh 8 vrst brez izjeme. To obrne prejsnjo fail-open odlocitev iz
+/// 0018 — izpad stetja ne sme vec pomeniti brezplacnih klicev.
+export async function bumpUsage(
   userId: string,
   kind: string,
-): Promise<{ allowed: boolean; used: number; limit: number }> {
-  const failOpen = { allowed: true, used: 0, limit: dailyLimit };
-  if (!supabaseUrl || !serviceRoleKey) return failOpen;
-
-  try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/ai_usage_bump`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": serviceRoleKey,
-        "Authorization": `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({
-        p_user_id: userId,
-        p_kind: kind,
-        p_daily_limit: dailyLimit,
-      }),
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!response.ok) {
-      console.warn("ai_usage_bump failed (failing open)", {
-        status: response.status,
-        body: await response.text(),
-      });
-      return failOpen;
-    }
-
-    // RPC vrne jsonb `{allowed, used, limit}`. Preverjati je treba
-    // `body.allowed`, ne `body !== false` — objekt ni nikoli `false`, zato
-    // bi taksno preverjanje vedno reklo "dovoljeno".
-    const body = await response.json();
+  limit: number,
+): Promise<
+  { allowed: boolean; used: number; limit: number } | { error: string }
+> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) {
     return {
-      allowed: body?.allowed !== false,
-      used: Number(body?.used ?? 0),
-      limit: Number(body?.limit ?? dailyLimit),
+      error: "Herculex AI usage tracking is not configured on the server.",
     };
-  } catch (error) {
-    console.warn("ai_usage_bump threw (failing open)", String(error));
-    return failOpen;
   }
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/rpc/ai_usage_bump`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": serviceRoleKey,
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({
+            p_user_id: userId,
+            p_kind: kind,
+            p_daily_limit: limit,
+          }),
+          signal: AbortSignal.timeout(5000),
+        },
+      );
+
+      if (!response.ok) {
+        console.warn("ai_usage_bump failed", {
+          attempt,
+          status: response.status,
+          body: await response.text(),
+        });
+        continue;
+      }
+
+      // RPC vrne jsonb `{allowed, used, limit}`. Preverjati je treba
+      // `body.allowed`, ne `body !== false` — objekt ni nikoli `false`, zato
+      // bi taksno preverjanje vedno reklo "dovoljeno".
+      const body = await response.json();
+      return {
+        allowed: body?.allowed !== false,
+        used: Number(body?.used ?? 0),
+        limit: Number(body?.limit ?? limit),
+      };
+    } catch (error) {
+      console.warn("ai_usage_bump threw", { attempt, error: String(error) });
+    }
+  }
+
+  return {
+    error: "Herculex AI usage tracking is unavailable. Please try again shortly.",
+  };
 }
 
 // ── Validacija slik ────────────────────────────────────────────────────
