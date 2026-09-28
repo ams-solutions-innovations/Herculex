@@ -3,17 +3,44 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: 2026-09-28T14:42:55.637Z
+last_updated: 2026-09-28T15:00:00.000Z
 progress:
   total_phases: 15
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 53
   completed_plans: 76
-  percent: 53
-stopped_at: Phase 28 complete (11/11) — ready to discuss Phase 29
+  percent: 60
+stopped_at: Phase 26 reconciled as complete (was stale in this file); Phase 28 complete (11/11) — ready to discuss Phase 27
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-28 (Phase 28 loose ends closed; Phase 26 status reconciled)
+
+- Closed the three Phase 28 loose ends: (1) independently verified and actually applied the
+  `tdee_estimates` Supabase migration — the earlier "Pushed" report was checked and found false
+  (migration was still pending remotely); ran `supabase db push` with user go-ahead and confirmed
+  all 12 columns, 4 RLS policies, both triggers and the index via read-only queries. (2) Ran
+  `/gsd-verify-work 28`: 3/6 UAT items passed (badge, detail sheet, HxStatTile), 3 blocked
+  (reset flow, 14-day real-device run) on not being able to run the app right now — recorded as
+  `blocked`, not guessed at. (3) Annotated TDEE-05 in REQUIREMENTS.md as partially delivered
+  (weekly-report half deferred to Phase 29 by design), following the existing KB-02/KB-04
+  convention instead of unticking.
+
+- **Discovered Phase 26 was already fully executed and verified** (7/7 plans, 26-VERIFICATION.md
+  scored 8/8 must-haves, 1 via human override, verified 2026-09-28) but this file's "Current
+  Roadmap" summary still listed it as "Pending" — stale, same class of drift as the CLAUDE.md
+  staleness already flagged. Reconciled the summary list below, `progress.completed_phases`
+  (8 → 9), and `stopped_at`/`Current focus`. Per the non-numeric execution order
+  (26 → 28 → 27 → 22 → 23 → 29 → 24 → 25), with 26 and 28 both actually done, **Phase 27** is
+  next — it has no phase directory yet, so `/gsd:discuss-phase 27` starts fresh.
+
+- Note for whoever picks up Phase 27, 29, or Hercul: KB-04's "labelled AI advice channel" half
+  was deferred out of Phase 26 by explicit human decision and is **not yet claimed by any
+  future phase**. 26-VERIFICATION.md flags Phase 29's weekly-report narrative as the leading
+  candidate to close it.
+
+---
 
 ## Session update — 2026-09-28 (Phase 28 Plan 11 Completed, Phase 28 code-complete)
 
@@ -297,7 +324,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.  
-**Current focus:** Phase 29 — weekly report & herculex ai narrative
+**Current focus:** Phase 27 — Herculex AI program generation (26 and 28 both complete; execution order is 26 → 28 → 27 → 22 → 23 → 29 → 24 → 25)
 
 ---
 
@@ -317,10 +344,10 @@ Execution order is **not** numeric — see ROADMAP.md. Recommended:
 - **Phase 23: Persistent Dream Physique & Multi-Phase Nutrition** — Pending. Scope widened 2026-09-27 (PHYS-05–08: progress screen, weekly check-in cadence, AI verdict, trend charts). PHYS-07 depends on Phase 26.
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending. Must stay last; covers every table added by 23/28/29.
-- **Phase 26: Herculex AI Knowledge Base & Brand Unification** — Pending. Foundational for 27, 29, PHYS-07.
-- **Phase 27: Herculex AI Program Generation** — Pending. Blocked on 26.
-- **Phase 28: Adaptive TDEE & Activity Calibration** — Pending. No AI dependency; feeds 23 and 29.
-- **Phase 29: Weekly Report & Herculex AI Narrative** — Pending. Blocked on 26, 28, 23.
+- **Phase 26: Herculex AI Knowledge Base & Brand Unification** — Complete, 7/7 plans, verified 2026-09-28 (8/8 must-haves, 1 via human override — KB-04's "labelled AI advice channel" half deferred, unclaimed by any future phase; see 26-VERIFICATION.md). Foundational for 27, 29, PHYS-07.
+- **Phase 27: Herculex AI Program Generation** — Pending. Unblocked (26 complete). No phase directory yet.
+- **Phase 28: Adaptive TDEE & Activity Calibration** — Complete, 11/11 plans, verified 2026-09-28. No AI dependency; feeds 23 and 29.
+- **Phase 29: Weekly Report & Herculex AI Narrative** — Pending. Blocked on 23 (26, 28 now complete).
 
 ---
 
