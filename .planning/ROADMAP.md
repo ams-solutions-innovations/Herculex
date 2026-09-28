@@ -252,7 +252,7 @@ Plans:
 
 **Success:** Observed expenditure from logged intake and bodyweight trend becomes the baseline when adherence passes threshold; an activity classifier over `HealthSamples` and logged training supplies the multiplier otherwise; the app picks its own calibration window and cadence without asking the user for a duration; every estimate exposes method, confidence, window, and inputs, and never overrides a manually-set maintenance value; a material shift surfaces in the weekly report instead of silently rewriting confirmed targets.
 
-**Plans:** 7/11 plans executed
+**Plans:** 8/11 plans executed
 
 Plans:
 **Wave 1**
@@ -276,7 +276,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 28-08-PLAN.md — Wave 5: Route editor, phase planner and dream-physique through maintenanceKcalProvider/baselineTargetsProvider
+- [x] 28-08-PLAN.md — Wave 5: Route editor, phase planner and dream-physique through maintenanceKcalProvider/baselineTargetsProvider
 - [ ] 28-10-PLAN.md — Wave 5: Onboarding copy (D-12) + Profile reset caption/confirm/snackbar (D-13–D-15)
 
 **Wave 6** *(blocked on Wave 5 completion)*
