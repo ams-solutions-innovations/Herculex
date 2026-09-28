@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-28T07:46:40.674Z"
+last_updated: "2026-09-28T12:10:54.080Z"
 progress:
   total_phases: 15
   completed_phases: 8
-  total_plans: 42
+  total_plans: 53
   completed_plans: 42
   percent: 53
 ---
@@ -19,6 +19,7 @@ progress:
 - Ran `/gsd:discuss-phase 28`. No SPEC.md, no blocking anti-patterns, no prior CONTEXT.md/plans
   for this phase. Discussed 4 areas: Adherence threshold, Estimate visibility, Material-shift
   handling, Onboarding activity picker (15 decisions, D-01–D-15).
+
 - Key fixes: adherence bar is ~70% of window days with food logged (D-02) plus any bodyweight
   logs in the window (D-01), with sustained-crossing hysteresis (D-03) and a grace period before
   falling back to the classifier (D-04). Estimate surfaces as a badge + tap-through detail next
@@ -29,15 +30,19 @@ progress:
   Phase 29 diffs it itself (D-11), keeping the Phase 28/29 boundary clean since Phase 29 doesn't
   exist yet. Onboarding `ActivityLevel` picker stays, reframed as a starting estimate (D-12),
   and stays editable in Profile post-calibration as a reseed-only manual reset (D-13–D-15).
+
 - Confirmed via code read: the existing `TargetResolver`/`TargetRule` resolution order in
   `target_resolver.dart` already makes TDEE-04 ("never overrides a manually-set value") true by
   construction — a saved `NutritionTargetData` row always wins over `baselineTargetsProvider`,
   so the adaptive estimator only needs to change what the *fallback* returns.
+
 - Deferred: PHYS-04 (underage/low-confidence deficit guardrails) applying to adaptive TDEE is
   noted as a cross-phase constraint on Phase 23 (not yet built) — Phase 28 must not create a
   bypass but doesn't implement the gate itself.
+
 - Files changed: `.planning/phases/28-adaptive-tdee-activity-calibration/28-CONTEXT.md` (new),
   `28-DISCUSSION-LOG.md` (new).
+
 - Next implementation focus: `/gsd:plan-phase 28`.
 
 ---
