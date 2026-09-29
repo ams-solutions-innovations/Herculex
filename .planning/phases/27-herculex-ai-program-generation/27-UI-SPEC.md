@@ -1,7 +1,8 @@
 ---
 phase: 27
 slug: herculex-ai-program-generation
-status: draft
+status: approved
+reviewed_at: 2026-09-29
 shadcn_initialized: false
 preset: none
 created: 2026-09-29
