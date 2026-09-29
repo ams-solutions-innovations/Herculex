@@ -3,16 +3,52 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-29T15:38:13.817Z"
+last_updated: "2026-09-29T19:48:59.592Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 53
+  completed_plans: 54
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-29 (Phase 27 Plan 01 Completed)
+
+- Completed Plan 27-01 (AIP-01), the phase's mandatory first task per CONTEXT.md's
+  explicit sequencing mandate: split the 3398-line `block_builder_view.dart` into a
+  402-line thin shell (widget class, abstract `_BuilderStateBase` field holder,
+  concrete `_BlockBuilderViewState` glue) plus 10 part files under
+  `lib/features/programs/presentation/views/block_builder_view/`, using an
+  abstract-base-plus-`on`-constrained-mixins technique (Dart cannot split one class
+  body across files). Every part file is under 600 lines (max 493).
+
+- Deviations (all mechanical, required to compile the plan's own prescribed
+  technique — see 27-01-SUMMARY.md): split `step_parameters` into two files
+  (`step_parameters.part.dart` + a new `step_parameters_specialization.part.dart`
+  for the primary-lift-specialization modal + helpers) to stay under 600 lines;
+  added `_defaultDayRole` to `step_methods.part.dart` (the plan's group list
+  omitted it); qualified 3 static base-class members
+  (`_stepCount`/`_manualMuscleLabels`/`_today()`) as `_BuilderStateBase.<member>`
+  at their mixin call sites, since Dart does not inherit static members into
+  `on`-bound mixins.
+
+- `_create()` (now in `actions.part.dart`) and `_stepBuildModeAndPriorities()`
+  (now in `step_mode_and_split.part.dart`, containing the exhaustive
+  `switch (mode)`) are confirmed as the exact, stable edit targets plans 27-08,
+  27-11, and 27-13 need — recorded in 27-01-SUMMARY.md's file-to-method map.
+
+- Validation: `flutter analyze` 0 issues (0 errors, 0 warnings, 0 info) across all
+  11 touched files; `flutter test test/block_builder_view_test.dart` 4/4 passing
+  unchanged; full `flutter test` 1627 passed / 9 skipped / 0 failed — matches the
+  Phase 28 baseline exactly, zero regressions. `dart run tool/check_structure.dart`
+  no longer lists `block_builder_view.dart` among its violations.
+
+- Next implementation focus: Plan 27-02 (or next plan in Phase 27's wave order —
+  see 27-PLAN files).
+
+---
 
 ## Session update — 2026-09-28 (Phase 28 loose ends closed; Phase 26 status reconciled)
 
@@ -323,7 +359,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.  
-**Current focus:** Phase 27 — Herculex AI program generation (26 and 28 both complete; execution order is 26 → 28 → 27 → 22 → 23 → 29 → 24 → 25)
+**Current focus:** Phase 27 — herculex-ai-program-generation
 
 ---
 
@@ -344,7 +380,7 @@ Execution order is **not** numeric — see ROADMAP.md. Recommended:
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending. Must stay last; covers every table added by 23/28/29.
 - **Phase 26: Herculex AI Knowledge Base & Brand Unification** — Complete, 7/7 plans, verified 2026-09-28 (8/8 must-haves, 1 via human override — KB-04's "labelled AI advice channel" half deferred, unclaimed by any future phase; see 26-VERIFICATION.md). Foundational for 27, 29, PHYS-07.
-- **Phase 27: Herculex AI Program Generation** — Pending. Unblocked (26 complete). No phase directory yet.
+- **Phase 27: Herculex AI Program Generation** — In progress, 1/13 plans (27-01 complete: block_builder_view.dart split into part/part-of mixins, ahead of the AI wiring plans).
 - **Phase 28: Adaptive TDEE & Activity Calibration** — Complete, 11/11 plans, verified 2026-09-28. No AI dependency; feeds 23 and 29.
 - **Phase 29: Weekly Report & Herculex AI Narrative** — Pending. Blocked on 23 (26, 28 now complete).
 

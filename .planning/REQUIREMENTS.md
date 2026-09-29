@@ -96,7 +96,7 @@
 
 ### 13. Herculex AI Program Generation (Phase 27)
 
-- [ ] **AIP-01**: `ProgramBuildMode` gains a fourth mode so the builder offers both a manual path and a Herculex AI path.
+- [x] **AIP-01**: `ProgramBuildMode` gains a fourth mode so the builder offers both a manual path and a Herculex AI path.
 - [ ] **AIP-02**: Herculex AI returns a program design brief (split, periodization model, weekly day roles, muscle priorities, phase intent, rationale) and never an exercise list; `SmartProgramPlanner` remains the sole exercise selector.
 - [ ] **AIP-03**: The brief is validated against a strict schema and rejected, falling back to the deterministic recommendation, if it violates any existing guardrail.
 - [ ] **AIP-04**: An AI-generated program enters the existing review gate archived and unactivated, shows its rationale per day, and requires explicit user confirmation.
