@@ -250,3 +250,9 @@ None - no external service configuration required.
 ---
 *Phase: 27-herculex-ai-program-generation*
 *Completed: 2026-09-29*
+
+## Self-Check: PASSED
+
+All 11 created/modified source files and the SUMMARY.md itself verified present on
+disk; all 3 task/docs commit hashes (`a86fec1`, `21abb6d`, `d0b7de5`) verified present
+in `git log --oneline --all`.
