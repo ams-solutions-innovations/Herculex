@@ -3,16 +3,59 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-29T19:48:59.592Z"
+last_updated: "2026-09-29T21:15:09.506Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 54
+  completed_plans: 55
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-29 (Phase 27 Plan 02 Completed)
+
+- Completed Plan 27-02 (AIP-03, partial), the D-07-mandated pre-refactor gap closure:
+  added 6 new widget tests to `test/block_builder_view_test.dart` pinning `_create()`'s
+  two current inline guardrail `StateError` throws (Max-Effort-per-week > 2, and 6-day-PPL
+  + Max Effort) across manual/smart/guided build modes, against the UNREFACTORED code.
+  Closes RESEARCH.md's Pitfall 4 / Wave-0 gap — no prior test exercised either throw.
+
+- Manual mode's current exemption from both checks (creates successfully instead of
+  throwing, since both conditions are gated on `buildMode != manual`) is now proven by
+  test, not just read from the source — this is the exact baseline plan 27-08 must
+  preserve when it retrofits every build mode onto the new shared
+  `ProgramGuardrails.validateConfiguration()` method.
+
+- Recorded reusable tap sequences in 27-02-SUMMARY.md for plan 27-08: `SplitType.abc`
+  isolates the per-week Max-Effort-count condition (3 distinct non-PPL slots), while
+  `SplitType.ppl` + `PeriodizationModel.maxEffort` isolates the 6-day-PPL condition
+  without also tripping the count condition. Exact current message text recorded
+  verbatim, including the em dash in the periodization label and the en dash in the
+  PPL rejection message.
+
+- **AIP-03 left unchecked in REQUIREMENTS.md** (annotated, not marked complete): this
+  plan only adds the pre-refactor safety net. No guardrail extraction, AI-brief strict
+  schema validation, or fallback-to-deterministic behavior exists yet — those are plan
+  27-08 and later plans' work. The SDK's `requirements.mark-complete` verb ticked the
+  box automatically; reverted to `[ ]` with an explanatory annotation, following the
+  existing KB-02/KB-04/TDEE-05 partial-completion convention.
+
+- **Environment note (not a code defect):** full-repo `flutter analyze`/`flutter test`
+  could not be completed this session — three attempts hung indefinitely with near-zero
+  CPU progress, alongside three long-lived VS Code `flutter daemon` processes and general
+  machine-wide slowness (even a plain `Get-Process` call took >120s at one point). The
+  scoped verification the plan's own `<verification>` block asks for
+  (`flutter analyze test/block_builder_view_test.dart` and
+  `flutter test test/block_builder_view_test.dart`) both passed cleanly before the
+  contention began (0 issues, 10/10 tests). **Re-run the full suite once the machine is
+  free of this contention**, before the phase gate.
+
+- Next implementation focus: Plan 27-03 (or next plan in Phase 27's wave order — see
+  27-*-PLAN.md files; 27-08 is the guardrail-extraction plan this test net unblocks).
+
+---
 
 ## Session update — 2026-09-29 (Phase 27 Plan 01 Completed)
 
@@ -380,7 +423,7 @@ Execution order is **not** numeric — see ROADMAP.md. Recommended:
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending. Must stay last; covers every table added by 23/28/29.
 - **Phase 26: Herculex AI Knowledge Base & Brand Unification** — Complete, 7/7 plans, verified 2026-09-28 (8/8 must-haves, 1 via human override — KB-04's "labelled AI advice channel" half deferred, unclaimed by any future phase; see 26-VERIFICATION.md). Foundational for 27, 29, PHYS-07.
-- **Phase 27: Herculex AI Program Generation** — In progress, 1/13 plans (27-01 complete: block_builder_view.dart split into part/part-of mixins, ahead of the AI wiring plans).
+- **Phase 27: Herculex AI Program Generation** — In progress, 2/13 plans (27-01 complete: block_builder_view.dart split into part/part-of mixins; 27-02 complete: pre-refactor characterization tests for _create()'s inline guardrail throws, ahead of the AI wiring plans).
 - **Phase 28: Adaptive TDEE & Activity Calibration** — Complete, 11/11 plans, verified 2026-09-28. No AI dependency; feeds 23 and 29.
 - **Phase 29: Weekly Report & Herculex AI Narrative** — Pending. Blocked on 23 (26, 28 now complete).
 

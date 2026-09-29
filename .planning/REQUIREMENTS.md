@@ -98,7 +98,7 @@
 
 - [x] **AIP-01**: `ProgramBuildMode` gains a fourth mode so the builder offers both a manual path and a Herculex AI path.
 - [ ] **AIP-02**: Herculex AI returns a program design brief (split, periodization model, weekly day roles, muscle priorities, phase intent, rationale) and never an exercise list; `SmartProgramPlanner` remains the sole exercise selector.
-- [ ] **AIP-03**: The brief is validated against a strict schema and rejected, falling back to the deterministic recommendation, if it violates any existing guardrail.
+- [ ] **AIP-03**: The brief is validated against a strict schema and rejected, falling back to the deterministic recommendation, if it violates any existing guardrail. _(27-02 laid the pre-refactor groundwork: `_create()`'s two current inline guardrail checks are now pinned by characterization tests across manual/smart/guided modes, so plan 27-08's extraction into `ProgramGuardrails.validateConfiguration()` — and the still-unbuilt AI-brief strict-schema validation and fallback — have a regression net. No guardrail extraction, schema validation, or fallback behavior exists yet.)_
 - [ ] **AIP-04**: An AI-generated program enters the existing review gate archived and unactivated, shows its rationale per day, and requires explicit user confirmation.
 - [ ] **AIP-05**: AI generation degrades to the existing Smart/Guided path when offline, unconfigured, or over quota.
 
