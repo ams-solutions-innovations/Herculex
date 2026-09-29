@@ -2,8 +2,55 @@ import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/features/programs/presentation/views/block_builder_view.dart';
+import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
+
+import 'support/test_database.dart';
+
+/// Pumps [BlockBuilderView] with the given in-memory [db] wired in, at the
+/// same large logical viewport the rest of this file uses so every step's
+/// content lays out without needing to scroll to find a tap target.
+Future<void> _pumpBuilder(WidgetTester tester, AppDatabase db) async {
+  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [appDatabaseProvider.overrideWithValue(db)],
+      child: const MaterialApp(
+        home: BlockBuilderView(autoRecommendExperience: false),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
+/// Taps the pinned "Continue" footer button and settles the resulting step
+/// transition, mirroring the tap/pump/pump(100ms) pattern already used by
+/// every other test in this file.
+Future<void> _continue(WidgetTester tester) async {
+  await tester.tap(find.text('Continue'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
+/// Taps "Create block" and pumps enough frames for the async `_create()` to
+/// run to completion (either the caught-StateError SnackBar path, or a
+/// successful navigation to `ProgramReviewView`).
+Future<void> _createBlock(WidgetTester tester) async {
+  await tester.tap(find.text('Create block'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+  await tester.pump(const Duration(milliseconds: 300));
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -317,5 +364,179 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 10));
+  });
+
+  // D-07 characterization: _create()'s two inline guardrail StateError
+  // throws (Max-Effort-per-week > 2, and 6-day-PPL + Max Effort) are pinned
+  // here BEFORE plan 27-08 extracts them into
+  // ProgramGuardrails.validateConfiguration(), so a message-text or
+  // trigger-condition change during that refactor is caught immediately.
+  // Both throws are gated on `_buildMode != ProgramBuildMode.manual`, so the
+  // manual-mode cases assert the opposite: no throw, successful creation.
+  group('D-07 characterization: _create() inline guardrail throws', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = await openTestDatabase();
+    });
+
+    tearDown(() => db.close());
+
+    const maxEffortPerWeekMessage =
+        'A Smart program can use at most two Max Effort patterns per week.';
+    const sixDayPplMessage =
+        'A six-day PPL would create three Max Effort days. Use per-slot Max '
+        'Effort or choose a Conjugate 3–4 day structure.';
+
+    /// Drives Step 1 (mode) -> Step 4 (split) with an A/B/C split (3 distinct
+    /// day slots, not PPL) so Step 5 offers exactly 3 "Max Effort" tap
+    /// targets, one per slot, without also tripping the 6-day-PPL condition.
+    Future<void> selectModeAndAbcSplit(
+      WidgetTester tester,
+      String modeLabel,
+    ) async {
+      await tester.tap(find.text(modeLabel));
+      await tester.pump();
+      await _continue(tester); // Step 1 -> Step 2 (exercise pools)
+      await _continue(tester); // Step 2 -> Step 3 (training parameters)
+      await _continue(tester); // Step 3 -> Step 4 (split)
+
+      await tester.tap(find.text('A / B / C'));
+      await tester.pump();
+      await _continue(tester); // Step 4 -> Step 5 (content & methods)
+    }
+
+    /// Drives Step 1 (mode) -> Step 5 with a 6-day Push/Pull/Legs split and
+    /// the Max Effort periodization model selected, leaving every day's main
+    /// exercise method at its Auto default so only the split+model condition
+    /// can trip, never the per-day Max-Effort-count condition.
+    Future<void> selectModeAndSixDayPplMaxEffort(
+      WidgetTester tester,
+      String modeLabel,
+    ) async {
+      await tester.tap(find.text(modeLabel));
+      await tester.pump();
+      await _continue(tester); // Step 1 -> Step 2 (exercise pools)
+      await _continue(tester); // Step 2 -> Step 3 (training parameters)
+
+      await tester.tap(find.text('Max Effort — Westside (Conjugate)'));
+      await tester.pump();
+      await _continue(tester); // Step 3 -> Step 4 (split)
+
+      await tester.tap(find.text('Push / Pull / Legs'));
+      await tester.pump();
+      await _continue(tester); // Step 4 -> Step 5 (content & methods)
+    }
+
+    testWidgets('smart mode: >2 Max Effort days throws and shows the '
+        'per-week message', (tester) async {
+      await _pumpBuilder(tester, db);
+      await selectModeAndAbcSplit(tester, 'Build it for me');
+
+      // Select "Max Effort" as the main exercise method for all 3 slots
+      // (A, B, C) - one "Max Effort" choice chip renders per slot card.
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.text('Max Effort').at(i));
+        await tester.pump();
+      }
+
+      await _continue(tester); // Step 5 -> Step 6 (schedule)
+      await _createBlock(tester);
+
+      expect(find.textContaining(maxEffortPerWeekMessage), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+
+    testWidgets('smart mode: 6-day PPL + Max Effort throws and shows the '
+        'PPL message', (tester) async {
+      await _pumpBuilder(tester, db);
+      await selectModeAndSixDayPplMaxEffort(tester, 'Build it for me');
+
+      await _continue(tester); // Step 5 -> Step 6 (schedule)
+      await _createBlock(tester);
+
+      expect(find.textContaining(sixDayPplMessage), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+
+    testWidgets('guided mode: >2 Max Effort days throws and shows the '
+        'per-week message', (tester) async {
+      await _pumpBuilder(tester, db);
+      await selectModeAndAbcSplit(tester, 'Guide me');
+
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.text('Max Effort').at(i));
+        await tester.pump();
+      }
+
+      await _continue(tester); // Step 5 -> Step 6 (schedule)
+      await _createBlock(tester);
+
+      expect(find.textContaining(maxEffortPerWeekMessage), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+
+    testWidgets('guided mode: 6-day PPL + Max Effort throws and shows the '
+        'PPL message', (tester) async {
+      await _pumpBuilder(tester, db);
+      await selectModeAndSixDayPplMaxEffort(tester, 'Guide me');
+
+      await _continue(tester); // Step 5 -> Step 6 (schedule)
+      await _createBlock(tester);
+
+      expect(find.textContaining(sixDayPplMessage), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    });
+
+    testWidgets(
+      'manual mode: >2 Max Effort days does NOT throw - manual is exempt '
+      'and the block is created successfully',
+      (tester) async {
+        await _pumpBuilder(tester, db);
+        await selectModeAndAbcSplit(tester, 'Start from scratch');
+
+        for (var i = 0; i < 3; i++) {
+          await tester.tap(find.text('Max Effort').at(i));
+          await tester.pump();
+        }
+
+        await _continue(tester); // Step 5 -> Step 6 (schedule)
+        await _createBlock(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Could not create the block'), findsNothing);
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'manual mode: 6-day PPL + Max Effort does NOT throw - manual is '
+      'exempt and the block is created successfully',
+      (tester) async {
+        await _pumpBuilder(tester, db);
+        await selectModeAndSixDayPplMaxEffort(tester, 'Start from scratch');
+
+        await _continue(tester); // Step 5 -> Step 6 (schedule)
+        await _createBlock(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Could not create the block'), findsNothing);
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
   });
 }
