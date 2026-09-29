@@ -459,9 +459,9 @@ structure at lines 341-394, minus the image-handling — this call is text-only,
 | A2 | 0015/0016 Supabase migrations are applied (inferred from `STATE.md`'s "after 0015 and 0016" phrasing, not independently re-verified via direct Supabase query in this research session) | State of the Art, Deprecated/outdated | If actually unapplied, Phase 27's new `supabase/migrations/*_v46.sql` could apply cleanly in isolation (each migration is independent SQL) but `SyncService`'s general `SELECT *` sync behavior for *other* tables could still be broken — worth a quick `supabase migration list` confirmation before Phase 27's Wave with the [BLOCKING] db-push task, not a hard blocker for planning itself |
 | A3 | A new `generateProgramBrief()`-style backend method returning `(result, provenance)` is the right shape, vs. changing `_resultMap`/`_invoke` globally to always surface provenance | Common Pitfalls, Pitfall 2; Standard Stack, Alternatives Considered | Low risk either way — purely an internal API design choice with no behavioral difference to other features if done correctly; flagged as Claude's Discretion territory in CONTEXT.md, not a locked decision |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Per-kind quota number for `program_brief`**
+1. **Per-kind quota number for `program_brief`** (RESOLVED — see 27-06-PLAN.md, quota set to 10/day, matching the recommendation below)
    - What we know: CONTEXT.md explicitly leaves this to Claude's Discretion, "informed by
      Phase 26's already-decided tiering shape (cheap-frequent > occasional >
      expensive-multi-image)." Existing tiers: `food_photo`/`rambler_food`/
@@ -475,7 +475,7 @@ structure at lines 341-394, minus the image-handling — this call is text-only,
      it's an "occasional, deliberate action" use case (Generate/Regenerate, D-04), not a
      recurring scan. Final number is genuinely discretionary; not a research blocker.
 
-2. **Exact `HerculexAiProgramBriefs` column names / JSON shape for `knowledgeVersion` and per-day rationale**
+2. **Exact `HerculexAiProgramBriefs` column names / JSON shape for `knowledgeVersion` and per-day rationale** (RESOLVED — see 27-04-PLAN.md, single `briefJson` blob + queryable metadata columns, matching the recommendation below)
    - What we know: D-08 fixes the required columns' *meaning* (source, knowledgeVersion,
      programId link, per-day rationale) but not exact names; D-09 fixes that per-day
      rationale is a structured array, not a flat string.

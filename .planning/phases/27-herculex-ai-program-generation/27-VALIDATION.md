@@ -1,8 +1,8 @@
 ---
 phase: 27
 slug: herculex-ai-program-generation
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-09-29
 ---
@@ -60,7 +60,9 @@ created: 2026-09-29
 
 ## Manual-Only Verifications
 
-*None — all phase behaviors identified so far have automated verification paths (see Per-Task Verification Map). If the planner identifies a UI-only interaction that can't be asserted via `flutter_test` (e.g. a live Gemini call requiring a real API key), add it here.*
+| Behavior | Requirement | Why Manual | Test Instructions |
+|----------|-------------|------------|-------------------|
+| Supabase migration v46 push (`supabase db push`) lands correctly on the live project | D-08 (schema chore 5) | Live infra push against a real Supabase project — no local `flutter test` can assert cloud DB state | 27-10-PLAN.md Task 2 (`checkpoint:human-verify`): run the push, then independently verify via 4 read-only queries (table exists, RLS policies present, triggers installed, realtime publication includes the table) before marking the checkpoint resolved |
 
 ---
 
