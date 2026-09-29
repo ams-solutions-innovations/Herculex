@@ -244,6 +244,34 @@ Plans:
 
 **Success:** The builder offers a manual path and a Herculex AI path; the AI returns a design brief (split, periodization, day roles, muscle priorities, phase intent, rationale) and never an exercise list; a brief violating any Phase 16–21 guardrail is rejected with fallback to the deterministic recommendation; generated programs land archived and unactivated in the existing review gate with per-day rationale; offline, unconfigured, or over-quota states degrade to the existing Smart/Guided path.
 
+**Plans:** 13 plans in 4 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 27-01-PLAN.md — Wave 1: Split block_builder_view.dart into a part/part-of subfolder (mechanical, zero behavior change — prerequisite for every later edit to this file)
+- [ ] 27-02-PLAN.md — Wave 1: D-07 characterization tests for _create()'s current inline Max-Effort/6-day-PPL guardrail throws, before the extraction touches them
+- [ ] 27-03-PLAN.md — Wave 1: ProgramBrief domain model — strict enum rejection (D-02), AIP-02 exercise-field prohibition, toJson/fromJson round-trip
+- [ ] 27-04-PLAN.md — Wave 1: HerculexAiProgramBriefs drift table + schema v46 (5-chore bump, chores 1–4)
+- [ ] 27-05-PLAN.md — Wave 1: GeminiBackend.generateProgramBrief() + provenance-returning helper (3-tier interface)
+- [ ] 27-06-PLAN.md — Wave 1: Edge Function program_brief kind — prompt, quota tier, strict server-side normalizer
+- [ ] 27-07-PLAN.md — Wave 1: AiBriefRejectionBanner + AiDayRationaleCard widget primitives
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 27-08-PLAN.md — Wave 2: Extract Max-Effort/6-day-PPL guardrail into ProgramGuardrails.validateConfiguration() (D-06), retrofit _create() for all build modes (D-07)
+- [ ] 27-09-PLAN.md — Wave 2: HerculexAiBriefService — generate/parse/persist/read, AIP-05 failure-category translation
+- [ ] 27-10-PLAN.md — Wave 2: Supabase migration for herculex_ai_program_briefs v46 + [BLOCKING] db push, independently verified
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 27-11-PLAN.md — Wave 3: ProgramBuildMode.herculexAi + 4th mode tile, Generate/Regenerate, guardrail validation, rejection/offline/quota failure states
+- [ ] 27-12-PLAN.md — Wave 3: Per-day AI rationale rendering in ProgramReviewView, conditional on an active Herculex AI brief
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 27-13-PLAN.md — Wave 4: Pre-fill Step 1–5 from the accepted brief via the existing Dream Physique tuning seam (D-01), persist the brief on program creation (D-08)
+
 ### Phase 28: Adaptive TDEE & Activity Calibration
 
 **Goal:** Replace the hand-picked activity multiplier with a measured expenditure estimate that the app calibrates and re-calibrates on its own cadence.
