@@ -3,14 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-29T14:27:56.704Z"
+last_updated: "2026-09-29T15:38:13.817Z"
 progress:
   total_phases: 15
   completed_phases: 9
-  total_plans: 53
-  completed_plans: 76
+  total_plans: 66
+  completed_plans: 53
   percent: 60
-stopped_at: Phase 27 context gathered (26-CONTEXT.md/28-CONTEXT.md discussions carried forward); ready to plan Phase 27
 ---
 
 # Project State: Milestone v2.0
