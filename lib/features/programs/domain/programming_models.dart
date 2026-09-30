@@ -9,7 +9,8 @@ import 'package:herculex/features/programs/domain/slot_role.dart';
 enum ProgramBuildMode {
   smart('smart', 'Build it for me'),
   guided('guided', 'Guide me'),
-  manual('manual', 'Start from scratch');
+  manual('manual', 'Start from scratch'),
+  herculexAi('herculex_ai', 'Herculex AI');
 
   const ProgramBuildMode(this.id, this.label);
   final String id;

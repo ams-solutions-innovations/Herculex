@@ -26,6 +26,9 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
                   'Start with recommendations, then tune every important choice.',
                 ProgramBuildMode.manual =>
                   'Create the structure yourself with no automatic exercise selection.',
+                ProgramBuildMode.herculexAi =>
+                  'Herculex AI drafts a design brief — split, periodization and day '
+                      'focus — grounded in your goals. You review and confirm every choice.',
               },
               selected: _buildMode == mode,
               onTap: () => setState(() => _buildMode = mode),
