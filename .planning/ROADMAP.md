@@ -244,7 +244,7 @@ Plans:
 
 **Success:** The builder offers a manual path and a Herculex AI path; the AI returns a design brief (split, periodization, day roles, muscle priorities, phase intent, rationale) and never an exercise list; a brief violating any Phase 16–21 guardrail is rejected with fallback to the deterministic recommendation; generated programs land archived and unactivated in the existing review gate with per-day rationale; offline, unconfigured, or over-quota states degrade to the existing Smart/Guided path.
 
-**Plans:** 10/13 plans executed
+**Plans:** 11/13 plans executed
 
 Plans:
 **Wave 1**
@@ -265,7 +265,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 27-11-PLAN.md — Wave 3: ProgramBuildMode.herculexAi + 4th mode tile, Generate/Regenerate, guardrail validation, rejection/offline/quota failure states
+- [x] 27-11-PLAN.md — Wave 3: ProgramBuildMode.herculexAi + 4th mode tile, Generate/Regenerate, guardrail validation, rejection/offline/quota failure states
 - [ ] 27-12-PLAN.md — Wave 3: Per-day AI rationale rendering in ProgramReviewView, conditional on an active Herculex AI brief
 
 **Wave 4** *(blocked on Wave 3 completion)*

@@ -3,16 +3,72 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T09:11:19.972Z"
+last_updated: "2026-09-30T09:56:13.964Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 62
+  completed_plans: 64
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 11 Completed)
+
+- Completed Plan 27-11 (AIP-01 reconfirmed, AIP-03, AIP-05): wired the Herculex AI
+  mode into `block_builder_view.dart`'s Step 1 mode picker — the 4th
+  `ProgramBuildMode.herculexAi` value, its mode-picker tile (UI-SPEC copy verbatim),
+  and an explicit "Generate with Herculex AI" action (D-04: never auto-fired on mode
+  selection, exactly one `generateBrief()` call per Generate/Regenerate tap).
+
+- `_generateHerculexBrief()` (`actions.part.dart`) is the full state machine: calls
+  `HerculexAiBriefService.generateBrief()`, then `ProgramGuardrails
+  .validateConfiguration()` against the parsed brief's own `splitType`/
+  `periodizationModel` (empty `mainMethodByDayLabel` — documented inline per the
+  plan's interfaces section, since the brief never assigns per-day methods). Three
+  distinct outcomes, each leaving the existing Smart/Guided recommendation as the
+  active state (never a dead end): guardrail-passing success (`Applied` status chip
+  + `Regenerate`, brief stored in `_acceptedHerculexBrief`/`_herculexBriefProvenance`
+  for plan 27-13 to consume), guardrail rejection (`AiBriefRejectionBanner` with the
+  validator's verbatim message, D-05), and the two distinct AIP-05 degradation
+  messages (offline/unconfigured vs. over-quota, via
+  `HerculexAiBriefException.isQuotaExhausted`).
+
+- `AiBriefRejectionBanner` (plan 27-07) is reused for both D-05's 3-part
+  heading/body/footer message and AIP-05's single-sentence degradation copy (full
+  sentence in `heading`, empty `body`/`footer`) — one widget, two field-population
+  shapes, per its caller-supplies-everything contract.
+
+- **REQUIREMENTS.md: AIP-03 and AIP-05 marked complete.** Both were waiting
+  specifically on this plan's UI wiring (the guardrail call + fallback for AIP-03,
+  the degrade-to-Smart/Guided UI for AIP-05) per 27-08/27-09's explicit unchecked
+  annotations. AIP-01 was already checked from 27-01's context but is now backed by
+  a real 4th enum value. AIP-04 remains unchecked (plan 27-12's job — per-day
+  rationale + review-gate wiring in `program_review_view.dart`, untouched by this
+  plan).
+
+- Validation: `flutter test test/block_builder_view_test.dart` — 17/17 passing (10
+  pre-existing unchanged + 7 new covering every behavior case: no auto-fire on tile
+  select, one call per tap, success+Applied, guardrail rejection, offline/
+  unconfigured degradation, over-quota degradation, Regenerate re-fires exactly one
+  new call). `flutter analyze` on all touched files — 0 issues. Full-repo `flutter
+  analyze` — 0 errors (42 pre-existing warnings/info, matching the 27-08/27-09
+  baseline, none new). `wc -l` confirms all touched files stay well under the
+  600-line cap (`block_builder_view.dart` 419, `step_mode_and_split.part.dart` 547,
+  `actions.part.dart` 272). SDK `roadmap.update-plan-progress 27` and
+  `requirements.mark-complete` both worked and were used; `state.advance-plan`/
+  `state.update-progress`/`state.record-metric`/`state.add-decision` still error/
+  no-op on this STATE.md format ("Cannot parse Current Plan or Total Plans in
+  STATE.md" / "Progress field not found" / "phase, plan, and duration required" /
+  "summary required"), so this section is hand-written.
+
+- Next implementation focus: Plan 27-12 (per-day AI rationale rendering +
+  `program_review_view.dart` wiring) — the last plan before Wave 3 closes; Plan
+  27-13 (pre-fill/persistence wiring, consuming this plan's
+  `_acceptedHerculexBrief`/`_herculexBriefProvenance`) is Wave 4.
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 10 Completed — Wave 2 done)
 
