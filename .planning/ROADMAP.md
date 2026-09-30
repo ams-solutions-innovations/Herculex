@@ -244,7 +244,7 @@ Plans:
 
 **Success:** The builder offers a manual path and a Herculex AI path; the AI returns a design brief (split, periodization, day roles, muscle priorities, phase intent, rationale) and never an exercise list; a brief violating any Phase 16–21 guardrail is rejected with fallback to the deterministic recommendation; generated programs land archived and unactivated in the existing review gate with per-day rationale; offline, unconfigured, or over-quota states degrade to the existing Smart/Guided path.
 
-**Plans:** 12/13 plans executed
+**Plans:** 13/13 plans complete
 
 Plans:
 **Wave 1**
@@ -270,7 +270,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 27-13-PLAN.md — Wave 4: Pre-fill Step 1–5 from the accepted brief via the existing Dream Physique tuning seam (D-01), persist the brief on program creation (D-08)
+- [x] 27-13-PLAN.md — Wave 4: Pre-fill Step 1–5 from the accepted brief via the existing Dream Physique tuning seam (D-01), persist the brief on program creation (D-08)
 
 ### Phase 28: Adaptive TDEE & Activity Calibration
 

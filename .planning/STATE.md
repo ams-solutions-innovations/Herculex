@@ -6,13 +6,60 @@ status: ready_to_plan
 last_updated: "2026-09-30T10:37:03.994Z"
 progress:
   total_phases: 15
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 66
-  completed_plans: 65
-  percent: 60
+  completed_plans: 66
+  percent: 63
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 13 Completed — Phase 27 COMPLETE, 13/13 plans)
+
+- Completed Plan 27-13 (AIP-01, AIP-02, AIP-04), the final plan of the phase: wired the
+  accepted Herculex AI brief's `musclePriorities` through the existing Dream Physique tuning
+  seam (D-01), `splitType`/`periodizationModel` directly into `_split`/`_model` (D-03), and
+  added `HerculexAiBriefService.persistBrief()` to `_create()` so an AI-built program's brief
+  is persisted with provenance exactly once, never for other modes, non-fatally on failure
+  (D-08). `phaseIntent` is surfaced via 27-11's existing mode-picker subtitle, no new field
+  needed.
+
+- **Session note:** this plan's first execution attempt was cut off mid-task by a Claude Code
+  session rate limit. On resume, the partial working-tree changes were inspected (not
+  discarded) — most of Task 1/2 were already correct; only cleanup, tests, and documentation
+  remained.
+
+- **Real bug found and fixed while finishing this plan's test coverage (Rule 1, in scope):**
+  `_create()`'s non-manual follow-up path calls
+  `JointPainRepository.watchCurrentStatuses().first`, which hangs indefinitely under widget-test
+  `FakeAsync` — the exact same class of bug 27-12 already found and fixed for
+  `HerculexAiBriefService.watchBriefForProgram()`. No test before this plan ever exercised the
+  full non-manual create-block success path all the way to `ProgramReviewView` (the D-07
+  characterization tests all expect a guardrail throw; the manual-mode tests skip this code
+  path entirely since manual mode is exempt from it), so this was never caught until now. Fixed
+  by adding `JointPainRepository.currentStatuses()`, a one-shot equivalent, mirroring 27-12's
+  exact fix shape.
+
+- Validation: `flutter test test/block_builder_view_test.dart` 24/24 passing (up from 17),
+  `flutter test test/joint_pain_repository_test.dart` 7/7 passing, `flutter analyze` 0 errors
+  on all touched files.
+
+- **Phase 27 (Herculex AI Program Generation) is complete — 13/13 plans, AIP-01 through
+  AIP-05 all satisfied.** Every wave's post-merge test gate was run and stayed clean
+  throughout (Wave 1: 1687 tests / found+fixed one real cross-plan FK-inventory regression;
+  Wave 2: 1708 tests, 0 failures; Wave 3: 1721 tests, 0 failures). The end-to-end Herculex AI
+  flow works: select mode -> Generate -> guardrail-validated brief pre-fills Step 1-5
+  (hand-editable) -> Create block -> persisted brief with provenance -> per-day rationale on
+  the review screen (27-12) -> explicit confirmation via the unchanged `_confirm()`.
+
+- A live production change was made this session with explicit user approval: plan 27-10's
+  Supabase migration for `herculex_ai_program_briefs` was pushed to `ldzgyzigvbwofbswitrv` and
+  independently verified via 4 read-only queries (11 columns, 4 RLS policies, 2 triggers,
+  1 index) — see 27-10-SUMMARY.md.
+
+- Next implementation focus: per the roadmap's non-numeric execution order
+  (26 → 28 → 27 → 22 → 23 → 29 → 24 → 25), Phase 22 (Primary Lift Strength Specialization) is
+  next. `/gsd:discuss-phase 22` to start.
 
 ## Session update — 2026-09-30 (Phase 27 Plan 12 Completed)
 
@@ -940,7 +987,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.  
-**Current focus:** Phase 27 — herculex-ai-program-generation
+**Current focus:** Phase 22 — primary-lift-strength-specialization (27, 26, 28 all complete; execution order is 26 → 28 → 27 → 22 → 23 → 29 → 24 → 25)
 
 ---
 
@@ -961,7 +1008,7 @@ Execution order is **not** numeric — see ROADMAP.md. Recommended:
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending. Must stay last; covers every table added by 23/28/29.
 - **Phase 26: Herculex AI Knowledge Base & Brand Unification** — Complete, 7/7 plans, verified 2026-09-28 (8/8 must-haves, 1 via human override — KB-04's "labelled AI advice channel" half deferred, unclaimed by any future phase; see 26-VERIFICATION.md). Foundational for 27, 29, PHYS-07.
-- **Phase 27: Herculex AI Program Generation** — In progress, 9/13 plans (27-01 block_builder_view.dart split; 27-02 pre-refactor characterization tests; 27-03 ProgramBrief strict-parsing domain model; 27-04 HerculexAiProgramBriefs schema v46; 27-05 GeminiBackend.generateProgramBrief(); 27-06 Edge Function program_brief kind; 27-07 AiBriefRejectionBanner/AiDayRationaleCard widgets; 27-08 ProgramGuardrails.validateConfiguration() extraction; 27-09 complete: HerculexAiBriefService, the generate/parse/persist/read seam — AIP-02 closed, AIP-03/05 still need 27-11's UI wiring).
+- **Phase 27: Herculex AI Program Generation** — Complete, 13/13 plans, 2026-09-30. AIP-01–05 all satisfied. Full end-to-end flow: mode selection, generation, guardrail validation, pre-fill into existing editable screens, persisted brief with provenance, per-day rationale on the review screen, explicit confirmation. Supabase migration for `herculex_ai_program_briefs` applied and independently verified live on `ldzgyzigvbwofbswitrv`.
 - **Phase 28: Adaptive TDEE & Activity Calibration** — Complete, 11/11 plans, verified 2026-09-28. No AI dependency; feeds 23 and 29.
 - **Phase 29: Weekly Report & Herculex AI Narrative** — Pending. Blocked on 23 (26, 28 now complete).
 
