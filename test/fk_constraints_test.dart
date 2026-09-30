@@ -32,8 +32,8 @@ class _FkEdge {
 
 /// The full, hard-coded inventory of every foreign key declared in
 /// `lib/data/local/tables.dart` (emitted in `database.g.dart`), captured by
-/// `PRAGMA foreign_key_list` against a freshly-migrated database. Schema v42
-/// has 28 CASCADE + 13 RESTRICT + 12 SET NULL + 1 NO ACTION = 54 edges. Any
+/// `PRAGMA foreign_key_list` against a freshly-migrated database. Schema v46
+/// has 29 CASCADE + 13 RESTRICT + 12 SET NULL + 1 NO ACTION = 55 edges. Any
 /// future `tables.dart` edit that changes an edge must update this inventory
 /// deliberately — that is the point of the test.
 const _expectedEdges = <_FkEdge>[
@@ -92,6 +92,13 @@ const _expectedEdges = <_FkEdge>[
   _FkEdge('food_entries', 'recipe_id', 'recipes', 'id', 'RESTRICT'),
   _FkEdge('food_entries', 'food_id', 'foods', 'id', 'RESTRICT'),
   _FkEdge('food_micros', 'food_id', 'foods', 'id', 'CASCADE'),
+  _FkEdge(
+    'herculex_ai_program_briefs',
+    'program_id',
+    'programs',
+    'id',
+    'CASCADE',
+  ),
   // NOTE: the only edge in the schema without an explicit onDelete —
   // HerculMessageLog.ruleId uses a bare .references(HerculRules, #id), so
   // drift emits NO ACTION. Recorded here as-is rather than silently
@@ -369,7 +376,7 @@ void main() {
     for (final edge in _expectedEdges) {
       byAction[edge.onDelete] = (byAction[edge.onDelete] ?? 0) + 1;
     }
-    expect(byAction['CASCADE'], 28);
+    expect(byAction['CASCADE'], 29);
     expect(byAction['RESTRICT'], 13);
     expect(byAction['SET NULL'], 12);
     expect(byAction['NO ACTION'], 1);
