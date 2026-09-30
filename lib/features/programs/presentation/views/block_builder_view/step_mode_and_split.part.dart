@@ -146,6 +146,57 @@ mixin _StepModeAndSplitMixin on _BuilderStateBase {
             onTap: _showManualMusclePlan,
           ),
         ],
+        if (_buildMode == ProgramBuildMode.herculexAi) ...[
+          const SizedBox(height: 24),
+          _sectionLabel(theme, 'Herculex AI brief'),
+          const SizedBox(height: 6),
+          _builderInputCard(
+            theme,
+            icon: Icons.auto_awesome_rounded,
+            title: 'Herculex AI design brief',
+            subtitle: _acceptedHerculexBrief != null
+                ? '${_acceptedHerculexBrief!.splitType.label} · '
+                      '${_acceptedHerculexBrief!.periodizationModel.label}. '
+                      '${_acceptedHerculexBrief!.phaseIntent}'
+                : 'Herculex AI drafts a split, periodization and day-by-day '
+                      'focus for you to review and confirm.',
+            selected: _acceptedHerculexBrief != null,
+            status: _acceptedHerculexBrief != null ? 'Applied' : null,
+            actionWidget: _acceptedHerculexBrief != null
+                ? PremiumButton(
+                    isPrimary: false,
+                    icon: Icons.auto_awesome_rounded,
+                    text: _generatingBrief ? 'Generating…' : 'Regenerate',
+                    onTap: _generatingBrief ? () {} : _generateHerculexBrief,
+                  )
+                : PremiumButton(
+                    isPrimary: true,
+                    icon: Icons.auto_awesome_rounded,
+                    text: _generatingBrief
+                        ? 'Generating…'
+                        : 'Generate with Herculex AI',
+                    onTap: _generatingBrief ? () {} : _generateHerculexBrief,
+                  ),
+          ),
+          if (_herculexRejectionMessage != null) ...[
+            const SizedBox(height: 12),
+            AiBriefRejectionBanner(
+              heading: "Herculex AI suggestion couldn't be used",
+              body: _herculexRejectionMessage!,
+              footer:
+                  'Showing the recommended Smart/Guided setup instead — you '
+                  'can still adjust anything below.',
+            ),
+          ],
+          if (_herculexDegradationMessage != null) ...[
+            const SizedBox(height: 12),
+            AiBriefRejectionBanner(
+              heading: _herculexDegradationMessage!,
+              body: '',
+              footer: '',
+            ),
+          ],
+        ],
       ],
     );
   }

@@ -168,6 +168,73 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
     }
   }
 
+  /// Calls [HerculexAiBriefService.generateBrief] exactly once per tap (D-04
+  /// — "Generate"/"Regenerate" both route through this one method), then
+  /// gates the result through [ProgramGuardrails.validateConfiguration]
+  /// before it is allowed to become the accepted brief. The brief has not
+  /// been applied to `_model`/`_split`/`_mainMethodByDayLabel` yet, so the
+  /// guardrail is called against the brief's own implied configuration
+  /// directly: `mainMethodByDayLabel` is intentionally an empty map because
+  /// the brief never assigns per-day training methods (AIP-02 forbids that
+  /// level of detail), so only the 6-day-PPL+Max-Effort structural check is
+  /// meaningful here — the Max-Effort-per-week count check naturally yields
+  /// zero issues because there are no method assignments yet, not because it
+  /// was skipped.
+  ///
+  /// Every outcome branch (guardrail rejection, offline/unconfigured,
+  /// over-quota, success) falls back to leaving the existing Smart/Guided
+  /// recommendation as the active builder state — this method only ever sets
+  /// Herculex-AI-scoped fields, never clears `_model`/`_split`/etc (D-05,
+  /// AIP-05).
+  @override
+  Future<void> _generateHerculexBrief() async {
+    setState(() {
+      _generatingBrief = true;
+      _herculexRejectionMessage = null;
+      _herculexDegradationMessage = null;
+      _acceptedHerculexBrief = null;
+      _herculexBriefProvenance = const {};
+    });
+    try {
+      final (brief, provenance) = await ref
+          .read(herculexAiBriefServiceProvider)
+          .generateBrief(
+            profileInputs: {
+              'goal': _goal.id,
+              'experience': _experience.id,
+              'weeks': _weeks,
+            },
+          );
+      final configIssues = ProgramGuardrails.validateConfiguration(
+        buildMode: ProgramBuildMode.herculexAi,
+        model: brief.periodizationModel,
+        split: brief.splitType,
+        mainMethodByDayLabel: const {},
+      );
+      final blocking = configIssues.where((issue) => issue.isBlocking);
+      if (!mounted) return;
+      if (blocking.isNotEmpty) {
+        setState(() => _herculexRejectionMessage = blocking.first.message);
+      } else {
+        setState(() {
+          _acceptedHerculexBrief = brief;
+          _herculexBriefProvenance = provenance;
+        });
+      }
+    } on HerculexAiBriefException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _herculexDegradationMessage = e.isQuotaExhausted
+            ? "Today's Herculex AI program briefs are used up — try again "
+                  'tomorrow. Continuing with the Smart/Guided recommendation.'
+            : "Herculex AI isn't available right now — continuing with the "
+                  'Smart/Guided recommendation.';
+      });
+    } finally {
+      if (mounted) setState(() => _generatingBrief = false);
+    }
+  }
+
   Map<String, String> get _manualPriorities {
     if (!_useManualMusclePlan || _manualMuscleWeights.isEmpty) return const {};
     final highest = _manualMuscleWeights.values.reduce((a, b) => a > b ? a : b);

@@ -7,6 +7,8 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/features/programs/presentation/views/block_builder_view.dart';
 import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
+import 'package:herculex/features/programs/presentation/widgets/ai_brief_rejection_banner.dart';
+import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 import 'support/test_database.dart';
 
@@ -31,6 +33,146 @@ Future<void> _pumpBuilder(WidgetTester tester, AppDatabase db) async {
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
+}
+
+/// Pumps [BlockBuilderView] with both [db] and a fake [GeminiBackend] wired
+/// in, so Herculex AI's `generateBrief()` calls resolve against a canned
+/// response/error instead of a real network call (27-11).
+Future<void> _pumpBuilderWithBackend(
+  WidgetTester tester,
+  AppDatabase db,
+  GeminiBackend backend,
+) async {
+  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        geminiBackendProvider.overrideWithValue(backend),
+      ],
+      child: const MaterialApp(
+        home: BlockBuilderView(autoRecommendExperience: false),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
+/// A minimal `GeminiBackend` fake whose only implemented method is
+/// `generateProgramBrief` (configurable per test); every other method throws
+/// `UnimplementedError`. Mirrors `_FakeGeminiBackend` in
+/// `test/herculex_ai_brief_service_test.dart`.
+class _FakeHerculexGeminiBackend implements GeminiBackend {
+  _FakeHerculexGeminiBackend({this.result, this.error, this.delay});
+
+  Map<String, dynamic>? result;
+  Object? error;
+  Duration? delay;
+  int callCount = 0;
+
+  static Map<String, dynamic> _defaultResult() => {
+    'splitType': 'upper_lower',
+    'periodizationModel': 'linear',
+    'dayRoles': [
+      {
+        'dayIndex': 0,
+        'role': 'intensity',
+        'focus': 'Upper body heavy pressing',
+        'rationale': 'Front-loads the week while recovery is freshest.',
+      },
+    ],
+    'musclePriorities': [
+      {
+        'muscleId': 'chest',
+        'priority': 'high',
+        'confidence': 0.8,
+        'rationale': 'Lagging relative to back.',
+        'uncertainties': <String>[],
+      },
+    ],
+    'phaseIntent': 'Build upper body symmetry ahead of the next block.',
+  };
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
+  }) async {
+    callCount++;
+    if (delay != null) await Future<void>.delayed(delay!);
+    if (error != null) throw error!;
+    return (result ?? _defaultResult(), const <String, dynamic>{});
+  }
+
+  @override
+  Future<Map<String, dynamic>> analyzeFoodPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeNutritionLabel({
+    required List<int> imageBytes,
+    required String mimeType,
+    required String ocrText,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<String> identifyExercise({
+    required List<int> imageBytes,
+    required String mimeType,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> identifyExerciseDetailed({
+    required List<int> imageBytes,
+    required String mimeType,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeSupplementPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeBarcodeProduct({
+    required List<int> imageBytes,
+    required String mimeType,
+    required String barcode,
+    String? userNote,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> estimateBodyFat({
+    required List<Map<String, dynamic>> images,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeDreamPhysique({
+    required List<Map<String, dynamic>> currentImages,
+    required List<Map<String, dynamic>> targetImages,
+    Map<String, dynamic>? biometrics,
+    String? userNote,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<Map<String, dynamic>> analyzeRamblerText({
+    required String text,
+    String? preferredMealKey,
+  }) => throw UnimplementedError();
 }
 
 /// Taps the pinned "Continue" footer button and settles the resulting step
@@ -533,6 +675,224 @@ void main() {
 
         expect(find.textContaining('Could not create the block'), findsNothing);
         expect(find.byType(ProgramReviewView), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+  });
+
+  // 27-11: the Herculex AI mode tile, its explicit Generate/Regenerate
+  // action (D-04 - never auto-fired on mode selection), and the 3-way
+  // success/rejection/degradation state machine (D-05, AIP-05).
+  group('Herculex AI mode (27-11)', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = await openTestDatabase();
+    });
+
+    tearDown(() => db.close());
+
+    const rejectionHeading = "Herculex AI suggestion couldn't be used";
+    const rejectionFooter =
+        'Showing the recommended Smart/Guided setup instead — you can '
+        'still adjust anything below.';
+    const offlineMessage =
+        "Herculex AI isn't available right now — continuing with the "
+        'Smart/Guided recommendation.';
+    const quotaMessage =
+        "Today's Herculex AI program briefs are used up — try again "
+        'tomorrow. Continuing with the Smart/Guided recommendation.';
+
+    Future<void> selectHerculexAiTile(WidgetTester tester) async {
+      await tester.tap(find.text('Herculex AI'));
+      await tester.pump();
+    }
+
+    testWidgets(
+      'selecting the tile alone does not trigger generateBrief (D-04)',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend();
+        await _pumpBuilderWithBackend(tester, db, backend);
+
+        await selectHerculexAiTile(tester);
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(backend.callCount, 0);
+        expect(find.text('Generating…'), findsNothing);
+        expect(find.byType(AiBriefRejectionBanner), findsNothing);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'tapping Generate calls generateBrief exactly once and shows the '
+      'disabled-by-noop loading state',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend(
+          delay: const Duration(milliseconds: 200),
+        );
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await tester.pump();
+
+        await tester.tap(find.text('Generate with Herculex AI'));
+        await tester.pump();
+
+        expect(backend.callCount, 1);
+        expect(find.text('Generating…'), findsOneWidget);
+
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(backend.callCount, 1);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'a successful brief that passes guardrails shows Applied + Regenerate, '
+      'no rejection banner',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend();
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await tester.pump();
+
+        await tester.tap(find.text('Generate with Herculex AI'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Applied'), findsOneWidget);
+        expect(find.text('Regenerate'), findsOneWidget);
+        expect(find.byType(AiBriefRejectionBanner), findsNothing);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'a brief whose implied configuration fails guardrail validation shows '
+      'the rejection banner verbatim and does not apply',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend(
+          result: {
+            'splitType': 'ppl',
+            'periodizationModel': 'max_effort',
+            'dayRoles': [
+              {
+                'dayIndex': 0,
+                'role': 'intensity',
+                'focus': 'Push day',
+                'rationale': 'Front-loads pressing volume.',
+              },
+            ],
+            'musclePriorities': [
+              {
+                'muscleId': 'chest',
+                'priority': 'high',
+                'confidence': 0.8,
+                'rationale': 'Lagging.',
+                'uncertainties': <String>[],
+              },
+            ],
+            'phaseIntent': 'Build pressing strength.',
+          },
+        );
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await tester.pump();
+
+        await tester.tap(find.text('Generate with Herculex AI'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text(rejectionHeading), findsOneWidget);
+        expect(
+          find.textContaining(
+            'A six-day PPL would create three Max Effort days.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text(rejectionFooter), findsOneWidget);
+        expect(find.text('Applied'), findsNothing);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'an offline/unconfigured failure shows the exact AIP-05 degradation '
+      'copy',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend(
+          error: Exception('AI analysis is not configured.'),
+        );
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await tester.pump();
+
+        await tester.tap(find.text('Generate with Herculex AI'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text(offlineMessage), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'an over-quota failure shows the exact AIP-05 quota degradation copy',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend(
+          error: Exception(
+            "Today's Herculex AI program briefs (10/day) are used up — try "
+            'again tomorrow.',
+          ),
+        );
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await tester.pump();
+
+        await tester.tap(find.text('Generate with Herculex AI'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text(quotaMessage), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'tapping Regenerate after a prior success re-fires exactly one new '
+      'call (D-04)',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend();
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await tester.pump();
+
+        await tester.tap(find.text('Generate with Herculex AI'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(backend.callCount, 1);
+        expect(find.text('Regenerate'), findsOneWidget);
+
+        await tester.tap(find.text('Regenerate'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(backend.callCount, 2);
 
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump(const Duration(milliseconds: 10));

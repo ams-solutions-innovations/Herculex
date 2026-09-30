@@ -14,9 +14,11 @@ import 'package:herculex/design_system/components/premium_text_field.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
+import 'package:herculex/features/programs/domain/program_brief.dart';
 import 'package:herculex/features/programs/domain/program_guardrails.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
@@ -24,6 +26,7 @@ import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/program_method_guide_view.dart';
 import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
+import 'package:herculex/features/programs/presentation/widgets/ai_brief_rejection_banner.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
 import 'package:herculex/features/recovery/application/recovery_providers.dart';
 import 'package:herculex/features/recovery/domain/joint_model.dart';
@@ -117,6 +120,18 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
   final Map<String, int> _manualSetCaps = {};
   MuscleFocusWave _muscleFocusWave = MuscleFocusWave.steady;
   Map<String, String> _dreamPhysiquePriorities = const {};
+
+  // Herculex AI mode (27-11): Generate/Regenerate state. _acceptedHerculexBrief
+  // and _herculexBriefProvenance are the "brief accepted, ready to pre-fill"
+  // signal plan 27-13's pre-fill/persistence wiring consumes directly.
+  bool _generatingBrief = false;
+  ProgramBrief? _acceptedHerculexBrief;
+  // Stored for plan 27-13's pre-fill/persistence wiring to consume; this
+  // plan only stores it (see key_links in the plan).
+  // ignore: unused_field
+  Map<String, dynamic> _herculexBriefProvenance = const {};
+  String? _herculexRejectionMessage;
+  String? _herculexDegradationMessage;
 
   static const _manualMuscleLabels = <String, String>{
     'chest': 'Chest',
@@ -266,6 +281,7 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
   // Implemented in actions.part.dart.
   Future<void> _create();
   Future<void> _loadDreamPhysiquePriorities();
+  Future<void> _generateHerculexBrief();
   String get _trainingStyleDescription;
 }
 
