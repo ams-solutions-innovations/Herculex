@@ -3,16 +3,80 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T08:06:42.434Z"
+last_updated: "2026-09-30T08:17:28.728Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 57
+  completed_plans: 58
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 05 Completed)
+
+- Completed Plan 27-05 (AIP-02, AIP-03, partial on both): `GeminiBackend.
+  generateProgramBrief()` added across all three tiers — the abstract
+  interface, `UnconfiguredGeminiBackend` (throws the shared
+  `_notConfigured()` Exception, verified identical to every sibling
+  method's throw), and `SupabaseGeminiBackend` (`'kind': 'program_brief'`,
+  text-only `_invoke` body, no images/privacyConsent block). Returns a
+  `(Map<String, dynamic> result, Map<String, dynamic> provenance)` Dart
+  record — the only `GeminiBackend` method that surfaces provenance.
+
+- Per RESEARCH.md's Pitfall 2, `_resultMap()` (which the 8 existing
+  callers all use) silently discards the wire response's `provenance` key.
+  Rather than widen that shared contract, added a new sibling
+  `_resultWithProvenance()` that calls `_resultMap()` internally (reusing
+  its validation, zero duplicated cast logic) and additionally reads
+  `data['provenance']`, defensively casting or falling back to an empty
+  map — never throwing on missing provenance. `_resultMap()` and all 8
+  existing callers are untouched.
+
+- Updated all 5 test-only classes across 4 files that `implements
+  GeminiBackend` directly (a breaking change once the interface gained an
+  abstract method): `_FakeGeminiBackend` (gemini_food_analyzer_service_
+  test.dart, canned-return convention), `_MockGeminiBackend` AND
+  `_FailingGeminiBackend` (dream_physique_service_test.dart — this file
+  has *two* direct implementers, not one as the plan's `<interfaces>`
+  section stated; both were found via grep and updated),
+  `_MockSupplementBackend` (supplement_ai_service_test.dart),
+  `_MockGeminiBackend` (body_fat_ai_service_test.dart) — the latter three
+  all use the `UnimplementedError()` convention.
+
+- New `test/gemini_backend_service_test.dart` (5 tests): unconfigured-throw
+  message parity against a sibling method, plus 4 cases for the
+  provenance-extraction logic via a standalone helper mirroring the
+  private `_resultWithProvenance` method (success, missing provenance,
+  loose-Map provenance, invalid result still throws) — direct testing of
+  `SupabaseGeminiBackend` itself was not attempted since no existing test
+  in this codebase mocks `SupabaseClient.functions.invoke`; the actual
+  `'kind': 'program_brief'` body construction is verified by code read,
+  to be exercised end-to-end once 27-06/27-09 exist.
+
+- **AIP-02/AIP-03 remain unchecked in REQUIREMENTS.md** (annotations
+  updated, not marked complete), following the KB-02/KB-04/TDEE-05/27-03/
+  27-04 partial-completion convention: this plan delivers only the
+  client-side transport method. The Edge Function `program_brief` kind
+  (27-06) and the calling `HerculexAiBriefService` (27-09) still don't
+  exist.
+
+- Validation: `flutter test test/gemini_backend_service_test.dart
+  test/gemini_food_analyzer_service_test.dart
+  test/dream_physique_service_test.dart test/supplement_ai_service_test.dart
+  test/body_fat_ai_service_test.dart` — 19/19 passing. `flutter analyze`
+  on all 6 touched files: 0 issues. Full-repo `flutter analyze`: 42
+  pre-existing info/warning issues, 0 errors, none in this plan's files.
+  SDK `roadmap.update-plan-progress 27` worked and was used; `state.*`
+  verbs still no-op on this STATE.md format, so this section is
+  hand-written.
+
+- Next implementation focus: Plan 27-06 (Edge Function `program_brief`
+  kind — prompt, quota tier, strict server-side normalizer; Wave 1's next
+  plan per ROADMAP.md).
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 04 Completed)
 
