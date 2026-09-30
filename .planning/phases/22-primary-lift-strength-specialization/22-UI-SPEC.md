@@ -74,17 +74,29 @@ use `HxSpace` constants**, not new literals, per the Phase 27 precedent.
 
 Herculex derives type from `Theme.of(context).textTheme` (Material 3 type scale), not a fixed
 custom px table. Declared roles for this phase's new UI, matching the existing modal/sheet/card
-patterns exactly:
+patterns exactly. **Two weights total** for this phase's typography budget:
 
 | Role | Style source | Weight | Usage |
 |------|------|--------|-------------|
-| Sheet/dialog title | `theme.textTheme.titleLarge` | `FontWeight.w700` | "Primary lift specialization" heading (existing, unchanged) |
-| Section/banner heading | `theme.textTheme.titleSmall` | `FontWeight.w700` | New warning banner headings (timeline, kg-increase, volume-floor) — matches `AiBriefRejectionBanner`'s exact heading style |
-| Body / helper copy | `theme.textTheme.bodySmall` | inherited (regular) | Sticking-point helper text, warning body text, volume-floor detail lines |
-| Body / list rows | `theme.textTheme.bodyMedium` | `FontWeight.w600` for row labels (matches `ProgramMuscleVolumeCard._buildMuscleRow`) | Any new muscle-group row rendered in the live-preview volume surface |
+| Sheet/dialog title, section/banner heading | `theme.textTheme.titleLarge` (title) / `titleSmall` (banner heading) | `FontWeight.w700` | "Primary lift specialization" heading (existing, unchanged); new warning banner headings (timeline, kg-increase, volume-floor) — matches `AiBriefRejectionBanner`'s exact heading style |
+| Body / helper copy / list rows | `theme.textTheme.bodySmall` (helper/body) / `bodyMedium` (rows) | inherited (regular) | Sticking-point helper text, warning body text, volume-floor detail lines, and — subject to the Typography Exceptions note below — any new muscle-group row text this phase adds to the live-preview volume surface |
 
 Line height: not independently overridden — inherit `ThemeData.textTheme`'s defaults (Material
 3 defaults to ~1.2–1.5 depending on role). No new line-height token is introduced this phase.
+
+### Typography Exceptions
+
+Mirroring the Spacing Scale's Exceptions subsection above: `ProgramMuscleVolumeCard._buildMuscleRow`
+already renders its row labels at `theme.textTheme.bodyMedium` with `FontWeight.w600` — a
+pre-existing, already-shipped weight in production, not introduced by this phase. Where this
+phase's new live-preview volume surface reuses that exact row shell verbatim (per the
+Component Inventory's "Volume-floor live preview" entry), it **inherits that `w600` row-label
+weight as-is**, matching the existing card precedent, rather than being downgraded to regular —
+this keeps the reused row visually identical to every other `ProgramMuscleVolumeCard` instance
+already live elsewhere in the app. It is a pre-existing-pattern exception scoped only to that
+reused row shell, not a third free-standing weight choice authored by this phase. Any wholly
+new text this phase writes outside that reused row shell (banner headings, helper copy) stays
+within the 2-weight table above (`w700` / regular). No new weight is introduced by this phase.
 
 ---
 
@@ -110,6 +122,14 @@ phase). Never use accent (`primary`) for a warning — all three new warning sur
 timeline/kg-increase, D-04–D-07 volume floor) use `context.hx.warning`, matching D-05's explicit
 "warning tone everywhere, no blocking language" decision and `VolumeVerdict`'s own existing
 plain-language labels ("Light" / "On target" / "Hard" / "Over" — informational, not alarming).
+
+**Visual hierarchy / focal point:** on the specialization modal and the Weeks picker, the
+primary CTA (Apply/Create, accent-filled) and the sheet's existing content remain the focal
+point. All three new warning banners (timeline, kg-increase, volume-floor) are secondary/
+advisory — rendered below the existing content they relate to, at neutral `hx.warning`-tinted
+surface elevation (not accent-filled, not placed above or over the CTA) — so a banner and the
+CTA can both be visible at once without the banner competing with or visually outranking the
+accent CTA.
 
 ---
 
@@ -167,6 +187,12 @@ adjust, not a modal interruption.
 | Specialization modal primary CTA | "Apply" (existing, unchanged) |
 | No new CTA is introduced this phase | — all three new warnings are advisory banners/snackbars attached to existing flows (Weeks picker, Create button), not new screens with their own primary action |
 
+Note: "Apply" is a generic single-word label without a noun (not, e.g., "Apply Specialization").
+This was reconsidered during this revision and intentionally left as-is — it is pre-existing,
+already-shipped copy on an existing `FilledButton` that this phase does not touch or extend; the
+phase's own copy surface is limited to the new advisory banners/helper text above, not a rename
+of an existing production CTA.
+
 ### Empty state
 
 Not applicable — this phase adds no new empty-data view. The live volume-preview surface only
@@ -198,7 +224,7 @@ New/extended UI surfaces this phase touches, mapped to file and existing pattern
 |-----------|------|----------------|
 | Sticking-point helper text | `step_parameters_specialization.part.dart` | New `Text` widget, `theme.textTheme.bodySmall`, `context.hx.onSurfaceVariant` (replacing the file's existing `AppColors.secondary` for any *new* text this phase adds — do not touch the existing lines' `AppColors.*` calls) |
 | Timeline / kg-increase warning banner | `dialogs.part.dart` (`_showLengthPicker` `onSelected`) and/or `step_parameters_specialization.part.dart` | Reuse `AiBriefRejectionBanner`'s exact visual shape (`Icons.warning_amber_rounded`, `hx.warning`, `HxSpace`/`HxRadius` tokens) — either import/reuse the widget directly with new heading/body/footer strings, or build a sibling if its 3-field (heading/body/footer) shape doesn't fit the 2-field (heading/body) content here. Planning decides which. |
-| Volume-floor live preview | New surface near/in the specialization modal or Step Parameters | Reuse `ProgramMuscleVolumeCard`'s existing card shell (`AppColors.surfaceContainerLowest`/border/rounded-20 pattern is pre-existing in that file — do not require it to migrate to `context.hx` as part of this phase, but any *new* file this phase adds for this purpose must use `context.hx`) or extend it with a low-volume highlight (e.g. tint the bar/text `context.hx.warning` when `VolumeVerdict.low`) |
+| Volume-floor live preview | New surface near/in the specialization modal or Step Parameters | Reuse `ProgramMuscleVolumeCard`'s existing card shell (`AppColors.surfaceContainerLowest`/border/rounded-20 pattern is pre-existing in that file — do not require it to migrate to `context.hx` as part of this phase, but any *new* file this phase adds for this purpose must use `context.hx`) or extend it with a low-volume highlight (e.g. tint the bar/text `context.hx.warning` when `VolumeVerdict.low`). Row-label weight follows the Typography Exceptions note above — inherit `w600` from `_buildMuscleRow` verbatim, do not downgrade to regular. |
 | Create-time volume-floor + kg-increase guardrail banner | `actions.part.dart` (`_create()`) or `program_review_view.dart` | Reuse `ProgramGuardrailIssue`'s pattern (pure function returning issues) for the domain check; reuse `AiBriefRejectionBanner`'s visual shape for the warning display, adapted from its current blocking-flow usage to a non-blocking, informational-before-create surface (exact call site — before `_create()` fires vs. shown then proceeds — is planning's call, constrained only by D-05: never blocks) |
 
 No new bottom sheet, dialog, or route is introduced. No new icon beyond
