@@ -90,13 +90,14 @@ class HerculexAiBriefService {
       rethrow;
     } catch (error) {
       final detail = error.toString().replaceFirst('Exception: ', '').trim();
-      final isQuotaExhausted = _quotaExhaustedIndicators.any(
-        detail.contains,
-      );
+      final isQuotaExhausted = _quotaExhaustedIndicators.any(detail.contains);
       final message = detail.isEmpty
           ? 'Herculex AI is temporarily unavailable. Try again later.'
           : detail;
-      throw HerculexAiBriefException(message, isQuotaExhausted: isQuotaExhausted);
+      throw HerculexAiBriefException(
+        message,
+        isQuotaExhausted: isQuotaExhausted,
+      );
     }
   }
 
@@ -115,9 +116,7 @@ class HerculexAiBriefService {
             programId: programId,
             briefJson: jsonEncode(brief.toJson()),
             source: const Value('herculex_ai'),
-            knowledgeVersion: Value(
-              provenance['knowledgeVersion'] as String?,
-            ),
+            knowledgeVersion: Value(provenance['knowledgeVersion'] as String?),
             modelVersion: Value(provenance['modelVersion'] as String?),
             confirmedAt: Value(_clock.now()),
             active: const Value(true),
@@ -131,10 +130,30 @@ class HerculexAiBriefService {
   /// stream, per the house rule preferring `StreamProvider` over
   /// `FutureProvider` for drift reads.
   Stream<HerculexAiProgramBriefData?> watchBriefForProgram(int programId) {
-    final query = _db.select(_db.herculexAiProgramBriefs)
+    return _activeBriefQuery(programId).watchSingleOrNull();
+  }
+
+  /// One-shot equivalent of [watchBriefForProgram], same query shape (active
+  /// = true, newest `confirmedAt` first), for callers that build their state
+  /// once rather than subscribing to a live stream — such as
+  /// `ProgramReviewView._load()` (plan 27-12). Prefer this over
+  /// `watchBriefForProgram(...).first` for a one-shot read: taking `.first`
+  /// from a drift watch stream inside a widget's `initState`-driven load
+  /// never resolves under `flutter_test`'s fake-async `tester.pump()` clock
+  /// (observed as a 10-minute test timeout, not a slow query) even though it
+  /// resolves fine in plain `async`/`await` tests.
+  Future<HerculexAiProgramBriefData?> readActiveBriefForProgram(int programId) {
+    return _activeBriefQuery(programId).getSingleOrNull();
+  }
+
+  SimpleSelectStatement<
+    $HerculexAiProgramBriefsTable,
+    HerculexAiProgramBriefData
+  >
+  _activeBriefQuery(int programId) {
+    return _db.select(_db.herculexAiProgramBriefs)
       ..where((t) => t.programId.equals(programId) & t.active.equals(true))
       ..orderBy([(t) => OrderingTerm.desc(t.confirmedAt)])
       ..limit(1);
-    return query.watchSingleOrNull();
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
@@ -9,11 +11,14 @@ import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
+import 'package:herculex/features/programs/domain/program_brief.dart';
 import 'package:herculex/features/programs/domain/session_segment.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/block_detail_view.dart';
+import 'package:herculex/features/programs/presentation/widgets/ai_day_rationale_card.dart';
 import 'package:herculex/features/programs/presentation/widgets/empty_slot_notice.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
@@ -70,8 +75,10 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
                   (t) => OrderingTerm(expression: t.orderIndex),
                 ]))
               .get();
+      final rationaleByDayIndex = await _herculexAiRationaleByDayIndex();
       final rows = <_ReviewDay>[];
-      for (final day in days) {
+      for (var i = 0; i < days.length; i++) {
+        final day = days[i];
         final exercises =
             await (db.select(db.programDayExercises)
                   ..where((t) => t.programDayId.equals(day.id))
@@ -97,6 +104,7 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
                 _ReviewExercise(row: row, exercise: byId[row.exerciseId]),
             ],
             emptyReasons: emptyReasons,
+            aiRationale: rationaleByDayIndex[i],
           ),
         );
       }
@@ -144,6 +152,31 @@ class _ProgramReviewViewState extends ConsumerState<ProgramReviewView> {
             ))
             .get();
     return [for (final row in emptyRows) row.rationale];
+  }
+
+  /// Reads the active Herculex AI brief for this program (if any) and maps
+  /// its per-day rationale (D-09) by array position, matching the order
+  /// [days] is built in above (0-based `dayIndex` -> that position in the
+  /// `days` list — there is no other explicit linkage between a
+  /// `ProgramDays` row and a brief's `dayRoles[]` entry).
+  ///
+  /// A malformed/legacy stored brief, or any other read/parse failure, is
+  /// swallowed and treated as "no rationale available" rather than breaking
+  /// the review screen (T-27-19) — this is optional enrichment, never a
+  /// requirement for the screen to function.
+  Future<Map<int, String>> _herculexAiRationaleByDayIndex() async {
+    try {
+      final briefRow = await ref
+          .read(herculexAiBriefServiceProvider)
+          .readActiveBriefForProgram(widget.programId);
+      if (briefRow == null || briefRow.source != 'herculex_ai') return const {};
+      final decoded = jsonDecode(briefRow.briefJson);
+      if (decoded is! Map<String, dynamic>) return const {};
+      final brief = ProgramBrief.fromJson(decoded);
+      return {for (final role in brief.dayRoles) role.dayIndex: role.rationale};
+    } catch (_) {
+      return const {};
+    }
   }
 
   Future<List<_RotationLine>> _loadRotations(
@@ -461,9 +494,9 @@ class _WeekPicker extends StatelessWidget {
         isExpanded: true,
         dropdownColor: AppColors.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: AppColors.onSurface,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurface),
         icon: const Icon(Icons.keyboard_arrow_down_rounded),
         onChanged: onChanged,
         items: [
@@ -614,6 +647,11 @@ class _DayCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8),
               child: EmptySlotNotice(reason: reason),
             ),
+          if (day.aiRationale != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: AiDayRationaleCard(rationale: day.aiRationale!),
+            ),
         ],
       ),
     );
@@ -729,10 +767,16 @@ class _ReviewDay {
     required this.day,
     required this.exercises,
     this.emptyReasons = const [],
+    this.aiRationale,
   });
   final ProgramDayData day;
   final List<_ReviewExercise> exercises;
   final List<String> emptyReasons;
+
+  /// The active Herculex AI brief's per-day rationale (D-09) for this day,
+  /// or `null` for a manual/smart/guided-built program (no matching brief)
+  /// — this is a conditional element, never a placeholder.
+  final String? aiRationale;
 }
 
 class _ReviewExercise {

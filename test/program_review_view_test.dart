@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +11,10 @@ import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
+import 'package:herculex/features/programs/presentation/views/block_detail_view.dart';
 import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
+import 'package:herculex/features/programs/presentation/widgets/ai_day_rationale_card.dart';
+import 'package:herculex/features/programs/presentation/widgets/empty_slot_notice.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
@@ -227,26 +232,25 @@ void main() {
       },
     );
 
-    testWidgets(
-      'a day with only filled slots renders no EmptySlotNotice',
-      (tester) async {
-        final programId = await seedProgram(includeEmptySlot: false);
+    testWidgets('a day with only filled slots renders no EmptySlotNotice', (
+      tester,
+    ) async {
+      final programId = await seedProgram(includeEmptySlot: false);
 
-        await tester.pumpWidget(harness(programId));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(harness(programId));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-        expect(
-          find.textContaining('No safe squat movement available'),
-          findsNothing,
-        );
-        expect(find.text('Barbell Back Squat'), findsOneWidget);
-        expect(
-          find.text('No exercises have been added for this day.'),
-          findsNothing,
-        );
-      },
-    );
+      expect(
+        find.textContaining('No safe squat movement available'),
+        findsNothing,
+      );
+      expect(find.text('Barbell Back Squat'), findsOneWidget);
+      expect(
+        find.text('No exercises have been added for this day.'),
+        findsNothing,
+      );
+    });
 
     testWidgets(
       'a metcon row renders the decoded AMRAP summary, not the placeholder',
@@ -319,5 +323,273 @@ void main() {
         expect(find.textContaining('1 sets'), findsNothing);
       },
     );
+  });
+
+  group('ProgramReviewView Herculex AI per-day rationale (27-12, AIP-04)', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = await openTestDatabase();
+    });
+
+    tearDown(() => db.close());
+
+    Future<int> seedProgramWithOneDay({String dayName = 'Day 1'}) async {
+      final programId = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'AI Program'));
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
+      await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: weekId,
+              dayOfWeek: 1,
+              name: dayName,
+              slotLabel: Value(dayName),
+            ),
+          );
+      return programId;
+    }
+
+    Map<String, dynamic> validBriefJson({String rationale = 'Because X'}) => {
+      'splitType': 'upper_lower',
+      'periodizationModel': 'linear',
+      'dayRoles': [
+        {
+          'dayIndex': 0,
+          'role': 'intensity',
+          'focus': 'Upper body heavy pressing',
+          'rationale': rationale,
+        },
+      ],
+      'musclePriorities': [
+        {
+          'muscleId': 'chest',
+          'priority': 'high',
+          'confidence': 0.8,
+          'rationale': 'Lagging relative to back.',
+          'uncertainties': <String>[],
+        },
+      ],
+      'phaseIntent': 'Build upper body symmetry ahead of the next block.',
+    };
+
+    Future<void> insertBriefRow(
+      int programId, {
+      String source = 'herculex_ai',
+      bool active = true,
+      String? rawBriefJson,
+      Map<String, dynamic>? brief,
+    }) async {
+      await db
+          .into(db.herculexAiProgramBriefs)
+          .insert(
+            HerculexAiProgramBriefsCompanion.insert(
+              programId: programId,
+              briefJson: rawBriefJson ?? jsonEncode(brief ?? validBriefJson()),
+              source: Value(source),
+              active: Value(active),
+            ),
+          );
+    }
+
+    Widget harness(int programId) => ProviderScope(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        recentExerciseIdsProvider.overrideWith((ref) async => <int>{}),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: ProgramReviewView(programId: programId),
+      ),
+    );
+
+    testWidgets(
+      'renders the brief\'s exact dayRoles[0].rationale inside AiDayRationaleCard for a herculex_ai-sourced program',
+      (tester) async {
+        final programId = await seedProgramWithOneDay();
+        await insertBriefRow(
+          programId,
+          brief: validBriefJson(rationale: 'Because X'),
+        );
+
+        await tester.pumpWidget(harness(programId));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.byType(AiDayRationaleCard), findsOneWidget);
+        expect(find.text('Why this day'), findsOneWidget);
+        expect(find.text('Because X'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'renders zero AiDayRationaleCard widgets for a program with no matching HerculexAiProgramBriefs row (manual/smart/guided)',
+      (tester) async {
+        final programId = await seedProgramWithOneDay();
+
+        await tester.pumpWidget(harness(programId));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.byType(AiDayRationaleCard), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'renders no rationale card when the only brief row has a non-herculex_ai source',
+      (tester) async {
+        final programId = await seedProgramWithOneDay();
+        await insertBriefRow(programId, source: 'manual');
+
+        await tester.pumpWidget(harness(programId));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.byType(AiDayRationaleCard), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'a malformed stored briefJson is swallowed, not a crash - no rationale card, no error state',
+      (tester) async {
+        final programId = await seedProgramWithOneDay();
+        await insertBriefRow(programId, rawBriefJson: '{not valid json');
+
+        await tester.pumpWidget(harness(programId));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.byType(AiDayRationaleCard), findsNothing);
+        expect(
+          find.textContaining('Could not prepare the exercise review.'),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'EmptySlotNotice and AiDayRationaleCard both render on the same day when both apply - additive, not replacing',
+      (tester) async {
+        final programId = await db
+            .into(db.programs)
+            .insert(ProgramsCompanion.insert(name: 'AI Program'));
+        final weekId = await db
+            .into(db.programWeeks)
+            .insert(
+              ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+            );
+        await db
+            .into(db.programDays)
+            .insert(
+              ProgramDaysCompanion.insert(
+                programWeekId: weekId,
+                dayOfWeek: 1,
+                name: 'Lower',
+                slotLabel: const Value('Lower'),
+              ),
+            );
+        final emptySlotId = await db
+            .into(db.programExerciseSlots)
+            .insert(
+              ProgramExerciseSlotsCompanion.insert(
+                programId: programId,
+                slotKey: 'lower-accessory',
+                daySlotLabel: 'Lower',
+                orderIndex: 0,
+              ),
+            );
+        await db
+            .into(db.programSlotExplanations)
+            .insert(
+              ProgramSlotExplanationsCompanion.insert(
+                slotId: emptySlotId,
+                weekIndex: 0,
+                status: 'empty',
+                rationale:
+                    'No safe squat movement available for your equipment.',
+              ),
+            );
+        await insertBriefRow(programId);
+
+        await tester.pumpWidget(harness(programId));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.byType(EmptySlotNotice), findsOneWidget);
+        expect(find.byType(AiDayRationaleCard), findsOneWidget);
+      },
+    );
+  });
+
+  group('ProgramReviewView _confirm() (unchanged by plan 27-12)', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = await openTestDatabase();
+    });
+
+    tearDown(() => db.close());
+
+    Future<int> seedMinimalProgram() async {
+      final programId = await db
+          .into(db.programs)
+          .insert(ProgramsCompanion.insert(name: 'Confirm Test'));
+      final weekId = await db
+          .into(db.programWeeks)
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
+      await db
+          .into(db.programDays)
+          .insert(
+            ProgramDaysCompanion.insert(
+              programWeekId: weekId,
+              dayOfWeek: 1,
+              name: 'Day 1',
+              slotLabel: const Value('Day 1'),
+            ),
+          );
+      return programId;
+    }
+
+    Widget harness(int programId) => ProviderScope(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        recentExerciseIdsProvider.overrideWith((ref) async => <int>{}),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: ProgramReviewView(programId: programId),
+      ),
+    );
+
+    testWidgets('tapping Confirm plan still navigates to BlockDetailView', (
+      tester,
+    ) async {
+      final programId = await seedMinimalProgram();
+
+      await tester.pumpWidget(harness(programId));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Confirm plan'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.byType(BlockDetailView), findsOneWidget);
+
+      // BlockDetailView owns its own live stream providers; unmount cleanly
+      // before the test ends (mirrors block_detail_view_test.dart's own
+      // teardown) so no pending Timer trips flutter_test's post-test
+      // invariant check.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+    });
   });
 }
