@@ -1,5 +1,7 @@
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
+import 'package:herculex/features/programs/domain/split_template.dart';
 
 enum GuardrailSeverity { warning, blocking }
 
@@ -146,6 +148,47 @@ abstract final class ProgramGuardrails {
   }) {
     if (method != SlotTrainingMethod.maxEffort) return originalBudget;
     return (originalBudget - 4).clamp(0, originalBudget);
+  }
+
+  /// Validates a proposed build configuration before any slot is
+  /// materialized: the chosen split, periodization model and per-day method
+  /// selections. Mirrors [validateMaxEffortWeek]'s shape (a pure function
+  /// returning issues rather than throwing) so both `_create()` (all build
+  /// modes) and the Herculex AI brief validator can share one guardrail home
+  /// and choose their own UX for a blocking issue.
+  static List<ProgramGuardrailIssue> validateConfiguration({
+    required ProgramBuildMode buildMode,
+    required PeriodizationModel model,
+    required SplitType split,
+    required Map<String, SlotTrainingMethod> mainMethodByDayLabel,
+  }) {
+    final issues = <ProgramGuardrailIssue>[];
+    final explicitMaxEffort = mainMethodByDayLabel.values
+        .where((m) => m == SlotTrainingMethod.maxEffort)
+        .length;
+    if (buildMode != ProgramBuildMode.manual && explicitMaxEffort > 2) {
+      issues.add(
+        const ProgramGuardrailIssue(
+          code: 'config_max_effort_per_week',
+          message:
+              'A Smart program can use at most two Max Effort patterns per week.',
+          severity: GuardrailSeverity.blocking,
+        ),
+      );
+    }
+    if (buildMode != ProgramBuildMode.manual &&
+        model == PeriodizationModel.maxEffort &&
+        split == SplitType.ppl) {
+      issues.add(
+        const ProgramGuardrailIssue(
+          code: 'config_six_day_ppl_max_effort',
+          message:
+              'A six-day PPL would create three Max Effort days. Use per-slot Max Effort or choose a Conjugate 3–4 day structure.',
+          severity: GuardrailSeverity.blocking,
+        ),
+      );
+    }
+    return issues;
   }
 
   static bool smartMaxEffortEligible({
