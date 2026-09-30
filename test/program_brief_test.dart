@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/program_brief.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
