@@ -3,16 +3,72 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T08:17:28.728Z"
+last_updated: "2026-09-30T08:23:44.596Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 58
+  completed_plans: 59
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 06 Completed)
+
+- Completed Plan 27-06 (AIP-02, AIP-03, partial on both): the `gemini-analyze` Edge
+  Function's `program_brief` kind — a 9th `GeminiKind`, fully wired end-to-end on the
+  server side. `programBriefPrompt()` (new in `prompts.ts`) is the first real consumer
+  of Phase 26's `buildSystemInstruction()`/`knowledge_base.ts` `programming` segment,
+  unused by all 8 prior kinds. `program_brief` gets its own 10/day quota bucket
+  (`dream_physique` tier, per RESEARCH.md's Open Question 1 recommendation),
+  fail-closed on RPC error per Phase 26's D-13, isolated from the other 8 kinds.
+
+- `normalizeProgramBriefResult()` (exported from `index.ts`) is the server-side first
+  line of the D-02 two-tier defense: rejects (throws, never defaults) any unknown
+  `splitType`/`periodizationModel`/`dayRoles[].role`/`muscleId`, mirroring
+  `normalizeProgrammingProfile`'s existing `canonicalProgrammingMuscleIds.has()`
+  pattern via three new canonical id `Set`s (`canonicalSplitTypeIds`,
+  `canonicalPeriodizationModelIds`, `canonicalDayStressRoleIds`), populated
+  byte-for-byte from the Dart enums in `split_template.dart`/`periodization.dart`/
+  `programming_models.dart`. Plan 27-03's `ProgramBrief.fromJson` remains the
+  authoritative client-side gate — this is the first line, not a replacement.
+
+- The prompt explicitly forbids exercise lists/sets/reps/load/RPE/tempo/metcon time
+  caps and never asks for or accepts an `experienceLevel` field, copying
+  `dreamPhysiquePrompt`'s exact sidestep of the 5-tier/3-tier `ExperienceLevel`
+  mapping question (Pitfall 5) rather than building new collapse logic.
+
+- Canonical id lists recorded in 27-06-SUMMARY.md for cross-check against plan
+  27-03's Dart-side strict parser: `canonicalSplitTypeIds` (12 values),
+  `canonicalPeriodizationModelIds` (5 values), `canonicalDayStressRoleIds` (4
+  values) — both sides enumerate the same Dart enum's `.id` field, so no drift
+  is possible unless one side is edited without the other.
+
+- **AIP-02/AIP-03 remain unchecked in REQUIREMENTS.md** (annotations updated, not
+  marked complete), following the KB-02/KB-04/TDEE-05/27-03/27-04/27-05
+  partial-completion convention: this plan delivers only the server-side half. The
+  calling `HerculexAiBriefService` (27-09) still doesn't exist, so no brief has ever
+  been generated end-to-end yet.
+
+- Validation: `deno test supabase/functions/gemini-analyze/` (full directory, 5 test
+  files including the new `program_brief_test.ts`) — 17/17 passing, 0 regressions in
+  the 8 pre-existing kinds. `deno check index.ts prompts.ts` — 0 type errors. `git
+  diff --stat` confirmed only additive changes to both files (the sole `-` line is the
+  `GeminiKind` union's trailing `;` relocating to make room for the new value). This
+  plan is server-side only (TypeScript/Deno) and touches no Dart/Flutter file, so
+  `flutter analyze`/`flutter test` were not run — independent of the other Wave 1
+  plans per the plan's own note. SDK `roadmap.update-plan-progress 27` worked and was
+  used; `state.*` verbs still no-op on this STATE.md format, so this section is
+  hand-written.
+
+- Next implementation focus: remaining Phase 27 Wave 1/2 plans (27-07 through 27-13
+  — see 27-*-PLAN.md files for wave order; 27-06/27-05/27-04/27-03 have now delivered
+  the domain model, transport (both directions), persistence target, and Edge
+  Function kind — 27-09's `HerculexAiBriefService` is the next piece that actually
+  connects them end-to-end).
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 05 Completed)
 
