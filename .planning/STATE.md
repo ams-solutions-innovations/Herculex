@@ -14,6 +14,41 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-09-30 (Phase 27 Plan 10 Completed — Wave 2 done)
+
+- Completed Plan 27-10 (AIP-04, chore 5): wrote and **applied**
+  `supabase/migrations/20260929000000_herculex_ai_program_briefs_v46.sql` to the live
+  `ldzgyzigvbwofbswitrv` project. This is a `[BLOCKING]` human-gated schema push — the
+  orchestrator asked the user for explicit go-ahead before running `supabase db push`
+  (confirmed `ldzgyzigvbwofbswitrv`, not `jioesomepkauponjrena`, via `supabase projects
+  list` first). User chose "push now."
+
+- Independently verified via 4 read-only queries against the live project (not taken on
+  the CLI's success message alone, per this plan's own anti-repeat-the-tdee-mistake
+  design): 11/11 columns present with correct types, 4/4 owner-only RLS policies, 2/2
+  triggers, 1/1 pull index (`herculex_ai_program_briefs_user_updated_idx`). Full query
+  results recorded in `27-10-SUMMARY.md`.
+
+- Side discovery: `supabase migration list` showed 0015/0016 already applied remotely —
+  CLAUDE.md's "0015 and 0016 are both outstanding" gotcha note is now stale (only
+  `20260929000000` was pending before this push). Worth a CLAUDE.md correction in a
+  future session; not fixed here (scope discipline).
+
+- AIP-04 requirement annotation updated but left **unchecked** — this plan only closes
+  the schema/sync half; the review-gate UI (rationale rendering, plan 27-12) is still
+  outstanding.
+
+- **Phase 27 Wave 2 is now complete (27-08, 27-09, 27-10 — 10/13 plans in the phase).**
+  Wave 1's post-merge test gate caught one real cross-plan regression (`fk_constraints_test.dart`'s
+  hard-coded FK inventory needed plan 27-04's new edge added — fixed, commit `d6334f7`).
+  Two other test failures seen mid-Wave-2 (`tdee_recalibration_test.dart`,
+  `wear_workout_sync_service_test.dart`) were confirmed flaky/timing artifacts of running
+  the full suite under machine load, not real regressions — both pass cleanly in isolation.
+
+- Next implementation focus: Wave 3 (plans 27-11, 27-12).
+
+---
+
 ## Session update — 2026-09-30 (Phase 27 Plan 09 Completed)
 
 - Completed Plan 27-09 (AIP-02, partial on AIP-03/AIP-05): `HerculexAiBriefService`
