@@ -122,5 +122,26 @@ void main() {
       expect(statuses['Shoulder']!.isFlagged, isTrue);
       expect(statuses['Lower Back']!.isFlagged, isFalse);
     });
+
+    test(
+      'currentStatuses returns the same shape as watchCurrentStatuses().first',
+      () async {
+        await repo.setStatus(
+          joint: 'Knee',
+          severity: 3,
+          note: 'buckling under load',
+          at: DateTime(2026, 6, 1, 9),
+        );
+
+        final oneShot = await repo.currentStatuses();
+        final watched = await repo.watchCurrentStatuses().first;
+
+        expect(oneShot.keys.toSet(), watched.keys.toSet());
+        final knee = oneShot['Knee']!;
+        expect(knee.isFlagged, isTrue);
+        expect(knee.severity, 3);
+        expect(knee.note, 'buckling under load');
+      },
+    );
   });
 }

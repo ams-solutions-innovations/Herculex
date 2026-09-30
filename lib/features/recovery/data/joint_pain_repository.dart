@@ -69,6 +69,23 @@ class JointPainRepository {
     return query.watch().map(_deriveStatuses);
   }
 
+  /// One-shot equivalent of [watchCurrentStatuses], for imperative call
+  /// sites (e.g. a single "create program" action) that need the current
+  /// statuses once rather than a live subscription. Taking `.first` from
+  /// [watchCurrentStatuses] instead does not resolve under widget-test
+  /// `FakeAsync` zones even though it resolves instantly in production —
+  /// the same class of issue `HerculexAiBriefService.readActiveBriefForProgram`
+  /// (plan 27-12) already worked around for this reason.
+  Future<Map<String, JointPainStatus>> currentStatuses() async {
+    final query = _db.select(_db.jointPainLogs)
+      ..where((t) => t.deletedAt.isNull())
+      ..orderBy([
+        (t) => OrderingTerm.desc(t.loggedAt),
+        (t) => OrderingTerm.desc(t.id),
+      ]);
+    return _deriveStatuses(await query.get());
+  }
+
   Map<String, JointPainStatus> _deriveStatuses(List<JointPainLogData> rows) {
     // `rows` is newest-first across every joint; grouping preserves that
     // relative order within each joint's own history.

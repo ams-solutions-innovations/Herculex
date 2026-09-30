@@ -103,11 +103,33 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
       );
       createdProgramId = programId;
 
+      if (_buildMode == ProgramBuildMode.herculexAi &&
+          _acceptedHerculexBrief != null) {
+        try {
+          await ref
+              .read(herculexAiBriefServiceProvider)
+              .persistBrief(
+                programId: programId,
+                brief: _acceptedHerculexBrief!,
+                provenance: _herculexBriefProvenance,
+              );
+        } catch (_) {
+          // Non-fatal (D-08, T-27-20): the program itself was created
+          // successfully above. The brief's provenance/rationale is
+          // enrichment data ProgramReviewView reads opportunistically
+          // (plan 27-12, itself wrapped in its own isolated try/catch) -
+          // not required for the program to function. A persistence
+          // failure here (e.g. a database error) must never roll back or
+          // block an otherwise-successful program creation, so it is
+          // swallowed rather than rethrown into this method's outer catch
+          // (which would delete the just-created program).
+        }
+      }
+
       if (_buildMode != ProgramBuildMode.manual) {
         final jointStatuses = await ref
             .read(jointPainRepositoryProvider)
-            .watchCurrentStatuses()
-            .first;
+            .currentStatuses();
         final flaggedJoints = {
           for (final status in jointStatuses.values)
             if (status.isFlagged) status.joint,
@@ -216,9 +238,40 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
       if (blocking.isNotEmpty) {
         setState(() => _herculexRejectionMessage = blocking.first.message);
       } else {
+        // D-01: musclePriorities flows through the EXISTING Dream Physique
+        // tuning seam - build the same muscleId -> priority.wireValue map
+        // _loadDreamPhysiquePriorities() would build from a
+        // PhysiqueProgrammingProfiles row, then call the unchanged
+        // _applyDreamPhysiqueTuning() so its existing consumer logic fires.
+        // Herculex AI's own brief fully supersedes any earlier Dream
+        // Physique load for this builder session (the user explicitly chose
+        // Herculex AI mode) - a REPLACE, not a merge.
+        final musclePriorities = <String, String>{
+          for (final priority in brief.musclePriorities)
+            priority.muscleId: priority.priority.wireValue,
+        };
         setState(() {
           _acceptedHerculexBrief = brief;
           _herculexBriefProvenance = provenance;
+          // Cleared so _applyDreamPhysiqueTuning()'s existing early-return
+          // guard (`if (_useManualMusclePlan || ...) return;`) does not
+          // block it - mirrors the Dream Physique priorities card's own
+          // onCardTap, which pairs this same reset with the same call.
+          _useManualMusclePlan = false;
+          _dreamPhysiquePriorities = musclePriorities;
+          _applyDreamPhysiqueTuning();
+          _dreamPhysiqueTuned = true;
+          // D-03: pre-fills the same Step 1-5 pickers Smart/Guided already
+          // render - no new screen. Direct assignment, mirroring how
+          // _applySmartDefaults already assigns _model directly elsewhere
+          // in this file. Assigned AFTER _applyDreamPhysiqueTuning() (which
+          // calls _applySmartDefaults() internally and would otherwise
+          // overwrite _model from _goal/_experience) so the brief's own
+          // periodizationModel wins. Fully user-editable afterward via the
+          // existing pickers - this method never runs again until the next
+          // Generate/Regenerate tap.
+          _split = brief.splitType;
+          _model = brief.periodizationModel;
         });
       }
     } on HerculexAiBriefException catch (e) {

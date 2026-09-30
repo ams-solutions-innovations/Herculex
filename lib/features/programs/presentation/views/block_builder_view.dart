@@ -126,9 +126,8 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
   // signal plan 27-13's pre-fill/persistence wiring consumes directly.
   bool _generatingBrief = false;
   ProgramBrief? _acceptedHerculexBrief;
-  // Stored for plan 27-13's pre-fill/persistence wiring to consume; this
-  // plan only stores it (see key_links in the plan).
-  // ignore: unused_field
+  // Read by _create() (plan 27-13) to pass through to
+  // HerculexAiBriefService.persistBrief()'s provenance parameter.
   Map<String, dynamic> _herculexBriefProvenance = const {};
   String? _herculexRejectionMessage;
   String? _herculexDegradationMessage;

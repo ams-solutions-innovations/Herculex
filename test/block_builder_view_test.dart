@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
+import 'package:herculex/features/programs/domain/program_brief.dart';
+import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/views/block_builder_view.dart';
 import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
 import 'package:herculex/features/programs/presentation/widgets/ai_brief_rejection_banner.dart';
@@ -173,6 +178,24 @@ class _FakeHerculexGeminiBackend implements GeminiBackend {
     required String text,
     String? preferredMealKey,
   }) => throw UnimplementedError();
+}
+
+/// A [HerculexAiBriefService] whose `persistBrief()` always throws, so tests
+/// can verify `_create()` tolerates a non-fatal persistence failure (27-13,
+/// D-08, T-27-20) without needing to break the in-memory drift database
+/// itself. `generateBrief()` and every other method are inherited unchanged
+/// from the real service.
+class _ThrowingPersistHerculexAiBriefService extends HerculexAiBriefService {
+  _ThrowingPersistHerculexAiBriefService(super.backend, super.db, super.clock);
+
+  @override
+  Future<void> persistBrief({
+    required int programId,
+    required ProgramBrief brief,
+    required Map<String, dynamic> provenance,
+  }) {
+    throw Exception('simulated persistBrief failure (27-13 test)');
+  }
 }
 
 /// Taps the pinned "Continue" footer button and settles the resulting step
@@ -893,6 +916,299 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
 
         expect(backend.callCount, 2);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+  });
+
+  // 27-13: pre-fill wiring - musclePriorities through the existing Dream
+  // Physique tuning seam (D-01, zero new apply logic) and
+  // split/periodizationModel/phaseIntent into the corresponding Step 1-5
+  // fields (D-03, no new screen) - plus persistBrief() on "Create block"
+  // (D-08).
+  group('Herculex AI pre-fill and persistence (27-13)', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = await openTestDatabase();
+    });
+
+    tearDown(() => db.close());
+
+    Future<void> selectHerculexAiTile(WidgetTester tester) async {
+      await tester.tap(find.text('Herculex AI'));
+      await tester.pump();
+    }
+
+    Future<void> generate(WidgetTester tester) async {
+      await tester.tap(find.text('Generate with Herculex AI'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    testWidgets(
+      'a successful generate applies musclePriorities through the existing '
+      'Dream Physique tuning seam (D-01), and phaseIntent is visible before '
+      'confirmation (AIP-04)',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend();
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await generate(tester);
+
+        expect(find.text('Applied'), findsOneWidget);
+        // D-01: the SAME rendering every Dream Physique priorities load
+        // already drives (dreamPrioritiesActive = dreamPrioritiesSaved &&
+        // !_useManualMusclePlan) - proof _dreamPhysiquePriorities was
+        // populated and _useManualMusclePlan was cleared, with zero new
+        // apply logic.
+        expect(
+          find.text('AI-analyzed priorities applied to program volume.'),
+          findsOneWidget,
+        );
+        // phaseIntent surfaced verbatim (the fake backend's default
+        // phrase), satisfying AIP-04's "visible before confirmation".
+        expect(
+          find.textContaining(
+            'Build upper body symmetry ahead of the next block.',
+          ),
+          findsOneWidget,
+        );
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      "the brief's splitType/periodizationModel set _split/_model directly "
+      '(D-03) - no new screen, visible in the existing schedule summary',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend(
+          result: {
+            'splitType': 'ppl',
+            'periodizationModel': 'concurrent',
+            'dayRoles': [
+              {
+                'dayIndex': 0,
+                'role': 'intensity',
+                'focus': 'Push day',
+                'rationale': 'Front-loads pressing volume.',
+              },
+            ],
+            'musclePriorities': [
+              {
+                'muscleId': 'chest',
+                'priority': 'high',
+                'confidence': 0.8,
+                'rationale': 'Lagging relative to back.',
+                'uncertainties': <String>[],
+              },
+            ],
+            'phaseIntent': 'Build pressing volume ahead of the next block.',
+          },
+        );
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await generate(tester);
+        expect(find.text('Applied'), findsOneWidget);
+
+        // Both differ from the builder's own defaults (upper_lower/linear),
+        // so seeing them on Step 6 proves direct assignment happened, not
+        // an unrelated default.
+        for (var i = 0; i < 5; i++) {
+          await _continue(tester);
+        }
+        expect(find.textContaining('Push / Pull / Legs'), findsWidgets);
+        expect(find.textContaining('Concurrent'), findsWidgets);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'the user can still hand-edit the pre-filled split via the existing '
+      'Step 4 picker after a successful generate, and it sticks (no '
+      're-lock/override on rebuild)',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend(); // upper_lower/linear
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await generate(tester);
+        expect(find.text('Applied'), findsOneWidget);
+
+        await _continue(tester); // Step 1 -> Step 2
+        await _continue(tester); // Step 2 -> Step 3
+        await _continue(tester); // Step 3 -> Step 4 (split)
+
+        expect(find.text('Split'), findsOneWidget);
+        await tester.tap(find.text('Push / Pull / Legs'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+
+        await _continue(tester); // Step 4 -> Step 5
+        await _continue(tester); // Step 5 -> Step 6
+
+        expect(find.textContaining('Push / Pull / Legs'), findsWidgets);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'Create block persists the accepted brief exactly once via '
+      'HerculexAiBriefService.persistBrief() (D-08)',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend();
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        await generate(tester);
+        expect(find.text('Applied'), findsOneWidget);
+
+        for (var i = 0; i < 5; i++) {
+          await _continue(tester);
+        }
+        await _createBlock(tester);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining('Could not create the block'),
+          findsNothing,
+        );
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+        final review = tester.widget<ProgramReviewView>(
+          find.byType(ProgramReviewView),
+        );
+
+        final rows = await db.select(db.herculexAiProgramBriefs).get();
+        expect(rows, hasLength(1));
+        expect(rows.single.programId, review.programId);
+        expect(rows.single.source, 'herculex_ai');
+        expect(rows.single.active, true);
+        final decoded = ProgramBrief.fromJson(
+          jsonDecode(rows.single.briefJson) as Map<String, dynamic>,
+        );
+        expect(decoded.splitType, SplitType.upperLower);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'Create block never calls persistBrief() for non-Herculex-AI build '
+      'modes - no HerculexAiProgramBriefs row is written',
+      (tester) async {
+        await _pumpBuilder(tester, db);
+        await tester.tap(find.text('Build it for me'));
+        await tester.pump();
+
+        for (var i = 0; i < 5; i++) {
+          await _continue(tester);
+        }
+        await _createBlock(tester);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining('Could not create the block'),
+          findsNothing,
+        );
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+
+        final rows = await db.select(db.herculexAiProgramBriefs).get();
+        expect(rows, isEmpty);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'Create block with Herculex AI mode selected but no accepted brief '
+      'does not call persistBrief() and does not throw',
+      (tester) async {
+        final backend = _FakeHerculexGeminiBackend();
+        await _pumpBuilderWithBackend(tester, db, backend);
+        await selectHerculexAiTile(tester);
+        // Never tap Generate - _acceptedHerculexBrief stays null (the user
+        // switched to Herculex AI mode but never successfully generated).
+
+        for (var i = 0; i < 5; i++) {
+          await _continue(tester);
+        }
+        await _createBlock(tester);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining('Could not create the block'),
+          findsNothing,
+        );
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+        expect(backend.callCount, 0);
+
+        final rows = await db.select(db.herculexAiProgramBriefs).get();
+        expect(rows, isEmpty);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'a persistBrief() failure does not prevent the program from being '
+      'created - swallowed, program creation proceeds normally',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final backend = _FakeHerculexGeminiBackend();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              appDatabaseProvider.overrideWithValue(db),
+              geminiBackendProvider.overrideWithValue(backend),
+              herculexAiBriefServiceProvider.overrideWith(
+                (ref) => _ThrowingPersistHerculexAiBriefService(
+                  ref.watch(geminiBackendProvider),
+                  ref.watch(appDatabaseProvider),
+                  ref.watch(clockProvider),
+                ),
+              ),
+            ],
+            child: const MaterialApp(
+              home: BlockBuilderView(autoRecommendExperience: false),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await selectHerculexAiTile(tester);
+        await generate(tester);
+        expect(find.text('Applied'), findsOneWidget);
+
+        for (var i = 0; i < 5; i++) {
+          await _continue(tester);
+        }
+        await _createBlock(tester);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining('Could not create the block'),
+          findsNothing,
+        );
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+
+        final rows = await db.select(db.herculexAiProgramBriefs).get();
+        expect(rows, isEmpty);
 
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump(const Duration(milliseconds: 10));
