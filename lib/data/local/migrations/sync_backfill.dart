@@ -54,6 +54,7 @@ const List<String> syncedTableNames = [
   'workout_circuits',
   'circuit_exercises',
   'tdee_estimates',
+  'herculex_ai_program_briefs',
 ];
 
 /// Catalogue tables whose sync trigger must only fire for `is_custom = 1`

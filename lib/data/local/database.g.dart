@@ -43244,6 +43244,728 @@ class FastingStagesCompanion extends UpdateCompanion<FastingStageData> {
   }
 }
 
+class $HerculexAiProgramBriefsTable extends HerculexAiProgramBriefs
+    with TableInfo<$HerculexAiProgramBriefsTable, HerculexAiProgramBriefData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HerculexAiProgramBriefsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _programIdMeta = const VerificationMeta(
+    'programId',
+  );
+  @override
+  late final GeneratedColumn<int> programId = GeneratedColumn<int>(
+    'program_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES programs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _briefJsonMeta = const VerificationMeta(
+    'briefJson',
+  );
+  @override
+  late final GeneratedColumn<String> briefJson = GeneratedColumn<String>(
+    'brief_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('herculex_ai'),
+  );
+  static const VerificationMeta _knowledgeVersionMeta = const VerificationMeta(
+    'knowledgeVersion',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeVersion = GeneratedColumn<String>(
+    'knowledge_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modelVersionMeta = const VerificationMeta(
+    'modelVersion',
+  );
+  @override
+  late final GeneratedColumn<String> modelVersion = GeneratedColumn<String>(
+    'model_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _confirmedAtMeta = const VerificationMeta(
+    'confirmedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> confirmedAt = GeneratedColumn<DateTime>(
+    'confirmed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _activeMeta = const VerificationMeta('active');
+  @override
+  late final GeneratedColumn<bool> active = GeneratedColumn<bool>(
+    'active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    programId,
+    briefJson,
+    source,
+    knowledgeVersion,
+    modelVersion,
+    confirmedAt,
+    active,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'herculex_ai_program_briefs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HerculexAiProgramBriefData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('program_id')) {
+      context.handle(
+        _programIdMeta,
+        programId.isAcceptableOrUnknown(data['program_id']!, _programIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_programIdMeta);
+    }
+    if (data.containsKey('brief_json')) {
+      context.handle(
+        _briefJsonMeta,
+        briefJson.isAcceptableOrUnknown(data['brief_json']!, _briefJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_briefJsonMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('knowledge_version')) {
+      context.handle(
+        _knowledgeVersionMeta,
+        knowledgeVersion.isAcceptableOrUnknown(
+          data['knowledge_version']!,
+          _knowledgeVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('model_version')) {
+      context.handle(
+        _modelVersionMeta,
+        modelVersion.isAcceptableOrUnknown(
+          data['model_version']!,
+          _modelVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('confirmed_at')) {
+      context.handle(
+        _confirmedAtMeta,
+        confirmedAt.isAcceptableOrUnknown(
+          data['confirmed_at']!,
+          _confirmedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('active')) {
+      context.handle(
+        _activeMeta,
+        active.isAcceptableOrUnknown(data['active']!, _activeMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HerculexAiProgramBriefData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HerculexAiProgramBriefData(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      programId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}program_id'],
+      )!,
+      briefJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}brief_json'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      knowledgeVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_version'],
+      ),
+      modelVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_version'],
+      ),
+      confirmedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}confirmed_at'],
+      )!,
+      active: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}active'],
+      )!,
+    );
+  }
+
+  @override
+  $HerculexAiProgramBriefsTable createAlias(String alias) {
+    return $HerculexAiProgramBriefsTable(attachedDatabase, alias);
+  }
+}
+
+class HerculexAiProgramBriefData extends DataClass
+    implements Insertable<HerculexAiProgramBriefData> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final int id;
+  final int programId;
+  final String briefJson;
+  final String source;
+  final String? knowledgeVersion;
+  final String? modelVersion;
+  final DateTime confirmedAt;
+  final bool active;
+  const HerculexAiProgramBriefData({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.programId,
+    required this.briefJson,
+    required this.source,
+    this.knowledgeVersion,
+    this.modelVersion,
+    required this.confirmedAt,
+    required this.active,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<int>(id);
+    map['program_id'] = Variable<int>(programId);
+    map['brief_json'] = Variable<String>(briefJson);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || knowledgeVersion != null) {
+      map['knowledge_version'] = Variable<String>(knowledgeVersion);
+    }
+    if (!nullToAbsent || modelVersion != null) {
+      map['model_version'] = Variable<String>(modelVersion);
+    }
+    map['confirmed_at'] = Variable<DateTime>(confirmedAt);
+    map['active'] = Variable<bool>(active);
+    return map;
+  }
+
+  HerculexAiProgramBriefsCompanion toCompanion(bool nullToAbsent) {
+    return HerculexAiProgramBriefsCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      programId: Value(programId),
+      briefJson: Value(briefJson),
+      source: Value(source),
+      knowledgeVersion: knowledgeVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(knowledgeVersion),
+      modelVersion: modelVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelVersion),
+      confirmedAt: Value(confirmedAt),
+      active: Value(active),
+    );
+  }
+
+  factory HerculexAiProgramBriefData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HerculexAiProgramBriefData(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<int>(json['id']),
+      programId: serializer.fromJson<int>(json['programId']),
+      briefJson: serializer.fromJson<String>(json['briefJson']),
+      source: serializer.fromJson<String>(json['source']),
+      knowledgeVersion: serializer.fromJson<String?>(json['knowledgeVersion']),
+      modelVersion: serializer.fromJson<String?>(json['modelVersion']),
+      confirmedAt: serializer.fromJson<DateTime>(json['confirmedAt']),
+      active: serializer.fromJson<bool>(json['active']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<int>(id),
+      'programId': serializer.toJson<int>(programId),
+      'briefJson': serializer.toJson<String>(briefJson),
+      'source': serializer.toJson<String>(source),
+      'knowledgeVersion': serializer.toJson<String?>(knowledgeVersion),
+      'modelVersion': serializer.toJson<String?>(modelVersion),
+      'confirmedAt': serializer.toJson<DateTime>(confirmedAt),
+      'active': serializer.toJson<bool>(active),
+    };
+  }
+
+  HerculexAiProgramBriefData copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    int? id,
+    int? programId,
+    String? briefJson,
+    String? source,
+    Value<String?> knowledgeVersion = const Value.absent(),
+    Value<String?> modelVersion = const Value.absent(),
+    DateTime? confirmedAt,
+    bool? active,
+  }) => HerculexAiProgramBriefData(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    programId: programId ?? this.programId,
+    briefJson: briefJson ?? this.briefJson,
+    source: source ?? this.source,
+    knowledgeVersion: knowledgeVersion.present
+        ? knowledgeVersion.value
+        : this.knowledgeVersion,
+    modelVersion: modelVersion.present ? modelVersion.value : this.modelVersion,
+    confirmedAt: confirmedAt ?? this.confirmedAt,
+    active: active ?? this.active,
+  );
+  HerculexAiProgramBriefData copyWithCompanion(
+    HerculexAiProgramBriefsCompanion data,
+  ) {
+    return HerculexAiProgramBriefData(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      programId: data.programId.present ? data.programId.value : this.programId,
+      briefJson: data.briefJson.present ? data.briefJson.value : this.briefJson,
+      source: data.source.present ? data.source.value : this.source,
+      knowledgeVersion: data.knowledgeVersion.present
+          ? data.knowledgeVersion.value
+          : this.knowledgeVersion,
+      modelVersion: data.modelVersion.present
+          ? data.modelVersion.value
+          : this.modelVersion,
+      confirmedAt: data.confirmedAt.present
+          ? data.confirmedAt.value
+          : this.confirmedAt,
+      active: data.active.present ? data.active.value : this.active,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculexAiProgramBriefData(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('programId: $programId, ')
+          ..write('briefJson: $briefJson, ')
+          ..write('source: $source, ')
+          ..write('knowledgeVersion: $knowledgeVersion, ')
+          ..write('modelVersion: $modelVersion, ')
+          ..write('confirmedAt: $confirmedAt, ')
+          ..write('active: $active')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    programId,
+    briefJson,
+    source,
+    knowledgeVersion,
+    modelVersion,
+    confirmedAt,
+    active,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HerculexAiProgramBriefData &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.programId == this.programId &&
+          other.briefJson == this.briefJson &&
+          other.source == this.source &&
+          other.knowledgeVersion == this.knowledgeVersion &&
+          other.modelVersion == this.modelVersion &&
+          other.confirmedAt == this.confirmedAt &&
+          other.active == this.active);
+}
+
+class HerculexAiProgramBriefsCompanion
+    extends UpdateCompanion<HerculexAiProgramBriefData> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> id;
+  final Value<int> programId;
+  final Value<String> briefJson;
+  final Value<String> source;
+  final Value<String?> knowledgeVersion;
+  final Value<String?> modelVersion;
+  final Value<DateTime> confirmedAt;
+  final Value<bool> active;
+  const HerculexAiProgramBriefsCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.programId = const Value.absent(),
+    this.briefJson = const Value.absent(),
+    this.source = const Value.absent(),
+    this.knowledgeVersion = const Value.absent(),
+    this.modelVersion = const Value.absent(),
+    this.confirmedAt = const Value.absent(),
+    this.active = const Value.absent(),
+  });
+  HerculexAiProgramBriefsCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    required int programId,
+    required String briefJson,
+    this.source = const Value.absent(),
+    this.knowledgeVersion = const Value.absent(),
+    this.modelVersion = const Value.absent(),
+    this.confirmedAt = const Value.absent(),
+    this.active = const Value.absent(),
+  }) : programId = Value(programId),
+       briefJson = Value(briefJson);
+  static Insertable<HerculexAiProgramBriefData> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? id,
+    Expression<int>? programId,
+    Expression<String>? briefJson,
+    Expression<String>? source,
+    Expression<String>? knowledgeVersion,
+    Expression<String>? modelVersion,
+    Expression<DateTime>? confirmedAt,
+    Expression<bool>? active,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (programId != null) 'program_id': programId,
+      if (briefJson != null) 'brief_json': briefJson,
+      if (source != null) 'source': source,
+      if (knowledgeVersion != null) 'knowledge_version': knowledgeVersion,
+      if (modelVersion != null) 'model_version': modelVersion,
+      if (confirmedAt != null) 'confirmed_at': confirmedAt,
+      if (active != null) 'active': active,
+    });
+  }
+
+  HerculexAiProgramBriefsCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? id,
+    Value<int>? programId,
+    Value<String>? briefJson,
+    Value<String>? source,
+    Value<String?>? knowledgeVersion,
+    Value<String?>? modelVersion,
+    Value<DateTime>? confirmedAt,
+    Value<bool>? active,
+  }) {
+    return HerculexAiProgramBriefsCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      programId: programId ?? this.programId,
+      briefJson: briefJson ?? this.briefJson,
+      source: source ?? this.source,
+      knowledgeVersion: knowledgeVersion ?? this.knowledgeVersion,
+      modelVersion: modelVersion ?? this.modelVersion,
+      confirmedAt: confirmedAt ?? this.confirmedAt,
+      active: active ?? this.active,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (programId.present) {
+      map['program_id'] = Variable<int>(programId.value);
+    }
+    if (briefJson.present) {
+      map['brief_json'] = Variable<String>(briefJson.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (knowledgeVersion.present) {
+      map['knowledge_version'] = Variable<String>(knowledgeVersion.value);
+    }
+    if (modelVersion.present) {
+      map['model_version'] = Variable<String>(modelVersion.value);
+    }
+    if (confirmedAt.present) {
+      map['confirmed_at'] = Variable<DateTime>(confirmedAt.value);
+    }
+    if (active.present) {
+      map['active'] = Variable<bool>(active.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HerculexAiProgramBriefsCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('programId: $programId, ')
+          ..write('briefJson: $briefJson, ')
+          ..write('source: $source, ')
+          ..write('knowledgeVersion: $knowledgeVersion, ')
+          ..write('modelVersion: $modelVersion, ')
+          ..write('confirmedAt: $confirmedAt, ')
+          ..write('active: $active')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -43356,6 +44078,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $FastingStagesTable fastingStages = $FastingStagesTable(this);
+  late final $HerculexAiProgramBriefsTable herculexAiProgramBriefs =
+      $HerculexAiProgramBriefsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -43424,6 +44148,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     herculRules,
     herculMessageLog,
     fastingStages,
+    herculexAiProgramBriefs,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -43714,6 +44439,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('circuit_exercises', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'programs',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('herculex_ai_program_briefs', kind: UpdateKind.delete),
+      ],
     ),
   ]);
 }
@@ -48906,6 +49640,34 @@ final class $$ProgramsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    $HerculexAiProgramBriefsTable,
+    List<HerculexAiProgramBriefData>
+  >
+  _herculexAiProgramBriefsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.herculexAiProgramBriefs,
+        aliasName: $_aliasNameGenerator(
+          db.programs.id,
+          db.herculexAiProgramBriefs.programId,
+        ),
+      );
+
+  $$HerculexAiProgramBriefsTableProcessedTableManager
+  get herculexAiProgramBriefsRefs {
+    final manager = $$HerculexAiProgramBriefsTableTableManager(
+      $_db,
+      $_db.herculexAiProgramBriefs,
+    ).filter((f) => f.programId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _herculexAiProgramBriefsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$ProgramsTableFilterComposer
@@ -49134,6 +49896,32 @@ class $$ProgramsTableFilterComposer
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> herculexAiProgramBriefsRefs(
+    Expression<bool> Function($$HerculexAiProgramBriefsTableFilterComposer f) f,
+  ) {
+    final $$HerculexAiProgramBriefsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.herculexAiProgramBriefs,
+          getReferencedColumn: (t) => t.programId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$HerculexAiProgramBriefsTableFilterComposer(
+                $db: $db,
+                $table: $db.herculexAiProgramBriefs,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 }
@@ -49475,6 +50263,33 @@ class $$ProgramsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> herculexAiProgramBriefsRefs<T extends Object>(
+    Expression<T> Function($$HerculexAiProgramBriefsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$HerculexAiProgramBriefsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.herculexAiProgramBriefs,
+          getReferencedColumn: (t) => t.programId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$HerculexAiProgramBriefsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.herculexAiProgramBriefs,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ProgramsTableTableManager
@@ -49495,6 +50310,7 @@ class $$ProgramsTableTableManager
             bool programWeeksRefs,
             bool exercisePreferencesRefs,
             bool scheduledWorkoutsRefs,
+            bool herculexAiProgramBriefsRefs,
           })
         > {
   $$ProgramsTableTableManager(_$AppDatabase db, $ProgramsTable table)
@@ -49626,6 +50442,7 @@ class $$ProgramsTableTableManager
                 programWeeksRefs = false,
                 exercisePreferencesRefs = false,
                 scheduledWorkoutsRefs = false,
+                herculexAiProgramBriefsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -49634,6 +50451,7 @@ class $$ProgramsTableTableManager
                     if (programWeeksRefs) db.programWeeks,
                     if (exercisePreferencesRefs) db.exercisePreferences,
                     if (scheduledWorkoutsRefs) db.scheduledWorkouts,
+                    if (herculexAiProgramBriefsRefs) db.herculexAiProgramBriefs,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -49722,6 +50540,27 @@ class $$ProgramsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (herculexAiProgramBriefsRefs)
+                        await $_getPrefetchedData<
+                          ProgramData,
+                          $ProgramsTable,
+                          HerculexAiProgramBriefData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProgramsTableReferences
+                              ._herculexAiProgramBriefsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProgramsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).herculexAiProgramBriefsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.programId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -49747,6 +50586,7 @@ typedef $$ProgramsTableProcessedTableManager =
         bool programWeeksRefs,
         bool exercisePreferencesRefs,
         bool scheduledWorkoutsRefs,
+        bool herculexAiProgramBriefsRefs,
       })
     >;
 typedef $$ProgramExerciseSlotsTableCreateCompanionBuilder =
@@ -75804,6 +76644,486 @@ typedef $$FastingStagesTableProcessedTableManager =
       FastingStageData,
       PrefetchHooks Function()
     >;
+typedef $$HerculexAiProgramBriefsTableCreateCompanionBuilder =
+    HerculexAiProgramBriefsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      required int programId,
+      required String briefJson,
+      Value<String> source,
+      Value<String?> knowledgeVersion,
+      Value<String?> modelVersion,
+      Value<DateTime> confirmedAt,
+      Value<bool> active,
+    });
+typedef $$HerculexAiProgramBriefsTableUpdateCompanionBuilder =
+    HerculexAiProgramBriefsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<int> programId,
+      Value<String> briefJson,
+      Value<String> source,
+      Value<String?> knowledgeVersion,
+      Value<String?> modelVersion,
+      Value<DateTime> confirmedAt,
+      Value<bool> active,
+    });
+
+final class $$HerculexAiProgramBriefsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $HerculexAiProgramBriefsTable,
+          HerculexAiProgramBriefData
+        > {
+  $$HerculexAiProgramBriefsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProgramsTable _programIdTable(_$AppDatabase db) =>
+      db.programs.createAlias(
+        $_aliasNameGenerator(
+          db.herculexAiProgramBriefs.programId,
+          db.programs.id,
+        ),
+      );
+
+  $$ProgramsTableProcessedTableManager get programId {
+    final $_column = $_itemColumn<int>('program_id')!;
+
+    final manager = $$ProgramsTableTableManager(
+      $_db,
+      $_db.programs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_programIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$HerculexAiProgramBriefsTableFilterComposer
+    extends Composer<_$AppDatabase, $HerculexAiProgramBriefsTable> {
+  $$HerculexAiProgramBriefsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get briefJson => $composableBuilder(
+    column: $table.briefJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get confirmedAt => $composableBuilder(
+    column: $table.confirmedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get active => $composableBuilder(
+    column: $table.active,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProgramsTableFilterComposer get programId {
+    final $$ProgramsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.programId,
+      referencedTable: $db.programs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProgramsTableFilterComposer(
+            $db: $db,
+            $table: $db.programs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculexAiProgramBriefsTableOrderingComposer
+    extends Composer<_$AppDatabase, $HerculexAiProgramBriefsTable> {
+  $$HerculexAiProgramBriefsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get briefJson => $composableBuilder(
+    column: $table.briefJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get confirmedAt => $composableBuilder(
+    column: $table.confirmedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get active => $composableBuilder(
+    column: $table.active,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProgramsTableOrderingComposer get programId {
+    final $$ProgramsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.programId,
+      referencedTable: $db.programs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProgramsTableOrderingComposer(
+            $db: $db,
+            $table: $db.programs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculexAiProgramBriefsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HerculexAiProgramBriefsTable> {
+  $$HerculexAiProgramBriefsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get briefJson =>
+      $composableBuilder(column: $table.briefJson, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get confirmedAt => $composableBuilder(
+    column: $table.confirmedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get active =>
+      $composableBuilder(column: $table.active, builder: (column) => column);
+
+  $$ProgramsTableAnnotationComposer get programId {
+    final $$ProgramsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.programId,
+      referencedTable: $db.programs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProgramsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.programs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$HerculexAiProgramBriefsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HerculexAiProgramBriefsTable,
+          HerculexAiProgramBriefData,
+          $$HerculexAiProgramBriefsTableFilterComposer,
+          $$HerculexAiProgramBriefsTableOrderingComposer,
+          $$HerculexAiProgramBriefsTableAnnotationComposer,
+          $$HerculexAiProgramBriefsTableCreateCompanionBuilder,
+          $$HerculexAiProgramBriefsTableUpdateCompanionBuilder,
+          (
+            HerculexAiProgramBriefData,
+            $$HerculexAiProgramBriefsTableReferences,
+          ),
+          HerculexAiProgramBriefData,
+          PrefetchHooks Function({bool programId})
+        > {
+  $$HerculexAiProgramBriefsTableTableManager(
+    _$AppDatabase db,
+    $HerculexAiProgramBriefsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HerculexAiProgramBriefsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$HerculexAiProgramBriefsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$HerculexAiProgramBriefsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<int> programId = const Value.absent(),
+                Value<String> briefJson = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> knowledgeVersion = const Value.absent(),
+                Value<String?> modelVersion = const Value.absent(),
+                Value<DateTime> confirmedAt = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+              }) => HerculexAiProgramBriefsCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                programId: programId,
+                briefJson: briefJson,
+                source: source,
+                knowledgeVersion: knowledgeVersion,
+                modelVersion: modelVersion,
+                confirmedAt: confirmedAt,
+                active: active,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required int programId,
+                required String briefJson,
+                Value<String> source = const Value.absent(),
+                Value<String?> knowledgeVersion = const Value.absent(),
+                Value<String?> modelVersion = const Value.absent(),
+                Value<DateTime> confirmedAt = const Value.absent(),
+                Value<bool> active = const Value.absent(),
+              }) => HerculexAiProgramBriefsCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                programId: programId,
+                briefJson: briefJson,
+                source: source,
+                knowledgeVersion: knowledgeVersion,
+                modelVersion: modelVersion,
+                confirmedAt: confirmedAt,
+                active: active,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$HerculexAiProgramBriefsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({programId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (programId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.programId,
+                                referencedTable:
+                                    $$HerculexAiProgramBriefsTableReferences
+                                        ._programIdTable(db),
+                                referencedColumn:
+                                    $$HerculexAiProgramBriefsTableReferences
+                                        ._programIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$HerculexAiProgramBriefsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HerculexAiProgramBriefsTable,
+      HerculexAiProgramBriefData,
+      $$HerculexAiProgramBriefsTableFilterComposer,
+      $$HerculexAiProgramBriefsTableOrderingComposer,
+      $$HerculexAiProgramBriefsTableAnnotationComposer,
+      $$HerculexAiProgramBriefsTableCreateCompanionBuilder,
+      $$HerculexAiProgramBriefsTableUpdateCompanionBuilder,
+      (HerculexAiProgramBriefData, $$HerculexAiProgramBriefsTableReferences),
+      HerculexAiProgramBriefData,
+      PrefetchHooks Function({bool programId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -75946,4 +77266,9 @@ class $AppDatabaseManager {
       $$HerculMessageLogTableTableManager(_db, _db.herculMessageLog);
   $$FastingStagesTableTableManager get fastingStages =>
       $$FastingStagesTableTableManager(_db, _db.fastingStages);
+  $$HerculexAiProgramBriefsTableTableManager get herculexAiProgramBriefs =>
+      $$HerculexAiProgramBriefsTableTableManager(
+        _db,
+        _db.herculexAiProgramBriefs,
+      );
 }

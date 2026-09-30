@@ -90,6 +90,8 @@ part 'database.g.dart';
     HerculMessageLog,
     // Physiological fasting stages (v36)
     FastingStages,
+    // Herculex AI program design briefs (v46)
+    HerculexAiProgramBriefs,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -99,7 +101,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 45;
+  int get schemaVersion => 46;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1196,6 +1198,26 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_tdee_estimates '
           'ON tdee_estimates(sync_uuid)',
+        );
+        await installSyncTriggers(this);
+      }
+      if (from < 46 && to >= 46) {
+        // Phase 27: Herculex AI program design briefs. Synced, so it needs
+        // the same sync_uuid unique index and outbox triggers as every
+        // other synced table (same idiom as the v45 block). The
+        // sqlite_master guard exists because fixtures sit on both sides of
+        // a step and createTable on an existing table throws.
+        final exists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'herculex_ai_program_briefs'",
+        ).getSingleOrNull();
+        if (exists == null) {
+          await m.createTable(herculexAiProgramBriefs);
+        }
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS '
+          'idx_sync_uuid_herculex_ai_program_briefs '
+          'ON herculex_ai_program_briefs(sync_uuid)',
         );
         await installSyncTriggers(this);
       }

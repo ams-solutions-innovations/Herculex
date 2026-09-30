@@ -198,6 +198,11 @@ final List<SyncTableSpec> syncTableSpecs = [
     ],
   ),
   const SyncTableSpec(
+    'herculex_ai_program_briefs',
+    fkFields: [SimpleFk(localColumn: 'program_id', parentTable: 'programs')],
+    dateTimeColumns: ['confirmed_at'],
+  ),
+  const SyncTableSpec(
     'program_exercise_slots',
     fkFields: [SimpleFk(localColumn: 'program_id', parentTable: 'programs')],
   ),

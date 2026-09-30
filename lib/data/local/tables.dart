@@ -972,6 +972,29 @@ class PhysiqueProgrammingProfiles extends Table
   BoolColumn get active => boolean().withDefault(const Constant(true))();
 }
 
+/// Phase 27 (Herculex AI Program Generation, D-08): the persisted program
+/// design brief Herculex AI returns before a program is created. Modeled
+/// directly on [PhysiqueProgrammingProfiles]'s shape — one JSON blob
+/// ([briefJson], carrying split/periodization/day-roles-with-rationale/
+/// musclePriorities/phaseIntent per D-09) plus queryable provenance
+/// metadata. [programId] is non-nullable: every brief belongs to exactly
+/// one program (unlike [ExercisePreferences.programId], which is optional).
+@DataClassName('HerculexAiProgramBriefData')
+class HerculexAiProgramBriefs extends Table
+    with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get programId =>
+      integer().references(Programs, #id, onDelete: KeyAction.cascade)();
+  TextColumn get briefJson => text()();
+  TextColumn get source =>
+      text().withDefault(const Constant('herculex_ai'))();
+  TextColumn get knowledgeVersion => text().nullable()();
+  TextColumn get modelVersion => text().nullable()();
+  DateTimeColumn get confirmedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+
 @DataClassName('ExercisePreferenceData')
 class ExercisePreferences extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
