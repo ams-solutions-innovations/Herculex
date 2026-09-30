@@ -8,7 +8,7 @@ import 'package:herculex/data/local/database.dart';
 
 import 'generated_migrations/schema.dart';
 import 'generated_migrations/schema_v26.dart' as v26;
-import 'generated_migrations/schema_v45.dart' as v45;
+import 'generated_migrations/schema_v46.dart' as v46;
 
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
@@ -23,9 +23,9 @@ void main() {
       // `schema_v26_test.dart` for why `Migrator.createTable` makes any
       // other target wrong. Every assertion below is about the v27 step
       // and survives the retarget.
-      newVersion: 45,
+      newVersion: 46,
       createOld: v26.DatabaseAtV26.new,
-      createNew: v45.DatabaseAtV45.new,
+      createNew: v46.DatabaseAtV46.new,
       openTestedDatabase: AppDatabase.forTesting,
       createItems: (batch, oldDb) {
         // `gyms` is untouched by v27; the canary proving the migration is
