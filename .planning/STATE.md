@@ -3,16 +3,68 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T09:56:13.964Z"
+last_updated: "2026-09-30T10:37:03.994Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 64
+  completed_plans: 65
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 12 Completed)
+
+- Completed Plan 27-12 (AIP-04, closing it): `_DayCard` in `program_review_view.dart`
+  now renders `AiDayRationaleCard` per day — the active Herculex AI brief's exact
+  `dayRoles[].rationale` — additive to the existing per-slot `EmptySlotNotice`
+  loop, conditional on an active `HerculexAiProgramBriefs` row with
+  `source == 'herculex_ai'` for the reviewed program (D-09). Absent entirely for
+  manual/smart/guided programs. `_confirm()` is byte-for-byte unchanged (verified
+  via `git diff --unified=0`, zero changed lines in that method).
+
+- **Deviation (Rule 1 - bug):** the plan's suggested `watchBriefForProgram(...)
+  .first` read hung indefinitely (10-minute `flutter_test` timeout) under
+  `tester.pump()`'s fake-async clock, even though the identical `.first` call
+  resolves instantly in `herculex_ai_brief_service_test.dart`'s plain async
+  tests. Fixed by adding `HerculexAiBriefService.readActiveBriefForProgram()` —
+  a one-shot `getSingleOrNull()` query sharing the same active/source/
+  newest-first shape via a new private `_activeBriefQuery()` helper (the watch
+  stream and the one-shot read now share the same query definition). This was
+  the plan's own documented fallback option, not a new mechanism.
+
+- **REQUIREMENTS.md: AIP-04 marked complete** — the full chain (persistence
+  27-04/27-10, service 27-09, review-screen rendering this plan) now holds
+  end-to-end. This was the last of AIP-01–05 to close.
+
+- Validation: `flutter test test/program_review_view_test.dart
+  test/herculex_ai_brief_service_test.dart` — 20/20 passing (3 pre-existing
+  empty-slot tests + 2 pre-existing sheet tests + 5 new per-day-rationale
+  tests + 1 new `_confirm()`-unchanged navigation test + 7 pre-existing
+  `HerculexAiBriefService` tests, plus 2 pre-existing replacement-sheet
+  tests, all in one combined run). `flutter analyze` (full repo) — 0 errors,
+  52 pre-existing warnings/info, none in this plan's 3 touched files.
+  `dart run tool/check_structure.dart` — 57 pre-existing violations,
+  unchanged count; `program_review_view.dart` was already over the 600-line
+  cap before this plan (742 lines) and is now 786 lines — not a new
+  violation, out of this plan's scope to split, flagged for a future cleanup
+  pass. SDK `roadmap.update-plan-progress 27` and `requirements.mark-complete
+  AIP-04` both worked and were used; `state.*` verbs still error/no-op on
+  this STATE.md format ("Cannot parse Current Plan or Total Plans in Phase
+  from STATE.md"), so this section is hand-written.
+
+- **Phase 27 is now code-complete on AIP-01–05** (12/13 plans done — only
+  27-13, the pre-fill/persistence wiring into `block_builder_view.dart`
+  consuming plan 27-11's `_acceptedHerculexBrief`/`_herculexBriefProvenance`,
+  remains). Per the non-numeric execution order
+  (26 → 28 → 27 → 22 → 23 → 29 → 24 → 25), Phase 27 finishing clears the way
+  for Phase 22 once 27-13 lands.
+
+- Next implementation focus: Plan 27-13 (final plan in Phase 27's Wave 4 —
+  pre-fill/persistence wiring in `block_builder_view.dart`).
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 11 Completed)
 
@@ -29,6 +81,7 @@ progress:
   plan's interfaces section, since the brief never assigns per-day methods). Three
   distinct outcomes, each leaving the existing Smart/Guided recommendation as the
   active state (never a dead end): guardrail-passing success (`Applied` status chip
+
   + `Regenerate`, brief stored in `_acceptedHerculexBrief`/`_herculexBriefProvenance`
   for plan 27-13 to consume), guardrail rejection (`AiBriefRejectionBanner` with the
   validator's verbatim message, D-05), and the two distinct AIP-05 degradation
