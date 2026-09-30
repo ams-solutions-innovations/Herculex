@@ -3,16 +3,78 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T07:42:33.573Z"
+last_updated: "2026-09-30T08:06:42.434Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 56
+  completed_plans: 57
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 04 Completed)
+
+- Completed Plan 27-04 (AIP-04, partial — persistence target only): the
+  `HerculexAiProgramBriefs` drift table at local schema **v46** (D-08),
+  modeled directly on `PhysiqueProgrammingProfiles`: non-nullable `programId`
+  FK to `Programs` (cascade delete — diverges from `ExercisePreferences`'
+  nullable FK per the plan's explicit instruction), a single `briefJson`
+  blob carrying the full brief (split, periodization, dayRoles-with-
+  rationale per D-09, musclePriorities, phaseIntent), plus
+  `source`/`knowledgeVersion`/`modelVersion`/`confirmedAt`/`active`
+  provenance columns. Registered in `syncedTableNames` and
+  `sync_table_specs.dart` (`SimpleFk` to `programs`), ready for sync once
+  plan 27-10's Supabase migration lands — chore 5 is deliberately deferred
+  there, same sequencing Phase 28's `tdee_estimates` used between its own
+  plans 05 and 11.
+
+- Chores 1-4 of the schema bump done: `schemaVersion` 45 -> 46 with a guarded
+  `onUpgrade` branch (byte-for-byte v45 `TdeeEstimates` template — sqlite_master
+  existence check, unique `idx_sync_uuid_herculex_ai_program_briefs` index,
+  `installSyncTriggers`); `drift_schema_v46.json` and `schema_v46.dart`
+  (`DatabaseAtV46`) generated; `test/migration_test.dart` retargeted (all
+  `migrateAndValidate` calls, new v45->v46 replay test asserting the new
+  table's columns/index/triggers) and `test/schema_v25/27/28/29_test.dart`
+  retargeted from v45 to v46 (import alias, `newVersion:`, `createNew:`
+  factory reference). `schema_v21/24_test.dart` correctly left untouched —
+  they assert against `db.schemaVersion` dynamically.
+
+- Exact snake_case column list recorded in 27-04-SUMMARY.md for plan 27-10's
+  Supabase migration and column-parity test to match without re-deriving it.
+
+- **AIP-04 left unchecked in REQUIREMENTS.md** (annotated, not marked
+  complete), following the KB-02/KB-04/TDEE-05/AIP-02/AIP-03 partial-
+  completion convention: this plan only builds the local persistence target
+  the review-gate rendering will read from — no brief is generated yet
+  (27-06/27-09) and `ProgramReviewView` does not yet render per-day
+  rationale from this table. The SDK's `requirements.mark-complete`/
+  `state.*` verbs are non-functional against this STATE.md's format (same
+  "no-op" behavior every prior session in this file has logged since Phase
+  28) — `roadmap.update-plan-progress 27` did work and was used; everything
+  else in this section is hand-written.
+
+- Gotcha reconfirmed: `dart run drift_dev schema dump` wrote
+  `drift_schema_v46.json` to disk but the process itself hung afterward;
+  killed it once the file was confirmed on disk (via `ls -la`, non-zero
+  size) and ran `schema generate` as a separate step, exactly as CLAUDE.md
+  documents. `pwsh` is unavailable in this session's Bash environment, so
+  `tool/codegen.ps1` was read and its underlying `dart run build_runner
+  build --delete-conflicting-outputs` command run directly instead —
+  identical effect.
+
+- Validation: `flutter test test/migration_test.dart test/schema_v21_test.dart
+  test/schema_v24_test.dart test/schema_v25_test.dart test/schema_v27_test.dart
+  test/schema_v28_test.dart test/schema_v29_test.dart` — 43/43 passing.
+  `flutter analyze` on every touched file: 0 errors (one pre-existing,
+  out-of-scope warning on `database.dart:1114`'s unrelated `TableMigration`
+  experimental-API use in the v40 migration branch, untouched by this plan).
+
+- Next implementation focus: Plan 27-05 (`GeminiBackend.generateProgramBrief()`
+  + provenance-returning helper — Wave 1's next plan per ROADMAP.md).
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 03 Completed)
 
