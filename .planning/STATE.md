@@ -3,22 +3,67 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-29T21:15:09.506Z"
+last_updated: "2026-09-30T07:42:33.573Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 55
+  completed_plans: 56
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 03 Completed)
+
+- Completed Plan 27-03 (AIP-02, AIP-03, partial on both): the pure-Dart
+  `ProgramBrief`/`DayRoleBrief` domain model — `lib/features/programs/domain/
+  program_brief.dart` — the authoritative client-side gate on Herculex AI's
+  program design brief. TDD RED (`3441324`) then GREEN (`cadf5da`).
+
+- `ProgramBrief.fromJson` strictly validates `splitType`/`periodizationModel`/
+  `dayRoles[].role` via new private `_strict*` Set-membership lookups that
+  throw `FormatException` on any unknown id — never the codebase's existing
+  lenient `fromId(..., orElse: () => default)` statics, which are reserved
+  for user input, not AI output (D-02). `musclePriorities` reuses
+  `ProgrammingMusclePriority`/`canonicalProgrammingMuscleIds`/
+  `ProgrammingPriorityLevel` from `dream_physique_service.dart` verbatim
+  (D-01) — zero new apply logic needed downstream in
+  `_applyDreamPhysiqueTuning()`. A recursive disallow-list scan rejects
+  `exerciseId`/`sets`/`reps`/`load`/`rpe`/`tempo`/`timeCap` at any nesting
+  depth, before any field parsing begins (AIP-02, threat T-27-04).
+  `toJson()` round-trips losslessly and is the exact shape plan 27-09 will
+  persist to the new `HerculexAiProgramBriefs` table.
+
+- **REQUIREMENTS.md left both AIP-02 and AIP-03 unchecked** (annotated, not
+  marked complete), following the KB-02/KB-04/TDEE-05/27-02 partial-
+  completion convention: this plan delivers only the Dart-side strict-schema
+  half. AIP-02 still needs the Edge Function + builder wiring (27-06/27-09)
+  before Herculex AI can actually *return* a brief; AIP-03 still needs the
+  guardrail extraction into `ProgramGuardrails.validateConfiguration()`
+  (27-08) and the fallback-to-deterministic behavior. The SDK's
+  `requirements.mark-complete` verb ticked both boxes automatically; reverted
+  to `[ ]` with explanatory annotations.
+
+- Validation: `flutter test test/program_brief_test.dart` 39/39 passing;
+  `flutter analyze` 0 issues on both touched files; `check_structure` no new
+  violations (236 and 283 lines respectively, both well under the 600-line
+  cap). Per this plan's own note, the full-repo suite was not re-run
+  standalone this session — the new files are self-contained (no shared
+  files with 27-01/27-02), so no regression risk to the existing suite is
+  expected; the orchestrator's wave-level full-suite check still applies.
+
+- Next implementation focus: Plan 27-04 (or next plan in Phase 27's wave
+  order — see 27-*-PLAN.md files).
+
+---
 
 ## Session update — 2026-09-29 (Phase 27 Plan 02 Completed)
 
 - Completed Plan 27-02 (AIP-03, partial), the D-07-mandated pre-refactor gap closure:
   added 6 new widget tests to `test/block_builder_view_test.dart` pinning `_create()`'s
   two current inline guardrail `StateError` throws (Max-Effort-per-week > 2, and 6-day-PPL
+
   + Max Effort) across manual/smart/guided build modes, against the UNREFACTORED code.
   Closes RESEARCH.md's Pitfall 4 / Wave-0 gap — no prior test exercised either throw.
 
@@ -423,7 +468,7 @@ Execution order is **not** numeric — see ROADMAP.md. Recommended:
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending. Must stay last; covers every table added by 23/28/29.
 - **Phase 26: Herculex AI Knowledge Base & Brand Unification** — Complete, 7/7 plans, verified 2026-09-28 (8/8 must-haves, 1 via human override — KB-04's "labelled AI advice channel" half deferred, unclaimed by any future phase; see 26-VERIFICATION.md). Foundational for 27, 29, PHYS-07.
-- **Phase 27: Herculex AI Program Generation** — In progress, 2/13 plans (27-01 complete: block_builder_view.dart split into part/part-of mixins; 27-02 complete: pre-refactor characterization tests for _create()'s inline guardrail throws, ahead of the AI wiring plans).
+- **Phase 27: Herculex AI Program Generation** — In progress, 3/13 plans (27-01 complete: block_builder_view.dart split into part/part-of mixins; 27-02 complete: pre-refactor characterization tests for _create()'s inline guardrail throws; 27-03 complete: ProgramBrief strict-parsing domain model, ahead of the AI wiring plans).
 - **Phase 28: Adaptive TDEE & Activity Calibration** — Complete, 11/11 plans, verified 2026-09-28. No AI dependency; feeds 23 and 29.
 - **Phase 29: Weekly Report & Herculex AI Narrative** — Pending. Blocked on 23 (26, 28 now complete).
 

@@ -244,14 +244,14 @@ Plans:
 
 **Success:** The builder offers a manual path and a Herculex AI path; the AI returns a design brief (split, periodization, day roles, muscle priorities, phase intent, rationale) and never an exercise list; a brief violating any Phase 16–21 guardrail is rejected with fallback to the deterministic recommendation; generated programs land archived and unactivated in the existing review gate with per-day rationale; offline, unconfigured, or over-quota states degrade to the existing Smart/Guided path.
 
-**Plans:** 2/13 plans executed
+**Plans:** 3/13 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 27-01-PLAN.md — Wave 1: Split block_builder_view.dart into a part/part-of subfolder (mechanical, zero behavior change — prerequisite for every later edit to this file)
 - [x] 27-02-PLAN.md — Wave 1: D-07 characterization tests for _create()'s current inline Max-Effort/6-day-PPL guardrail throws, before the extraction touches them
-- [ ] 27-03-PLAN.md — Wave 1: ProgramBrief domain model — strict enum rejection (D-02), AIP-02 exercise-field prohibition, toJson/fromJson round-trip
+- [x] 27-03-PLAN.md — Wave 1: ProgramBrief domain model — strict enum rejection (D-02), AIP-02 exercise-field prohibition, toJson/fromJson round-trip
 - [ ] 27-04-PLAN.md — Wave 1: HerculexAiProgramBriefs drift table + schema v46 (5-chore bump, chores 1–4)
 - [ ] 27-05-PLAN.md — Wave 1: GeminiBackend.generateProgramBrief() + provenance-returning helper (3-tier interface)
 - [ ] 27-06-PLAN.md — Wave 1: Edge Function program_brief kind — prompt, quota tier, strict server-side normalizer
