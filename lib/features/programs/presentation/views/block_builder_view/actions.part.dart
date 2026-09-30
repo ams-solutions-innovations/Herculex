@@ -67,19 +67,15 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
           'Enter your current ${_specializationLift.label} before creating a specialization block.',
         );
       }
-      final explicitMaxEffort = _mainMethodByDayLabel.values
-          .where((method) => method == SlotTrainingMethod.maxEffort)
-          .length;
-      if (_buildMode != ProgramBuildMode.manual && explicitMaxEffort > 2) {
+      final configIssues = ProgramGuardrails.validateConfiguration(
+        buildMode: _buildMode,
+        model: _model,
+        split: _split,
+        mainMethodByDayLabel: _mainMethodByDayLabel,
+      );
+      if (configIssues.any((issue) => issue.isBlocking)) {
         throw StateError(
-          'A Smart program can use at most two Max Effort patterns per week.',
-        );
-      }
-      if (_buildMode != ProgramBuildMode.manual &&
-          _model == PeriodizationModel.maxEffort &&
-          _split == SplitType.ppl) {
-        throw StateError(
-          'A six-day PPL would create three Max Effort days. Use per-slot Max Effort or choose a Conjugate 3–4 day structure.',
+          configIssues.firstWhere((issue) => issue.isBlocking).message,
         );
       }
 

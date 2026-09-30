@@ -17,6 +17,7 @@ import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
+import 'package:herculex/features/programs/domain/program_guardrails.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
