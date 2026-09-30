@@ -19,12 +19,14 @@ import {
   exerciseIdentificationPrompt,
   foodPhotoPrompt,
   nutritionLabelPrompt,
+  programBriefPrompt,
   ramblerFoodPrompt,
   supplementPhotoPrompt,
 } from "./prompts.ts";
 import { callerUserId } from "../_shared/auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { json } from "../_shared/json.ts";
+import { KNOWLEDGE_VERSION, programming } from "./knowledge_base.ts";
 
 type GeminiKind =
   | "food_photo"
@@ -34,7 +36,8 @@ type GeminiKind =
   | "barcode_product"
   | "body_fat_estimate"
   | "dream_physique"
-  | "rambler_food";
+  | "rambler_food"
+  | "program_brief";
 
 type GeminiImage = {
   mimeType?: string;
@@ -52,6 +55,7 @@ type GeminiRequest = {
   targetImages?: GeminiImage[];
   targetImage?: GeminiImage;
   biometrics?: Record<string, unknown>;
+  profileInputs?: Record<string, unknown>;
   userNote?: string | null;
   ocrText?: string;
   barcode?: string;
@@ -110,6 +114,7 @@ const kindLimits: Record<GeminiKind, number> = {
     Deno.env.get("GEMINI_LIMIT_BODY_FAT_ESTIMATE") ?? "15",
   ),
   dream_physique: Number(Deno.env.get("GEMINI_LIMIT_DREAM_PHYSIQUE") ?? "10"),
+  program_brief: Number(Deno.env.get("GEMINI_LIMIT_PROGRAM_BRIEF") ?? "10"),
 };
 
 /// Vrne dnevno mejo za `kind`; neznan ali manjkajoc `kind` pade nazaj na
@@ -132,6 +137,7 @@ const kindDisplayNames: Record<GeminiKind, string> = {
   supplement_photo: "Supplement scans",
   body_fat_estimate: "Body fat estimates",
   dream_physique: "Dream Physique comparisons",
+  program_brief: "Program design briefs",
 };
 
 /// Najvecja base64 dolzina ene slike (~1,9 MB izvirnika, ker je base64
@@ -170,6 +176,43 @@ const canonicalProgrammingMuscleIds = new Set([
 ]);
 
 const programmingPriorities = new Set(["high", "medium", "maintenance"]);
+
+// Canonical id vocabularies for the `program_brief` kind (Phase 27) — mirror
+// `SplitType`/`PeriodizationModel`/`DayStressRole`'s Dart `.id` values
+// byte-for-byte (lib/features/programs/domain/split_template.dart,
+// periodization.dart, programming_models.dart). Any value outside these sets
+// is rejected, never silently defaulted (D-02) — this is the server-side
+// first line of the two-tier defense; the Dart ProgramBrief.fromJson parser
+// (plan 27-03) is the authoritative second line.
+const canonicalSplitTypeIds = new Set([
+  "full_body",
+  "full_body_linear",
+  "full_body_ab",
+  "full_body_ab_gpp",
+  "crossfit",
+  "upper_lower",
+  "upper_lower_full_body",
+  "ppl",
+  "ab",
+  "abc",
+  "bro",
+  "custom",
+]);
+
+const canonicalPeriodizationModelIds = new Set([
+  "none",
+  "linear",
+  "concurrent",
+  "block",
+  "max_effort",
+]);
+
+const canonicalDayStressRoleIds = new Set([
+  "intensity",
+  "volume",
+  "dynamic_technique",
+  "mixed",
+]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -406,6 +449,33 @@ Deno.serve(async (req) => {
         return json({ result, provenance: { modelVersion } });
       }
 
+      case "program_brief": {
+        if (
+          !payload.profileInputs || typeof payload.profileInputs !== "object"
+        ) {
+          return json({ error: "profileInputs is required." }, 400);
+        }
+        const generated = await generateJson({
+          images: [],
+          promptText: programBriefPrompt(
+            payload.profileInputs,
+            payload.userNote,
+          ),
+          temperature: 0.2,
+          // First real consumer of buildSystemInstruction()/knowledge_base.ts's
+          // programming segment — built in Phase 26, unused until now.
+          systemInstruction: programming,
+        });
+        const result = normalizeProgramBriefResult(generated.result);
+        return json({
+          result,
+          provenance: {
+            modelVersion: generated.modelVersion,
+            knowledgeVersion: KNOWLEDGE_VERSION,
+          },
+        });
+      }
+
       default:
         return json(
           { error: "Unsupported Herculex AI analysis kind." },
@@ -565,6 +635,78 @@ function normalizeProgrammingProfile(
       profile.uncertainties,
       "programmingProfile.uncertainties",
     ),
+  };
+}
+
+// Herculex AI's program design brief (Phase 27, `program_brief` kind). This
+// is the server-side first line of the D-02 two-tier defense — the Dart
+// `ProgramBrief.fromJson` parser (plan 27-03) is the authoritative gate the
+// app actually trusts; this function exists so a malformed/hallucinated
+// brief never even leaves the server. Every enum field is checked against a
+// canonical id Set and the whole brief is rejected (thrown, never returned)
+// on the first miss — no field is ever silently defaulted.
+export function normalizeProgramBriefResult(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  const splitType = requiredString(raw.splitType, "splitType");
+  if (!canonicalSplitTypeIds.has(splitType)) {
+    throw new Error(`Unknown splitType: ${splitType}`);
+  }
+
+  const periodizationModel = requiredString(
+    raw.periodizationModel,
+    "periodizationModel",
+  );
+  if (!canonicalPeriodizationModelIds.has(periodizationModel)) {
+    throw new Error(`Unknown periodizationModel: ${periodizationModel}`);
+  }
+
+  if (!Array.isArray(raw.dayRoles) || raw.dayRoles.length === 0) {
+    throw new Error("Program brief has no dayRoles.");
+  }
+  const dayRoles = raw.dayRoles.map((item) => {
+    const value = objectValue(item, "program brief day role");
+    const role = requiredString(value.role, "dayRoles[].role");
+    if (!canonicalDayStressRoleIds.has(role)) {
+      throw new Error(`Unknown dayRoles[].role: ${role}`);
+    }
+    return {
+      dayIndex: requiredNumber(value.dayIndex, "dayRoles[].dayIndex"),
+      role,
+      focus: requiredString(value.focus, "dayRoles[].focus"),
+      rationale: requiredString(value.rationale, "dayRoles[].rationale"),
+    };
+  });
+
+  if (
+    !Array.isArray(raw.musclePriorities) || raw.musclePriorities.length === 0
+  ) {
+    throw new Error("Program brief has no musclePriorities.");
+  }
+  const musclePriorities = raw.musclePriorities.map((item) => {
+    const value = objectValue(item, "program brief muscle priority");
+    const muscleId = requiredString(value.muscleId, "muscleId");
+    if (!canonicalProgrammingMuscleIds.has(muscleId)) {
+      throw new Error(`Unknown canonical muscle id: ${muscleId}`);
+    }
+    return {
+      muscleId,
+      priority: requiredPriority(value.priority),
+      confidence: confidenceValue(value.confidence, "priority confidence"),
+      rationale: requiredString(value.rationale, "priority rationale"),
+      uncertainties: stringArray(
+        value.uncertainties,
+        "priority uncertainties",
+      ),
+    };
+  });
+
+  return {
+    splitType,
+    periodizationModel,
+    dayRoles,
+    musclePriorities,
+    phaseIntent: requiredString(raw.phaseIntent, "phaseIntent"),
   };
 }
 
