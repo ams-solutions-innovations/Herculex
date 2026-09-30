@@ -244,7 +244,7 @@ Plans:
 
 **Success:** The builder offers a manual path and a Herculex AI path; the AI returns a design brief (split, periodization, day roles, muscle priorities, phase intent, rationale) and never an exercise list; a brief violating any Phase 16–21 guardrail is rejected with fallback to the deterministic recommendation; generated programs land archived and unactivated in the existing review gate with per-day rationale; offline, unconfigured, or over-quota states degrade to the existing Smart/Guided path.
 
-**Plans:** 7/13 plans executed
+**Plans:** 8/13 plans executed
 
 Plans:
 **Wave 1**
@@ -259,7 +259,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 27-08-PLAN.md — Wave 2: Extract Max-Effort/6-day-PPL guardrail into ProgramGuardrails.validateConfiguration() (D-06), retrofit _create() for all build modes (D-07)
+- [x] 27-08-PLAN.md — Wave 2: Extract Max-Effort/6-day-PPL guardrail into ProgramGuardrails.validateConfiguration() (D-06), retrofit _create() for all build modes (D-07)
 - [ ] 27-09-PLAN.md — Wave 2: HerculexAiBriefService — generate/parse/persist/read, AIP-05 failure-category translation
 - [ ] 27-10-PLAN.md — Wave 2: Supabase migration for herculex_ai_program_briefs v46 + [BLOCKING] db push, independently verified
 

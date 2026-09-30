@@ -3,16 +3,69 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T08:31:14.243Z"
+last_updated: "2026-09-30T09:01:20.026Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 60
+  completed_plans: 61
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 08 Completed)
+
+- Completed Plan 27-08 (AIP-03, partial): extracted the two inline Max-Effort-per-week
+  and 6-day-PPL-with-Max-Effort `StateError` throws out of `block_builder_view.dart`'s
+  `_create()` (now `actions.part.dart`, per plan 27-01's split) into a new
+  `ProgramGuardrails.validateConfiguration({buildMode, model, split,
+  mainMethodByDayLabel})` static method (D-06) — a sibling of the existing
+  `validateMaxEffortWeek`, returning `List<ProgramGuardrailIssue>` rather than
+  throwing, so both `_create()` and the future Herculex AI brief validator (plan
+  27-11) can share it and pick their own UX.
+
+- `_create()` retrofitted for all build modes (manual/smart/guided today; Herculex
+  AI in 27-11) to call the shared method and throw `StateError` with the first
+  blocking issue's message — preserving the exact single-StateError-per-call
+  contract its surrounding try/catch expects. Manual mode's exemption (`buildMode
+  != ProgramBuildMode.manual` gating both checks) now lives inside the guardrail
+  method itself.
+
+- Zero behavior drift, proven by plan 27-02's regression net: all 10 tests in
+  `test/block_builder_view_test.dart` pass unchanged, including all 6
+  characterization tests (2 conditions x 3 build modes) written specifically to
+  catch message-text or trigger-condition drift during this extraction.
+
+- 5 new unit tests added to `test/program_guardrails_test.dart` (8/8 passing
+  total, 3 pre-existing + 5 new) covering both trigger conditions individually,
+  manual-mode exemption with both triggers present, no-trigger empty result, and
+  both conditions firing simultaneously (2 distinct issues returned, not just the
+  first).
+
+- **AIP-03 remains unchecked in REQUIREMENTS.md** (annotation updated, not marked
+  complete), following the established partial-completion convention: this plan
+  only delivers the guardrail-consolidation half. The Herculex AI brief
+  validator's actual call to `validateConfiguration()` and the fallback-to-
+  deterministic behavior (plan 27-11) still don't exist.
+
+- Validation: `flutter test test/program_guardrails_test.dart
+  test/block_builder_view_test.dart` — 18/18 passing. `flutter analyze` on all 4
+  touched files — 0 issues. Full-repo `flutter analyze` — 0 errors (42
+  pre-existing warnings/info, none new, none in touched files — a slight
+  improvement over Phase 28's logged 44). `wc -l` confirms all touched files
+  stay well under the 600-line cap (`program_guardrails.dart` 206,
+  `block_builder_view.dart` 403, `actions.part.dart` 205). SDK
+  `roadmap.update-plan-progress 27` worked and was used; `state.advance-plan`
+  still errors ("Cannot parse Current Plan or Total Plans in Phase from
+  STATE.md") on this STATE.md format, so this section is hand-written.
+
+- Next implementation focus: Plan 27-09 (or next plan in Phase 27's Wave 2 order
+  — see 27-*-PLAN.md files; 27-11/27-12 are the two plans that will actually call
+  `ProgramGuardrails.validateConfiguration()` from the Herculex AI brief
+  validator).
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 07 Completed, Wave 1 complete)
 
