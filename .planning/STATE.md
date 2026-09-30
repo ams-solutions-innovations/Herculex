@@ -3,16 +3,42 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T10:37:03.994Z"
+last_updated: "2026-09-30T15:18:26.002Z"
 progress:
   total_phases: 15
   completed_phases: 10
   total_plans: 66
   completed_plans: 66
-  percent: 63
+  percent: 67
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 22 context gathered)
+
+- Ran `/gsd:discuss-phase 22`. Codebase scouting found Primary Lift Strength
+  Specialization is **not a blank slate** — a working version is already live
+  in the builder (`PrimaryLiftSpecialization` → `smart_program_planner.dart`
+  slot-need assembly, toggle in Step Parameters). Discussion focused on 3 real
+  gaps against SPEC-01–03 plus split-flexibility scope, all now locked in
+  `22-CONTEXT.md`: sticking-point branching is missing for bench/OHP/pull-up
+  (D-12), no timeline-realism warning exists anywhere (D-08–D-11, resolved to
+  reuse the existing Weeks picker rather than adding a new field), and the
+  built-but-unwired `VolumeBands` system should be wired in as a warning-only
+  check at both Create time and a live preview (D-04–D-07). Split support
+  extends to Upper/Lower and PPL, not just Full Body (D-01–D-03). Dead code
+  (`SquatSpecialization`, superseded and unreachable) is flagged for removal
+  in the same phase.
+
+- SDK `state.record-session` no-ops on this STATE.md format ("No session
+  fields found in STATE.md"), consistent with every prior session's note in
+  this file — this section is hand-written. `commit` SDK verb worked
+  (`bc916a1`, `docs(22): capture phase context`).
+
+- Next implementation focus: `/gsd:plan-phase 22` — CONTEXT.md's canonical_refs
+  and decisions are ready for research/planning to consume.
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 13 Completed — Phase 27 COMPLETE, 13/13 plans)
 
