@@ -66,6 +66,12 @@ abstract interface class GeminiBackend {
     required String text,
     String? preferredMealKey,
   });
+
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
+  });
 }
 
 class UnconfiguredGeminiBackend implements GeminiBackend {
@@ -147,6 +153,15 @@ class UnconfiguredGeminiBackend implements GeminiBackend {
   Future<Map<String, dynamic>> analyzeRamblerText({
     required String text,
     String? preferredMealKey,
+  }) async {
+    throw _notConfigured();
+  }
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
   }) async {
     throw _notConfigured();
   }
@@ -326,6 +341,20 @@ class SupabaseGeminiBackend implements GeminiBackend {
     return _resultMap(data);
   }
 
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
+  }) async {
+    final data = await _invoke({
+      'kind': 'program_brief',
+      'profileInputs': profileInputs,
+      'userNote': userNote,
+    });
+    return _resultWithProvenance(data);
+  }
+
   Future<Map<String, dynamic>> _invoke(Map<String, dynamic> body) async {
     try {
       final response = await _client.functions
@@ -362,6 +391,20 @@ class SupabaseGeminiBackend implements GeminiBackend {
     if (result is Map<String, dynamic>) return result;
     if (result is Map) return Map<String, dynamic>.from(result);
     throw Exception('AI analysis returned an invalid JSON result.');
+  }
+
+  (Map<String, dynamic> result, Map<String, dynamic> provenance)
+  _resultWithProvenance(Map<String, dynamic> data) {
+    final result = _resultMap(data);
+    final provenance = data['provenance'];
+    return (
+      result,
+      provenance is Map<String, dynamic>
+          ? provenance
+          : provenance is Map
+          ? Map<String, dynamic>.from(provenance)
+          : <String, dynamic>{},
+    );
   }
 
   Map<String, String> _imagePayload(List<int> imageBytes, String mimeType) => {
