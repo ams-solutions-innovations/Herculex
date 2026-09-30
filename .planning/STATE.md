@@ -3,16 +3,83 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T09:01:20.026Z"
+last_updated: "2026-09-30T09:11:19.972Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 61
+  completed_plans: 62
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 09 Completed)
+
+- Completed Plan 27-09 (AIP-02, partial on AIP-03/AIP-05): `HerculexAiBriefService`
+  (`lib/features/programs/data/herculex_ai_brief_service.dart`) — the single
+  generate -> parse -> persist -> read seam for Herculex AI program briefs,
+  modeled directly on `DreamPhysiqueService`'s "call Gemini, parse strictly,
+  translate failures into a UI-facing exception" shape. `generateBrief()` calls
+  `GeminiBackend.generateProgramBrief()`, parses via `ProgramBrief.fromJson`, and
+  translates every failure (unconfigured, network, quota, malformed JSON) into a
+  `HerculexAiBriefException` — never a raw technical string reaches the caller.
+
+- `HerculexAiBriefException` copies `DreamPhysiqueAnalysisException`'s exact shape
+  (`message`, `recoverable` default `true`, `toString() => message`) plus one
+  addition: `isQuotaExhausted` (bool, default `false`) — the AIP-05
+  failure-category signal, detected by substring match (`'used up'` /
+  `'try again tomorrow'`) against the Edge Function's real 429 message shape
+  (`supabase/functions/gemini-analyze/index.ts:283`). This is a classification
+  signal, not final UI copy — plan 27-11 picks the exact AIP-05 degradation
+  string from `isQuotaExhausted`, keeping this data-layer service UI-copy-agnostic.
+
+- `persistBrief()` is confirmed (by grep) the ONLY code path in
+  `lib/features/programs/` that touches `HerculexAiProgramBriefs` — closes the
+  "UI touches drift directly" anti-pattern RESEARCH.md explicitly warned this
+  phase not to repeat. Clock-injected `confirmedAt`, never `DateTime.now()`
+  directly. `watchBriefForProgram(programId)` returns a live
+  `Stream<HerculexAiProgramBriefData?>` (`watchSingleOrNull`, active-only, newest
+  `confirmedAt` first), mirroring `_loadDreamPhysiquePriorities()`'s existing
+  query shape as a stream per the house StreamProvider-over-FutureProvider rule.
+
+- One mechanical correction from the plan's illustrative `<action>` pseudocode:
+  `HerculexAiProgramBriefsCompanion.insert()`'s actual generated constructor
+  (verified by reading `database.g.dart`) takes `programId`/`briefJson` as plain
+  required `int`/`String`, not `Value(programId)`/`Value(briefJson)` as the
+  plan's pseudocode showed — drift only wraps optional/defaulted columns in
+  `Value<T>` for `.insert()`. Not a design deviation, just matching the real
+  generated API.
+
+- **REQUIREMENTS.md: AIP-02 marked complete** (the brief-generation contract is
+  now provably true end-to-end — request, transport, strict parse — independent
+  of UI wiring). **AIP-03 and AIP-05 reverted to unchecked** despite being in
+  this plan's `requirements` frontmatter list: AIP-03 needs the guardrail-
+  rejection-triggers-fallback behavior (`ProgramGuardrails.validateConfiguration()`
+  call + fallback), and AIP-05 needs the actual degrade-to-Smart/Guided UI
+  behavior when `isQuotaExhausted`/offline/unconfigured — both are plan 27-11's
+  job, not delivered here. Annotations updated accordingly, following the
+  established partial-completion convention (see 27-03/27-05/27-06/27-08 notes
+  above). AIP-04 annotation updated to reference this plan's new read/write
+  service, still unchecked pending 27-12's review-gate wiring.
+
+- Validation: `flutter test test/herculex_ai_brief_service_test.dart` — 7/7
+  passing. `flutter analyze` on both touched files — 0 issues. `dart run
+  tool/check_structure.dart` — no new violations (140 and 330 lines
+  respectively, both well under the 600-line cap). SDK `roadmap.update-plan-
+  progress 27` and `requirements.mark-complete` both worked and were used;
+  `state.advance-plan`/`state.update-progress` still error/no-op on this
+  STATE.md format ("Cannot parse Current Plan or Total Plans in Phase" /
+  "Progress field not found"), so this section is hand-written.
+
+- Next implementation focus: Plan 27-10 (Supabase migration for
+  `herculex_ai_program_briefs`, chore 5 of the schema bump — deferred from
+  27-04) — or, per Wave 2's dependency order, Plan 27-11 (wires
+  `HerculexAiBriefService` and `ProgramGuardrails.validateConfiguration()` into
+  `block_builder_view.dart`'s Herculex AI build mode, closing AIP-03/AIP-05).
+  See 27-*-PLAN.md files for the exact wave order.
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 08 Completed)
 
@@ -750,7 +817,7 @@ Execution order is **not** numeric — see ROADMAP.md. Recommended:
 - **Phase 24: Gamification System & 15-Rank XP Ledger** — Pending.
 - **Phase 25: Cloud Sync, Privacy & Export Hardening** — Pending. Must stay last; covers every table added by 23/28/29.
 - **Phase 26: Herculex AI Knowledge Base & Brand Unification** — Complete, 7/7 plans, verified 2026-09-28 (8/8 must-haves, 1 via human override — KB-04's "labelled AI advice channel" half deferred, unclaimed by any future phase; see 26-VERIFICATION.md). Foundational for 27, 29, PHYS-07.
-- **Phase 27: Herculex AI Program Generation** — In progress, 3/13 plans (27-01 complete: block_builder_view.dart split into part/part-of mixins; 27-02 complete: pre-refactor characterization tests for _create()'s inline guardrail throws; 27-03 complete: ProgramBrief strict-parsing domain model, ahead of the AI wiring plans).
+- **Phase 27: Herculex AI Program Generation** — In progress, 9/13 plans (27-01 block_builder_view.dart split; 27-02 pre-refactor characterization tests; 27-03 ProgramBrief strict-parsing domain model; 27-04 HerculexAiProgramBriefs schema v46; 27-05 GeminiBackend.generateProgramBrief(); 27-06 Edge Function program_brief kind; 27-07 AiBriefRejectionBanner/AiDayRationaleCard widgets; 27-08 ProgramGuardrails.validateConfiguration() extraction; 27-09 complete: HerculexAiBriefService, the generate/parse/persist/read seam — AIP-02 closed, AIP-03/05 still need 27-11's UI wiring).
 - **Phase 28: Adaptive TDEE & Activity Calibration** — Complete, 11/11 plans, verified 2026-09-28. No AI dependency; feeds 23 and 29.
 - **Phase 29: Weekly Report & Herculex AI Narrative** — Pending. Blocked on 23 (26, 28 now complete).
 
