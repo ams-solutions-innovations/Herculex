@@ -3,16 +3,63 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-09-30T08:23:44.596Z"
+last_updated: "2026-09-30T08:31:14.243Z"
 progress:
   total_phases: 15
   completed_phases: 9
   total_plans: 66
-  completed_plans: 59
+  completed_plans: 60
   percent: 60
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-09-30 (Phase 27 Plan 07 Completed, Wave 1 complete)
+
+- Completed Plan 27-07 (AIP-03, AIP-04, partial on both — UI half only): the two
+  small new presentational widgets Herculex AI's UI-SPEC Component Inventory
+  calls for — `AiBriefRejectionBanner(heading, body, footer)` (warning-tinted,
+  D-05's rejection/degradation message shape) and `AiDayRationaleCard(rationale)`
+  (primary-tinted, fixed "Why this day" heading, renders `dayRoles[].rationale`
+  verbatim, D-09). Both are visual siblings of `EmptySlotNotice` (same
+  `Container`/`Row`/icon/`Expanded(Text)` shape) but not reuses of it, and both
+  read colors exclusively via `context.hx.*` — zero `AppColors`/literal-color
+  usage, confirmed by grep — per UI-SPEC's scope-local token rule for new code
+  in this otherwise-legacy-`AppColors` phase.
+
+- `AiBriefRejectionBanner`'s heading/body/footer are all required constructor
+  parameters (never hardcoded) so plan 27-11 can reuse the one widget for both
+  the D-05 guardrail-rejection message and the distinct AIP-05
+  offline/unconfigured/over-quota degradation copy. `AiDayRationaleCard`'s
+  heading is a widget-internal constant per UI-SPEC's explicit note it never
+  varies.
+
+- Both widgets are self-contained, independently testable UI primitives with
+  no overlap with the other 6 Wave 1 plans' files — this was the last plan in
+  Wave 1. **Phase 27 Wave 1 is now complete (7/13 plans: 27-01 through 27-07)**;
+  Wave 2 (27-08 onward, including the guardrail extraction and the two
+  consuming plans 27-11/27-12) is next.
+
+- **AIP-03/AIP-04 remain unchecked in REQUIREMENTS.md** (annotations updated,
+  not marked complete), following the KB-02/KB-04/TDEE-05/27-02..27-06
+  partial-completion convention: this plan only delivers the two widgets in
+  isolation — neither is imported/wired into `block_builder_view.dart` or
+  `program_review_view.dart` yet (plans 27-11/27-12), and no brief is
+  generated end-to-end yet (plan 27-09).
+
+- Validation: `flutter test test/ai_brief_rejection_banner_test.dart
+  test/ai_day_rationale_card_test.dart` — 12/12 passing (light+dark theme x 6
+  cases each). `flutter analyze` on all 4 touched files — 0 issues.
+  `dart run tool/check_structure.dart` — 57 pre-existing violations, none new
+  (both new files well under the 600-line cap: 77 and 63 lines). SDK
+  `roadmap.update-plan-progress 27` worked and was used; `state.*` verbs still
+  no-op on this STATE.md format, so this section is hand-written.
+
+- Next implementation focus: Phase 27 Wave 2 (plan 27-08 — guardrail
+  extraction into `ProgramGuardrails.validateConfiguration()` — is the next
+  plan per ROADMAP.md's wave order; see 27-*-PLAN.md files).
+
+---
 
 ## Session update — 2026-09-30 (Phase 27 Plan 06 Completed)
 
