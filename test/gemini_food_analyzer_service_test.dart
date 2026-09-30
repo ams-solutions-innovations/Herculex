@@ -262,6 +262,16 @@ class _FakeGeminiBackend implements GeminiBackend {
   String? lastPreferredMealKey;
 
   @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
+  }) async {
+    lastKind = 'program_brief';
+    return (<String, dynamic>{}, <String, dynamic>{});
+  }
+
+  @override
   Future<Map<String, dynamic>> analyzeRamblerText({
     required String text,
     String? preferredMealKey,

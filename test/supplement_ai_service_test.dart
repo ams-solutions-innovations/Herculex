@@ -111,4 +111,11 @@ class _MockSupplementBackend implements GeminiBackend {
     required String text,
     String? preferredMealKey,
   }) async => throw UnimplementedError();
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
+  }) async => throw UnimplementedError();
 }

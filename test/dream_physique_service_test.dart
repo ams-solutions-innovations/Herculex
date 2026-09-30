@@ -280,6 +280,13 @@ class _MockGeminiBackend implements GeminiBackend {
     required String text,
     String? preferredMealKey,
   }) async => throw UnimplementedError();
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
+  }) async => throw UnimplementedError();
 }
 
 class _FailingGeminiBackend implements GeminiBackend {
@@ -348,5 +355,12 @@ class _FailingGeminiBackend implements GeminiBackend {
   Future<Map<String, dynamic>> analyzeRamblerText({
     required String text,
     String? preferredMealKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
   }) async => throw UnimplementedError();
 }
