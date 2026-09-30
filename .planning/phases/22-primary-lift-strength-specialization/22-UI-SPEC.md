@@ -79,24 +79,24 @@ patterns exactly. **Two weights total** for this phase's typography budget:
 | Role | Style source | Weight | Usage |
 |------|------|--------|-------------|
 | Sheet/dialog title, section/banner heading | `theme.textTheme.titleLarge` (title) / `titleSmall` (banner heading) | `FontWeight.w700` | "Primary lift specialization" heading (existing, unchanged); new warning banner headings (timeline, kg-increase, volume-floor) — matches `AiBriefRejectionBanner`'s exact heading style |
-| Body / helper copy / list rows | `theme.textTheme.bodySmall` (helper/body) / `bodyMedium` (rows) | inherited (regular) | Sticking-point helper text, warning body text, volume-floor detail lines, and — subject to the Typography Exceptions note below — any new muscle-group row text this phase adds to the live-preview volume surface |
+| Body / helper copy / list rows | `theme.textTheme.bodySmall` (helper/body) / `bodyMedium` (rows) | inherited (regular) | Sticking-point helper text, warning body text, volume-floor detail lines, and the volume-floor live-preview's muscle-group row labels (this phase's new embedded instance of the row shell renders these at regular weight, not the `w600` used by the pre-existing standalone `ProgramMuscleVolumeCard`) |
 
 Line height: not independently overridden — inherit `ThemeData.textTheme`'s defaults (Material
 3 defaults to ~1.2–1.5 depending on role). No new line-height token is introduced this phase.
 
 ### Typography Exceptions
 
-Mirroring the Spacing Scale's Exceptions subsection above: `ProgramMuscleVolumeCard._buildMuscleRow`
-already renders its row labels at `theme.textTheme.bodyMedium` with `FontWeight.w600` — a
-pre-existing, already-shipped weight in production, not introduced by this phase. Where this
-phase's new live-preview volume surface reuses that exact row shell verbatim (per the
-Component Inventory's "Volume-floor live preview" entry), it **inherits that `w600` row-label
-weight as-is**, matching the existing card precedent, rather than being downgraded to regular —
-this keeps the reused row visually identical to every other `ProgramMuscleVolumeCard` instance
-already live elsewhere in the app. It is a pre-existing-pattern exception scoped only to that
-reused row shell, not a third free-standing weight choice authored by this phase. Any wholly
-new text this phase writes outside that reused row shell (banner headings, helper copy) stays
-within the 2-weight table above (`w700` / regular). No new weight is introduced by this phase.
+None. Every render site this phase authors or touches uses exactly the 2 weights declared
+above — `FontWeight.w700` for headings, regular (inherited) for everything else. This
+includes the new volume-floor live-preview surface: the pre-existing, already-shipped
+`ProgramMuscleVolumeCard._buildMuscleRow` renders its row labels at `FontWeight.w600` in its
+existing standalone usage elsewhere in the app (e.g. `program_preview_view.dart`), but this
+phase's new embedded/live-preview instantiation of that row shell must render its row labels at
+regular weight instead, to stay inside this phase's 2-weight budget. This intentionally breaks
+exact visual parity with the pre-existing standalone card — that trade-off is accepted; the
+pre-existing card itself is untouched by this phase and keeps its `w600` rows unchanged, and this
+downgrade applies only to the new instance this phase creates. No third weight is introduced
+anywhere in UI this phase touches.
 
 ---
 
@@ -224,7 +224,7 @@ New/extended UI surfaces this phase touches, mapped to file and existing pattern
 |-----------|------|----------------|
 | Sticking-point helper text | `step_parameters_specialization.part.dart` | New `Text` widget, `theme.textTheme.bodySmall`, `context.hx.onSurfaceVariant` (replacing the file's existing `AppColors.secondary` for any *new* text this phase adds — do not touch the existing lines' `AppColors.*` calls) |
 | Timeline / kg-increase warning banner | `dialogs.part.dart` (`_showLengthPicker` `onSelected`) and/or `step_parameters_specialization.part.dart` | Reuse `AiBriefRejectionBanner`'s exact visual shape (`Icons.warning_amber_rounded`, `hx.warning`, `HxSpace`/`HxRadius` tokens) — either import/reuse the widget directly with new heading/body/footer strings, or build a sibling if its 3-field (heading/body/footer) shape doesn't fit the 2-field (heading/body) content here. Planning decides which. |
-| Volume-floor live preview | New surface near/in the specialization modal or Step Parameters | Reuse `ProgramMuscleVolumeCard`'s existing card shell (`AppColors.surfaceContainerLowest`/border/rounded-20 pattern is pre-existing in that file — do not require it to migrate to `context.hx` as part of this phase, but any *new* file this phase adds for this purpose must use `context.hx`) or extend it with a low-volume highlight (e.g. tint the bar/text `context.hx.warning` when `VolumeVerdict.low`). Row-label weight follows the Typography Exceptions note above — inherit `w600` from `_buildMuscleRow` verbatim, do not downgrade to regular. |
+| Volume-floor live preview | New surface near/in the specialization modal or Step Parameters | Reuse `ProgramMuscleVolumeCard`'s existing card shell (`AppColors.surfaceContainerLowest`/border/rounded-20 pattern is pre-existing in that file — do not require it to migrate to `context.hx` as part of this phase, but any *new* file this phase adds for this purpose must use `context.hx`) or extend it with a low-volume highlight (e.g. tint the bar/text `context.hx.warning` when `VolumeVerdict.low`). Row-label weight: regular — this phase's new embedded instance must render row labels at regular weight, not the `w600` used by the pre-existing standalone `ProgramMuscleVolumeCard`, to stay inside the 2-weight typography budget. This is a deliberate departure from pixel parity with the existing card, not an oversight. |
 | Create-time volume-floor + kg-increase guardrail banner | `actions.part.dart` (`_create()`) or `program_review_view.dart` | Reuse `ProgramGuardrailIssue`'s pattern (pure function returning issues) for the domain check; reuse `AiBriefRejectionBanner`'s visual shape for the warning display, adapted from its current blocking-flow usage to a non-blocking, informational-before-create surface (exact call site — before `_create()` fires vs. shown then proceeds — is planning's call, constrained only by D-05: never blocks) |
 
 No new bottom sheet, dialog, or route is introduced. No new icon beyond
@@ -252,3 +252,4 @@ Not applicable — Flutter/Material project, no shadcn/component registry in use
 - [ ] Dimension 6 Registry Safety: PASS (not applicable — no registry)
 
 **Approval:** pending
+</content>
