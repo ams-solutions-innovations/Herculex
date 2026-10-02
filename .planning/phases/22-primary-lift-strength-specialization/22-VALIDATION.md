@@ -3,7 +3,7 @@ phase: 22
 slug: primary-lift-strength-specialization
 status: draft
 nyquist_compliant: false
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-09-30
 ---
 
@@ -38,24 +38,30 @@ created: 2026-09-30
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 22-01-XX | TBD | TBD | SPEC-01 (D-12 sticking-point branching) | — | Bench/OHP/pull-up's `_needsForPrimaryLift` returns a distinct assistance `_SlotNeed` per sticking point, not one generic `horizontal_pull` slot | unit | `flutter test test/smart_program_planner_test.dart` | ✅ (existing 1378-line file; exercise indirectly via `SmartProgramPlanner.populate()` since `_needsForPrimaryLift`/`_SlotNeed` are private) | ⬜ pending |
-| 22-01-XX | TBD | TBD | SPEC-01 (D-01–D-03 split flexibility) | — | Toggling specialization on with an existing Upper/Lower or PPL split keeps that split; incompatible split (e.g. bro split) resets to Full Body/3-day/Linear | widget | `flutter test test/block_builder_view_test.dart` | ✅ existing file covers specialization toggle interactions | ⬜ pending |
-| 22-01-XX | TBD | TBD | SPEC-02 (D-04–D-07 volume floor) | — | `VolumeBands.verdicts()` called with a specialization-skewed `computeFromTemplates` breakdown flags at least one `VolumeVerdict.low` group when non-target muscles are starved | unit | `flutter test test/features/programs/volume_bands_test.dart test/program_muscle_volume_test.dart` | ⚠️ W0 — new integration-style test needed combining both files (neither currently exercises them together) | ⬜ pending |
-| 22-01-XX | TBD | TBD | SPEC-02 (D-06 Create-time volume-floor check) | — | `_create()` surfaces, but never blocks on, a low-volume warning | widget | `flutter test test/block_builder_view_test.dart` | ✅ file exists, new test cases needed | ⬜ pending |
-| 22-01-XX | TBD | TBD | SPEC-03 (D-08–D-10 timeline warning) | — | Picking a shorter-than-recommended weeks value while specialization is active shows a warning and auto-adjusts `_weeks` | widget | `flutter test test/block_builder_view_test.dart` | ✅ file exists, new test cases needed | ⬜ pending |
-| 22-01-XX | TBD | TBD | SPEC-03 (D-11 kg-ceiling warning) | — | A target/current kg gap exceeding the experience-tier ceiling shows a warning | unit + widget | new unit test for the ceiling function + widget test for the banner | ❌ W0 — no existing file covers this | ⬜ pending |
-| 22-01-XX | TBD | TBD | Dead code cleanup | — | `SquatSpecialization`/`SquatStickingPoint` fully removed, no dangling references | static | `flutter analyze` (0 errors) + `grep -r "SquatSpecialization\|SquatStickingPoint" lib/ test/` (0 matches) | N/A — verification step, not a test file | ⬜ pending |
+| 22-01 Task 1 | 22-01 | 1 | D-12 branching (SPEC-01) + dead-code removal | — | Bench/OHP/pull-up's `_needsForPrimaryLift` returns a distinct assistance `_SlotNeed` per sticking point, not one generic `horizontal_pull` slot; `SquatSpecialization`/`SquatStickingPoint` fully removed, no dangling references | unit + static | `flutter test test/smart_program_planner_test.dart` + `flutter analyze` (0 errors) + `grep -r "SquatSpecialization\|SquatStickingPoint" lib/ test/` (0 matches) | ✅ (existing 1378-line file; exercise indirectly via `SmartProgramPlanner.populate()` since `_needsForPrimaryLift`/`_SlotNeed` are private); `test/squat_specialization_test.dart` deleted | ⬜ pending |
+| 22-01 Task 2 | 22-01 | 1 | Guardrail functions (SPEC-02 D-04/D-06 + SPEC-03 D-11, partial) | — | `ProgramGuardrails.validateVolumeFloor`/`validateKgIncrease` return `warning`-severity issues matching UI-SPEC copy, mirroring `validateConfiguration()`'s shape | unit | `flutter test test/program_guardrails_test.dart` | ✅ file exists, new test group added (kg-ceiling unit test, Wave 0 gap) | ⬜ pending |
+| 22-02 Task 1 | 22-02 | 1 | Split-flexibility (SPEC-01 D-01–D-03) + exposures-text fix (Pitfall 3) | — | Toggling specialization on with an existing Upper/Lower or PPL split (including `upperLowerFullBody`, excluding `fullBodyAbGpp`) keeps that split; incompatible split (e.g. bro split) resets to Full Body/3-day/Linear; exposures/week text computed from `_plan`, not hardcoded `3` | widget | `flutter test test/block_builder_view_test.dart` | ✅ existing file covers specialization toggle interactions | ⬜ pending |
+| 22-03 Task 1 | 22-03 | 2 | Timeline warning (SPEC-03 D-08–D-10) | — | Picking a shorter-than-recommended weeks value while specialization is active shows an inline "Not enough time" warning and auto-adjusts `_weeks` to the recommended value | widget | `flutter test test/block_builder_view_test.dart` | ✅ file exists, new test cases added | ⬜ pending |
+| 22-03 Task 2 | 22-03 | 2 | Kg-ceiling warning, sheet half (SPEC-03 D-11) | — | The Weeks-picker sheet shows a "That's a big jump" banner whenever the active specialization's kg increase exceeds its experience-tier ceiling, independent of the weeks-shortfall check | widget | `flutter test test/block_builder_view_test.dart` | ✅ file exists, new test cases added | ⬜ pending |
+| 22-04 Task 1 | 22-04 | 3 | Volume-floor live preview (SPEC-02 D-04, D-06 live half, D-07) | — | `VolumeBands.verdicts()` called with a specialization-skewed `computeFromTemplates` breakdown flags at least one `VolumeVerdict.low` group when non-target muscles are starved, rendered as "Light" in `SpecializationVolumeFloorCard` inside the Schedule step's `_summaryCard` | unit + widget | `flutter test test/features/programs/volume_bands_test.dart test/program_muscle_volume_test.dart test/specialization_volume_floor_card_test.dart` | ✅ Wave 0 gap closed — new `computeFromTemplates` + `VolumeBands.verdicts` integration test added to `test/program_muscle_volume_test.dart` | ⬜ pending |
+| 22-04 Task 2 | 22-04 | 3 | Create-time check (SPEC-02 D-06 Create-time half, D-07; SPEC-03 D-11 Create-time half) | — | `_create()` surfaces, but never blocks on, a combined volume-floor + kg-increase warning whenever specialization is active and either issue is flagged; declining cancels cleanly, confirming proceeds exactly as before | widget | `flutter test test/block_builder_view_test.dart` | ✅ file exists, new test group added (`'D-06/D-11 Create-time specialization warnings (22-04)'`) | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
-*Task IDs are placeholders (`22-01-XX`) — the planner assigns real plan/wave/task IDs; this map's Requirement/Test/Command columns are locked, the ID columns are not.*
+*Task IDs reflect the final 4-plan set (22-01 through 22-04) as of the plan-checker revision, 2026-10-02.*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] A new unit test (either a new small `strength_progression_ceiling_test.dart` or an addition to `test/primary_lift_specialization_test.dart`) covering D-11's kg-ceiling function, once its exact home (new function vs. new file) is decided by planning.
-- [ ] A new integration-style test combining `ProgramVolumeCalculator.computeFromTemplates` + `VolumeBands.verdicts()` for a specialization-skewed configuration — this is exactly the new D-04 call path and currently has zero coverage.
-- [ ] `test/squat_specialization_test.dart` (27 lines) must be **deleted**, not extended — it tests only the dead `SquatSpecialization` class this phase removes.
+- [x] A new unit test covering D-11's kg-ceiling function — lands in `22-01 Task 2`'s
+      `program_guardrails_test.dart` group (`ProgramGuardrails.validateKgIncrease`), not a separate
+      new file.
+- [x] A new integration-style test combining `ProgramVolumeCalculator.computeFromTemplates` +
+      `VolumeBands.verdicts()` for a specialization-skewed configuration — lands in `22-04 Task 1`'s
+      new case in `test/program_muscle_volume_test.dart` (`'computeFromTemplates feeding into
+      VolumeBands.verdicts flags a below-floor muscle group'`).
+- [x] `test/squat_specialization_test.dart` (27 lines) deleted, not extended — handled by
+      `22-01 Task 1`.
 
 ---
 

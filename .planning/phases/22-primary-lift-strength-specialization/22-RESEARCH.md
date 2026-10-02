@@ -705,7 +705,7 @@ current" shift is entirely internal to this codebase:
 | A4 | Recommendation to place the live volume-floor preview in Step 3+ rather than inside the Step 1 specialization modal | Volume Floor Wiring → Live preview | Medium — if the planner instead renders it in Step 1 against not-yet-populated `_templatesBySlot`, the preview will show a misleadingly empty/zero breakdown rather than a real one, undermining D-06's intent. |
 | A5 | Auto-fill "current load" from existing 1RM analytics is out of scope for this phase | Open Questions | Low — worst case is the planner disagrees and adds it anyway; this is a recommendation, not a locked decision, and CONTEXT.md itself left it fully open. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the 1RM-autofill idea (surfaced in CONTEXT.md's canonical_refs, not decided) be built
    this phase?**
@@ -727,6 +727,10 @@ current" shift is entirely internal to this codebase:
      own small plan/task with an explicit "no match found → falls back to manual entry, unchanged"
      path, not silently folded into another task.
 
+   **Resolution (plan-checker revision, 2026-10-02):** confirmed out of scope. 1RM-autofill is
+   omitted from all 4 plans (22-01 through 22-04) — SPEC-01 ships with manual current-load entry
+   only, exactly as this research recommended.
+
 2. **Where exactly should the live volume-floor preview (D-06) render, given `_templatesBySlot`
    isn't populated until Step 3?**
    - What we know: `ProgramVolumeCalculator.computeFromTemplates` needs `_templatesBySlot` to be
@@ -739,6 +743,13 @@ current" shift is entirely internal to this codebase:
    - Recommendation: place it in Step 3 (Templates) or later — see Volume Floor Wiring above. Flag
      for plan-checker/user confirmation if ambiguous.
 
+   **Resolution (plan-checker revision, 2026-10-02):** resolved as
+   `step_schedule_summary.part.dart`'s existing `_summaryCard`/`FutureBuilder<ProgramVolumeBreakdown>`
+   call site (22-04 Task 1) — more specific than this section's original "Step 3+" speculation,
+   found via direct code read during the second planning session. `_templatesBySlot` is populated
+   by the time this call site renders, so the live preview shows a meaningful breakdown, not a
+   hollow default.
+
 3. **Should `SplitType.upperLowerFullBody` and `SplitType.fullBodyAbGpp` be treated as
    D-01/D-03-compatible?**
    - What we know: both structurally pass `appliesToDayLabel`'s matching for every lift (see table
@@ -747,6 +758,10 @@ current" shift is entirely internal to this codebase:
      *behavior* (any split whose day labels happen to match).
    - Recommendation: include `upperLowerFullBody` (harmless superset), exclude `fullBodyAbGpp`
      (its real owner is a different training style/phase) — see rationale in Architecture Patterns.
+
+   **Resolution (plan-checker revision, 2026-10-02):** resolved exactly as recommended —
+   `_specializationCompatibleSplits` (22-02 Task 1) includes `upperLowerFullBody`, excludes
+   `fullBodyAbGpp`.
 
 ## Validation Architecture
 

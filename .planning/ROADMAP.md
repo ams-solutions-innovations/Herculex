@@ -199,7 +199,13 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [ ] 22-03-PLAN.md — Wave 2: Weeks-picker timeline-shortfall auto-adjust + kg-increase ceiling warning (D-08–D-11)
-- [ ] 22-04-PLAN.md — Wave 2: SpecializationVolumeFloorCard live preview + Create-time volume-floor/kg-increase confirmation (D-04–D-07, D-11)
+
+**Wave 3** *(blocked on Wave 2 completion — serialized with 22-03 due to a shared edit target, test/block_builder_view_test.dart, not a functional dependency)*
+
+- [ ] 22-04-PLAN.md — Wave 3: SpecializationVolumeFloorCard live preview + Create-time volume-floor/kg-increase confirmation (D-04–D-07, D-11)
+
+Cross-cutting constraints:
+- D-11 (kg-increase ceiling) is enforced in two places — 22-03's Weeks-picker sheet banner and 22-04's Create-time confirmation — both reading the same `ProgramGuardrails.kgIncreaseCeilings` constants introduced by 22-01.
 
 ### Phase 23: Persistent Dream Physique & Multi-Phase Nutrition
 
