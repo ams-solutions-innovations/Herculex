@@ -152,6 +152,16 @@ final List<SyncTableSpec> syncTableSpecs = [
     dateTimeColumns: const ['created_at'],
   ),
 
+  const SyncTableSpec(
+    'physique_goals',
+    dateTimeColumns: [
+      'started_at',
+      'archived_at',
+      'roadmap_accepted_at',
+      'advance_snoozed_until',
+    ],
+  ),
+
   // ── Level 1 ───────────────────────────────────────────────────────────
   const SyncTableSpec(
     'gym_equipment',
@@ -255,6 +265,17 @@ final List<SyncTableSpec> syncTableSpecs = [
     dateTimeColumns: const ['logged_at'],
   ),
 
+  const SyncTableSpec(
+    'physique_assessments',
+    fkFields: [SimpleFk(localColumn: 'goal_id', parentTable: 'physique_goals')],
+    dateTimeColumns: ['assessed_at'],
+  ),
+  const SyncTableSpec(
+    'physique_roadmap_phases',
+    fkFields: [SimpleFk(localColumn: 'goal_id', parentTable: 'physique_goals')],
+    dateTimeColumns: ['started_at', 'completed_at'],
+  ),
+
   // ── Level 2 ───────────────────────────────────────────────────────────
   SyncTableSpec(
     'workout_exercises',
@@ -307,6 +328,18 @@ final List<SyncTableSpec> syncTableSpecs = [
       ),
       _exerciseFk('exercise_id'),
     ],
+  ),
+
+  const SyncTableSpec(
+    'physique_photos',
+    fkFields: [
+      SimpleFk(localColumn: 'goal_id', parentTable: 'physique_goals'),
+      SimpleFk(
+        localColumn: 'assessment_id',
+        parentTable: 'physique_assessments',
+      ),
+    ],
+    dateTimeColumns: ['taken_at'],
   ),
 
   // ── Level 3 ───────────────────────────────────────────────────────────

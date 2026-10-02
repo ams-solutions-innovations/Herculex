@@ -92,6 +92,11 @@ part 'database.g.dart';
     FastingStages,
     // Herculex AI program design briefs (v46)
     HerculexAiProgramBriefs,
+    // Persistent Dream Physique (v47)
+    PhysiqueGoals,
+    PhysiqueAssessments,
+    PhysiqueRoadmapPhases,
+    PhysiquePhotos,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -101,7 +106,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 46;
+  int get schemaVersion => 47;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1219,6 +1224,34 @@ class AppDatabase extends _$AppDatabase {
           'idx_sync_uuid_herculex_ai_program_briefs '
           'ON herculex_ai_program_briefs(sync_uuid)',
         );
+        await installSyncTriggers(this);
+      }
+      if (from < 47 && to >= 47) {
+        // Phase 23: persistent Dream Physique. Four synced tables, created
+        // parent-first. Each needs the sync_uuid unique index; one
+        // installSyncTriggers call at the end covers all of them. The
+        // sqlite_master guard exists because fixtures sit on both sides of a
+        // step (some are too narrow to have the table, others build it from
+        // current definitions) and createTable on an existing table throws.
+        final physiqueTables = <String, TableInfo>{
+          'physique_goals': physiqueGoals,
+          'physique_assessments': physiqueAssessments,
+          'physique_roadmap_phases': physiqueRoadmapPhases,
+          'physique_photos': physiquePhotos,
+        };
+        for (final entry in physiqueTables.entries) {
+          final exists = await customSelect(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+            "AND name = '${entry.key}'",
+          ).getSingleOrNull();
+          if (exists == null) {
+            await m.createTable(entry.value);
+          }
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_${entry.key} '
+            'ON ${entry.key}(sync_uuid)',
+          );
+        }
         await installSyncTriggers(this);
       }
     },

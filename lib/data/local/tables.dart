@@ -980,14 +980,12 @@ class PhysiqueProgrammingProfiles extends Table
 /// metadata. [programId] is non-nullable: every brief belongs to exactly
 /// one program (unlike [ExercisePreferences.programId], which is optional).
 @DataClassName('HerculexAiProgramBriefData')
-class HerculexAiProgramBriefs extends Table
-    with SyncColumns, SyncTombstone {
+class HerculexAiProgramBriefs extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get programId =>
       integer().references(Programs, #id, onDelete: KeyAction.cascade)();
   TextColumn get briefJson => text()();
-  TextColumn get source =>
-      text().withDefault(const Constant('herculex_ai'))();
+  TextColumn get source => text().withDefault(const Constant('herculex_ai'))();
   TextColumn get knowledgeVersion => text().nullable()();
   TextColumn get modelVersion => text().nullable()();
   DateTimeColumn get confirmedAt =>
@@ -1219,6 +1217,109 @@ class TdeeEstimates extends Table with SyncColumns, SyncTombstone {
   BoolColumn get observedQualified =>
       boolean().withDefault(const Constant(false))();
   TextColumn get inputsJson => text()(); // display-only snapshot
+}
+
+// ── Phase 23: persistent Dream Physique (v47) ──────────────────────────────
+//
+// All four physique tables sync METADATA only. No image bytes ever leave the
+// device: [PhysiquePhotos.relativePath] is a path relative to the documents
+// directory, never an absolute one (D-09).
+
+/// A persistent Dream Physique goal. Both [estimatedMonths] and
+/// [targetBfPercent] are null for a `legacy_import` goal built from photos
+/// alone ("no target, maintain-only", D-08); every `ai_analysis` and `manual`
+/// goal sets both (enforced at the repository boundary, not by a CHECK).
+/// [targetAestheticStyle] is empty only for that same photos-only case.
+@DataClassName('PhysiqueGoalData')
+class PhysiqueGoals extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  // active | archived
+  TextColumn get status => text().withDefault(const Constant('active'))();
+  // ai_analysis | legacy_import | manual
+  TextColumn get source => text().withDefault(const Constant('ai_analysis'))();
+  TextColumn get targetAestheticStyle =>
+      text().withDefault(const Constant(''))();
+  TextColumn get timeframeRange => text().withDefault(const Constant(''))();
+  IntColumn get estimatedMonths => integer().nullable()();
+  RealColumn get targetBfPercent => real().nullable()();
+  RealColumn get startWeightKg => real().nullable()();
+  RealColumn get startBfPercent => real().nullable()();
+  DateTimeColumn get startedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get archivedAt => dateTime().nullable()();
+  DateTimeColumn get roadmapAcceptedAt => dateTime().nullable()();
+  DateTimeColumn get advanceSnoozedUntil => dateTime().nullable()();
+}
+
+/// One analysis or check-in against a [PhysiqueGoals] row. [summaryJson] is a
+/// display-only snapshot and is never used for control flow.
+@DataClassName('PhysiqueAssessmentData')
+class PhysiqueAssessments extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get goalId =>
+      integer().references(PhysiqueGoals, #id, onDelete: KeyAction.cascade)();
+  TextColumn get kind => text()(); // analysis | checkin
+  DateTimeColumn get assessedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get dateIso => text()(); // local calendar day key from Clock
+  RealColumn get weightKg => real().nullable()();
+  RealColumn get currentBfPercent => real().nullable()();
+  RealColumn get bfRangeMin => real().nullable()();
+  RealColumn get bfRangeMax => real().nullable()();
+  // low | medium | high | unknown
+  TextColumn get confidence => text().withDefault(const Constant('unknown'))();
+  // on_track | off_track | inconclusive
+  TextColumn get verdict => text().nullable()();
+  RealColumn get directionBandLow => real().nullable()();
+  RealColumn get directionBandHigh => real().nullable()();
+  TextColumn get reason => text().nullable()();
+  TextColumn get limitationsJson => text().nullable()();
+  // ai | legacy_import | no_analysis
+  TextColumn get source => text().withDefault(const Constant('ai'))();
+  TextColumn get modelVersion => text().nullable()();
+  TextColumn get knowledgeVersion => text().nullable()();
+  TextColumn get summaryJson => text().nullable()(); // display-only snapshot
+}
+
+/// One planned phase of a goal's multi-phase nutrition roadmap.
+@DataClassName('PhysiqueRoadmapPhaseData')
+class PhysiqueRoadmapPhases extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get goalId =>
+      integer().references(PhysiqueGoals, #id, onDelete: KeyAction.cascade)();
+  IntColumn get orderIndex => integer()();
+  TextColumn get phaseType => text()(); // DietPhase.name
+  IntColumn get plannedWeeks => integer()();
+  RealColumn get targetWeightKg => real().nullable()();
+  RealColumn get targetBfPercent => real().nullable()();
+  RealColumn get weeklyRateKg => real().nullable()();
+  BoolColumn get tempoCapped => boolean().withDefault(const Constant(false))();
+  // upcoming | current | done
+  TextColumn get status => text().withDefault(const Constant('upcoming'))();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+}
+
+/// Photo metadata only. [relativePath] is relative to the documents
+/// directory and is never absolute; image bytes are never stored or synced.
+/// [legacyRef] is an idempotency marker such as `progress_photo:12`.
+@DataClassName('PhysiquePhotoData')
+class PhysiquePhotos extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get goalId =>
+      integer().references(PhysiqueGoals, #id, onDelete: KeyAction.cascade)();
+  IntColumn get assessmentId => integer().nullable().references(
+    PhysiqueAssessments,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get role => text()(); // baseline | checkin
+  TextColumn get pose => text()(); // front | side | back
+  TextColumn get dateIso => text()();
+  DateTimeColumn get takenAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get relativePath => text()();
+  BoolColumn get blurred => boolean().withDefault(const Constant(false))();
+  // capture | legacy_import
+  TextColumn get source => text().withDefault(const Constant('capture'))();
+  TextColumn get legacyRef => text().nullable()();
 }
 
 @DataClassName('PendingSyncOpData')

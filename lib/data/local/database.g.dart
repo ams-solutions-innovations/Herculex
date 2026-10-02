@@ -43966,6 +43966,4091 @@ class HerculexAiProgramBriefsCompanion
   }
 }
 
+class $PhysiqueGoalsTable extends PhysiqueGoals
+    with TableInfo<$PhysiqueGoalsTable, PhysiqueGoalData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PhysiqueGoalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('active'),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('ai_analysis'),
+  );
+  static const VerificationMeta _targetAestheticStyleMeta =
+      const VerificationMeta('targetAestheticStyle');
+  @override
+  late final GeneratedColumn<String> targetAestheticStyle =
+      GeneratedColumn<String>(
+        'target_aesthetic_style',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _timeframeRangeMeta = const VerificationMeta(
+    'timeframeRange',
+  );
+  @override
+  late final GeneratedColumn<String> timeframeRange = GeneratedColumn<String>(
+    'timeframe_range',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _estimatedMonthsMeta = const VerificationMeta(
+    'estimatedMonths',
+  );
+  @override
+  late final GeneratedColumn<int> estimatedMonths = GeneratedColumn<int>(
+    'estimated_months',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetBfPercentMeta = const VerificationMeta(
+    'targetBfPercent',
+  );
+  @override
+  late final GeneratedColumn<double> targetBfPercent = GeneratedColumn<double>(
+    'target_bf_percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startWeightKgMeta = const VerificationMeta(
+    'startWeightKg',
+  );
+  @override
+  late final GeneratedColumn<double> startWeightKg = GeneratedColumn<double>(
+    'start_weight_kg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startBfPercentMeta = const VerificationMeta(
+    'startBfPercent',
+  );
+  @override
+  late final GeneratedColumn<double> startBfPercent = GeneratedColumn<double>(
+    'start_bf_percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> archivedAt = GeneratedColumn<DateTime>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _roadmapAcceptedAtMeta = const VerificationMeta(
+    'roadmapAcceptedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> roadmapAcceptedAt =
+      GeneratedColumn<DateTime>(
+        'roadmap_accepted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _advanceSnoozedUntilMeta =
+      const VerificationMeta('advanceSnoozedUntil');
+  @override
+  late final GeneratedColumn<DateTime> advanceSnoozedUntil =
+      GeneratedColumn<DateTime>(
+        'advance_snoozed_until',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    status,
+    source,
+    targetAestheticStyle,
+    timeframeRange,
+    estimatedMonths,
+    targetBfPercent,
+    startWeightKg,
+    startBfPercent,
+    startedAt,
+    archivedAt,
+    roadmapAcceptedAt,
+    advanceSnoozedUntil,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'physique_goals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PhysiqueGoalData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('target_aesthetic_style')) {
+      context.handle(
+        _targetAestheticStyleMeta,
+        targetAestheticStyle.isAcceptableOrUnknown(
+          data['target_aesthetic_style']!,
+          _targetAestheticStyleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('timeframe_range')) {
+      context.handle(
+        _timeframeRangeMeta,
+        timeframeRange.isAcceptableOrUnknown(
+          data['timeframe_range']!,
+          _timeframeRangeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('estimated_months')) {
+      context.handle(
+        _estimatedMonthsMeta,
+        estimatedMonths.isAcceptableOrUnknown(
+          data['estimated_months']!,
+          _estimatedMonthsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_bf_percent')) {
+      context.handle(
+        _targetBfPercentMeta,
+        targetBfPercent.isAcceptableOrUnknown(
+          data['target_bf_percent']!,
+          _targetBfPercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('start_weight_kg')) {
+      context.handle(
+        _startWeightKgMeta,
+        startWeightKg.isAcceptableOrUnknown(
+          data['start_weight_kg']!,
+          _startWeightKgMeta,
+        ),
+      );
+    }
+    if (data.containsKey('start_bf_percent')) {
+      context.handle(
+        _startBfPercentMeta,
+        startBfPercent.isAcceptableOrUnknown(
+          data['start_bf_percent']!,
+          _startBfPercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('roadmap_accepted_at')) {
+      context.handle(
+        _roadmapAcceptedAtMeta,
+        roadmapAcceptedAt.isAcceptableOrUnknown(
+          data['roadmap_accepted_at']!,
+          _roadmapAcceptedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('advance_snoozed_until')) {
+      context.handle(
+        _advanceSnoozedUntilMeta,
+        advanceSnoozedUntil.isAcceptableOrUnknown(
+          data['advance_snoozed_until']!,
+          _advanceSnoozedUntilMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PhysiqueGoalData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PhysiqueGoalData(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      targetAestheticStyle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_aesthetic_style'],
+      )!,
+      timeframeRange: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}timeframe_range'],
+      )!,
+      estimatedMonths: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}estimated_months'],
+      ),
+      targetBfPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}target_bf_percent'],
+      ),
+      startWeightKg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}start_weight_kg'],
+      ),
+      startBfPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}start_bf_percent'],
+      ),
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}archived_at'],
+      ),
+      roadmapAcceptedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}roadmap_accepted_at'],
+      ),
+      advanceSnoozedUntil: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}advance_snoozed_until'],
+      ),
+    );
+  }
+
+  @override
+  $PhysiqueGoalsTable createAlias(String alias) {
+    return $PhysiqueGoalsTable(attachedDatabase, alias);
+  }
+}
+
+class PhysiqueGoalData extends DataClass
+    implements Insertable<PhysiqueGoalData> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final int id;
+  final String status;
+  final String source;
+  final String targetAestheticStyle;
+  final String timeframeRange;
+  final int? estimatedMonths;
+  final double? targetBfPercent;
+  final double? startWeightKg;
+  final double? startBfPercent;
+  final DateTime startedAt;
+  final DateTime? archivedAt;
+  final DateTime? roadmapAcceptedAt;
+  final DateTime? advanceSnoozedUntil;
+  const PhysiqueGoalData({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.status,
+    required this.source,
+    required this.targetAestheticStyle,
+    required this.timeframeRange,
+    this.estimatedMonths,
+    this.targetBfPercent,
+    this.startWeightKg,
+    this.startBfPercent,
+    required this.startedAt,
+    this.archivedAt,
+    this.roadmapAcceptedAt,
+    this.advanceSnoozedUntil,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<int>(id);
+    map['status'] = Variable<String>(status);
+    map['source'] = Variable<String>(source);
+    map['target_aesthetic_style'] = Variable<String>(targetAestheticStyle);
+    map['timeframe_range'] = Variable<String>(timeframeRange);
+    if (!nullToAbsent || estimatedMonths != null) {
+      map['estimated_months'] = Variable<int>(estimatedMonths);
+    }
+    if (!nullToAbsent || targetBfPercent != null) {
+      map['target_bf_percent'] = Variable<double>(targetBfPercent);
+    }
+    if (!nullToAbsent || startWeightKg != null) {
+      map['start_weight_kg'] = Variable<double>(startWeightKg);
+    }
+    if (!nullToAbsent || startBfPercent != null) {
+      map['start_bf_percent'] = Variable<double>(startBfPercent);
+    }
+    map['started_at'] = Variable<DateTime>(startedAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<DateTime>(archivedAt);
+    }
+    if (!nullToAbsent || roadmapAcceptedAt != null) {
+      map['roadmap_accepted_at'] = Variable<DateTime>(roadmapAcceptedAt);
+    }
+    if (!nullToAbsent || advanceSnoozedUntil != null) {
+      map['advance_snoozed_until'] = Variable<DateTime>(advanceSnoozedUntil);
+    }
+    return map;
+  }
+
+  PhysiqueGoalsCompanion toCompanion(bool nullToAbsent) {
+    return PhysiqueGoalsCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      status: Value(status),
+      source: Value(source),
+      targetAestheticStyle: Value(targetAestheticStyle),
+      timeframeRange: Value(timeframeRange),
+      estimatedMonths: estimatedMonths == null && nullToAbsent
+          ? const Value.absent()
+          : Value(estimatedMonths),
+      targetBfPercent: targetBfPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetBfPercent),
+      startWeightKg: startWeightKg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startWeightKg),
+      startBfPercent: startBfPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startBfPercent),
+      startedAt: Value(startedAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      roadmapAcceptedAt: roadmapAcceptedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(roadmapAcceptedAt),
+      advanceSnoozedUntil: advanceSnoozedUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceSnoozedUntil),
+    );
+  }
+
+  factory PhysiqueGoalData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PhysiqueGoalData(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<int>(json['id']),
+      status: serializer.fromJson<String>(json['status']),
+      source: serializer.fromJson<String>(json['source']),
+      targetAestheticStyle: serializer.fromJson<String>(
+        json['targetAestheticStyle'],
+      ),
+      timeframeRange: serializer.fromJson<String>(json['timeframeRange']),
+      estimatedMonths: serializer.fromJson<int?>(json['estimatedMonths']),
+      targetBfPercent: serializer.fromJson<double?>(json['targetBfPercent']),
+      startWeightKg: serializer.fromJson<double?>(json['startWeightKg']),
+      startBfPercent: serializer.fromJson<double?>(json['startBfPercent']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
+      roadmapAcceptedAt: serializer.fromJson<DateTime?>(
+        json['roadmapAcceptedAt'],
+      ),
+      advanceSnoozedUntil: serializer.fromJson<DateTime?>(
+        json['advanceSnoozedUntil'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<int>(id),
+      'status': serializer.toJson<String>(status),
+      'source': serializer.toJson<String>(source),
+      'targetAestheticStyle': serializer.toJson<String>(targetAestheticStyle),
+      'timeframeRange': serializer.toJson<String>(timeframeRange),
+      'estimatedMonths': serializer.toJson<int?>(estimatedMonths),
+      'targetBfPercent': serializer.toJson<double?>(targetBfPercent),
+      'startWeightKg': serializer.toJson<double?>(startWeightKg),
+      'startBfPercent': serializer.toJson<double?>(startBfPercent),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'archivedAt': serializer.toJson<DateTime?>(archivedAt),
+      'roadmapAcceptedAt': serializer.toJson<DateTime?>(roadmapAcceptedAt),
+      'advanceSnoozedUntil': serializer.toJson<DateTime?>(advanceSnoozedUntil),
+    };
+  }
+
+  PhysiqueGoalData copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    int? id,
+    String? status,
+    String? source,
+    String? targetAestheticStyle,
+    String? timeframeRange,
+    Value<int?> estimatedMonths = const Value.absent(),
+    Value<double?> targetBfPercent = const Value.absent(),
+    Value<double?> startWeightKg = const Value.absent(),
+    Value<double?> startBfPercent = const Value.absent(),
+    DateTime? startedAt,
+    Value<DateTime?> archivedAt = const Value.absent(),
+    Value<DateTime?> roadmapAcceptedAt = const Value.absent(),
+    Value<DateTime?> advanceSnoozedUntil = const Value.absent(),
+  }) => PhysiqueGoalData(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    status: status ?? this.status,
+    source: source ?? this.source,
+    targetAestheticStyle: targetAestheticStyle ?? this.targetAestheticStyle,
+    timeframeRange: timeframeRange ?? this.timeframeRange,
+    estimatedMonths: estimatedMonths.present
+        ? estimatedMonths.value
+        : this.estimatedMonths,
+    targetBfPercent: targetBfPercent.present
+        ? targetBfPercent.value
+        : this.targetBfPercent,
+    startWeightKg: startWeightKg.present
+        ? startWeightKg.value
+        : this.startWeightKg,
+    startBfPercent: startBfPercent.present
+        ? startBfPercent.value
+        : this.startBfPercent,
+    startedAt: startedAt ?? this.startedAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    roadmapAcceptedAt: roadmapAcceptedAt.present
+        ? roadmapAcceptedAt.value
+        : this.roadmapAcceptedAt,
+    advanceSnoozedUntil: advanceSnoozedUntil.present
+        ? advanceSnoozedUntil.value
+        : this.advanceSnoozedUntil,
+  );
+  PhysiqueGoalData copyWithCompanion(PhysiqueGoalsCompanion data) {
+    return PhysiqueGoalData(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      status: data.status.present ? data.status.value : this.status,
+      source: data.source.present ? data.source.value : this.source,
+      targetAestheticStyle: data.targetAestheticStyle.present
+          ? data.targetAestheticStyle.value
+          : this.targetAestheticStyle,
+      timeframeRange: data.timeframeRange.present
+          ? data.timeframeRange.value
+          : this.timeframeRange,
+      estimatedMonths: data.estimatedMonths.present
+          ? data.estimatedMonths.value
+          : this.estimatedMonths,
+      targetBfPercent: data.targetBfPercent.present
+          ? data.targetBfPercent.value
+          : this.targetBfPercent,
+      startWeightKg: data.startWeightKg.present
+          ? data.startWeightKg.value
+          : this.startWeightKg,
+      startBfPercent: data.startBfPercent.present
+          ? data.startBfPercent.value
+          : this.startBfPercent,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      roadmapAcceptedAt: data.roadmapAcceptedAt.present
+          ? data.roadmapAcceptedAt.value
+          : this.roadmapAcceptedAt,
+      advanceSnoozedUntil: data.advanceSnoozedUntil.present
+          ? data.advanceSnoozedUntil.value
+          : this.advanceSnoozedUntil,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhysiqueGoalData(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('status: $status, ')
+          ..write('source: $source, ')
+          ..write('targetAestheticStyle: $targetAestheticStyle, ')
+          ..write('timeframeRange: $timeframeRange, ')
+          ..write('estimatedMonths: $estimatedMonths, ')
+          ..write('targetBfPercent: $targetBfPercent, ')
+          ..write('startWeightKg: $startWeightKg, ')
+          ..write('startBfPercent: $startBfPercent, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('roadmapAcceptedAt: $roadmapAcceptedAt, ')
+          ..write('advanceSnoozedUntil: $advanceSnoozedUntil')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    status,
+    source,
+    targetAestheticStyle,
+    timeframeRange,
+    estimatedMonths,
+    targetBfPercent,
+    startWeightKg,
+    startBfPercent,
+    startedAt,
+    archivedAt,
+    roadmapAcceptedAt,
+    advanceSnoozedUntil,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PhysiqueGoalData &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.status == this.status &&
+          other.source == this.source &&
+          other.targetAestheticStyle == this.targetAestheticStyle &&
+          other.timeframeRange == this.timeframeRange &&
+          other.estimatedMonths == this.estimatedMonths &&
+          other.targetBfPercent == this.targetBfPercent &&
+          other.startWeightKg == this.startWeightKg &&
+          other.startBfPercent == this.startBfPercent &&
+          other.startedAt == this.startedAt &&
+          other.archivedAt == this.archivedAt &&
+          other.roadmapAcceptedAt == this.roadmapAcceptedAt &&
+          other.advanceSnoozedUntil == this.advanceSnoozedUntil);
+}
+
+class PhysiqueGoalsCompanion extends UpdateCompanion<PhysiqueGoalData> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> id;
+  final Value<String> status;
+  final Value<String> source;
+  final Value<String> targetAestheticStyle;
+  final Value<String> timeframeRange;
+  final Value<int?> estimatedMonths;
+  final Value<double?> targetBfPercent;
+  final Value<double?> startWeightKg;
+  final Value<double?> startBfPercent;
+  final Value<DateTime> startedAt;
+  final Value<DateTime?> archivedAt;
+  final Value<DateTime?> roadmapAcceptedAt;
+  final Value<DateTime?> advanceSnoozedUntil;
+  const PhysiqueGoalsCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.status = const Value.absent(),
+    this.source = const Value.absent(),
+    this.targetAestheticStyle = const Value.absent(),
+    this.timeframeRange = const Value.absent(),
+    this.estimatedMonths = const Value.absent(),
+    this.targetBfPercent = const Value.absent(),
+    this.startWeightKg = const Value.absent(),
+    this.startBfPercent = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.roadmapAcceptedAt = const Value.absent(),
+    this.advanceSnoozedUntil = const Value.absent(),
+  });
+  PhysiqueGoalsCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.status = const Value.absent(),
+    this.source = const Value.absent(),
+    this.targetAestheticStyle = const Value.absent(),
+    this.timeframeRange = const Value.absent(),
+    this.estimatedMonths = const Value.absent(),
+    this.targetBfPercent = const Value.absent(),
+    this.startWeightKg = const Value.absent(),
+    this.startBfPercent = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.roadmapAcceptedAt = const Value.absent(),
+    this.advanceSnoozedUntil = const Value.absent(),
+  });
+  static Insertable<PhysiqueGoalData> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? id,
+    Expression<String>? status,
+    Expression<String>? source,
+    Expression<String>? targetAestheticStyle,
+    Expression<String>? timeframeRange,
+    Expression<int>? estimatedMonths,
+    Expression<double>? targetBfPercent,
+    Expression<double>? startWeightKg,
+    Expression<double>? startBfPercent,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? archivedAt,
+    Expression<DateTime>? roadmapAcceptedAt,
+    Expression<DateTime>? advanceSnoozedUntil,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (status != null) 'status': status,
+      if (source != null) 'source': source,
+      if (targetAestheticStyle != null)
+        'target_aesthetic_style': targetAestheticStyle,
+      if (timeframeRange != null) 'timeframe_range': timeframeRange,
+      if (estimatedMonths != null) 'estimated_months': estimatedMonths,
+      if (targetBfPercent != null) 'target_bf_percent': targetBfPercent,
+      if (startWeightKg != null) 'start_weight_kg': startWeightKg,
+      if (startBfPercent != null) 'start_bf_percent': startBfPercent,
+      if (startedAt != null) 'started_at': startedAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (roadmapAcceptedAt != null) 'roadmap_accepted_at': roadmapAcceptedAt,
+      if (advanceSnoozedUntil != null)
+        'advance_snoozed_until': advanceSnoozedUntil,
+    });
+  }
+
+  PhysiqueGoalsCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? id,
+    Value<String>? status,
+    Value<String>? source,
+    Value<String>? targetAestheticStyle,
+    Value<String>? timeframeRange,
+    Value<int?>? estimatedMonths,
+    Value<double?>? targetBfPercent,
+    Value<double?>? startWeightKg,
+    Value<double?>? startBfPercent,
+    Value<DateTime>? startedAt,
+    Value<DateTime?>? archivedAt,
+    Value<DateTime?>? roadmapAcceptedAt,
+    Value<DateTime?>? advanceSnoozedUntil,
+  }) {
+    return PhysiqueGoalsCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      status: status ?? this.status,
+      source: source ?? this.source,
+      targetAestheticStyle: targetAestheticStyle ?? this.targetAestheticStyle,
+      timeframeRange: timeframeRange ?? this.timeframeRange,
+      estimatedMonths: estimatedMonths ?? this.estimatedMonths,
+      targetBfPercent: targetBfPercent ?? this.targetBfPercent,
+      startWeightKg: startWeightKg ?? this.startWeightKg,
+      startBfPercent: startBfPercent ?? this.startBfPercent,
+      startedAt: startedAt ?? this.startedAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      roadmapAcceptedAt: roadmapAcceptedAt ?? this.roadmapAcceptedAt,
+      advanceSnoozedUntil: advanceSnoozedUntil ?? this.advanceSnoozedUntil,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (targetAestheticStyle.present) {
+      map['target_aesthetic_style'] = Variable<String>(
+        targetAestheticStyle.value,
+      );
+    }
+    if (timeframeRange.present) {
+      map['timeframe_range'] = Variable<String>(timeframeRange.value);
+    }
+    if (estimatedMonths.present) {
+      map['estimated_months'] = Variable<int>(estimatedMonths.value);
+    }
+    if (targetBfPercent.present) {
+      map['target_bf_percent'] = Variable<double>(targetBfPercent.value);
+    }
+    if (startWeightKg.present) {
+      map['start_weight_kg'] = Variable<double>(startWeightKg.value);
+    }
+    if (startBfPercent.present) {
+      map['start_bf_percent'] = Variable<double>(startBfPercent.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<DateTime>(archivedAt.value);
+    }
+    if (roadmapAcceptedAt.present) {
+      map['roadmap_accepted_at'] = Variable<DateTime>(roadmapAcceptedAt.value);
+    }
+    if (advanceSnoozedUntil.present) {
+      map['advance_snoozed_until'] = Variable<DateTime>(
+        advanceSnoozedUntil.value,
+      );
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhysiqueGoalsCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('status: $status, ')
+          ..write('source: $source, ')
+          ..write('targetAestheticStyle: $targetAestheticStyle, ')
+          ..write('timeframeRange: $timeframeRange, ')
+          ..write('estimatedMonths: $estimatedMonths, ')
+          ..write('targetBfPercent: $targetBfPercent, ')
+          ..write('startWeightKg: $startWeightKg, ')
+          ..write('startBfPercent: $startBfPercent, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('roadmapAcceptedAt: $roadmapAcceptedAt, ')
+          ..write('advanceSnoozedUntil: $advanceSnoozedUntil')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PhysiqueAssessmentsTable extends PhysiqueAssessments
+    with TableInfo<$PhysiqueAssessmentsTable, PhysiqueAssessmentData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PhysiqueAssessmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
+  @override
+  late final GeneratedColumn<int> goalId = GeneratedColumn<int>(
+    'goal_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES physique_goals (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _assessedAtMeta = const VerificationMeta(
+    'assessedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> assessedAt = GeneratedColumn<DateTime>(
+    'assessed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _dateIsoMeta = const VerificationMeta(
+    'dateIso',
+  );
+  @override
+  late final GeneratedColumn<String> dateIso = GeneratedColumn<String>(
+    'date_iso',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _weightKgMeta = const VerificationMeta(
+    'weightKg',
+  );
+  @override
+  late final GeneratedColumn<double> weightKg = GeneratedColumn<double>(
+    'weight_kg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _currentBfPercentMeta = const VerificationMeta(
+    'currentBfPercent',
+  );
+  @override
+  late final GeneratedColumn<double> currentBfPercent = GeneratedColumn<double>(
+    'current_bf_percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bfRangeMinMeta = const VerificationMeta(
+    'bfRangeMin',
+  );
+  @override
+  late final GeneratedColumn<double> bfRangeMin = GeneratedColumn<double>(
+    'bf_range_min',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bfRangeMaxMeta = const VerificationMeta(
+    'bfRangeMax',
+  );
+  @override
+  late final GeneratedColumn<double> bfRangeMax = GeneratedColumn<double>(
+    'bf_range_max',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<String> confidence = GeneratedColumn<String>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unknown'),
+  );
+  static const VerificationMeta _verdictMeta = const VerificationMeta(
+    'verdict',
+  );
+  @override
+  late final GeneratedColumn<String> verdict = GeneratedColumn<String>(
+    'verdict',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _directionBandLowMeta = const VerificationMeta(
+    'directionBandLow',
+  );
+  @override
+  late final GeneratedColumn<double> directionBandLow = GeneratedColumn<double>(
+    'direction_band_low',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _directionBandHighMeta = const VerificationMeta(
+    'directionBandHigh',
+  );
+  @override
+  late final GeneratedColumn<double> directionBandHigh =
+      GeneratedColumn<double>(
+        'direction_band_high',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _limitationsJsonMeta = const VerificationMeta(
+    'limitationsJson',
+  );
+  @override
+  late final GeneratedColumn<String> limitationsJson = GeneratedColumn<String>(
+    'limitations_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('ai'),
+  );
+  static const VerificationMeta _modelVersionMeta = const VerificationMeta(
+    'modelVersion',
+  );
+  @override
+  late final GeneratedColumn<String> modelVersion = GeneratedColumn<String>(
+    'model_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _knowledgeVersionMeta = const VerificationMeta(
+    'knowledgeVersion',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeVersion = GeneratedColumn<String>(
+    'knowledge_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _summaryJsonMeta = const VerificationMeta(
+    'summaryJson',
+  );
+  @override
+  late final GeneratedColumn<String> summaryJson = GeneratedColumn<String>(
+    'summary_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    goalId,
+    kind,
+    assessedAt,
+    dateIso,
+    weightKg,
+    currentBfPercent,
+    bfRangeMin,
+    bfRangeMax,
+    confidence,
+    verdict,
+    directionBandLow,
+    directionBandHigh,
+    reason,
+    limitationsJson,
+    source,
+    modelVersion,
+    knowledgeVersion,
+    summaryJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'physique_assessments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PhysiqueAssessmentData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('goal_id')) {
+      context.handle(
+        _goalIdMeta,
+        goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_goalIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('assessed_at')) {
+      context.handle(
+        _assessedAtMeta,
+        assessedAt.isAcceptableOrUnknown(data['assessed_at']!, _assessedAtMeta),
+      );
+    }
+    if (data.containsKey('date_iso')) {
+      context.handle(
+        _dateIsoMeta,
+        dateIso.isAcceptableOrUnknown(data['date_iso']!, _dateIsoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateIsoMeta);
+    }
+    if (data.containsKey('weight_kg')) {
+      context.handle(
+        _weightKgMeta,
+        weightKg.isAcceptableOrUnknown(data['weight_kg']!, _weightKgMeta),
+      );
+    }
+    if (data.containsKey('current_bf_percent')) {
+      context.handle(
+        _currentBfPercentMeta,
+        currentBfPercent.isAcceptableOrUnknown(
+          data['current_bf_percent']!,
+          _currentBfPercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('bf_range_min')) {
+      context.handle(
+        _bfRangeMinMeta,
+        bfRangeMin.isAcceptableOrUnknown(
+          data['bf_range_min']!,
+          _bfRangeMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('bf_range_max')) {
+      context.handle(
+        _bfRangeMaxMeta,
+        bfRangeMax.isAcceptableOrUnknown(
+          data['bf_range_max']!,
+          _bfRangeMaxMeta,
+        ),
+      );
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    }
+    if (data.containsKey('verdict')) {
+      context.handle(
+        _verdictMeta,
+        verdict.isAcceptableOrUnknown(data['verdict']!, _verdictMeta),
+      );
+    }
+    if (data.containsKey('direction_band_low')) {
+      context.handle(
+        _directionBandLowMeta,
+        directionBandLow.isAcceptableOrUnknown(
+          data['direction_band_low']!,
+          _directionBandLowMeta,
+        ),
+      );
+    }
+    if (data.containsKey('direction_band_high')) {
+      context.handle(
+        _directionBandHighMeta,
+        directionBandHigh.isAcceptableOrUnknown(
+          data['direction_band_high']!,
+          _directionBandHighMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    }
+    if (data.containsKey('limitations_json')) {
+      context.handle(
+        _limitationsJsonMeta,
+        limitationsJson.isAcceptableOrUnknown(
+          data['limitations_json']!,
+          _limitationsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('model_version')) {
+      context.handle(
+        _modelVersionMeta,
+        modelVersion.isAcceptableOrUnknown(
+          data['model_version']!,
+          _modelVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('knowledge_version')) {
+      context.handle(
+        _knowledgeVersionMeta,
+        knowledgeVersion.isAcceptableOrUnknown(
+          data['knowledge_version']!,
+          _knowledgeVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('summary_json')) {
+      context.handle(
+        _summaryJsonMeta,
+        summaryJson.isAcceptableOrUnknown(
+          data['summary_json']!,
+          _summaryJsonMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PhysiqueAssessmentData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PhysiqueAssessmentData(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      goalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}goal_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      assessedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}assessed_at'],
+      )!,
+      dateIso: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date_iso'],
+      )!,
+      weightKg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}weight_kg'],
+      ),
+      currentBfPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}current_bf_percent'],
+      ),
+      bfRangeMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}bf_range_min'],
+      ),
+      bfRangeMax: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}bf_range_max'],
+      ),
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}confidence'],
+      )!,
+      verdict: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}verdict'],
+      ),
+      directionBandLow: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}direction_band_low'],
+      ),
+      directionBandHigh: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}direction_band_high'],
+      ),
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      ),
+      limitationsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}limitations_json'],
+      ),
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      modelVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_version'],
+      ),
+      knowledgeVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_version'],
+      ),
+      summaryJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}summary_json'],
+      ),
+    );
+  }
+
+  @override
+  $PhysiqueAssessmentsTable createAlias(String alias) {
+    return $PhysiqueAssessmentsTable(attachedDatabase, alias);
+  }
+}
+
+class PhysiqueAssessmentData extends DataClass
+    implements Insertable<PhysiqueAssessmentData> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final int id;
+  final int goalId;
+  final String kind;
+  final DateTime assessedAt;
+  final String dateIso;
+  final double? weightKg;
+  final double? currentBfPercent;
+  final double? bfRangeMin;
+  final double? bfRangeMax;
+  final String confidence;
+  final String? verdict;
+  final double? directionBandLow;
+  final double? directionBandHigh;
+  final String? reason;
+  final String? limitationsJson;
+  final String source;
+  final String? modelVersion;
+  final String? knowledgeVersion;
+  final String? summaryJson;
+  const PhysiqueAssessmentData({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.goalId,
+    required this.kind,
+    required this.assessedAt,
+    required this.dateIso,
+    this.weightKg,
+    this.currentBfPercent,
+    this.bfRangeMin,
+    this.bfRangeMax,
+    required this.confidence,
+    this.verdict,
+    this.directionBandLow,
+    this.directionBandHigh,
+    this.reason,
+    this.limitationsJson,
+    required this.source,
+    this.modelVersion,
+    this.knowledgeVersion,
+    this.summaryJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<int>(id);
+    map['goal_id'] = Variable<int>(goalId);
+    map['kind'] = Variable<String>(kind);
+    map['assessed_at'] = Variable<DateTime>(assessedAt);
+    map['date_iso'] = Variable<String>(dateIso);
+    if (!nullToAbsent || weightKg != null) {
+      map['weight_kg'] = Variable<double>(weightKg);
+    }
+    if (!nullToAbsent || currentBfPercent != null) {
+      map['current_bf_percent'] = Variable<double>(currentBfPercent);
+    }
+    if (!nullToAbsent || bfRangeMin != null) {
+      map['bf_range_min'] = Variable<double>(bfRangeMin);
+    }
+    if (!nullToAbsent || bfRangeMax != null) {
+      map['bf_range_max'] = Variable<double>(bfRangeMax);
+    }
+    map['confidence'] = Variable<String>(confidence);
+    if (!nullToAbsent || verdict != null) {
+      map['verdict'] = Variable<String>(verdict);
+    }
+    if (!nullToAbsent || directionBandLow != null) {
+      map['direction_band_low'] = Variable<double>(directionBandLow);
+    }
+    if (!nullToAbsent || directionBandHigh != null) {
+      map['direction_band_high'] = Variable<double>(directionBandHigh);
+    }
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    if (!nullToAbsent || limitationsJson != null) {
+      map['limitations_json'] = Variable<String>(limitationsJson);
+    }
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || modelVersion != null) {
+      map['model_version'] = Variable<String>(modelVersion);
+    }
+    if (!nullToAbsent || knowledgeVersion != null) {
+      map['knowledge_version'] = Variable<String>(knowledgeVersion);
+    }
+    if (!nullToAbsent || summaryJson != null) {
+      map['summary_json'] = Variable<String>(summaryJson);
+    }
+    return map;
+  }
+
+  PhysiqueAssessmentsCompanion toCompanion(bool nullToAbsent) {
+    return PhysiqueAssessmentsCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      goalId: Value(goalId),
+      kind: Value(kind),
+      assessedAt: Value(assessedAt),
+      dateIso: Value(dateIso),
+      weightKg: weightKg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weightKg),
+      currentBfPercent: currentBfPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentBfPercent),
+      bfRangeMin: bfRangeMin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bfRangeMin),
+      bfRangeMax: bfRangeMax == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bfRangeMax),
+      confidence: Value(confidence),
+      verdict: verdict == null && nullToAbsent
+          ? const Value.absent()
+          : Value(verdict),
+      directionBandLow: directionBandLow == null && nullToAbsent
+          ? const Value.absent()
+          : Value(directionBandLow),
+      directionBandHigh: directionBandHigh == null && nullToAbsent
+          ? const Value.absent()
+          : Value(directionBandHigh),
+      reason: reason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reason),
+      limitationsJson: limitationsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(limitationsJson),
+      source: Value(source),
+      modelVersion: modelVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelVersion),
+      knowledgeVersion: knowledgeVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(knowledgeVersion),
+      summaryJson: summaryJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(summaryJson),
+    );
+  }
+
+  factory PhysiqueAssessmentData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PhysiqueAssessmentData(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<int>(json['id']),
+      goalId: serializer.fromJson<int>(json['goalId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      assessedAt: serializer.fromJson<DateTime>(json['assessedAt']),
+      dateIso: serializer.fromJson<String>(json['dateIso']),
+      weightKg: serializer.fromJson<double?>(json['weightKg']),
+      currentBfPercent: serializer.fromJson<double?>(json['currentBfPercent']),
+      bfRangeMin: serializer.fromJson<double?>(json['bfRangeMin']),
+      bfRangeMax: serializer.fromJson<double?>(json['bfRangeMax']),
+      confidence: serializer.fromJson<String>(json['confidence']),
+      verdict: serializer.fromJson<String?>(json['verdict']),
+      directionBandLow: serializer.fromJson<double?>(json['directionBandLow']),
+      directionBandHigh: serializer.fromJson<double?>(
+        json['directionBandHigh'],
+      ),
+      reason: serializer.fromJson<String?>(json['reason']),
+      limitationsJson: serializer.fromJson<String?>(json['limitationsJson']),
+      source: serializer.fromJson<String>(json['source']),
+      modelVersion: serializer.fromJson<String?>(json['modelVersion']),
+      knowledgeVersion: serializer.fromJson<String?>(json['knowledgeVersion']),
+      summaryJson: serializer.fromJson<String?>(json['summaryJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<int>(id),
+      'goalId': serializer.toJson<int>(goalId),
+      'kind': serializer.toJson<String>(kind),
+      'assessedAt': serializer.toJson<DateTime>(assessedAt),
+      'dateIso': serializer.toJson<String>(dateIso),
+      'weightKg': serializer.toJson<double?>(weightKg),
+      'currentBfPercent': serializer.toJson<double?>(currentBfPercent),
+      'bfRangeMin': serializer.toJson<double?>(bfRangeMin),
+      'bfRangeMax': serializer.toJson<double?>(bfRangeMax),
+      'confidence': serializer.toJson<String>(confidence),
+      'verdict': serializer.toJson<String?>(verdict),
+      'directionBandLow': serializer.toJson<double?>(directionBandLow),
+      'directionBandHigh': serializer.toJson<double?>(directionBandHigh),
+      'reason': serializer.toJson<String?>(reason),
+      'limitationsJson': serializer.toJson<String?>(limitationsJson),
+      'source': serializer.toJson<String>(source),
+      'modelVersion': serializer.toJson<String?>(modelVersion),
+      'knowledgeVersion': serializer.toJson<String?>(knowledgeVersion),
+      'summaryJson': serializer.toJson<String?>(summaryJson),
+    };
+  }
+
+  PhysiqueAssessmentData copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    int? id,
+    int? goalId,
+    String? kind,
+    DateTime? assessedAt,
+    String? dateIso,
+    Value<double?> weightKg = const Value.absent(),
+    Value<double?> currentBfPercent = const Value.absent(),
+    Value<double?> bfRangeMin = const Value.absent(),
+    Value<double?> bfRangeMax = const Value.absent(),
+    String? confidence,
+    Value<String?> verdict = const Value.absent(),
+    Value<double?> directionBandLow = const Value.absent(),
+    Value<double?> directionBandHigh = const Value.absent(),
+    Value<String?> reason = const Value.absent(),
+    Value<String?> limitationsJson = const Value.absent(),
+    String? source,
+    Value<String?> modelVersion = const Value.absent(),
+    Value<String?> knowledgeVersion = const Value.absent(),
+    Value<String?> summaryJson = const Value.absent(),
+  }) => PhysiqueAssessmentData(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    goalId: goalId ?? this.goalId,
+    kind: kind ?? this.kind,
+    assessedAt: assessedAt ?? this.assessedAt,
+    dateIso: dateIso ?? this.dateIso,
+    weightKg: weightKg.present ? weightKg.value : this.weightKg,
+    currentBfPercent: currentBfPercent.present
+        ? currentBfPercent.value
+        : this.currentBfPercent,
+    bfRangeMin: bfRangeMin.present ? bfRangeMin.value : this.bfRangeMin,
+    bfRangeMax: bfRangeMax.present ? bfRangeMax.value : this.bfRangeMax,
+    confidence: confidence ?? this.confidence,
+    verdict: verdict.present ? verdict.value : this.verdict,
+    directionBandLow: directionBandLow.present
+        ? directionBandLow.value
+        : this.directionBandLow,
+    directionBandHigh: directionBandHigh.present
+        ? directionBandHigh.value
+        : this.directionBandHigh,
+    reason: reason.present ? reason.value : this.reason,
+    limitationsJson: limitationsJson.present
+        ? limitationsJson.value
+        : this.limitationsJson,
+    source: source ?? this.source,
+    modelVersion: modelVersion.present ? modelVersion.value : this.modelVersion,
+    knowledgeVersion: knowledgeVersion.present
+        ? knowledgeVersion.value
+        : this.knowledgeVersion,
+    summaryJson: summaryJson.present ? summaryJson.value : this.summaryJson,
+  );
+  PhysiqueAssessmentData copyWithCompanion(PhysiqueAssessmentsCompanion data) {
+    return PhysiqueAssessmentData(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      goalId: data.goalId.present ? data.goalId.value : this.goalId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      assessedAt: data.assessedAt.present
+          ? data.assessedAt.value
+          : this.assessedAt,
+      dateIso: data.dateIso.present ? data.dateIso.value : this.dateIso,
+      weightKg: data.weightKg.present ? data.weightKg.value : this.weightKg,
+      currentBfPercent: data.currentBfPercent.present
+          ? data.currentBfPercent.value
+          : this.currentBfPercent,
+      bfRangeMin: data.bfRangeMin.present
+          ? data.bfRangeMin.value
+          : this.bfRangeMin,
+      bfRangeMax: data.bfRangeMax.present
+          ? data.bfRangeMax.value
+          : this.bfRangeMax,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      verdict: data.verdict.present ? data.verdict.value : this.verdict,
+      directionBandLow: data.directionBandLow.present
+          ? data.directionBandLow.value
+          : this.directionBandLow,
+      directionBandHigh: data.directionBandHigh.present
+          ? data.directionBandHigh.value
+          : this.directionBandHigh,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      limitationsJson: data.limitationsJson.present
+          ? data.limitationsJson.value
+          : this.limitationsJson,
+      source: data.source.present ? data.source.value : this.source,
+      modelVersion: data.modelVersion.present
+          ? data.modelVersion.value
+          : this.modelVersion,
+      knowledgeVersion: data.knowledgeVersion.present
+          ? data.knowledgeVersion.value
+          : this.knowledgeVersion,
+      summaryJson: data.summaryJson.present
+          ? data.summaryJson.value
+          : this.summaryJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhysiqueAssessmentData(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('kind: $kind, ')
+          ..write('assessedAt: $assessedAt, ')
+          ..write('dateIso: $dateIso, ')
+          ..write('weightKg: $weightKg, ')
+          ..write('currentBfPercent: $currentBfPercent, ')
+          ..write('bfRangeMin: $bfRangeMin, ')
+          ..write('bfRangeMax: $bfRangeMax, ')
+          ..write('confidence: $confidence, ')
+          ..write('verdict: $verdict, ')
+          ..write('directionBandLow: $directionBandLow, ')
+          ..write('directionBandHigh: $directionBandHigh, ')
+          ..write('reason: $reason, ')
+          ..write('limitationsJson: $limitationsJson, ')
+          ..write('source: $source, ')
+          ..write('modelVersion: $modelVersion, ')
+          ..write('knowledgeVersion: $knowledgeVersion, ')
+          ..write('summaryJson: $summaryJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    goalId,
+    kind,
+    assessedAt,
+    dateIso,
+    weightKg,
+    currentBfPercent,
+    bfRangeMin,
+    bfRangeMax,
+    confidence,
+    verdict,
+    directionBandLow,
+    directionBandHigh,
+    reason,
+    limitationsJson,
+    source,
+    modelVersion,
+    knowledgeVersion,
+    summaryJson,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PhysiqueAssessmentData &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.goalId == this.goalId &&
+          other.kind == this.kind &&
+          other.assessedAt == this.assessedAt &&
+          other.dateIso == this.dateIso &&
+          other.weightKg == this.weightKg &&
+          other.currentBfPercent == this.currentBfPercent &&
+          other.bfRangeMin == this.bfRangeMin &&
+          other.bfRangeMax == this.bfRangeMax &&
+          other.confidence == this.confidence &&
+          other.verdict == this.verdict &&
+          other.directionBandLow == this.directionBandLow &&
+          other.directionBandHigh == this.directionBandHigh &&
+          other.reason == this.reason &&
+          other.limitationsJson == this.limitationsJson &&
+          other.source == this.source &&
+          other.modelVersion == this.modelVersion &&
+          other.knowledgeVersion == this.knowledgeVersion &&
+          other.summaryJson == this.summaryJson);
+}
+
+class PhysiqueAssessmentsCompanion
+    extends UpdateCompanion<PhysiqueAssessmentData> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> id;
+  final Value<int> goalId;
+  final Value<String> kind;
+  final Value<DateTime> assessedAt;
+  final Value<String> dateIso;
+  final Value<double?> weightKg;
+  final Value<double?> currentBfPercent;
+  final Value<double?> bfRangeMin;
+  final Value<double?> bfRangeMax;
+  final Value<String> confidence;
+  final Value<String?> verdict;
+  final Value<double?> directionBandLow;
+  final Value<double?> directionBandHigh;
+  final Value<String?> reason;
+  final Value<String?> limitationsJson;
+  final Value<String> source;
+  final Value<String?> modelVersion;
+  final Value<String?> knowledgeVersion;
+  final Value<String?> summaryJson;
+  const PhysiqueAssessmentsCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.goalId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.assessedAt = const Value.absent(),
+    this.dateIso = const Value.absent(),
+    this.weightKg = const Value.absent(),
+    this.currentBfPercent = const Value.absent(),
+    this.bfRangeMin = const Value.absent(),
+    this.bfRangeMax = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.verdict = const Value.absent(),
+    this.directionBandLow = const Value.absent(),
+    this.directionBandHigh = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.limitationsJson = const Value.absent(),
+    this.source = const Value.absent(),
+    this.modelVersion = const Value.absent(),
+    this.knowledgeVersion = const Value.absent(),
+    this.summaryJson = const Value.absent(),
+  });
+  PhysiqueAssessmentsCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    required int goalId,
+    required String kind,
+    this.assessedAt = const Value.absent(),
+    required String dateIso,
+    this.weightKg = const Value.absent(),
+    this.currentBfPercent = const Value.absent(),
+    this.bfRangeMin = const Value.absent(),
+    this.bfRangeMax = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.verdict = const Value.absent(),
+    this.directionBandLow = const Value.absent(),
+    this.directionBandHigh = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.limitationsJson = const Value.absent(),
+    this.source = const Value.absent(),
+    this.modelVersion = const Value.absent(),
+    this.knowledgeVersion = const Value.absent(),
+    this.summaryJson = const Value.absent(),
+  }) : goalId = Value(goalId),
+       kind = Value(kind),
+       dateIso = Value(dateIso);
+  static Insertable<PhysiqueAssessmentData> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? id,
+    Expression<int>? goalId,
+    Expression<String>? kind,
+    Expression<DateTime>? assessedAt,
+    Expression<String>? dateIso,
+    Expression<double>? weightKg,
+    Expression<double>? currentBfPercent,
+    Expression<double>? bfRangeMin,
+    Expression<double>? bfRangeMax,
+    Expression<String>? confidence,
+    Expression<String>? verdict,
+    Expression<double>? directionBandLow,
+    Expression<double>? directionBandHigh,
+    Expression<String>? reason,
+    Expression<String>? limitationsJson,
+    Expression<String>? source,
+    Expression<String>? modelVersion,
+    Expression<String>? knowledgeVersion,
+    Expression<String>? summaryJson,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (goalId != null) 'goal_id': goalId,
+      if (kind != null) 'kind': kind,
+      if (assessedAt != null) 'assessed_at': assessedAt,
+      if (dateIso != null) 'date_iso': dateIso,
+      if (weightKg != null) 'weight_kg': weightKg,
+      if (currentBfPercent != null) 'current_bf_percent': currentBfPercent,
+      if (bfRangeMin != null) 'bf_range_min': bfRangeMin,
+      if (bfRangeMax != null) 'bf_range_max': bfRangeMax,
+      if (confidence != null) 'confidence': confidence,
+      if (verdict != null) 'verdict': verdict,
+      if (directionBandLow != null) 'direction_band_low': directionBandLow,
+      if (directionBandHigh != null) 'direction_band_high': directionBandHigh,
+      if (reason != null) 'reason': reason,
+      if (limitationsJson != null) 'limitations_json': limitationsJson,
+      if (source != null) 'source': source,
+      if (modelVersion != null) 'model_version': modelVersion,
+      if (knowledgeVersion != null) 'knowledge_version': knowledgeVersion,
+      if (summaryJson != null) 'summary_json': summaryJson,
+    });
+  }
+
+  PhysiqueAssessmentsCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? id,
+    Value<int>? goalId,
+    Value<String>? kind,
+    Value<DateTime>? assessedAt,
+    Value<String>? dateIso,
+    Value<double?>? weightKg,
+    Value<double?>? currentBfPercent,
+    Value<double?>? bfRangeMin,
+    Value<double?>? bfRangeMax,
+    Value<String>? confidence,
+    Value<String?>? verdict,
+    Value<double?>? directionBandLow,
+    Value<double?>? directionBandHigh,
+    Value<String?>? reason,
+    Value<String?>? limitationsJson,
+    Value<String>? source,
+    Value<String?>? modelVersion,
+    Value<String?>? knowledgeVersion,
+    Value<String?>? summaryJson,
+  }) {
+    return PhysiqueAssessmentsCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      goalId: goalId ?? this.goalId,
+      kind: kind ?? this.kind,
+      assessedAt: assessedAt ?? this.assessedAt,
+      dateIso: dateIso ?? this.dateIso,
+      weightKg: weightKg ?? this.weightKg,
+      currentBfPercent: currentBfPercent ?? this.currentBfPercent,
+      bfRangeMin: bfRangeMin ?? this.bfRangeMin,
+      bfRangeMax: bfRangeMax ?? this.bfRangeMax,
+      confidence: confidence ?? this.confidence,
+      verdict: verdict ?? this.verdict,
+      directionBandLow: directionBandLow ?? this.directionBandLow,
+      directionBandHigh: directionBandHigh ?? this.directionBandHigh,
+      reason: reason ?? this.reason,
+      limitationsJson: limitationsJson ?? this.limitationsJson,
+      source: source ?? this.source,
+      modelVersion: modelVersion ?? this.modelVersion,
+      knowledgeVersion: knowledgeVersion ?? this.knowledgeVersion,
+      summaryJson: summaryJson ?? this.summaryJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (goalId.present) {
+      map['goal_id'] = Variable<int>(goalId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (assessedAt.present) {
+      map['assessed_at'] = Variable<DateTime>(assessedAt.value);
+    }
+    if (dateIso.present) {
+      map['date_iso'] = Variable<String>(dateIso.value);
+    }
+    if (weightKg.present) {
+      map['weight_kg'] = Variable<double>(weightKg.value);
+    }
+    if (currentBfPercent.present) {
+      map['current_bf_percent'] = Variable<double>(currentBfPercent.value);
+    }
+    if (bfRangeMin.present) {
+      map['bf_range_min'] = Variable<double>(bfRangeMin.value);
+    }
+    if (bfRangeMax.present) {
+      map['bf_range_max'] = Variable<double>(bfRangeMax.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<String>(confidence.value);
+    }
+    if (verdict.present) {
+      map['verdict'] = Variable<String>(verdict.value);
+    }
+    if (directionBandLow.present) {
+      map['direction_band_low'] = Variable<double>(directionBandLow.value);
+    }
+    if (directionBandHigh.present) {
+      map['direction_band_high'] = Variable<double>(directionBandHigh.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (limitationsJson.present) {
+      map['limitations_json'] = Variable<String>(limitationsJson.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (modelVersion.present) {
+      map['model_version'] = Variable<String>(modelVersion.value);
+    }
+    if (knowledgeVersion.present) {
+      map['knowledge_version'] = Variable<String>(knowledgeVersion.value);
+    }
+    if (summaryJson.present) {
+      map['summary_json'] = Variable<String>(summaryJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhysiqueAssessmentsCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('kind: $kind, ')
+          ..write('assessedAt: $assessedAt, ')
+          ..write('dateIso: $dateIso, ')
+          ..write('weightKg: $weightKg, ')
+          ..write('currentBfPercent: $currentBfPercent, ')
+          ..write('bfRangeMin: $bfRangeMin, ')
+          ..write('bfRangeMax: $bfRangeMax, ')
+          ..write('confidence: $confidence, ')
+          ..write('verdict: $verdict, ')
+          ..write('directionBandLow: $directionBandLow, ')
+          ..write('directionBandHigh: $directionBandHigh, ')
+          ..write('reason: $reason, ')
+          ..write('limitationsJson: $limitationsJson, ')
+          ..write('source: $source, ')
+          ..write('modelVersion: $modelVersion, ')
+          ..write('knowledgeVersion: $knowledgeVersion, ')
+          ..write('summaryJson: $summaryJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PhysiqueRoadmapPhasesTable extends PhysiqueRoadmapPhases
+    with TableInfo<$PhysiqueRoadmapPhasesTable, PhysiqueRoadmapPhaseData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PhysiqueRoadmapPhasesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
+  @override
+  late final GeneratedColumn<int> goalId = GeneratedColumn<int>(
+    'goal_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES physique_goals (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _orderIndexMeta = const VerificationMeta(
+    'orderIndex',
+  );
+  @override
+  late final GeneratedColumn<int> orderIndex = GeneratedColumn<int>(
+    'order_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _phaseTypeMeta = const VerificationMeta(
+    'phaseType',
+  );
+  @override
+  late final GeneratedColumn<String> phaseType = GeneratedColumn<String>(
+    'phase_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _plannedWeeksMeta = const VerificationMeta(
+    'plannedWeeks',
+  );
+  @override
+  late final GeneratedColumn<int> plannedWeeks = GeneratedColumn<int>(
+    'planned_weeks',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetWeightKgMeta = const VerificationMeta(
+    'targetWeightKg',
+  );
+  @override
+  late final GeneratedColumn<double> targetWeightKg = GeneratedColumn<double>(
+    'target_weight_kg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetBfPercentMeta = const VerificationMeta(
+    'targetBfPercent',
+  );
+  @override
+  late final GeneratedColumn<double> targetBfPercent = GeneratedColumn<double>(
+    'target_bf_percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _weeklyRateKgMeta = const VerificationMeta(
+    'weeklyRateKg',
+  );
+  @override
+  late final GeneratedColumn<double> weeklyRateKg = GeneratedColumn<double>(
+    'weekly_rate_kg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tempoCappedMeta = const VerificationMeta(
+    'tempoCapped',
+  );
+  @override
+  late final GeneratedColumn<bool> tempoCapped = GeneratedColumn<bool>(
+    'tempo_capped',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("tempo_capped" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('upcoming'),
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    goalId,
+    orderIndex,
+    phaseType,
+    plannedWeeks,
+    targetWeightKg,
+    targetBfPercent,
+    weeklyRateKg,
+    tempoCapped,
+    status,
+    startedAt,
+    completedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'physique_roadmap_phases';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PhysiqueRoadmapPhaseData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('goal_id')) {
+      context.handle(
+        _goalIdMeta,
+        goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_goalIdMeta);
+    }
+    if (data.containsKey('order_index')) {
+      context.handle(
+        _orderIndexMeta,
+        orderIndex.isAcceptableOrUnknown(data['order_index']!, _orderIndexMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderIndexMeta);
+    }
+    if (data.containsKey('phase_type')) {
+      context.handle(
+        _phaseTypeMeta,
+        phaseType.isAcceptableOrUnknown(data['phase_type']!, _phaseTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_phaseTypeMeta);
+    }
+    if (data.containsKey('planned_weeks')) {
+      context.handle(
+        _plannedWeeksMeta,
+        plannedWeeks.isAcceptableOrUnknown(
+          data['planned_weeks']!,
+          _plannedWeeksMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_plannedWeeksMeta);
+    }
+    if (data.containsKey('target_weight_kg')) {
+      context.handle(
+        _targetWeightKgMeta,
+        targetWeightKg.isAcceptableOrUnknown(
+          data['target_weight_kg']!,
+          _targetWeightKgMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_bf_percent')) {
+      context.handle(
+        _targetBfPercentMeta,
+        targetBfPercent.isAcceptableOrUnknown(
+          data['target_bf_percent']!,
+          _targetBfPercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('weekly_rate_kg')) {
+      context.handle(
+        _weeklyRateKgMeta,
+        weeklyRateKg.isAcceptableOrUnknown(
+          data['weekly_rate_kg']!,
+          _weeklyRateKgMeta,
+        ),
+      );
+    }
+    if (data.containsKey('tempo_capped')) {
+      context.handle(
+        _tempoCappedMeta,
+        tempoCapped.isAcceptableOrUnknown(
+          data['tempo_capped']!,
+          _tempoCappedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PhysiqueRoadmapPhaseData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PhysiqueRoadmapPhaseData(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      goalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}goal_id'],
+      )!,
+      orderIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}order_index'],
+      )!,
+      phaseType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phase_type'],
+      )!,
+      plannedWeeks: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}planned_weeks'],
+      )!,
+      targetWeightKg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}target_weight_kg'],
+      ),
+      targetBfPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}target_bf_percent'],
+      ),
+      weeklyRateKg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}weekly_rate_kg'],
+      ),
+      tempoCapped: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tempo_capped'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      ),
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
+    );
+  }
+
+  @override
+  $PhysiqueRoadmapPhasesTable createAlias(String alias) {
+    return $PhysiqueRoadmapPhasesTable(attachedDatabase, alias);
+  }
+}
+
+class PhysiqueRoadmapPhaseData extends DataClass
+    implements Insertable<PhysiqueRoadmapPhaseData> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final int id;
+  final int goalId;
+  final int orderIndex;
+  final String phaseType;
+  final int plannedWeeks;
+  final double? targetWeightKg;
+  final double? targetBfPercent;
+  final double? weeklyRateKg;
+  final bool tempoCapped;
+  final String status;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  const PhysiqueRoadmapPhaseData({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.goalId,
+    required this.orderIndex,
+    required this.phaseType,
+    required this.plannedWeeks,
+    this.targetWeightKg,
+    this.targetBfPercent,
+    this.weeklyRateKg,
+    required this.tempoCapped,
+    required this.status,
+    this.startedAt,
+    this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<int>(id);
+    map['goal_id'] = Variable<int>(goalId);
+    map['order_index'] = Variable<int>(orderIndex);
+    map['phase_type'] = Variable<String>(phaseType);
+    map['planned_weeks'] = Variable<int>(plannedWeeks);
+    if (!nullToAbsent || targetWeightKg != null) {
+      map['target_weight_kg'] = Variable<double>(targetWeightKg);
+    }
+    if (!nullToAbsent || targetBfPercent != null) {
+      map['target_bf_percent'] = Variable<double>(targetBfPercent);
+    }
+    if (!nullToAbsent || weeklyRateKg != null) {
+      map['weekly_rate_kg'] = Variable<double>(weeklyRateKg);
+    }
+    map['tempo_capped'] = Variable<bool>(tempoCapped);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || startedAt != null) {
+      map['started_at'] = Variable<DateTime>(startedAt);
+    }
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    return map;
+  }
+
+  PhysiqueRoadmapPhasesCompanion toCompanion(bool nullToAbsent) {
+    return PhysiqueRoadmapPhasesCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      goalId: Value(goalId),
+      orderIndex: Value(orderIndex),
+      phaseType: Value(phaseType),
+      plannedWeeks: Value(plannedWeeks),
+      targetWeightKg: targetWeightKg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetWeightKg),
+      targetBfPercent: targetBfPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetBfPercent),
+      weeklyRateKg: weeklyRateKg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weeklyRateKg),
+      tempoCapped: Value(tempoCapped),
+      status: Value(status),
+      startedAt: startedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+    );
+  }
+
+  factory PhysiqueRoadmapPhaseData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PhysiqueRoadmapPhaseData(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<int>(json['id']),
+      goalId: serializer.fromJson<int>(json['goalId']),
+      orderIndex: serializer.fromJson<int>(json['orderIndex']),
+      phaseType: serializer.fromJson<String>(json['phaseType']),
+      plannedWeeks: serializer.fromJson<int>(json['plannedWeeks']),
+      targetWeightKg: serializer.fromJson<double?>(json['targetWeightKg']),
+      targetBfPercent: serializer.fromJson<double?>(json['targetBfPercent']),
+      weeklyRateKg: serializer.fromJson<double?>(json['weeklyRateKg']),
+      tempoCapped: serializer.fromJson<bool>(json['tempoCapped']),
+      status: serializer.fromJson<String>(json['status']),
+      startedAt: serializer.fromJson<DateTime?>(json['startedAt']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<int>(id),
+      'goalId': serializer.toJson<int>(goalId),
+      'orderIndex': serializer.toJson<int>(orderIndex),
+      'phaseType': serializer.toJson<String>(phaseType),
+      'plannedWeeks': serializer.toJson<int>(plannedWeeks),
+      'targetWeightKg': serializer.toJson<double?>(targetWeightKg),
+      'targetBfPercent': serializer.toJson<double?>(targetBfPercent),
+      'weeklyRateKg': serializer.toJson<double?>(weeklyRateKg),
+      'tempoCapped': serializer.toJson<bool>(tempoCapped),
+      'status': serializer.toJson<String>(status),
+      'startedAt': serializer.toJson<DateTime?>(startedAt),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
+    };
+  }
+
+  PhysiqueRoadmapPhaseData copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    int? id,
+    int? goalId,
+    int? orderIndex,
+    String? phaseType,
+    int? plannedWeeks,
+    Value<double?> targetWeightKg = const Value.absent(),
+    Value<double?> targetBfPercent = const Value.absent(),
+    Value<double?> weeklyRateKg = const Value.absent(),
+    bool? tempoCapped,
+    String? status,
+    Value<DateTime?> startedAt = const Value.absent(),
+    Value<DateTime?> completedAt = const Value.absent(),
+  }) => PhysiqueRoadmapPhaseData(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    goalId: goalId ?? this.goalId,
+    orderIndex: orderIndex ?? this.orderIndex,
+    phaseType: phaseType ?? this.phaseType,
+    plannedWeeks: plannedWeeks ?? this.plannedWeeks,
+    targetWeightKg: targetWeightKg.present
+        ? targetWeightKg.value
+        : this.targetWeightKg,
+    targetBfPercent: targetBfPercent.present
+        ? targetBfPercent.value
+        : this.targetBfPercent,
+    weeklyRateKg: weeklyRateKg.present ? weeklyRateKg.value : this.weeklyRateKg,
+    tempoCapped: tempoCapped ?? this.tempoCapped,
+    status: status ?? this.status,
+    startedAt: startedAt.present ? startedAt.value : this.startedAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+  );
+  PhysiqueRoadmapPhaseData copyWithCompanion(
+    PhysiqueRoadmapPhasesCompanion data,
+  ) {
+    return PhysiqueRoadmapPhaseData(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      goalId: data.goalId.present ? data.goalId.value : this.goalId,
+      orderIndex: data.orderIndex.present
+          ? data.orderIndex.value
+          : this.orderIndex,
+      phaseType: data.phaseType.present ? data.phaseType.value : this.phaseType,
+      plannedWeeks: data.plannedWeeks.present
+          ? data.plannedWeeks.value
+          : this.plannedWeeks,
+      targetWeightKg: data.targetWeightKg.present
+          ? data.targetWeightKg.value
+          : this.targetWeightKg,
+      targetBfPercent: data.targetBfPercent.present
+          ? data.targetBfPercent.value
+          : this.targetBfPercent,
+      weeklyRateKg: data.weeklyRateKg.present
+          ? data.weeklyRateKg.value
+          : this.weeklyRateKg,
+      tempoCapped: data.tempoCapped.present
+          ? data.tempoCapped.value
+          : this.tempoCapped,
+      status: data.status.present ? data.status.value : this.status,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhysiqueRoadmapPhaseData(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('phaseType: $phaseType, ')
+          ..write('plannedWeeks: $plannedWeeks, ')
+          ..write('targetWeightKg: $targetWeightKg, ')
+          ..write('targetBfPercent: $targetBfPercent, ')
+          ..write('weeklyRateKg: $weeklyRateKg, ')
+          ..write('tempoCapped: $tempoCapped, ')
+          ..write('status: $status, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    goalId,
+    orderIndex,
+    phaseType,
+    plannedWeeks,
+    targetWeightKg,
+    targetBfPercent,
+    weeklyRateKg,
+    tempoCapped,
+    status,
+    startedAt,
+    completedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PhysiqueRoadmapPhaseData &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.goalId == this.goalId &&
+          other.orderIndex == this.orderIndex &&
+          other.phaseType == this.phaseType &&
+          other.plannedWeeks == this.plannedWeeks &&
+          other.targetWeightKg == this.targetWeightKg &&
+          other.targetBfPercent == this.targetBfPercent &&
+          other.weeklyRateKg == this.weeklyRateKg &&
+          other.tempoCapped == this.tempoCapped &&
+          other.status == this.status &&
+          other.startedAt == this.startedAt &&
+          other.completedAt == this.completedAt);
+}
+
+class PhysiqueRoadmapPhasesCompanion
+    extends UpdateCompanion<PhysiqueRoadmapPhaseData> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> id;
+  final Value<int> goalId;
+  final Value<int> orderIndex;
+  final Value<String> phaseType;
+  final Value<int> plannedWeeks;
+  final Value<double?> targetWeightKg;
+  final Value<double?> targetBfPercent;
+  final Value<double?> weeklyRateKg;
+  final Value<bool> tempoCapped;
+  final Value<String> status;
+  final Value<DateTime?> startedAt;
+  final Value<DateTime?> completedAt;
+  const PhysiqueRoadmapPhasesCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.goalId = const Value.absent(),
+    this.orderIndex = const Value.absent(),
+    this.phaseType = const Value.absent(),
+    this.plannedWeeks = const Value.absent(),
+    this.targetWeightKg = const Value.absent(),
+    this.targetBfPercent = const Value.absent(),
+    this.weeklyRateKg = const Value.absent(),
+    this.tempoCapped = const Value.absent(),
+    this.status = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+  });
+  PhysiqueRoadmapPhasesCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    required int goalId,
+    required int orderIndex,
+    required String phaseType,
+    required int plannedWeeks,
+    this.targetWeightKg = const Value.absent(),
+    this.targetBfPercent = const Value.absent(),
+    this.weeklyRateKg = const Value.absent(),
+    this.tempoCapped = const Value.absent(),
+    this.status = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+  }) : goalId = Value(goalId),
+       orderIndex = Value(orderIndex),
+       phaseType = Value(phaseType),
+       plannedWeeks = Value(plannedWeeks);
+  static Insertable<PhysiqueRoadmapPhaseData> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? id,
+    Expression<int>? goalId,
+    Expression<int>? orderIndex,
+    Expression<String>? phaseType,
+    Expression<int>? plannedWeeks,
+    Expression<double>? targetWeightKg,
+    Expression<double>? targetBfPercent,
+    Expression<double>? weeklyRateKg,
+    Expression<bool>? tempoCapped,
+    Expression<String>? status,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? completedAt,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (goalId != null) 'goal_id': goalId,
+      if (orderIndex != null) 'order_index': orderIndex,
+      if (phaseType != null) 'phase_type': phaseType,
+      if (plannedWeeks != null) 'planned_weeks': plannedWeeks,
+      if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,
+      if (targetBfPercent != null) 'target_bf_percent': targetBfPercent,
+      if (weeklyRateKg != null) 'weekly_rate_kg': weeklyRateKg,
+      if (tempoCapped != null) 'tempo_capped': tempoCapped,
+      if (status != null) 'status': status,
+      if (startedAt != null) 'started_at': startedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+    });
+  }
+
+  PhysiqueRoadmapPhasesCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? id,
+    Value<int>? goalId,
+    Value<int>? orderIndex,
+    Value<String>? phaseType,
+    Value<int>? plannedWeeks,
+    Value<double?>? targetWeightKg,
+    Value<double?>? targetBfPercent,
+    Value<double?>? weeklyRateKg,
+    Value<bool>? tempoCapped,
+    Value<String>? status,
+    Value<DateTime?>? startedAt,
+    Value<DateTime?>? completedAt,
+  }) {
+    return PhysiqueRoadmapPhasesCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      goalId: goalId ?? this.goalId,
+      orderIndex: orderIndex ?? this.orderIndex,
+      phaseType: phaseType ?? this.phaseType,
+      plannedWeeks: plannedWeeks ?? this.plannedWeeks,
+      targetWeightKg: targetWeightKg ?? this.targetWeightKg,
+      targetBfPercent: targetBfPercent ?? this.targetBfPercent,
+      weeklyRateKg: weeklyRateKg ?? this.weeklyRateKg,
+      tempoCapped: tempoCapped ?? this.tempoCapped,
+      status: status ?? this.status,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (goalId.present) {
+      map['goal_id'] = Variable<int>(goalId.value);
+    }
+    if (orderIndex.present) {
+      map['order_index'] = Variable<int>(orderIndex.value);
+    }
+    if (phaseType.present) {
+      map['phase_type'] = Variable<String>(phaseType.value);
+    }
+    if (plannedWeeks.present) {
+      map['planned_weeks'] = Variable<int>(plannedWeeks.value);
+    }
+    if (targetWeightKg.present) {
+      map['target_weight_kg'] = Variable<double>(targetWeightKg.value);
+    }
+    if (targetBfPercent.present) {
+      map['target_bf_percent'] = Variable<double>(targetBfPercent.value);
+    }
+    if (weeklyRateKg.present) {
+      map['weekly_rate_kg'] = Variable<double>(weeklyRateKg.value);
+    }
+    if (tempoCapped.present) {
+      map['tempo_capped'] = Variable<bool>(tempoCapped.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhysiqueRoadmapPhasesCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('orderIndex: $orderIndex, ')
+          ..write('phaseType: $phaseType, ')
+          ..write('plannedWeeks: $plannedWeeks, ')
+          ..write('targetWeightKg: $targetWeightKg, ')
+          ..write('targetBfPercent: $targetBfPercent, ')
+          ..write('weeklyRateKg: $weeklyRateKg, ')
+          ..write('tempoCapped: $tempoCapped, ')
+          ..write('status: $status, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PhysiquePhotosTable extends PhysiquePhotos
+    with TableInfo<$PhysiquePhotosTable, PhysiquePhotoData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PhysiquePhotosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
+  @override
+  late final GeneratedColumn<int> goalId = GeneratedColumn<int>(
+    'goal_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES physique_goals (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _assessmentIdMeta = const VerificationMeta(
+    'assessmentId',
+  );
+  @override
+  late final GeneratedColumn<int> assessmentId = GeneratedColumn<int>(
+    'assessment_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES physique_assessments (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _roleMeta = const VerificationMeta('role');
+  @override
+  late final GeneratedColumn<String> role = GeneratedColumn<String>(
+    'role',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _poseMeta = const VerificationMeta('pose');
+  @override
+  late final GeneratedColumn<String> pose = GeneratedColumn<String>(
+    'pose',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateIsoMeta = const VerificationMeta(
+    'dateIso',
+  );
+  @override
+  late final GeneratedColumn<String> dateIso = GeneratedColumn<String>(
+    'date_iso',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _takenAtMeta = const VerificationMeta(
+    'takenAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> takenAt = GeneratedColumn<DateTime>(
+    'taken_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _relativePathMeta = const VerificationMeta(
+    'relativePath',
+  );
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _blurredMeta = const VerificationMeta(
+    'blurred',
+  );
+  @override
+  late final GeneratedColumn<bool> blurred = GeneratedColumn<bool>(
+    'blurred',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("blurred" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('capture'),
+  );
+  static const VerificationMeta _legacyRefMeta = const VerificationMeta(
+    'legacyRef',
+  );
+  @override
+  late final GeneratedColumn<String> legacyRef = GeneratedColumn<String>(
+    'legacy_ref',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    goalId,
+    assessmentId,
+    role,
+    pose,
+    dateIso,
+    takenAt,
+    relativePath,
+    blurred,
+    source,
+    legacyRef,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'physique_photos';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PhysiquePhotoData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('goal_id')) {
+      context.handle(
+        _goalIdMeta,
+        goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_goalIdMeta);
+    }
+    if (data.containsKey('assessment_id')) {
+      context.handle(
+        _assessmentIdMeta,
+        assessmentId.isAcceptableOrUnknown(
+          data['assessment_id']!,
+          _assessmentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('role')) {
+      context.handle(
+        _roleMeta,
+        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleMeta);
+    }
+    if (data.containsKey('pose')) {
+      context.handle(
+        _poseMeta,
+        pose.isAcceptableOrUnknown(data['pose']!, _poseMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_poseMeta);
+    }
+    if (data.containsKey('date_iso')) {
+      context.handle(
+        _dateIsoMeta,
+        dateIso.isAcceptableOrUnknown(data['date_iso']!, _dateIsoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateIsoMeta);
+    }
+    if (data.containsKey('taken_at')) {
+      context.handle(
+        _takenAtMeta,
+        takenAt.isAcceptableOrUnknown(data['taken_at']!, _takenAtMeta),
+      );
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+        _relativePathMeta,
+        relativePath.isAcceptableOrUnknown(
+          data['relative_path']!,
+          _relativePathMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_relativePathMeta);
+    }
+    if (data.containsKey('blurred')) {
+      context.handle(
+        _blurredMeta,
+        blurred.isAcceptableOrUnknown(data['blurred']!, _blurredMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('legacy_ref')) {
+      context.handle(
+        _legacyRefMeta,
+        legacyRef.isAcceptableOrUnknown(data['legacy_ref']!, _legacyRefMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PhysiquePhotoData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PhysiquePhotoData(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      goalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}goal_id'],
+      )!,
+      assessmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}assessment_id'],
+      ),
+      role: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role'],
+      )!,
+      pose: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pose'],
+      )!,
+      dateIso: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date_iso'],
+      )!,
+      takenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}taken_at'],
+      )!,
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      )!,
+      blurred: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}blurred'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      legacyRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}legacy_ref'],
+      ),
+    );
+  }
+
+  @override
+  $PhysiquePhotosTable createAlias(String alias) {
+    return $PhysiquePhotosTable(attachedDatabase, alias);
+  }
+}
+
+class PhysiquePhotoData extends DataClass
+    implements Insertable<PhysiquePhotoData> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final int id;
+  final int goalId;
+  final int? assessmentId;
+  final String role;
+  final String pose;
+  final String dateIso;
+  final DateTime takenAt;
+  final String relativePath;
+  final bool blurred;
+  final String source;
+  final String? legacyRef;
+  const PhysiquePhotoData({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.goalId,
+    this.assessmentId,
+    required this.role,
+    required this.pose,
+    required this.dateIso,
+    required this.takenAt,
+    required this.relativePath,
+    required this.blurred,
+    required this.source,
+    this.legacyRef,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<int>(id);
+    map['goal_id'] = Variable<int>(goalId);
+    if (!nullToAbsent || assessmentId != null) {
+      map['assessment_id'] = Variable<int>(assessmentId);
+    }
+    map['role'] = Variable<String>(role);
+    map['pose'] = Variable<String>(pose);
+    map['date_iso'] = Variable<String>(dateIso);
+    map['taken_at'] = Variable<DateTime>(takenAt);
+    map['relative_path'] = Variable<String>(relativePath);
+    map['blurred'] = Variable<bool>(blurred);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || legacyRef != null) {
+      map['legacy_ref'] = Variable<String>(legacyRef);
+    }
+    return map;
+  }
+
+  PhysiquePhotosCompanion toCompanion(bool nullToAbsent) {
+    return PhysiquePhotosCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      goalId: Value(goalId),
+      assessmentId: assessmentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(assessmentId),
+      role: Value(role),
+      pose: Value(pose),
+      dateIso: Value(dateIso),
+      takenAt: Value(takenAt),
+      relativePath: Value(relativePath),
+      blurred: Value(blurred),
+      source: Value(source),
+      legacyRef: legacyRef == null && nullToAbsent
+          ? const Value.absent()
+          : Value(legacyRef),
+    );
+  }
+
+  factory PhysiquePhotoData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PhysiquePhotoData(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<int>(json['id']),
+      goalId: serializer.fromJson<int>(json['goalId']),
+      assessmentId: serializer.fromJson<int?>(json['assessmentId']),
+      role: serializer.fromJson<String>(json['role']),
+      pose: serializer.fromJson<String>(json['pose']),
+      dateIso: serializer.fromJson<String>(json['dateIso']),
+      takenAt: serializer.fromJson<DateTime>(json['takenAt']),
+      relativePath: serializer.fromJson<String>(json['relativePath']),
+      blurred: serializer.fromJson<bool>(json['blurred']),
+      source: serializer.fromJson<String>(json['source']),
+      legacyRef: serializer.fromJson<String?>(json['legacyRef']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<int>(id),
+      'goalId': serializer.toJson<int>(goalId),
+      'assessmentId': serializer.toJson<int?>(assessmentId),
+      'role': serializer.toJson<String>(role),
+      'pose': serializer.toJson<String>(pose),
+      'dateIso': serializer.toJson<String>(dateIso),
+      'takenAt': serializer.toJson<DateTime>(takenAt),
+      'relativePath': serializer.toJson<String>(relativePath),
+      'blurred': serializer.toJson<bool>(blurred),
+      'source': serializer.toJson<String>(source),
+      'legacyRef': serializer.toJson<String?>(legacyRef),
+    };
+  }
+
+  PhysiquePhotoData copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    int? id,
+    int? goalId,
+    Value<int?> assessmentId = const Value.absent(),
+    String? role,
+    String? pose,
+    String? dateIso,
+    DateTime? takenAt,
+    String? relativePath,
+    bool? blurred,
+    String? source,
+    Value<String?> legacyRef = const Value.absent(),
+  }) => PhysiquePhotoData(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    goalId: goalId ?? this.goalId,
+    assessmentId: assessmentId.present ? assessmentId.value : this.assessmentId,
+    role: role ?? this.role,
+    pose: pose ?? this.pose,
+    dateIso: dateIso ?? this.dateIso,
+    takenAt: takenAt ?? this.takenAt,
+    relativePath: relativePath ?? this.relativePath,
+    blurred: blurred ?? this.blurred,
+    source: source ?? this.source,
+    legacyRef: legacyRef.present ? legacyRef.value : this.legacyRef,
+  );
+  PhysiquePhotoData copyWithCompanion(PhysiquePhotosCompanion data) {
+    return PhysiquePhotoData(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      goalId: data.goalId.present ? data.goalId.value : this.goalId,
+      assessmentId: data.assessmentId.present
+          ? data.assessmentId.value
+          : this.assessmentId,
+      role: data.role.present ? data.role.value : this.role,
+      pose: data.pose.present ? data.pose.value : this.pose,
+      dateIso: data.dateIso.present ? data.dateIso.value : this.dateIso,
+      takenAt: data.takenAt.present ? data.takenAt.value : this.takenAt,
+      relativePath: data.relativePath.present
+          ? data.relativePath.value
+          : this.relativePath,
+      blurred: data.blurred.present ? data.blurred.value : this.blurred,
+      source: data.source.present ? data.source.value : this.source,
+      legacyRef: data.legacyRef.present ? data.legacyRef.value : this.legacyRef,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhysiquePhotoData(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('assessmentId: $assessmentId, ')
+          ..write('role: $role, ')
+          ..write('pose: $pose, ')
+          ..write('dateIso: $dateIso, ')
+          ..write('takenAt: $takenAt, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('blurred: $blurred, ')
+          ..write('source: $source, ')
+          ..write('legacyRef: $legacyRef')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    goalId,
+    assessmentId,
+    role,
+    pose,
+    dateIso,
+    takenAt,
+    relativePath,
+    blurred,
+    source,
+    legacyRef,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PhysiquePhotoData &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.goalId == this.goalId &&
+          other.assessmentId == this.assessmentId &&
+          other.role == this.role &&
+          other.pose == this.pose &&
+          other.dateIso == this.dateIso &&
+          other.takenAt == this.takenAt &&
+          other.relativePath == this.relativePath &&
+          other.blurred == this.blurred &&
+          other.source == this.source &&
+          other.legacyRef == this.legacyRef);
+}
+
+class PhysiquePhotosCompanion extends UpdateCompanion<PhysiquePhotoData> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> id;
+  final Value<int> goalId;
+  final Value<int?> assessmentId;
+  final Value<String> role;
+  final Value<String> pose;
+  final Value<String> dateIso;
+  final Value<DateTime> takenAt;
+  final Value<String> relativePath;
+  final Value<bool> blurred;
+  final Value<String> source;
+  final Value<String?> legacyRef;
+  const PhysiquePhotosCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.goalId = const Value.absent(),
+    this.assessmentId = const Value.absent(),
+    this.role = const Value.absent(),
+    this.pose = const Value.absent(),
+    this.dateIso = const Value.absent(),
+    this.takenAt = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.blurred = const Value.absent(),
+    this.source = const Value.absent(),
+    this.legacyRef = const Value.absent(),
+  });
+  PhysiquePhotosCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    required int goalId,
+    this.assessmentId = const Value.absent(),
+    required String role,
+    required String pose,
+    required String dateIso,
+    this.takenAt = const Value.absent(),
+    required String relativePath,
+    this.blurred = const Value.absent(),
+    this.source = const Value.absent(),
+    this.legacyRef = const Value.absent(),
+  }) : goalId = Value(goalId),
+       role = Value(role),
+       pose = Value(pose),
+       dateIso = Value(dateIso),
+       relativePath = Value(relativePath);
+  static Insertable<PhysiquePhotoData> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? id,
+    Expression<int>? goalId,
+    Expression<int>? assessmentId,
+    Expression<String>? role,
+    Expression<String>? pose,
+    Expression<String>? dateIso,
+    Expression<DateTime>? takenAt,
+    Expression<String>? relativePath,
+    Expression<bool>? blurred,
+    Expression<String>? source,
+    Expression<String>? legacyRef,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (goalId != null) 'goal_id': goalId,
+      if (assessmentId != null) 'assessment_id': assessmentId,
+      if (role != null) 'role': role,
+      if (pose != null) 'pose': pose,
+      if (dateIso != null) 'date_iso': dateIso,
+      if (takenAt != null) 'taken_at': takenAt,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (blurred != null) 'blurred': blurred,
+      if (source != null) 'source': source,
+      if (legacyRef != null) 'legacy_ref': legacyRef,
+    });
+  }
+
+  PhysiquePhotosCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? id,
+    Value<int>? goalId,
+    Value<int?>? assessmentId,
+    Value<String>? role,
+    Value<String>? pose,
+    Value<String>? dateIso,
+    Value<DateTime>? takenAt,
+    Value<String>? relativePath,
+    Value<bool>? blurred,
+    Value<String>? source,
+    Value<String?>? legacyRef,
+  }) {
+    return PhysiquePhotosCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      goalId: goalId ?? this.goalId,
+      assessmentId: assessmentId ?? this.assessmentId,
+      role: role ?? this.role,
+      pose: pose ?? this.pose,
+      dateIso: dateIso ?? this.dateIso,
+      takenAt: takenAt ?? this.takenAt,
+      relativePath: relativePath ?? this.relativePath,
+      blurred: blurred ?? this.blurred,
+      source: source ?? this.source,
+      legacyRef: legacyRef ?? this.legacyRef,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (goalId.present) {
+      map['goal_id'] = Variable<int>(goalId.value);
+    }
+    if (assessmentId.present) {
+      map['assessment_id'] = Variable<int>(assessmentId.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(role.value);
+    }
+    if (pose.present) {
+      map['pose'] = Variable<String>(pose.value);
+    }
+    if (dateIso.present) {
+      map['date_iso'] = Variable<String>(dateIso.value);
+    }
+    if (takenAt.present) {
+      map['taken_at'] = Variable<DateTime>(takenAt.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (blurred.present) {
+      map['blurred'] = Variable<bool>(blurred.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (legacyRef.present) {
+      map['legacy_ref'] = Variable<String>(legacyRef.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PhysiquePhotosCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('goalId: $goalId, ')
+          ..write('assessmentId: $assessmentId, ')
+          ..write('role: $role, ')
+          ..write('pose: $pose, ')
+          ..write('dateIso: $dateIso, ')
+          ..write('takenAt: $takenAt, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('blurred: $blurred, ')
+          ..write('source: $source, ')
+          ..write('legacyRef: $legacyRef')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -44080,6 +48165,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FastingStagesTable fastingStages = $FastingStagesTable(this);
   late final $HerculexAiProgramBriefsTable herculexAiProgramBriefs =
       $HerculexAiProgramBriefsTable(this);
+  late final $PhysiqueGoalsTable physiqueGoals = $PhysiqueGoalsTable(this);
+  late final $PhysiqueAssessmentsTable physiqueAssessments =
+      $PhysiqueAssessmentsTable(this);
+  late final $PhysiqueRoadmapPhasesTable physiqueRoadmapPhases =
+      $PhysiqueRoadmapPhasesTable(this);
+  late final $PhysiquePhotosTable physiquePhotos = $PhysiquePhotosTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -44149,6 +48240,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     herculMessageLog,
     fastingStages,
     herculexAiProgramBriefs,
+    physiqueGoals,
+    physiqueAssessments,
+    physiqueRoadmapPhases,
+    physiquePhotos,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -44448,6 +48543,34 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       result: [
         TableUpdate('herculex_ai_program_briefs', kind: UpdateKind.delete),
       ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'physique_goals',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('physique_assessments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'physique_goals',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('physique_roadmap_phases', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'physique_goals',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('physique_photos', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'physique_assessments',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('physique_photos', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -77124,6 +81247,2737 @@ typedef $$HerculexAiProgramBriefsTableProcessedTableManager =
       HerculexAiProgramBriefData,
       PrefetchHooks Function({bool programId})
     >;
+typedef $$PhysiqueGoalsTableCreateCompanionBuilder =
+    PhysiqueGoalsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<String> status,
+      Value<String> source,
+      Value<String> targetAestheticStyle,
+      Value<String> timeframeRange,
+      Value<int?> estimatedMonths,
+      Value<double?> targetBfPercent,
+      Value<double?> startWeightKg,
+      Value<double?> startBfPercent,
+      Value<DateTime> startedAt,
+      Value<DateTime?> archivedAt,
+      Value<DateTime?> roadmapAcceptedAt,
+      Value<DateTime?> advanceSnoozedUntil,
+    });
+typedef $$PhysiqueGoalsTableUpdateCompanionBuilder =
+    PhysiqueGoalsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<String> status,
+      Value<String> source,
+      Value<String> targetAestheticStyle,
+      Value<String> timeframeRange,
+      Value<int?> estimatedMonths,
+      Value<double?> targetBfPercent,
+      Value<double?> startWeightKg,
+      Value<double?> startBfPercent,
+      Value<DateTime> startedAt,
+      Value<DateTime?> archivedAt,
+      Value<DateTime?> roadmapAcceptedAt,
+      Value<DateTime?> advanceSnoozedUntil,
+    });
+
+final class $$PhysiqueGoalsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $PhysiqueGoalsTable, PhysiqueGoalData> {
+  $$PhysiqueGoalsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $PhysiqueAssessmentsTable,
+    List<PhysiqueAssessmentData>
+  >
+  _physiqueAssessmentsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.physiqueAssessments,
+        aliasName: $_aliasNameGenerator(
+          db.physiqueGoals.id,
+          db.physiqueAssessments.goalId,
+        ),
+      );
+
+  $$PhysiqueAssessmentsTableProcessedTableManager get physiqueAssessmentsRefs {
+    final manager = $$PhysiqueAssessmentsTableTableManager(
+      $_db,
+      $_db.physiqueAssessments,
+    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _physiqueAssessmentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $PhysiqueRoadmapPhasesTable,
+    List<PhysiqueRoadmapPhaseData>
+  >
+  _physiqueRoadmapPhasesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.physiqueRoadmapPhases,
+        aliasName: $_aliasNameGenerator(
+          db.physiqueGoals.id,
+          db.physiqueRoadmapPhases.goalId,
+        ),
+      );
+
+  $$PhysiqueRoadmapPhasesTableProcessedTableManager
+  get physiqueRoadmapPhasesRefs {
+    final manager = $$PhysiqueRoadmapPhasesTableTableManager(
+      $_db,
+      $_db.physiqueRoadmapPhases,
+    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _physiqueRoadmapPhasesRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PhysiquePhotosTable, List<PhysiquePhotoData>>
+  _physiquePhotosRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.physiquePhotos,
+    aliasName: $_aliasNameGenerator(
+      db.physiqueGoals.id,
+      db.physiquePhotos.goalId,
+    ),
+  );
+
+  $$PhysiquePhotosTableProcessedTableManager get physiquePhotosRefs {
+    final manager = $$PhysiquePhotosTableTableManager(
+      $_db,
+      $_db.physiquePhotos,
+    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_physiquePhotosRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PhysiqueGoalsTableFilterComposer
+    extends Composer<_$AppDatabase, $PhysiqueGoalsTable> {
+  $$PhysiqueGoalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetAestheticStyle => $composableBuilder(
+    column: $table.targetAestheticStyle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get timeframeRange => $composableBuilder(
+    column: $table.timeframeRange,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get estimatedMonths => $composableBuilder(
+    column: $table.estimatedMonths,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get targetBfPercent => $composableBuilder(
+    column: $table.targetBfPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get startWeightKg => $composableBuilder(
+    column: $table.startWeightKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get startBfPercent => $composableBuilder(
+    column: $table.startBfPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get roadmapAcceptedAt => $composableBuilder(
+    column: $table.roadmapAcceptedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get advanceSnoozedUntil => $composableBuilder(
+    column: $table.advanceSnoozedUntil,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> physiqueAssessmentsRefs(
+    Expression<bool> Function($$PhysiqueAssessmentsTableFilterComposer f) f,
+  ) {
+    final $$PhysiqueAssessmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.physiqueAssessments,
+      getReferencedColumn: (t) => t.goalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueAssessmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.physiqueAssessments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> physiqueRoadmapPhasesRefs(
+    Expression<bool> Function($$PhysiqueRoadmapPhasesTableFilterComposer f) f,
+  ) {
+    final $$PhysiqueRoadmapPhasesTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.physiqueRoadmapPhases,
+          getReferencedColumn: (t) => t.goalId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PhysiqueRoadmapPhasesTableFilterComposer(
+                $db: $db,
+                $table: $db.physiqueRoadmapPhases,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> physiquePhotosRefs(
+    Expression<bool> Function($$PhysiquePhotosTableFilterComposer f) f,
+  ) {
+    final $$PhysiquePhotosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.physiquePhotos,
+      getReferencedColumn: (t) => t.goalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiquePhotosTableFilterComposer(
+            $db: $db,
+            $table: $db.physiquePhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PhysiqueGoalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PhysiqueGoalsTable> {
+  $$PhysiqueGoalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetAestheticStyle => $composableBuilder(
+    column: $table.targetAestheticStyle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get timeframeRange => $composableBuilder(
+    column: $table.timeframeRange,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get estimatedMonths => $composableBuilder(
+    column: $table.estimatedMonths,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get targetBfPercent => $composableBuilder(
+    column: $table.targetBfPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get startWeightKg => $composableBuilder(
+    column: $table.startWeightKg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get startBfPercent => $composableBuilder(
+    column: $table.startBfPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get roadmapAcceptedAt => $composableBuilder(
+    column: $table.roadmapAcceptedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get advanceSnoozedUntil => $composableBuilder(
+    column: $table.advanceSnoozedUntil,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PhysiqueGoalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PhysiqueGoalsTable> {
+  $$PhysiqueGoalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get targetAestheticStyle => $composableBuilder(
+    column: $table.targetAestheticStyle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get timeframeRange => $composableBuilder(
+    column: $table.timeframeRange,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get estimatedMonths => $composableBuilder(
+    column: $table.estimatedMonths,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get targetBfPercent => $composableBuilder(
+    column: $table.targetBfPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get startWeightKg => $composableBuilder(
+    column: $table.startWeightKg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get startBfPercent => $composableBuilder(
+    column: $table.startBfPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get roadmapAcceptedAt => $composableBuilder(
+    column: $table.roadmapAcceptedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get advanceSnoozedUntil => $composableBuilder(
+    column: $table.advanceSnoozedUntil,
+    builder: (column) => column,
+  );
+
+  Expression<T> physiqueAssessmentsRefs<T extends Object>(
+    Expression<T> Function($$PhysiqueAssessmentsTableAnnotationComposer a) f,
+  ) {
+    final $$PhysiqueAssessmentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.physiqueAssessments,
+          getReferencedColumn: (t) => t.goalId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PhysiqueAssessmentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.physiqueAssessments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> physiqueRoadmapPhasesRefs<T extends Object>(
+    Expression<T> Function($$PhysiqueRoadmapPhasesTableAnnotationComposer a) f,
+  ) {
+    final $$PhysiqueRoadmapPhasesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.physiqueRoadmapPhases,
+          getReferencedColumn: (t) => t.goalId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PhysiqueRoadmapPhasesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.physiqueRoadmapPhases,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> physiquePhotosRefs<T extends Object>(
+    Expression<T> Function($$PhysiquePhotosTableAnnotationComposer a) f,
+  ) {
+    final $$PhysiquePhotosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.physiquePhotos,
+      getReferencedColumn: (t) => t.goalId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiquePhotosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.physiquePhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PhysiqueGoalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PhysiqueGoalsTable,
+          PhysiqueGoalData,
+          $$PhysiqueGoalsTableFilterComposer,
+          $$PhysiqueGoalsTableOrderingComposer,
+          $$PhysiqueGoalsTableAnnotationComposer,
+          $$PhysiqueGoalsTableCreateCompanionBuilder,
+          $$PhysiqueGoalsTableUpdateCompanionBuilder,
+          (PhysiqueGoalData, $$PhysiqueGoalsTableReferences),
+          PhysiqueGoalData,
+          PrefetchHooks Function({
+            bool physiqueAssessmentsRefs,
+            bool physiqueRoadmapPhasesRefs,
+            bool physiquePhotosRefs,
+          })
+        > {
+  $$PhysiqueGoalsTableTableManager(_$AppDatabase db, $PhysiqueGoalsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PhysiqueGoalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PhysiqueGoalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PhysiqueGoalsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String> targetAestheticStyle = const Value.absent(),
+                Value<String> timeframeRange = const Value.absent(),
+                Value<int?> estimatedMonths = const Value.absent(),
+                Value<double?> targetBfPercent = const Value.absent(),
+                Value<double?> startWeightKg = const Value.absent(),
+                Value<double?> startBfPercent = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
+                Value<DateTime?> roadmapAcceptedAt = const Value.absent(),
+                Value<DateTime?> advanceSnoozedUntil = const Value.absent(),
+              }) => PhysiqueGoalsCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                status: status,
+                source: source,
+                targetAestheticStyle: targetAestheticStyle,
+                timeframeRange: timeframeRange,
+                estimatedMonths: estimatedMonths,
+                targetBfPercent: targetBfPercent,
+                startWeightKg: startWeightKg,
+                startBfPercent: startBfPercent,
+                startedAt: startedAt,
+                archivedAt: archivedAt,
+                roadmapAcceptedAt: roadmapAcceptedAt,
+                advanceSnoozedUntil: advanceSnoozedUntil,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String> targetAestheticStyle = const Value.absent(),
+                Value<String> timeframeRange = const Value.absent(),
+                Value<int?> estimatedMonths = const Value.absent(),
+                Value<double?> targetBfPercent = const Value.absent(),
+                Value<double?> startWeightKg = const Value.absent(),
+                Value<double?> startBfPercent = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
+                Value<DateTime?> roadmapAcceptedAt = const Value.absent(),
+                Value<DateTime?> advanceSnoozedUntil = const Value.absent(),
+              }) => PhysiqueGoalsCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                status: status,
+                source: source,
+                targetAestheticStyle: targetAestheticStyle,
+                timeframeRange: timeframeRange,
+                estimatedMonths: estimatedMonths,
+                targetBfPercent: targetBfPercent,
+                startWeightKg: startWeightKg,
+                startBfPercent: startBfPercent,
+                startedAt: startedAt,
+                archivedAt: archivedAt,
+                roadmapAcceptedAt: roadmapAcceptedAt,
+                advanceSnoozedUntil: advanceSnoozedUntil,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PhysiqueGoalsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                physiqueAssessmentsRefs = false,
+                physiqueRoadmapPhasesRefs = false,
+                physiquePhotosRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (physiqueAssessmentsRefs) db.physiqueAssessments,
+                    if (physiqueRoadmapPhasesRefs) db.physiqueRoadmapPhases,
+                    if (physiquePhotosRefs) db.physiquePhotos,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (physiqueAssessmentsRefs)
+                        await $_getPrefetchedData<
+                          PhysiqueGoalData,
+                          $PhysiqueGoalsTable,
+                          PhysiqueAssessmentData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PhysiqueGoalsTableReferences
+                              ._physiqueAssessmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PhysiqueGoalsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).physiqueAssessmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.goalId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (physiqueRoadmapPhasesRefs)
+                        await $_getPrefetchedData<
+                          PhysiqueGoalData,
+                          $PhysiqueGoalsTable,
+                          PhysiqueRoadmapPhaseData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PhysiqueGoalsTableReferences
+                              ._physiqueRoadmapPhasesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PhysiqueGoalsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).physiqueRoadmapPhasesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.goalId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (physiquePhotosRefs)
+                        await $_getPrefetchedData<
+                          PhysiqueGoalData,
+                          $PhysiqueGoalsTable,
+                          PhysiquePhotoData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PhysiqueGoalsTableReferences
+                              ._physiquePhotosRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PhysiqueGoalsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).physiquePhotosRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.goalId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PhysiqueGoalsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PhysiqueGoalsTable,
+      PhysiqueGoalData,
+      $$PhysiqueGoalsTableFilterComposer,
+      $$PhysiqueGoalsTableOrderingComposer,
+      $$PhysiqueGoalsTableAnnotationComposer,
+      $$PhysiqueGoalsTableCreateCompanionBuilder,
+      $$PhysiqueGoalsTableUpdateCompanionBuilder,
+      (PhysiqueGoalData, $$PhysiqueGoalsTableReferences),
+      PhysiqueGoalData,
+      PrefetchHooks Function({
+        bool physiqueAssessmentsRefs,
+        bool physiqueRoadmapPhasesRefs,
+        bool physiquePhotosRefs,
+      })
+    >;
+typedef $$PhysiqueAssessmentsTableCreateCompanionBuilder =
+    PhysiqueAssessmentsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      required int goalId,
+      required String kind,
+      Value<DateTime> assessedAt,
+      required String dateIso,
+      Value<double?> weightKg,
+      Value<double?> currentBfPercent,
+      Value<double?> bfRangeMin,
+      Value<double?> bfRangeMax,
+      Value<String> confidence,
+      Value<String?> verdict,
+      Value<double?> directionBandLow,
+      Value<double?> directionBandHigh,
+      Value<String?> reason,
+      Value<String?> limitationsJson,
+      Value<String> source,
+      Value<String?> modelVersion,
+      Value<String?> knowledgeVersion,
+      Value<String?> summaryJson,
+    });
+typedef $$PhysiqueAssessmentsTableUpdateCompanionBuilder =
+    PhysiqueAssessmentsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<int> goalId,
+      Value<String> kind,
+      Value<DateTime> assessedAt,
+      Value<String> dateIso,
+      Value<double?> weightKg,
+      Value<double?> currentBfPercent,
+      Value<double?> bfRangeMin,
+      Value<double?> bfRangeMax,
+      Value<String> confidence,
+      Value<String?> verdict,
+      Value<double?> directionBandLow,
+      Value<double?> directionBandHigh,
+      Value<String?> reason,
+      Value<String?> limitationsJson,
+      Value<String> source,
+      Value<String?> modelVersion,
+      Value<String?> knowledgeVersion,
+      Value<String?> summaryJson,
+    });
+
+final class $$PhysiqueAssessmentsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PhysiqueAssessmentsTable,
+          PhysiqueAssessmentData
+        > {
+  $$PhysiqueAssessmentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $PhysiqueGoalsTable _goalIdTable(_$AppDatabase db) =>
+      db.physiqueGoals.createAlias(
+        $_aliasNameGenerator(
+          db.physiqueAssessments.goalId,
+          db.physiqueGoals.id,
+        ),
+      );
+
+  $$PhysiqueGoalsTableProcessedTableManager get goalId {
+    final $_column = $_itemColumn<int>('goal_id')!;
+
+    final manager = $$PhysiqueGoalsTableTableManager(
+      $_db,
+      $_db.physiqueGoals,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_goalIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$PhysiquePhotosTable, List<PhysiquePhotoData>>
+  _physiquePhotosRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.physiquePhotos,
+    aliasName: $_aliasNameGenerator(
+      db.physiqueAssessments.id,
+      db.physiquePhotos.assessmentId,
+    ),
+  );
+
+  $$PhysiquePhotosTableProcessedTableManager get physiquePhotosRefs {
+    final manager = $$PhysiquePhotosTableTableManager(
+      $_db,
+      $_db.physiquePhotos,
+    ).filter((f) => f.assessmentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_physiquePhotosRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PhysiqueAssessmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $PhysiqueAssessmentsTable> {
+  $$PhysiqueAssessmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get assessedAt => $composableBuilder(
+    column: $table.assessedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dateIso => $composableBuilder(
+    column: $table.dateIso,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get weightKg => $composableBuilder(
+    column: $table.weightKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get currentBfPercent => $composableBuilder(
+    column: $table.currentBfPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get bfRangeMin => $composableBuilder(
+    column: $table.bfRangeMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get bfRangeMax => $composableBuilder(
+    column: $table.bfRangeMax,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get verdict => $composableBuilder(
+    column: $table.verdict,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get directionBandLow => $composableBuilder(
+    column: $table.directionBandLow,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get directionBandHigh => $composableBuilder(
+    column: $table.directionBandHigh,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get limitationsJson => $composableBuilder(
+    column: $table.limitationsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get summaryJson => $composableBuilder(
+    column: $table.summaryJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PhysiqueGoalsTableFilterComposer get goalId {
+    final $$PhysiqueGoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> physiquePhotosRefs(
+    Expression<bool> Function($$PhysiquePhotosTableFilterComposer f) f,
+  ) {
+    final $$PhysiquePhotosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.physiquePhotos,
+      getReferencedColumn: (t) => t.assessmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiquePhotosTableFilterComposer(
+            $db: $db,
+            $table: $db.physiquePhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PhysiqueAssessmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PhysiqueAssessmentsTable> {
+  $$PhysiqueAssessmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get assessedAt => $composableBuilder(
+    column: $table.assessedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dateIso => $composableBuilder(
+    column: $table.dateIso,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get weightKg => $composableBuilder(
+    column: $table.weightKg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get currentBfPercent => $composableBuilder(
+    column: $table.currentBfPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get bfRangeMin => $composableBuilder(
+    column: $table.bfRangeMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get bfRangeMax => $composableBuilder(
+    column: $table.bfRangeMax,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get verdict => $composableBuilder(
+    column: $table.verdict,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get directionBandLow => $composableBuilder(
+    column: $table.directionBandLow,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get directionBandHigh => $composableBuilder(
+    column: $table.directionBandHigh,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get limitationsJson => $composableBuilder(
+    column: $table.limitationsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get summaryJson => $composableBuilder(
+    column: $table.summaryJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PhysiqueGoalsTableOrderingComposer get goalId {
+    final $$PhysiqueGoalsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableOrderingComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PhysiqueAssessmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PhysiqueAssessmentsTable> {
+  $$PhysiqueAssessmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get assessedAt => $composableBuilder(
+    column: $table.assessedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dateIso =>
+      $composableBuilder(column: $table.dateIso, builder: (column) => column);
+
+  GeneratedColumn<double> get weightKg =>
+      $composableBuilder(column: $table.weightKg, builder: (column) => column);
+
+  GeneratedColumn<double> get currentBfPercent => $composableBuilder(
+    column: $table.currentBfPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get bfRangeMin => $composableBuilder(
+    column: $table.bfRangeMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get bfRangeMax => $composableBuilder(
+    column: $table.bfRangeMax,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get verdict =>
+      $composableBuilder(column: $table.verdict, builder: (column) => column);
+
+  GeneratedColumn<double> get directionBandLow => $composableBuilder(
+    column: $table.directionBandLow,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get directionBandHigh => $composableBuilder(
+    column: $table.directionBandHigh,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<String> get limitationsJson => $composableBuilder(
+    column: $table.limitationsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get summaryJson => $composableBuilder(
+    column: $table.summaryJson,
+    builder: (column) => column,
+  );
+
+  $$PhysiqueGoalsTableAnnotationComposer get goalId {
+    final $$PhysiqueGoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> physiquePhotosRefs<T extends Object>(
+    Expression<T> Function($$PhysiquePhotosTableAnnotationComposer a) f,
+  ) {
+    final $$PhysiquePhotosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.physiquePhotos,
+      getReferencedColumn: (t) => t.assessmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiquePhotosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.physiquePhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PhysiqueAssessmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PhysiqueAssessmentsTable,
+          PhysiqueAssessmentData,
+          $$PhysiqueAssessmentsTableFilterComposer,
+          $$PhysiqueAssessmentsTableOrderingComposer,
+          $$PhysiqueAssessmentsTableAnnotationComposer,
+          $$PhysiqueAssessmentsTableCreateCompanionBuilder,
+          $$PhysiqueAssessmentsTableUpdateCompanionBuilder,
+          (PhysiqueAssessmentData, $$PhysiqueAssessmentsTableReferences),
+          PhysiqueAssessmentData,
+          PrefetchHooks Function({bool goalId, bool physiquePhotosRefs})
+        > {
+  $$PhysiqueAssessmentsTableTableManager(
+    _$AppDatabase db,
+    $PhysiqueAssessmentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PhysiqueAssessmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PhysiqueAssessmentsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$PhysiqueAssessmentsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<int> goalId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<DateTime> assessedAt = const Value.absent(),
+                Value<String> dateIso = const Value.absent(),
+                Value<double?> weightKg = const Value.absent(),
+                Value<double?> currentBfPercent = const Value.absent(),
+                Value<double?> bfRangeMin = const Value.absent(),
+                Value<double?> bfRangeMax = const Value.absent(),
+                Value<String> confidence = const Value.absent(),
+                Value<String?> verdict = const Value.absent(),
+                Value<double?> directionBandLow = const Value.absent(),
+                Value<double?> directionBandHigh = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<String?> limitationsJson = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> modelVersion = const Value.absent(),
+                Value<String?> knowledgeVersion = const Value.absent(),
+                Value<String?> summaryJson = const Value.absent(),
+              }) => PhysiqueAssessmentsCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                goalId: goalId,
+                kind: kind,
+                assessedAt: assessedAt,
+                dateIso: dateIso,
+                weightKg: weightKg,
+                currentBfPercent: currentBfPercent,
+                bfRangeMin: bfRangeMin,
+                bfRangeMax: bfRangeMax,
+                confidence: confidence,
+                verdict: verdict,
+                directionBandLow: directionBandLow,
+                directionBandHigh: directionBandHigh,
+                reason: reason,
+                limitationsJson: limitationsJson,
+                source: source,
+                modelVersion: modelVersion,
+                knowledgeVersion: knowledgeVersion,
+                summaryJson: summaryJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required int goalId,
+                required String kind,
+                Value<DateTime> assessedAt = const Value.absent(),
+                required String dateIso,
+                Value<double?> weightKg = const Value.absent(),
+                Value<double?> currentBfPercent = const Value.absent(),
+                Value<double?> bfRangeMin = const Value.absent(),
+                Value<double?> bfRangeMax = const Value.absent(),
+                Value<String> confidence = const Value.absent(),
+                Value<String?> verdict = const Value.absent(),
+                Value<double?> directionBandLow = const Value.absent(),
+                Value<double?> directionBandHigh = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<String?> limitationsJson = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> modelVersion = const Value.absent(),
+                Value<String?> knowledgeVersion = const Value.absent(),
+                Value<String?> summaryJson = const Value.absent(),
+              }) => PhysiqueAssessmentsCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                goalId: goalId,
+                kind: kind,
+                assessedAt: assessedAt,
+                dateIso: dateIso,
+                weightKg: weightKg,
+                currentBfPercent: currentBfPercent,
+                bfRangeMin: bfRangeMin,
+                bfRangeMax: bfRangeMax,
+                confidence: confidence,
+                verdict: verdict,
+                directionBandLow: directionBandLow,
+                directionBandHigh: directionBandHigh,
+                reason: reason,
+                limitationsJson: limitationsJson,
+                source: source,
+                modelVersion: modelVersion,
+                knowledgeVersion: knowledgeVersion,
+                summaryJson: summaryJson,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PhysiqueAssessmentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({goalId = false, physiquePhotosRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (physiquePhotosRefs) db.physiquePhotos,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (goalId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.goalId,
+                                    referencedTable:
+                                        $$PhysiqueAssessmentsTableReferences
+                                            ._goalIdTable(db),
+                                    referencedColumn:
+                                        $$PhysiqueAssessmentsTableReferences
+                                            ._goalIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (physiquePhotosRefs)
+                        await $_getPrefetchedData<
+                          PhysiqueAssessmentData,
+                          $PhysiqueAssessmentsTable,
+                          PhysiquePhotoData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PhysiqueAssessmentsTableReferences
+                              ._physiquePhotosRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PhysiqueAssessmentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).physiquePhotosRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.assessmentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PhysiqueAssessmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PhysiqueAssessmentsTable,
+      PhysiqueAssessmentData,
+      $$PhysiqueAssessmentsTableFilterComposer,
+      $$PhysiqueAssessmentsTableOrderingComposer,
+      $$PhysiqueAssessmentsTableAnnotationComposer,
+      $$PhysiqueAssessmentsTableCreateCompanionBuilder,
+      $$PhysiqueAssessmentsTableUpdateCompanionBuilder,
+      (PhysiqueAssessmentData, $$PhysiqueAssessmentsTableReferences),
+      PhysiqueAssessmentData,
+      PrefetchHooks Function({bool goalId, bool physiquePhotosRefs})
+    >;
+typedef $$PhysiqueRoadmapPhasesTableCreateCompanionBuilder =
+    PhysiqueRoadmapPhasesCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      required int goalId,
+      required int orderIndex,
+      required String phaseType,
+      required int plannedWeeks,
+      Value<double?> targetWeightKg,
+      Value<double?> targetBfPercent,
+      Value<double?> weeklyRateKg,
+      Value<bool> tempoCapped,
+      Value<String> status,
+      Value<DateTime?> startedAt,
+      Value<DateTime?> completedAt,
+    });
+typedef $$PhysiqueRoadmapPhasesTableUpdateCompanionBuilder =
+    PhysiqueRoadmapPhasesCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<int> goalId,
+      Value<int> orderIndex,
+      Value<String> phaseType,
+      Value<int> plannedWeeks,
+      Value<double?> targetWeightKg,
+      Value<double?> targetBfPercent,
+      Value<double?> weeklyRateKg,
+      Value<bool> tempoCapped,
+      Value<String> status,
+      Value<DateTime?> startedAt,
+      Value<DateTime?> completedAt,
+    });
+
+final class $$PhysiqueRoadmapPhasesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PhysiqueRoadmapPhasesTable,
+          PhysiqueRoadmapPhaseData
+        > {
+  $$PhysiqueRoadmapPhasesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $PhysiqueGoalsTable _goalIdTable(_$AppDatabase db) =>
+      db.physiqueGoals.createAlias(
+        $_aliasNameGenerator(
+          db.physiqueRoadmapPhases.goalId,
+          db.physiqueGoals.id,
+        ),
+      );
+
+  $$PhysiqueGoalsTableProcessedTableManager get goalId {
+    final $_column = $_itemColumn<int>('goal_id')!;
+
+    final manager = $$PhysiqueGoalsTableTableManager(
+      $_db,
+      $_db.physiqueGoals,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_goalIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PhysiqueRoadmapPhasesTableFilterComposer
+    extends Composer<_$AppDatabase, $PhysiqueRoadmapPhasesTable> {
+  $$PhysiqueRoadmapPhasesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phaseType => $composableBuilder(
+    column: $table.phaseType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plannedWeeks => $composableBuilder(
+    column: $table.plannedWeeks,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get targetWeightKg => $composableBuilder(
+    column: $table.targetWeightKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get targetBfPercent => $composableBuilder(
+    column: $table.targetBfPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get weeklyRateKg => $composableBuilder(
+    column: $table.weeklyRateKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get tempoCapped => $composableBuilder(
+    column: $table.tempoCapped,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PhysiqueGoalsTableFilterComposer get goalId {
+    final $$PhysiqueGoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PhysiqueRoadmapPhasesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PhysiqueRoadmapPhasesTable> {
+  $$PhysiqueRoadmapPhasesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phaseType => $composableBuilder(
+    column: $table.phaseType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plannedWeeks => $composableBuilder(
+    column: $table.plannedWeeks,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get targetWeightKg => $composableBuilder(
+    column: $table.targetWeightKg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get targetBfPercent => $composableBuilder(
+    column: $table.targetBfPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get weeklyRateKg => $composableBuilder(
+    column: $table.weeklyRateKg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get tempoCapped => $composableBuilder(
+    column: $table.tempoCapped,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PhysiqueGoalsTableOrderingComposer get goalId {
+    final $$PhysiqueGoalsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableOrderingComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PhysiqueRoadmapPhasesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PhysiqueRoadmapPhasesTable> {
+  $$PhysiqueRoadmapPhasesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get orderIndex => $composableBuilder(
+    column: $table.orderIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get phaseType =>
+      $composableBuilder(column: $table.phaseType, builder: (column) => column);
+
+  GeneratedColumn<int> get plannedWeeks => $composableBuilder(
+    column: $table.plannedWeeks,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get targetWeightKg => $composableBuilder(
+    column: $table.targetWeightKg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get targetBfPercent => $composableBuilder(
+    column: $table.targetBfPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get weeklyRateKg => $composableBuilder(
+    column: $table.weeklyRateKg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get tempoCapped => $composableBuilder(
+    column: $table.tempoCapped,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  $$PhysiqueGoalsTableAnnotationComposer get goalId {
+    final $$PhysiqueGoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PhysiqueRoadmapPhasesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PhysiqueRoadmapPhasesTable,
+          PhysiqueRoadmapPhaseData,
+          $$PhysiqueRoadmapPhasesTableFilterComposer,
+          $$PhysiqueRoadmapPhasesTableOrderingComposer,
+          $$PhysiqueRoadmapPhasesTableAnnotationComposer,
+          $$PhysiqueRoadmapPhasesTableCreateCompanionBuilder,
+          $$PhysiqueRoadmapPhasesTableUpdateCompanionBuilder,
+          (PhysiqueRoadmapPhaseData, $$PhysiqueRoadmapPhasesTableReferences),
+          PhysiqueRoadmapPhaseData,
+          PrefetchHooks Function({bool goalId})
+        > {
+  $$PhysiqueRoadmapPhasesTableTableManager(
+    _$AppDatabase db,
+    $PhysiqueRoadmapPhasesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PhysiqueRoadmapPhasesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$PhysiqueRoadmapPhasesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$PhysiqueRoadmapPhasesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<int> goalId = const Value.absent(),
+                Value<int> orderIndex = const Value.absent(),
+                Value<String> phaseType = const Value.absent(),
+                Value<int> plannedWeeks = const Value.absent(),
+                Value<double?> targetWeightKg = const Value.absent(),
+                Value<double?> targetBfPercent = const Value.absent(),
+                Value<double?> weeklyRateKg = const Value.absent(),
+                Value<bool> tempoCapped = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+              }) => PhysiqueRoadmapPhasesCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                goalId: goalId,
+                orderIndex: orderIndex,
+                phaseType: phaseType,
+                plannedWeeks: plannedWeeks,
+                targetWeightKg: targetWeightKg,
+                targetBfPercent: targetBfPercent,
+                weeklyRateKg: weeklyRateKg,
+                tempoCapped: tempoCapped,
+                status: status,
+                startedAt: startedAt,
+                completedAt: completedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required int goalId,
+                required int orderIndex,
+                required String phaseType,
+                required int plannedWeeks,
+                Value<double?> targetWeightKg = const Value.absent(),
+                Value<double?> targetBfPercent = const Value.absent(),
+                Value<double?> weeklyRateKg = const Value.absent(),
+                Value<bool> tempoCapped = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime?> startedAt = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
+              }) => PhysiqueRoadmapPhasesCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                goalId: goalId,
+                orderIndex: orderIndex,
+                phaseType: phaseType,
+                plannedWeeks: plannedWeeks,
+                targetWeightKg: targetWeightKg,
+                targetBfPercent: targetBfPercent,
+                weeklyRateKg: weeklyRateKg,
+                tempoCapped: tempoCapped,
+                status: status,
+                startedAt: startedAt,
+                completedAt: completedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PhysiqueRoadmapPhasesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({goalId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (goalId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.goalId,
+                                referencedTable:
+                                    $$PhysiqueRoadmapPhasesTableReferences
+                                        ._goalIdTable(db),
+                                referencedColumn:
+                                    $$PhysiqueRoadmapPhasesTableReferences
+                                        ._goalIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PhysiqueRoadmapPhasesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PhysiqueRoadmapPhasesTable,
+      PhysiqueRoadmapPhaseData,
+      $$PhysiqueRoadmapPhasesTableFilterComposer,
+      $$PhysiqueRoadmapPhasesTableOrderingComposer,
+      $$PhysiqueRoadmapPhasesTableAnnotationComposer,
+      $$PhysiqueRoadmapPhasesTableCreateCompanionBuilder,
+      $$PhysiqueRoadmapPhasesTableUpdateCompanionBuilder,
+      (PhysiqueRoadmapPhaseData, $$PhysiqueRoadmapPhasesTableReferences),
+      PhysiqueRoadmapPhaseData,
+      PrefetchHooks Function({bool goalId})
+    >;
+typedef $$PhysiquePhotosTableCreateCompanionBuilder =
+    PhysiquePhotosCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      required int goalId,
+      Value<int?> assessmentId,
+      required String role,
+      required String pose,
+      required String dateIso,
+      Value<DateTime> takenAt,
+      required String relativePath,
+      Value<bool> blurred,
+      Value<String> source,
+      Value<String?> legacyRef,
+    });
+typedef $$PhysiquePhotosTableUpdateCompanionBuilder =
+    PhysiquePhotosCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<int> goalId,
+      Value<int?> assessmentId,
+      Value<String> role,
+      Value<String> pose,
+      Value<String> dateIso,
+      Value<DateTime> takenAt,
+      Value<String> relativePath,
+      Value<bool> blurred,
+      Value<String> source,
+      Value<String?> legacyRef,
+    });
+
+final class $$PhysiquePhotosTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $PhysiquePhotosTable, PhysiquePhotoData> {
+  $$PhysiquePhotosTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $PhysiqueGoalsTable _goalIdTable(_$AppDatabase db) =>
+      db.physiqueGoals.createAlias(
+        $_aliasNameGenerator(db.physiquePhotos.goalId, db.physiqueGoals.id),
+      );
+
+  $$PhysiqueGoalsTableProcessedTableManager get goalId {
+    final $_column = $_itemColumn<int>('goal_id')!;
+
+    final manager = $$PhysiqueGoalsTableTableManager(
+      $_db,
+      $_db.physiqueGoals,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_goalIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PhysiqueAssessmentsTable _assessmentIdTable(_$AppDatabase db) =>
+      db.physiqueAssessments.createAlias(
+        $_aliasNameGenerator(
+          db.physiquePhotos.assessmentId,
+          db.physiqueAssessments.id,
+        ),
+      );
+
+  $$PhysiqueAssessmentsTableProcessedTableManager? get assessmentId {
+    final $_column = $_itemColumn<int>('assessment_id');
+    if ($_column == null) return null;
+    final manager = $$PhysiqueAssessmentsTableTableManager(
+      $_db,
+      $_db.physiqueAssessments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assessmentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PhysiquePhotosTableFilterComposer
+    extends Composer<_$AppDatabase, $PhysiquePhotosTable> {
+  $$PhysiquePhotosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pose => $composableBuilder(
+    column: $table.pose,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dateIso => $composableBuilder(
+    column: $table.dateIso,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get takenAt => $composableBuilder(
+    column: $table.takenAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get blurred => $composableBuilder(
+    column: $table.blurred,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get legacyRef => $composableBuilder(
+    column: $table.legacyRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PhysiqueGoalsTableFilterComposer get goalId {
+    final $$PhysiqueGoalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableFilterComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PhysiqueAssessmentsTableFilterComposer get assessmentId {
+    final $$PhysiqueAssessmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assessmentId,
+      referencedTable: $db.physiqueAssessments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueAssessmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.physiqueAssessments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PhysiquePhotosTableOrderingComposer
+    extends Composer<_$AppDatabase, $PhysiquePhotosTable> {
+  $$PhysiquePhotosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pose => $composableBuilder(
+    column: $table.pose,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dateIso => $composableBuilder(
+    column: $table.dateIso,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get takenAt => $composableBuilder(
+    column: $table.takenAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get blurred => $composableBuilder(
+    column: $table.blurred,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get legacyRef => $composableBuilder(
+    column: $table.legacyRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PhysiqueGoalsTableOrderingComposer get goalId {
+    final $$PhysiqueGoalsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableOrderingComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PhysiqueAssessmentsTableOrderingComposer get assessmentId {
+    final $$PhysiqueAssessmentsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.assessmentId,
+          referencedTable: $db.physiqueAssessments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PhysiqueAssessmentsTableOrderingComposer(
+                $db: $db,
+                $table: $db.physiqueAssessments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$PhysiquePhotosTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PhysiquePhotosTable> {
+  $$PhysiquePhotosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get pose =>
+      $composableBuilder(column: $table.pose, builder: (column) => column);
+
+  GeneratedColumn<String> get dateIso =>
+      $composableBuilder(column: $table.dateIso, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get takenAt =>
+      $composableBuilder(column: $table.takenAt, builder: (column) => column);
+
+  GeneratedColumn<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get blurred =>
+      $composableBuilder(column: $table.blurred, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get legacyRef =>
+      $composableBuilder(column: $table.legacyRef, builder: (column) => column);
+
+  $$PhysiqueGoalsTableAnnotationComposer get goalId {
+    final $$PhysiqueGoalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.goalId,
+      referencedTable: $db.physiqueGoals,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PhysiqueGoalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.physiqueGoals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PhysiqueAssessmentsTableAnnotationComposer get assessmentId {
+    final $$PhysiqueAssessmentsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.assessmentId,
+          referencedTable: $db.physiqueAssessments,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$PhysiqueAssessmentsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.physiqueAssessments,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$PhysiquePhotosTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PhysiquePhotosTable,
+          PhysiquePhotoData,
+          $$PhysiquePhotosTableFilterComposer,
+          $$PhysiquePhotosTableOrderingComposer,
+          $$PhysiquePhotosTableAnnotationComposer,
+          $$PhysiquePhotosTableCreateCompanionBuilder,
+          $$PhysiquePhotosTableUpdateCompanionBuilder,
+          (PhysiquePhotoData, $$PhysiquePhotosTableReferences),
+          PhysiquePhotoData,
+          PrefetchHooks Function({bool goalId, bool assessmentId})
+        > {
+  $$PhysiquePhotosTableTableManager(
+    _$AppDatabase db,
+    $PhysiquePhotosTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PhysiquePhotosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PhysiquePhotosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PhysiquePhotosTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<int> goalId = const Value.absent(),
+                Value<int?> assessmentId = const Value.absent(),
+                Value<String> role = const Value.absent(),
+                Value<String> pose = const Value.absent(),
+                Value<String> dateIso = const Value.absent(),
+                Value<DateTime> takenAt = const Value.absent(),
+                Value<String> relativePath = const Value.absent(),
+                Value<bool> blurred = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> legacyRef = const Value.absent(),
+              }) => PhysiquePhotosCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                goalId: goalId,
+                assessmentId: assessmentId,
+                role: role,
+                pose: pose,
+                dateIso: dateIso,
+                takenAt: takenAt,
+                relativePath: relativePath,
+                blurred: blurred,
+                source: source,
+                legacyRef: legacyRef,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required int goalId,
+                Value<int?> assessmentId = const Value.absent(),
+                required String role,
+                required String pose,
+                required String dateIso,
+                Value<DateTime> takenAt = const Value.absent(),
+                required String relativePath,
+                Value<bool> blurred = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> legacyRef = const Value.absent(),
+              }) => PhysiquePhotosCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                goalId: goalId,
+                assessmentId: assessmentId,
+                role: role,
+                pose: pose,
+                dateIso: dateIso,
+                takenAt: takenAt,
+                relativePath: relativePath,
+                blurred: blurred,
+                source: source,
+                legacyRef: legacyRef,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PhysiquePhotosTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({goalId = false, assessmentId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (goalId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.goalId,
+                                referencedTable: $$PhysiquePhotosTableReferences
+                                    ._goalIdTable(db),
+                                referencedColumn:
+                                    $$PhysiquePhotosTableReferences
+                                        ._goalIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (assessmentId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.assessmentId,
+                                referencedTable: $$PhysiquePhotosTableReferences
+                                    ._assessmentIdTable(db),
+                                referencedColumn:
+                                    $$PhysiquePhotosTableReferences
+                                        ._assessmentIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PhysiquePhotosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PhysiquePhotosTable,
+      PhysiquePhotoData,
+      $$PhysiquePhotosTableFilterComposer,
+      $$PhysiquePhotosTableOrderingComposer,
+      $$PhysiquePhotosTableAnnotationComposer,
+      $$PhysiquePhotosTableCreateCompanionBuilder,
+      $$PhysiquePhotosTableUpdateCompanionBuilder,
+      (PhysiquePhotoData, $$PhysiquePhotosTableReferences),
+      PhysiquePhotoData,
+      PrefetchHooks Function({bool goalId, bool assessmentId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -77271,4 +84125,12 @@ class $AppDatabaseManager {
         _db,
         _db.herculexAiProgramBriefs,
       );
+  $$PhysiqueGoalsTableTableManager get physiqueGoals =>
+      $$PhysiqueGoalsTableTableManager(_db, _db.physiqueGoals);
+  $$PhysiqueAssessmentsTableTableManager get physiqueAssessments =>
+      $$PhysiqueAssessmentsTableTableManager(_db, _db.physiqueAssessments);
+  $$PhysiqueRoadmapPhasesTableTableManager get physiqueRoadmapPhases =>
+      $$PhysiqueRoadmapPhasesTableTableManager(_db, _db.physiqueRoadmapPhases);
+  $$PhysiquePhotosTableTableManager get physiquePhotos =>
+      $$PhysiquePhotosTableTableManager(_db, _db.physiquePhotos);
 }
