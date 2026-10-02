@@ -61,6 +61,7 @@ abstract final class AppRoutes {
   static const dreamPhysique = '/dream-physique';
   static const dreamPhysiquePriorities = '/dream-physique/priorities';
   static const dreamPhysiqueHistory = '/dream-physique/history';
+  static const dreamPhysiqueProgress = '/dream-physique/progress';
 
   // Nutrition
   static const customFoods = '/custom-foods';
@@ -95,10 +96,12 @@ abstract final class AppRoutes {
 /// Passing one to `context.push` would navigate to the literal `:id`.
 abstract final class AppPaths {
   static String workoutHistory(int id) => '/workout-history/$id';
-  static String plannedWorkoutPreview(int id) =>
-      '/planned-workout-preview/$id';
+  static String plannedWorkoutPreview(int id) => '/planned-workout-preview/$id';
   static String exercise(int id) => '/exercise/$id';
   static String measurementDetail(String metric) => '/measurements/$metric';
   static String muscleVolumeDetail(String muscle) => '/muscle-volume/$muscle';
   static String macroTrends(String macro) => '/macro-trends/$macro';
+  static String dreamPhysiqueProgress({int? goalId}) => goalId == null
+      ? AppRoutes.dreamPhysiqueProgress
+      : '${AppRoutes.dreamPhysiqueProgress}?goalId=$goalId';
 }
