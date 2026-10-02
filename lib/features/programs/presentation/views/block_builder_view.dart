@@ -13,6 +13,7 @@ import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/components/premium_text_field.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
