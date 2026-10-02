@@ -559,6 +559,141 @@ void main() {
   );
 
   testWidgets(
+    'Weeks picker: kg gap exceeding the novice ceiling shows "That\'s a big '
+    'jump" (D-11)',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+      // Current '50' -> default target 140 (Squat): a 90kg gap, over the
+      // novice 50kg ceiling.
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Current load (kg)'),
+        '50',
+      );
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('picker-length')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("That's a big jump"), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
+  testWidgets(
+    'Weeks picker: kg gap within the novice ceiling shows no big-jump '
+    'warning',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+      // Current '100' -> default target 140 (Squat): a 40kg gap, under the
+      // novice 50kg ceiling.
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Current load (kg)'),
+        '100',
+      );
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('picker-length')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("That's a big jump"), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
+  testWidgets(
+    'Weeks picker: specialization inactive shows no big-jump warning',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('picker-length')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("That's a big jump"), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
+  testWidgets(
     'specialization keeps a compatible existing split (default Upper/Lower)',
     (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
