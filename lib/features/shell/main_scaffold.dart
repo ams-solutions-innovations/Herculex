@@ -13,6 +13,9 @@ import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/label_capture_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/views/nutrition_view.dart';
+import 'package:herculex/features/physique/application/physique_capture_providers.dart';
+import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/data/physique_legacy_migrator.dart';
 import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/shell/quick_add_menu.dart';
 import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
@@ -51,6 +54,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   late final PageController _pageController;
   final _quickAddMenuKey = GlobalKey<QuickAddMenuState>();
   bool _quickAddOpen = false;
+  bool _migrationNoticeShown = false;
 
   @override
   void initState() {
@@ -168,6 +172,18 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
             ref.invalidate(workoutSessionProvider(sessionId));
           }
           break;
+
+        case AiScanContextType.physiqueCheckin:
+          final resumed = pendingContext == null
+              ? null
+              : ResumedCapture.fromPending(pendingContext, file.path);
+          if (resumed != null && mounted) {
+            ref.read(physiqueResumedCaptureProvider.notifier).state = resumed;
+            context.push(
+              AppPaths.dreamPhysiqueProgress(goalId: resumed.goalId),
+            );
+          }
+          break;
       }
     } catch (e) {
       debugPrint('Error recovering lost image data: $e');
@@ -193,6 +209,18 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   @override
   Widget build(BuildContext context) {
     ref.watch(appShortcutsControllerProvider);
+    ref.listen<AsyncValue<LegacyMigrationResult?>>(
+      physiqueLegacyMigrationProvider,
+      (prev, next) {
+        if (_migrationNoticeShown) return;
+        final message = LegacyMigrationNotice.messageFor(next.valueOrNull);
+        if (message == null) return;
+        _migrationNoticeShown = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+        );
+      },
+    );
     final index = ref.watch(mainTabIndexProvider);
     final hasActiveSession =
         ref.watch(activeSessionProvider).asData?.value != null;
@@ -286,8 +314,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
             hiddenOffset: 120,
             child: HxNavBar(
               currentIndex: index,
-              onTap: (i) =>
-                  ref.read(mainTabIndexProvider.notifier).state = i,
+              onTap: (i) => ref.read(mainTabIndexProvider.notifier).state = i,
               quickAddOpen: _quickAddOpen,
               onQuickAddTap: () {
                 if (_quickAddOpen) {
