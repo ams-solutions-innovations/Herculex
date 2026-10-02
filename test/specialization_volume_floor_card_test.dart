@@ -41,34 +41,38 @@ void main() {
 
         expect(find.text('Chest'), findsOneWidget);
         expect(find.text('4 sets'), findsOneWidget);
-        expect(find.text('Light — Below the volume that usually drives progress'), findsOneWidget);
+        expect(
+          find.text('Light — Below the volume that usually drives progress'),
+          findsOneWidget,
+        );
 
         expect(find.text('Quads'), findsOneWidget);
         expect(find.text('16 sets'), findsOneWidget);
       },
     );
 
-    testWidgets('renders muscle labels at the inherited (regular) font weight', (
-      tester,
-    ) async {
-      const breakdown = ProgramVolumeBreakdown(
-        weeks: [
-          WeeklyMuscleBreakdown(
-            weekIndex: 0,
-            weekLabel: 'Week 1',
-            totalSets: 16,
-            volumes: [],
-          ),
-        ],
-        averageWeeklyVolumes: [MuscleVolumeEntry(muscle: 'Quads', sets: 16)],
-        averageWeeklyTotalSets: 16,
-      );
+    testWidgets(
+      'renders muscle labels at the inherited (regular) font weight',
+      (tester) async {
+        const breakdown = ProgramVolumeBreakdown(
+          weeks: [
+            WeeklyMuscleBreakdown(
+              weekIndex: 0,
+              weekLabel: 'Week 1',
+              totalSets: 16,
+              volumes: [],
+            ),
+          ],
+          averageWeeklyVolumes: [MuscleVolumeEntry(muscle: 'Quads', sets: 16)],
+          averageWeeklyTotalSets: 16,
+        );
 
-      await pump(tester, breakdown);
+        await pump(tester, breakdown);
 
-      final textWidget = tester.widget<Text>(find.text('Quads'));
-      expect(textWidget.style?.fontWeight, isNot(FontWeight.w600));
-    });
+        final textWidget = tester.widget<Text>(find.text('Quads'));
+        expect(textWidget.style?.fontWeight, isNot(FontWeight.w600));
+      },
+    );
 
     testWidgets('renders SizedBox.shrink for an empty breakdown', (
       tester,

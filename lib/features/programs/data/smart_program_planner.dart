@@ -449,21 +449,23 @@ class SmartProgramPlanner {
           labelsByDayOfWeek: labelsByDayOfWeek,
         );
         if (recoveryWarnings.isNotEmpty && firstSegmentDaySlotId != null) {
-          final existing = await (_db.select(_db.programSlotExplanations)..where(
-            (t) =>
-                t.slotId.equals(firstSegmentDaySlotId!) &
-                t.weekIndex.equals(week.weekIndex),
-          )).getSingleOrNull();
+          final existing =
+              await (_db.select(_db.programSlotExplanations)..where(
+                    (t) =>
+                        t.slotId.equals(firstSegmentDaySlotId!) &
+                        t.weekIndex.equals(week.weekIndex),
+                  ))
+                  .getSingleOrNull();
           if (existing != null) {
-            await (_db.update(_db.programSlotExplanations)
-                  ..where((t) => t.id.equals(existing.id)))
-                .write(
-                  ProgramSlotExplanationsCompanion(
-                    rationale: Value(
-                      '${existing.rationale} ${recoveryWarnings.first}',
-                    ),
-                  ),
-                );
+            await (_db.update(
+              _db.programSlotExplanations,
+            )..where((t) => t.id.equals(existing.id))).write(
+              ProgramSlotExplanationsCompanion(
+                rationale: Value(
+                  '${existing.rationale} ${recoveryWarnings.first}',
+                ),
+              ),
+            );
           }
         }
       }

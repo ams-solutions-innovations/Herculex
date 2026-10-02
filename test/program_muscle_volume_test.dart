@@ -116,56 +116,51 @@ week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equi
       await db.close();
     });
 
-    test(
-      'computeFromTemplates feeding into VolumeBands.verdicts flags a '
-      'below-floor muscle group',
-      () async {
-        final db = await openTestDatabase();
-        final raw = File('assets/data/exercises.json').readAsStringSync();
-        await ExerciseImporter.runFromJson(db, raw);
+    test('computeFromTemplates feeding into VolumeBands.verdicts flags a '
+        'below-floor muscle group', () async {
+      final db = await openTestDatabase();
+      final raw = File('assets/data/exercises.json').readAsStringSync();
+      await ExerciseImporter.runFromJson(db, raw);
 
-        final catalog = await db.select(db.exerciseCatalog).get();
-        final chestExercise = catalog.firstWhere(
-          (e) => e.primaryMuscle == 'Chest',
-        );
+      final catalog = await db.select(db.exerciseCatalog).get();
+      final chestExercise = catalog.firstWhere(
+        (e) => e.primaryMuscle == 'Chest',
+      );
 
-        final templateId = await db
-            .into(db.workoutTemplates)
-            .insert(
-              WorkoutTemplatesCompanion.insert(name: 'Low Chest Test'),
-            );
-        await db
-            .into(db.templateExercises)
-            .insert(
-              TemplateExercisesCompanion.insert(
-                templateId: templateId,
-                exerciseId: chestExercise.id,
-                orderIndex: 0,
-                targetSets: const Value(2),
-              ),
-            );
+      final templateId = await db
+          .into(db.workoutTemplates)
+          .insert(WorkoutTemplatesCompanion.insert(name: 'Low Chest Test'));
+      await db
+          .into(db.templateExercises)
+          .insert(
+            TemplateExercisesCompanion.insert(
+              templateId: templateId,
+              exerciseId: chestExercise.id,
+              orderIndex: 0,
+              targetSets: const Value(2),
+            ),
+          );
 
-        final plan = SplitTemplates.generate(
-          type: SplitType.fullBody,
-          daysPerWeek: 1,
-        );
+      final plan = SplitTemplates.generate(
+        type: SplitType.fullBody,
+        daysPerWeek: 1,
+      );
 
-        final breakdown = await ProgramVolumeCalculator.computeFromTemplates(
-          db: db,
-          templatesBySlot: {plan.slotSummary.first.slotIndex: templateId},
-          plan: plan,
-          weeks: 1,
-          model: PeriodizationModel.linear,
-        );
+      final breakdown = await ProgramVolumeCalculator.computeFromTemplates(
+        db: db,
+        templatesBySlot: {plan.slotSummary.first.slotIndex: templateId},
+        plan: plan,
+        weeks: 1,
+        model: PeriodizationModel.linear,
+      );
 
-        final verdicts = VolumeBands.verdicts({
-          for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets,
-        });
+      final verdicts = VolumeBands.verdicts({
+        for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets,
+      });
 
-        expect(verdicts['Chest'], VolumeVerdict.low);
+      expect(verdicts['Chest'], VolumeVerdict.low);
 
-        await db.close();
-      },
-    );
+      await db.close();
+    });
   });
 }

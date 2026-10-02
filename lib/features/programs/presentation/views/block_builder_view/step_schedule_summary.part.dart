@@ -166,9 +166,7 @@ mixin _StepScheduleSummaryMixin on _BuilderStateBase {
               builder: (context, snapshot) {
                 if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                   return _useLiftSpecialization
-                      ? SpecializationVolumeFloorCard(
-                          breakdown: snapshot.data!,
-                        )
+                      ? SpecializationVolumeFloorCard(breakdown: snapshot.data!)
                       : ProgramMuscleVolumeCard(
                           breakdown: snapshot.data!,
                           title: 'Estimated Volume per Muscle Group',

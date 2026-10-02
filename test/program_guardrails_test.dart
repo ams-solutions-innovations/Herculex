@@ -173,7 +173,10 @@ void main() {
 
         expect(
           issues.map((i) => i.code),
-          containsAll(['config_max_effort_per_week', 'config_six_day_ppl_max_effort']),
+          containsAll([
+            'config_max_effort_per_week',
+            'config_six_day_ppl_max_effort',
+          ]),
         );
         expect(issues, hasLength(2));
       },
@@ -202,20 +205,23 @@ void main() {
       },
     );
 
-    test('novice with a 40 kg increase (under 50 kg ceiling) returns empty', () {
-      final issues = ProgramGuardrails.validateKgIncrease(
-        specialization: const PrimaryLiftSpecialization(
-          lift: PrimaryLift.squat,
-          currentKg: 100,
-          targetKg: 140,
-          weeks: 16,
-          stickingPoint: PrimaryLiftStickingPoint.bottom,
-        ),
-        experience: ExperienceLevel.novice,
-      );
+    test(
+      'novice with a 40 kg increase (under 50 kg ceiling) returns empty',
+      () {
+        final issues = ProgramGuardrails.validateKgIncrease(
+          specialization: const PrimaryLiftSpecialization(
+            lift: PrimaryLift.squat,
+            currentKg: 100,
+            targetKg: 140,
+            weeks: 16,
+            stickingPoint: PrimaryLiftStickingPoint.bottom,
+          ),
+          experience: ExperienceLevel.novice,
+        );
 
-      expect(issues, isEmpty);
-    });
+        expect(issues, isEmpty);
+      },
+    );
 
     test(
       'intermediate with a 35 kg increase (exceeds 30 kg ceiling) returns one issue',
@@ -284,7 +290,10 @@ void main() {
       );
 
       expect(issues, isNotEmpty);
-      expect(issues.every((i) => i.severity == GuardrailSeverity.warning), isTrue);
+      expect(
+        issues.every((i) => i.severity == GuardrailSeverity.warning),
+        isTrue,
+      );
     });
   });
 
@@ -320,15 +329,18 @@ void main() {
       },
     );
 
-    test('one low, one fine group returns exactly one issue, for the low group only', () {
-      final issues = ProgramGuardrails.validateVolumeFloor({
-        'Chest': 4,
-        'Quads': 16,
-      });
+    test(
+      'one low, one fine group returns exactly one issue, for the low group only',
+      () {
+        final issues = ProgramGuardrails.validateVolumeFloor({
+          'Chest': 4,
+          'Quads': 16,
+        });
 
-      expect(issues, hasLength(1));
-      expect(issues.single.message, contains('Chest'));
-    });
+        expect(issues, hasLength(1));
+        expect(issues.single.message, contains('Chest'));
+      },
+    );
 
     test('every returned issue is warning-severity, never blocking', () {
       final issues = ProgramGuardrails.validateVolumeFloor({
@@ -337,7 +349,10 @@ void main() {
       });
 
       expect(issues, isNotEmpty);
-      expect(issues.every((i) => i.severity == GuardrailSeverity.warning), isTrue);
+      expect(
+        issues.every((i) => i.severity == GuardrailSeverity.warning),
+        isTrue,
+      );
     });
   });
 }

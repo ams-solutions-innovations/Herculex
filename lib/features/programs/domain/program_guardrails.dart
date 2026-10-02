@@ -225,8 +225,10 @@ abstract final class ProgramGuardrails {
     required PrimaryLiftSpecialization specialization,
     required ExperienceLevel experience,
   }) {
-    final increase = (specialization.targetKg - specialization.currentKg)
-        .clamp(0, double.infinity);
+    final increase = (specialization.targetKg - specialization.currentKg).clamp(
+      0,
+      double.infinity,
+    );
     final ceiling =
         kgIncreaseCeilings[experience] ??
         kgIncreaseCeilings[ExperienceLevel.intermediate]!;
