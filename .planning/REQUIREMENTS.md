@@ -58,9 +58,9 @@
 
 ### 8. Primary Lift Strength Specialization (Phase 22)
 
-- [ ] **SPEC-01**: Strength specialization targets user-selected lift (e.g. Squat) with current 1RM, target weight, and sticking point analysis (bottom, mid, lockout).
-- [ ] **SPEC-02**: Specialization planner preserves anchor lift frequency while maintaining all non-target muscle groups above baseline maintenance volume.
-- [ ] **SPEC-03**: Unrealistic target timelines generate realistic projected time horizons with warnings rather than aggressive programming.
+- [x] **SPEC-01**: Strength specialization targets user-selected lift (e.g. Squat) with current 1RM, target weight, and sticking point analysis (bottom, mid, lockout).
+- [x] **SPEC-02**: Specialization planner preserves anchor lift frequency while maintaining all non-target muscle groups above baseline maintenance volume.
+- [x] **SPEC-03**: Unrealistic target timelines generate realistic projected time horizons with warnings rather than aggressive programming.
 
 ### 9. Persistent Dream Physique & Multi-Phase Nutrition (Phase 23)
 
@@ -131,7 +131,7 @@
 | EDIT-01–04 | 19 | Complete |
 | FLOW-01–03 | 20 | Complete |
 | CF-01–03 | 21 | Complete |
-| SPEC-01–03 | 22 | Pending |
+| SPEC-01–03 | 22 | Complete |
 | PHYS-01–08 | 23 | Pending |
 | XP-01–04 | 24 | Pending |
 | SYNC-01–03 | 25 | Pending |
