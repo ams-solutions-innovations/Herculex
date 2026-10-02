@@ -215,7 +215,7 @@ Cross-cutting constraints:
 
 **Success:** Goals and assessments persist across app restarts and sync; photos stored locally with EXIF stripped and optional blur; phased nutrition plans (`cut`, `maintain`, `recomp`, `bulk`) compute realistic tempos; underage users protected from aggressive deficits/surpluses; the progress screen names the active phase and position in the roadmap; check-ins are capped at one photo per 7 days and return a confidence-banded directional verdict rather than a false-precision percentage; bodyweight, strength, and training-level trends chart against the goal horizon.
 
-**Plans:** 15/17 plans executed
+**Plans:** 16/17 plans executed
 
 Plans:
 **Wave 1**
@@ -253,7 +253,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 23-16-PLAN.md — Physique progress screen (phase card, timeline, check-in card, charts) + route registration
+- [x] 23-16-PLAN.md — Physique progress screen (phase card, timeline, check-in card, charts) + route registration
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
