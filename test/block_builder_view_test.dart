@@ -391,6 +391,218 @@ void main() {
     await tester.pump(const Duration(milliseconds: 10));
   });
 
+  testWidgets(
+    'specialization keeps a compatible existing split (default Upper/Lower)',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Current load (kg)'),
+        '100',
+      );
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Continue')); // -> Step 4
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 5
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Upper'), findsWidgets);
+      expect(find.text('Lower'), findsWidgets);
+      expect(find.text('Full Body A'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
+  testWidgets(
+    'specialization resets an incompatible split (Bro Split) to Full Body',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 4
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Bro Split'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Navigate back to Step 3 via the header back affordance.
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Current load (kg)'),
+        '100',
+      );
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Continue')); // -> Step 4 (now Full Body)
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 5
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Full Body A'), findsWidgets);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
+  testWidgets(
+    'specialization modal shows per-lift assistanceFocus copy (bench press, off the chest)',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Squat'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bench press').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Not sure yet'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Off the chest').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Chest volume and stable pressing technique are prioritised.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
+  testWidgets(
+    'specialization modal shows per-lift default sticking-point copy (overhead press, unknown)',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Squat'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Overhead press').last);
+      await tester.pumpAndSettle();
+
+      // Leave sticking-point dropdown at its default ("Not sure yet").
+      expect(
+        find.text('Triceps and upper-back assistance are prioritised.'),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
   testWidgets('step 1 muscle priorities card interaction', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;

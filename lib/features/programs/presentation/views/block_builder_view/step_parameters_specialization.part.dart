@@ -1,6 +1,15 @@
 part of '../block_builder_view.dart';
 
 mixin _StepParametersSpecializationMixin on _BuilderStateBase {
+  static const _specializationCompatibleSplits = <SplitType>{
+    SplitType.fullBody,
+    SplitType.fullBodyLinear,
+    SplitType.fullBodyAb,
+    SplitType.upperLower,
+    SplitType.upperLowerFullBody,
+    SplitType.ppl,
+  };
+
   @override
   Future<bool> _showSpecializationModal(ThemeData theme) async {
     var tempLift = _specializationLift;
@@ -152,6 +161,19 @@ mixin _StepParametersSpecializationMixin on _BuilderStateBase {
                               value ?? PrimaryLiftStickingPoint.unknown,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        PrimaryLiftSpecialization(
+                          lift: tempLift,
+                          currentKg: 0,
+                          targetKg: 0,
+                          weeks: _weeks,
+                          stickingPoint: tempStickingPoint,
+                        ).assistanceFocus,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: context.hx.onSurfaceVariant,
+                        ),
+                      ),
                       if (tempLift == PrimaryLift.pullUp) ...[
                         const SizedBox(height: 10),
                         Text(
@@ -211,9 +233,11 @@ mixin _StepParametersSpecializationMixin on _BuilderStateBase {
         _targetSquatCtrl.text = targetCtrl.text.trim();
         _liftStickingPoint = tempStickingPoint;
         _useLiftSpecialization = true;
-        _split = SplitType.fullBody;
-        _daysPerWeek = 3;
-        _model = PeriodizationModel.linear;
+        if (!_specializationCompatibleSplits.contains(_split)) {
+          _split = SplitType.fullBody;
+          _daysPerWeek = 3;
+          _model = PeriodizationModel.linear;
+        }
         _weeks = _liftRecommendedWeeks;
         _clearCustomWeeklyPlacement();
       });
