@@ -20,13 +20,18 @@ import {
   foodPhotoPrompt,
   nutritionLabelPrompt,
   programBriefPrompt,
+  physiqueCheckinPrompt,
   ramblerFoodPrompt,
   supplementPhotoPrompt,
 } from "./prompts.ts";
 import { callerUserId } from "../_shared/auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { json } from "../_shared/json.ts";
-import { KNOWLEDGE_VERSION, programming } from "./knowledge_base.ts";
+import {
+  core as coachingCore,
+  KNOWLEDGE_VERSION,
+  programming,
+} from "./knowledge_base.ts";
 
 type GeminiKind =
   | "food_photo"
@@ -37,7 +42,8 @@ type GeminiKind =
   | "body_fat_estimate"
   | "dream_physique"
   | "rambler_food"
-  | "program_brief";
+  | "program_brief"
+  | "physique_checkin";
 
 type GeminiImage = {
   mimeType?: string;
@@ -52,6 +58,12 @@ type GeminiRequest = {
   image?: GeminiImage;
   images?: GeminiImage[];
   currentImages?: GeminiImage[];
+  baselineImages?: GeminiImage[];
+  checkinContext?: {
+    phase?: string;
+    weeksInPhase?: number;
+    weightTrendKgPerWeek?: number | null;
+  };
   targetImages?: GeminiImage[];
   targetImage?: GeminiImage;
   biometrics?: Record<string, unknown>;
@@ -115,6 +127,9 @@ const kindLimits: Record<GeminiKind, number> = {
   ),
   dream_physique: Number(Deno.env.get("GEMINI_LIMIT_DREAM_PHYSIQUE") ?? "10"),
   program_brief: Number(Deno.env.get("GEMINI_LIMIT_PROGRAM_BRIEF") ?? "10"),
+  physique_checkin: Number(
+    Deno.env.get("GEMINI_LIMIT_PHYSIQUE_CHECKIN") ?? "5",
+  ),
 };
 
 /// Vrne dnevno mejo za `kind`; neznan ali manjkajoc `kind` pade nazaj na
@@ -138,6 +153,7 @@ const kindDisplayNames: Record<GeminiKind, string> = {
   body_fat_estimate: "Body fat estimates",
   dream_physique: "Dream Physique comparisons",
   program_brief: "Program design briefs",
+  physique_checkin: "Physique check-ins",
 };
 
 /// Najvecja base64 dolzina ene slike (~1,9 MB izvirnika, ker je base64
@@ -152,6 +168,23 @@ const maxImageBase64 = 2_600_000;
 const maxImages = 4;
 
 const dreamPhysiqueConsentVersion = "dream_physique_images_v1";
+
+const imageKinds = new Set<GeminiKind>(["dream_physique", "physique_checkin"]);
+
+/// Shared consent gate for every image-bearing physique kind. Returns the
+/// 400 message, or null when the request may proceed.
+export function imageConsentError(payload: GeminiRequest): string | null {
+  if (!payload.kind || !imageKinds.has(payload.kind)) return null;
+  if (
+    payload.privacyConsent?.granted === true &&
+    payload.privacyConsent.version === dreamPhysiqueConsentVersion
+  ) {
+    return null;
+  }
+  return payload.kind === "dream_physique"
+    ? "Confirm the current Dream Physique photo privacy notice before uploading images."
+    : "Confirm the current photo privacy notice before uploading check-in images.";
+}
 
 const canonicalProgrammingMuscleIds = new Set([
   "chest",
@@ -247,18 +280,9 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid JSON request." }, 400);
   }
 
-  if (
-    payload.kind === "dream_physique" &&
-    (payload.privacyConsent?.granted !== true ||
-      payload.privacyConsent.version !== dreamPhysiqueConsentVersion)
-  ) {
-    return json(
-      {
-        error:
-          "Confirm the current Dream Physique photo privacy notice before uploading images.",
-      },
-      400,
-    );
+  const consentError = imageConsentError(payload);
+  if (consentError) {
+    return json({ error: consentError }, 400);
   }
 
   const quota = await bumpUsage(
@@ -436,6 +460,63 @@ Deno.serve(async (req) => {
         return response;
       }
 
+      case "physique_checkin": {
+        const baselineRaw = payload.baselineImages ?? [];
+        const currentRaw = payload.currentImages ?? [];
+        if (baselineRaw.length < 1 || baselineRaw.length > 3) {
+          return json(
+            { error: "Between 1 and 3 baseline images are required." },
+            400,
+          );
+        }
+        if (currentRaw.length !== 1) {
+          return json(
+            { error: "Exactly one current image is required." },
+            400,
+          );
+        }
+        const validatedBaseline = validateImages(baselineRaw, 3);
+        if ("error" in validatedBaseline) {
+          return json({ error: validatedBaseline.error }, 400);
+        }
+        const validatedCurrent = validateImages(
+          currentRaw,
+          maxImages - validatedBaseline.images.length,
+        );
+        if ("error" in validatedCurrent) {
+          return json({ error: validatedCurrent.error }, 400);
+        }
+
+        // Order matters: baseline first, then the single current photo.
+        const generated = await generateJson({
+          images: [...validatedBaseline.images, ...validatedCurrent.images],
+          promptText: physiqueCheckinPrompt(
+            {
+              ...(payload.checkinContext ?? {}),
+              baselineCount: validatedBaseline.images.length,
+            },
+            payload.userNote,
+          ),
+          temperature: 0.2,
+          systemInstruction: coachingCore,
+        });
+        const result = normalizePhysiqueCheckinResult(generated.result);
+        const response = json({
+          result,
+          privacy: {
+            consentVersion: dreamPhysiqueConsentVersion,
+            processor: "Google Gemini",
+            imagesPersistedByHerculex: false,
+          },
+          provenance: {
+            modelVersion: generated.modelVersion,
+            knowledgeVersion: KNOWLEDGE_VERSION,
+          },
+        });
+        response.headers.set("Cache-Control", "no-store");
+        return response;
+      }
+
       case "rambler_food": {
         const text = payload.text?.trim() || payload.userNote?.trim();
         if (!text) {
@@ -504,7 +585,7 @@ Deno.serve(async (req) => {
 // programming. Validate and whitelist its response here instead of trusting a
 // model-generated object. This also strips any accidental training-experience
 // inference before the response reaches the app.
-function normalizeDreamPhysiqueResult(
+export function normalizeDreamPhysiqueResult(
   raw: Record<string, unknown>,
 ): Record<string, unknown> {
   // The programming profile augments the visual analysis; it must never turn
@@ -585,7 +666,72 @@ function normalizeDreamPhysiqueResult(
       "targetAestheticStyle",
     ),
     ...(programmingProfile != null ? { programmingProfile } : {}),
+    ...optionalBfConfidence(raw),
   };
+}
+
+function optionalBfConfidence(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const min = raw.currentBfRangeMin;
+  const max = raw.currentBfRangeMax;
+  if (
+    typeof min === "number" && typeof max === "number" &&
+    Number.isFinite(min) && Number.isFinite(max) &&
+    min >= 3 && max <= 70 && min <= max
+  ) {
+    out.currentBfRangeMin = min;
+    out.currentBfRangeMax = max;
+  }
+  if (
+    raw.assessmentConfidence === "low" ||
+    raw.assessmentConfidence === "medium" ||
+    raw.assessmentConfidence === "high"
+  ) {
+    out.assessmentConfidence = raw.assessmentConfidence;
+  }
+  return out;
+}
+
+function stripPercentages(text: string): string {
+  return text
+    .replace(/\d+(?:[.,]\d+)?\s*(?:%|per\s?cent|percent)/gi, "")
+    .replace(/%/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Whitelists the check-in evidence. Percentages are stripped from free text
+// and unknown keys (percent, probability, experienceLevel...) are dropped.
+export function normalizePhysiqueCheckinResult(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  const band = objectValue(raw.directionBand, "directionBand");
+  let low = requiredNumber(band.low, "directionBand.low");
+  let high = requiredNumber(band.high, "directionBand.high");
+  low = Math.max(-1, Math.min(1, low));
+  high = Math.max(-1, Math.min(1, high));
+  if (low > high) [low, high] = [high, low];
+
+  const confidence = raw.confidence === "low" ||
+      raw.confidence === "medium" || raw.confidence === "high"
+    ? raw.confidence
+    : "low";
+
+  const reason = stripPercentages(requiredString(raw.reason, "reason"))
+    .slice(0, 280).trim();
+  if (reason.length === 0) throw new Error("Missing reason.");
+
+  const limitations = Array.isArray(raw.limitations)
+    ? raw.limitations
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => stripPercentages(item).slice(0, 160).trim())
+      .filter(Boolean)
+      .slice(0, 3)
+    : [];
+
+  return { directionBand: { low, high }, confidence, reason, limitations };
 }
 
 function normalizeProgrammingProfile(

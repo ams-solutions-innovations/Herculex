@@ -58,6 +58,10 @@ Deno.test("bumpUsage fails closed with a Herculex-branded error after exactly on
 
 Deno.test("limitForKind returns the per-kind tiered limit, falling back to dailyLimit for an unknown kind", () => {
   assertEquals(limitForKind("dream_physique"), dreamPhysiqueLimit);
+  assertEquals(
+    limitForKind("physique_checkin"),
+    Number(Deno.env.get("GEMINI_LIMIT_PHYSIQUE_CHECKIN") ?? "5"),
+  );
   assertEquals(limitForKind("not_a_real_kind"), dailyLimit);
   assertEquals(limitForKind(undefined), dailyLimit);
 });
