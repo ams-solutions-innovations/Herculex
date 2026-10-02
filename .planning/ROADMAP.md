@@ -188,7 +188,7 @@ Plans:
 
 **Success:** Sticking point selections (bottom, mid, lockout) map to biomechanically relevant variations; anchor lift frequency is preserved; non-target muscle groups remain above maintenance volume; unrealistic deadlines prompt realistic time projections.
 
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 **Wave 1**
@@ -198,7 +198,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 22-03-PLAN.md — Wave 2: Weeks-picker timeline-shortfall auto-adjust + kg-increase ceiling warning (D-08–D-11)
+- [x] 22-03-PLAN.md — Wave 2: Weeks-picker timeline-shortfall auto-adjust + kg-increase ceiling warning (D-08–D-11)
 
 **Wave 3** *(blocked on Wave 2 completion — serialized with 22-03 due to a shared edit target, test/block_builder_view_test.dart, not a functional dependency)*
 
