@@ -30,6 +30,7 @@ import 'package:herculex/features/programs/presentation/views/program_method_gui
 import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
 import 'package:herculex/features/programs/presentation/widgets/ai_brief_rejection_banner.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
+import 'package:herculex/features/programs/presentation/widgets/specialization_volume_floor_card.dart';
 import 'package:herculex/features/recovery/application/recovery_providers.dart';
 import 'package:herculex/features/recovery/domain/joint_model.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
