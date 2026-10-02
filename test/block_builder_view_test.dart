@@ -1321,6 +1321,130 @@ void main() {
     );
   });
 
+  // 22-04: _create()'s combined, non-blocking volume-floor + kg-increase
+  // confirmation (D-06 Create-time half, D-07, D-11 Create-time half).
+  group('D-06/D-11 Create-time specialization warnings (22-04)', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = await openTestDatabase();
+    });
+
+    tearDown(() => db.close());
+
+    /// Advances from Step 1 (default Smart mode) through Step 3, applying
+    /// the specialization modal with the given current-load text (target
+    /// left at the Squat default of 140), then continues to Step 6.
+    Future<void> applySpecializationAndReachStep6(
+      WidgetTester tester,
+      String currentLoad,
+    ) async {
+      await _continue(tester); // Step 1 -> Step 2 (exercise pools)
+      await _continue(tester); // Step 2 -> Step 3 (training parameters)
+
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Current load (kg)'),
+        currentLoad,
+      );
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      await _continue(tester); // Step 3 -> Step 4 (split)
+      await _continue(tester); // Step 4 -> Step 5 (content & methods)
+      await _continue(tester); // Step 5 -> Step 6 (schedule)
+    }
+
+    testWidgets(
+      'kg gap exceeding the novice ceiling shows a confirmation; "Review" '
+      'cancels without creating a program',
+      (tester) async {
+        await _pumpBuilder(tester, db);
+        // Current '50' -> default target 140 (Squat): a 90kg gap, over the
+        // novice 50kg ceiling.
+        await applySpecializationAndReachStep6(tester, '50');
+
+        await tester.tap(find.text('Create block'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.textContaining('outside typical progress'), findsOneWidget);
+
+        await tester.tap(find.text('Review'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ProgramReviewView), findsNothing);
+        expect(find.text('Create block'), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'kg gap exceeding the novice ceiling shows a confirmation; "Create '
+      'anyway" proceeds to ProgramReviewView',
+      (tester) async {
+        await _pumpBuilder(tester, db);
+        await applySpecializationAndReachStep6(tester, '50');
+
+        await tester.tap(find.text('Create block'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AlertDialog), findsOneWidget);
+
+        await tester.tap(find.text('Create anyway'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'kg gap within the ceiling shows no confirmation; creates directly',
+      (tester) async {
+        await _pumpBuilder(tester, db);
+        // Current '100' -> default target 140 (Squat): a 40kg gap, under
+        // the novice 50kg ceiling.
+        await applySpecializationAndReachStep6(tester, '100');
+
+        await tester.tap(find.text('Create block'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
+    testWidgets(
+      'specialization never toggled on shows no confirmation (regression)',
+      (tester) async {
+        await _pumpBuilder(tester, db);
+        await _continue(tester); // Step 1 -> Step 2
+        await _continue(tester); // Step 2 -> Step 3
+        await _continue(tester); // Step 3 -> Step 4
+        await _continue(tester); // Step 4 -> Step 5
+        await _continue(tester); // Step 5 -> Step 6
+
+        await tester.tap(find.text('Create block'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.byType(ProgramReviewView), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+  });
+
   // 27-11: the Herculex AI mode tile, its explicit Generate/Regenerate
   // action (D-04 - never auto-fired on mode selection), and the 3-way
   // success/rejection/degradation state machine (D-05, AIP-05).

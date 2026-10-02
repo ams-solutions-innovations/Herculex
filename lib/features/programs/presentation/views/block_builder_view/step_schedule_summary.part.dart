@@ -165,10 +165,14 @@ mixin _StepScheduleSummaryMixin on _BuilderStateBase {
               ),
               builder: (context, snapshot) {
                 if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                  return ProgramMuscleVolumeCard(
-                    breakdown: snapshot.data!,
-                    title: 'Estimated Volume per Muscle Group',
-                  );
+                  return _useLiftSpecialization
+                      ? SpecializationVolumeFloorCard(
+                          breakdown: snapshot.data!,
+                        )
+                      : ProgramMuscleVolumeCard(
+                          breakdown: snapshot.data!,
+                          title: 'Estimated Volume per Muscle Group',
+                        );
                 }
                 return const SizedBox.shrink();
               },

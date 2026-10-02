@@ -47,6 +47,50 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
     }
   }
 
+  /// Non-blocking Create-time confirmation for D-06's second half + D-11:
+  /// shows every flagged volume-floor/kg-increase issue's `message` verbatim
+  /// and lets the user proceed anyway or go back and review. A
+  /// barrier-dismissed dialog is treated as "Review" (never an implicit
+  /// proceed).
+  Future<bool> _confirmSpecializationWarnings(
+    List<ProgramGuardrailIssue> issues,
+  ) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Before you create this block'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final issue in issues)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: AiBriefRejectionBanner(
+                  heading: issue.code == 'specialization_volume_floor'
+                      ? 'Some muscle groups will fall below maintenance volume'
+                      : "That's a big jump",
+                  body: issue.message,
+                  footer: '',
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Review'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Create anyway'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Future<void> _create() async {
     setState(() => _saving = true);
@@ -77,6 +121,33 @@ mixin _BuilderActionsMixin on _BuilderStateBase {
         throw StateError(
           configIssues.firstWhere((issue) => issue.isBlocking).message,
         );
+      }
+
+      if (_useLiftSpecialization && _primaryLiftSpecialization != null) {
+        final breakdown = await ProgramVolumeCalculator.computeFromTemplates(
+          db: ref.read(appDatabaseProvider),
+          templatesBySlot: _templatesBySlot,
+          plan: _plan,
+          weeks: _weeks,
+          model: _model,
+        );
+        final volumeIssues = ProgramGuardrails.validateVolumeFloor({
+          for (final entry in breakdown.averageWeeklyVolumes)
+            entry.muscle: entry.sets,
+        });
+        final kgIssues = ProgramGuardrails.validateKgIncrease(
+          specialization: _primaryLiftSpecialization!,
+          experience: _experience,
+        );
+        final allIssues = [...volumeIssues, ...kgIssues];
+        if (allIssues.isNotEmpty) {
+          final proceed = await _confirmSpecializationWarnings(allIssues);
+          if (!mounted) return;
+          if (!proceed) {
+            setState(() => _saving = false);
+            return;
+          }
+        }
       }
 
       final programId = await repo.createProgramFromSplit(
