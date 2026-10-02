@@ -21,6 +21,7 @@ import 'package:herculex/features/physique/presentation/dialogs/reset_roadmap_di
 import 'package:herculex/features/physique/presentation/physique_text.dart';
 import 'package:herculex/features/physique/presentation/widgets/phase_type_pill.dart';
 import 'package:herculex/features/physique/presentation/widgets/restriction_notice.dart';
+import 'package:herculex/features/physique/presentation/widgets/sheet_snackbar_scope.dart';
 
 final _moveUp = CustomSemanticsAction(label: 'Move up');
 final _moveDown = CustomSemanticsAction(label: 'Move down');
@@ -36,27 +37,8 @@ class RoadmapEditorSheet extends ConsumerStatefulWidget {
   static Future<void> show(BuildContext context, {required int goalId}) {
     return HxSheet.show<void>(
       context,
-      // Own messenger and scaffold: a snackbar on the page behind a modal
-      // sheet is hidden by the barrier, which would make "Undo" unreachable.
-      // The scaffold also covers the route barrier, so the dimmed area
-      // above the sheet forwards taps to maybePop itself.
-      builder: (context) => ScaffoldMessenger(
-        child: Scaffold(
-          backgroundColor: context.hx.surfaceContainer.withValues(alpha: 0),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.of(context).maybePop(),
-                ),
-              ),
-              RoadmapEditorSheet(goalId: goalId),
-            ],
-          ),
-        ),
-      ),
+      builder: (_) =>
+          SheetSnackBarScope(child: RoadmapEditorSheet(goalId: goalId)),
     );
   }
 
