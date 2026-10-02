@@ -188,6 +188,19 @@ Plans:
 
 **Success:** Sticking point selections (bottom, mid, lockout) map to biomechanically relevant variations; anchor lift frequency is preserved; non-target muscle groups remain above maintenance volume; unrealistic deadlines prompt realistic time projections.
 
+**Plans:** 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 22-01-PLAN.md — Wave 1: D-12 sticking-point branching for bench/OHP/pull-up, SquatSpecialization dead-code removal, ProgramGuardrails.validateVolumeFloor/validateKgIncrease
+- [ ] 22-02-PLAN.md — Wave 1: split-flexibility Apply logic (D-01–D-03), sticking-point helper copy, computed exposures-per-week fix (Pitfall 3)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 22-03-PLAN.md — Wave 2: Weeks-picker timeline-shortfall auto-adjust + kg-increase ceiling warning (D-08–D-11)
+- [ ] 22-04-PLAN.md — Wave 2: SpecializationVolumeFloorCard live preview + Create-time volume-floor/kg-increase confirmation (D-04–D-07, D-11)
+
 ### Phase 23: Persistent Dream Physique & Multi-Phase Nutrition
 
 **Goal:** Transform Dream Physique into a persistent goal with synchronized assessment history, private local photo storage, structured multi-phase nutrition roadmaps, and a progress screen that shows where the user stands against that goal.
