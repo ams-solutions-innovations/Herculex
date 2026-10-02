@@ -215,12 +215,12 @@ Cross-cutting constraints:
 
 **Success:** Goals and assessments persist across app restarts and sync; photos stored locally with EXIF stripped and optional blur; phased nutrition plans (`cut`, `maintain`, `recomp`, `bulk`) compute realistic tempos; underage users protected from aggressive deficits/surpluses; the progress screen names the active phase and position in the roadmap; check-ins are capped at one photo per 7 days and return a confidence-banded directional verdict rather than a false-precision percentage; bodyweight, strength, and training-level trends chart against the goal horizon.
 
-**Plans:** 0/17 plans complete
+**Plans:** 1/17 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 23-01-PLAN.md — Pure-Dart guardrails (PhaseEligibility, under-18 / missing-age / low-confidence), tempo policy, deterministic editable roadmap generator
+- [x] 23-01-PLAN.md — Pure-Dart guardrails (PhaseEligibility, under-18 / missing-age / low-confidence), tempo policy, deterministic editable roadmap generator
 - [ ] 23-02-PLAN.md — Schema v47: four synced physique tables (five chores) + Supabase migration file and parity tests (written, not applied)
 - [ ] 23-03-PLAN.md — Private photo pipeline: sandbox store, EXIF-stripping sanitiser, on-device face blur (ML Kit), privacy prefs
 - [ ] 23-04-PLAN.md — gemini-analyze: physique_checkin kind, shared consent gate, per-kind quota, Dream Physique BF range + confidence

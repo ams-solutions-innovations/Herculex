@@ -66,8 +66,8 @@
 
 - [ ] **PHYS-01**: Dream Physique goals, assessments, and check-in history persist in synchronized local/remote tables.
 - [ ] **PHYS-02**: Physique photos are stored in app-sandboxed local documents with EXIF stripped and optional facial blur.
-- [ ] **PHYS-03**: Multi-phase nutrition roadmaps (`cut`, `maintain`, `recomp`, `maingain`, `bulk`) compute realistic deficit/surplus pacing.
-- [ ] **PHYS-04**: Underage users and low-confidence visual assessments are barred from aggressive caloric deficits or surpluses.
+- [x] **PHYS-03**: Multi-phase nutrition roadmaps (`cut`, `maintain`, `recomp`, `maingain`, `bulk`) compute realistic deficit/surplus pacing.
+- [x] **PHYS-04**: Underage users and low-confidence visual assessments are barred from aggressive caloric deficits or surpluses.
 - [ ] **PHYS-05**: Progress screen shows the active body-composition phase (`cut`, `recomp`, `maingain`, `bulk`, `maintain`), position within the multi-phase roadmap, time in phase, and exit criteria, driven by the persisted plan from PHYS-03.
 - [ ] **PHYS-06**: Check-in photos are rate-limited to at most one per 7 days per goal, enforced in the repository rather than the widget, with the next eligible date surfaced in the UI.
 - [ ] **PHYS-07**: Each check-in returns a Herculex AI directional verdict (on track, off track, inconclusive) as a confidence-banded range against the baseline, never a false-precision percentage, and never auto-changes calorie targets.
