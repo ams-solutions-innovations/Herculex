@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
 import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
 import 'package:herculex/data/local/database.dart';
@@ -16,6 +18,8 @@ import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/presentation/widgets/tdee_estimate_badge.dart';
+import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/presentation/widgets/restriction_notice.dart';
 
 /// Presentation-only chip/card styling for a [DietPhase]. Kept as a single
 /// extension so the quick planner card and its chip buttons can't drift
@@ -175,7 +179,13 @@ class _QuickPhasePlannerSectionState
     }
   }
 
+  /// Live-coerced, never captured, so an allowed phase returns once the
+  /// profile arrives (PHYS-04).
+  DietPhase get _effectivePhase =>
+      ref.read(physiqueEditorEligibilityProvider).coerce(_selectedPhase);
+
   void _onPhaseSelected(DietPhase phase) {
+    if (!ref.read(physiqueEditorEligibilityProvider).allows(phase)) return;
     if (_selectedPhase == phase) return;
     setState(() {
       _selectedPhase = phase;
@@ -191,7 +201,8 @@ class _QuickPhasePlannerSectionState
     final baselineKcal = ref.watch(maintenanceKcalProvider) ?? 2500;
     final bwKg = profile?.weightKg;
 
-    final paceOptions = DietPhaseCalculator.paceOptionsFor(_selectedPhase);
+    final eligibility = ref.watch(physiqueEditorEligibilityProvider);
+    final paceOptions = DietPhaseCalculator.paceOptionsFor(_effectivePhase);
     final currentPace =
         (_selectedPaceIndex >= 0 && _selectedPaceIndex < paceOptions.length)
         ? paceOptions[_selectedPaceIndex]
@@ -201,9 +212,10 @@ class _QuickPhasePlannerSectionState
     final minProteinG = minTargets.resolvedMinProteinG(bwKg);
     final minKcal = minTargets.effectiveMinCaloriesKcal;
 
-    // PHYS-04 (Phase 23) deficit gate belongs at or after this call.
+    // PHYS-04: eligibility clamps the delta for restricted members.
     final targets = DietPhaseCalculator.apply(
-      phase: _selectedPhase,
+      phase: _effectivePhase,
+      eligibility: eligibility,
       baselineKcal: baselineKcal,
       bodyweightKg: bwKg,
       calorieDeltaOverride: currentPace.kcalDelta,
@@ -211,9 +223,9 @@ class _QuickPhasePlannerSectionState
       minCaloriesKcal: minKcal,
     );
 
-    final phaseColor = _selectedPhase.uiColor;
-    final phaseIcon = _selectedPhase.uiIcon;
-    final phaseSubtitle = _selectedPhase.subtitle;
+    final phaseColor = _effectivePhase.uiColor;
+    final phaseIcon = _effectivePhase.uiIcon;
+    final phaseSubtitle = _effectivePhase.subtitle;
 
     return Container(
       decoration: BoxDecoration(
@@ -273,6 +285,11 @@ class _QuickPhasePlannerSectionState
           ),
           const SizedBox(height: 16),
 
+          RestrictionNoticeList(
+            eligibility: eligibility,
+            onAddAge: () => context.push(AppRoutes.profile),
+          ),
+          if (eligibility.isRestricted) const SizedBox(height: 12),
           // ── Phase Selector (Cut, Bulk, Maingain, Maintain) ──
           Row(
             children: [
@@ -282,7 +299,8 @@ class _QuickPhasePlannerSectionState
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: _PhaseChipButton(
                       phase: phase,
-                      selected: _selectedPhase == phase,
+                      selected: _effectivePhase == phase,
+                      enabled: eligibility.allows(phase),
                       onTap: () => _onPhaseSelected(phase),
                     ),
                   ),
@@ -295,7 +313,7 @@ class _QuickPhasePlannerSectionState
 
           // ── Pace / Rate Selector ──
           Text(
-            _selectedPhase == DietPhase.maintain
+            _effectivePhase == DietPhase.maintain
                 ? 'TEMPO & INTENZIVNOST'
                 : 'TEDENSKI TEMPO / AGRESIVNOST',
             style: TextStyle(
@@ -552,7 +570,7 @@ class _QuickPhasePlannerSectionState
               label: Text(
                 _saving
                     ? 'Saving…'
-                    : 'Apply ${_selectedPhase.label} (${targets.kcal} kcal)',
+                    : 'Apply ${_effectivePhase.label} (${targets.kcal} kcal)',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
@@ -564,7 +582,7 @@ class _QuickPhasePlannerSectionState
                       setState(() => _saving = true);
                       final repo = ref.read(nutritionRepositoryProvider);
                       await repo.upsertTarget(
-                        label: 'Global (${_selectedPhase.label})',
+                        label: 'Global (${_effectivePhase.label})',
                         appliesTo: 'global',
                         kcal: targets.kcal,
                         proteinG: targets.proteinG,
@@ -574,7 +592,7 @@ class _QuickPhasePlannerSectionState
                       await ref
                           .read(activeDietPlanProvider.notifier)
                           .setPlan(
-                            phase: _selectedPhase,
+                            phase: _effectivePhase,
                             weeklyRateKg: currentPace.weeklyKg,
                             kcalDelta: currentPace.kcalDelta,
                             paceLabel: currentPace.label,
@@ -586,7 +604,7 @@ class _QuickPhasePlannerSectionState
                           .show(
                             HxToastItem.targetsUpdated(
                               message:
-                                  '${_selectedPhase.label} • ${targets.kcal} kcal',
+                                  '${_effectivePhase.label} • ${targets.kcal} kcal',
                             ),
                           );
                     },
@@ -601,48 +619,48 @@ class _QuickPhasePlannerSectionState
 class _PhaseChipButton extends StatelessWidget {
   final DietPhase phase;
   final bool selected;
+  final bool enabled;
   final VoidCallback onTap;
 
   const _PhaseChipButton({
     required this.phase,
     required this.selected,
     required this.onTap,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
     final color = phase.uiColor;
+    final sel = selected && enabled;
+    final fg = sel ? color : (enabled ? hx.onSurfaceVariant : hx.tertiary);
 
     return InkWell(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: selected
+          color: sel
               ? color.withValues(alpha: 0.2)
               : hx.surfaceContainer.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? color : hx.outlineVariant.withValues(alpha: 0.3),
-            width: selected ? 1.5 : 1,
+            color: sel ? color : hx.outlineVariant.withValues(alpha: 0.3),
+            width: sel ? 1.5 : 1,
           ),
         ),
         child: Column(
           children: [
-            Icon(
-              phase.uiIcon,
-              size: 18,
-              color: selected ? color : hx.onSurfaceVariant,
-            ),
+            Icon(phase.uiIcon, size: 18, color: fg),
             const SizedBox(height: 4),
             Text(
               phase.label,
               style: TextStyle(
-                color: selected ? color : hx.onSurfaceVariant,
-                fontWeight: selected ? FontWeight.bold : FontWeight.w600,
+                color: fg,
+                fontWeight: sel ? FontWeight.bold : FontWeight.w600,
                 fontSize: 12,
               ),
               maxLines: 1,
@@ -1440,13 +1458,15 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
 
   /// Recomputes every field from the maintenance figure for [_phase] (§5).
   void _applyPhase(DietPhase phase) {
+    final eligibility = ref.read(physiqueEditorEligibilityProvider);
+    if (!eligibility.allows(phase)) return;
     final baseline = int.tryParse(_maintenanceKcal.text.trim());
     setState(() {
       _phase = phase;
       if (baseline == null || baseline <= 0) return;
-      // PHYS-04 (Phase 23) deficit gate belongs at or after this call.
       final t = DietPhaseCalculator.apply(
         phase: phase,
+        eligibility: eligibility,
         baselineKcal: baseline,
         bodyweightKg: _bodyweightKg,
       );
@@ -1547,6 +1567,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
+    final eligibility = ref.watch(physiqueEditorEligibilityProvider);
     final bwKg = _bodyweightKg;
     final bwLb = bwKg != null ? bwKg * 2.20462 : null;
 
@@ -1577,6 +1598,11 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         // ── Dieting phase (§5) ──
         _SectionTitle('DIETING PHASE'),
         const SizedBox(height: HxSpace.x2),
+        RestrictionNoticeList(
+          eligibility: eligibility,
+          onAddAge: () => context.push(AppRoutes.profile),
+        ),
+        if (eligibility.isRestricted) const SizedBox(height: HxSpace.x3),
         Wrap(
           spacing: 8,
           children: [
@@ -1584,7 +1610,9 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               ChoiceChip(
                 label: Text(phase.label),
                 selected: _phase == phase,
-                onSelected: (_) => _applyPhase(phase),
+                onSelected: eligibility.allows(phase)
+                    ? (_) => _applyPhase(phase)
+                    : null,
               ),
           ],
         ),

@@ -9,6 +9,7 @@ import 'package:herculex/features/dashboard/application/dashboard_providers.dart
 import 'package:herculex/features/dashboard/presentation/widgets/remaining_calories_card.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
+import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
@@ -288,5 +289,180 @@ void main() {
 
     expect(find.text('Remaining'), findsOneWidget);
     expect(find.text('Set a goal'), findsOneWidget);
+  });
+
+  group('PHYS-04 phase eligibility gates', () {
+    const minor = Profile(
+      name: 'Minor',
+      weightKg: 70,
+      heightCm: 175,
+      ageYears: 17,
+      sex: BiologicalSex.male,
+      activityLevel: ActivityLevel.active,
+      goal: FitnessGoal.muscleGain,
+    );
+    const noAge = Profile(
+      name: 'NoAge',
+      weightKg: 70,
+      heightCm: 175,
+      sex: BiologicalSex.male,
+      activityLevel: ActivityLevel.active,
+      goal: FitnessGoal.muscleGain,
+    );
+
+    List<Override> as(Profile p) => [
+      profileProvider.overrideWith((ref) => Stream.value(p)),
+      maintenanceKcalProvider.overrideWithValue(3000),
+    ];
+
+    void bigView(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+    }
+
+    VoidCallback? chipTap(WidgetTester tester, String label) {
+      final ink = find.ancestor(
+        of: find.text(label).first,
+        matching: find.byType(InkWell),
+      );
+      return tester.widget<InkWell>(ink.first).onTap;
+    }
+
+    testWidgets('quick planner disables Cut and Bulk for under 18', (
+      tester,
+    ) async {
+      bigView(tester);
+      await tester.pumpWidget(
+        testApp(const NutritionTargetsView(), overrides: as(minor)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(chipTap(tester, 'Cut'), isNull);
+      expect(chipTap(tester, 'Bulk'), isNull);
+      expect(chipTap(tester, 'Maintain'), isNotNull);
+      expect(chipTap(tester, 'Recomp'), isNotNull);
+      expect(chipTap(tester, 'Maingain'), isNotNull);
+      expect(
+        find.textContaining("Cut and Bulk aren't available under 18"),
+        findsOneWidget,
+      );
+      expect(find.text('Add age in Profile'), findsNothing);
+
+      await tester.tap(find.text('Cut').first);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Apply Cut'), findsNothing);
+    });
+
+    testWidgets('quick planner shows Add age action when age is missing', (
+      tester,
+    ) async {
+      bigView(tester);
+      await tester.pumpWidget(
+        testApp(const NutritionTargetsView(), overrides: as(noAge)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(chipTap(tester, 'Cut'), isNull);
+      expect(chipTap(tester, 'Bulk'), isNull);
+      expect(find.text('Add age in Profile'), findsOneWidget);
+    });
+
+    testWidgets('adult keeps every chip enabled and no notice', (tester) async {
+      bigView(tester);
+      await tester.pumpWidget(testApp(const NutritionTargetsView()));
+      await tester.pumpAndSettle();
+
+      for (final l in ['Cut', 'Bulk', 'Maintain', 'Recomp', 'Maingain']) {
+        expect(chipTap(tester, l), isNotNull, reason: l);
+      }
+      expect(find.textContaining("aren't available under 18"), findsNothing);
+    });
+
+    testWidgets('deep-link Cut is coerced for under 18', (tester) async {
+      bigView(tester);
+      await tester.pumpWidget(
+        testApp(
+          const NutritionTargetsView(initialPhase: DietPhase.cut),
+          overrides: as(minor),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Apply Recomp'), findsOneWidget);
+      expect(find.textContaining('Apply Cut'), findsNothing);
+    });
+
+    testWidgets('deep-link Cut is kept for an adult', (tester) async {
+      bigView(tester);
+      await tester.pumpWidget(
+        testApp(
+          const NutritionTargetsView(initialPhase: DietPhase.cut),
+          overrides: [maintenanceKcalProvider.overrideWithValue(3000)],
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Apply Cut'), findsOneWidget);
+    });
+
+    testWidgets('maingain surplus is capped at +150 for under 18', (
+      tester,
+    ) async {
+      bigView(tester);
+      await tester.pumpWidget(
+        testApp(const NutritionTargetsView(), overrides: as(minor)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Maingain').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Progressive (+250 kcal)'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Apply Maingain (3150 kcal)'), findsOneWidget);
+    });
+
+    testWidgets('TargetEditorView disables Cut and Bulk for under 18', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        testApp(const TargetEditorView(), overrides: as(minor)),
+      );
+      await tester.pumpAndSettle();
+
+      ChoiceChip chip(String l) => tester.widget<ChoiceChip>(
+        find.ancestor(of: find.text(l), matching: find.byType(ChoiceChip)),
+      );
+      expect(chip('Cut').onSelected, isNull);
+      expect(chip('Bulk').onSelected, isNull);
+      expect(chip('Maintain').onSelected, isNotNull);
+      expect(chip('Recomp').onSelected, isNotNull);
+      expect(chip('Maingain').onSelected, isNotNull);
+      expect(
+        find.textContaining("Cut and Bulk aren't available under 18"),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Cut'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.text('SAVE CUT'), findsNothing);
+
+      await tester.tap(find.text('Maingain'));
+      await tester.pumpAndSettle();
+      expect(find.text('SAVE MAINGAIN'), findsOneWidget);
+    });
+
+    testWidgets('TargetEditorView shows Add age action for null age', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        testApp(const TargetEditorView(), overrides: as(noAge)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Add age in Profile'), findsOneWidget);
+      final chip = tester.widget<ChoiceChip>(
+        find.ancestor(of: find.text('Bulk'), matching: find.byType(ChoiceChip)),
+      );
+      expect(chip.onSelected, isNull);
+    });
   });
 }
