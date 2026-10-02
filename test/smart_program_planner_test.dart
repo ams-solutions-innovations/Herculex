@@ -10,7 +10,6 @@ import 'package:herculex/features/programs/domain/primary_lift_specialization.da
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
-import 'package:herculex/features/programs/domain/squat_specialization.dart';
 
 import 'support/test_database.dart';
 
@@ -504,11 +503,12 @@ void main() {
       const SmartProgramConfiguration(
         goal: TrainingGoal.strength,
         experience: ExperienceLevel.intermediate,
-        squatSpecialization: SquatSpecialization(
+        primaryLiftSpecialization: PrimaryLiftSpecialization(
+          lift: PrimaryLift.squat,
           currentKg: 110,
           targetKg: 140,
           weeks: 16,
-          stickingPoint: SquatStickingPoint.bottom,
+          stickingPoint: PrimaryLiftStickingPoint.bottom,
         ),
       ),
     );
@@ -568,6 +568,151 @@ void main() {
           db.exerciseCatalog,
         )..where((row) => row.id.equals(main.exerciseId))).getSingle();
         expect(exercise.movementPattern, 'horizontal_push');
+      }
+    },
+  );
+
+  test(
+    'overhead press specialization centres full-body days on vertical pressing',
+    () async {
+      final programId = await ProgramsRepository(db).createProgramFromSplit(
+        name: 'OHP block',
+        weeks: 12,
+        plan: SplitTemplates.generate(type: SplitType.fullBody, daysPerWeek: 3),
+        startDate: DateTime(2026, 9, 7),
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.strength,
+        experienceLevel: ExperienceLevel.intermediate,
+      );
+      await SmartProgramPlanner(db).populate(
+        programId,
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.strength,
+          experience: ExperienceLevel.intermediate,
+          primaryLiftSpecialization: PrimaryLiftSpecialization(
+            lift: PrimaryLift.overheadPress,
+            currentKg: 50,
+            targetKg: 65,
+            weeks: 12,
+            stickingPoint: PrimaryLiftStickingPoint.bottom,
+          ),
+        ),
+      );
+
+      final days = await db.select(db.programDays).get();
+      for (final day in days) {
+        final main =
+            await (db.select(db.programDayExercises)
+                  ..where((row) => row.programDayId.equals(day.id))
+                  ..orderBy([(row) => OrderingTerm(expression: row.orderIndex)])
+                  ..limit(1))
+                .getSingle();
+        final exercise = await (db.select(
+          db.exerciseCatalog,
+        )..where((row) => row.id.equals(main.exerciseId))).getSingle();
+        expect(exercise.movementPattern, 'vertical_push');
+      }
+    },
+  );
+
+  test(
+    'pull-up specialization assigns vertical-pull assistance for a dead-hang '
+    'sticking point (D-12)',
+    () async {
+      // Pull-up's cnsScore (4) is below the SlotRole.main threshold (>=5), so
+      // (unlike bench/OHP, whose compound barbell main lift also satisfies
+      // the main-slot eligibility gate) a bodyweight pull-up never fills the
+      // day's main slot through this automatic flow - that is a pre-existing,
+      // out-of-scope constraint of SlotRoleEligibility.derive, not something
+      // this task changes. This test instead asserts the assistance slot
+      // (SlotRole.supplemental), which is what D-12's per-sticking-point
+      // branching in `_needsForPrimaryLift` actually controls for pullUp.
+      final programId = await ProgramsRepository(db).createProgramFromSplit(
+        name: 'Pull-up block',
+        weeks: 12,
+        plan: SplitTemplates.generate(type: SplitType.fullBody, daysPerWeek: 3),
+        startDate: DateTime(2026, 9, 7),
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.strength,
+        experienceLevel: ExperienceLevel.intermediate,
+      );
+      await SmartProgramPlanner(db).populate(
+        programId,
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.strength,
+          experience: ExperienceLevel.intermediate,
+          trainingStyle: TrainingStyle.basic,
+          primaryLiftSpecialization: PrimaryLiftSpecialization(
+            lift: PrimaryLift.pullUp,
+            currentKg: 0,
+            targetKg: 10,
+            weeks: 12,
+            stickingPoint: PrimaryLiftStickingPoint.deadHang,
+          ),
+        ),
+      );
+
+      final days = await db.select(db.programDays).get();
+      for (final day in days) {
+        final assistance =
+            await (db.select(db.programDayExercises)..where(
+                  (row) =>
+                      row.programDayId.equals(day.id) &
+                      row.slotRole.equals(SlotRole.supplemental.id),
+                ))
+                .getSingle();
+        final exercise = await (db.select(
+          db.exerciseCatalog,
+        )..where((row) => row.id.equals(assistance.exerciseId))).getSingle();
+        expect(exercise.movementPattern, 'vertical_pull');
+      }
+    },
+  );
+
+  test(
+    'squat specialization on a PPL split only anchors the Legs day',
+    () async {
+      final programId = await ProgramsRepository(db).createProgramFromSplit(
+        name: 'PPL squat block',
+        weeks: 12,
+        plan: SplitTemplates.generate(type: SplitType.ppl, daysPerWeek: 3),
+        startDate: DateTime(2026, 9, 7),
+        buildMode: ProgramBuildMode.smart,
+        trainingGoal: TrainingGoal.strength,
+        experienceLevel: ExperienceLevel.intermediate,
+      );
+      await SmartProgramPlanner(db).populate(
+        programId,
+        const SmartProgramConfiguration(
+          goal: TrainingGoal.strength,
+          experience: ExperienceLevel.intermediate,
+          primaryLiftSpecialization: PrimaryLiftSpecialization(
+            lift: PrimaryLift.squat,
+            currentKg: 110,
+            targetKg: 140,
+            weeks: 12,
+            stickingPoint: PrimaryLiftStickingPoint.bottom,
+          ),
+        ),
+      );
+
+      final days = await db.select(db.programDays).get();
+      expect(days.map((d) => d.name).toSet(), {'Push', 'Pull', 'Legs'});
+      for (final day in days) {
+        final main =
+            await (db.select(db.programDayExercises)
+                  ..where((row) => row.programDayId.equals(day.id))
+                  ..orderBy([(row) => OrderingTerm(expression: row.orderIndex)])
+                  ..limit(1))
+                .getSingle();
+        final exercise = await (db.select(
+          db.exerciseCatalog,
+        )..where((row) => row.id.equals(main.exerciseId))).getSingle();
+        if (day.name == 'Legs') {
+          expect(exercise.movementPattern, 'squat');
+        } else {
+          expect(exercise.movementPattern, isNot('squat'));
+        }
       }
     },
   );
