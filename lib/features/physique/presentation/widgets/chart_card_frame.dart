@@ -49,22 +49,21 @@ class PhysiqueChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: HxSpace.x2,
+            runSpacing: HxSpace.x1,
             children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: PhysiqueText.heading(context, color: hx.onSurface),
-                ),
+              Text(
+                title,
+                style: PhysiqueText.heading(context, color: hx.onSurface),
               ),
-              if (latest != null) ...[
-                const SizedBox(width: HxSpace.x2),
+              if (latest != null)
                 Text(
                   latest,
                   style: PhysiqueText.display(context, color: hx.onSurface),
                 ),
-              ],
             ],
           ),
           if (header != null) ...[const SizedBox(height: HxSpace.x3), header!],
@@ -145,9 +144,11 @@ class _LegendEntry extends StatelessWidget {
           ),
         ),
         const SizedBox(width: HxSpace.x2),
-        Text(
-          item.label,
-          style: PhysiqueText.label(context, color: context.hx.secondary),
+        Flexible(
+          child: Text(
+            item.label,
+            style: PhysiqueText.label(context, color: context.hx.secondary),
+          ),
         ),
       ],
     );
