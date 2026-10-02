@@ -603,6 +603,108 @@ void main() {
     },
   );
 
+  testWidgets(
+    'specialization summary card shows computed exposures for Upper/Lower (2x)',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Default split is Upper/Lower; default specialization lift is Squat
+      // (matches "lower"), so Squat appears on exactly 2 of the 4 days.
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Current load (kg)'),
+        '100',
+      );
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('2 exposures / week'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
+  testWidgets(
+    'specialization summary card shows computed exposures for Full Body (3x)',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: BlockBuilderView(autoRecommendExperience: false),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Continue')); // -> Step 2
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.text('Continue')); // -> Step 4
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Bro Split'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byTooltip('Back')); // -> Step 3
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('specialization-switch')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Current load (kg)'),
+        '100',
+      );
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      // Bro Split is incompatible, so Apply resets to Full Body (3 days, all
+      // slots match "full") -- same numeric value as before this task, now
+      // computed rather than literal.
+      expect(find.textContaining('3 exposures / week'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 10));
+    },
+  );
+
   testWidgets('step 1 muscle priorities card interaction', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;

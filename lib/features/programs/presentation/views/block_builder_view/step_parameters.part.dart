@@ -1,6 +1,10 @@
 part of '../block_builder_view.dart';
 
 mixin _StepParametersMixin on _BuilderStateBase {
+  int get _specializationExposuresPerWeek => _plan.trainingDays
+      .where((day) => _specializationLift.appliesToDayLabel(day.label))
+      .length;
+
   Widget _stepParameters(ThemeData theme) {
     final dreamPrioritiesActive =
         _dreamPhysiquePriorities.isNotEmpty && !_useManualMusclePlan;
@@ -271,7 +275,8 @@ mixin _StepParametersMixin on _BuilderStateBase {
                 ],
                 const SizedBox(height: 8),
                 Text(
-                  '$_liftRecommendedWeeks weeks · 3 exposures / week',
+                  '$_liftRecommendedWeeks weeks · $_specializationExposuresPerWeek '
+                  'exposure${_specializationExposuresPerWeek == 1 ? '' : 's'} / week',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.secondary,
                   ),
