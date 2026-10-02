@@ -8,6 +8,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
+import 'package:herculex/features/physique/application/physique_chart_providers.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
 import 'package:herculex/features/physique/data/physique_assessment_repository.dart';
 import 'package:herculex/features/physique/data/physique_goal_repository.dart';
@@ -16,8 +17,11 @@ import 'package:herculex/features/physique/data/physique_photo_store.dart';
 import 'package:herculex/features/physique/data/physique_roadmap_repository.dart';
 import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/features/physique/domain/physique_roadmap.dart';
+import 'package:herculex/features/physique/domain/physique_series.dart';
+import 'package:herculex/features/physique/domain/physique_strength_series.dart';
 import 'package:herculex/features/physique/domain/roadmap_exit_criteria.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
+import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_clock.dart';
@@ -489,6 +493,123 @@ void main() {
       final result = await c.read(physiqueLegacyMigrationProvider.future);
       expect(result, isNull);
       expect(await activeCount(), 1);
+    });
+  });
+
+  group('chart providers', () {
+    StrengthSample sample(String slug, DateTime date, {double kg = 100}) =>
+        StrengthSample(date: date, exerciseSlug: slug, weightKg: kg, reps: 5);
+
+    test(
+      'range defaults to All under 30 days, 3M after, selection wins',
+      () async {
+        final id = await seedGoal(roadmap: threePhase);
+        clock.set(t0.add(const Duration(days: 10)));
+        var c = await make();
+        await c.read(physiqueGoalProvider(id).future);
+        expect(c.read(physiqueEffectiveRangeProvider(id)), ChartRange.all);
+
+        clock.set(t0.add(const Duration(days: 40)));
+        c = await make();
+        await c.read(physiqueGoalProvider(id).future);
+        expect(c.read(physiqueEffectiveRangeProvider(id)), ChartRange.quarter);
+
+        c.read(physiqueChartRangeProvider.notifier).state = ChartRange.month;
+        expect(c.read(physiqueEffectiveRangeProvider(id)), ChartRange.month);
+      },
+    );
+
+    test('empty data returns empty chart data without throwing', () async {
+      final id = await seedGoal(roadmap: threePhase);
+      final c = await make();
+      await c.read(physiqueGoalProvider(id).future);
+      await c.read(physiqueWeightLogsProvider.future);
+      await c.read(physiqueStrengthSamplesProvider.future);
+      await c.read(physiqueSessionDatesProvider.future);
+      expect(c.read(physiqueWeightChartProvider(id)).trend, isEmpty);
+      final strength = c.read(physiqueStrengthChartProvider(id));
+      expect(strength.lift, isNull);
+      expect(strength.points, isEmpty);
+      expect(strength.liftsWithData, isEmpty);
+      expect(c.read(physiqueTrainingLevelChartProvider(id)), isEmpty);
+    });
+
+    test('weight chart carries trend, raw points and a phase band', () async {
+      final id = await seedGoal(roadmap: threePhase);
+      for (var d = 1; d <= 10; d++) {
+        await logMetric(
+          '2026-10-${d.toString().padLeft(2, '0')}',
+          'bodyweight',
+          80 - d * 0.1,
+        );
+      }
+      clock.set(DateTime(2026, 10, 12, 9));
+      final c = await make();
+      await c.read(physiqueGoalProvider(id).future);
+      await c.read(physiqueRoadmapPhasesProvider(id).future);
+      await c.read(physiqueWeightLogsProvider.future);
+      final data = c.read(physiqueWeightChartProvider(id));
+      expect(data.raw, hasLength(10));
+      expect(data.trend, isNotEmpty);
+      expect(data.bands, hasLength(1));
+      expect(data.bands.single.phase, DietPhase.cut);
+    });
+
+    test(
+      'strength lift falls back to the most recent lift with data',
+      () async {
+        final id = await seedGoal(roadmap: threePhase);
+        clock.set(t0.add(const Duration(days: 5)));
+        final samples = [
+          sample('barbell-back-squat', t0.add(const Duration(days: 1))),
+          sample(
+            'barbell-bench-press',
+            t0.add(const Duration(days: 3)),
+            kg: 80,
+          ),
+        ];
+        final c = await make(
+          extra: [
+            physiqueStrengthSamplesProvider.overrideWith(
+              (ref) => Stream.value(samples),
+            ),
+          ],
+        );
+        await c.read(physiqueGoalProvider(id).future);
+        await c.read(physiqueStrengthSamplesProvider.future);
+
+        var data = c.read(physiqueStrengthChartProvider(id));
+        expect(data.lift, PrimaryLift.benchPress);
+        expect(data.liftsWithData, {PrimaryLift.squat, PrimaryLift.benchPress});
+
+        c.read(physiqueSelectedLiftProvider.notifier).state = PrimaryLift.squat;
+        data = c.read(physiqueStrengthChartProvider(id));
+        expect(data.lift, PrimaryLift.squat);
+        expect(data.points, hasLength(1));
+
+        c.read(physiqueSelectedLiftProvider.notifier).state =
+            PrimaryLift.deadlift;
+        expect(
+          c.read(physiqueStrengthChartProvider(id)).lift,
+          PrimaryLift.benchPress,
+        );
+      },
+    );
+
+    test('training level points come from session dates', () async {
+      final id = await seedGoal(roadmap: threePhase);
+      clock.set(t0.add(const Duration(days: 60)));
+      final dates = [for (var w = 0; w < 8; w++) t0.add(Duration(days: w * 7))];
+      final c = await make(
+        extra: [
+          physiqueSessionDatesProvider.overrideWith(
+            (ref) => Stream.value(dates),
+          ),
+        ],
+      );
+      await c.read(physiqueGoalProvider(id).future);
+      await c.read(physiqueSessionDatesProvider.future);
+      expect(c.read(physiqueTrainingLevelChartProvider(id)), isNotEmpty);
     });
   });
 
