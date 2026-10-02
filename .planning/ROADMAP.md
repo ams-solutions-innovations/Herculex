@@ -215,7 +215,7 @@ Cross-cutting constraints:
 
 **Success:** Goals and assessments persist across app restarts and sync; photos stored locally with EXIF stripped and optional blur; phased nutrition plans (`cut`, `maintain`, `recomp`, `bulk`) compute realistic tempos; underage users protected from aggressive deficits/surpluses; the progress screen names the active phase and position in the roadmap; check-ins are capped at one photo per 7 days and return a confidence-banded directional verdict rather than a false-precision percentage; bodyweight, strength, and training-level trends chart against the goal horizon.
 
-**Plans:** 12/17 plans executed
+**Plans:** 13/17 plans executed
 
 Plans:
 **Wave 1**
@@ -244,7 +244,7 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 23-12-PLAN.md — Bodyweight + target band, e1RM, and training-level chart cards
-- [ ] 23-13-PLAN.md — Roadmap editor sheet, check-in history, past goals, photo thumbnail, confirmation dialogs
+- [x] 23-13-PLAN.md — Roadmap editor sheet, check-in history, past goals, photo thumbnail, confirmation dialogs
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
