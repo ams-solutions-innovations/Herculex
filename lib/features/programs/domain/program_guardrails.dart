@@ -1,7 +1,9 @@
 import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
 import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/volume_bands.dart';
 
 enum GuardrailSeverity { warning, blocking }
 
@@ -50,6 +52,18 @@ class GuardedProgramSlot {
 abstract final class ProgramGuardrails {
   static const maxEffortMinimumGap = Duration(hours: 72);
   static const maxSmartMaxEffortSlotsPerWeek = 2;
+
+  /// Per-experience ceiling (kg) above which a specialization's requested
+  /// current→target increase is flagged as unrealistic (D-11).
+  ///
+  /// These are RESEARCH.md's WebSearch-grounded proposal (Assumptions Log A2,
+  /// LOW-MEDIUM confidence, not a locked CONTEXT.md decision) — tunable, not
+  /// settled fact.
+  static const kgIncreaseCeilings = <ExperienceLevel, double>{
+    ExperienceLevel.novice: 50,
+    ExperienceLevel.intermediate: 30,
+    ExperienceLevel.advanced: 15,
+  };
 
   static List<ProgramGuardrailIssue> validateMaxEffortWeek(
     Iterable<GuardedProgramSlot> slots, {
@@ -202,5 +216,70 @@ abstract final class ProgramGuardrails {
     return levelOkay &&
         goalOkay &&
         eligibility == MaxEffortEligibility.eligible;
+  }
+
+  /// Flags a primary-lift specialization's requested current→target increase
+  /// as unrealistic for the user's experience tier (D-11). Warning-severity
+  /// only — never blocks block creation.
+  static List<ProgramGuardrailIssue> validateKgIncrease({
+    required PrimaryLiftSpecialization specialization,
+    required ExperienceLevel experience,
+  }) {
+    final increase = (specialization.targetKg - specialization.currentKg)
+        .clamp(0, double.infinity);
+    final ceiling =
+        kgIncreaseCeilings[experience] ??
+        kgIncreaseCeilings[ExperienceLevel.intermediate]!;
+    if (increase <= ceiling) return const [];
+    return [
+      ProgramGuardrailIssue(
+        code: 'specialization_kg_increase',
+        message:
+            'Adding ${increase.round()} kg to your ${specialization.lift.label} '
+            'is outside typical progress for ${experience.label.toLowerCase()} '
+            'lifters, even over ${specialization.weeks} weeks. Consider a '
+            'smaller target or a longer block.',
+        severity: GuardrailSeverity.warning,
+      ),
+    ];
+  }
+
+  /// Flags any muscle group whose planned weekly sets fall below its
+  /// maintenance-volume minimum (D-04–D-07). Warning-severity only — never
+  /// blocks block creation.
+  ///
+  /// Known coverage gap (RESEARCH.md Pitfall 1): `ProgramVolumeCalculator`'s
+  /// 14-group muscle vocabulary does not fully align with `VolumeBands
+  /// .priors`'s 19 groups — e.g. "Shoulders" gets the generic fallback band
+  /// `(6, 14, 20)` instead of a delt-specific one. This is a known coarser
+  /// approximation, not a bug.
+  static List<ProgramGuardrailIssue> validateVolumeFloor(
+    Map<String, num> weeklySetsByGroup,
+  ) {
+    final issues = <ProgramGuardrailIssue>[];
+    for (final entry in weeklySetsByGroup.entries) {
+      final band = VolumeBands.forGroup(entry.key);
+      if (band.verdict(entry.value) != VolumeVerdict.low) continue;
+      issues.add(
+        ProgramGuardrailIssue(
+          code: 'specialization_volume_floor',
+          message:
+              '${entry.key} would get ${_formatSets(entry.value)} sets/week '
+              'with this specialization, below the ${band.minimum}-set '
+              'minimum for maintenance. You can still create this block.',
+          severity: GuardrailSeverity.warning,
+        ),
+      );
+    }
+    return issues;
+  }
+
+  /// Mirrors `MuscleVolumeEntry.formattedSets`'s whole-vs-one-decimal rule.
+  static String _formatSets(num sets) {
+    final asDouble = sets.toDouble();
+    if (asDouble == asDouble.roundToDouble()) {
+      return asDouble.toInt().toString();
+    }
+    return asDouble.toStringAsFixed(1);
   }
 }
