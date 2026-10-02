@@ -108,6 +108,7 @@ Applied migrations, in the order they reached the live project:
 | `0011_buddy_sessions` | 2026-08-18 | Phase 11 wave 2. The `realtime.send` preflight guard passed, so no signature patch was needed. Closes the blocking half of plan 11-05. |
 | `0012_product_catalogue` | 2026-08-18 | Shared community barcode table; deliberately outside the per-user sync/RLS loop. |
 | `0013_set_entry_metrics` | 2026-08-19 | GSD 12-04 / local schema v31. Three nullable columns on `set_entries`. Had to land *before* any v31 build ships — see the ordering note in the file. |
+| `20261002000000_physique_v47` | pending (human-gated, Plan 23-17) | Must land before any client carrying local schema v47 reaches a user. |
 
 If a future `migration list` ever shows a migration present locally but with
 an empty Remote column (because it was applied outside the CLI, e.g. via the

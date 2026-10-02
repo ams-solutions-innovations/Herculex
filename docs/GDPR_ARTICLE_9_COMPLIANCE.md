@@ -8,11 +8,12 @@
 
 ## 1. Executive Summary & Direct Answer
 **Is GDPR Article 9 Special Category Data processed in Herculex?**  
-**YES.** Specifically, four features process data classified as "data concerning health":
+**YES.** Specifically, five features process data classified as "data concerning health":
 1. **Menstrual Cycle Tracking (`cycle_logs`, `cycle_settings`)**: Period dates, cycle phase, flow intensity.
 2. **Body Measurements (`body_measurements`, `daily_summaries`)**: Body weight, body fat %, physical circumferences.
 3. **Biometric HealthKit / Health Connect Data (`health_samples`)**: Heart rate, HRV, sleep stages, SpO₂ (*Note: Kept local-only*).
 4. **Joint Pain Tracking (`joint_pain_logs`)**: Flagged joint (elbow, shoulder, wrist, knee, hip, lower back), severity, optional note — used by the Recovery page's per-joint overtraining check.
+5. **Physique Goals & Check-ins (`physique_goals`, `physique_assessments`, `physique_roadmap_phases`, `physique_photos`)**: Physique photos, AI body-fat estimates and confidence, target physique and multi-phase roadmap. Photo files stay on device; only metadata syncs (see section 3.B).
 
 ---
 
@@ -40,7 +41,19 @@ Herculex is architected with several structural privacy safeguards:
 * Even if an attacker looked directly at the database tables, they could not link a cycle log or weight measurement to an individual person without the separate auth credentials.
 
 ### B. Local-Only Boundaries for High-Risk Data
-* **Progress Photos**: Stored strictly in local app documents storage. Never sent to Supabase.
+* **Progress / Physique Photos**:
+  * (a) Photo FILES stay in the app sandbox and are never uploaded to Supabase.
+  * (b) EXIF and GPS are removed from every photo copy Herculex STORES (check-in and baseline copies in the sandbox); an optional on-device face blur is available. This applies to stored copies only, NOT to what is transmitted in the existing Dream Physique analysis, which still uploads the original picker bytes with EXIF intact. Only the check-in path transmits sanitised bytes.
+  * (c) Only metadata (relative path, pose, date) syncs to Supabase, under owner-only RLS.
+  * (d) Photos are sent once to Google Gemini via the `gemini-analyze` edge function for Dream Physique analysis and check-in comparison, after explicit versioned consent. Herculex does not persist them.
+  * (e) Account deletion removes the photo files and all four physique tables.
+  * The consent copy is a DRAFT pending legal review.
+
+#### Open items (not resolved)
+- [ ] Parental consent / minimum age for processing special-category data of under-18 users (GDPR Art. 8 age of digital consent differs by member state; RESEARCH A10). Owner: TBD (needs a human decision)
+- [ ] Review of the DRAFT AI consent copy by legal. Owner: TBD (needs a human decision)
+- [ ] iCloud backup exclusion of `<Documents>/physique` on iOS (RESEARCH A11; untested, needs macOS). Owner: TBD (needs a human decision)
+
 * **Raw Motion Sensors**: Streamed in RAM only during active exercise sets and discarded immediately at set completion. Never written to disk or transmitted over the wire.
 * **Raw HealthKit Samples (`health_samples`)**: Kept in the on-device SQLite database. Never synced to Supabase.
 
