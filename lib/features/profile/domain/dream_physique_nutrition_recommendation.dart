@@ -1,4 +1,5 @@
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/physique/domain/physique_direction.dart';
 import 'package:herculex/features/profile/data/dream_physique_summary_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 
@@ -74,56 +75,20 @@ class DreamPhysiqueNutritionRecommender {
       return null;
     }
 
-    final bfGap = currentBf - targetBf;
-    final plannedWeightChange = summary.weightChangeKg;
-    final absChange = plannedWeightChange.abs();
-
-    if (bfGap >= 5 || (profile.goal == FitnessGoal.weightLoss && bfGap >= 2)) {
-      return DreamPhysiqueNutritionRecommendation(
-        direction: PhysiqueNutritionDirection.cut,
-        reasons: [
-          'Your saved estimate is ${bfGap.toStringAsFixed(0)} percentage points above the target.',
-          'The Dream Physique roadmap estimates ${_weightChangeText(plannedWeightChange)}.',
-        ],
-      );
-    }
-
-    if (plannedWeightChange >= 6 && bfGap <= 2) {
-      return DreamPhysiqueNutritionRecommendation(
-        direction: PhysiqueNutritionDirection.bulk,
-        reasons: [
-          'Your roadmap calls for a meaningful gain of ${plannedWeightChange.toStringAsFixed(1)} kg.',
-          'Your saved body-fat estimate is already close to the target range.',
-        ],
-      );
-    }
-
-    if (bfGap >= 2 || absChange <= 3) {
-      return DreamPhysiqueNutritionRecommendation(
-        direction: PhysiqueNutritionDirection.recomp,
-        reasons: [
-          bfGap >= 2
-              ? 'Your current estimate is moderately above the target, so a slower transition may be easier to sustain.'
-              : 'The roadmap calls for a relatively small scale-weight change.',
-          'This keeps the next phase flexible while you review training and progress data.',
-        ],
-      );
-    }
+    final decision = PhysiqueDirectionRule.decide(
+      weightKg: weightKg,
+      currentBfPercent: currentBf,
+      targetBfPercent: targetBf,
+      plannedWeightChangeKg: summary.weightChangeKg,
+      prefersWeightLoss: profile.goal == FitnessGoal.weightLoss,
+    );
+    if (decision == null) return null;
 
     return DreamPhysiqueNutritionRecommendation(
-      direction: PhysiqueNutritionDirection.maingain,
-      reasons: [
-        'Your saved estimate is close to the target range.',
-        'The roadmap suggests ${_weightChangeText(plannedWeightChange)}, which fits a gradual gain phase.',
-      ],
+      direction: PhysiqueNutritionDirection.values.firstWhere(
+        (d) => d.dietPhase == decision.phase,
+      ),
+      reasons: decision.reasons,
     );
-  }
-
-  static String _weightChangeText(double changeKg) {
-    if (changeKg == 0) return 'little scale-weight change';
-    final amount = changeKg.abs().toStringAsFixed(1);
-    return changeKg > 0
-        ? 'about $amount kg of gain'
-        : 'about $amount kg of loss';
   }
 }
