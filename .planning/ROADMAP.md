@@ -215,7 +215,7 @@ Cross-cutting constraints:
 
 **Success:** Goals and assessments persist across app restarts and sync; photos stored locally with EXIF stripped and optional blur; phased nutrition plans (`cut`, `maintain`, `recomp`, `bulk`) compute realistic tempos; underage users protected from aggressive deficits/surpluses; the progress screen names the active phase and position in the roadmap; check-ins are capped at one photo per 7 days and return a confidence-banded directional verdict rather than a false-precision percentage; bodyweight, strength, and training-level trends chart against the goal horizon.
 
-**Plans:** 6/17 plans executed
+**Plans:** 7/17 plans executed
 
 Plans:
 **Wave 1**
@@ -232,7 +232,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 23-07-PLAN.md — Assessment repository (transactional 7-day cap, baseline photos, soft delete) and chart-series repository
+- [x] 23-07-PLAN.md — Assessment repository (transactional 7-day cap, baseline photos, soft delete) and chart-series repository
 - [ ] 23-08-PLAN.md — Dart AI service: PhysiqueCheckInBackend, check-in service/parser, Dream Physique confidence fields
 - [ ] 23-09-PLAN.md — Summary bridge, idempotent legacy migrator (summary history + progress photos), account-wipe extension
 - [ ] 23-10-PLAN.md — Progress route constants, typography helper, phase pill, restriction notice, verdict chip/range bar/block
