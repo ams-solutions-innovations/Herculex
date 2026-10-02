@@ -18,7 +18,6 @@ import 'package:herculex/features/programs/domain/session_segment.dart';
 import 'package:herculex/features/programs/domain/slot_prescription.dart';
 import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/slot_role.dart';
-import 'package:herculex/features/programs/domain/squat_specialization.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/domain/warmup_resolver.dart';
 import 'package:herculex/features/workouts/domain/workout_duration_estimator.dart';
@@ -45,7 +44,6 @@ class SmartProgramConfiguration {
     this.workoutDurationMinutes = 60,
     this.allowTimeSavingSetTechniques = false,
     this.includeAutomaticWarmups = false,
-    this.squatSpecialization,
     this.primaryLiftSpecialization,
     this.excludedMuscles = const {},
   });
@@ -96,7 +94,6 @@ class SmartProgramConfiguration {
   /// When enabled, the resolver prepends ramp-up sets to eligible compound
   /// barbell/dumbbell/kettlebell work. These are never counted as work sets.
   final bool includeAutomaticWarmups;
-  final SquatSpecialization? squatSpecialization;
   final PrimaryLiftSpecialization? primaryLiftSpecialization;
 
   /// Precomputed once by the caller from
@@ -491,7 +488,6 @@ class SmartProgramPlanner {
   }) async {
     final needs = _needsFor(
       dayLabel,
-      squatSpecialization: configuration.squatSpecialization,
       primaryLiftSpecialization: configuration.primaryLiftSpecialization,
       trainingStyle: configuration.trainingStyle,
       includeGppConditioning: configuration.shouldIncludeGppConditioning,
@@ -1400,7 +1396,6 @@ class SmartProgramPlanner {
 
   static List<_SlotNeed> _needsFor(
     String label, {
-    SquatSpecialization? squatSpecialization,
     PrimaryLiftSpecialization? primaryLiftSpecialization,
     required TrainingStyle trainingStyle,
     required bool includeGppConditioning,
@@ -1435,50 +1430,6 @@ class SmartProgramPlanner {
         experience: experience,
         variationSeed: weekIndex,
       ).map(_fromCrossfitNeed).toList(growable: false);
-    }
-    final isSquatFocused =
-        squatSpecialization != null &&
-        (value.contains('lower') ||
-            value.contains('leg') ||
-            value.contains('full'));
-    if (isSquatFocused) {
-      final assistance = switch (squatSpecialization.stickingPoint) {
-        SquatStickingPoint.bottom => const _SlotNeed(
-          'squat',
-          'quad',
-          SlotRole.supplemental,
-        ),
-        SquatStickingPoint.midRange => const _SlotNeed(
-          'lunge',
-          'quad',
-          SlotRole.supplemental,
-        ),
-        SquatStickingPoint.lockout => const _SlotNeed(
-          'hinge',
-          'glute',
-          SlotRole.supplemental,
-        ),
-        SquatStickingPoint.unknown => const _SlotNeed(
-          'hinge',
-          null,
-          SlotRole.supplemental,
-        ),
-      };
-      final base = [
-        const _SlotNeed(
-          'squat',
-          null,
-          SlotRole.main,
-          preferredSlugs: {'barbell-back-squat'},
-        ),
-        assistance,
-        const _SlotNeed('horizontal_push', null, SlotRole.accessory),
-        const _SlotNeed('horizontal_pull', null, SlotRole.accessory),
-        const _SlotNeed(null, 'abs', SlotRole.isolation),
-      ];
-      return includeGppConditioning && value.contains('full')
-          ? [...base, const _SlotNeed(null, null, SlotRole.conditioning)]
-          : base;
     }
     if (value.contains('push') || value.contains('chest')) {
       return const [
@@ -1594,13 +1545,30 @@ class SmartProgramPlanner {
         ),
         _ => const _SlotNeed('hinge', 'hamstring', SlotRole.supplemental),
       },
-      PrimaryLift.benchPress ||
-      PrimaryLift.overheadPress ||
-      PrimaryLift.pullUp => const _SlotNeed(
-        'horizontal_pull',
-        null,
-        SlotRole.supplemental,
-      ),
+      PrimaryLift.benchPress => switch (specialization.stickingPoint) {
+        PrimaryLiftStickingPoint.chest => const _SlotNeed(
+          'horizontal_push',
+          'chest',
+          SlotRole.supplemental,
+        ),
+        _ => const _SlotNeed(null, 'back', SlotRole.supplemental),
+      },
+      PrimaryLift.overheadPress => switch (specialization.stickingPoint) {
+        PrimaryLiftStickingPoint.bottom => const _SlotNeed(
+          'vertical_push',
+          'shoulder',
+          SlotRole.supplemental,
+        ),
+        _ => const _SlotNeed(null, 'back', SlotRole.supplemental),
+      },
+      PrimaryLift.pullUp => switch (specialization.stickingPoint) {
+        PrimaryLiftStickingPoint.deadHang => const _SlotNeed(
+          'vertical_pull',
+          null,
+          SlotRole.supplemental,
+        ),
+        _ => const _SlotNeed(null, 'back', SlotRole.supplemental),
+      },
     };
     final isolation = switch (lift) {
       PrimaryLift.squat ||
