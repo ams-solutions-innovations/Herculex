@@ -188,13 +188,13 @@ Plans:
 
 **Success:** Sticking point selections (bottom, mid, lockout) map to biomechanically relevant variations; anchor lift frequency is preserved; non-target muscle groups remain above maintenance volume; unrealistic deadlines prompt realistic time projections.
 
-**Plans:** 4 plans
+**Plans:** 2/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 22-01-PLAN.md — Wave 1: D-12 sticking-point branching for bench/OHP/pull-up, SquatSpecialization dead-code removal, ProgramGuardrails.validateVolumeFloor/validateKgIncrease
-- [ ] 22-02-PLAN.md — Wave 1: split-flexibility Apply logic (D-01–D-03), sticking-point helper copy, computed exposures-per-week fix (Pitfall 3)
+- [x] 22-01-PLAN.md — Wave 1: D-12 sticking-point branching for bench/OHP/pull-up, SquatSpecialization dead-code removal, ProgramGuardrails.validateVolumeFloor/validateKgIncrease
+- [x] 22-02-PLAN.md — Wave 1: split-flexibility Apply logic (D-01–D-03), sticking-point helper copy, computed exposures-per-week fix (Pitfall 3)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
