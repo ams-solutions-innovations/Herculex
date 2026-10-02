@@ -1,7 +1,8 @@
 ---
 phase: 23
 slug: persistent-dream-physique-multi-phase-nutrition
-status: draft
+status: approved
+reviewed_at: 2026-10-02
 platform: flutter
 design_system: hx-tokens (HxColors ThemeExtension + HxSpace/HxRadius/HxMotion + design_system/components)
 shadcn_initialized: false
@@ -376,11 +377,11 @@ Not applicable: Flutter app, no shadcn and no third-party UI registries. Package
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: FLAG (non-blocking: "Done" in S3 step 4)
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: FLAG (non-blocking: 13/15/17 close together; button 16 accepted as component-internal)
+- [x] Dimension 5 Spacing: FLAG (non-blocking: existing HxSpace x3/x5 accepted as explicit exception)
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-10-02 (revision 1)
