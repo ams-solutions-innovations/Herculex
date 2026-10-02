@@ -529,28 +529,35 @@ Use effective load for bodyweight-loaded lifts, exclude non-standard set types (
 | A10 | GDPR: processing physique photos/BF for under-18s may need parental consent (Art. 8 age of digital consent differs by member state) | Security Domain | Compliance gap; needs a human/legal answer, not a code answer |
 | A11 | iCloud backup of the Documents directory could carry physique photos off-device on iOS | Open Questions | Privacy gap vs "private local" promise; needs native `isExcludedFromBackup` or a different directory |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Where does the low-confidence gate apply?**
    - What we know: D-06 says low confidence restricts to maintain/recomp; D-05 (minor) is unambiguous and global.
    - What's unclear: whether low confidence should also restrict the *manual* nutrition editor, or only roadmap generation/advancement and the deep-link preset.
    - Recommendation: minors/unknown age gate the roadmap AND the editor (otherwise the editor is a bypass); low confidence gates the roadmap and the preset phase only, because the editor is a deliberate manual act not derived from a visual assessment. Confirm with the user.
+   - RESOLVED: user decision 2026-10-02 - low confidence gates roadmap generation and the deep-link preset only; the manual editor stays age-only. Adopted by Plan 01 (`PhysiqueGuardrails.ageEligibility` vs `evaluate`), Plan 11 (`physiqueEditorEligibilityProvider` vs `physiqueRoadmapEligibilityProvider`) and Plan 15 (editor gates).
 
 2. **What is "training level" over time (PHYS-08)?**
    - What we know: must be `ExperienceLevel`/strength standards, not XP rank; the blueprint says population percentiles are not in v1 (own confirmed progress). No strength-standards table exists in the repo.
    - What's unclear: a historical series needs inputs; `ExperienceLevel.recommend` takes `consistentTrainingMonths`, `sessionsLast12Weeks`, `understandsRirRpe`, `hasRunStructuredBlocks`; the last two have no history.
    - Recommendation: step line over 3 levels from `recommend()` sampled weekly, with months/sessions computed from `workout_sessions`, and the two unknowns fixed at their *current* stored value (or false, capping the line at intermediate). Alternative: relative-strength tiers from e1RM/bodyweight with static thresholds (needs a new constants table, flagged [ASSUMED]). Planner/discuss decision; default to the first.
+   - RESOLVED: user decision 2026-10-02 - accept the default (weekly `ExperienceLevel.recommend` samples, the two unknown inputs fixed so the line caps at Intermediate); the cap is recorded as a known limitation. Adopted by Plan 05 (`TrainingLevelSeriesBuilder`), Plan 12 (chart card and caption) and Plan 17 (limitations list).
 
 3. **What happens when the AI check-in call fails?**
    - Recommendation: do not consume the cap or persist anything on failure; offer "Save photo without verdict", which persists with verdict `inconclusive` and reason "Herculex AI unavailable" and does count toward the cap.
+   - RESOLVED: AI failure persists nothing and spends no cap; "Save without analysis" persists an inconclusive check-in that counts toward the cap. Adopted by Plan 11 Task 3 (`PhysiqueCheckInFlow`) and Plan 14 (check-in sheet).
 
 4. **Missing-age regression.** Confirm that removing Cut/Bulk from the manual editor for `ageYears == null` is acceptable, with a Profile deep-link.
+   - RESOLVED: removing Cut/Bulk for `ageYears == null` is accepted, always with an "Add age in Profile" action and never a silent removal. Adopted by Plan 10 (`RestrictionNotice`) and Plan 15 Task 1 (editor gates).
 
 5. **iOS deployment target and iCloud backup exclusion.** Could not be tested on Windows. Verify `pod install` with the ML Kit pods and decide on a native method-channel to set `NSURLIsExcludedFromBackupKey` for the physique folder.
+   - RESOLVED: not testable on Windows; no native method channel this phase. The `pod install` result is a human verification step and the iCloud exclusion is an explicit open item, both owned by Plan 17 (Task 1 open items, Task 2 step 1, known limitations).
 
 6. **Check-in baseline.** Which photos does the AI compare against: the goal's baseline assessment photos, or the previous check-in? Recommendation: baseline (PHYS-07 says "against the baseline"), with the previous check-in as optional context only.
+   - RESOLVED: the AI compares against the goal's baseline photos (front pose first), not the previous check-in. Adopted by Plan 08 (`PhysiqueCheckInService`) and Plan 11 Task 3 (`completeCheckIn` loads baseline photos).
 
 7. **GDPR memo update.** `docs/GDPR_ARTICLE_9_COMPLIANCE.md` currently states progress photos are "strictly local... never sent to Supabase". Photo *metadata* now syncs and photos go to Gemini for assessment (already true for Dream Physique). The memo needs an edit and the under-18 question (A10) needs an owner.
+   - RESOLVED: the GDPR memo, the data truth table and the public privacy policy are updated, and the under-18 question gets a named-owner placeholder as an open item, not a resolution. Adopted by Plan 17 Task 1.
 
 ## Environment Availability
 

@@ -39,6 +39,12 @@ Turn Dream Physique from a SharedPreferences summary (capped at 20 entries) plus
 - Table and column design (goals, assessments, roadmap phases, photo metadata), within the 5-chore schema checklist.
 - Chart axis/styling details and the number of canonical lifts shown.
 
+### Post-planning clarifications (2026-10-02, plan-check revision; genuine user answers)
+- **D-08 clarification, legacy goal for photos-only users:** a user with legacy `ProgressPhotos` rows but no Dream Physique summary history still gets an initial goal. It is synthesized with `source = legacy_import`, no target (nullable `targetBfPercent` and `estimatedMonths`, empty style) and a single maintain-only roadmap proposal, so every legacy photo is migrated with EXIF stripped on copy and originals removed only after the copy commits. The migrator is state-based and idempotent: photos the Measurements screen writes to the legacy table later are appended to the same goal (each at most once). Routing Measurements capture through the new pipeline stays out of scope and is a recorded known limitation (Plan 17).
+- **Low-confidence gate scope (RESEARCH Open Question 1):** low confidence gates roadmap generation and the deep-link preset phase only. The manual nutrition editor is gated by age only (D-05 stays global).
+- **Training-level chart (RESEARCH Open Question 2):** the weekly `ExperienceLevel.recommend` approach is accepted. Its Intermediate cap (`understandsRirRpe` and `hasRunStructuredBlocks` have no history) is a recorded known limitation, not a defect to fix in this phase.
+- **Over-cap files (user decision):** minimal, line-budgeted edits to `dream_physique_view.dart` (must not grow) and `nutrition_targets_view.dart` (net growth at most 40 lines) are accepted instead of splitting those files first; all new logic lives in new domain, application and presentation files. This supersedes the "split first if touched" guidance under Integration Points below and in UI-SPEC's "Edits to existing surfaces" for this phase.
+
 </decisions>
 
 <canonical_refs>
@@ -77,7 +83,7 @@ Turn Dream Physique from a SharedPreferences summary (capped at 20 entries) plus
 ### Integration Points
 - Profile `Profile.ageYears` (nullable) for the minor guard.
 - Nutrition targets editor (deep-link target, pre-set to the phase).
-- `dream_physique_view.dart` (1780 lines, `dream_physique_priorities_view.dart` 608 lines): over the 600-line limit; avoid growing, split first if touched.
+- `dream_physique_view.dart` (1780 lines, `dream_physique_priorities_view.dart` 608 lines): over the 600-line limit; avoid growing (minimal line-budgeted edits are accepted instead of a split, see Post-planning clarifications).
 - Phase 27 consumes Dream Physique `musclePriorities` via the existing tuning seam; keep that contract intact.
 
 </code_context>
