@@ -34,6 +34,7 @@ import 'package:herculex/features/nutrition/presentation/views/nutrient_settings
 import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/weekly_calories_view.dart';
 import 'package:herculex/features/onboarding/presentation/onboarding_view.dart';
+import 'package:herculex/features/physique/presentation/views/physique_progress_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/profile/presentation/custom_foods_view.dart';
 import 'package:herculex/features/profile/presentation/custom_recipes_view.dart';
@@ -228,6 +229,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.dreamPhysiqueHistory,
         builder: (_, _) => const DreamPhysiqueHistoryView(),
+      ),
+      GoRoute(
+        path: AppRoutes.dreamPhysiqueProgress,
+        builder: (_, state) => PhysiqueProgressView(
+          goalId: int.tryParse(state.uri.queryParameters['goalId'] ?? ''),
+        ),
       ),
       GoRoute(
         path: AppRoutes.customFoods,
