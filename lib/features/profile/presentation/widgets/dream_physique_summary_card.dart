@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/presentation/physique_text.dart';
 
 class DreamPhysiqueSummaryCard extends ConsumerWidget {
   const DreamPhysiqueSummaryCard({super.key});
@@ -13,8 +16,11 @@ class DreamPhysiqueSummaryCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final summary = ref.watch(dreamPhysiqueSummaryProvider).valueOrNull;
     final hasSummary = summary != null;
+    final hasGoal = ref.watch(activePhysiqueGoalProvider).valueOrNull != null;
     final subtitle = hasSummary
         ? '${summary.targetAestheticStyle} · ${summary.timeframeRange}'
+        : hasGoal
+        ? 'Your imported progress photos'
         : 'Set a target physique and get an estimated roadmap.';
 
     return Container(
@@ -36,7 +42,9 @@ class DreamPhysiqueSummaryCard extends ConsumerWidget {
         child: InkWell(
           key: const Key('dream-physique-summary-card'),
           borderRadius: BorderRadius.circular(20),
-          onTap: () => context.push(AppRoutes.dreamPhysique),
+          onTap: () => context.push(
+            hasGoal ? AppRoutes.dreamPhysiqueProgress : AppRoutes.dreamPhysique,
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
@@ -110,16 +118,35 @@ class DreamPhysiqueSummaryCard extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          'Tap to start a new analysis.',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: context.hx.onSurfaceVariant,
+                        if (!hasGoal)
+                          Text(
+                            'Tap to start a new analysis.',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: context.hx.onSurfaceVariant,
+                            ),
                           ),
+                      ],
+                      if (hasGoal) ...[
+                        const SizedBox(height: 6),
+                        HxTextPill(
+                          label: 'New analysis',
+                          onTap: () => context.push(AppRoutes.dreamPhysique),
                         ),
                       ],
                     ],
                   ),
                 ),
+                if (hasGoal)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Text(
+                      'View progress',
+                      style: PhysiqueText.label(
+                        context,
+                        color: context.hx.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 Icon(Icons.chevron_right, color: context.hx.onSurfaceVariant),
               ],
             ),

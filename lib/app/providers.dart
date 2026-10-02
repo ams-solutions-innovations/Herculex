@@ -13,6 +13,7 @@ import 'package:herculex/features/auth/domain/auth_provider_service.dart';
 import 'package:herculex/features/auth/domain/auth_session.dart';
 import 'package:herculex/features/gyms/data/gyms_repository.dart';
 import 'package:herculex/features/measurements/data/measurements_repository.dart';
+import 'package:herculex/features/physique/data/physique_summary_bridge.dart';
 import 'package:herculex/features/profile/data/local_profile_repository.dart';
 import 'package:herculex/features/profile/data/dream_physique_summary_repository.dart';
 import 'package:herculex/features/profile/data/dream_physique_nutrition_preference_repository.dart';
@@ -85,14 +86,21 @@ final dreamPhysiqueSummaryRepositoryProvider =
       return repository;
     });
 
+/// Database-backed since Phase 23: same names and model as before so Phase 27
+/// and the existing Dream Physique consumers keep working. The preferences
+/// repository above is now only the legacy migration source.
+final physiqueSummaryBridgeProvider = Provider<PhysiqueSummaryBridge>(
+  (ref) => PhysiqueSummaryBridge(ref.watch(appDatabaseProvider)),
+);
+
 final dreamPhysiqueSummaryProvider =
     StreamProvider<DreamPhysiqueAnalysisSummary?>((ref) {
-      return ref.watch(dreamPhysiqueSummaryRepositoryProvider).watch();
+      return ref.watch(physiqueSummaryBridgeProvider).watchCurrent();
     });
 
 final dreamPhysiqueSummaryHistoryProvider =
     StreamProvider<List<DreamPhysiqueAnalysisSummary>>((ref) {
-      return ref.watch(dreamPhysiqueSummaryRepositoryProvider).watchHistory();
+      return ref.watch(physiqueSummaryBridgeProvider).watchHistory();
     });
 
 final dreamPhysiqueNutritionPreferenceRepositoryProvider =

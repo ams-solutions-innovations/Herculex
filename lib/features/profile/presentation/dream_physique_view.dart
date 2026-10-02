@@ -13,8 +13,8 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
+import 'package:herculex/features/physique/presentation/save_physique_goal.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
-import 'package:herculex/features/profile/data/dream_physique_summary_repository.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
 import 'package:image_picker/image_picker.dart';
@@ -267,23 +267,6 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             : _userNoteCtrl.text.trim(),
       );
 
-      // Keep a compact local record of the chosen target and its result so the
-      // user can revisit their goal from Profile. Photos stay outside this
-      // record and are never copied into preferences.
-      try {
-        await ref
-            .read(dreamPhysiqueSummaryRepositoryProvider)
-            .save(
-              DreamPhysiqueAnalysisSummary.fromResult(
-                result: result,
-                currentPhotoCount: _currentFiles.length,
-                targetPhotoCount: _targetFiles.length,
-              ),
-            );
-      } catch (_) {
-        // A storage failure must not discard a valid AI result.
-      }
-
       if (!mounted) return;
       setState(() {
         _analyzing = false;
@@ -292,6 +275,14 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             result.programmingProfile?.musclePriorities.toList() ?? [];
       });
       Haptics.heavy();
+      if (!mounted) return;
+      await savePhysiqueGoal(
+        context,
+        ref,
+        result: result,
+        currentPhotos: _currentFiles,
+        targetPhotoCount: _targetFiles.length,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {

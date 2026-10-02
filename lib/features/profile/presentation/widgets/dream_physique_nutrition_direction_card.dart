@@ -5,6 +5,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/features/physique/application/physique_providers.dart';
 import 'package:herculex/features/profile/data/dream_physique_nutrition_preference_repository.dart';
 import 'package:herculex/features/profile/domain/dream_physique_nutrition_recommendation.dart';
 
@@ -17,6 +18,8 @@ class DreamPhysiqueNutritionDirectionCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(dreamPhysiqueSummaryProvider).valueOrNull;
     final profile = ref.watch(profileProvider).valueOrNull;
+    // Watched so the goal is loaded by the time "Set targets" reads it.
+    ref.watch(activePhysiqueGoalProvider);
     final recommendation = DreamPhysiqueNutritionRecommender.recommend(
       profile: profile,
       summary: summary,
@@ -172,10 +175,17 @@ class DreamPhysiqueNutritionDirectionCard extends ConsumerWidget {
               const Spacer(),
               FilledButton(
                 key: const Key('open-nutrition-targets'),
-                onPressed: () => context.push(
-                  AppRoutes.nutritionTargets,
-                  extra: chosenDirection.dietPhase,
-                ),
+                onPressed: () {
+                  // Low confidence and age gates apply to the preset too.
+                  final goal = ref.read(activePhysiqueGoalProvider).valueOrNull;
+                  final eligibility = goal == null
+                      ? ref.read(physiqueEditorEligibilityProvider)
+                      : ref.read(physiqueRoadmapEligibilityProvider(goal.id));
+                  context.push(
+                    AppRoutes.nutritionTargets,
+                    extra: eligibility.coerce(chosenDirection.dietPhase),
+                  );
+                },
                 child: const Text('Set targets'),
               ),
             ],
