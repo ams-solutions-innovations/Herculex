@@ -13,6 +13,26 @@ final geminiBackendProvider = Provider<GeminiBackend>((ref) {
   return SupabaseGeminiBackend(Supabase.instance.client);
 });
 
+final physiqueCheckInBackendProvider = Provider<PhysiqueCheckInBackend>((ref) {
+  final backend = ref.watch(geminiBackendProvider);
+  if (backend is PhysiqueCheckInBackend) {
+    return backend as PhysiqueCheckInBackend;
+  }
+  return const UnconfiguredGeminiBackend();
+});
+
+/// Separate from [GeminiBackend] so existing test fakes of that interface keep
+/// compiling. Returns evidence only; the AI never writes to the database.
+abstract interface class PhysiqueCheckInBackend {
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  analyzePhysiqueCheckIn({
+    required List<Map<String, dynamic>> baselineImages,
+    required Map<String, dynamic> currentImage,
+    required Map<String, dynamic> context,
+    String? userNote,
+  });
+}
+
 abstract interface class GeminiBackend {
   Future<Map<String, dynamic>> analyzeFoodPhoto({
     required List<int> imageBytes,
@@ -74,7 +94,8 @@ abstract interface class GeminiBackend {
   });
 }
 
-class UnconfiguredGeminiBackend implements GeminiBackend {
+class UnconfiguredGeminiBackend
+    implements GeminiBackend, PhysiqueCheckInBackend {
   const UnconfiguredGeminiBackend();
 
   @override
@@ -166,13 +187,24 @@ class UnconfiguredGeminiBackend implements GeminiBackend {
     throw _notConfigured();
   }
 
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  analyzePhysiqueCheckIn({
+    required List<Map<String, dynamic>> baselineImages,
+    required Map<String, dynamic> currentImage,
+    required Map<String, dynamic> context,
+    String? userNote,
+  }) async {
+    throw _notConfigured();
+  }
+
   Exception _notConfigured() => Exception(
     'AI analysis is not configured. Build with Supabase credentials and deploy '
     'the gemini-analyze Edge Function with a server-side GEMINI_API_KEY secret.',
   );
 }
 
-class SupabaseGeminiBackend implements GeminiBackend {
+class SupabaseGeminiBackend implements GeminiBackend, PhysiqueCheckInBackend {
   const SupabaseGeminiBackend(this._client);
 
   final SupabaseClient _client;
@@ -351,6 +383,34 @@ class SupabaseGeminiBackend implements GeminiBackend {
       'kind': 'program_brief',
       'profileInputs': profileInputs,
       'userNote': userNote,
+    });
+    return _resultWithProvenance(data);
+  }
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  analyzePhysiqueCheckIn({
+    required List<Map<String, dynamic>> baselineImages,
+    required Map<String, dynamic> currentImage,
+    required Map<String, dynamic> context,
+    String? userNote,
+  }) async {
+    Map<String, String> encode(Map<String, dynamic> img) =>
+        _imagePayload(img['bytes'] as List<int>, img['mimeType'] as String);
+
+    final data = await _invoke({
+      'kind': 'physique_checkin',
+      'baselineImages': baselineImages.map(encode).toList(),
+      'currentImages': [encode(currentImage)],
+      'checkinContext': context,
+      'userNote': userNote,
+      // The caller only reaches this after the user accepted the matching,
+      // versioned photo privacy notice; the Edge Function rejects requests
+      // without this assertion.
+      'privacyConsent': {
+        'version': dreamPhysiqueImageConsentVersion,
+        'granted': true,
+      },
     });
     return _resultWithProvenance(data);
   }

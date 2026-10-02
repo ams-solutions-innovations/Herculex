@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
@@ -162,6 +163,60 @@ void main() {
       expect(result.estimatedMonths, 8);
       expect(result.musclePriorities.single.group, 'Upper chest');
       expect(result.programmingProfile, isNull);
+      expect(result.currentBfRangeMin, isNull);
+      expect(result.currentBfRangeMax, isNull);
+      expect(result.assessmentConfidence, AssessmentConfidence.unknown);
+    });
+
+    Map<String, dynamic> withExtras(Map<String, dynamic> extras) => {
+      'estimatedMonths': 8,
+      'timeframeRange': '6 - 9 months',
+      'weightChangeKg': -2.5,
+      'leanMuscleGainKg': 3.5,
+      'fatLossKg': 6.0,
+      'targetBfPercent': 11.0,
+      'currentEstimatedBf': 17.5,
+      'musclePriorities': [
+        {'group': 'Chest', 'priority': 'high', 'focus': 'Incline'},
+      ],
+      'nutritionStrategy': 'Slight deficit.',
+      'trainingAdvice': 'Progressive training.',
+      'overallAssessment': 'Goal is achievable.',
+      'targetAestheticStyle': 'Lean athletic physique.',
+      ...extras,
+    };
+
+    test('parses BF range and assessment confidence when present', () {
+      final result = DreamPhysiqueAnalysisResult.fromJson(
+        withExtras({
+          'currentBfRangeMin': 15,
+          'currentBfRangeMax': 19.5,
+          'assessmentConfidence': 'medium',
+        }),
+      );
+      expect(result.currentBfRangeMin, 15);
+      expect(result.currentBfRangeMax, 19.5);
+      expect(result.assessmentConfidence, AssessmentConfidence.medium);
+    });
+
+    test('drops inverted or out-of-range BF ranges without throwing', () {
+      for (final extras in [
+        {'currentBfRangeMin': 20, 'currentBfRangeMax': 15},
+        {'currentBfRangeMin': 2, 'currentBfRangeMax': 10},
+        {'currentBfRangeMin': 10, 'currentBfRangeMax': 71},
+        {'currentBfRangeMin': 'x', 'currentBfRangeMax': 12},
+      ]) {
+        final result = DreamPhysiqueAnalysisResult.fromJson(withExtras(extras));
+        expect(result.currentBfRangeMin, isNull);
+        expect(result.currentBfRangeMax, isNull);
+      }
+    });
+
+    test('unrecognised confidence parses as unknown', () {
+      final result = DreamPhysiqueAnalysisResult.fromJson(
+        withExtras({'assessmentConfidence': 'certain'}),
+      );
+      expect(result.assessmentConfidence, AssessmentConfidence.unknown);
     });
   });
 }

@@ -3,34 +3,39 @@ import 'package:herculex/services/ai/gemini_backend_service.dart';
 
 void main() {
   group('UnconfiguredGeminiBackend.generateProgramBrief', () {
-    test('throws the same not-configured message as every other method', () async {
-      const backend = UnconfiguredGeminiBackend();
+    test(
+      'throws the same not-configured message as every other method',
+      () async {
+        const backend = UnconfiguredGeminiBackend();
 
-      Object? caughtFromGenerateProgramBrief;
-      try {
-        await backend.generateProgramBrief(profileInputs: {'goal': 'strength'});
-      } catch (error) {
-        caughtFromGenerateProgramBrief = error;
-      }
+        Object? caughtFromGenerateProgramBrief;
+        try {
+          await backend.generateProgramBrief(
+            profileInputs: {'goal': 'strength'},
+          );
+        } catch (error) {
+          caughtFromGenerateProgramBrief = error;
+        }
 
-      Object? caughtFromSibling;
-      try {
-        await backend.analyzeRamblerText(text: 'chicken and rice');
-      } catch (error) {
-        caughtFromSibling = error;
-      }
+        Object? caughtFromSibling;
+        try {
+          await backend.analyzeRamblerText(text: 'chicken and rice');
+        } catch (error) {
+          caughtFromSibling = error;
+        }
 
-      expect(caughtFromGenerateProgramBrief, isA<Exception>());
-      expect(caughtFromSibling, isA<Exception>());
-      expect(
-        caughtFromGenerateProgramBrief.toString(),
-        caughtFromSibling.toString(),
-      );
-      expect(
-        caughtFromGenerateProgramBrief.toString(),
-        contains('AI analysis is not configured'),
-      );
-    });
+        expect(caughtFromGenerateProgramBrief, isA<Exception>());
+        expect(caughtFromSibling, isA<Exception>());
+        expect(
+          caughtFromGenerateProgramBrief.toString(),
+          caughtFromSibling.toString(),
+        );
+        expect(
+          caughtFromGenerateProgramBrief.toString(),
+          contains('AI analysis is not configured'),
+        );
+      },
+    );
   });
 
   group('_resultWithProvenance extraction (via reflection helper)', () {
@@ -78,9 +83,7 @@ void main() {
         // 'result').
         final looseData = <String, dynamic>{
           'result': data['result'],
-          'provenance': Map<dynamic, dynamic>.from(
-            data['provenance'] as Map,
-          ),
+          'provenance': Map<dynamic, dynamic>.from(data['provenance'] as Map),
         };
 
         final (result, provenance) = extractResultWithProvenance(looseData);
@@ -126,4 +129,25 @@ Map<String, dynamic> _resultMap(Map<String, dynamic> data) {
   if (result is Map<String, dynamic>) return result;
   if (result is Map) return Map<String, dynamic>.from(result);
   throw Exception('AI analysis returned an invalid JSON result.');
+
+  test(
+    'analyzePhysiqueCheckIn on Unconfigured throws not-configured',
+    () async {
+      const backend = UnconfiguredGeminiBackend();
+      await expectLater(
+        backend.analyzePhysiqueCheckIn(
+          baselineImages: const [],
+          currentImage: const {},
+          context: const {},
+        ),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('not configured'),
+          ),
+        ),
+      );
+    },
+  );
 }

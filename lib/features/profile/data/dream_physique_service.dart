@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
 
@@ -195,6 +196,9 @@ class DreamPhysiqueAnalysisResult {
   final String targetAestheticStyle;
   final DreamPhysiqueProgrammingProfile? programmingProfile;
   final bool isAiGenerated;
+  final double? currentBfRangeMin;
+  final double? currentBfRangeMax;
+  final AssessmentConfidence assessmentConfidence;
 
   const DreamPhysiqueAnalysisResult({
     required this.estimatedMonths,
@@ -211,6 +215,9 @@ class DreamPhysiqueAnalysisResult {
     required this.targetAestheticStyle,
     this.programmingProfile,
     this.isAiGenerated = true,
+    this.currentBfRangeMin,
+    this.currentBfRangeMax,
+    this.assessmentConfidence = AssessmentConfidence.unknown,
   });
 
   factory DreamPhysiqueAnalysisResult.fromJson(Map<String, dynamic> json) {
@@ -242,6 +249,11 @@ class DreamPhysiqueAnalysisResult {
             'Invalid Dream Physique programming profile.',
           );
 
+    final (bfMin, bfMax) = _optionalBfRange(
+      json['currentBfRangeMin'],
+      json['currentBfRangeMax'],
+    );
+
     return DreamPhysiqueAnalysisResult(
       estimatedMonths: _requiredInt(json, 'estimatedMonths'),
       timeframeRange: _requiredString(json, 'timeframeRange'),
@@ -257,6 +269,11 @@ class DreamPhysiqueAnalysisResult {
       targetAestheticStyle: _requiredString(json, 'targetAestheticStyle'),
       programmingProfile: programmingProfile,
       isAiGenerated: true,
+      currentBfRangeMin: bfMin,
+      currentBfRangeMax: bfMax,
+      assessmentConfidence: AssessmentConfidence.fromWire(
+        json['assessmentConfidence'],
+      ),
     );
   }
 }
@@ -380,6 +397,16 @@ class DreamPhysiqueService {
     if (lower.endsWith('.webp')) return 'image/webp';
     return 'image/jpeg';
   }
+}
+
+/// Tolerant: any invalid or inverted pair yields (null, null), never throws.
+(double?, double?) _optionalBfRange(Object? min, Object? max) {
+  if (min is! num || max is! num) return (null, null);
+  final lo = min.toDouble();
+  final hi = max.toDouble();
+  if (!lo.isFinite || !hi.isFinite) return (null, null);
+  if (lo > hi || lo < 3 || hi > 70) return (null, null);
+  return (lo, hi);
 }
 
 int _requiredInt(Map<String, dynamic> json, String key) {
