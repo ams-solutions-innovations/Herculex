@@ -14,6 +14,7 @@ import 'package:herculex/design_system/components/premium_text_field.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/design_system/tokens/hx_geometry.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
 import 'package:herculex/features/programs/data/smart_program_planner.dart';
@@ -275,6 +276,7 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
   // Implemented in step_parameters_specialization.part.dart.
   Future<bool> _showSpecializationModal(ThemeData theme);
   double? get _currentSquatKg;
+  double get _targetSquatKg;
   int get _liftRecommendedWeeks;
   PrimaryLiftSpecialization? get _primaryLiftSpecialization;
 

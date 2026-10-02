@@ -206,6 +206,13 @@ mixin _DialogsMixin on _BuilderStateBase {
   @override
   void _showLengthPicker(ThemeData theme) {
     const lengths = [4, 6, 8, 12, 16, 24];
+    final kgSpec = _primaryLiftSpecialization;
+    final kgIssues = kgSpec == null
+        ? const <ProgramGuardrailIssue>[]
+        : ProgramGuardrails.validateKgIncrease(
+            specialization: kgSpec,
+            experience: _experience,
+          );
     HxSheet.show(
       context,
       builder: (sheetContext) => HxSheet(
@@ -217,6 +224,16 @@ mixin _DialogsMixin on _BuilderStateBase {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            kgIssues.isNotEmpty
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: HxSpace.x3),
+                    child: AiBriefRejectionBanner(
+                      heading: "That's a big jump",
+                      body: kgIssues.first.message,
+                      footer: '',
+                    ),
+                  )
+                : const SizedBox.shrink(),
             for (final w in lengths)
               _sheetOptionCard<int>(
                 sheetContext: sheetContext,
@@ -241,7 +258,31 @@ mixin _DialogsMixin on _BuilderStateBase {
                 icon: Icons.calendar_today_rounded,
                 isRecommended: w == 8,
                 onSelected: (selected) {
-                  setState(() => _weeks = selected);
+                  if (_useLiftSpecialization &&
+                      selected < _liftRecommendedWeeks) {
+                    final recommended = _liftRecommendedWeeks;
+                    setState(() => _weeks = recommended);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 6),
+                        content: AiBriefRejectionBanner(
+                          heading: 'Not enough time to progress safely',
+                          body:
+                              '$recommended weeks is a more realistic target '
+                              'for a ${_primaryLiftSpecialization?.currentKg.toStringAsFixed(0) ?? '0'}'
+                              '→${_targetSquatKg.toStringAsFixed(0)} kg '
+                              '${_specializationLift.label}. '
+                              "We've adjusted your block to $recommended weeks.",
+                          footer:
+                              'Block length adjusted to $recommended weeks '
+                              'to match your specialization target.',
+                        ),
+                      ),
+                    );
+                  } else {
+                    setState(() => _weeks = selected);
+                  }
                 },
               ),
           ],
