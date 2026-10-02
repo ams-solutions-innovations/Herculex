@@ -92,6 +92,25 @@ void main() {
       '(buddy_session_id, slot_id, order_index) '
       "VALUES ('buddy-sess-1', 'slot-1', 0)",
     );
+    // Physique rows (Article 9): goal + assessment + roadmap phase + photo.
+    await db.customStatement(
+      "INSERT INTO physique_goals (id, sync_uuid) VALUES (1, 'pg-1')",
+    );
+    await db.customStatement(
+      'INSERT INTO physique_assessments (goal_id, kind, date_iso, sync_uuid) '
+      "VALUES (1, 'analysis', '2026-08-19', 'pa-1')",
+    );
+    await db.customStatement(
+      'INSERT INTO physique_roadmap_phases '
+      '(goal_id, order_index, phase_type, planned_weeks, sync_uuid) '
+      "VALUES (1, 0, 'maintain', 4, 'pr-1')",
+    );
+    await db.customStatement(
+      'INSERT INTO physique_photos '
+      '(goal_id, role, pose, date_iso, relative_path, sync_uuid) '
+      "VALUES (1, 'baseline', 'front', '2026-08-19', 'physique/pg-1/a.jpg', "
+      "'pp-1')",
+    );
   }
 
   group('wipeAllLocalUserData', () {
@@ -127,6 +146,14 @@ void main() {
       expect(await countOf('cycle_logs'), 0);
       expect(await countOf('health_samples'), 0);
       expect(await countOf('buddy_choreography_slots'), 0);
+      for (final t in [
+        'physique_goals',
+        'physique_assessments',
+        'physique_roadmap_phases',
+        'physique_photos',
+      ]) {
+        expect(await countOf(t), 0, reason: t);
+      }
     });
 
     test('leaves no outbox rows behind for the deletes it just made', () async {
