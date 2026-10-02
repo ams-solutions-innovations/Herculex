@@ -57,7 +57,9 @@ Sources: decisions D-01..D-13 from `23-CONTEXT.md`; Open Questions and defaults 
 
 ### S1 layout (top to bottom, single scroll column, gutter `HxSpace.x5`, gap between cards `HxSpace.x4`)
 
-1. **Goal header card** (`HxCard`, no accent): goal style (Heading), line "Target {n}% body fat · started {date}" (Body), If the goal is archived (opened from S5) show neutral pill "Archived" and hide every action.
+**Focal point:** the active phase card; the 24px phase name and its progress bar draw the eye first, and when the advance prompt is visible its tinted block with the single filled "Move to {Phase}" button becomes the second stop, directly below.
+
+1. **Goal header card** (`HxCard`, no accent): goal style (Heading), line "Target {n}% body fat · started {date}" (Body), If the goal is archived show neutral pill "Archived" and hide every action. S5 opens S1 in this mode by closing the sheet and pushing `AppPaths.dreamPhysiqueProgress(goalId)` (`/dream-physique/progress?goalId={id}`); the `goalId` parameter is optional and its absence means the active goal.
 2. **Restriction notice** (only when `PhaseEligibility` restricts): inline tinted block, see Guardrail UI.
 3. **Active phase card** (`HxCard`, `accent: domainNutrition`), PHYS-05:
    - Row: phase icon chip + phase name in Display (24) + right-aligned Label "Phase {i} of {n}".
@@ -126,7 +128,7 @@ Low-confidence restriction applies to roadmap generation and the deep-link prese
 - Delete is immediate within the draft (non-destructive until accepted) and shows SnackBar "Phase removed" with action "Undo". Removing the last remaining phase is blocked: delete button disabled on a single row.
 - Below the list: `OutlinedButton` "Add phase" opens a picker row of five `HxPill`s (`DietPhase` labels); restricted ones disabled. Below that `TextButton` "Reset to suggestion" (confirm dialog).
 - Each row shows the derived tempo as a Label ("About 0.5 kg per week") and, when `PhysiqueTempoPolicy` capped the preset, an extra Label "Paced to a safe weekly rate" in `secondary`.
-- Dirty-dismiss: dragging the sheet down with unsaved edits asks "Discard changes?" (Keep editing / Discard).
+- Dirty-dismiss: dragging the sheet down with unsaved edits asks "Discard changes?" (Keep editing / Discard changes).
 
 ### Add check-in (S3, PHYS-02/06/07)
 
@@ -143,7 +145,7 @@ Zero faces found while blur requested: dialog (S6) with three actions, never cla
 
 ### 7-day cap (PHYS-06, D-13)
 
-- Entry button on S1: when eligible `FilledButton` "Add check-in" (primary accent). When capped: the button is **disabled** (`onPressed: null`) with label "Next check-in available {EEE, MMM d}" and a `Icons.schedule_rounded` leading icon. Disabled style = theme default; text must still reach 4.5:1 against its fill (do not rely on theme disabled alpha: set `foregroundColor: onSurfaceVariant`, `backgroundColor: surfaceVariant`).
+- Entry button on S1: when eligible `FilledButton` "Add check-in" (primary accent); while the advance prompt is visible, "Add check-in" is downgraded to `OutlinedButton` so "Move to {Phase}" is the only filled button. When capped: the button is **disabled** (`onPressed: null`) with label "Next check-in available {EEE, MMM d}" and a `Icons.schedule_rounded` leading icon. Disabled style = theme default; text must still reach 4.5:1 against its fill (do not rely on theme disabled alpha: set `foregroundColor: onSurfaceVariant`, `backgroundColor: surfaceVariant`).
 - The same date is exposed as `Semantics(label: 'Check-in locked until {full date}')`.
 - While a submit is in flight the button is disabled and shows the processing label (prevents double-submit).
 - If the repository throws `CheckInTooSoonException` anyway (two devices, race), close any open sheet, show SnackBar with the cap-error copy and refresh the card. Never swallow it.
@@ -187,7 +189,6 @@ Declared values (all multiples of 4) map to existing `HxSpace` tokens; do not in
 | `HxSpace.x5` | 20 | Card padding (`HxCard` default), screen gutter (`HxScreenShell` default) |
 | `HxSpace.x6` (lg) | 24 | Gap between major groups inside a card, section breaks |
 | `HxSpace.x8` (xl) | 32 | Space above first card under the floating header, empty-state vertical padding |
-| `HxSpace.x10` | 40 | Empty-state illustration block only |
 
 2xl (48) and 3xl (64) from the generic scale are not used in this phase; do not add tokens for them.
 
@@ -227,7 +228,7 @@ All values are tokens from `HxColors`; hex shown for the default Classic Blue th
 | Destructive | `danger` | #FF453A / #C7261C | Destructive dialog confirm buttons only |
 
 Accent reserved for (explicit, exhaustive):
-1. The single filled primary `FilledButton` visible per state: "Add check-in", "Move to {Phase}", "Accept roadmap"/"Save roadmap", "Analyze my progress", "Start new goal".
+1. The single filled primary `FilledButton` visible per state (when the advance prompt shows, "Move to {Phase}" is the filled primary and "Add check-in" renders as `OutlinedButton`): "Add check-in", "Move to {Phase}", "Accept roadmap"/"Save roadmap", "Analyze my progress", "Start new goal".
 2. The selected segment of the `1M / 3M / All` `HxTopTabs`.
 3. The selected `HxPill` states (pose picker, lift selector, phase picker).
 4. The "Current" node ring in the roadmap timeline.
@@ -296,11 +297,11 @@ Voice: plain, supportive, second person, sentence case, no exclamation marks, no
 | Action | Confirmation |
 |--------|--------------|
 | Start new goal (archives current) | Dialog "Start a new goal?" / "Your current goal, check-ins and photos move to Past goals. You can still view them." / buttons `TextButton` "Keep current goal", `FilledButton` "Start new goal" (primary accent, NOT danger: it is reversible in that nothing is deleted) |
-| Delete check-in | Dialog "Delete this check-in?" / "The photo is removed from your device. Your next check-in date won't change." / `TextButton` "Cancel", `FilledButton` "Delete" in `danger` |
+| Delete check-in | Dialog "Delete this check-in?" / "The photo is removed from your device. Your next check-in date won't change." / `TextButton` "Keep check-in", `FilledButton` "Delete check-in" in `danger` |
 | Reset roadmap to suggestion | Dialog "Reset your roadmap?" / "Your edits will be replaced by the suggested plan." / `TextButton` "Keep my edits", `FilledButton` "Reset roadmap" (primary) |
 | Delete phase (draft) | No confirmation; SnackBar "Phase removed" with "Undo" |
-| Blur requested but zero faces found | Dialog "No face found" / "We couldn't find a face to blur, so this photo isn't blurred. Save it as is, or retake it." / `TextButton` "Retake", `FilledButton` "Save without blur". |
-| Discard unsaved roadmap edits | Dialog "Discard changes?" / `TextButton` "Keep editing", `FilledButton` "Discard" in `danger` |
+| Blur requested but zero faces found | Dialog "No face found" / "We couldn't find a face to blur, so this photo isn't blurred. Save it as is, or retake it." / `TextButton` "Retake photo", `FilledButton` "Save without blur". |
+| Discard unsaved roadmap edits | Dialog "Discard changes?" / `TextButton` "Keep editing", `FilledButton` "Discard changes" in `danger` |
 
 ---
 
