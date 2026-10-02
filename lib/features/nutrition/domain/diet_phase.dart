@@ -1,3 +1,5 @@
+import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
+
 /// The dieting phase a set of daily targets is written for (§5).
 ///
 /// Picking a phase in the target editor rewrites the numbers rather than just
@@ -194,6 +196,8 @@ class DietPhaseCalculator {
   /// [weeklyRateKg] allows explicit kg/week pacing (e.g. 0.5 kg/w = 500 kcal).
   /// [calorieDeltaOverride] allows explicit kcal adjustment (e.g. -500, +150).
   /// [minProteinG] and [minCaloriesKcal] enforce lower bounds for protein and calorie targets.
+  /// [eligibility] clamps the calorie delta for restricted members (under 18,
+  /// unknown age, low-confidence assessment); null leaves behaviour unchanged.
   static PhaseTargets apply({
     required DietPhase phase,
     required int baselineKcal,
@@ -203,6 +207,7 @@ class DietPhaseCalculator {
     int? calorieDeltaOverride,
     int? minProteinG,
     int? minCaloriesKcal,
+    PhaseEligibility? eligibility,
   }) {
     int delta = 0;
     if (calorieDeltaOverride != null) {
@@ -226,6 +231,8 @@ class DietPhaseCalculator {
         DietPhase.bulk => (baselineKcal * (defaultBulkPct / 100)).round(),
       };
     }
+
+    if (eligibility != null) delta = eligibility.clampDelta(phase, delta);
 
     var kcal = (baselineKcal + delta).clamp(0, 20000);
     if (minCaloriesKcal != null && minCaloriesKcal > 0) {

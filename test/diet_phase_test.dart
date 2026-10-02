@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
+import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
 
 void main() {
   group('DietPhase', () {
@@ -204,6 +205,53 @@ void main() {
         minCaloriesKcal: 1750,
       );
       expect(t.kcal, 1750);
+    });
+  });
+
+  group('DietPhaseCalculator.apply eligibility', () {
+    test('a restricted eligibility neutralises a cut delta', () {
+      final t = DietPhaseCalculator.apply(
+        phase: DietPhase.cut,
+        baselineKcal: 2500,
+        calorieDeltaOverride: -500,
+        eligibility: const PhaseEligibility(
+          allowedPhases: {DietPhase.maintain, DietPhase.recomp},
+        ),
+      );
+      expect(t.deltaKcal, 0);
+      expect(t.kcal, 2500);
+    });
+
+    test('a maingain cap limits the surplus', () {
+      final t = DietPhaseCalculator.apply(
+        phase: DietPhase.maingain,
+        baselineKcal: 2500,
+        calorieDeltaOverride: 250,
+        eligibility: const PhaseEligibility(
+          allowedPhases: {DietPhase.maingain},
+          maxMaingainDeltaKcal: 150,
+        ),
+      );
+      expect(t.deltaKcal, 150);
+    });
+
+    test('null and unrestricted eligibility leave every phase unchanged', () {
+      for (final phase in DietPhase.values) {
+        final base = DietPhaseCalculator.apply(
+          phase: phase,
+          baselineKcal: 2500,
+          bodyweightKg: 80,
+        );
+        final open = DietPhaseCalculator.apply(
+          phase: phase,
+          baselineKcal: 2500,
+          bodyweightKg: 80,
+          eligibility: const PhaseEligibility.unrestricted(),
+        );
+        expect(open.kcal, base.kcal, reason: '$phase');
+        expect(open.deltaKcal, base.deltaKcal, reason: '$phase');
+        expect(open.proteinG, base.proteinG, reason: '$phase');
+      }
     });
   });
 
