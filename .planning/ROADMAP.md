@@ -215,6 +215,50 @@ Cross-cutting constraints:
 
 **Success:** Goals and assessments persist across app restarts and sync; photos stored locally with EXIF stripped and optional blur; phased nutrition plans (`cut`, `maintain`, `recomp`, `bulk`) compute realistic tempos; underage users protected from aggressive deficits/surpluses; the progress screen names the active phase and position in the roadmap; check-ins are capped at one photo per 7 days and return a confidence-banded directional verdict rather than a false-precision percentage; bodyweight, strength, and training-level trends chart against the goal horizon.
 
+**Plans:** 0/17 plans complete
+
+Plans:
+**Wave 1**
+
+- [ ] 23-01-PLAN.md — Pure-Dart guardrails (PhaseEligibility, under-18 / missing-age / low-confidence), tempo policy, deterministic editable roadmap generator
+- [ ] 23-02-PLAN.md — Schema v47: four synced physique tables (five chores) + Supabase migration file and parity tests (written, not applied)
+- [ ] 23-03-PLAN.md — Private photo pipeline: sandbox store, EXIF-stripping sanitiser, on-device face blur (ML Kit), privacy prefs
+- [ ] 23-04-PLAN.md — gemini-analyze: physique_checkin kind, shared consent gate, per-kind quota, Dream Physique BF range + confidence
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 23-05-PLAN.md — Exit criteria + advance offer, 7-day cap policy, three-state verdict classifier, chart series builders
+- [ ] 23-06-PLAN.md — Goal and roadmap repositories (start/archive/reconcile, accept/edit/advance/postpone)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 23-07-PLAN.md — Assessment repository (transactional 7-day cap, baseline photos, soft delete) and chart-series repository
+- [ ] 23-08-PLAN.md — Dart AI service: PhysiqueCheckInBackend, check-in service/parser, Dream Physique confidence fields
+- [ ] 23-09-PLAN.md — Summary bridge, idempotent legacy migrator (summary history + progress photos), account-wipe extension
+- [ ] 23-10-PLAN.md — Progress route constants, typography helper, phase pill, restriction notice, verdict chip/range bar/block
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 23-11-PLAN.md — Application layer: providers, chart providers, goal starter, check-in flow
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 23-12-PLAN.md — Bodyweight + target band, e1RM, and training-level chart cards
+- [ ] 23-13-PLAN.md — Roadmap editor sheet, check-in history, past goals, photo thumbnail, confirmation dialogs
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 23-14-PLAN.md — Check-in sheet (blur, consent, analyse, baseline mode), camera-resume enum + main_scaffold, migration notice
+- [ ] 23-15-PLAN.md — Nutrition editor eligibility gates, DB-backed summary providers + Dream Physique save path, Profile card link
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
+- [ ] 23-16-PLAN.md — Physique progress screen (phase card, timeline, check-in card, charts) + route registration
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
+- [ ] 23-17-PLAN.md — Privacy docs, full verification gate, human checkpoints: real-device blur, Supabase v47 push, function deploy
+
 ### Phase 24: Gamification System & 15-Rank XP Ledger
 
 **Goal:** Establish an authentic, idempotent 15-tier ranking system driven by verified workout and nutrition progress without manipulative gamification.
