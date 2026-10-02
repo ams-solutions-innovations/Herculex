@@ -136,3 +136,13 @@ Both return `GuardrailSeverity.warning`-only issues (`validateKgIncrease` code
 ---
 *Phase: 22-primary-lift-strength-specialization*
 *Completed: 2026-10-02*
+
+## Self-Check: PASSED
+
+- FOUND: lib/features/programs/domain/program_guardrails.dart
+- CONFIRMED DELETED: lib/features/programs/domain/squat_specialization.dart
+- CONFIRMED DELETED: test/squat_specialization_test.dart
+- FOUND: .planning/phases/22-primary-lift-strength-specialization/22-01-SUMMARY.md
+- FOUND commit: 06600af (Task 1)
+- FOUND commit: 8c45d6d (Task 2)
+- FOUND commit: 9d51607 (docs: summary)
