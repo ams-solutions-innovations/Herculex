@@ -241,7 +241,31 @@ mixin _DialogsMixin on _BuilderStateBase {
                 icon: Icons.calendar_today_rounded,
                 isRecommended: w == 8,
                 onSelected: (selected) {
-                  setState(() => _weeks = selected);
+                  if (_useLiftSpecialization &&
+                      selected < _liftRecommendedWeeks) {
+                    final recommended = _liftRecommendedWeeks;
+                    setState(() => _weeks = recommended);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 6),
+                        content: AiBriefRejectionBanner(
+                          heading: 'Not enough time to progress safely',
+                          body:
+                              '$recommended weeks is a more realistic target '
+                              'for a ${_primaryLiftSpecialization?.currentKg.toStringAsFixed(0) ?? '0'}'
+                              '→${_targetSquatKg.toStringAsFixed(0)} kg '
+                              '${_specializationLift.label}. '
+                              "We've adjusted your block to $recommended weeks.",
+                          footer:
+                              'Block length adjusted to $recommended weeks '
+                              'to match your specialization target.',
+                        ),
+                      ),
+                    );
+                  } else {
+                    setState(() => _weeks = selected);
+                  }
                 },
               ),
           ],

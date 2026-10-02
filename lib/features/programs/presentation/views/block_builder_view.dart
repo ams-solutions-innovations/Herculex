@@ -275,6 +275,7 @@ abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
   // Implemented in step_parameters_specialization.part.dart.
   Future<bool> _showSpecializationModal(ThemeData theme);
   double? get _currentSquatKg;
+  double get _targetSquatKg;
   int get _liftRecommendedWeeks;
   PrimaryLiftSpecialization? get _primaryLiftSpecialization;
 

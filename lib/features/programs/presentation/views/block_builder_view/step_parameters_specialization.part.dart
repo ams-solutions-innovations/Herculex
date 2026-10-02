@@ -250,6 +250,7 @@ mixin _StepParametersSpecializationMixin on _BuilderStateBase {
   double? get _currentSquatKg =>
       double.tryParse(_currentSquatCtrl.text.trim().replaceAll(',', '.'));
 
+  @override
   double get _targetSquatKg =>
       double.tryParse(_targetSquatCtrl.text.trim().replaceAll(',', '.')) ?? 140;
 
