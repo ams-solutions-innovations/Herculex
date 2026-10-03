@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/features/weekly_report/domain/narrative_status.dart';
 import 'package:herculex/features/weekly_report/domain/weekly_narrative.dart';
 import 'package:herculex/features/weekly_report/domain/weekly_report_sections.dart';
@@ -289,7 +289,11 @@ void main() {
         narrative: narrative,
       );
       expect(
-        find.bySemanticsLabel('Herculex AI interpretation'),
+        find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              w.properties.label == 'Herculex AI interpretation',
+        ),
         findsOneWidget,
       );
     });
