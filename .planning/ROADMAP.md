@@ -386,7 +386,7 @@ Plans:
 
 **Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
-**Plans:** 18/20 plans executed
+**Plans:** 19/20 plans executed
 
 Plans:
 **Wave 1**
@@ -430,7 +430,7 @@ Plans:
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
-- [ ] 29-19-PLAN.md — Wave 8: phase verification, gates, traceability and open-question list
+- [x] 29-19-PLAN.md — Wave 8: phase verification, gates, traceability and open-question list
 
 **Wave 9** *(blocked on Wave 8 completion)*
 

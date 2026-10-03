@@ -3,16 +3,34 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T14:16:37.451Z"
+last_updated: "2026-10-03T14:48:53.578Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 105
+  completed_plans: 106
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 19 Completed)
+
+- Completed Plan 29-19 (verification only, no product code): full `flutter test` 2706 passed / 9 skipped
+  / 0 failed (skipped equals baseline); `flutter analyze` 0 errors (51 pre-existing warnings/infos);
+  `check_structure` 57 violations (unchanged baseline); Deno `gemini-analyze` 40 passed; all source
+  gates clean (the literal `DateTime.now` grep false-positives on `DateTime now` parameters, escaped
+  form is 0). `pubspec.*` unchanged; only one new Supabase migration file, nothing applied or deployed.
+  `29-VALIDATION.md` signed off (`nyquist_compliant` and `wave_0_complete` true; latency box left
+  unchecked, quick run measured 86 s). Traceability table in `29-19-SUMMARY.md`.
+
+- Decisions: RPT-01, RPT-02, RPT-03 un-ticked in `REQUIREMENTS.md` (plan 18 had ticked all five): they
+  still need the unapplied v48 migration, the undeployed `weekly_report` Edge kind and the on-device
+  Sunday/cold-start checks, all owned by plan 20. RPT-04 and RPT-05 stay complete. Repo-wide
+  `dart format` drift (62 files) is pre-existing and was not touched. SDK `state.*` verbs no-op on this
+  STATE.md layout; this note is hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 18 Completed)
 
