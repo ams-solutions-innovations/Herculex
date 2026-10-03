@@ -1,10 +1,24 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/app/providers.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
+import 'package:herculex/features/nutrition/data/openfoodfacts_client.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
+import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/weekly_report/application/weekly_report_tdee_actions.dart';
+import 'package:herculex/features/weekly_report/data/weekly_report_repository.dart';
+import 'package:herculex/features/weekly_report/domain/iso_week.dart';
 import 'package:herculex/features/weekly_report/domain/tdee_shift_calculator.dart';
 import 'package:herculex/features/weekly_report/domain/tdee_target_proposal.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../support/fake_clock.dart';
+import '../../support/test_database.dart';
 
 TdeeEstimateResult _est(
   int kcal, {
@@ -278,6 +292,240 @@ void main() {
         newKcal: 2700,
       );
       expect(res.status, TdeeProposalStatus.noChange);
+    });
+  });
+
+  group('TdeeDecisionActions', () {
+    late AppDatabase db;
+    late FakeClock clock;
+    late NutritionRepository nutrition;
+    late WeeklyReportRepository reports;
+    late TdeeDecisionActions actions;
+    final week = IsoWeek(2026, 40);
+
+    const proposal = TdeeTargetProposal(
+      kcal: 2540,
+      proteinG: 180,
+      carbsG: 298,
+      fatG: 70,
+      fiberG: 30,
+      appliesTo: 'global',
+    );
+
+    Future<List<NutritionTargetData>> targets() =>
+        db.select(db.nutritionTargets).get();
+
+    setUp(() async {
+      db = await openTestDatabase();
+      clock = FakeClock(DateTime(2026, 10, 1, 9));
+      nutrition = NutritionRepository(db, OpenFoodFactsClient(), clock);
+      reports = WeeklyReportRepository(db, clock);
+      actions = TdeeDecisionActions(reports, nutrition);
+      await nutrition.upsertTarget(
+        label: 'Cut',
+        appliesTo: 'global',
+        kcal: 2400,
+        proteinG: 180,
+        carbsG: 250,
+        fatG: 70,
+      );
+      await reports.insertSnapshot(
+        week: week,
+        payloadVersion: 1,
+        payloadJson: '{}',
+      );
+    });
+
+    tearDown(() => db.close());
+
+    test('update writes the target, then records the decision', () async {
+      final ok = await actions.update(
+        week: week,
+        proposal: proposal,
+        label: 'Cut',
+      );
+      expect(ok, isTrue);
+      final rows = await targets();
+      expect(rows, hasLength(1));
+      expect(rows.single.kcal, 2540);
+      expect(rows.single.carbsG, 298);
+      expect(rows.single.label, 'Cut');
+      final record = await reports.forWeek(week);
+      expect(record!.tdeeDecision, 'updated');
+      expect(record.tdeeDecisionKcal, 2540);
+    });
+
+    test('a second update is refused and writes nothing', () async {
+      await actions.update(week: week, proposal: proposal, label: 'Cut');
+      final ok = await actions.update(
+        week: week,
+        proposal: const TdeeTargetProposal(
+          kcal: 2700,
+          proteinG: 180,
+          carbsG: 350,
+          fatG: 70,
+          appliesTo: 'global',
+        ),
+        label: 'Cut',
+      );
+      expect(ok, isFalse);
+      final rows = await targets();
+      expect(rows.single.kcal, 2540);
+      expect((await reports.forWeek(week))!.tdeeDecisionKcal, 2540);
+    });
+
+    test('update after keep is refused and leaves targets alone', () async {
+      await actions.keep(week: week, currentKcal: 2400);
+      final ok = await actions.update(
+        week: week,
+        proposal: proposal,
+        label: 'Cut',
+      );
+      expect(ok, isFalse);
+      expect((await targets()).single.kcal, 2400);
+    });
+
+    test('keep records the decision and never touches targets', () async {
+      final before = await targets();
+      final ok = await actions.keep(week: week, currentKcal: 2400);
+      expect(ok, isTrue);
+      final record = await reports.forWeek(week);
+      expect(record!.tdeeDecision, 'kept');
+      expect(record.tdeeDecisionKcal, 2400);
+      final after = await targets();
+      expect(after, hasLength(1));
+      expect(after.single.kcal, before.single.kcal);
+      expect(after.single.carbsG, before.single.carbsG);
+    });
+
+    test('update without a stored report writes nothing', () async {
+      final ok = await actions.update(
+        week: IsoWeek(2026, 39),
+        proposal: proposal,
+        label: 'Cut',
+      );
+      expect(ok, isFalse);
+      expect((await targets()).single.kcal, 2400);
+    });
+
+    test('an out-of-range proposal is refused before any write', () async {
+      final ok = await actions.update(
+        week: week,
+        proposal: const TdeeTargetProposal(
+          kcal: 9000,
+          proteinG: 180,
+          carbsG: 250,
+          fatG: 70,
+          appliesTo: 'global',
+        ),
+        label: 'Cut',
+      );
+      expect(ok, isFalse);
+      expect((await targets()).single.kcal, 2400);
+    });
+  });
+
+  group('isActionableWeek', () {
+    final now = DateTime(2026, 10, 1, 9); // ISO week 40
+
+    test('the current week is actionable', () {
+      expect(isActionableWeek(IsoWeek(2026, 40), now, null), isTrue);
+    });
+
+    test('the due week is actionable', () {
+      expect(
+        isActionableWeek(IsoWeek(2026, 39), now, IsoWeek(2026, 39)),
+        isTrue,
+      );
+    });
+
+    test('any other week is not', () {
+      expect(
+        isActionableWeek(IsoWeek(2026, 38), now, IsoWeek(2026, 39)),
+        isFalse,
+      );
+      expect(isActionableWeek(IsoWeek(2026, 41), now, null), isFalse);
+    });
+  });
+
+  group('tdeeTargetProposalProvider', () {
+    late AppDatabase db;
+    late ProviderContainer container;
+
+    Future<void> build({int? floor}) async {
+      SharedPreferences.setMockInitialValues({
+        if (floor != null) 'min_targets_enabled': true,
+        if (floor != null) 'min_targets_kcal': floor,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      db = await openTestDatabase();
+      container = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          clockProvider.overrideWithValue(FakeClock(DateTime(2026, 10, 1, 9))),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          physiqueEditorEligibilityProvider.overrideWithValue(
+            const PhaseEligibility.unrestricted(),
+          ),
+        ],
+      );
+    }
+
+    tearDown(() async {
+      container.dispose();
+      await db.close();
+    });
+
+    Future<void> saveRule(int kcal) =>
+        container
+            .read(nutritionRepositoryProvider)
+            .upsertTarget(
+              label: 'Plan',
+              appliesTo: 'global',
+              kcal: kcal,
+              proteinG: 180,
+              carbsG: 250,
+              fatG: 70,
+            );
+
+    test('no saved rule -> noSavedRule', () async {
+      await build();
+      final res = await container.read(
+        tdeeTargetProposalProvider((2500, 2640)).future,
+      );
+      expect(res.status, TdeeProposalStatus.noSavedRule);
+    });
+
+    test('saved rule -> delta-preserving proposal', () async {
+      await build();
+      await saveRule(2400);
+      final res = await container.read(
+        tdeeTargetProposalProvider((2500, 2640)).future,
+      );
+      expect(res.status, TdeeProposalStatus.proposed);
+      expect(res.proposal!.kcal, 2540);
+    });
+
+    test('the minimum-calories floor from settings is applied', () async {
+      await build(floor: 2300);
+      await saveRule(2400);
+      final res = await container.read(
+        tdeeTargetProposalProvider((2500, 2360)).future,
+      );
+      expect(res.proposal!.kcal, 2300);
+    });
+
+    test('the saved label for the scope is found, with a fallback', () async {
+      await build();
+      await saveRule(2400);
+      expect(
+        await container.read(savedTargetLabelProvider('global').future),
+        'Plan',
+      );
+      expect(
+        await container.read(savedTargetLabelProvider('rest_day').future),
+        'Target',
+      );
     });
   });
 }
