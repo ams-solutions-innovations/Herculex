@@ -455,7 +455,7 @@ void main() {
     Future<void> build({int? floor}) async {
       SharedPreferences.setMockInitialValues({
         if (floor != null) 'min_targets_enabled': true,
-        if (floor != null) 'min_targets_kcal': floor,
+        'min_targets_kcal': ?floor,
       });
       final prefs = await SharedPreferences.getInstance();
       db = await openTestDatabase();
@@ -476,17 +476,16 @@ void main() {
       await db.close();
     });
 
-    Future<void> saveRule(int kcal) =>
-        container
-            .read(nutritionRepositoryProvider)
-            .upsertTarget(
-              label: 'Plan',
-              appliesTo: 'global',
-              kcal: kcal,
-              proteinG: 180,
-              carbsG: 250,
-              fatG: 70,
-            );
+    Future<void> saveRule(int kcal) => container
+        .read(nutritionRepositoryProvider)
+        .upsertTarget(
+          label: 'Plan',
+          appliesTo: 'global',
+          kcal: kcal,
+          proteinG: 180,
+          carbsG: 250,
+          fatG: 70,
+        );
 
     test('no saved rule -> noSavedRule', () async {
       await build();
