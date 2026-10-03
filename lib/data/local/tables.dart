@@ -1644,3 +1644,38 @@ class BuddyChoreographySlots extends Table {
   @override
   Set<Column> get primaryKey => {buddySessionId, slotId};
 }
+
+// ── Phase 29: weekly report (v48) ──────────────────────────────────────────
+
+/// One weekly report per ISO week. [payloadJson] is the immutable measured
+/// snapshot (D-01) and is never updated after insert; [narrativeJson] and
+/// [tdeeDecision] are write-once (D-02, D-11). The row holds aggregated health
+/// data (GDPR Art. 9), so account deletion must clear it.
+///
+/// The local unique key is (iso_year, iso_week). No remote unique constraint
+/// exists (see the Supabase migration plan), so two devices can still produce
+/// a duplicate that only meets on pull.
+@DataClassName('WeeklyReportData')
+class WeeklyReports extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get isoYear => integer()();
+  IntColumn get isoWeek => integer()();
+  TextColumn get weekStartIso => text()(); // Monday, yyyy-MM-dd
+  DateTimeColumn get generatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  IntColumn get payloadVersion => integer().withDefault(const Constant(1))();
+  TextColumn get payloadJson => text()(); // immutable measured snapshot
+  TextColumn get narrativeJson => text().nullable()(); // write-once
+  IntColumn get narrativeAttempts =>
+      integer().withDefault(const Constant(0))();
+  TextColumn get knowledgeVersion => text().nullable()();
+  TextColumn get modelVersion => text().nullable()();
+  TextColumn get tdeeDecision => text().nullable()(); // updated | kept
+  IntColumn get tdeeDecisionKcal => integer().nullable()();
+  DateTimeColumn get viewedAt => dateTime().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {isoYear, isoWeek},
+  ];
+}

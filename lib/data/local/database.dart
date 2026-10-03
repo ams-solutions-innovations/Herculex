@@ -97,6 +97,8 @@ part 'database.g.dart';
     PhysiqueAssessments,
     PhysiqueRoadmapPhases,
     PhysiquePhotos,
+    // Weekly report (v48)
+    WeeklyReports,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -106,7 +108,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 47;
+  int get schemaVersion => 48;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1252,6 +1254,25 @@ class AppDatabase extends _$AppDatabase {
             'ON ${entry.key}(sync_uuid)',
           );
         }
+        await installSyncTriggers(this);
+      }
+      if (from < 48 && to >= 48) {
+        // Phase 29: weekly report. Synced, so it needs the same sync_uuid
+        // unique index and outbox triggers as every other synced table (same
+        // idiom as the v45 block). The sqlite_master guard exists because
+        // fixtures sit on both sides of a step and createTable on an
+        // existing table throws.
+        final exists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'weekly_reports'",
+        ).getSingleOrNull();
+        if (exists == null) {
+          await m.createTable(weeklyReports);
+        }
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_weekly_reports '
+          'ON weekly_reports(sync_uuid)',
+        );
         await installSyncTriggers(this);
       }
     },

@@ -59,6 +59,7 @@ const List<String> syncedTableNames = [
   'physique_assessments',
   'physique_roadmap_phases',
   'physique_photos',
+  'weekly_reports',
 ];
 
 /// Catalogue tables whose sync trigger must only fire for `is_custom = 1`

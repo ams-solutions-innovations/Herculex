@@ -163,4 +163,7 @@ const _fullyClearedTables = [
   // Found while editing this list: synced user tables the wipe was missing.
   'tdee_estimates',
   'herculex_ai_program_briefs',
+  // Weekly reports hold aggregated health data (GDPR Art. 9); account
+  // deletion must clear them.
+  'weekly_reports',
 ];

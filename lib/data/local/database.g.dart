@@ -48051,6 +48051,1055 @@ class PhysiquePhotosCompanion extends UpdateCompanion<PhysiquePhotoData> {
   }
 }
 
+class $WeeklyReportsTable extends WeeklyReports
+    with TableInfo<$WeeklyReportsTable, WeeklyReportData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WeeklyReportsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => const Uuid().v4(),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => DateTime.now(),
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _isoYearMeta = const VerificationMeta(
+    'isoYear',
+  );
+  @override
+  late final GeneratedColumn<int> isoYear = GeneratedColumn<int>(
+    'iso_year',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isoWeekMeta = const VerificationMeta(
+    'isoWeek',
+  );
+  @override
+  late final GeneratedColumn<int> isoWeek = GeneratedColumn<int>(
+    'iso_week',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _weekStartIsoMeta = const VerificationMeta(
+    'weekStartIso',
+  );
+  @override
+  late final GeneratedColumn<String> weekStartIso = GeneratedColumn<String>(
+    'week_start_iso',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generatedAtMeta = const VerificationMeta(
+    'generatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> generatedAt = GeneratedColumn<DateTime>(
+    'generated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _payloadVersionMeta = const VerificationMeta(
+    'payloadVersion',
+  );
+  @override
+  late final GeneratedColumn<int> payloadVersion = GeneratedColumn<int>(
+    'payload_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _narrativeJsonMeta = const VerificationMeta(
+    'narrativeJson',
+  );
+  @override
+  late final GeneratedColumn<String> narrativeJson = GeneratedColumn<String>(
+    'narrative_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _narrativeAttemptsMeta = const VerificationMeta(
+    'narrativeAttempts',
+  );
+  @override
+  late final GeneratedColumn<int> narrativeAttempts = GeneratedColumn<int>(
+    'narrative_attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _knowledgeVersionMeta = const VerificationMeta(
+    'knowledgeVersion',
+  );
+  @override
+  late final GeneratedColumn<String> knowledgeVersion = GeneratedColumn<String>(
+    'knowledge_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _modelVersionMeta = const VerificationMeta(
+    'modelVersion',
+  );
+  @override
+  late final GeneratedColumn<String> modelVersion = GeneratedColumn<String>(
+    'model_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tdeeDecisionMeta = const VerificationMeta(
+    'tdeeDecision',
+  );
+  @override
+  late final GeneratedColumn<String> tdeeDecision = GeneratedColumn<String>(
+    'tdee_decision',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tdeeDecisionKcalMeta = const VerificationMeta(
+    'tdeeDecisionKcal',
+  );
+  @override
+  late final GeneratedColumn<int> tdeeDecisionKcal = GeneratedColumn<int>(
+    'tdee_decision_kcal',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _viewedAtMeta = const VerificationMeta(
+    'viewedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> viewedAt = GeneratedColumn<DateTime>(
+    'viewed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    isoYear,
+    isoWeek,
+    weekStartIso,
+    generatedAt,
+    payloadVersion,
+    payloadJson,
+    narrativeJson,
+    narrativeAttempts,
+    knowledgeVersion,
+    modelVersion,
+    tdeeDecision,
+    tdeeDecisionKcal,
+    viewedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'weekly_reports';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WeeklyReportData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('iso_year')) {
+      context.handle(
+        _isoYearMeta,
+        isoYear.isAcceptableOrUnknown(data['iso_year']!, _isoYearMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_isoYearMeta);
+    }
+    if (data.containsKey('iso_week')) {
+      context.handle(
+        _isoWeekMeta,
+        isoWeek.isAcceptableOrUnknown(data['iso_week']!, _isoWeekMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_isoWeekMeta);
+    }
+    if (data.containsKey('week_start_iso')) {
+      context.handle(
+        _weekStartIsoMeta,
+        weekStartIso.isAcceptableOrUnknown(
+          data['week_start_iso']!,
+          _weekStartIsoMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_weekStartIsoMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+        _generatedAtMeta,
+        generatedAt.isAcceptableOrUnknown(
+          data['generated_at']!,
+          _generatedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload_version')) {
+      context.handle(
+        _payloadVersionMeta,
+        payloadVersion.isAcceptableOrUnknown(
+          data['payload_version']!,
+          _payloadVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('narrative_json')) {
+      context.handle(
+        _narrativeJsonMeta,
+        narrativeJson.isAcceptableOrUnknown(
+          data['narrative_json']!,
+          _narrativeJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('narrative_attempts')) {
+      context.handle(
+        _narrativeAttemptsMeta,
+        narrativeAttempts.isAcceptableOrUnknown(
+          data['narrative_attempts']!,
+          _narrativeAttemptsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('knowledge_version')) {
+      context.handle(
+        _knowledgeVersionMeta,
+        knowledgeVersion.isAcceptableOrUnknown(
+          data['knowledge_version']!,
+          _knowledgeVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('model_version')) {
+      context.handle(
+        _modelVersionMeta,
+        modelVersion.isAcceptableOrUnknown(
+          data['model_version']!,
+          _modelVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('tdee_decision')) {
+      context.handle(
+        _tdeeDecisionMeta,
+        tdeeDecision.isAcceptableOrUnknown(
+          data['tdee_decision']!,
+          _tdeeDecisionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('tdee_decision_kcal')) {
+      context.handle(
+        _tdeeDecisionKcalMeta,
+        tdeeDecisionKcal.isAcceptableOrUnknown(
+          data['tdee_decision_kcal']!,
+          _tdeeDecisionKcalMeta,
+        ),
+      );
+    }
+    if (data.containsKey('viewed_at')) {
+      context.handle(
+        _viewedAtMeta,
+        viewedAt.isAcceptableOrUnknown(data['viewed_at']!, _viewedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {isoYear, isoWeek},
+  ];
+  @override
+  WeeklyReportData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WeeklyReportData(
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      isoYear: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}iso_year'],
+      )!,
+      isoWeek: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}iso_week'],
+      )!,
+      weekStartIso: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}week_start_iso'],
+      )!,
+      generatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}generated_at'],
+      )!,
+      payloadVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payload_version'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      narrativeJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}narrative_json'],
+      ),
+      narrativeAttempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}narrative_attempts'],
+      )!,
+      knowledgeVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}knowledge_version'],
+      ),
+      modelVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_version'],
+      ),
+      tdeeDecision: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tdee_decision'],
+      ),
+      tdeeDecisionKcal: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tdee_decision_kcal'],
+      ),
+      viewedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}viewed_at'],
+      ),
+    );
+  }
+
+  @override
+  $WeeklyReportsTable createAlias(String alias) {
+    return $WeeklyReportsTable(attachedDatabase, alias);
+  }
+}
+
+class WeeklyReportData extends DataClass
+    implements Insertable<WeeklyReportData> {
+  final String? syncUuid;
+  final DateTime? updatedAt;
+  final DateTime? syncedAt;
+  final DateTime? deletedAt;
+  final int id;
+  final int isoYear;
+  final int isoWeek;
+  final String weekStartIso;
+  final DateTime generatedAt;
+  final int payloadVersion;
+  final String payloadJson;
+  final String? narrativeJson;
+  final int narrativeAttempts;
+  final String? knowledgeVersion;
+  final String? modelVersion;
+  final String? tdeeDecision;
+  final int? tdeeDecisionKcal;
+  final DateTime? viewedAt;
+  const WeeklyReportData({
+    this.syncUuid,
+    this.updatedAt,
+    this.syncedAt,
+    this.deletedAt,
+    required this.id,
+    required this.isoYear,
+    required this.isoWeek,
+    required this.weekStartIso,
+    required this.generatedAt,
+    required this.payloadVersion,
+    required this.payloadJson,
+    this.narrativeJson,
+    required this.narrativeAttempts,
+    this.knowledgeVersion,
+    this.modelVersion,
+    this.tdeeDecision,
+    this.tdeeDecisionKcal,
+    this.viewedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<int>(id);
+    map['iso_year'] = Variable<int>(isoYear);
+    map['iso_week'] = Variable<int>(isoWeek);
+    map['week_start_iso'] = Variable<String>(weekStartIso);
+    map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['payload_version'] = Variable<int>(payloadVersion);
+    map['payload_json'] = Variable<String>(payloadJson);
+    if (!nullToAbsent || narrativeJson != null) {
+      map['narrative_json'] = Variable<String>(narrativeJson);
+    }
+    map['narrative_attempts'] = Variable<int>(narrativeAttempts);
+    if (!nullToAbsent || knowledgeVersion != null) {
+      map['knowledge_version'] = Variable<String>(knowledgeVersion);
+    }
+    if (!nullToAbsent || modelVersion != null) {
+      map['model_version'] = Variable<String>(modelVersion);
+    }
+    if (!nullToAbsent || tdeeDecision != null) {
+      map['tdee_decision'] = Variable<String>(tdeeDecision);
+    }
+    if (!nullToAbsent || tdeeDecisionKcal != null) {
+      map['tdee_decision_kcal'] = Variable<int>(tdeeDecisionKcal);
+    }
+    if (!nullToAbsent || viewedAt != null) {
+      map['viewed_at'] = Variable<DateTime>(viewedAt);
+    }
+    return map;
+  }
+
+  WeeklyReportsCompanion toCompanion(bool nullToAbsent) {
+    return WeeklyReportsCompanion(
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      isoYear: Value(isoYear),
+      isoWeek: Value(isoWeek),
+      weekStartIso: Value(weekStartIso),
+      generatedAt: Value(generatedAt),
+      payloadVersion: Value(payloadVersion),
+      payloadJson: Value(payloadJson),
+      narrativeJson: narrativeJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(narrativeJson),
+      narrativeAttempts: Value(narrativeAttempts),
+      knowledgeVersion: knowledgeVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(knowledgeVersion),
+      modelVersion: modelVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelVersion),
+      tdeeDecision: tdeeDecision == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tdeeDecision),
+      tdeeDecisionKcal: tdeeDecisionKcal == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tdeeDecisionKcal),
+      viewedAt: viewedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(viewedAt),
+    );
+  }
+
+  factory WeeklyReportData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WeeklyReportData(
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<int>(json['id']),
+      isoYear: serializer.fromJson<int>(json['isoYear']),
+      isoWeek: serializer.fromJson<int>(json['isoWeek']),
+      weekStartIso: serializer.fromJson<String>(json['weekStartIso']),
+      generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      payloadVersion: serializer.fromJson<int>(json['payloadVersion']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      narrativeJson: serializer.fromJson<String?>(json['narrativeJson']),
+      narrativeAttempts: serializer.fromJson<int>(json['narrativeAttempts']),
+      knowledgeVersion: serializer.fromJson<String?>(json['knowledgeVersion']),
+      modelVersion: serializer.fromJson<String?>(json['modelVersion']),
+      tdeeDecision: serializer.fromJson<String?>(json['tdeeDecision']),
+      tdeeDecisionKcal: serializer.fromJson<int?>(json['tdeeDecisionKcal']),
+      viewedAt: serializer.fromJson<DateTime?>(json['viewedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<int>(id),
+      'isoYear': serializer.toJson<int>(isoYear),
+      'isoWeek': serializer.toJson<int>(isoWeek),
+      'weekStartIso': serializer.toJson<String>(weekStartIso),
+      'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'payloadVersion': serializer.toJson<int>(payloadVersion),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'narrativeJson': serializer.toJson<String?>(narrativeJson),
+      'narrativeAttempts': serializer.toJson<int>(narrativeAttempts),
+      'knowledgeVersion': serializer.toJson<String?>(knowledgeVersion),
+      'modelVersion': serializer.toJson<String?>(modelVersion),
+      'tdeeDecision': serializer.toJson<String?>(tdeeDecision),
+      'tdeeDecisionKcal': serializer.toJson<int?>(tdeeDecisionKcal),
+      'viewedAt': serializer.toJson<DateTime?>(viewedAt),
+    };
+  }
+
+  WeeklyReportData copyWith({
+    Value<String?> syncUuid = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    int? id,
+    int? isoYear,
+    int? isoWeek,
+    String? weekStartIso,
+    DateTime? generatedAt,
+    int? payloadVersion,
+    String? payloadJson,
+    Value<String?> narrativeJson = const Value.absent(),
+    int? narrativeAttempts,
+    Value<String?> knowledgeVersion = const Value.absent(),
+    Value<String?> modelVersion = const Value.absent(),
+    Value<String?> tdeeDecision = const Value.absent(),
+    Value<int?> tdeeDecisionKcal = const Value.absent(),
+    Value<DateTime?> viewedAt = const Value.absent(),
+  }) => WeeklyReportData(
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    isoYear: isoYear ?? this.isoYear,
+    isoWeek: isoWeek ?? this.isoWeek,
+    weekStartIso: weekStartIso ?? this.weekStartIso,
+    generatedAt: generatedAt ?? this.generatedAt,
+    payloadVersion: payloadVersion ?? this.payloadVersion,
+    payloadJson: payloadJson ?? this.payloadJson,
+    narrativeJson: narrativeJson.present
+        ? narrativeJson.value
+        : this.narrativeJson,
+    narrativeAttempts: narrativeAttempts ?? this.narrativeAttempts,
+    knowledgeVersion: knowledgeVersion.present
+        ? knowledgeVersion.value
+        : this.knowledgeVersion,
+    modelVersion: modelVersion.present ? modelVersion.value : this.modelVersion,
+    tdeeDecision: tdeeDecision.present ? tdeeDecision.value : this.tdeeDecision,
+    tdeeDecisionKcal: tdeeDecisionKcal.present
+        ? tdeeDecisionKcal.value
+        : this.tdeeDecisionKcal,
+    viewedAt: viewedAt.present ? viewedAt.value : this.viewedAt,
+  );
+  WeeklyReportData copyWithCompanion(WeeklyReportsCompanion data) {
+    return WeeklyReportData(
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      isoYear: data.isoYear.present ? data.isoYear.value : this.isoYear,
+      isoWeek: data.isoWeek.present ? data.isoWeek.value : this.isoWeek,
+      weekStartIso: data.weekStartIso.present
+          ? data.weekStartIso.value
+          : this.weekStartIso,
+      generatedAt: data.generatedAt.present
+          ? data.generatedAt.value
+          : this.generatedAt,
+      payloadVersion: data.payloadVersion.present
+          ? data.payloadVersion.value
+          : this.payloadVersion,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      narrativeJson: data.narrativeJson.present
+          ? data.narrativeJson.value
+          : this.narrativeJson,
+      narrativeAttempts: data.narrativeAttempts.present
+          ? data.narrativeAttempts.value
+          : this.narrativeAttempts,
+      knowledgeVersion: data.knowledgeVersion.present
+          ? data.knowledgeVersion.value
+          : this.knowledgeVersion,
+      modelVersion: data.modelVersion.present
+          ? data.modelVersion.value
+          : this.modelVersion,
+      tdeeDecision: data.tdeeDecision.present
+          ? data.tdeeDecision.value
+          : this.tdeeDecision,
+      tdeeDecisionKcal: data.tdeeDecisionKcal.present
+          ? data.tdeeDecisionKcal.value
+          : this.tdeeDecisionKcal,
+      viewedAt: data.viewedAt.present ? data.viewedAt.value : this.viewedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyReportData(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('isoYear: $isoYear, ')
+          ..write('isoWeek: $isoWeek, ')
+          ..write('weekStartIso: $weekStartIso, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('payloadVersion: $payloadVersion, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('narrativeJson: $narrativeJson, ')
+          ..write('narrativeAttempts: $narrativeAttempts, ')
+          ..write('knowledgeVersion: $knowledgeVersion, ')
+          ..write('modelVersion: $modelVersion, ')
+          ..write('tdeeDecision: $tdeeDecision, ')
+          ..write('tdeeDecisionKcal: $tdeeDecisionKcal, ')
+          ..write('viewedAt: $viewedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    syncUuid,
+    updatedAt,
+    syncedAt,
+    deletedAt,
+    id,
+    isoYear,
+    isoWeek,
+    weekStartIso,
+    generatedAt,
+    payloadVersion,
+    payloadJson,
+    narrativeJson,
+    narrativeAttempts,
+    knowledgeVersion,
+    modelVersion,
+    tdeeDecision,
+    tdeeDecisionKcal,
+    viewedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WeeklyReportData &&
+          other.syncUuid == this.syncUuid &&
+          other.updatedAt == this.updatedAt &&
+          other.syncedAt == this.syncedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.isoYear == this.isoYear &&
+          other.isoWeek == this.isoWeek &&
+          other.weekStartIso == this.weekStartIso &&
+          other.generatedAt == this.generatedAt &&
+          other.payloadVersion == this.payloadVersion &&
+          other.payloadJson == this.payloadJson &&
+          other.narrativeJson == this.narrativeJson &&
+          other.narrativeAttempts == this.narrativeAttempts &&
+          other.knowledgeVersion == this.knowledgeVersion &&
+          other.modelVersion == this.modelVersion &&
+          other.tdeeDecision == this.tdeeDecision &&
+          other.tdeeDecisionKcal == this.tdeeDecisionKcal &&
+          other.viewedAt == this.viewedAt);
+}
+
+class WeeklyReportsCompanion extends UpdateCompanion<WeeklyReportData> {
+  final Value<String?> syncUuid;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> syncedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> id;
+  final Value<int> isoYear;
+  final Value<int> isoWeek;
+  final Value<String> weekStartIso;
+  final Value<DateTime> generatedAt;
+  final Value<int> payloadVersion;
+  final Value<String> payloadJson;
+  final Value<String?> narrativeJson;
+  final Value<int> narrativeAttempts;
+  final Value<String?> knowledgeVersion;
+  final Value<String?> modelVersion;
+  final Value<String?> tdeeDecision;
+  final Value<int?> tdeeDecisionKcal;
+  final Value<DateTime?> viewedAt;
+  const WeeklyReportsCompanion({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.isoYear = const Value.absent(),
+    this.isoWeek = const Value.absent(),
+    this.weekStartIso = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.payloadVersion = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.narrativeJson = const Value.absent(),
+    this.narrativeAttempts = const Value.absent(),
+    this.knowledgeVersion = const Value.absent(),
+    this.modelVersion = const Value.absent(),
+    this.tdeeDecision = const Value.absent(),
+    this.tdeeDecisionKcal = const Value.absent(),
+    this.viewedAt = const Value.absent(),
+  });
+  WeeklyReportsCompanion.insert({
+    this.syncUuid = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    required int isoYear,
+    required int isoWeek,
+    required String weekStartIso,
+    this.generatedAt = const Value.absent(),
+    this.payloadVersion = const Value.absent(),
+    required String payloadJson,
+    this.narrativeJson = const Value.absent(),
+    this.narrativeAttempts = const Value.absent(),
+    this.knowledgeVersion = const Value.absent(),
+    this.modelVersion = const Value.absent(),
+    this.tdeeDecision = const Value.absent(),
+    this.tdeeDecisionKcal = const Value.absent(),
+    this.viewedAt = const Value.absent(),
+  }) : isoYear = Value(isoYear),
+       isoWeek = Value(isoWeek),
+       weekStartIso = Value(weekStartIso),
+       payloadJson = Value(payloadJson);
+  static Insertable<WeeklyReportData> custom({
+    Expression<String>? syncUuid,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? syncedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? id,
+    Expression<int>? isoYear,
+    Expression<int>? isoWeek,
+    Expression<String>? weekStartIso,
+    Expression<DateTime>? generatedAt,
+    Expression<int>? payloadVersion,
+    Expression<String>? payloadJson,
+    Expression<String>? narrativeJson,
+    Expression<int>? narrativeAttempts,
+    Expression<String>? knowledgeVersion,
+    Expression<String>? modelVersion,
+    Expression<String>? tdeeDecision,
+    Expression<int>? tdeeDecisionKcal,
+    Expression<DateTime>? viewedAt,
+  }) {
+    return RawValuesInsertable({
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (isoYear != null) 'iso_year': isoYear,
+      if (isoWeek != null) 'iso_week': isoWeek,
+      if (weekStartIso != null) 'week_start_iso': weekStartIso,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (payloadVersion != null) 'payload_version': payloadVersion,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (narrativeJson != null) 'narrative_json': narrativeJson,
+      if (narrativeAttempts != null) 'narrative_attempts': narrativeAttempts,
+      if (knowledgeVersion != null) 'knowledge_version': knowledgeVersion,
+      if (modelVersion != null) 'model_version': modelVersion,
+      if (tdeeDecision != null) 'tdee_decision': tdeeDecision,
+      if (tdeeDecisionKcal != null) 'tdee_decision_kcal': tdeeDecisionKcal,
+      if (viewedAt != null) 'viewed_at': viewedAt,
+    });
+  }
+
+  WeeklyReportsCompanion copyWith({
+    Value<String?>? syncUuid,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? syncedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? id,
+    Value<int>? isoYear,
+    Value<int>? isoWeek,
+    Value<String>? weekStartIso,
+    Value<DateTime>? generatedAt,
+    Value<int>? payloadVersion,
+    Value<String>? payloadJson,
+    Value<String?>? narrativeJson,
+    Value<int>? narrativeAttempts,
+    Value<String?>? knowledgeVersion,
+    Value<String?>? modelVersion,
+    Value<String?>? tdeeDecision,
+    Value<int?>? tdeeDecisionKcal,
+    Value<DateTime?>? viewedAt,
+  }) {
+    return WeeklyReportsCompanion(
+      syncUuid: syncUuid ?? this.syncUuid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncedAt: syncedAt ?? this.syncedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      isoYear: isoYear ?? this.isoYear,
+      isoWeek: isoWeek ?? this.isoWeek,
+      weekStartIso: weekStartIso ?? this.weekStartIso,
+      generatedAt: generatedAt ?? this.generatedAt,
+      payloadVersion: payloadVersion ?? this.payloadVersion,
+      payloadJson: payloadJson ?? this.payloadJson,
+      narrativeJson: narrativeJson ?? this.narrativeJson,
+      narrativeAttempts: narrativeAttempts ?? this.narrativeAttempts,
+      knowledgeVersion: knowledgeVersion ?? this.knowledgeVersion,
+      modelVersion: modelVersion ?? this.modelVersion,
+      tdeeDecision: tdeeDecision ?? this.tdeeDecision,
+      tdeeDecisionKcal: tdeeDecisionKcal ?? this.tdeeDecisionKcal,
+      viewedAt: viewedAt ?? this.viewedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (isoYear.present) {
+      map['iso_year'] = Variable<int>(isoYear.value);
+    }
+    if (isoWeek.present) {
+      map['iso_week'] = Variable<int>(isoWeek.value);
+    }
+    if (weekStartIso.present) {
+      map['week_start_iso'] = Variable<String>(weekStartIso.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<DateTime>(generatedAt.value);
+    }
+    if (payloadVersion.present) {
+      map['payload_version'] = Variable<int>(payloadVersion.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (narrativeJson.present) {
+      map['narrative_json'] = Variable<String>(narrativeJson.value);
+    }
+    if (narrativeAttempts.present) {
+      map['narrative_attempts'] = Variable<int>(narrativeAttempts.value);
+    }
+    if (knowledgeVersion.present) {
+      map['knowledge_version'] = Variable<String>(knowledgeVersion.value);
+    }
+    if (modelVersion.present) {
+      map['model_version'] = Variable<String>(modelVersion.value);
+    }
+    if (tdeeDecision.present) {
+      map['tdee_decision'] = Variable<String>(tdeeDecision.value);
+    }
+    if (tdeeDecisionKcal.present) {
+      map['tdee_decision_kcal'] = Variable<int>(tdeeDecisionKcal.value);
+    }
+    if (viewedAt.present) {
+      map['viewed_at'] = Variable<DateTime>(viewedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WeeklyReportsCompanion(')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('isoYear: $isoYear, ')
+          ..write('isoWeek: $isoWeek, ')
+          ..write('weekStartIso: $weekStartIso, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('payloadVersion: $payloadVersion, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('narrativeJson: $narrativeJson, ')
+          ..write('narrativeAttempts: $narrativeAttempts, ')
+          ..write('knowledgeVersion: $knowledgeVersion, ')
+          ..write('modelVersion: $modelVersion, ')
+          ..write('tdeeDecision: $tdeeDecision, ')
+          ..write('tdeeDecisionKcal: $tdeeDecisionKcal, ')
+          ..write('viewedAt: $viewedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -48171,6 +49220,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PhysiqueRoadmapPhasesTable physiqueRoadmapPhases =
       $PhysiqueRoadmapPhasesTable(this);
   late final $PhysiquePhotosTable physiquePhotos = $PhysiquePhotosTable(this);
+  late final $WeeklyReportsTable weeklyReports = $WeeklyReportsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -48244,6 +49294,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     physiqueAssessments,
     physiqueRoadmapPhases,
     physiquePhotos,
+    weeklyReports,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -83978,6 +85029,471 @@ typedef $$PhysiquePhotosTableProcessedTableManager =
       PhysiquePhotoData,
       PrefetchHooks Function({bool goalId, bool assessmentId})
     >;
+typedef $$WeeklyReportsTableCreateCompanionBuilder =
+    WeeklyReportsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      required int isoYear,
+      required int isoWeek,
+      required String weekStartIso,
+      Value<DateTime> generatedAt,
+      Value<int> payloadVersion,
+      required String payloadJson,
+      Value<String?> narrativeJson,
+      Value<int> narrativeAttempts,
+      Value<String?> knowledgeVersion,
+      Value<String?> modelVersion,
+      Value<String?> tdeeDecision,
+      Value<int?> tdeeDecisionKcal,
+      Value<DateTime?> viewedAt,
+    });
+typedef $$WeeklyReportsTableUpdateCompanionBuilder =
+    WeeklyReportsCompanion Function({
+      Value<String?> syncUuid,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> syncedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> id,
+      Value<int> isoYear,
+      Value<int> isoWeek,
+      Value<String> weekStartIso,
+      Value<DateTime> generatedAt,
+      Value<int> payloadVersion,
+      Value<String> payloadJson,
+      Value<String?> narrativeJson,
+      Value<int> narrativeAttempts,
+      Value<String?> knowledgeVersion,
+      Value<String?> modelVersion,
+      Value<String?> tdeeDecision,
+      Value<int?> tdeeDecisionKcal,
+      Value<DateTime?> viewedAt,
+    });
+
+class $$WeeklyReportsTableFilterComposer
+    extends Composer<_$AppDatabase, $WeeklyReportsTable> {
+  $$WeeklyReportsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get isoYear => $composableBuilder(
+    column: $table.isoYear,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get isoWeek => $composableBuilder(
+    column: $table.isoWeek,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get weekStartIso => $composableBuilder(
+    column: $table.weekStartIso,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get payloadVersion => $composableBuilder(
+    column: $table.payloadVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get narrativeJson => $composableBuilder(
+    column: $table.narrativeJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get narrativeAttempts => $composableBuilder(
+    column: $table.narrativeAttempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tdeeDecision => $composableBuilder(
+    column: $table.tdeeDecision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tdeeDecisionKcal => $composableBuilder(
+    column: $table.tdeeDecisionKcal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get viewedAt => $composableBuilder(
+    column: $table.viewedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WeeklyReportsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WeeklyReportsTable> {
+  $$WeeklyReportsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get syncUuid => $composableBuilder(
+    column: $table.syncUuid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get isoYear => $composableBuilder(
+    column: $table.isoYear,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get isoWeek => $composableBuilder(
+    column: $table.isoWeek,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get weekStartIso => $composableBuilder(
+    column: $table.weekStartIso,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get payloadVersion => $composableBuilder(
+    column: $table.payloadVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get narrativeJson => $composableBuilder(
+    column: $table.narrativeJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get narrativeAttempts => $composableBuilder(
+    column: $table.narrativeAttempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tdeeDecision => $composableBuilder(
+    column: $table.tdeeDecision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tdeeDecisionKcal => $composableBuilder(
+    column: $table.tdeeDecisionKcal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get viewedAt => $composableBuilder(
+    column: $table.viewedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WeeklyReportsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WeeklyReportsTable> {
+  $$WeeklyReportsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get syncUuid =>
+      $composableBuilder(column: $table.syncUuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get isoYear =>
+      $composableBuilder(column: $table.isoYear, builder: (column) => column);
+
+  GeneratedColumn<int> get isoWeek =>
+      $composableBuilder(column: $table.isoWeek, builder: (column) => column);
+
+  GeneratedColumn<String> get weekStartIso => $composableBuilder(
+    column: $table.weekStartIso,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get generatedAt => $composableBuilder(
+    column: $table.generatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get payloadVersion => $composableBuilder(
+    column: $table.payloadVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get narrativeJson => $composableBuilder(
+    column: $table.narrativeJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get narrativeAttempts => $composableBuilder(
+    column: $table.narrativeAttempts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get knowledgeVersion => $composableBuilder(
+    column: $table.knowledgeVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelVersion => $composableBuilder(
+    column: $table.modelVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tdeeDecision => $composableBuilder(
+    column: $table.tdeeDecision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get tdeeDecisionKcal => $composableBuilder(
+    column: $table.tdeeDecisionKcal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get viewedAt =>
+      $composableBuilder(column: $table.viewedAt, builder: (column) => column);
+}
+
+class $$WeeklyReportsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WeeklyReportsTable,
+          WeeklyReportData,
+          $$WeeklyReportsTableFilterComposer,
+          $$WeeklyReportsTableOrderingComposer,
+          $$WeeklyReportsTableAnnotationComposer,
+          $$WeeklyReportsTableCreateCompanionBuilder,
+          $$WeeklyReportsTableUpdateCompanionBuilder,
+          (
+            WeeklyReportData,
+            BaseReferences<
+              _$AppDatabase,
+              $WeeklyReportsTable,
+              WeeklyReportData
+            >,
+          ),
+          WeeklyReportData,
+          PrefetchHooks Function()
+        > {
+  $$WeeklyReportsTableTableManager(_$AppDatabase db, $WeeklyReportsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WeeklyReportsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WeeklyReportsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WeeklyReportsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                Value<int> isoYear = const Value.absent(),
+                Value<int> isoWeek = const Value.absent(),
+                Value<String> weekStartIso = const Value.absent(),
+                Value<DateTime> generatedAt = const Value.absent(),
+                Value<int> payloadVersion = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<String?> narrativeJson = const Value.absent(),
+                Value<int> narrativeAttempts = const Value.absent(),
+                Value<String?> knowledgeVersion = const Value.absent(),
+                Value<String?> modelVersion = const Value.absent(),
+                Value<String?> tdeeDecision = const Value.absent(),
+                Value<int?> tdeeDecisionKcal = const Value.absent(),
+                Value<DateTime?> viewedAt = const Value.absent(),
+              }) => WeeklyReportsCompanion(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                isoYear: isoYear,
+                isoWeek: isoWeek,
+                weekStartIso: weekStartIso,
+                generatedAt: generatedAt,
+                payloadVersion: payloadVersion,
+                payloadJson: payloadJson,
+                narrativeJson: narrativeJson,
+                narrativeAttempts: narrativeAttempts,
+                knowledgeVersion: knowledgeVersion,
+                modelVersion: modelVersion,
+                tdeeDecision: tdeeDecision,
+                tdeeDecisionKcal: tdeeDecisionKcal,
+                viewedAt: viewedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String?> syncUuid = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> id = const Value.absent(),
+                required int isoYear,
+                required int isoWeek,
+                required String weekStartIso,
+                Value<DateTime> generatedAt = const Value.absent(),
+                Value<int> payloadVersion = const Value.absent(),
+                required String payloadJson,
+                Value<String?> narrativeJson = const Value.absent(),
+                Value<int> narrativeAttempts = const Value.absent(),
+                Value<String?> knowledgeVersion = const Value.absent(),
+                Value<String?> modelVersion = const Value.absent(),
+                Value<String?> tdeeDecision = const Value.absent(),
+                Value<int?> tdeeDecisionKcal = const Value.absent(),
+                Value<DateTime?> viewedAt = const Value.absent(),
+              }) => WeeklyReportsCompanion.insert(
+                syncUuid: syncUuid,
+                updatedAt: updatedAt,
+                syncedAt: syncedAt,
+                deletedAt: deletedAt,
+                id: id,
+                isoYear: isoYear,
+                isoWeek: isoWeek,
+                weekStartIso: weekStartIso,
+                generatedAt: generatedAt,
+                payloadVersion: payloadVersion,
+                payloadJson: payloadJson,
+                narrativeJson: narrativeJson,
+                narrativeAttempts: narrativeAttempts,
+                knowledgeVersion: knowledgeVersion,
+                modelVersion: modelVersion,
+                tdeeDecision: tdeeDecision,
+                tdeeDecisionKcal: tdeeDecisionKcal,
+                viewedAt: viewedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WeeklyReportsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WeeklyReportsTable,
+      WeeklyReportData,
+      $$WeeklyReportsTableFilterComposer,
+      $$WeeklyReportsTableOrderingComposer,
+      $$WeeklyReportsTableAnnotationComposer,
+      $$WeeklyReportsTableCreateCompanionBuilder,
+      $$WeeklyReportsTableUpdateCompanionBuilder,
+      (
+        WeeklyReportData,
+        BaseReferences<_$AppDatabase, $WeeklyReportsTable, WeeklyReportData>,
+      ),
+      WeeklyReportData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -84133,4 +85649,6 @@ class $AppDatabaseManager {
       $$PhysiqueRoadmapPhasesTableTableManager(_db, _db.physiqueRoadmapPhases);
   $$PhysiquePhotosTableTableManager get physiquePhotos =>
       $$PhysiquePhotosTableTableManager(_db, _db.physiquePhotos);
+  $$WeeklyReportsTableTableManager get weeklyReports =>
+      $$WeeklyReportsTableTableManager(_db, _db.weeklyReports);
 }
