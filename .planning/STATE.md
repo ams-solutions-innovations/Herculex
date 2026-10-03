@@ -3,16 +3,31 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T11:25:52.372Z"
+last_updated: "2026-10-03T11:30:36.378Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 94
+  completed_plans: 95
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 09 Completed)
+
+- Completed Plan 29-09 (RPT-02, RPT-05, client-call half only): `WeeklyReportBackend` interface +
+  `weeklyReportBackendProvider` (separate from `GeminiBackend`, both backends implement it, no
+  existing fake touched) and database-free `WeeklyReportNarrativeService` with
+  `NarrativeFailureKind { offline, unconfigured, quotaExhausted, rejected, unavailable }`.
+
+- Decision: `weekly_report` sends no `privacyConsent` (open question 5 stays a human decision; adding
+  a gate later is a one-field change). Causal wording and structural failures both map to `rejected`.
+
+- Note: pre-existing dead test in `test/gemini_backend_service_test.dart` (physique check-in test
+  nested after a `throw`); should be moved into `main()`. RPT-02/RPT-05 left unchecked (partial).
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 08 Completed)
 
