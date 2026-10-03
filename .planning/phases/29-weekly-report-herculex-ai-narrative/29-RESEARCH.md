@@ -597,14 +597,14 @@ Notification copy per UI-SPEC: title "Your weekly report is ready", body "See ho
 
 ## Open Questions (RESOLVED)
 
-All six questions are resolved for planning purposes. OQ1 and OQ2 are orchestrator defaults pending user confirmation (a follow-up revision may change them); the others are settled by the plans named below.
+All six questions are resolved for planning purposes. OQ1 and OQ2 were confirmed by the user on 2026-10-03; the others are settled by the plans named below.
 
-1. **Which week does a late notification tap open?** (RESOLVED: plan 29-01 `IsoWeek.forNotificationTap`; orchestrator default, pending user confirmation) (D-09 "current week's report" vs D-05 "missed week can be generated on first open")
+1. **Which week does a late notification tap open?** (RESOLVED: plan 29-01 `IsoWeek.forNotificationTap`; user-confirmed 2026-10-03) (D-09 "current week's report" vs D-05 "missed week can be generated on first open")
    - Known: repeating notification has a static payload; tapping Mon-Sat after Sunday would otherwise open the new, nearly empty ISO week.
    - Unclear: whether the user wants the just-ended week for late taps.
    - Recommendation: resolve to the week of the most recent Sunday trigger (Pitfall 3); window for that week = Monday 00:00 to week end (frozen at generation). Confirm with the user in plan check.
 
-2. **What exactly does "Update my target to X" write, and when is the card actionable?** (RESOLVED: plan 29-16 delta-preserving write behind a user tap; orchestrator default, pending user confirmation)
+2. **What exactly does "Update my target to X" write, and when is the card actionable?** (RESOLVED: plan 29-16 delta-preserving write behind a user tap; user-confirmed 2026-10-03)
    - Known: D-11 needs a user-confirmed write via the existing repository; TDEE-04 means no saved rule -> baseline already follows the estimate; PHYS-04 safety gate must not be bypassed.
    - Unclear: X semantics for users on a cut/bulk; handling of day-scoped rules (`training_day`, `weekday:N`).
    - Recommendation: Pitfall 10 (delta-preserving on the applicable saved rule; clamp via existing eligibility/minimums; read-only line when no saved rule). Needs a user decision before implementation of that one card; everything else is independent.
