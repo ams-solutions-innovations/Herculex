@@ -3,16 +3,35 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T11:20:48.042Z"
+last_updated: "2026-10-03T11:25:52.372Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 93
+  completed_plans: 94
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 08 Completed)
+
+- Completed Plan 29-08 (RPT-01, RPT-03, opt-in wiring half only): notifier setters,
+  `weeklyReportNotificationSchedulerProvider`, `_syncWeeklyReport` in the settings listener and
+  `syncAll()`, "Weekly report" toggle + "Report Time" row in notification settings, and
+  `weekly_reports` documented in PRIVACY_POLICY / GDPR_ARTICLE_9_COMPLIANCE / DATA_TRUTH_TABLE.
+
+- Decision: the toggle sub-label names Google Gemini (KB-03 exception, consent requires naming the
+  processor). Owner to confirm wording. Open item recorded in the GDPR memo: whether an explicit
+  `privacyConsent` step is needed for weekly aggregates (Phase 29 open question 5).
+
+- Note: `notification_settings_view.dart` is 596 lines (cap 600); next edit should extract a part.
+
+- Validation: `flutter test test/features/notifications/` 40 pass; analyze clean; check_structure
+  baseline unchanged (57). RPT-01/RPT-03 left unchecked (partial-completion convention). Most SDK
+  `state.*` verbs still no-op; this note is hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 07 Completed)
 
