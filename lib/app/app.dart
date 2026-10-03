@@ -34,6 +34,7 @@ import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/supplements/data/supplement_repository.dart';
 import 'package:herculex/features/supplements/domain/supplement.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_deep_link.dart';
+import 'package:herculex/features/weekly_report/application/weekly_report_resume.dart';
 import 'package:herculex/features/weekly_report/data/weekly_report_action_queue.dart';
 import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/workout_bubble_controller.dart';
@@ -727,6 +728,8 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     ref.watch(widgetMacroSyncControllerProvider);
     // Adaptive TDEE: recalibrates on app open, on resume and on ActivityLevel change
     ref.watch(tdeeRecalibrationControllerProvider);
+    // Weekly report card: re-read the due week when the app is foregrounded.
+    ref.watch(weeklyReportResumeProvider);
     ref.watch(widgetCnsSyncControllerProvider);
     ref.watch(widgetRecoverySyncControllerProvider);
     ref.watch(widgetTrainingSyncControllerProvider);
