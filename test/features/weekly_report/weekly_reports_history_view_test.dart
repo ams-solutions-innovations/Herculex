@@ -13,6 +13,8 @@ import 'package:herculex/features/weekly_report/domain/iso_week.dart';
 import 'package:herculex/features/weekly_report/domain/weekly_report_payload.dart';
 import 'package:herculex/features/weekly_report/domain/weekly_report_sections.dart';
 import 'package:herculex/features/weekly_report/presentation/views/weekly_reports_history_view.dart';
+import 'package:herculex/features/weekly_report/presentation/widgets/weekly_report_ready_card.dart';
+import 'package:herculex/features/weekly_report/presentation/widgets/weekly_reports_entry_card.dart';
 
 import '../../support/fake_clock.dart';
 import '../../support/go_router_test_harness.dart';
@@ -228,4 +230,99 @@ void main() {
       expect(find.text('Turn on weekly report'), findsNothing);
     });
   });
+
+  group('WeeklyReportsEntryCard', () {
+    testWidgets('is at least 48 high and opens the history', (tester) async {
+      await _pumpCard(tester, const WeeklyReportsEntryCard());
+      expect(find.text('Weekly reports'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(HxCard)).height,
+        greaterThanOrEqualTo(48),
+      );
+      await tester.tap(find.text('Weekly reports'));
+      await tester.pumpAndSettle();
+      expect(find.text('Weekly reports list'), findsOneWidget);
+    });
+  });
+
+  group('WeeklyReportReadyCard', () {
+    testWidgets('renders nothing when no report is ready', (tester) async {
+      await _pumpCard(tester, const WeeklyReportReadyCard());
+      expect(find.byType(HxCard), findsNothing);
+      expect(find.textContaining('is ready'), findsNothing);
+    });
+
+    testWidgets('shows the ready week and opens it on tap', (tester) async {
+      await _pumpCard(
+        tester,
+        const WeeklyReportReadyCard(),
+        ready: IsoWeek(2026, 40),
+      );
+      expect(find.text('Your week 40 report is ready'), findsOneWidget);
+      expect(find.text('Tap to open'), findsOneWidget);
+      expect(find.byIcon(Icons.insights), findsOneWidget);
+      expect(find.byIcon(Icons.auto_awesome), findsNothing);
+      expect(
+        tester.getSize(find.byType(HxCard)).height,
+        greaterThanOrEqualTo(48),
+      );
+      await tester.tap(find.text('Your week 40 report is ready'));
+      await tester.pumpAndSettle();
+      expect(find.text('Report:2026-40'), findsOneWidget);
+    });
+
+    testWidgets('disappears when the ready provider turns null', (
+      tester,
+    ) async {
+      final container = await _pumpCard(
+        tester,
+        const WeeklyReportReadyCard(),
+        ready: IsoWeek(2026, 40),
+      );
+      expect(find.text('Tap to open'), findsOneWidget);
+      container.read(_readyState.notifier).state = null;
+      await tester.pumpAndSettle();
+      expect(find.text('Tap to open'), findsNothing);
+    });
+  });
+}
+
+final _readyState = StateProvider<IsoWeek?>((ref) => null);
+
+Future<ProviderContainer> _pumpCard(
+  WidgetTester tester,
+  Widget card, {
+  IsoWeek? ready,
+}) async {
+  final harness = GoRouterTestHarness(
+    home: (_) => Scaffold(body: card),
+    stubRoutes: {
+      AppRoutes.weeklyReports: (context, state) =>
+          const StubRouteScreen(label: 'Weekly reports list'),
+      AppRoutes.weeklyReport: (context, state) => StubRouteScreen(
+        label: 'Report',
+        value:
+            '${state.pathParameters['isoYear']}-${state.pathParameters['isoWeek']}',
+      ),
+    },
+  );
+  final container = ProviderContainer(
+    overrides: [
+      weeklyReportReadyProvider.overrideWith((ref) => ref.watch(_readyState)),
+    ],
+  );
+  addTearDown(container.dispose);
+  container.read(_readyState.notifier).state = ready;
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+        theme: AppTheme.darkTheme,
+        routerConfig: harness.router,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return container;
 }
