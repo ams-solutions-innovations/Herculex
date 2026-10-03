@@ -243,6 +243,80 @@ void main() {
       expect((await repo.watchLatest().first)!.kcal, 2000);
     });
 
+    group('history queries', () {
+      Future<void> seed() async {
+        await repo.record(
+          _result(kcal: 2000, estimatedAt: DateTime(2026, 9, 1, 8)),
+        );
+        await repo.record(
+          _result(kcal: 2100, estimatedAt: DateTime(2026, 9, 10, 8)),
+        );
+        await repo.record(
+          _result(kcal: 2200, estimatedAt: DateTime(2026, 9, 10, 8)),
+        );
+        await repo.record(
+          _result(kcal: 2300, estimatedAt: DateTime(2026, 9, 20, 8)),
+        );
+      }
+
+      test('latestAtOrBefore includes the boundary instant', () async {
+        await seed();
+        final r = await repo.latestAtOrBefore(DateTime(2026, 9, 20, 8));
+        expect(r!.kcal, 2300);
+      });
+
+      test('latestBefore excludes the boundary instant', () async {
+        await seed();
+        final r = await repo.latestBefore(DateTime(2026, 9, 20, 8));
+        expect(r!.kcal, 2200);
+      });
+
+      test('ties on estimatedAt are broken by the higher id', () async {
+        await seed();
+        expect(
+          (await repo.latestAtOrBefore(DateTime(2026, 9, 15)))!.kcal,
+          2200,
+        );
+        expect((await repo.latestBefore(DateTime(2026, 9, 11)))!.kcal, 2200);
+      });
+
+      test('both return null when nothing qualifies', () async {
+        expect(await repo.latestAtOrBefore(DateTime(2026, 9, 1)), isNull);
+        expect(await repo.latestBefore(DateTime(2026, 9, 1)), isNull);
+        await seed();
+        expect(
+          await repo.latestAtOrBefore(DateTime(2026, 8, 31, 23, 59)),
+          isNull,
+        );
+        expect(await repo.latestBefore(DateTime(2026, 9, 1, 8)), isNull);
+        expect(
+          (await repo.latestAtOrBefore(DateTime(2026, 9, 1, 8)))!.kcal,
+          2000,
+        );
+      });
+
+      test('soft-deleted rows are ignored', () async {
+        await seed();
+        await (db.update(
+          db.tdeeEstimates,
+        )..where((t) => t.kcal.equals(2300))).write(
+          TdeeEstimatesCompanion(deletedAt: Value(DateTime(2026, 9, 21))),
+        );
+        expect(
+          (await repo.latestAtOrBefore(DateTime(2026, 9, 30)))!.kcal,
+          2200,
+        );
+        expect((await repo.latestBefore(DateTime(2026, 9, 30)))!.kcal, 2200);
+      });
+
+      test('neither query writes anything', () async {
+        await seed();
+        await repo.latestAtOrBefore(DateTime(2026, 9, 30));
+        await repo.latestBefore(DateTime(2026, 9, 30));
+        expect(await db.select(db.tdeeEstimates).get(), hasLength(4));
+      });
+    });
+
     test('record never touches nutrition_targets', () async {
       final before = await db.select(db.nutritionTargets).get();
       await repo.record(_result());
