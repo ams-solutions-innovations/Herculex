@@ -14,6 +14,21 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-10-03 (Phase 29 Plan 14 Completed)
+
+- Completed Plan 29-14 (RPT-01, RPT-02, RPT-04, RPT-05, data/service half only):
+  `WeeklyReportInputsRepository.load(week, windowEnd)` (clock-free, presence-based, snapshot-first food
+  names, both TDEE history rows) and `WeeklyReportService` (`generate` freezes a week once and persists
+  before any AI work; `generateNarrative` is the single auto/manual narrative path, attempt counted
+  before the backend call, write-once, narrative columns only). 31 new tests, folder total 288.
+
+- Decisions: everything dated after `windowEnd` is excluded at load time (current week to date);
+  `NarrativeOutcome` is a value class (saved / alreadySaved / notEligible / failed(kind)); the auto
+  narrative gate lives in the plan-15 controller, not the service. Deferred: `watchDailyTotalsForRange`
+  does not filter tombstoned `food_entries` (shared with TDEE inputs). RPT-01/02/04/05 left unchecked
+  (partial). SDK `state.*` verbs still partly no-op; this note is hand-written.
+
+---
 ## Session update — 2026-10-03 (Phase 29 Plan 13 Completed)
 
 - Completed Plan 29-13 (RPT-01, RPT-02, RPT-05, widgets half only): `NarrativeStatus`,

@@ -386,7 +386,7 @@ Plans:
 
 **Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
-**Plans:** 13/20 plans executed
+**Plans:** 14/20 plans executed
 
 Plans:
 **Wave 1**
@@ -413,7 +413,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 29-14-PLAN.md — Wave 4: week inputs repository + WeeklyReportService (generate on open, narrative attempt-before-call)
+- [x] 29-14-PLAN.md — Wave 4: week inputs repository + WeeklyReportService (generate on open, narrative attempt-before-call)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
