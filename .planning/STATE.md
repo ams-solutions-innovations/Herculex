@@ -14,6 +14,26 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-10-03 (Phase 29 Plan 03 Completed)
+
+- Completed Plan 29-03 (RPT-02, RPT-05, server half only): `gemini-analyze` gained the
+  `weekly_report` kind. `weeklyReportPrompt` (verbatim-number rule, "tended to go with"
+  correlation-only wording with the cause-and-effect word list forbidden, at most 3 sentences
+  plus 2 to 3 suggestions, no targets/training/medical, injection guard),
+  `normalizeWeeklyReportResult` (summary <= 700, 2-3 suggestions <= 300, throws otherwise),
+  `isValidWeeklyReportFacts` (object, <= 8000 serialized chars, 400 before any model call),
+  `weeklyReportSystemInstruction` (core + nutrition + recovery, no programming) and a per-kind
+  quota (default 5/day, `GEMINI_LIMIT_WEEKLY_REPORT`). No SQL change needed.
+- Decision: RPT-02/RPT-05 left unchecked in REQUIREMENTS.md (partial-completion convention);
+  the SDK `requirements.mark-complete` ticked them and I reverted. No client, report UI or
+  deploy exists yet.
+- Validation: `deno test --allow-env --allow-net .` 40 passed / 0 failed; `deno check
+  index.ts` clean. **Function NOT deployed** (human-gated, plan 20).
+- `roadmap.update-plan-progress 29` worked; other `state.*` verbs not used, note hand-written.
+- Next: 29-04 (notification scheduler) and remaining Phase 29 plans.
+
+---
+
 ## Session update — 2026-10-03 (Phase 29 Plan 02 Completed)
 
 - Completed Plan 29-02 (RPT-01, RPT-04, persistence foundation only): `WeeklyReports` drift

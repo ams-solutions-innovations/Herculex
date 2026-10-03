@@ -59,7 +59,7 @@ completed: 2026-10-03
 
 ## Verification
 
-- `deno test --allow-env --allow-net .` in `supabase/functions/gemini-analyze`: 40 passed, 0 failed (was 27 before this plan: 10 new in `weekly_report_test.ts`, 1 each in the three extended files... plus pre-existing).
+- `deno test --allow-env --allow-net .` in `supabase/functions/gemini-analyze`: 40 passed, 0 failed (10 new in `weekly_report_test.ts`, 1 new each in `prompts_test.ts`, `usage_test.ts`, `knowledge_base_test.ts`, plus the pre-existing tests).
 - `deno check index.ts`: clean.
 - No change under `supabase/migrations/`. Nothing deployed.
 
