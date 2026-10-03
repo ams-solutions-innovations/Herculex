@@ -2,7 +2,7 @@
 /// (RPT-01, RPT-02, RPT-05).
 ///
 /// The analytics providers behind the recovery and CNS screens read all history
-/// and call `DateTime.now()`, so a report for a past week would change with the
+/// and use the wall clock, so a report for a past week would change with the
 /// day it is generated (Pitfall 1). This calculator therefore calls
 /// [CnsTrends.compute] and [MuscleRecoveryV3.compute] directly with
 /// `asOf: windowEnd` over a snapshot restricted to sets completed on or before
