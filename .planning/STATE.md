@@ -3,16 +3,32 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T11:30:36.378Z"
+last_updated: "2026-10-03T11:35:48.407Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 95
+  completed_plans: 96
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 10 Completed)
+
+- Completed Plan 29-10 (RPT-03, tap-path half only): weekly-report payload is matched before the
+  `actionId` guard in both `onDidReceiveNotificationResponse` and `workoutNotificationTapBackground`;
+  background taps queue `pending_weekly_report_open` (boolean), drained by `app.dart` at start and on
+  resume; cold start handled via `getNotificationAppLaunchDetails`. No generation in any callback.
+
+- Decision: queue holds a flag, not a week; the week is resolved at open time by
+  `IsoWeek.forNotificationTap(clock.now(), weeklyReportTimeHHMM)`.
+
+- Note: cold-start behaviour needs a real device (manual UAT in plan 20). The fasting tap path has the
+  same latent cold-start gap (not changed). `AppPaths.weeklyReport` is registered in the router by
+  plan 18. RPT-03 left unchecked (partial).
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 09 Completed)
 
