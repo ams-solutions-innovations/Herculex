@@ -3,16 +3,31 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T13:29:20.004Z"
+last_updated: "2026-10-03T13:47:43.993Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 103
+  completed_plans: 104
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 17 Completed)
+
+- Completed Plan 29-17 (RPT-01, RPT-04, entry points only): `WeeklyReportsHistoryView` (newest first,
+  unread dot, "Narrative pending" pill, opt-out banner to notification settings, empty state),
+  `WeeklyReportsEntryCard` (+3 lines in `insights_view.dart`) and `WeeklyReportReadyCard`
+  (+2 lines in `dashboard_view.dart`, not a `DashboardWidgetType`). 14 new tests.
+
+- Decisions: the ready card owns its bottom gap so the dashboard hook is a single widget line; the
+  history view sorts by `IsoWeek` itself; the opt-out banner only navigates, never flips the setting.
+  `AppRoutes.weeklyReports` / `weeklyReport` still need router registration (plan 18), which should
+  also add the resume hook for `weeklyReportDueWeekProvider`. SDK `state.*` verbs still partly no-op;
+  this note is hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 16 Completed)
 
