@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T09:23:40.175Z"
+last_updated: "2026-10-03T09:24:58.872Z"
 progress:
   total_phases: 15
   completed_phases: 12
@@ -13,6 +13,25 @@ progress:
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 01 Completed)
+
+- Completed Plan 29-01 (RPT-01, RPT-03, RPT-05, foundation only): `IsoWeek` (Thursday-rule
+  ISO key, DST-safe `DateTime(y, m, d + n)` windows, `tryCreate` for untrusted deep-link
+  params, `forNotificationTap` resolving the week of the most recent Sunday-at-HH:MM trigger
+  per user-confirmed OQ1), `CausalLanguageGuard` (single-source word list) and strict
+  `WeeklyNarrative` (`tryDecodeStored` skips the guard so saved narratives never orphan), and
+  the `weeklyReports` / `weeklyReport` route constants. `router.dart` registration is plan 18.
+- Decision: RPT-01/03/05 left unchecked in REQUIREMENTS.md (partial-completion convention);
+  only the foundation exists, no persistence, notification or UI yet.
+- Validation: `flutter test test/features/weekly_report` 79/79, `flutter analyze` on touched
+  paths clean, `check_structure` no new violations. Full suite not re-run (new files are
+  self-contained; only `routes.dart` gained three additive members).
+- SDK `state.*` verbs still no-op on this STATE.md format, so this note is hand-written.
+- Next: remaining Phase 29 Wave 1 plans (29-02 drift table + schema v48, 29-03 Edge Function
+  kind, 29-04 notification scheduler).
+
+---
 
 ## Session update — 2026-09-30 (Phase 22 context gathered)
 
@@ -1013,7 +1032,7 @@ See: `.planning/PROJECT.md` (initiated 2026-09-13)
 Blueprint: `docs/training-programs-physique-gamification-plan-2026-09-10.md`
 
 **Core value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition plans; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.  
-**Current focus:** Phase 26 — herculex ai knowledge base brand unification
+**Current focus:** Phase 29 — weekly-report-herculex-ai-narrative
 
 ---
 
