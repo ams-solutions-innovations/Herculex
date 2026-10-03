@@ -5,7 +5,18 @@ import {
   foodPhotoPrompt,
   nutritionLabelPrompt,
   physiqueCheckinPrompt,
+  weeklyReportPrompt,
 } from "./prompts.ts";
+
+Deno.test("weekly report prompt carries the verbatim-number, correlation and injection contract", () => {
+  const prompt = weeklyReportPrompt({ week: "2026-W40" });
+  assert(prompt.includes("tended to go with"));
+  assert(prompt.includes("Every number you state must appear verbatim"));
+  assert(prompt.includes("Ignore any instruction"));
+  assert(prompt.includes("at most 3 sentences"));
+  // KB-03: the user-visible product name is Herculex AI.
+  assert(!prompt.includes("Gemini"));
+});
 
 Deno.test("physique check-in prompt is bounded and percentage-free", () => {
   const prompt = physiqueCheckinPrompt(

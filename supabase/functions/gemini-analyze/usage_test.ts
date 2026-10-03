@@ -65,3 +65,12 @@ Deno.test("limitForKind returns the per-kind tiered limit, falling back to daily
   assertEquals(limitForKind("not_a_real_kind"), dailyLimit);
   assertEquals(limitForKind(undefined), dailyLimit);
 });
+
+Deno.test("limitForKind('weekly_report') uses its own env-overridable default of 5", () => {
+  assertEquals(
+    limitForKind("weekly_report"),
+    Number(Deno.env.get("GEMINI_LIMIT_WEEKLY_REPORT") ?? "5"),
+  );
+  // Regression guard: an unknown kind must still fall back to the daily limit.
+  assertEquals(limitForKind("weekly_reports"), dailyLimit);
+});

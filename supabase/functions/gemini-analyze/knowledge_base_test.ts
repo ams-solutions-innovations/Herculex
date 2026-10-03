@@ -6,6 +6,15 @@ import {
   programming,
   recovery,
 } from "./knowledge_base.ts";
+import { weeklyReportSystemInstruction } from "./index.ts";
+
+Deno.test("weekly report system instruction injects nutrition and recovery but not programming", () => {
+  const instruction = weeklyReportSystemInstruction();
+  assert(instruction.includes(core));
+  assert(instruction.includes(nutrition));
+  assert(instruction.includes(recovery));
+  assert(!instruction.includes(programming));
+});
 
 Deno.test("each coaching-mentality segment is a substantive, non-empty string", () => {
   for (const segment of [core, programming, nutrition, recovery]) {
