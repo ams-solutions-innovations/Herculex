@@ -132,7 +132,7 @@
 | FLOW-01–03 | 20 | Complete |
 | CF-01–03 | 21 | Complete |
 | SPEC-01–03 | 22 | Complete |
-| PHYS-01–08 | 23 | Pending |
+| PHYS-01–08 | 23 | Complete |
 | XP-01–04 | 24 | Pending |
 | SYNC-01–03 | 25 | Pending |
 | KB-01–05 | 26 | Complete |
