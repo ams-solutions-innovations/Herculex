@@ -117,5 +117,34 @@ void main() {
         '20:45',
       );
     });
+
+    test('persists weekly report toggle (default off) and time', () async {
+      final notifier = container.read(notificationSettingsProvider.notifier);
+      expect(
+        container.read(notificationSettingsProvider).weeklyReportEnabled,
+        isFalse,
+      );
+
+      await notifier.setWeeklyReportEnabled(true);
+      expect(
+        container.read(notificationSettingsProvider).weeklyReportEnabled,
+        isTrue,
+      );
+
+      await notifier.setWeeklyReportTime('19:30');
+      expect(
+        container.read(notificationSettingsProvider).weeklyReportTimeHHMM,
+        '19:30',
+      );
+
+      // Persisted: a fresh container over the same prefs sees the values.
+      final second = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(second.dispose);
+      final reloaded = second.read(notificationSettingsProvider);
+      expect(reloaded.weeklyReportEnabled, isTrue);
+      expect(reloaded.weeklyReportTimeHHMM, '19:30');
+    });
   });
 }

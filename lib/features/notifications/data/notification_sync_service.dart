@@ -34,6 +34,10 @@ class NotificationSyncService {
           prev?.dailyLogTimeHHMM != next.dailyLogTimeHHMM) {
         _syncDailyLog();
       }
+      if (prev?.weeklyReportEnabled != next.weeklyReportEnabled ||
+          prev?.weeklyReportTimeHHMM != next.weeklyReportTimeHHMM) {
+        _syncWeeklyReport();
+      }
     });
 
     _ref.listen(mealSlotsProvider, (_, _) => _syncMeals());
@@ -49,6 +53,7 @@ class NotificationSyncService {
       _syncSupplements(),
       _syncFastingSchedules(),
       _syncDailyLog(),
+      _syncWeeklyReport(),
     ]);
   }
 
@@ -97,6 +102,14 @@ class NotificationSyncService {
     try {
       final settings = _ref.read(notificationSettingsProvider);
       final scheduler = _ref.read(dailyLogNotificationSchedulerProvider);
+      await scheduler.reschedule(settings);
+    } catch (_) {}
+  }
+
+  Future<void> _syncWeeklyReport() async {
+    try {
+      final settings = _ref.read(notificationSettingsProvider);
+      final scheduler = _ref.read(weeklyReportNotificationSchedulerProvider);
       await scheduler.reschedule(settings);
     } catch (_) {}
   }
