@@ -3,17 +3,31 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T13:05:19.656Z"
+last_updated: "2026-10-03T13:29:20.004Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 102
+  completed_plans: 103
   percent: 80
 ---
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-10-03 (Phase 29 Plan 16 Completed)
+
+- Completed Plan 29-16 (RPT-01, RPT-04, TDEE card only): `TdeeTargetProposalCalculator` (pure,
+  delta-preserving, floor- and PHYS-04-clamped), `TdeeDecisionActions` (update / keep, write-once,
+  the only `upsertTarget` path in weekly_report), `tdeeTargetProposalProvider`, `isActionableWeek`,
+  and `TdeeShiftCard` (actionable / decided / read-only). 48 new tests, folder total 360.
+
+- Decisions: OQ2 confirmed as delta-preserving (saved rule kcal + estimate delta, rounded to 10, carbs
+  absorb remainder, same scope); `update()` validates the 800..6000 decision range and the undecided
+  row before writing the target; card is stateful to disable both buttons while a call runs. Plan 18
+  mounts `TdeeShiftCard(record:, section:)` only when `section.material`. SDK `state.*` verbs still
+  partly no-op; this note is hand-written.
+
+---
 ## Session update — 2026-10-03 (Phase 29 Plan 15 Completed)
 
 - Completed Plan 29-15 (RPT-01, RPT-03, RPT-04, application half only): `weekly_report_providers.dart`
