@@ -386,6 +386,56 @@ Plans:
 
 **Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
+**Plans:** 20 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 29-01-PLAN.md — Wave 1: IsoWeek (ISO key, window, tap-time week), CausalLanguageGuard + strict WeeklyNarrative, route constants
+- [ ] 29-02-PLAN.md — Wave 1: weekly_reports drift table, schema v48, four sync/wipe registries, drift dump/generate
+- [ ] 29-03-PLAN.md — Wave 1: gemini-analyze weekly_report kind (prompt, normalizer, per-day quota, corpus) + Deno tests
+- [ ] 29-04-PLAN.md — Wave 1: opt-in NotificationSettings fields + Sunday dayOfWeekAndTime scheduler (id 5001) + payload constant
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 29-05-PLAN.md — Wave 2: OQ3 duplicate-week pull test, v48 migration/schema test retarget, sync-registration + wipe tests
+- [ ] 29-07-PLAN.md — Wave 2: versioned WeeklyReportPayload + section types + sanitised size-capped AI facts
+- [ ] 29-08-PLAN.md — Wave 2: notifier/sync wiring, settings toggle + time row, privacy/GDPR docs
+- [ ] 29-09-PLAN.md — Wave 2: WeeklyReportBackend (separate interface) + narrative service with typed failure kinds
+- [ ] 29-10-PLAN.md — Wave 2: notification tap path (foreground, background queue, cold start) with no work in callbacks
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 29-06-PLAN.md — Wave 3: Supabase migration SQL (written, not applied) + parity test + WeeklyReportRepository (immutable snapshot)
+- [ ] 29-11-PLAN.md — Wave 3: nutrition + training section calculators (pure, deterministic)
+- [ ] 29-12-PLAN.md — Wave 3: correlation statements (RPT-05), recovery/physique calculators, TDEE shift + history queries
+- [ ] 29-13-PLAN.md — Wave 3: measured section cards + distinct Herculex AI narrative card
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 29-14-PLAN.md — Wave 4: week inputs repository + WeeklyReportService (generate on open, narrative attempt-before-call)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 29-15-PLAN.md — Wave 5: providers + app-lifetime de-duplicating controller (auto-once narrative, retry, opt-in gate)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 29-16-PLAN.md — Wave 6: TDEE shift card — delta-preserving "Update my target" (OQ2, isolated, user-confirmed)
+- [ ] 29-17-PLAN.md — Wave 6: history view, Analytics entry card, dashboard ready card
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
+- [ ] 29-18-PLAN.md — Wave 7: report view (generate on open, frozen render) + router registration
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
+- [ ] 29-19-PLAN.md — Wave 8: phase verification, gates, traceability and open-question list
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
+- [ ] 29-20-PLAN.md — Wave 9: [BLOCKING, human-gated] apply Supabase migrations + deploy gemini-analyze + on-device UAT
+
 ---
 
 ## Deferred & Future Scope
