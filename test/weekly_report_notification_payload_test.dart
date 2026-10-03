@@ -87,14 +87,17 @@ void main() {
       prefs = await SharedPreferences.getInstance();
     });
 
-    test('queues the open flag for the weekly payload, no actionId needed', () async {
-      final handled = await handleWeeklyReportBackgroundTap(
-        'weekly_report',
-        prefs,
-      );
-      expect(handled, isTrue);
-      expect(PendingWeeklyReportOpenQueue.isPending(prefs), isTrue);
-    });
+    test(
+      'queues the open flag for the weekly payload, no actionId needed',
+      () async {
+        final handled = await handleWeeklyReportBackgroundTap(
+          'weekly_report',
+          prefs,
+        );
+        expect(handled, isTrue);
+        expect(PendingWeeklyReportOpenQueue.isPending(prefs), isTrue);
+      },
+    );
 
     test('does nothing for other payloads', () async {
       for (final payload in <String?>[null, '', 'fasting_schedule:3']) {
