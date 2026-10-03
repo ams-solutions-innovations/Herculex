@@ -14,6 +14,29 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-10-03 (Phase 29 Plan 02 Completed)
+
+- Completed Plan 29-02 (RPT-01, RPT-04, persistence foundation only): `WeeklyReports` drift
+  table at local schema **v48** (unique `(iso_year, iso_week)`, immutable `payloadJson`,
+  write-once `narrativeJson`/`tdeeDecision`), guarded `from < 48` upgrade branch, registered
+  in all four registries (`@DriftDatabase`, `syncedTableNames`, `syncTableSpecs`,
+  `_fullyClearedTables`). Chores 1-4 of the schema bump are done (dump, generated
+  `DatabaseAtV48`, retargeted `migration_test` + `schema_v25/27/28/29`, new v47 -> v48
+  replay and existing-table guard test). Chore 5 (Supabase SQL) is plan 06's job.
+- **Do not ship a build with local v48 until plan 06's migration is applied**: sync of
+  `weekly_reports` would quarantine (PGRST204) after 8 attempts.
+- Decision: RPT-01/RPT-04 left unchecked in REQUIREMENTS.md (partial-completion convention);
+  no repository, generation or UI exists yet.
+- Validation: full `flutter test` 2334 passed / 9 skipped / 0 failed; `flutter analyze` 0
+  errors; `check_structure` 57 violations (unchanged baseline). `build_runner` took ~10 min
+  on this machine. `drift_dev schema dump` warned it fell back to static analysis (space in
+  the project path); v47 -> v48 JSON diff is exactly the new table.
+- SDK `state.*` verbs still no-op on this STATE.md format; `roadmap.update-plan-progress`
+  worked. This note is hand-written.
+- Next: remaining Phase 29 Wave 1 plans (29-03 Edge Function kind, 29-04 notification scheduler).
+
+---
+
 ## Session update — 2026-10-03 (Phase 29 Plan 01 Completed)
 
 - Completed Plan 29-01 (RPT-01, RPT-03, RPT-05, foundation only): `IsoWeek` (Thursday-rule
