@@ -23,6 +23,7 @@ import {
   physiqueCheckinPrompt,
   ramblerFoodPrompt,
   supplementPhotoPrompt,
+  weeklyReportPrompt,
 } from "./prompts.ts";
 import { callerUserId } from "../_shared/auth.ts";
 import { corsHeaders } from "../_shared/cors.ts";
@@ -30,7 +31,9 @@ import { json } from "../_shared/json.ts";
 import {
   core as coachingCore,
   KNOWLEDGE_VERSION,
+  nutrition,
   programming,
+  recovery,
 } from "./knowledge_base.ts";
 
 type GeminiKind =
@@ -43,6 +46,7 @@ type GeminiKind =
   | "dream_physique"
   | "rambler_food"
   | "program_brief"
+  | "weekly_report"
   | "physique_checkin";
 
 type GeminiImage = {
@@ -68,6 +72,7 @@ type GeminiRequest = {
   targetImage?: GeminiImage;
   biometrics?: Record<string, unknown>;
   profileInputs?: Record<string, unknown>;
+  facts?: Record<string, unknown>;
   userNote?: string | null;
   ocrText?: string;
   barcode?: string;
@@ -127,6 +132,9 @@ const kindLimits: Record<GeminiKind, number> = {
   ),
   dream_physique: Number(Deno.env.get("GEMINI_LIMIT_DREAM_PHYSIQUE") ?? "10"),
   program_brief: Number(Deno.env.get("GEMINI_LIMIT_PROGRAM_BRIEF") ?? "10"),
+  // Default 5 per day per user: a failed attempt plus retries fit, and every
+  // retry costs one unit (plan 29-03, A1).
+  weekly_report: Number(Deno.env.get("GEMINI_LIMIT_WEEKLY_REPORT") ?? "5"),
   physique_checkin: Number(
     Deno.env.get("GEMINI_LIMIT_PHYSIQUE_CHECKIN") ?? "5",
   ),
@@ -153,6 +161,7 @@ const kindDisplayNames: Record<GeminiKind, string> = {
   body_fat_estimate: "Body fat estimates",
   dream_physique: "Dream Physique comparisons",
   program_brief: "Program design briefs",
+  weekly_report: "Weekly report summaries",
   physique_checkin: "Physique check-ins",
 };
 
@@ -557,6 +566,26 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "weekly_report": {
+        if (!isValidWeeklyReportFacts(payload.facts)) {
+          return json({ error: "facts is required." }, 400);
+        }
+        const generated = await generateJson({
+          images: [],
+          promptText: weeklyReportPrompt(payload.facts),
+          temperature: 0.3,
+          systemInstruction: weeklyReportSystemInstruction(),
+        });
+        const result = normalizeWeeklyReportResult(generated.result);
+        return json({
+          result,
+          provenance: {
+            modelVersion: generated.modelVersion,
+            knowledgeVersion: KNOWLEDGE_VERSION,
+          },
+        });
+      }
+
       default:
         return json(
           { error: "Unsupported Herculex AI analysis kind." },
@@ -854,6 +883,59 @@ export function normalizeProgramBriefResult(
     musclePriorities,
     phaseIntent: requiredString(raw.phaseIntent, "phaseIntent"),
   };
+}
+
+const maxWeeklyReportFactsChars = 8000;
+const maxWeeklyReportSummaryChars = 700;
+const maxWeeklyReportSuggestionChars = 300;
+
+/// Weekly report (Phase 29, RPT-02): the corpus segments that ground the
+/// narrative. Programming is deliberately excluded - the report never
+/// prescribes training.
+export function weeklyReportSystemInstruction(): string {
+  return [coachingCore, nutrition, recovery].join("\n\n");
+}
+
+/// Facts must be a plain object no larger than 8000 serialized characters.
+/// Checked before any prompt is built or model call is made (T-29-10).
+export function isValidWeeklyReportFacts(
+  facts: unknown,
+): facts is Record<string, unknown> {
+  if (!facts || typeof facts !== "object" || Array.isArray(facts)) return false;
+  try {
+    return JSON.stringify(facts).length <= maxWeeklyReportFactsChars;
+  } catch {
+    return false;
+  }
+}
+
+/// Structural gate for the weekly report narrative (T-29-12). Throws on the
+/// first deviation; the Dart client parser remains the authoritative gate.
+export function normalizeWeeklyReportResult(
+  raw: Record<string, unknown>,
+): { summary: string; suggestions: string[] } {
+  const summary = requiredString(raw.summary, "summary");
+  if (summary.length > maxWeeklyReportSummaryChars) {
+    throw new Error(
+      `summary exceeds ${maxWeeklyReportSummaryChars} characters.`,
+    );
+  }
+  if (
+    !Array.isArray(raw.suggestions) || raw.suggestions.length < 2 ||
+    raw.suggestions.length > 3
+  ) {
+    throw new Error("suggestions must be an array of 2 to 3 strings.");
+  }
+  const suggestions = raw.suggestions.map((item, index) => {
+    const text = requiredString(item, `suggestions[${index}]`);
+    if (text.length > maxWeeklyReportSuggestionChars) {
+      throw new Error(
+        `suggestions[${index}] exceeds ${maxWeeklyReportSuggestionChars} characters.`,
+      );
+    }
+    return text;
+  });
+  return { summary, suggestions };
 }
 
 function objectValue(value: unknown, label: string): Record<string, unknown> {
