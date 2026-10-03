@@ -106,8 +106,14 @@ void main() {
         const IsoWeek(2026, 40).hashCode,
       );
       expect({const IsoWeek(2026, 40): 1}[const IsoWeek(2026, 40)], 1);
-      expect(const IsoWeek(2026, 40).compareTo(const IsoWeek(2026, 41)), lessThan(0));
-      expect(const IsoWeek(2027, 1).compareTo(const IsoWeek(2026, 53)), greaterThan(0));
+      expect(
+        const IsoWeek(2026, 40).compareTo(const IsoWeek(2026, 41)),
+        lessThan(0),
+      );
+      expect(
+        const IsoWeek(2027, 1).compareTo(const IsoWeek(2026, 53)),
+        greaterThan(0),
+      );
       expect(const IsoWeek(2026, 40).compareTo(const IsoWeek(2026, 40)), 0);
       expect(const IsoWeek(2027, 1).isAfter(const IsoWeek(2026, 53)), isTrue);
       expect(const IsoWeek(2026, 40).isAfter(const IsoWeek(2026, 40)), isFalse);
