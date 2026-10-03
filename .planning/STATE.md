@@ -3,17 +3,34 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T12:26:51.709Z"
+last_updated: "2026-10-03T13:05:19.656Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 100
+  completed_plans: 102
   percent: 80
 ---
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-10-03 (Phase 29 Plan 15 Completed)
+
+- Completed Plan 29-15 (RPT-01, RPT-03, RPT-04, application half only): `weekly_report_providers.dart`
+  (repository/inputs/service, week and history StreamProviders, opt-in, due week, dismissed-empty
+  marker, dashboard `weeklyReportReadyProvider`) and the app-lifetime `WeeklyReportController`
+  (`open` / `retryNarrative`, de-duplicated futures, persist-before-narrative, auto narrative on first
+  open only, fail-soft) with `narrativeUiStateProvider` and `narrativeStatusFor`. 34 new tests,
+  folder total 322.
+
+- Decisions: quota-exhausted Retry is blocked only on the same Clock calendar day (next day reads as
+  pending with Retry on); unreadable stored narrative shows pending with Retry off; NoData stores the
+  dismissed marker (`weekly_report_dismissed_week` = `<isoYear>-<isoWeek>`). Bug caught: `whenComplete`
+  with an arrow `map.remove()` deadlocks on its own future. Plans 16-18 add the TDEE action, views and
+  dashboard entry point; call `open(week)` once on report entry. SDK `state.*` verbs still partly
+  no-op; this note is hand-written.
+
+---
 ## Session update — 2026-10-03 (Phase 29 Plan 14 Completed)
 
 - Completed Plan 29-14 (RPT-01, RPT-02, RPT-04, RPT-05, data/service half only):

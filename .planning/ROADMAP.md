@@ -386,7 +386,7 @@ Plans:
 
 **Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
-**Plans:** 14/20 plans executed
+**Plans:** 15/20 plans executed
 
 Plans:
 **Wave 1**
@@ -417,7 +417,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 29-15-PLAN.md — Wave 5: providers + app-lifetime de-duplicating controller (auto-once narrative, retry, opt-in gate)
+- [x] 29-15-PLAN.md — Wave 5: providers + app-lifetime de-duplicating controller (auto-once narrative, retry, opt-in gate)
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
