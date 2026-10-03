@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
+import 'package:herculex/design_system/components/premium_button.dart';
+import 'package:herculex/features/weekly_report/domain/narrative_status.dart';
+import 'package:herculex/features/weekly_report/domain/weekly_narrative.dart';
 import 'package:herculex/features/weekly_report/domain/weekly_report_sections.dart';
+import 'package:herculex/features/weekly_report/presentation/widgets/ai_narrative_card.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/nutrition_section_card.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/physique_section_card.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/recovery_section_card.dart';
@@ -200,6 +204,178 @@ void main() {
       await _pump(tester, const PhysiqueSectionCard(section: null));
       expect(find.text('Physique'), findsOneWidget);
       expect(find.text('No data this week'), findsOneWidget);
+    });
+  });
+
+  group('AiNarrativeCard', () {
+    const narrative = WeeklyNarrative(
+      summary: 'You trained four times and ate close to target.',
+      suggestions: [
+        'Keep protein near 150 g on training days.',
+        'Add a short walk on rest days.',
+      ],
+    );
+    const note =
+        'Herculex AI interprets the numbers above. It does not change them.';
+
+    Future<void> pumpCard(
+      WidgetTester tester, {
+      required NarrativeStatus status,
+      WeeklyNarrative? narrative,
+      VoidCallback? onRetry,
+      bool retryEnabled = true,
+    }) => _pump(
+      tester,
+      AiNarrativeCard(
+        status: status,
+        narrative: narrative,
+        onRetry: onRetry,
+        retryEnabled: retryEnabled,
+      ),
+    );
+
+    test('NarrativeStatus has exactly the five states', () {
+      expect(NarrativeStatus.values.map((s) => s.name).toList(), [
+        'loading',
+        'ready',
+        'pending',
+        'offline',
+        'quotaExhausted',
+      ]);
+    });
+
+    testWidgets('ready: pill, heading, summary, suggestions, note, no button', (
+      tester,
+    ) async {
+      await pumpCard(
+        tester,
+        status: NarrativeStatus.ready,
+        narrative: narrative,
+      );
+      expect(find.text('Herculex AI'), findsOneWidget);
+      expect(find.text("This week's read"), findsOneWidget);
+      expect(find.text(narrative.summary), findsOneWidget);
+      for (final s in narrative.suggestions) {
+        expect(find.text(s), findsOneWidget);
+      }
+      expect(find.byIcon(Icons.arrow_right_alt), findsNWidgets(2));
+      expect(find.byIcon(Icons.auto_awesome), findsOneWidget);
+      expect(find.text(note), findsOneWidget);
+      expect(find.byType(PremiumButton), findsNothing);
+      expect(find.byType(InkWell), findsNothing);
+      expect(find.text('Retry narrative'), findsNothing);
+    });
+
+    testWidgets('ready with three suggestions renders three rows', (
+      tester,
+    ) async {
+      await pumpCard(
+        tester,
+        status: NarrativeStatus.ready,
+        narrative: const WeeklyNarrative(
+          summary: 'Summary.',
+          suggestions: ['One.', 'Two.', 'Three.'],
+        ),
+      );
+      expect(find.byIcon(Icons.arrow_right_alt), findsNWidgets(3));
+    });
+
+    testWidgets('has the Herculex AI interpretation semantics label', (
+      tester,
+    ) async {
+      await pumpCard(
+        tester,
+        status: NarrativeStatus.ready,
+        narrative: narrative,
+      );
+      expect(
+        find.bySemanticsLabel('Herculex AI interpretation'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('loading: heading, skeleton, label, no retry', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: const Scaffold(
+            body: AiNarrativeCard(status: NarrativeStatus.loading),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text("This week's read"), findsOneWidget);
+      expect(find.text('Herculex AI is reading your week…'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('narrative-skeleton-line')),
+        findsNWidgets(3),
+      );
+      expect(find.byType(PremiumButton), findsNothing);
+    });
+
+    testWidgets('pending: generic copy and a working Retry button', (
+      tester,
+    ) async {
+      var taps = 0;
+      await pumpCard(
+        tester,
+        status: NarrativeStatus.pending,
+        onRetry: () => taps++,
+      );
+      expect(
+        find.text(
+          "Narrative pending. Herculex AI couldn't write this week's "
+          'summary. Your numbers above are saved. Try again.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Retry narrative'), findsOneWidget);
+      final height = tester.getSize(find.byType(PremiumButton)).height;
+      expect(height, greaterThanOrEqualTo(48));
+      await tester.tap(find.text('Retry narrative'));
+      expect(taps, 1);
+    });
+
+    testWidgets('offline: copy and enabled Retry', (tester) async {
+      var taps = 0;
+      await pumpCard(
+        tester,
+        status: NarrativeStatus.offline,
+        onRetry: () => taps++,
+      );
+      expect(
+        find.text("You're offline. Reconnect and tap Retry narrative."),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Retry narrative'));
+      expect(taps, 1);
+    });
+
+    testWidgets('quotaExhausted: per-day copy, Retry follows retryEnabled', (
+      tester,
+    ) async {
+      var taps = 0;
+      const copy =
+          "You've used today's Herculex AI summaries. Your numbers above are "
+          'saved. Try again tomorrow.';
+      await pumpCard(
+        tester,
+        status: NarrativeStatus.quotaExhausted,
+        onRetry: () => taps++,
+        retryEnabled: false,
+      );
+      expect(find.text(copy), findsOneWidget);
+      await tester.tap(find.text('Retry narrative'), warnIfMissed: false);
+      expect(taps, 0);
+
+      await pumpCard(
+        tester,
+        status: NarrativeStatus.quotaExhausted,
+        onRetry: () => taps++,
+      );
+      expect(find.text(copy), findsOneWidget);
+      await tester.tap(find.text('Retry narrative'));
+      expect(taps, 1);
     });
   });
 }
