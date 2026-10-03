@@ -5,6 +5,13 @@ import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
 
+/// Consent disclosure for the weekly report. Names the processor on purpose:
+/// consent to send health aggregates to a third party needs it (an exception
+/// to the KB-03 "Herculex AI only" copy rule; wording awaits owner sign-off).
+const _weeklyReportDisclosure =
+    'A numeric summary of your week is processed by Herculex AI '
+    '(powered by Google Gemini) to write the summary.';
+
 class NotificationSettingsView extends ConsumerWidget {
   const NotificationSettingsView({super.key});
 
@@ -52,6 +59,29 @@ class NotificationSettingsView extends ConsumerWidget {
       await ref
           .read(notificationSettingsProvider.notifier)
           .setDailyLogTime('$h:$m');
+    }
+  }
+
+  Future<void> _pickWeeklyReportTime(
+    BuildContext context,
+    WidgetRef ref,
+    String currentTimeHHMM,
+  ) async {
+    final parts = currentTimeHHMM.split(':');
+    final initialHour = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 18 : 18;
+    final initialMinute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: initialHour, minute: initialMinute),
+    );
+
+    if (picked != null) {
+      final h = picked.hour.toString().padLeft(2, '0');
+      final m = picked.minute.toString().padLeft(2, '0');
+      await ref
+          .read(notificationSettingsProvider.notifier)
+          .setWeeklyReportTime('$h:$m');
     }
   }
 
@@ -263,6 +293,35 @@ class NotificationSettingsView extends ConsumerWidget {
             ],
           ],
         ),
+        const SizedBox(height: 12),
+
+        // ── Weekly Report (opt-in for the Sunday notification and the AI
+        // summary; D-07/D-08) ─────────────────────────────────────────────
+        _SettingsCard(
+          children: [
+            _SettingsSwitchTile(
+              icon: Icons.insights_outlined,
+              title: 'Weekly report',
+              subtitle:
+                  'Sundays at ${settings.weeklyReportTimeHHMM}. $_weeklyReportDisclosure',
+              value: settings.weeklyReportEnabled,
+              onChanged: notifier.setWeeklyReportEnabled,
+            ),
+            if (settings.weeklyReportEnabled) ...[
+              _SettingsDivider(),
+              _TimePillRow(
+                label: 'Report Time',
+                caption: 'When to send the weekly report notification',
+                timeHHMM: settings.weeklyReportTimeHHMM,
+                onTap: () => _pickWeeklyReportTime(
+                  context,
+                  ref,
+                  settings.weeklyReportTimeHHMM,
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }
@@ -363,6 +422,81 @@ class _SettingsSwitchTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Switch.adaptive(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimePillRow extends StatelessWidget {
+  final String label;
+  final String caption;
+  final String timeHHMM;
+  final VoidCallback onTap;
+
+  const _TimePillRow({
+    required this.label,
+    required this.caption,
+    required this.timeHHMM,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(
+            Icons.access_time_rounded,
+            size: 20,
+            color: context.hx.onSurfaceVariant,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  caption,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.hx.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 48),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.hx.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: context.hx.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Text(
+                timeHHMM,
+                style: TextStyle(
+                  color: context.hx.primaryText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
