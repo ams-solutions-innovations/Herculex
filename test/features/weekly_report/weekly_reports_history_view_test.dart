@@ -86,7 +86,9 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        weeklyReportHistoryProvider.overrideWith((ref) => Stream.value(records)),
+        weeklyReportHistoryProvider.overrideWith(
+          (ref) => Stream.value(records),
+        ),
         weeklyReportEnabledProvider.overrideWithValue(enabled),
         clockProvider.overrideWithValue(
           FakeClock(now ?? DateTime(2026, 10, 3, 12)),
