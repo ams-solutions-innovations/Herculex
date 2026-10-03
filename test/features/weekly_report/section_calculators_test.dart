@@ -1,6 +1,74 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 import 'package:herculex/features/weekly_report/domain/iso_week.dart';
 import 'package:herculex/features/weekly_report/domain/nutrition_section_calculator.dart';
+import 'package:herculex/features/weekly_report/domain/training_section_calculator.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
+
+var _nextId = 1;
+
+/// A completed set of [exerciseId] in [sessionId], built over the drift data
+/// classes directly (no database needed; ResolvedSet is plain Dart).
+ResolvedSet _set({
+  required DateTime? at,
+  int sessionId = 1,
+  bool sessionEnded = true,
+  int exerciseId = 10,
+  String exerciseName = 'Bench Press',
+  String metric = 'weight_reps',
+  double weightKg = 100,
+  int reps = 5,
+}) {
+  final id = _nextId++;
+  return ResolvedSet(
+    session: WorkoutSessionData(
+      id: sessionId,
+      startedAt: DateTime(2026, 9, 28),
+      endedAt: sessionEnded ? DateTime(2026, 9, 28, 1) : null,
+    ),
+    workoutExercise: WorkoutExerciseData(
+      id: id,
+      sessionId: sessionId,
+      exerciseId: exerciseId,
+      orderIndex: 0,
+      plannedAllowsAdvancedTechniques: false,
+    ),
+    exercise: ExerciseCatalogData(
+      id: exerciseId,
+      name: exerciseName,
+      primaryMuscle: 'Chest',
+      equipment: 'Barbell',
+      mechanics: 'compound',
+      force: 'push',
+      plane: 'horizontal',
+      defaultRestSeconds: 120,
+      isCustom: false,
+      category: 'strength',
+      modality: 'barbell',
+      cnsScore: 4,
+      recoveryImpact: 2,
+      loggingMetric: metric,
+      supportsWeightedBodyweight: false,
+      isReviewed: true,
+    ),
+    set: SetEntryData(
+      id: id,
+      workoutExerciseId: id,
+      setIndex: 1,
+      weightKg: weightKg,
+      reps: reps,
+      isWarmup: false,
+      isCompleted: true,
+      completedAt: at,
+      setType: 'standard',
+    ),
+    setType: SetType.standard,
+    bands: const [],
+    accessoryNames: const [],
+    forearmMultiplier: 1.0,
+  );
+}
 
 void main() {
   // 2026-09-28 is a Monday: ISO week 2026-W40 runs 09-28 .. 10-04.
@@ -177,6 +245,215 @@ void main() {
       expect(filled.kcalByDate, base.kcalByDate);
       expect(filled.targetByDate, hasLength(1));
       expect(base.copyWith().targetByDate, isEmpty);
+    });
+  });
+
+  group('TrainingSectionCalculator', () {
+    final weekEnd = week.endExclusive; // 2026-10-05 00:00
+    final mon = DateTime(2026, 9, 28, 10);
+    final tue = DateTime(2026, 9, 29, 10);
+    final lastWeek = DateTime(2026, 9, 23, 10);
+    final older = DateTime(2026, 9, 1, 10);
+
+    test('sessions and tonnage come from in-window sets', () {
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: [
+          _set(at: mon, sessionId: 1, weightKg: 100, reps: 5),
+          _set(at: mon, sessionId: 1, weightKg: 100, reps: 5),
+          _set(at: tue, sessionId: 2, weightKg: 60, reps: 10),
+        ],
+      )!;
+      expect(s.sessions, 2);
+      expect(s.tonnageKg, 500 + 500 + 600);
+      expect(s.prevWeekTonnageKg, isNull);
+    });
+
+    test('tonnage is the sum of ResolvedSet.tonnageKg', () {
+      final sets = [
+        _set(at: mon, weightKg: 80, reps: 8),
+        _set(at: tue, exerciseId: 11, weightKg: 50, reps: 12),
+        // Timed exercise: reps are a placeholder, tonnage is zero.
+        _set(at: tue, exerciseId: 12, metric: 'time', weightKg: 0, reps: 0),
+      ];
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: sets,
+      )!;
+      expect(s.tonnageKg, sets.fold<double>(0, (a, r) => a + r.tonnageKg));
+    });
+
+    test('a session without endedAt is not counted as a session', () {
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: [
+          _set(at: mon, sessionId: 1),
+          _set(at: tue, sessionId: 2, sessionEnded: false),
+        ],
+      )!;
+      expect(s.sessions, 1);
+    });
+
+    test('sets outside the window are excluded; previous week is compared', () {
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: DateTime(2026, 9, 30),
+        sets: [
+          _set(at: mon, weightKg: 100, reps: 5), // 500, in
+          _set(at: DateTime(2026, 10, 1, 9), weightKg: 999), // after windowEnd
+          _set(at: weekEnd, weightKg: 999), // next week
+          _set(at: lastWeek, weightKg: 100, reps: 4), // prev week 400
+          _set(at: older, weightKg: 100, reps: 3), // before prev week
+        ],
+      )!;
+      expect(s.tonnageKg, 500);
+      expect(s.prevWeekTonnageKg, 400);
+      expect(s.sessions, 1);
+    });
+
+    test('sets with no completedAt are ignored', () {
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: [_set(at: null, weightKg: 500), _set(at: mon, reps: 5)],
+      )!;
+      expect(s.tonnageKg, 500);
+    });
+
+    test('no in-window sets returns null', () {
+      expect(
+        TrainingSectionCalculator.compute(
+          week: week,
+          windowEnd: weekEnd,
+          sets: [_set(at: lastWeek), _set(at: older)],
+        ),
+        isNull,
+      );
+      expect(
+        TrainingSectionCalculator.compute(
+          week: week,
+          windowEnd: weekEnd,
+          sets: const [],
+        ),
+        isNull,
+      );
+    });
+
+    test('e1RM movers: improvement over prior history, top 3 by delta', () {
+      // exercise 10: prior 100x5, week 110x5 -> mover.
+      // exercise 11: prior 100x5, week 100x5 -> no change, not a mover.
+      // exercise 12: no prior history -> not a mover.
+      // exercise 13: prior 100x5, week 90x5 -> regression, not a mover.
+      // exercises 14,15,16: improvements of different size.
+      final sets = [
+        _set(at: older, exerciseId: 10, exerciseName: 'Bench', weightKg: 100),
+        _set(at: mon, exerciseId: 10, exerciseName: 'Bench', weightKg: 110),
+        _set(at: older, exerciseId: 11, exerciseName: 'Row', weightKg: 100),
+        _set(at: mon, exerciseId: 11, exerciseName: 'Row', weightKg: 100),
+        _set(at: mon, exerciseId: 12, exerciseName: 'New', weightKg: 200),
+        _set(at: older, exerciseId: 13, exerciseName: 'Dip', weightKg: 100),
+        _set(at: mon, exerciseId: 13, exerciseName: 'Dip', weightKg: 90),
+        _set(at: older, exerciseId: 14, exerciseName: 'Squat', weightKg: 100),
+        _set(at: mon, exerciseId: 14, exerciseName: 'Squat', weightKg: 140),
+        _set(at: older, exerciseId: 15, exerciseName: 'Deadlift', weightKg: 100),
+        _set(at: mon, exerciseId: 15, exerciseName: 'Deadlift', weightKg: 120),
+        _set(at: older, exerciseId: 16, exerciseName: 'Press', weightKg: 40),
+        _set(at: mon, exerciseId: 16, exerciseName: 'Press', weightKg: 42.5),
+      ];
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: sets,
+      )!;
+      expect(s.e1rmMovers.map((m) => m.exerciseName).toList(), [
+        'Squat',
+        'Deadlift',
+        'Bench',
+      ]);
+      // 5 reps: (w*(1+5/30) + w*36/32) / 2 = w * 1.14583...
+      final squat = s.e1rmMovers.first;
+      expect(squat.e1rmKg, closeTo(140 * 1.1458333, 0.06));
+      expect(squat.deltaKg, closeTo(40 * 1.1458333, 0.06));
+      expect(s.e1rmMovers.every((m) => m.deltaKg > 0), isTrue);
+    });
+
+    test('e1RM uses the best set of each period', () {
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: [
+          _set(at: older, weightKg: 100, reps: 1), // prior best 100
+          _set(at: older, weightKg: 50, reps: 5),
+          _set(at: mon, weightKg: 100, reps: 1), // week best 105
+          _set(at: tue, weightKg: 105, reps: 1),
+        ],
+      )!;
+      expect(s.e1rmMovers, hasLength(1));
+      expect(s.e1rmMovers.single.e1rmKg, 105);
+      expect(s.e1rmMovers.single.deltaKg, 5);
+    });
+
+    test('non rep-based or unloaded metrics produce no mover', () {
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: [
+          // Reps without load (bodyweight metric): rep-based, not loaded.
+          _set(at: older, exerciseId: 20, metric: 'reps', weightKg: 10),
+          _set(at: mon, exerciseId: 20, metric: 'reps', weightKg: 50),
+          // Timed carry: loaded but not rep-based.
+          _set(at: older, exerciseId: 21, metric: 'weight_time', weightKg: 10),
+          _set(at: mon, exerciseId: 21, metric: 'weight_time', weightKg: 50),
+        ],
+      )!;
+      expect(s.e1rmMovers, isEmpty);
+    });
+
+    test('sets whose e1RM cannot be estimated are skipped', () {
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: [
+          _set(at: older, weightKg: 100, reps: 5),
+          // 20 reps is outside the estimator range -> null -> skipped.
+          _set(at: mon, weightKg: 200, reps: 20),
+        ],
+      )!;
+      expect(s.e1rmMovers, isEmpty);
+    });
+
+    test('long exercise names are capped at 60 characters', () {
+      final s = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: [
+          _set(at: older, exerciseName: '  ${'n' * 90}', weightKg: 100),
+          _set(at: mon, exerciseName: '  ${'n' * 90}', weightKg: 110),
+        ],
+      )!;
+      expect(s.e1rmMovers.single.exerciseName, 'n' * 60);
+    });
+
+    test('equal inputs give equal output (no clock involved)', () {
+      List<ResolvedSet> build() => [
+        _set(at: older, weightKg: 100),
+        _set(at: mon, weightKg: 110),
+        _set(at: lastWeek, weightKg: 90),
+      ];
+      final a = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: build(),
+      )!.toJson();
+      final b = TrainingSectionCalculator.compute(
+        week: week,
+        windowEnd: weekEnd,
+        sets: build(),
+      )!.toJson();
+      expect(a, b);
     });
   });
 }
