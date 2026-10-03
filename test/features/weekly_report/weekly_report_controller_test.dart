@@ -39,7 +39,7 @@ class _FakeBackend implements WeeklyReportBackend {
     return (
       {
         'summary': 'You logged food on most days.',
-        'suggestions': ['Keep protein steady.'],
+        'suggestions': ['Keep protein steady.', 'Add a short walk.'],
       },
       {'knowledgeVersion': 'kb', 'modelVersion': 'm'},
     );
@@ -99,7 +99,6 @@ void main() {
           clock: clock,
           prefs: prefs,
           isEnabled: () => enabled,
-          readUiState: (w) => uiStates[w] ?? const NarrativeUiState(),
           writeUiState: (w, s) => uiStates[w] = s,
           onDismissedWeek: dismissed.add,
         );
@@ -160,23 +159,26 @@ void main() {
 
     NarrativeUiState ui() => uiStates[week] ?? const NarrativeUiState();
 
-    test('concurrent open() calls share one generate and one backend call', () async {
-      await seedFood();
-      backend.gate = Completer<void>();
+    test(
+      'concurrent open() calls share one generate and one backend call',
+      () async {
+        await seedFood();
+        backend.gate = Completer<void>();
 
-      final results = await Future.wait([
-        controller.open(week),
-        controller.open(week),
-      ]);
+        final results = await Future.wait([
+          controller.open(week),
+          controller.open(week),
+        ]);
 
-      expect(results[0], isA<WeeklyReportReady>());
-      expect(results[1], isA<WeeklyReportReady>());
-      expect(await reportRows(), 1);
-      await pumpUntil(() => backend.calls == 1);
-      backend.gate!.complete();
-      await controller.narrationInFlight(week);
-      expect(backend.calls, 1);
-    });
+        expect(results[0], isA<WeeklyReportReady>());
+        expect(results[1], isA<WeeklyReportReady>());
+        expect(await reportRows(), 1);
+        await pumpUntil(() => backend.calls == 1);
+        backend.gate!.complete();
+        await controller.narrationInFlight(week);
+        expect(backend.calls, 1);
+      },
+    );
 
     test('row is persisted before the backend is called and open() does not '
         'wait for the call', () async {
@@ -239,23 +241,26 @@ void main() {
       expect(record!.narrativeAttempts, 1);
     });
 
-    test('retryNarrative fires exactly one call and saves on success', () async {
-      await seedFood();
-      backend.error = Exception('boom');
-      await controller.open(week);
-      await controller.narrationInFlight(week);
-      backend.error = null;
+    test(
+      'retryNarrative fires exactly one call and saves on success',
+      () async {
+        await seedFood();
+        backend.error = Exception('boom');
+        await controller.open(week);
+        await controller.narrationInFlight(week);
+        backend.error = null;
 
-      final outcome = await controller.retryNarrative(week);
+        final outcome = await controller.retryNarrative(week);
 
-      expect(outcome.isSaved, isTrue);
-      expect(backend.calls, 2);
-      final record = await repository.forWeek(week);
-      expect(record!.narrativeAttempts, 2);
-      expect(record.narrativeJson, isNotNull);
-      expect(ui().failure, isNull);
-      expect(ui().inFlight, isFalse);
-    });
+        expect(outcome.isSaved, isTrue);
+        expect(backend.calls, 2);
+        final record = await repository.forWeek(week);
+        expect(record!.narrativeAttempts, 2);
+        expect(record.narrativeJson, isNotNull);
+        expect(ui().failure, isNull);
+        expect(ui().inFlight, isFalse);
+      },
+    );
 
     test('concurrent retries share one backend call', () async {
       await seedFood();
@@ -276,18 +281,21 @@ void main() {
       expect(backend.calls, before + 1);
     });
 
-    test('once saved, neither open() nor retryNarrative() calls the backend', () async {
-      await seedFood();
-      await controller.open(week);
-      await controller.narrationInFlight(week);
-      expect(backend.calls, 1);
+    test(
+      'once saved, neither open() nor retryNarrative() calls the backend',
+      () async {
+        await seedFood();
+        await controller.open(week);
+        await controller.narrationInFlight(week);
+        expect(backend.calls, 1);
 
-      await controller.open(week);
-      final outcome = await controller.retryNarrative(week);
+        await controller.open(week);
+        final outcome = await controller.retryNarrative(week);
 
-      expect(outcome.status, NarrativeOutcomeStatus.alreadySaved);
-      expect(backend.calls, 1);
-    });
+        expect(outcome.status, NarrativeOutcomeStatus.alreadySaved);
+        expect(backend.calls, 1);
+      },
+    );
 
     test('opt-in off, no row: Disabled, nothing created, no call', () async {
       await seedFood();
@@ -425,7 +433,7 @@ void main() {
       final stored = jsonEncode(
         const WeeklyNarrative(
           summary: 'You logged food on most days.',
-          suggestions: ['Keep protein steady.'],
+          suggestions: ['Keep protein steady.', 'Add a short walk.'],
         ).toJson(),
       );
       final model = status(r: record(narrativeJson: stored))!;
@@ -458,9 +466,9 @@ void main() {
     });
 
     test('failure kinds map to offline / quotaExhausted / pending', () {
-      NarrativeStatus of(NarrativeFailureKind kind) =>
-          status(ui: NarrativeUiState(failure: kind, quotaDayIso: '2026-09-30'))!
-              .status;
+      NarrativeStatus of(NarrativeFailureKind kind) => status(
+        ui: NarrativeUiState(failure: kind, quotaDayIso: '2026-09-30'),
+      )!.status;
 
       expect(of(NarrativeFailureKind.offline), NarrativeStatus.offline);
       expect(
