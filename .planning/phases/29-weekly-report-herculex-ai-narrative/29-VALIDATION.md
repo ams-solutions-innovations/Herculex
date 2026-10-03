@@ -1,9 +1,9 @@
 ---
 phase: 29
 slug: weekly-report-herculex-ai-narrative
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-10-03
 ---
 
@@ -71,11 +71,11 @@ Requirement-level map (task IDs are assigned once plans exist; the planner must 
 
 ## Wave 0 Requirements
 
-- [ ] `test/features/weekly_report/` — entire directory and every file listed above
-- [ ] `test/weekly_reports_supabase_migration_test.dart` — clone of `physique_supabase_migration_test.dart`
-- [ ] `supabase/functions/gemini-analyze/weekly_report_test.ts` — clone of `program_brief_test.ts`
-- [ ] Reuse `FakeLocalNotificationsPlugin` (already supports `zonedSchedule` with payload + `matchDateTimeComponents`); do not fork
-- [ ] Drift artifacts after the schema change: `drift_schemas/drift_schema_v48.json`, `test/generated_migrations/schema_v48.dart` (+ `schema.dart`)
+- [x] `test/features/weekly_report/` — entire directory and every file listed above
+- [x] `test/weekly_reports_supabase_migration_test.dart` — clone of `physique_supabase_migration_test.dart`
+- [x] `supabase/functions/gemini-analyze/weekly_report_test.ts` — clone of `program_brief_test.ts`
+- [x] Reuse `FakeLocalNotificationsPlugin` (already supports `zonedSchedule` with payload + `matchDateTimeComponents`); do not fork
+- [x] Drift artifacts after the schema change: `drift_schemas/drift_schema_v48.json`, `test/generated_migrations/schema_v48.dart` (+ `schema.dart`)
 
 ---
 
@@ -92,11 +92,11 @@ Requirement-level map (task IDs are assigned once plans exist; the planner must 
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 40 s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [ ] Feedback latency < 40 s (not met: quick command measured 86 s on this machine, cold compile; targeted single-file runs are shorter)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-10-03 (plan 29-19; automated gates green, the four Manual-Only items above remain open for plan 29-20)
