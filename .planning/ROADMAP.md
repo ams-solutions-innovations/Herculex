@@ -386,7 +386,7 @@ Plans:
 
 **Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
-**Plans:** 3/20 plans executed
+**Plans:** 4/20 plans executed
 
 Plans:
 **Wave 1**
@@ -394,7 +394,7 @@ Plans:
 - [x] 29-01-PLAN.md — Wave 1: IsoWeek (ISO key, window, tap-time week), CausalLanguageGuard + strict WeeklyNarrative, route constants
 - [x] 29-02-PLAN.md — Wave 1: weekly_reports drift table, schema v48, four sync/wipe registries, drift dump/generate
 - [x] 29-03-PLAN.md — Wave 1: gemini-analyze weekly_report kind (prompt, normalizer, per-day quota, corpus) + Deno tests
-- [ ] 29-04-PLAN.md — Wave 1: opt-in NotificationSettings fields + Sunday dayOfWeekAndTime scheduler (id 5001) + payload constant
+- [x] 29-04-PLAN.md — Wave 1: opt-in NotificationSettings fields + Sunday dayOfWeekAndTime scheduler (id 5001) + payload constant
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

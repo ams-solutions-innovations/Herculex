@@ -14,6 +14,24 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-10-03 (Phase 29 Plan 04 Completed)
+
+- Completed Plan 29-04 (RPT-01, RPT-03, scheduler half only): `NotificationSettings` gained
+  `weeklyReportEnabled` (default false, opt-in) and `weeklyReportTimeHHMM` (default 18:00) in
+  constructor, copyWith, toJson and fromJson, tolerant of old blobs and wrong-typed values.
+  `WeeklyReportNotificationScheduler` (id 5001, channel `weekly_report`, Sunday
+  `dayOfWeekAndTime`, Clock-injected, generic lock-screen copy, static `weekly_report` payload in
+  `weekly_report/domain`). Not yet wired: provider and `NotificationSyncService` are plan 08,
+  tap path is plan 10.
+- Decision: HH:MM is range-checked (0-23 / 0-59), so `25:00` schedules nothing rather than
+  rolling into the next day. RPT-01/RPT-03 left unchecked (partial-completion convention).
+- Validation: `flutter test test/features/notifications/` 30/30, analyze clean on touched paths,
+  `check_structure` 57 violations (unchanged baseline).
+- SDK `state.*` verbs still no-op on this STATE.md; `roadmap.update-plan-progress 29` worked.
+  This note is hand-written.
+
+---
+
 ## Session update — 2026-10-03 (Phase 29 Plan 03 Completed)
 
 - Completed Plan 29-03 (RPT-02, RPT-05, server half only): `gemini-analyze` gained the
