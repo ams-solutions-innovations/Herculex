@@ -595,31 +595,33 @@ Notification copy per UI-SPEC: title "Your weekly report is ready", body "See ho
 | A9 | A 5-minute (UI) / 45 s (client) timeout is enough for the narrative call. | Pattern 6 | `_invoke` already has 45 s; Gemini JSON of this size is fast. |
 | A10 | `flutter_local_notifications` 18.0.1 `getNotificationAppLaunchDetails` works for the payload on Android cold start as documented; not device-tested this session. | Pattern 5 | Cold-start deep link fails silently; needs the manual UAT item. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Which week does a late notification tap open?** (D-09 "current week's report" vs D-05 "missed week can be generated on first open")
+All six questions are resolved for planning purposes. OQ1 and OQ2 are orchestrator defaults pending user confirmation (a follow-up revision may change them); the others are settled by the plans named below.
+
+1. **Which week does a late notification tap open?** (RESOLVED: plan 29-01 `IsoWeek.forNotificationTap`; orchestrator default, pending user confirmation) (D-09 "current week's report" vs D-05 "missed week can be generated on first open")
    - Known: repeating notification has a static payload; tapping Mon-Sat after Sunday would otherwise open the new, nearly empty ISO week.
    - Unclear: whether the user wants the just-ended week for late taps.
    - Recommendation: resolve to the week of the most recent Sunday trigger (Pitfall 3); window for that week = Monday 00:00 to week end (frozen at generation). Confirm with the user in plan check.
 
-2. **What exactly does "Update my target to X" write, and when is the card actionable?**
+2. **What exactly does "Update my target to X" write, and when is the card actionable?** (RESOLVED: plan 29-16 delta-preserving write behind a user tap; orchestrator default, pending user confirmation)
    - Known: D-11 needs a user-confirmed write via the existing repository; TDEE-04 means no saved rule -> baseline already follows the estimate; PHYS-04 safety gate must not be bypassed.
    - Unclear: X semantics for users on a cut/bulk; handling of day-scoped rules (`training_day`, `weekday:N`).
    - Recommendation: Pitfall 10 (delta-preserving on the applicable saved rule; clamp via existing eligibility/minimums; read-only line when no saved rule). Needs a user decision before implementation of that one card; everything else is independent.
 
-3. **What does sync pull do when a duplicate `(iso_year, iso_week)` arrives with a different `sync_uuid`?**
+3. **What does sync pull do when a duplicate `(iso_year, iso_week)` arrives with a different `sync_uuid`?** (RESOLVED: plan 29-05 Task 1 pull test with the documented drop-the-unique-key fallback)
    - Known: pull upserts on `sync_uuid` only; local unique index would raise.
    - Unclear: whether the pull loop isolates per-row failures.
    - Recommendation: write a pull test during planning; if one failure aborts the cycle, drop the local unique key and enforce uniqueness in the repository transaction plus a deterministic "earliest row wins" read.
 
-4. **Which TDEE rows define old and new for the shift?**
+4. **Which TDEE rows define old and new for the shift?** (RESOLVED: plan 29-12 `latestAtOrBefore` / `latestBefore`, consumed by plan 14)
    - Recommendation: `new` = newest estimate with `estimated_at <= windowEnd`; `old` = newest estimate with `estimated_at < weekStart`; no card when no `old` or `new` is `coldStart`. A `TdeeEstimatesRepository` sibling method (`latestBefore(DateTime)`) is cleaner than `recent(limit)` slicing.
 
-5. **Is an explicit AI-processing consent needed for sending weekly health aggregates to Gemini?**
+5. **Is an explicit AI-processing consent needed for sending weekly health aggregates to Gemini?** (RESOLVED: plan 29-08 disclosure-only in the toggle sub-label plus docs update; no consent gate)
    - Known: physique photos have a versioned consent; `program_brief` has none; `GDPR_ARTICLE_9_COMPLIANCE.md` exists.
    - Recommendation: toggle sub-label discloses processing; docs update task; escalate to the user if a consent gate is wanted (it would add a `privacyConsent` check to the kind).
 
-6. **Does the `goals_view` / Profile flow need anything?** No; out of scope (STATE.md known limitation unchanged).
+6. **Does the `goals_view` / Profile flow need anything?** (RESOLVED: no) No; out of scope (STATE.md known limitation unchanged).
 
 ## Environment Availability
 

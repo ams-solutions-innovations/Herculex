@@ -149,7 +149,7 @@ In `notification_settings_view.dart`, beside daily-log reminder: a toggle row "W
 | Empty section | "No data this week" |
 | Narrative pending (generic failure) | "Narrative pending. Herculex AI couldn't write this week's summary. Your numbers above are saved. Try again." |
 | Narrative pending (offline) | "You're offline. Reconnect and tap Retry narrative." |
-| Narrative pending (quota) | "You've used this month's Herculex AI reports. Your numbers above are saved." |
+| Narrative pending (quota) | "You've used today's Herculex AI summaries. Your numbers above are saved. Try again tomorrow." |
 | Narrative note | "Herculex AI interprets the numbers above. It does not change them." |
 | Correlation phrasing | "tended to go with" (never "because", "caused", "led to") |
 | Error state (report load) | "Couldn't load this report. Go back and open it again." |
