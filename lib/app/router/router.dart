@@ -46,6 +46,9 @@ import 'package:herculex/features/programs/presentation/views/rotation_pools_vie
 import 'package:herculex/features/recovery/presentation/recovery_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/shell/splash_view.dart';
+import 'package:herculex/features/weekly_report/domain/iso_week.dart';
+import 'package:herculex/features/weekly_report/presentation/views/weekly_report_view.dart';
+import 'package:herculex/features/weekly_report/presentation/views/weekly_reports_history_view.dart';
 import 'package:herculex/features/workouts/presentation/views/exercise_details_view.dart';
 import 'package:herculex/features/workouts/presentation/views/exercise_library_view.dart';
 import 'package:herculex/features/workouts/presentation/views/micro_workouts_view.dart';
@@ -75,6 +78,21 @@ Widget _badParam(BuildContext context, GoRouterState state, String name) =>
       message: "'${state.pathParameters[name]}' isn't a valid $name.",
       onGoHome: () => context.go(AppRoutes.app),
     );
+
+/// Builder of [AppRoutes.weeklyReport]. Both path parameters are untrusted
+/// (deep links, restored routes): a non-number or an impossible ISO week (week
+/// 0, week 99, week 53 in a 52-week year) shows the bad-parameter screen and
+/// never reaches the report view.
+@visibleForTesting
+Widget buildWeeklyReportRoute(BuildContext context, GoRouterState state) {
+  final year = _intParam(state, 'isoYear');
+  final week = _intParam(state, 'isoWeek');
+  if (year == null) return _badParam(context, state, 'isoYear');
+  if (week == null) return _badParam(context, state, 'isoWeek');
+  final isoWeek = IsoWeek.tryCreate(year, week);
+  if (isoWeek == null) return _badParam(context, state, 'isoWeek');
+  return WeeklyReportView(week: isoWeek);
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh(ref);
@@ -173,6 +191,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const InsightsView(),
       ),
       GoRoute(path: AppRoutes.cns, builder: (_, _) => const CnsView()),
+      GoRoute(
+        path: AppRoutes.weeklyReports,
+        builder: (_, _) => const WeeklyReportsHistoryView(),
+      ),
+      GoRoute(path: AppRoutes.weeklyReport, builder: buildWeeklyReportRoute),
       GoRoute(
         path: AppRoutes.recovery,
         builder: (_, _) => const RecoveryView(),
