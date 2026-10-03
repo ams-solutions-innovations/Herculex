@@ -3,16 +3,30 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T11:35:48.407Z"
+last_updated: "2026-10-03T12:10:28.124Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 96
+  completed_plans: 98
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 11 Completed)
+
+- Completed Plan 29-11 (RPT-01, RPT-02, calculators half only): `NutritionSectionCalculator`
+  (presence-based, `adherenceBandFraction = 0.10`) and `TrainingSectionCalculator` (tonnage via
+  `ResolvedSet.tonnageKg`, e1RM movers behind the `isRepBased && isLoaded` gate). Both pure, no clock,
+  null for an empty window. Plan 14 builds `NutritionWeekInputs` (without targets) and fills targets via
+  `copyWith`.
+
+- Decisions: a target with kcal <= 0 counts as no target; movers use 1-decimal rounded e1RM with
+  rounded delta > 0; sets after `windowEnd` are excluded even inside the week. RPT-01/RPT-02 left
+  unchecked (partial). SDK `state.*` verbs still no-op; this note is hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 06 Completed)
 

@@ -386,7 +386,7 @@ Plans:
 
 **Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
-**Plans:** 10/20 plans executed
+**Plans:** 11/20 plans executed
 
 Plans:
 **Wave 1**
@@ -407,7 +407,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 29-06-PLAN.md — Wave 3: Supabase migration SQL (written, not applied) + parity test + WeeklyReportRepository (immutable snapshot)
-- [ ] 29-11-PLAN.md — Wave 3: nutrition + training section calculators (pure, deterministic)
+- [x] 29-11-PLAN.md — Wave 3: nutrition + training section calculators (pure, deterministic)
 - [ ] 29-12-PLAN.md — Wave 3: correlation statements (RPT-05), recovery/physique calculators, TDEE shift + history queries
 - [ ] 29-13-PLAN.md — Wave 3: measured section cards + distinct Herculex AI narrative card
 
