@@ -46,6 +46,8 @@ abstract final class AppRoutes {
   static const recovery = '/recovery';
   static const muscleVolume = '/muscle-volume';
   static const muscleVolumeDetail = '/muscle-volume/:muscle';
+  static const weeklyReports = '/weekly-reports';
+  static const weeklyReport = '/weekly-report/:isoYear/:isoWeek';
 
   // Health
   static const health = '/health';
@@ -101,6 +103,8 @@ abstract final class AppPaths {
   static String measurementDetail(String metric) => '/measurements/$metric';
   static String muscleVolumeDetail(String muscle) => '/muscle-volume/$muscle';
   static String macroTrends(String macro) => '/macro-trends/$macro';
+  static String weeklyReport(int isoYear, int isoWeek) =>
+      '/weekly-report/$isoYear/$isoWeek';
   static String dreamPhysiqueProgress({int? goalId}) => goalId == null
       ? AppRoutes.dreamPhysiqueProgress
       : '${AppRoutes.dreamPhysiqueProgress}?goalId=$goalId';
