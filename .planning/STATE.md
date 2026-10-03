@@ -3,16 +3,35 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T09:24:58.872Z"
+last_updated: "2026-10-03T11:14:33.772Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 87
+  completed_plans: 92
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 05 Completed)
+
+- Completed Plan 29-05 (RPT-01, RPT-04, guard half only): OQ3 settled by
+  `test/sync/weekly_reports_duplicate_pull_test.dart`. With a local unique key on
+  (iso_year, iso_week), a pulled duplicate under another sync_uuid threw UNIQUE out of
+  `SyncService._pullTable` (no per-row catch), aborting the whole pull cycle and never advancing
+  the cursor. Fallback taken: the key was dropped from `WeeklyReports`; drift code, v48 schema
+  dump and `schema_v48.dart` regenerated (diff vs old v48 = unique_keys only).
+- Decision: plan 06's repository must enforce one-per-week inside its insert transaction and read
+  the earliest row by (generated_at, id). No remote unique constraint either; table has no
+  `created_at`.
+- Added registration guard test (registries, spec, order, idx_sync_uuid, outbox upsert) and wipe
+  test (`weekly_reports` cleared by `wipeAllLocalUserData`).
+- Validation: full `flutter test` 2351 pass / 9 skipped; analyze 0 errors. RPT-01/RPT-04 left
+  unchecked (partial-completion convention). SDK `state.*` verbs still no-op; this note is
+  hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 04 Completed)
 
@@ -23,10 +42,13 @@ progress:
   `dayOfWeekAndTime`, Clock-injected, generic lock-screen copy, static `weekly_report` payload in
   `weekly_report/domain`). Not yet wired: provider and `NotificationSyncService` are plan 08,
   tap path is plan 10.
+
 - Decision: HH:MM is range-checked (0-23 / 0-59), so `25:00` schedules nothing rather than
   rolling into the next day. RPT-01/RPT-03 left unchecked (partial-completion convention).
+
 - Validation: `flutter test test/features/notifications/` 30/30, analyze clean on touched paths,
   `check_structure` 57 violations (unchanged baseline).
+
 - SDK `state.*` verbs still no-op on this STATE.md; `roadmap.update-plan-progress 29` worked.
   This note is hand-written.
 
@@ -42,11 +64,14 @@ progress:
   `isValidWeeklyReportFacts` (object, <= 8000 serialized chars, 400 before any model call),
   `weeklyReportSystemInstruction` (core + nutrition + recovery, no programming) and a per-kind
   quota (default 5/day, `GEMINI_LIMIT_WEEKLY_REPORT`). No SQL change needed.
+
 - Decision: RPT-02/RPT-05 left unchecked in REQUIREMENTS.md (partial-completion convention);
   the SDK `requirements.mark-complete` ticked them and I reverted. No client, report UI or
   deploy exists yet.
+
 - Validation: `deno test --allow-env --allow-net .` 40 passed / 0 failed; `deno check
   index.ts` clean. **Function NOT deployed** (human-gated, plan 20).
+
 - `roadmap.update-plan-progress 29` worked; other `state.*` verbs not used, note hand-written.
 - Next: 29-04 (notification scheduler) and remaining Phase 29 plans.
 
@@ -61,16 +86,21 @@ progress:
   `_fullyClearedTables`). Chores 1-4 of the schema bump are done (dump, generated
   `DatabaseAtV48`, retargeted `migration_test` + `schema_v25/27/28/29`, new v47 -> v48
   replay and existing-table guard test). Chore 5 (Supabase SQL) is plan 06's job.
+
 - **Do not ship a build with local v48 until plan 06's migration is applied**: sync of
   `weekly_reports` would quarantine (PGRST204) after 8 attempts.
+
 - Decision: RPT-01/RPT-04 left unchecked in REQUIREMENTS.md (partial-completion convention);
   no repository, generation or UI exists yet.
+
 - Validation: full `flutter test` 2334 passed / 9 skipped / 0 failed; `flutter analyze` 0
   errors; `check_structure` 57 violations (unchanged baseline). `build_runner` took ~10 min
   on this machine. `drift_dev schema dump` warned it fell back to static analysis (space in
   the project path); v47 -> v48 JSON diff is exactly the new table.
+
 - SDK `state.*` verbs still no-op on this STATE.md format; `roadmap.update-plan-progress`
   worked. This note is hand-written.
+
 - Next: remaining Phase 29 Wave 1 plans (29-03 Edge Function kind, 29-04 notification scheduler).
 
 ---
@@ -83,11 +113,14 @@ progress:
   per user-confirmed OQ1), `CausalLanguageGuard` (single-source word list) and strict
   `WeeklyNarrative` (`tryDecodeStored` skips the guard so saved narratives never orphan), and
   the `weeklyReports` / `weeklyReport` route constants. `router.dart` registration is plan 18.
+
 - Decision: RPT-01/03/05 left unchecked in REQUIREMENTS.md (partial-completion convention);
   only the foundation exists, no persistence, notification or UI yet.
+
 - Validation: `flutter test test/features/weekly_report` 79/79, `flutter analyze` on touched
   paths clean, `check_structure` no new violations. Full suite not re-run (new files are
   self-contained; only `routes.dart` gained three additive members).
+
 - SDK `state.*` verbs still no-op on this STATE.md format, so this note is hand-written.
 - Next: remaining Phase 29 Wave 1 plans (29-02 drift table + schema v48, 29-03 Edge Function
   kind, 29-04 notification scheduler).

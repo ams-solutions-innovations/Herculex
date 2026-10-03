@@ -386,7 +386,7 @@ Plans:
 
 **Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
-**Plans:** 4/20 plans executed
+**Plans:** 5/20 plans executed
 
 Plans:
 **Wave 1**
@@ -398,7 +398,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 29-05-PLAN.md — Wave 2: OQ3 duplicate-week pull test, sync-registration + wipe tests
+- [x] 29-05-PLAN.md — Wave 2: OQ3 duplicate-week pull test, sync-registration + wipe tests
 - [ ] 29-07-PLAN.md — Wave 2: versioned WeeklyReportPayload + section types + sanitised size-capped AI facts
 - [ ] 29-08-PLAN.md — Wave 2: notifier/sync wiring, settings toggle + time row, privacy/GDPR docs
 - [ ] 29-09-PLAN.md — Wave 2: WeeklyReportBackend (separate interface) + narrative service with typed failure kinds
