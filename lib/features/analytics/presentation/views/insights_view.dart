@@ -10,6 +10,7 @@ import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
 import 'package:herculex/features/analytics/data/analytics_repository.dart';
 import 'package:herculex/features/analytics/presentation/widgets/cns_recovery_cards.dart';
+import 'package:herculex/features/weekly_report/presentation/widgets/weekly_reports_entry_card.dart';
 import 'package:intl/intl.dart';
 
 class InsightsView extends ConsumerWidget {
@@ -27,6 +28,8 @@ class InsightsView extends ConsumerWidget {
             color: AppColors.secondary,
           ),
         ),
+        const SizedBox(height: 24),
+        const WeeklyReportsEntryCard(),
         const SizedBox(height: 24),
         const RecoveryDetailCard(),
         const SizedBox(height: 24),

@@ -20,6 +20,7 @@ import 'package:herculex/features/nutrition/application/nutrition_providers.dart
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/supplements/presentation/supplement_tracker_widget.dart';
+import 'package:herculex/features/weekly_report/presentation/widgets/weekly_report_ready_card.dart';
 import 'package:intl/intl.dart';
 
 class DashboardView extends ConsumerWidget {
@@ -100,6 +101,7 @@ class DashboardView extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 24),
+              const WeeklyReportReadyCard(),
               // Config-driven widget grid (§18). Each visible slot maps to a
               // standalone renderer or a Samsung-style widget stack, laid out
               // in a 2-column staggered grid so widgets can go half- or
