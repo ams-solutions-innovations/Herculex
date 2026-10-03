@@ -1666,8 +1666,7 @@ class WeeklyReports extends Table with SyncColumns, SyncTombstone {
   IntColumn get payloadVersion => integer().withDefault(const Constant(1))();
   TextColumn get payloadJson => text()(); // immutable measured snapshot
   TextColumn get narrativeJson => text().nullable()(); // write-once
-  IntColumn get narrativeAttempts =>
-      integer().withDefault(const Constant(0))();
+  IntColumn get narrativeAttempts => integer().withDefault(const Constant(0))();
   TextColumn get knowledgeVersion => text().nullable()();
   TextColumn get modelVersion => text().nullable()();
   TextColumn get tdeeDecision => text().nullable()(); // updated | kept

@@ -27,10 +27,10 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 47);
+    await verifier.migrateAndValidate(db, 48);
 
     final row = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(row.data.values.first, 47);
+    expect(row.data.values.first, 48);
   });
 
   test(
@@ -39,7 +39,7 @@ void main() {
       final connection = await verifier.startAt(24);
       final db = AppDatabase.forTesting(connection);
       addTearDown(db.close);
-      await verifier.migrateAndValidate(db, 47);
+      await verifier.migrateAndValidate(db, 48);
 
       // v24's generated fixture ships with no seed rows for `gyms`; insert
       // pre-migration-shaped rows directly to simulate an existing user.
@@ -69,7 +69,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 47);
+    await verifier.migrateAndValidate(db, 48);
 
     await db.into(db.gyms).insert(GymsCompanion.insert(name: 'New Gym'));
 
@@ -83,7 +83,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 47);
+    await verifier.migrateAndValidate(db, 48);
 
     // Column exists and is nullable/queryable post-migration — the v25
     // block must not have tried (and failed) to re-add it.
