@@ -33,6 +33,21 @@ abstract interface class PhysiqueCheckInBackend {
   });
 }
 
+final weeklyReportBackendProvider = Provider<WeeklyReportBackend>((ref) {
+  final backend = ref.watch(geminiBackendProvider);
+  if (backend is WeeklyReportBackend) {
+    return backend as WeeklyReportBackend;
+  }
+  return const UnconfiguredGeminiBackend();
+});
+
+/// Separate from [GeminiBackend] so existing test fakes of that interface keep
+/// compiling. Returns evidence only; the AI never writes to the database.
+abstract interface class WeeklyReportBackend {
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateWeeklyReportNarrative({required Map<String, dynamic> facts});
+}
+
 abstract interface class GeminiBackend {
   Future<Map<String, dynamic>> analyzeFoodPhoto({
     required List<int> imageBytes,
@@ -95,7 +110,7 @@ abstract interface class GeminiBackend {
 }
 
 class UnconfiguredGeminiBackend
-    implements GeminiBackend, PhysiqueCheckInBackend {
+    implements GeminiBackend, PhysiqueCheckInBackend, WeeklyReportBackend {
   const UnconfiguredGeminiBackend();
 
   @override
@@ -198,13 +213,20 @@ class UnconfiguredGeminiBackend
     throw _notConfigured();
   }
 
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateWeeklyReportNarrative({required Map<String, dynamic> facts}) async {
+    throw _notConfigured();
+  }
+
   Exception _notConfigured() => Exception(
     'AI analysis is not configured. Build with Supabase credentials and deploy '
     'the gemini-analyze Edge Function with a server-side GEMINI_API_KEY secret.',
   );
 }
 
-class SupabaseGeminiBackend implements GeminiBackend, PhysiqueCheckInBackend {
+class SupabaseGeminiBackend
+    implements GeminiBackend, PhysiqueCheckInBackend, WeeklyReportBackend {
   const SupabaseGeminiBackend(this._client);
 
   final SupabaseClient _client;
@@ -412,6 +434,14 @@ class SupabaseGeminiBackend implements GeminiBackend, PhysiqueCheckInBackend {
         'granted': true,
       },
     });
+    return _resultWithProvenance(data);
+  }
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateWeeklyReportNarrative({required Map<String, dynamic> facts}) async {
+    // No privacyConsent: the facts are numeric aggregates, not photos.
+    final data = await _invoke({'kind': 'weekly_report', 'facts': facts});
     return _resultWithProvenance(data);
   }
 

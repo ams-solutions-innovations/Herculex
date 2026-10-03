@@ -38,6 +38,40 @@ void main() {
     );
   });
 
+  group('UnconfiguredGeminiBackend.generateWeeklyReportNarrative', () {
+    test(
+      'throws the same not-configured message as every other method',
+      () async {
+        const backend = UnconfiguredGeminiBackend();
+
+        Object? caught;
+        try {
+          await backend.generateWeeklyReportNarrative(
+            facts: {'week': '2026-W40'},
+          );
+        } catch (error) {
+          caught = error;
+        }
+
+        Object? caughtFromSibling;
+        try {
+          await backend.analyzeRamblerText(text: 'chicken and rice');
+        } catch (error) {
+          caughtFromSibling = error;
+        }
+
+        expect(caught, isA<Exception>());
+        expect(caught.toString(), caughtFromSibling.toString());
+        expect(caught.toString(), contains('AI analysis is not configured'));
+      },
+    );
+
+    test('is reachable through the WeeklyReportBackend interface', () {
+      const WeeklyReportBackend backend = UnconfiguredGeminiBackend();
+      expect(backend, isA<WeeklyReportBackend>());
+    });
+  });
+
   group('_resultWithProvenance extraction (via reflection helper)', () {
     test(
       'a successful response yields result and provenance as separate maps',
