@@ -14,6 +14,23 @@ progress:
 
 # Project State: Milestone v2.0
 
+## Session update — 2026-10-03 (Phase 29 Plan 06 Completed)
+
+- Completed Plan 29-06 (RPT-01, RPT-04, chore 5 + repository half only): wrote (NOT applied)
+  `supabase/migrations/20261003000000_weekly_reports_v48.sql` with a drift-derived column-parity
+  test, and `WeeklyReportRepository`, the sole writer of `weekly_reports`: payload written once in
+  `insertSnapshot`, `saveNarrative` / `recordTdeeDecision` write-once, `markViewed` only when null.
+
+- Decision (per 29-05): no unique key local or remote. One report per week is enforced inside
+  `insertSnapshot`'s transaction; reads and mutators use the earliest live row by (generated_at, id).
+  A tombstoned-only week is hard-deleted and regenerated.
+
+- Note: migration apply is human-gated in plan 20; do not ship a build with local v48 before it.
+  Provider wiring is plan 15. RPT-01/RPT-04 left unchecked (partial). SDK `state.*` verbs still
+  no-op; this note is hand-written.
+
+---
+
 ## Session update — 2026-10-03 (Phase 29 Plan 10 Completed)
 
 - Completed Plan 29-10 (RPT-03, tap-path half only): weekly-report payload is matched before the
