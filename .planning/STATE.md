@@ -3,16 +3,33 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T11:14:33.772Z"
+last_updated: "2026-10-03T11:20:48.042Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 92
+  completed_plans: 93
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 07 Completed)
+
+- Completed Plan 29-07 (RPT-01, RPT-02, RPT-05, contract half only): pure-Dart
+  `WeeklyReportPayload` (v1, strict `FormatException` parsing, impossible ISO weeks rejected),
+  five section value classes with shared `ReportJson` readers, and `WeeklyReportFacts.fromPayload`
+  (sanitised names, aggregates only, 8000-char cap with a deterministic reduction ladder).
+
+- Decision: `hasSignal` excludes `tdee` (history-derived, D-06); `hasNarrativeSignal` is
+  nutrition/training/recovery only. Null sections are omitted from the facts map.
+  `fromPayload` has an optional `maxLength` used only by tests.
+
+- Validation: `flutter test test/features/weekly_report` 124 pass; analyze clean on touched
+  paths. RPT-01/RPT-02/RPT-05 left unchecked (partial-completion convention). SDK `state.*` verbs
+  still no-op; this note is hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 05 Completed)
 
@@ -22,11 +39,14 @@ progress:
   `SyncService._pullTable` (no per-row catch), aborting the whole pull cycle and never advancing
   the cursor. Fallback taken: the key was dropped from `WeeklyReports`; drift code, v48 schema
   dump and `schema_v48.dart` regenerated (diff vs old v48 = unique_keys only).
+
 - Decision: plan 06's repository must enforce one-per-week inside its insert transaction and read
   the earliest row by (generated_at, id). No remote unique constraint either; table has no
   `created_at`.
+
 - Added registration guard test (registries, spec, order, idx_sync_uuid, outbox upsert) and wipe
   test (`weekly_reports` cleared by `wipeAllLocalUserData`).
+
 - Validation: full `flutter test` 2351 pass / 9 skipped; analyze 0 errors. RPT-01/RPT-04 left
   unchecked (partial-completion convention). SDK `state.*` verbs still no-op; this note is
   hand-written.
