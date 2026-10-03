@@ -3,16 +3,32 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T13:47:43.993Z"
+last_updated: "2026-10-03T14:16:37.451Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 104
+  completed_plans: 105
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 18 Completed)
+
+- Completed Plan 29-18 (RPT-01..RPT-05): `WeeklyReportView` (frozen render, `open(week)` once after the
+  first frame, TDEE card only when material, single distinct Herculex AI card after a 32 gap, corrupt
+  payload / opt-in off / no-data states), both routes registered in `router.dart` via
+  `buildWeeklyReportRoute` (`_intParam` + `IsoWeek.tryCreate`, impossible weeks hit `_badParam`), and
+  `weeklyReportResumeProvider` (invalidates `weeklyReportDueWeekProvider` on app resume, one watch line
+  in `app.dart`). 35 new tests, folder total 406.
+
+- Decisions: route builder is a `@visibleForTesting` top-level function so tests use the production
+  logic; domainTraining equals primary in every palette, so the "only the AI card is primary-tinted"
+  test is scoped to nutrition / recovery / TDEE cards. SDK `state.*` verbs still partly no-op; this
+  note is hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 17 Completed)
 
