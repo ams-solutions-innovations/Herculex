@@ -8,12 +8,13 @@
 
 ## 1. Executive Summary & Direct Answer
 **Is GDPR Article 9 Special Category Data processed in Herculex?**  
-**YES.** Specifically, five features process data classified as "data concerning health":
+**YES.** Specifically, six features process data classified as "data concerning health":
 1. **Menstrual Cycle Tracking (`cycle_logs`, `cycle_settings`)**: Period dates, cycle phase, flow intensity.
 2. **Body Measurements (`body_measurements`, `daily_summaries`)**: Body weight, body fat %, physical circumferences.
 3. **Biometric HealthKit / Health Connect Data (`health_samples`)**: Heart rate, HRV, sleep stages, SpO₂ (*Note: Kept local-only*).
 4. **Joint Pain Tracking (`joint_pain_logs`)**: Flagged joint (elbow, shoulder, wrist, knee, hip, lower back), severity, optional note — used by the Recovery page's per-joint overtraining check.
 5. **Physique Goals & Check-ins (`physique_goals`, `physique_assessments`, `physique_roadmap_phases`, `physique_photos`)**: Physique photos, AI body-fat estimates and confidence, target physique and multi-phase roadmap. Photo files stay on device; only metadata syncs (see section 3.B).
+6. **Weekly Reports (`weekly_reports`)**: Opt-in (off by default). One row per ISO week with an aggregated numeric snapshot (nutrition averages and top food names, training volume and strength, sleep/steps/resting-heart-rate averages, physique check-in verdict, energy-estimate drift) and an optional AI-written summary. Synced to the user's private account (owner-only RLS) and removed on account deletion and local wipe. When generated, only a minimised numeric summary (no raw health samples, photos, notes or identifiers; sanitised food names) is sent to Herculex AI (powered by Google Gemini) via the Supabase edge function. Notifications carry no health data.
 
 ---
 
@@ -41,6 +42,7 @@ Herculex is architected with several structural privacy safeguards:
 * Even if an attacker looked directly at the database tables, they could not link a cycle log or weight measurement to an individual person without the separate auth credentials.
 
 ### B. Local-Only Boundaries for High-Risk Data
+* **Weekly Reports**: Opt-in aggregates only. The `weekly_reports` row syncs under owner-only RLS; account deletion removes it via the `user_id` cascade, and the local wipe clears it on device. The AI summary request carries a minimised numeric summary only (no raw samples, photos, notes or identifiers).
 * **Progress / Physique Photos**:
   * (a) Photo FILES stay in the app sandbox and are never uploaded to Supabase.
   * (b) EXIF and GPS are removed from every photo copy Herculex STORES (check-in and baseline copies in the sandbox); an optional on-device face blur is available. This applies to stored copies only, NOT to what is transmitted in the existing Dream Physique analysis, which still uploads the original picker bytes with EXIF intact. Only the check-in path transmits sanitised bytes.
@@ -53,6 +55,7 @@ Herculex is architected with several structural privacy safeguards:
 - [ ] Parental consent / minimum age for processing special-category data of under-18 users (GDPR Art. 8 age of digital consent differs by member state; RESEARCH A10). Owner: TBD (needs a human decision)
 - [ ] Review of the DRAFT AI consent copy by legal. Owner: TBD (needs a human decision)
 - [ ] iCloud backup exclusion of `<Documents>/physique` on iOS (RESEARCH A11; untested, needs macOS). Owner: TBD (needs a human decision)
+- [ ] Decide whether an explicit AI-processing consent step (privacyConsent) is required for weekly aggregates (Phase 29 open question 5). Today the opt-in Weekly report switch and its sub-label are the only consent surface. Owner: needs a human decision
 
 * **Raw Motion Sensors**: Streamed in RAM only during active exercise sets and discarded immediately at set completion. Never written to disk or transmitted over the wire.
 * **Raw HealthKit Samples (`health_samples`)**: Kept in the on-device SQLite database. Never synced to Supabase.

@@ -31,6 +31,7 @@ Herculex is built around **privacy by design**:
 Under GDPR Article 9, data concerning health requires explicit consent and heightened protection:
 * **Body Measurements:** Body weight (kg) and body circumferences (waist, arms, chest, etc.) are synced to your private account to graph physical progress.
 * **Physique Goals & Check-ins:** Your physique goal, roadmap phases, photo metadata and the AI body-fat estimate from each check-in are synced to your private account. See section D for how photos are handled.
+* **Weekly Reports (`weekly_reports`):** This is an opt-in feature and is off by default (turn it on with the "Weekly report" switch in notification settings). When on, one row per ISO week holds an aggregated numeric snapshot of your week (nutrition averages and most frequent food names, training volume and strength, sleep, steps and resting heart rate averages, your latest physique check-in verdict, and energy-estimate drift) and, once generated, a short AI-written summary. The row is synced to your private account (owner-only access) and is removed when you delete your account. The weekly notification itself contains no health data.
 * **Menstrual Cycle Tracking:** Period dates, cycle phase, and flow intensity are synced to your private account strictly to provide training readiness and fatigue predictions.
 * **HealthKit / Health Connect Biometrics:** Daily steps, sleep duration/stages, heart rate, resting heart rate, and HRV read from Apple Health or Google Health Connect are **stored locally on your device only and are NEVER transmitted to our remote cloud servers**.
 * **Legal Basis:** We process special category health data strictly based on your **explicit consent** (GDPR Art. 9(2)(a)). You can enable or disable health integrations or cycle tracking at any time in the app settings.
@@ -67,6 +68,8 @@ Under GDPR Article 9, data concerning health requires explicit consent and heigh
    * If you choose to analyze a meal via the AI scanner, the image/query is transmitted ephemerally to the API for nutrient analysis and is not stored or used to train public AI models.
 4. **AI Physique Analysis (Google Gemini via Supabase Edge Functions)**:
    * If you choose to analyze a Dream Physique goal or a weekly check-in, the photos are transmitted ephemerally, only after your explicit consent, to the API for physique assessment and are not stored by Herculex or used to train public AI models. Only photo metadata syncs to your account; the image files stay on your device.
+5. **AI Weekly Report (Herculex AI, powered by Google Gemini via Supabase Edge Functions)**:
+   * Only if you have turned on the opt-in Weekly report, a minimised numeric summary of your week is sent to Herculex AI (powered by Google Gemini) through our Supabase edge function to write a short summary. No raw health samples, photos, notes or identifiers are sent; food names are included but sanitised. The existing daily AI quota applies. The summary is stored in your `weekly_reports` row; the transmitted data is not stored by Herculex or used to train public AI models.
 
 ---
 
