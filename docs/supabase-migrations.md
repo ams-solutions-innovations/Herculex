@@ -109,6 +109,7 @@ Applied migrations, in the order they reached the live project:
 | `0012_product_catalogue` | 2026-08-18 | Shared community barcode table; deliberately outside the per-user sync/RLS loop. |
 | `0013_set_entry_metrics` | 2026-08-19 | GSD 12-04 / local schema v31. Three nullable columns on `set_entries`. Had to land *before* any v31 build ships — see the ordering note in the file. |
 | `20261002000000_physique_v47` | 2026-10-03 | Applied by the user (Plan 23-17). Must land before any client carrying local schema v47 reaches a user. |
+| `20261003000000_weekly_reports_v48` | WRITTEN, NOT applied | Phase 29 plan 06 wrote the file; plan 20 applies it (human-gated). Must land before any client carrying local schema v48 reaches a user. No remote unique on (iso_year, iso_week) by design. |
 
 If a future `migration list` ever shows a migration present locally but with
 an empty Remote column (because it was applied outside the CLI, e.g. via the
