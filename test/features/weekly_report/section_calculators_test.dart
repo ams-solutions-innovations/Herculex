@@ -84,11 +84,9 @@ void main() {
     }) => NutritionWeekInputs(
       loggedDays: days ?? {'2026-09-28', '2026-09-29', '2026-09-30'},
       kcalByDate:
-          kcal ??
-          {'2026-09-28': 2400, '2026-09-29': 2600, '2026-09-30': 0},
+          kcal ?? {'2026-09-28': 2400, '2026-09-29': 2600, '2026-09-30': 0},
       proteinByDate:
-          protein ??
-          {'2026-09-28': 150, '2026-09-29': 170, '2026-09-30': 0},
+          protein ?? {'2026-09-28': 150, '2026-09-29': 170, '2026-09-30': 0},
       targetByDate:
           targets ??
           {
@@ -318,7 +316,10 @@ void main() {
       final s = TrainingSectionCalculator.compute(
         week: week,
         windowEnd: weekEnd,
-        sets: [_set(at: null, weightKg: 500), _set(at: mon, reps: 5)],
+        sets: [
+          _set(at: null, weightKg: 500),
+          _set(at: mon, reps: 5),
+        ],
       )!;
       expect(s.tonnageKg, 500);
     });
@@ -328,7 +329,10 @@ void main() {
         TrainingSectionCalculator.compute(
           week: week,
           windowEnd: weekEnd,
-          sets: [_set(at: lastWeek), _set(at: older)],
+          sets: [
+            _set(at: lastWeek),
+            _set(at: older),
+          ],
         ),
         isNull,
       );
@@ -358,7 +362,12 @@ void main() {
         _set(at: mon, exerciseId: 13, exerciseName: 'Dip', weightKg: 90),
         _set(at: older, exerciseId: 14, exerciseName: 'Squat', weightKg: 100),
         _set(at: mon, exerciseId: 14, exerciseName: 'Squat', weightKg: 140),
-        _set(at: older, exerciseId: 15, exerciseName: 'Deadlift', weightKg: 100),
+        _set(
+          at: older,
+          exerciseId: 15,
+          exerciseName: 'Deadlift',
+          weightKg: 100,
+        ),
         _set(at: mon, exerciseId: 15, exerciseName: 'Deadlift', weightKg: 120),
         _set(at: older, exerciseId: 16, exerciseName: 'Press', weightKg: 40),
         _set(at: mon, exerciseId: 16, exerciseName: 'Press', weightKg: 42.5),
