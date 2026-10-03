@@ -62,6 +62,27 @@ class TdeeEstimatesRepository {
     return rows.map(_toResult).toList(growable: false);
   }
 
+  /// Newest estimate whose `estimatedAt` is at or before [t], or null.
+  ///
+  /// Phase 29 diffs the history itself (Phase 28 D-11): the weekly report
+  /// reads the estimate in force at the end of its window.
+  Future<TdeeEstimateResult?> latestAtOrBefore(DateTime t) async {
+    final rows = await (_newestFirst(
+      limit: 1,
+    )..where((r) => r.estimatedAt.isSmallerOrEqualValue(t))).get();
+    return rows.isEmpty ? null : _toResult(rows.first);
+  }
+
+  /// Newest estimate whose `estimatedAt` is strictly before [t], or null. The
+  /// weekly report uses the start of its week for the baseline it diffs
+  /// against.
+  Future<TdeeEstimateResult?> latestBefore(DateTime t) async {
+    final rows = await (_newestFirst(
+      limit: 1,
+    )..where((r) => r.estimatedAt.isSmallerThanValue(t))).get();
+    return rows.isEmpty ? null : _toResult(rows.first);
+  }
+
   SimpleSelectStatement<$TdeeEstimatesTable, TdeeEstimateData> _newestFirst({
     required int limit,
   }) {
