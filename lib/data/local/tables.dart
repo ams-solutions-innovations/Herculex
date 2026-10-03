@@ -1652,9 +1652,13 @@ class BuddyChoreographySlots extends Table {
 /// [tdeeDecision] are write-once (D-02, D-11). The row holds aggregated health
 /// data (GDPR Art. 9), so account deletion must clear it.
 ///
-/// The local unique key is (iso_year, iso_week). No remote unique constraint
-/// exists (see the Supabase migration plan), so two devices can still produce
-/// a duplicate that only meets on pull.
+/// There is deliberately NO unique key on (iso_year, iso_week), locally or
+/// remotely. Two devices can each generate the same week and the duplicate only
+/// meets on pull; with a local unique key that INSERT throws out of
+/// `SyncService._pullTable` (no per-row catch), aborting the whole pull cycle
+/// and never advancing the cursor (test/sync/weekly_reports_duplicate_pull_test).
+/// One-per-week is enforced by the repository's insert transaction instead, and
+/// readers pick the earliest row by (generated_at, id).
 @DataClassName('WeeklyReportData')
 class WeeklyReports extends Table with SyncColumns, SyncTombstone {
   IntColumn get id => integer().autoIncrement()();
@@ -1672,9 +1676,4 @@ class WeeklyReports extends Table with SyncColumns, SyncTombstone {
   TextColumn get tdeeDecision => text().nullable()(); // updated | kept
   IntColumn get tdeeDecisionKcal => integer().nullable()();
   DateTimeColumn get viewedAt => dateTime().nullable()();
-
-  @override
-  List<Set<Column>> get uniqueKeys => [
-    {isoYear, isoWeek},
-  ];
 }
