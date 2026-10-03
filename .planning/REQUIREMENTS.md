@@ -112,9 +112,9 @@
 
 ### 15. Weekly Report & Herculex AI Narrative (Phase 29)
 
-- [x] **RPT-01**: One persisted report row per ISO week, opt-in, covering nutrition adherence, frequent foods, training volume and strength, recovery/sleep/activity, physique progress, and TDEE drift.
-- [x] **RPT-02**: The measured section is computed locally from existing analytics; Herculex AI adds a knowledge-grounded narrative on top, visually separated from the numbers.
-- [x] **RPT-03**: A Sunday notification uses `DateTimeComponents.dayOfWeekAndTime` and deep-links into the report; the report is generated on open, never in the notification callback.
+- [ ] **RPT-01**: One persisted report row per ISO week, opt-in, covering nutrition adherence, frequent foods, training volume and strength, recovery/sleep/activity, physique progress, and TDEE drift.
+- [ ] **RPT-02**: The measured section is computed locally from existing analytics; Herculex AI adds a knowledge-grounded narrative on top, visually separated from the numbers.
+- [ ] **RPT-03**: A Sunday notification uses `DateTimeComponents.dayOfWeekAndTime` and deep-links into the report; the report is generated on open, never in the notification callback.
 - [x] **RPT-04**: Reports are browsable as history and never regenerate differently for a past week.
 - [x] **RPT-05**: The report attributes how recovery, sleep, and activity correlate with performance using existing correlation providers, stated as correlation rather than causation.
 
