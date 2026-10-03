@@ -119,11 +119,14 @@ void main() {
       expect(container.read(weeklyReportDueWeekProvider), IsoWeek(2026, 40));
     });
 
-    test('due week on Sunday before the trigger is the previous week', () async {
-      await build(now: DateTime(2026, 10, 4, 17));
-      await enable();
-      expect(container.read(weeklyReportDueWeekProvider), IsoWeek(2026, 39));
-    });
+    test(
+      'due week on Sunday before the trigger is the previous week',
+      () async {
+        await build(now: DateTime(2026, 10, 4, 17));
+        await enable();
+        expect(container.read(weeklyReportDueWeekProvider), IsoWeek(2026, 39));
+      },
+    );
 
     group('weeklyReportReadyProvider', () {
       Future<IsoWeek?> ready() async {
