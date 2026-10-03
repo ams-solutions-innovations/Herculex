@@ -307,7 +307,7 @@ void main() {
 
     test('a set completed after windowEnd changes nothing (determinism)', () {
       // One set a day for 21 days, none in the last week: chronic load is
-      // high, acute is zero, so no deload. Ten sets later on the windowEnd
+      // high, acute is zero, so no deload. Twenty sets later on the windowEnd
       // day would flip the deload flag if they were not filtered out.
       final history = [
         for (var back = 7; back <= 27; back++)
@@ -318,7 +318,7 @@ void main() {
       ];
       final inWeek = _set(at: DateTime(2026, 9, 28, 9), sessionId: 7);
       final future = [
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 20; i++)
           _set(at: DateTime(2026, 10, 2, 20, i), sessionId: 8),
       ];
 
