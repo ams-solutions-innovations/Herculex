@@ -215,7 +215,7 @@ Cross-cutting constraints:
 
 **Success:** Goals and assessments persist across app restarts and sync; photos stored locally with EXIF stripped and optional blur; phased nutrition plans (`cut`, `maintain`, `recomp`, `bulk`) compute realistic tempos; underage users protected from aggressive deficits/surpluses; the progress screen names the active phase and position in the roadmap; check-ins are capped at one photo per 7 days and return a confidence-banded directional verdict rather than a false-precision percentage; bodyweight, strength, and training-level trends chart against the goal horizon.
 
-**Plans:** 16/17 plans executed
+**Plans:** 17/17 plans complete
 
 Plans:
 **Wave 1**
@@ -257,7 +257,7 @@ Plans:
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
-- [ ] 23-17-PLAN.md — Privacy docs, full verification gate, human checkpoints: real-device blur, Supabase v47 push, function deploy
+- [x] 23-17-PLAN.md — Privacy docs, full verification gate, human checkpoints: real-device blur, Supabase v47 push, function deploy
 
 ### Phase 24: Gamification System & 15-Rank XP Ledger
 
