@@ -3,16 +3,34 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T12:10:28.124Z"
+last_updated: "2026-10-03T12:20:17.431Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 98
+  completed_plans: 99
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 12 Completed)
+
+- Completed Plan 29-12 (RPT-01, RPT-02, RPT-05, calculators half only): `CorrelationStatement`
+  (fixed "tended to" templates, direction from the covariance sign of `result.points`,
+  `minSamples = 8` / `minR2 = 0.3` named constants), `RecoverySectionCalculator` (engines run with
+  `asOf: windowEnd` over a snapshot filtered to sets completed by `windowEnd`; 8-week trailing
+  correlations), `PhysiqueSectionCalculator`, `TdeeShiftCalculator` (delegates to
+  `TdeeEstimator.isMaterialShift`) and `TdeeEstimatesRepository.latestAtOrBefore` / `latestBefore`.
+  Plan 14 loads the inputs (8 weeks of health rows, both TDEE estimates) and maps check-in/bodyweight
+  rows into `PhysiqueCheckInInput` / `BodyweightLog`.
+
+- Decisions: no live Health Connect reads at generation time (`externalWorkouts: const []`);
+  `cnsReadinessPct` is null when no set exists by `windowEnd`; both correlation lines are always
+  emitted (neutral when thin); physique confidence limited to its closed vocabulary. RPT-01/02/05 left
+  unchecked (partial). SDK `state.*` verbs still no-op; this note is hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 11 Completed)
 
