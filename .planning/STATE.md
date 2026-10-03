@@ -3,16 +3,32 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-03T12:20:17.431Z"
+last_updated: "2026-10-03T12:26:51.709Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 107
-  completed_plans: 99
+  completed_plans: 100
   percent: 80
 ---
 
 # Project State: Milestone v2.0
+
+## Session update — 2026-10-03 (Phase 29 Plan 13 Completed)
+
+- Completed Plan 29-13 (RPT-01, RPT-02, RPT-05, widgets half only): `NarrativeStatus`,
+  `SectionCardScaffold` / `ReportText` / `ReportTileGrid`, the four measured section cards
+  (domain-tinted, never `hx.primary`, correlation statements verbatim) and the provider-free
+  `AiNarrativeCard` (five states, per-day quota copy, `retryEnabled` flag). All under
+  `presentation/widgets/`. Plans 15-18 wire controller, views, TDEE card and dashboard.
+
+- Decisions: AI footer note shown in every state; ready + null narrative falls back to the pending
+  face; disabled Retry built around `PremiumButton` (no disabled state) without editing it.
+  `HxStatTile` renders values at 22 / labels at 12, not the UI-SPEC 28 / 14: a follow-up could add a
+  size option. RPT-01/02/05 left unchecked (partial). SDK `state.*` verbs still partly no-op; this
+  note is hand-written.
+
+---
 
 ## Session update — 2026-10-03 (Phase 29 Plan 12 Completed)
 
