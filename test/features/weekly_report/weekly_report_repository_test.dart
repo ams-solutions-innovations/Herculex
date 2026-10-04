@@ -188,11 +188,26 @@ void main() {
       expect(history.single.payloadJson, '{"early":true}');
     });
 
-    test('equal generatedAt falls back to the lowest id', () async {
+    test('equal generatedAt falls back to the lowest syncUuid', () async {
       final t = DateTime(2026, 10, 4);
-      await insertRaw(w: week, payload: '{"first":true}', generatedAt: t);
-      await insertRaw(w: week, payload: '{"second":true}', generatedAt: t);
-      expect((await repo.forWeek(week))!.payloadJson, '{"first":true}');
+      // Inserted first but with the larger uuid, so insertion order (id)
+      // and uuid order disagree: the uuid must decide, deterministically.
+      await insertRaw(
+        w: week,
+        payload: '{"inserted_first":true}',
+        generatedAt: t,
+        syncUuid: 'b-uuid',
+      );
+      await insertRaw(
+        w: week,
+        payload: '{"inserted_second":true}',
+        generatedAt: t,
+        syncUuid: 'a-uuid',
+      );
+      expect(
+        (await repo.forWeek(week))!.payloadJson,
+        '{"inserted_second":true}',
+      );
     });
 
     test('watchHistory is newest week first', () async {
