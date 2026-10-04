@@ -45,3 +45,7 @@ Consequence: RPT-02 (real narrative round-trip) and RPT-03 (notification, cold s
 
 - `docs/supabase-migrations.md`: v47 row corrected (it was applied today, not earlier); v48 row marked applied with the verification results.
 - `CLAUDE.md`: removed the stale "0015 and 0016 outstanding" note.
+
+## Addendum 2026-10-04: gap-closure redeploy
+
+After gap-closure plans 29-21..29-24 (review warnings WR-01..WR-07), `gemini-analyze` was redeployed to `ldzgyzigvbwofbswitrv` (Deno: 49 passed). It now validates facts before spending quota, sanitises facts server-side, wraps them in `<facts>` delimiters and rejects narratives with numbers absent from the facts. No new migration; remote still ends at `20261003000000`. Device UAT (29-HUMAN-UAT.md) is still pending.
