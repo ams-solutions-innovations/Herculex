@@ -386,7 +386,7 @@ Plans:
 
 **Success:** One persisted report row per ISO week covering adherence, frequent foods, volume and strength, recovery/sleep/activity, physique progress, and TDEE drift; measured sections computed locally and visually separated from the AI narrative; a Sunday `dayOfWeekAndTime` notification deep-links into a report generated on open rather than in the notification callback; past weeks are browsable and never regenerate differently; recovery/sleep/activity relationships are stated as correlation, not causation.
 
-**Plans:** 23/24 plans executed
+**Plans:** 24/24 plans complete
 
 Plans:
 **Wave 1**
@@ -441,7 +441,7 @@ Plans:
 - [x] 29-21-PLAN.md — Wave 1: repository keeps tombstones, deterministic duplicate winner, snapshot-due rule + service gate (WR-01, WR-02, WR-07 data)
 - [x] 29-23-PLAN.md — Wave 1: gemini-analyze validates before quota, server re-sanitise + `<facts>` delimiters, number-in-facts check server and client, limits-match test (WR-04, WR-05, IN-03)
 - [x] 29-22-PLAN.md — Wave 2: atomic TDEE target+decision, stale-proposal and actionable-week guards, card busy/messages (WR-03, WR-06)
-- [ ] 29-24-PLAN.md — Wave 3: "Week still in progress" state + final verification (WR-07 UI)
+- [x] 29-24-PLAN.md — Wave 3: "Week still in progress" state + final verification (WR-07 UI)
 
 ---
 
