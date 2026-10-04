@@ -328,6 +328,149 @@ void main() {
     });
   });
 
+  group('applyTdeeDecision (WR-03)', () {
+    Future<void> writeTarget() => db
+        .into(db.nutritionTargets)
+        .insert(
+          NutritionTargetsCompanion.insert(
+            label: 'Plan',
+            kcal: 2540,
+            proteinG: 180,
+            carbsG: 298,
+            fatG: 70,
+          ),
+        );
+
+    Future<int> targetCount() async =>
+        (await db.select(db.nutritionTargets).get()).length;
+
+    test('records the decision and keeps the callback write', () async {
+      await repo.insertSnapshot(
+        week: week,
+        payloadVersion: 1,
+        payloadJson: '{}',
+      );
+      var calls = 0;
+      final ok = await repo.applyTdeeDecision(
+        week,
+        decision: 'updated',
+        kcal: 2540,
+        beforeRecord: () async {
+          calls++;
+          await writeTarget();
+        },
+      );
+      expect(ok, isTrue);
+      expect(calls, 1);
+      expect(await targetCount(), 1);
+      final r = (await repo.forWeek(week))!;
+      expect(r.tdeeDecision, 'updated');
+      expect(r.tdeeDecisionKcal, 2540);
+    });
+
+    test('already decided returns false and skips the callback', () async {
+      await repo.insertSnapshot(
+        week: week,
+        payloadVersion: 1,
+        payloadJson: '{}',
+      );
+      await repo.recordTdeeDecision(week, decision: 'kept', kcal: 2400);
+      var calls = 0;
+      final ok = await repo.applyTdeeDecision(
+        week,
+        decision: 'updated',
+        kcal: 2540,
+        beforeRecord: () async {
+          calls++;
+          await writeTarget();
+        },
+      );
+      expect(ok, isFalse);
+      expect(calls, 0);
+      expect(await targetCount(), 0);
+    });
+
+    test('no live row returns false and skips the callback', () async {
+      var calls = 0;
+      final ok = await repo.applyTdeeDecision(
+        week,
+        decision: 'updated',
+        kcal: 2540,
+        beforeRecord: () async => calls++,
+      );
+      expect(ok, isFalse);
+      expect(calls, 0);
+    });
+
+    test('a throwing callback rolls everything back and propagates', () async {
+      await repo.insertSnapshot(
+        week: week,
+        payloadVersion: 1,
+        payloadJson: '{}',
+      );
+      await expectLater(
+        repo.applyTdeeDecision(
+          week,
+          decision: 'updated',
+          kcal: 2540,
+          beforeRecord: () async {
+            await writeTarget();
+            throw StateError('boom');
+          },
+        ),
+        throwsStateError,
+      );
+      expect(await targetCount(), 0);
+      expect((await repo.forWeek(week))!.tdeeDecision, isNull);
+    });
+
+    test('invalid vocabulary or kcal throws before the callback', () async {
+      await repo.insertSnapshot(
+        week: week,
+        payloadVersion: 1,
+        payloadJson: '{}',
+      );
+      var calls = 0;
+      Future<void> cb() async => calls++;
+      expect(
+        () => repo.applyTdeeDecision(week, decision: 'maybe', beforeRecord: cb),
+        throwsArgumentError,
+      );
+      for (final kcal in const [799, 6001]) {
+        expect(
+          () => repo.applyTdeeDecision(
+            week,
+            decision: 'updated',
+            kcal: kcal,
+            beforeRecord: cb,
+          ),
+          throwsArgumentError,
+        );
+      }
+      expect(calls, 0);
+    });
+
+    test('with duplicates the decision lands on the winner', () async {
+      await insertRaw(
+        w: week,
+        payload: 'A',
+        generatedAt: DateTime(2026, 10, 1),
+      );
+      await insertRaw(
+        w: week,
+        payload: 'B',
+        generatedAt: DateTime(2026, 10, 2),
+      );
+      expect(
+        await repo.applyTdeeDecision(week, decision: 'kept', kcal: 2400),
+        isTrue,
+      );
+      final rows = await db.select(db.weeklyReports).get();
+      expect(rows.firstWhere((r) => r.payloadJson == 'A').tdeeDecision, 'kept');
+      expect(rows.firstWhere((r) => r.payloadJson == 'B').tdeeDecision, isNull);
+    });
+  });
+
   group('incrementNarrativeAttempts', () {
     test('counts up and touches nothing else', () async {
       final before = await repo.insertSnapshot(

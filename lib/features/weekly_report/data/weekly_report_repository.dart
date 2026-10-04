@@ -198,20 +198,7 @@ class WeeklyReportRepository {
     required String decision,
     int? kcal,
   }) {
-    if (!decisions.contains(decision)) {
-      throw ArgumentError.value(
-        decision,
-        'decision',
-        "must be 'updated'/'kept'",
-      );
-    }
-    if (kcal != null && (kcal < minDecisionKcal || kcal > maxDecisionKcal)) {
-      throw ArgumentError.value(
-        kcal,
-        'kcal',
-        'must be in $minDecisionKcal..$maxDecisionKcal',
-      );
-    }
+    _validateDecision(decision, kcal);
     return _db.transaction(() async {
       final row = await _winnerLive(week);
       if (row == null) return false;
@@ -226,6 +213,59 @@ class WeeklyReportRepository {
           );
       return changed > 0;
     });
+  }
+
+  static void _validateDecision(String decision, int? kcal) {
+    if (!decisions.contains(decision)) {
+      throw ArgumentError.value(
+        decision,
+        'decision',
+        "must be 'updated'/'kept'",
+      );
+    }
+    if (kcal != null && (kcal < minDecisionKcal || kcal > maxDecisionKcal)) {
+      throw ArgumentError.value(
+        kcal,
+        'kcal',
+        'must be in $minDecisionKcal..$maxDecisionKcal',
+      );
+    }
+  }
+
+  /// Records the TDEE decision and, in the SAME transaction, runs
+  /// [beforeRecord] (the nutrition target write). This is the only atomic
+  /// target-plus-decision path: callers pass the target write as
+  /// [beforeRecord]. Returns false, having written nothing, when the week has
+  /// no live row or already has a decision ([beforeRecord] is then never
+  /// called). If the callback or the decision write fails, everything rolls
+  /// back; a callback exception propagates unchanged.
+  Future<bool> applyTdeeDecision(
+    IsoWeek week, {
+    required String decision,
+    int? kcal,
+    Future<void> Function()? beforeRecord,
+  }) async {
+    _validateDecision(decision, kcal);
+    try {
+      return await _db.transaction(() async {
+        final row = await _winnerLive(week);
+        if (row == null || row.tdeeDecision != null) return false;
+        if (beforeRecord != null) await beforeRecord();
+        final changed =
+            await (_db.update(_t)
+                  ..where((t) => t.id.equals(row.id) & t.tdeeDecision.isNull()))
+                .write(
+                  WeeklyReportsCompanion(
+                    tdeeDecision: Value(decision),
+                    tdeeDecisionKcal: Value(kcal),
+                  ),
+                );
+        if (changed == 0) throw const _DecisionNotRecorded();
+        return true;
+      });
+    } on _DecisionNotRecorded {
+      return false;
+    }
   }
 
   /// Sets viewedAt to now, only when it is still null.
@@ -298,4 +338,10 @@ class WeeklyReportRepository {
   Future<WeeklyReportData?> _winnerLive(IsoWeek week) async {
     return _pickWinner(await _liveForWeek(week).get());
   }
+}
+
+/// Thrown inside [WeeklyReportRepository.applyTdeeDecision] to roll the
+/// transaction back when the guarded decision update changed no row.
+class _DecisionNotRecorded implements Exception {
+  const _DecisionNotRecorded();
 }
