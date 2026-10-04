@@ -2406,7 +2406,7 @@ class __MinimumTargetsSectionState
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
-            initiallyExpanded: minTargets.enabled || _expanded,
+            initiallyExpanded: false,
             onExpansionChanged: (exp) => setState(() => _expanded = exp),
             tilePadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -2425,7 +2425,7 @@ class __MinimumTargetsSectionState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Minimalni cilji (Proteini in Kalorije)',
+                        'Minimum targets (protein & calories)',
                         style: TextStyle(
                           color: hx.onSurface,
                           fontWeight: FontWeight.bold,
@@ -2435,7 +2435,7 @@ class __MinimumTargetsSectionState
                       if (minTargets.enabled && resolvedMinP != null) ...[
                         const SizedBox(height: 2),
                         Text(
-                          'Min. proteini: ${resolvedMinP}g'
+                          'Min. protein: ${resolvedMinP}g'
                           '${minTargets.minCaloriesKcal != null ? ' • Min. ${minTargets.minCaloriesKcal} kcal' : ''}',
                           style: TextStyle(
                             color: hx.primary,
@@ -2446,7 +2446,7 @@ class __MinimumTargetsSectionState
                       ] else if (!minTargets.enabled) ...[
                         const SizedBox(height: 2),
                         Text(
-                          'Nastavi spodnjo mejo za proteine in kalorije',
+                          'Set a floor for protein and calories',
                           style: TextStyle(
                             color: hx.onSurfaceVariant,
                             fontSize: 11,
@@ -2474,7 +2474,7 @@ class __MinimumTargetsSectionState
 
                       // ── Minimum Protein Presets & Formulas ──
                       Text(
-                        'MINIMALNI PROTEINI (FORMULA)',
+                        'MINIMUM PROTEIN (FORMULA)',
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
                           fontSize: 10,
@@ -2488,7 +2488,7 @@ class __MinimumTargetsSectionState
                         runSpacing: 6,
                         children: [
                           _MinProteinChip(
-                            label: '1.0 g/lb (Optimalno)',
+                            label: '1.0 g/lb (Optimal)',
                             selected:
                                 minTargets.mode == MinProteinMode.perLb &&
                                 (minTargets.proteinValue - 1.0).abs() < 0.05,
@@ -2508,7 +2508,7 @@ class __MinimumTargetsSectionState
                             },
                           ),
                           _MinProteinChip(
-                            label: '1.2 g/lb (Visoko)',
+                            label: '1.2 g/lb (High)',
                             selected:
                                 minTargets.mode == MinProteinMode.perLb &&
                                 (minTargets.proteinValue - 1.2).abs() < 0.05,
@@ -2553,7 +2553,7 @@ class __MinimumTargetsSectionState
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  'Izračunan minimum: ${resolvedMinP}g '
+                                  'Calculated minimum: ${resolvedMinP}g '
                                   '(${bwLb.toStringAsFixed(1)} lb @ ${minTargets.proteinValue} ${minTargets.mode.label})',
                                   style: TextStyle(
                                     color: AppColors.macroProtein,
@@ -2567,7 +2567,7 @@ class __MinimumTargetsSectionState
                         )
                       else
                         Text(
-                          'Za samodejni izračun g/lb dodajte težo v profilu.',
+                          'Add your weight in your profile to auto-calculate g/lb.',
                           style: TextStyle(
                             color: hx.onSurfaceVariant,
                             fontSize: 11,
@@ -2578,7 +2578,7 @@ class __MinimumTargetsSectionState
 
                       // ── Minimum Calories Floor ──
                       Text(
-                        'MINIMALNE KALORIJE (MEJA DEFICITA)',
+                        'MINIMUM CALORIES (DEFICIT LIMIT)',
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
                           fontSize: 10,
@@ -2592,9 +2592,9 @@ class __MinimumTargetsSectionState
                           Expanded(
                             child: _NumField(
                               controller: _kcalController,
-                              label: 'Minimalne kalorije',
+                              label: 'Minimum calories',
                               suffix: 'kcal',
-                              hint: 'npr. 1500',
+                              hint: 'e.g. 1500',
                               onChanged: (val) {
                                 final parsed = int.tryParse(val.trim());
                                 notifier.setMinCalories(parsed);
