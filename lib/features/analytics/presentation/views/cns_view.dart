@@ -515,7 +515,8 @@ class _CnsLoadChartCard extends StatelessWidget {
                         final step = max(1, (daily.length / 4).round());
                         final isLast = idx == daily.length - 1;
                         final isStep =
-                            idx % step == 0 && (daily.length - 1 - idx) >= step / 2;
+                            idx % step == 0 &&
+                            (daily.length - 1 - idx) >= step / 2;
 
                         if (!isStep && !isLast) {
                           return const SizedBox.shrink();
@@ -529,8 +530,9 @@ class _CnsLoadChartCard extends StatelessWidget {
                             DateFormat('d. MMM').format(d),
                             style: TextStyle(
                               fontSize: 9,
-                              fontWeight:
-                                  isLast ? FontWeight.w600 : FontWeight.normal,
+                              fontWeight: isLast
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                               color: hx.secondary,
                             ),
                           ),

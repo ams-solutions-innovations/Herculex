@@ -1,22 +1,10 @@
 import 'package:herculex/features/profile/domain/profile.dart';
 
-enum TorsoProportion {
-  short,
-  average,
-  long,
-}
+enum TorsoProportion { short, average, long }
 
-enum ArmProportion {
-  short,
-  average,
-  long,
-}
+enum ArmProportion { short, average, long }
 
-enum LegProportion {
-  short,
-  average,
-  long,
-}
+enum LegProportion { short, average, long }
 
 class AnthropometryRatios {
   final Profile profile;
@@ -32,21 +20,30 @@ class AnthropometryRatios {
   /// Ape Index (Wingspan to Height Ratio)
   /// Average is ~1.0
   double? get apeIndex {
-    if (profile.armSpanCm == null || profile.heightCm == null || profile.heightCm == 0) return null;
+    if (profile.armSpanCm == null ||
+        profile.heightCm == null ||
+        profile.heightCm == 0)
+      return null;
     return profile.armSpanCm! / profile.heightCm!;
   }
 
   /// Leg length to height ratio (Inseam / Height)
   /// Average is ~0.45 to 0.47
   double? get legToHeightRatio {
-    if (profile.inseamCm == null || profile.heightCm == null || profile.heightCm == 0) return null;
+    if (profile.inseamCm == null ||
+        profile.heightCm == null ||
+        profile.heightCm == 0)
+      return null;
     return profile.inseamCm! / profile.heightCm!;
   }
 
   /// Torso to height ratio
   /// Average is ~0.33 to 0.35
   double? get torsoToHeightRatio {
-    if (profile.torsoCm == null || profile.heightCm == null || profile.heightCm == 0) return null;
+    if (profile.torsoCm == null ||
+        profile.heightCm == null ||
+        profile.heightCm == 0)
+      return null;
     return profile.torsoCm! / profile.heightCm!;
   }
 

@@ -375,6 +375,11 @@ fun SpotifyExpandedPlayerDialog(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
+                .mediaVolumeRotary { step ->
+                    val next = (liveVolume + step).coerceIn(0, maxVol)
+                    liveVolume = next
+                    controller.setVolume(next)
+                }
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center,
         ) {

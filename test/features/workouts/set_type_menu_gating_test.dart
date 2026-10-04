@@ -21,12 +21,15 @@ void main() {
       expect(isAdvancedTechniqueAllowed(SlotRole.conditioning, false), isFalse);
     });
 
-    test('returns true for a non-main role only when programAllows is true', () {
-      expect(isAdvancedTechniqueAllowed(SlotRole.accessory, true), isTrue);
-      expect(isAdvancedTechniqueAllowed(SlotRole.supplemental, true), isTrue);
-      expect(isAdvancedTechniqueAllowed(SlotRole.isolation, true), isTrue);
-      expect(isAdvancedTechniqueAllowed(SlotRole.conditioning, true), isTrue);
-    });
+    test(
+      'returns true for a non-main role only when programAllows is true',
+      () {
+        expect(isAdvancedTechniqueAllowed(SlotRole.accessory, true), isTrue);
+        expect(isAdvancedTechniqueAllowed(SlotRole.supplemental, true), isTrue);
+        expect(isAdvancedTechniqueAllowed(SlotRole.isolation, true), isTrue);
+        expect(isAdvancedTechniqueAllowed(SlotRole.conditioning, true), isTrue);
+      },
+    );
   });
 
   group('SetTypeMenu item filtering', () {

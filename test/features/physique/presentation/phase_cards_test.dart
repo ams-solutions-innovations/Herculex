@@ -225,7 +225,7 @@ void main() {
       ) async {
         final h = _Harness(phases: _cutThenMaintain);
         await _pump(tester, h.build(theme: entry.value));
-        expect(find.text('Cut'), findsOneWidget);
+        expect(find.text('Redukcija'), findsOneWidget);
         expect(find.text('Phase 1 of 2'), findsOneWidget);
         expect(find.text('Week 3 of 12'), findsOneWidget);
         expect(find.text('About 0.5 kg per week'), findsOneWidget);
@@ -275,7 +275,7 @@ void main() {
   group('advance prompt (D-02)', () {
     testWidgets('hidden when offerAdvance is false', (tester) async {
       await _pump(tester, _Harness(phases: _cutThenMaintain).build());
-      expect(find.text('Move to Maintain'), findsNothing);
+      expect(find.text('Move to Vzdrževanje'), findsNothing);
       expect(find.text('Not yet'), findsNothing);
     });
 
@@ -288,13 +288,13 @@ void main() {
       expect(find.text('Ready for the next phase?'), findsOneWidget);
       expect(
         find.text(
-          "You've met this phase's goal. Maintain is next. Nothing changes "
+          "You've met this phase's goal. Vzdrževanje is next. Nothing changes "
           'until you set new targets.',
         ),
         findsOneWidget,
       );
       expect(find.byType(FilledButton), findsOneWidget);
-      expect(find.text('Move to Maintain'), findsOneWidget);
+      expect(find.text('Move to Vzdrževanje'), findsOneWidget);
       expect(find.text('Not yet'), findsOneWidget);
     });
 
@@ -307,11 +307,11 @@ void main() {
         status: _status(_cutThenMaintain, offer: true, hint: true),
       );
       await _pump(tester, h.build());
-      expect(find.text('Move to Maintain'), findsNothing);
+      expect(find.text('Move to Vzdrževanje'), findsNothing);
       expect(find.text('Edit roadmap'), findsNothing);
       expect(find.text('Review nutrition targets'), findsNothing);
       expect(find.text('Log measurements to refine this.'), findsNothing);
-      expect(find.text('Cut'), findsOneWidget);
+      expect(find.text('Redukcija'), findsOneWidget);
     });
 
     testWidgets(
@@ -368,7 +368,7 @@ void main() {
 
         await _pump(tester, h.build());
         await tester.runAsync(() async {
-          await tester.tap(find.text('Move to Maintain'));
+          await tester.tap(find.text('Move to Vzdrževanje'));
           await Future<void>.delayed(const Duration(milliseconds: 300));
         });
         await tester.pump();
@@ -383,7 +383,7 @@ void main() {
         expect(after.map((p) => p.status), ['done', 'current']);
         expect(targetsAfter, targetsBefore);
         expect(
-          find.text('Moved to Maintain. Review your nutrition targets.'),
+          find.text('Moved to Vzdrževanje. Review your nutrition targets.'),
           findsOneWidget,
         );
 
@@ -477,7 +477,7 @@ void main() {
         status: _status(proposalPhases, proposal: true),
       );
       await _pump(tester, h.build());
-      expect(find.text('Cut'), findsOneWidget);
+      expect(find.text('Redukcija'), findsOneWidget);
       expect(find.text('Phase 1 of 2'), findsOneWidget);
       expect(
         find.text('This roadmap is a proposal until you accept it.'),
@@ -486,7 +486,7 @@ void main() {
       expect(find.text('Edit roadmap'), findsOneWidget);
       expect(find.text('Exit when'), findsNothing);
       expect(find.textContaining('Week '), findsNothing);
-      expect(find.text('Move to Maintain'), findsNothing);
+      expect(find.text('Move to Vzdrževanje'), findsNothing);
     });
 
     testWidgets('photos-only legacy goal reads as an imported proposal', (

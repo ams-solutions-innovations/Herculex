@@ -195,6 +195,12 @@ class _Data {
       physiquePhaseStatusProvider(g.id).overrideWith(
         (ref) => _status(phases, offer: offer, proposal: proposal),
       ),
+      physiqueBodyFatReadingProvider(
+        g.id,
+      ).overrideWith((ref) => PhysiqueBfReading.none),
+      physiqueDreamPhotoProvider(
+        g.syncUuid ?? '',
+      ).overrideWith((ref) async => null),
       physiqueRoadmapEligibilityProvider(
         g.id,
       ).overrideWith((ref) => eligibility),
@@ -365,9 +371,9 @@ void main() {
       expect(find.text('Add check-in'), findsNothing);
       expect(find.text('Add baseline photo'), findsNothing);
       expect(find.text('Edit roadmap'), findsNothing);
-      expect(find.text('Move to Maintain'), findsNothing);
+      expect(find.text('Move to Vzdrževanje'), findsNothing);
       expect(find.text('Review nutrition targets'), findsNothing);
-      expect(find.textContaining("aren't available under 18"), findsNothing);
+      expect(find.textContaining('nista na voljo pod 18 let'), findsNothing);
       expect(find.textContaining('Past goals'), findsNothing);
       // The history stays.
       expect(find.text('See all check-ins'), findsOneWidget);
@@ -388,7 +394,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Edit roadmap'), findsOneWidget);
-      expect(find.text('Move to Maintain'), findsNothing);
+      expect(find.text('Move to Vzdrževanje'), findsNothing);
     });
   });
 
@@ -411,7 +417,7 @@ void main() {
       // Move to {Phase} is the single filled primary action.
       expect(find.byType(FilledButton), findsOneWidget);
       expect(
-        find.widgetWithText(FilledButton, 'Move to Maintain'),
+        find.widgetWithText(FilledButton, 'Move to Vzdrževanje'),
         findsOneWidget,
       );
     });
@@ -690,6 +696,9 @@ void main() {
             (ref) => Stream.value([_row(10, DietPhase.cut, 12, goalId: 7)]),
           ),
           physiquePhaseStatusProvider(7).overrideWith((ref) => null),
+          physiqueBodyFatReadingProvider(
+            7,
+          ).overrideWith((ref) => PhysiqueBfReading.none),
           physiqueRoadmapEligibilityProvider(
             7,
           ).overrideWith((ref) => const PhaseEligibility.unrestricted()),

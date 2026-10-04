@@ -302,13 +302,12 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                     onReorderStart: (_) => setState(() => _reorderMode = true),
                     onReorderEnd: (_) => setState(() => _reorderMode = false),
                     onReorderItem: (oldIndex, newIndex) {
-                      var targetIndex = newIndex;
-                      if (targetIndex > oldIndex) targetIndex -= 1;
-                      final reorderedGroups = List<List<WorkoutExerciseData>>.from(
-                        groups,
-                      );
+                      // onReorderItem already hands over the adjusted index
+                      // (unlike onReorder), so no `-1` for downward moves.
+                      final reorderedGroups =
+                          List<List<WorkoutExerciseData>>.from(groups);
                       final movedGroup = reorderedGroups.removeAt(oldIndex);
-                      reorderedGroups.insert(targetIndex, movedGroup);
+                      reorderedGroups.insert(newIndex, movedGroup);
                       final orderedIds = reorderedGroups
                           .expand((group) => group)
                           .map((r) => r.id)
@@ -386,9 +385,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
                       icon: Icons.add,
                       isPrimary: false,
                       onTap: () async {
-                        final results = await ExercisePickerSheet.show(
-                          context,
-                        );
+                        final results = await ExercisePickerSheet.show(context);
                         if (results == null ||
                             results.isEmpty ||
                             !context.mounted) {

@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:text="Carbs"
             android:textSize="13sp"
-            android:textColor="#64D2FF"
+            android:textColor="#34C759"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:layout_marginBottom="4dp" />
@@ -66,7 +66,7 @@
                     android:layout_height="wrap_content"
                     android:text="/0g"
                     android:textSize="10sp"
-                    android:textColor="#8E8E93"
+                    android:textColor="#94A3B8"
                     android:includeFontPadding="false" />
 
             </LinearLayout>
@@ -79,7 +79,7 @@
             android:layout_height="wrap_content"
             android:text="0 g left"
             android:textSize="11sp"
-            android:textColor="#8E8E93"
+            android:textColor="#94A3B8"
             android:includeFontPadding="false" />
 
     </LinearLayout>
@@ -98,7 +98,7 @@
             android:layout_height="wrap_content"
             android:text="Fat"
             android:textSize="13sp"
-            android:textColor="#BF5AF2"
+            android:textColor="#FFD60A"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:layout_marginBottom="4dp" />
@@ -139,7 +139,7 @@
                     android:layout_height="wrap_content"
                     android:text="/0g"
                     android:textSize="10sp"
-                    android:textColor="#8E8E93"
+                    android:textColor="#94A3B8"
                     android:includeFontPadding="false" />
 
             </LinearLayout>
@@ -152,7 +152,7 @@
             android:layout_height="wrap_content"
             android:text="0 g left"
             android:textSize="11sp"
-            android:textColor="#8E8E93"
+            android:textColor="#94A3B8"
             android:includeFontPadding="false" />
 
     </LinearLayout>
@@ -171,7 +171,7 @@
             android:layout_height="wrap_content"
             android:text="Protein"
             android:textSize="13sp"
-            android:textColor="#FF9F0A"
+            android:textColor="#4DA3FF"
             android:textStyle="bold"
             android:includeFontPadding="false"
             android:layout_marginBottom="4dp" />
@@ -212,7 +212,7 @@
                     android:layout_height="wrap_content"
                     android:text="/0g"
                     android:textSize="10sp"
-                    android:textColor="#8E8E93"
+                    android:textColor="#94A3B8"
                     android:includeFontPadding="false" />
 
             </LinearLayout>
@@ -225,7 +225,7 @@
             android:layout_height="wrap_content"
             android:text="0 g left"
             android:textSize="11sp"
-            android:textColor="#8E8E93"
+            android:textColor="#94A3B8"
             android:includeFontPadding="false" />
 
     </LinearLayout>

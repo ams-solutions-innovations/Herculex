@@ -23,25 +23,28 @@ void main() {
     );
   }
 
-  test('creates herculex_ai_program_briefs with the exact column definitions', () {
-    final sql = readSql();
-    expect(sql, contains('create table herculex_ai_program_briefs'));
-    for (final column in const [
-      'id uuid primary key',
-      'user_id uuid not null references auth.users(id) on delete cascade',
-      'program_id uuid not null references public.programs(id) on delete cascade',
-      'brief_json text not null',
-      "source text not null default 'herculex_ai'",
-      'knowledge_version text',
-      'model_version text',
-      'confirmed_at timestamptz not null default now()',
-      'active boolean not null default true',
-      'updated_at timestamptz not null default now()',
-      'deleted_at timestamptz',
-    ]) {
-      expect(sql, contains(column));
-    }
-  });
+  test(
+    'creates herculex_ai_program_briefs with the exact column definitions',
+    () {
+      final sql = readSql();
+      expect(sql, contains('create table herculex_ai_program_briefs'));
+      for (final column in const [
+        'id uuid primary key',
+        'user_id uuid not null references auth.users(id) on delete cascade',
+        'program_id uuid not null references public.programs(id) on delete cascade',
+        'brief_json text not null',
+        "source text not null default 'herculex_ai'",
+        'knowledge_version text',
+        'model_version text',
+        'confirmed_at timestamptz not null default now()',
+        'active boolean not null default true',
+        'updated_at timestamptz not null default now()',
+        'deleted_at timestamptz',
+      ]) {
+        expect(sql, contains(column));
+      }
+    },
+  );
 
   test('is owner-only: RLS enabled and four user_id = auth.uid() policies', () {
     final sql = readSql();

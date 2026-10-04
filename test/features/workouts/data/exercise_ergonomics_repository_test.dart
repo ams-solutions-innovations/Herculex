@@ -19,16 +19,19 @@ void main() {
       final squat = repo.getForMovement('squat');
       expect(squat, isNotNull);
       expect(squat!.movementSlug, 'squat');
-      
+
       final longFemur = squat.guidanceByRatio['long_femur'];
       expect(longFemur, isNotNull);
       expect(longFemur!.guidance, contains('longer femur'));
       expect(longFemur.sources, isNotEmpty);
-      
+
       // Test direct ratio access
       final benchGuidance = repo.getGuidance('bench_press', 'long_arms');
       expect(benchGuidance, isNotNull);
-      expect(benchGuidance!.guidance, contains('Long arms significantly increase the range of motion'));
+      expect(
+        benchGuidance!.guidance,
+        contains('Long arms significantly increase the range of motion'),
+      );
     });
 
     test('returns null for unknown movement or ratio', () {
@@ -36,12 +39,9 @@ void main() {
         'squat': const ExerciseErgonomics(
           movementSlug: 'squat',
           guidanceByRatio: {
-            'long_femur': ErgonomicGuidance(
-              guidance: 'test',
-              sources: [],
-            ),
+            'long_femur': ErgonomicGuidance(guidance: 'test', sources: []),
           },
-        )
+        ),
       });
 
       expect(repo.getForMovement('unknown'), isNull);

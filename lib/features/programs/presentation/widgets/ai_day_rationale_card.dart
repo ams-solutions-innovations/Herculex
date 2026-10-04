@@ -36,11 +36,7 @@ class AiDayRationaleCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.auto_awesome_rounded,
-                  size: 16,
-                  color: hx.primary,
-                ),
+                Icon(Icons.auto_awesome_rounded, size: 16, color: hx.primary),
                 const SizedBox(width: HxSpace.x2),
                 Expanded(
                   child: Text(

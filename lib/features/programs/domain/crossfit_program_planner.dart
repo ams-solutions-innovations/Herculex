@@ -57,9 +57,7 @@ abstract final class CrossfitProgramPlanner {
     );
 
     final format = _metconFormats[variationSeed % _metconFormats.length];
-    final movementCount = CrossfitScalingPolicy.movementCeilingFor(
-      experience,
-    );
+    final movementCount = CrossfitScalingPolicy.movementCeilingFor(experience);
     final capResult = CrossfitScalingPolicy.timeCapFor(
       format: format,
       level: experience,

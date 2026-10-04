@@ -271,14 +271,12 @@ class WorkoutHistoryView extends ConsumerWidget {
                                       session.startedAt,
                                     ) ??
                                     const Duration(minutes: 45);
-                                final newMins =
-                                    await DurationPickerDialog.show(
-                                      context,
-                                      initialMinutes:
-                                          currentDur.inMinutes > 0
-                                              ? currentDur.inMinutes
-                                              : 45,
-                                    );
+                                final newMins = await DurationPickerDialog.show(
+                                  context,
+                                  initialMinutes: currentDur.inMinutes > 0
+                                      ? currentDur.inMinutes
+                                      : 45,
+                                );
                                 if (newMins != null && newMins > 0) {
                                   final newEndedAt = session.startedAt.add(
                                     Duration(minutes: newMins),

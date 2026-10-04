@@ -32,7 +32,12 @@ void main() {
     () async {
       final programsRepo = ProgramsRepository(db);
       final templatesRepo = TemplatesRepository(db);
-      final service = ScheduledWorkoutService(db, clock, programsRepo, templatesRepo);
+      final service = ScheduledWorkoutService(
+        db,
+        clock,
+        programsRepo,
+        templatesRepo,
+      );
 
       final exerciseId = await db
           .into(db.exerciseCatalog)
@@ -53,7 +58,9 @@ void main() {
 
       final weekId = await db
           .into(db.programWeeks)
-          .insert(ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0));
+          .insert(
+            ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+          );
 
       final dayAId = await db
           .into(db.programDays)
@@ -142,7 +149,9 @@ void main() {
       expect(allSessionsBeforeResume, hasLength(1));
 
       // Resume scheduleB: must return same sessionId without inserting duplicate rows
-      final resumedSessionIdB = await service.startScheduledWorkoutById(scheduleBId);
+      final resumedSessionIdB = await service.startScheduledWorkoutById(
+        scheduleBId,
+      );
       expect(resumedSessionIdB, sessionIdB);
 
       final allSessionsAfterResume = await db.select(db.workoutSessions).get();

@@ -64,13 +64,16 @@ final herculContextProvider = FutureProvider<HerculContext>((ref) async {
 
     final anthropometry = AnthropometryRatios(profile);
     if (anthropometry.legProportion != null) {
-      labels[HerculSignals.ergoLegProportion] = anthropometry.legProportion!.name;
+      labels[HerculSignals.ergoLegProportion] =
+          anthropometry.legProportion!.name;
     }
     if (anthropometry.armProportion != null) {
-      labels[HerculSignals.ergoArmProportion] = anthropometry.armProportion!.name;
+      labels[HerculSignals.ergoArmProportion] =
+          anthropometry.armProportion!.name;
     }
     if (anthropometry.torsoProportion != null) {
-      labels[HerculSignals.ergoTorsoProportion] = anthropometry.torsoProportion!.name;
+      labels[HerculSignals.ergoTorsoProportion] =
+          anthropometry.torsoProportion!.name;
     }
   }
 

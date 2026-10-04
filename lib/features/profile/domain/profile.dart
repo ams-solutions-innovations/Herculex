@@ -62,7 +62,7 @@ class Profile {
   final MeasurementUnit preferredUnit;
   final bool countBurnedCalories;
   final String herculTone;
-  
+
   // Anthropometrics
   final double? inseamCm;
   final double? armSpanCm;

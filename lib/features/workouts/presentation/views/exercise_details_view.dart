@@ -237,7 +237,10 @@ class ErgonomicsCard extends ConsumerWidget {
     final ratios = AnthropometryRatios(profile);
     if (!ratios.hasRequiredMeasurements) return const SizedBox.shrink();
 
-    final ergoRepo = ref.watch(exerciseErgonomicsRepositoryProvider).asData?.value;
+    final ergoRepo = ref
+        .watch(exerciseErgonomicsRepositoryProvider)
+        .asData
+        ?.value;
     if (ergoRepo == null) return const SizedBox.shrink();
 
     final ergonomics = ergoRepo.getForMovement(slug);
@@ -247,11 +250,13 @@ class ErgonomicsCard extends ConsumerWidget {
 
     // Legs / Femur
     if (ratios.legProportion == LegProportion.long) {
-      final g = ergonomics.guidanceByRatio['long_femur'] ??
+      final g =
+          ergonomics.guidanceByRatio['long_femur'] ??
           ergonomics.guidanceByRatio['long_legs'];
       if (g != null) activeGuidance.add(g);
     } else if (ratios.legProportion == LegProportion.short) {
-      final g = ergonomics.guidanceByRatio['short_femur'] ??
+      final g =
+          ergonomics.guidanceByRatio['short_femur'] ??
           ergonomics.guidanceByRatio['short_legs'];
       if (g != null) activeGuidance.add(g);
     }
@@ -297,14 +302,13 @@ class ErgonomicsCard extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             'Guidance tailored to your body proportions',
-            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.secondary,
+            ),
           ),
           const SizedBox(height: 12),
           for (final item in activeGuidance) ...[
-            Text(
-              item.guidance,
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(item.guidance, style: theme.textTheme.bodyMedium),
             if (item.sources.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(

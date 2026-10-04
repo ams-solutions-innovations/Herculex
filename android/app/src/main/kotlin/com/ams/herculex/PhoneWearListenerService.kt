@@ -78,7 +78,6 @@ class PhoneWearListenerService : WearableListenerService() {
         var onWatchQuickAddCommandListener: ((String?) -> Unit)? = null
         var onWatchMacroCommandListener: ((String?) -> Unit)? = null
         var onWatchRamblerCommandListener: ((String?) -> Unit)? = null
-        var onWatchMediaCommandListener: ((String?) -> Unit)? = null
 
         fun pendingWatchWorkout(context: Context): String? {
             return context.applicationContext
@@ -343,12 +342,11 @@ class PhoneWearListenerService : WearableListenerService() {
             WearSyncPaths.MESSAGE_MEDIA_COMMAND -> {
                 val commandJson = String(messageEvent.data)
                 Log.d("PhoneWearListener", "Received media command: $commandJson")
-                val listener = onWatchMediaCommandListener
-                if (listener != null) {
-                    listener.invoke(commandJson)
-                } else {
-                    handleFallbackMediaCommand(commandJson)
-                }
+                // Handled natively, never via Dart: this service is alive
+                // whenever the watch sends, the Flutter engine / Activity
+                // often is not (and the Activity never cleared its listener,
+                // so commands vanished into a dead channel).
+                handleMediaCommand(commandJson)
             }
         }
     }
@@ -581,37 +579,76 @@ class PhoneWearListenerService : WearableListenerService() {
         }
     }
 
-    private fun handleFallbackMediaCommand(commandJson: String) {
+    private fun handleMediaCommand(commandJson: String) {
         try {
             val obj = JSONObject(commandJson)
             val action = obj.optString("action")
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager ?: return
-            val keyCode = when (action) {
-                "play_pause", "play", "pause" -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-                "next" -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
-                "previous" -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
-                "volume_up" -> {
-                    audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_RAISE, 0)
-                    return
-                }
-                "volume_down" -> {
-                    audioManager.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_LOWER, 0)
-                    return
-                }
-                "set_volume" -> {
-                    val targetVol = obj.optInt("volume", -1)
-                    if (targetVol >= 0) {
-                        val max = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
-                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, targetVol.coerceIn(0, max), 0)
+            val stream = android.media.AudioManager.STREAM_MUSIC
+            when (action) {
+                "volume_up" -> audioManager.adjustStreamVolume(stream, android.media.AudioManager.ADJUST_RAISE, 0)
+                "volume_down" -> audioManager.adjustStreamVolume(stream, android.media.AudioManager.ADJUST_LOWER, 0)
+                // The watch and phone have different volume ranges, so the
+                // watch sends a 0-100 percentage rather than a raw step.
+                "set_volume_percent" -> {
+                    val percent = obj.optInt("value", -1)
+                    if (percent >= 0) {
+                        val max = audioManager.getStreamMaxVolume(stream)
+                        val target = Math.round(percent.coerceIn(0, 100) * max / 100f)
+                        audioManager.setStreamVolume(stream, target, 0)
                     }
-                    return
                 }
-                else -> return
+                "play_pause", "play", "pause", "next", "previous" -> sendTransport(audioManager, action)
             }
-            audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
-            audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
         } catch (e: Exception) {
-            Log.e("PhoneWearListener", "Failed fallback media command", e)
+            Log.e("PhoneWearListener", "Failed media command", e)
         }
     }
+
+    /// Prefers the active session's transport controls (what the in-app sheet
+    /// uses and what Spotify honours reliably); falls back to a media key event
+    /// if no session is reachable (e.g. notification access not granted).
+    private fun sendTransport(audioManager: android.media.AudioManager, action: String) {
+        val controller = runCatching {
+            val manager = getSystemService(Context.MEDIA_SESSION_SERVICE) as android.media.session.MediaSessionManager
+            val sessions = manager.getActiveSessions(
+                android.content.ComponentName(
+                    this,
+                    com.example.flutter_media_controller.MediaNotificationListener::class.java,
+                ),
+            )
+            sessions.firstOrNull { it.playbackState.isAudiblyPlaying() } ?: sessions.firstOrNull()
+        }.onFailure { Log.w("PhoneWearListener", "No media session access", it) }.getOrNull()
+
+        if (controller != null) {
+            val controls = controller.transportControls
+            when (action) {
+                "next" -> controls.skipToNext()
+                "previous" -> controls.skipToPrevious()
+                else -> {
+                    val playing = controller.playbackState.isAudiblyPlaying()
+                    when {
+                        action == "play" -> controls.play()
+                        action == "pause" -> controls.pause()
+                        playing -> controls.pause()
+                        else -> controls.play()
+                    }
+                }
+            }
+            return
+        }
+
+        val keyCode = when (action) {
+            "next" -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+            "previous" -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+            else -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+        }
+        audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
+        audioManager.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
+    }
+
+    private fun android.media.session.PlaybackState?.isAudiblyPlaying(): Boolean =
+        this?.state == android.media.session.PlaybackState.STATE_PLAYING ||
+            this?.state == android.media.session.PlaybackState.STATE_BUFFERING ||
+            this?.state == android.media.session.PlaybackState.STATE_CONNECTING
 }

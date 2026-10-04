@@ -17,6 +17,7 @@ import 'package:herculex/features/physique/presentation/sheets/past_goals_sheet.
 import 'package:herculex/features/physique/presentation/widgets/active_phase_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/check_in_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/goal_header_card.dart';
+import 'package:herculex/features/physique/presentation/widgets/goal_progress_card.dart';
 import 'package:herculex/features/physique/presentation/widgets/load_state_views.dart';
 import 'package:herculex/features/physique/presentation/widgets/restriction_notice.dart';
 import 'package:herculex/features/physique/presentation/widgets/roadmap_timeline_card.dart';
@@ -103,6 +104,8 @@ class _PhysiqueProgressViewState extends ConsumerState<PhysiqueProgressView> {
       children: [
         const SizedBox(height: HxSpace.x8),
         GoalHeaderCard(goalId: id),
+        gap,
+        GoalProgressCard(goalId: id),
         if (!archived) ...[
           gap,
           RestrictionNoticeList(

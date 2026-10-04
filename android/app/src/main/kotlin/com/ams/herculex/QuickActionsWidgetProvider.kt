@@ -38,7 +38,7 @@ class QuickActionsWidgetProvider : AppWidgetProvider() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         views.setOnClickPendingIntent(
-            R.id.btn_quick_water,
+            R.id.col_quick_water,
             PendingIntent.getActivity(
                 context, 501, waterIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -51,7 +51,7 @@ class QuickActionsWidgetProvider : AppWidgetProvider() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         views.setOnClickPendingIntent(
-            R.id.btn_quick_scan,
+            R.id.col_quick_scan,
             PendingIntent.getActivity(
                 context, 502, scanIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -65,7 +65,7 @@ class QuickActionsWidgetProvider : AppWidgetProvider() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         views.setOnClickPendingIntent(
-            R.id.btn_quick_log_food,
+            R.id.col_quick_log_food,
             PendingIntent.getActivity(
                 context, 503, logFoodIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -79,7 +79,7 @@ class QuickActionsWidgetProvider : AppWidgetProvider() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         views.setOnClickPendingIntent(
-            R.id.btn_quick_workout,
+            R.id.col_quick_workout,
             PendingIntent.getActivity(
                 context, 504, workoutIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

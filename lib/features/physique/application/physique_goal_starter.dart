@@ -7,6 +7,7 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/data/physique_dream_photo_repository.dart';
 import 'package:herculex/features/physique/data/physique_goal_repository.dart';
 import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
 import 'package:herculex/features/physique/data/physique_photo_store.dart';
@@ -28,6 +29,7 @@ class PhysiqueGoalStarter {
     required PhysiqueGoalRepository goals,
     required PhysiquePhotoSanitizer sanitizer,
     required PhysiquePhotoStore store,
+    required PhysiqueDreamPhotoRepository dreamPhotos,
     required PhysiquePrivacyPreferences privacy,
     required Clock clock,
     required Profile? Function() readProfile,
@@ -35,6 +37,7 @@ class PhysiqueGoalStarter {
   }) : _goals = goals,
        _sanitizer = sanitizer,
        _store = store,
+       _dreamPhotos = dreamPhotos,
        _privacy = privacy,
        _clock = clock,
        _readProfile = readProfile,
@@ -43,6 +46,7 @@ class PhysiqueGoalStarter {
   final PhysiqueGoalRepository _goals;
   final PhysiquePhotoSanitizer _sanitizer;
   final PhysiquePhotoStore _store;
+  final PhysiqueDreamPhotoRepository _dreamPhotos;
   final PhysiquePrivacyPreferences _privacy;
   final Clock _clock;
   final Profile? Function() _readProfile;
@@ -78,6 +82,7 @@ class PhysiqueGoalStarter {
     required DreamPhysiqueAnalysisResult result,
     required List<StagedPhoto> staged,
     required int targetPhotoCount,
+    File? targetPhoto,
   }) async {
     final goalUuid = const Uuid().v4();
     try {
@@ -105,7 +110,7 @@ class PhysiqueGoalStarter {
         analyzedAt: now.toUtc(),
       );
 
-      return await _goals.startGoal(
+      final goalId = await _goals.startGoal(
         StartGoalInput(
           goalSyncUuid: goalUuid,
           source: 'ai_analysis',
@@ -131,6 +136,12 @@ class PhysiqueGoalStarter {
           archiveExisting: true,
         ),
       );
+      // Best effort: a reference photo that cannot be stored must not undo a
+      // goal that was already persisted.
+      if (targetPhoto != null) {
+        await _dreamPhotos.save(targetPhoto, goalUuid: goalUuid);
+      }
+      return goalId;
     } on Object {
       await _store.deleteGoalFolder(goalUuid);
       await discardStaged(staged);
@@ -176,6 +187,7 @@ final physiqueGoalStarterProvider = Provider<PhysiqueGoalStarter>((ref) {
     goals: ref.watch(physiqueGoalRepositoryProvider),
     sanitizer: ref.watch(physiquePhotoSanitizerProvider),
     store: ref.watch(physiquePhotoStoreProvider),
+    dreamPhotos: ref.watch(physiqueDreamPhotoRepositoryProvider),
     privacy: ref.watch(physiquePrivacyPreferencesProvider),
     clock: ref.watch(clockProvider),
     readProfile: () => ref.read(localProfileRepositoryProvider).currentProfile,

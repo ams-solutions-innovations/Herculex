@@ -53,7 +53,7 @@ class RecoveryWidgetProvider : AppWidgetProvider() {
             views.setProgressBar(activeId, 100, score, false)
         }
 
-        views.setOnClickPendingIntent(R.id.recovery_score, launchAppIntent(context))
+        views.setOnClickPendingIntent(R.id.widget_root, launchAppIntent(context))
         return views
     }
 

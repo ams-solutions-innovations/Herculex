@@ -71,7 +71,10 @@ class _FakeGeminiBackend implements GeminiBackend {
     lastProfileInputs = profileInputs;
     lastUserNote = userNote;
     if (error != null) throw error!;
-    return (result ?? _validBriefJson(), provenance ?? const <String, dynamic>{});
+    return (
+      result ?? _validBriefJson(),
+      provenance ?? const <String, dynamic>{},
+    );
   }
 
   @override
@@ -151,7 +154,11 @@ void main() {
       );
       final db = await openTestDatabase();
       addTearDown(db.close);
-      final service = HerculexAiBriefService(backend, db, _FixedClock(DateTime(2026, 9, 30)));
+      final service = HerculexAiBriefService(
+        backend,
+        db,
+        _FixedClock(DateTime(2026, 9, 30)),
+      );
 
       final (brief, provenance) = await service.generateBrief(
         profileInputs: {'sex': 'male'},
@@ -159,8 +166,14 @@ void main() {
       );
 
       expect(brief.splitType, SplitType.upperLower);
-      expect(brief.phaseIntent, 'Build upper body symmetry ahead of the next block.');
-      expect(provenance, {'knowledgeVersion': 'kb-1', 'modelVersion': 'gemini-2.5'});
+      expect(
+        brief.phaseIntent,
+        'Build upper body symmetry ahead of the next block.',
+      );
+      expect(provenance, {
+        'knowledgeVersion': 'kb-1',
+        'modelVersion': 'gemini-2.5',
+      });
       expect(backend.lastProfileInputs, {'sex': 'male'});
       expect(backend.lastUserNote, 'Prefer 4 days/week');
     });
@@ -176,7 +189,11 @@ void main() {
         );
         final db = await openTestDatabase();
         addTearDown(db.close);
-        final service = HerculexAiBriefService(backend, db, _FixedClock(DateTime(2026, 9, 30)));
+        final service = HerculexAiBriefService(
+          backend,
+          db,
+          _FixedClock(DateTime(2026, 9, 30)),
+        );
 
         await expectLater(
           service.generateBrief(profileInputs: const {}),
@@ -204,7 +221,11 @@ void main() {
         );
         final db = await openTestDatabase();
         addTearDown(db.close);
-        final service = HerculexAiBriefService(backend, db, _FixedClock(DateTime(2026, 9, 30)));
+        final service = HerculexAiBriefService(
+          backend,
+          db,
+          _FixedClock(DateTime(2026, 9, 30)),
+        );
 
         await expectLater(
           service.generateBrief(profileInputs: const {}),
@@ -222,10 +243,16 @@ void main() {
     test(
       'malformed brief JSON produces a message distinct from the network-failure case',
       () async {
-        final backend = _FakeGeminiBackend(result: {'splitType': 'upper_lower'});
+        final backend = _FakeGeminiBackend(
+          result: {'splitType': 'upper_lower'},
+        );
         final db = await openTestDatabase();
         addTearDown(db.close);
-        final service = HerculexAiBriefService(backend, db, _FixedClock(DateTime(2026, 9, 30)));
+        final service = HerculexAiBriefService(
+          backend,
+          db,
+          _FixedClock(DateTime(2026, 9, 30)),
+        );
 
         await expectLater(
           service.generateBrief(profileInputs: const {}),
@@ -242,75 +269,87 @@ void main() {
   });
 
   group('HerculexAiBriefService.persistBrief', () {
-    test('inserts exactly one row with provenance and Clock-stamped confirmedAt', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final programId = await _insertProgram(db);
-      final fixedTime = DateTime(2026, 9, 30, 12);
-      final service = HerculexAiBriefService(
-        _FakeGeminiBackend(),
-        db,
-        _FixedClock(fixedTime),
-      );
-      final brief = ProgramBrief.fromJson(_validBriefJson());
+    test(
+      'inserts exactly one row with provenance and Clock-stamped confirmedAt',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final programId = await _insertProgram(db);
+        final fixedTime = DateTime(2026, 9, 30, 12);
+        final service = HerculexAiBriefService(
+          _FakeGeminiBackend(),
+          db,
+          _FixedClock(fixedTime),
+        );
+        final brief = ProgramBrief.fromJson(_validBriefJson());
 
-      await service.persistBrief(
-        programId: programId,
-        brief: brief,
-        provenance: {'knowledgeVersion': 'kb-2', 'modelVersion': 'gemini-2.5'},
-      );
+        await service.persistBrief(
+          programId: programId,
+          brief: brief,
+          provenance: {
+            'knowledgeVersion': 'kb-2',
+            'modelVersion': 'gemini-2.5',
+          },
+        );
 
-      final rows = await db.select(db.herculexAiProgramBriefs).get();
-      expect(rows, hasLength(1));
-      final row = rows.single;
-      expect(row.programId, programId);
-      expect(row.source, 'herculex_ai');
-      expect(row.knowledgeVersion, 'kb-2');
-      expect(row.modelVersion, 'gemini-2.5');
-      expect(row.confirmedAt, fixedTime);
-      expect(row.active, isTrue);
-      final decoded = jsonDecode(row.briefJson) as Map<String, dynamic>;
-      expect(decoded['splitType'], 'upper_lower');
-      expect(decoded['phaseIntent'], brief.phaseIntent);
-    });
+        final rows = await db.select(db.herculexAiProgramBriefs).get();
+        expect(rows, hasLength(1));
+        final row = rows.single;
+        expect(row.programId, programId);
+        expect(row.source, 'herculex_ai');
+        expect(row.knowledgeVersion, 'kb-2');
+        expect(row.modelVersion, 'gemini-2.5');
+        expect(row.confirmedAt, fixedTime);
+        expect(row.active, isTrue);
+        final decoded = jsonDecode(row.briefJson) as Map<String, dynamic>;
+        expect(decoded['splitType'], 'upper_lower');
+        expect(decoded['phaseIntent'], brief.phaseIntent);
+      },
+    );
   });
 
   group('HerculexAiBriefService.watchBriefForProgram', () {
-    test('emits the most recent active row for the program, newest first', () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-      final programId = await _insertProgram(db);
-      final service = HerculexAiBriefService(
-        _FakeGeminiBackend(),
-        db,
-        _FixedClock(DateTime(2026, 9, 30)),
-      );
+    test(
+      'emits the most recent active row for the program, newest first',
+      () async {
+        final db = await openTestDatabase();
+        addTearDown(db.close);
+        final programId = await _insertProgram(db);
+        final service = HerculexAiBriefService(
+          _FakeGeminiBackend(),
+          db,
+          _FixedClock(DateTime(2026, 9, 30)),
+        );
 
-      await db
-          .into(db.herculexAiProgramBriefs)
-          .insert(
-            HerculexAiProgramBriefsCompanion.insert(
-              programId: programId,
-              briefJson: jsonEncode(_validBriefJson()),
-              confirmedAt: Value(DateTime(2026, 9, 1)),
-            ),
-          );
-      await db
-          .into(db.herculexAiProgramBriefs)
-          .insert(
-            HerculexAiProgramBriefsCompanion.insert(
-              programId: programId,
-              briefJson: jsonEncode({..._validBriefJson(), 'phaseIntent': 'Newest brief.'}),
-              confirmedAt: Value(DateTime(2026, 9, 20)),
-            ),
-          );
+        await db
+            .into(db.herculexAiProgramBriefs)
+            .insert(
+              HerculexAiProgramBriefsCompanion.insert(
+                programId: programId,
+                briefJson: jsonEncode(_validBriefJson()),
+                confirmedAt: Value(DateTime(2026, 9, 1)),
+              ),
+            );
+        await db
+            .into(db.herculexAiProgramBriefs)
+            .insert(
+              HerculexAiProgramBriefsCompanion.insert(
+                programId: programId,
+                briefJson: jsonEncode({
+                  ..._validBriefJson(),
+                  'phaseIntent': 'Newest brief.',
+                }),
+                confirmedAt: Value(DateTime(2026, 9, 20)),
+              ),
+            );
 
-      final row = await service.watchBriefForProgram(programId).first;
+        final row = await service.watchBriefForProgram(programId).first;
 
-      expect(row, isNotNull);
-      final decoded = jsonDecode(row!.briefJson) as Map<String, dynamic>;
-      expect(decoded['phaseIntent'], 'Newest brief.');
-    });
+        expect(row, isNotNull);
+        final decoded = jsonDecode(row!.briefJson) as Map<String, dynamic>;
+        expect(decoded['phaseIntent'], 'Newest brief.');
+      },
+    );
 
     test('emits null when no brief exists for the program', () async {
       final db = await openTestDatabase();

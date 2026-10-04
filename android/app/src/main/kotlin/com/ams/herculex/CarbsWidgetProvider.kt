@@ -9,7 +9,7 @@ import android.widget.RemoteViews
 /**
  * Net Carbs pill widget.
  *
- * Teal (#64D2FF) accent color matching the app's carb color in the
+ * Green (#34C759) accent color matching the app's carb color in the
  * Macros Consumed card (teal / cyan seen in the screenshot).
  */
 class CarbsWidgetProvider : AppWidgetProvider() {
@@ -46,7 +46,7 @@ class CarbsWidgetProvider : AppWidgetProvider() {
             views.setProgressBar(R.id.macro_progress, 100, pct, false)
         }
 
-        views.setOnClickPendingIntent(R.id.macro_current, launchAppIntent(context))
+        views.setOnClickPendingIntent(R.id.widget_root, openNutritionIntent(context))
         return views
     }
 

@@ -413,8 +413,8 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
               color: stt.isListening
                   ? Colors.redAccent
                   : _focusNode.hasFocus
-                      ? hx.primary
-                      : hx.outlineVariant.withValues(alpha: 0.5),
+                  ? hx.primary
+                  : hx.outlineVariant.withValues(alpha: 0.5),
               width: isActive ? 1.5 : 1.0,
             ),
             boxShadow: [
@@ -557,16 +557,11 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: stt.isListening
-                        ? Colors.redAccent
-                        : hx.primary,
+                    color: stt.isListening ? Colors.redAccent : hx.primary,
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            (stt.isListening
-                                    ? Colors.redAccent
-                                    : hx.primary)
-                                .withValues(alpha: 0.35),
+                        color: (stt.isListening ? Colors.redAccent : hx.primary)
+                            .withValues(alpha: 0.35),
                         blurRadius: stt.isListening ? 20 : 12,
                         spreadRadius: stt.isListening ? 4 : 1,
                       ),
@@ -586,9 +581,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                     : 'Pritisnite za govor (STT)',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: stt.isListening
-                      ? Colors.redAccent
-                      : hx.secondary,
+                  color: stt.isListening ? Colors.redAccent : hx.secondary,
                 ),
               ),
             ],

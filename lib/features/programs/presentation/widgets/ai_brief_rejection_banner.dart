@@ -43,11 +43,7 @@ class AiBriefRejectionBanner extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 16,
-                  color: hx.warning,
-                ),
+                Icon(Icons.warning_amber_rounded, size: 16, color: hx.warning),
                 const SizedBox(width: HxSpace.x2),
                 Expanded(
                   child: Text(

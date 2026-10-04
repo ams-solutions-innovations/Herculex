@@ -468,31 +468,30 @@ class WorkoutsRepository {
   }
 
   Future<void> _cleanupIncompleteSetsAndExercises(int sessionId) async {
-    final sessionExercises = await (_db.select(_db.workoutExercises)
-          ..where((t) => t.sessionId.equals(sessionId)))
-        .get();
+    final sessionExercises = await (_db.select(
+      _db.workoutExercises,
+    )..where((t) => t.sessionId.equals(sessionId))).get();
 
     for (final we in sessionExercises) {
       // Delete sets that were not completed
-      await (_db.delete(_db.setEntries)
-            ..where(
-              (t) =>
-                  t.workoutExerciseId.equals(we.id) &
-                  t.isCompleted.equals(false),
-            ))
+      await (_db.delete(_db.setEntries)..where(
+            (t) =>
+                t.workoutExerciseId.equals(we.id) & t.isCompleted.equals(false),
+          ))
           .go();
 
       // Check remaining completed sets
-      final remainingSets = await (_db.select(_db.setEntries)
-            ..where((t) => t.workoutExerciseId.equals(we.id))
-            ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
-          .get();
+      final remainingSets =
+          await (_db.select(_db.setEntries)
+                ..where((t) => t.workoutExerciseId.equals(we.id))
+                ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
+              .get();
 
       if (remainingSets.isEmpty) {
         // No completed sets for this exercise, delete the workout exercise
-        await (_db.delete(_db.workoutExercises)
-              ..where((t) => t.id.equals(we.id)))
-            .go();
+        await (_db.delete(
+          _db.workoutExercises,
+        )..where((t) => t.id.equals(we.id))).go();
       } else {
         // Re-index remaining sets so indexes are continuous
         for (var i = 0; i < remainingSets.length; i++) {
@@ -506,10 +505,11 @@ class WorkoutsRepository {
     }
 
     // Re-index remaining workout exercises
-    final remainingExercises = await (_db.select(_db.workoutExercises)
-          ..where((t) => t.sessionId.equals(sessionId))
-          ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
-        .get();
+    final remainingExercises =
+        await (_db.select(_db.workoutExercises)
+              ..where((t) => t.sessionId.equals(sessionId))
+              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+            .get();
 
     for (var i = 0; i < remainingExercises.length; i++) {
       if (remainingExercises[i].orderIndex != i) {

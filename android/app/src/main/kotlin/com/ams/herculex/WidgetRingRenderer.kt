@@ -23,7 +23,7 @@ object WidgetRingRenderer {
         strokeWidthPx: Float = 18f,
         progress: Float = 0f,
         progressColor: Int = Color.parseColor("#E5E5EA"),
-        trackColor: Int = Color.parseColor("#2C2C32"),
+        trackColor: Int = Color.parseColor("#2B374E"),
         startAngle: Float = -90f
     ): Bitmap {
         val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)

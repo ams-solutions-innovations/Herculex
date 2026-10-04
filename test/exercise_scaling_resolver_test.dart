@@ -191,7 +191,9 @@ void main() {
         expect(result.candidate!.scalingOrder, 4);
         expect(
           result.rationale,
-          contains('Regressed from Ring Muscle-Up (order 7) to Pull-Up (order 4)'),
+          contains(
+            'Regressed from Ring Muscle-Up (order 7) to Pull-Up (order 4)',
+          ),
         );
       },
     );
@@ -258,7 +260,10 @@ void main() {
           groupCandidates: ladderCandidates,
           experience: ExperienceLevel.intermediate,
           style: TrainingStyle.basic,
-          availableEquipmentKeys: {'barbell', 'dumbbell'}, // no pull up equipment
+          availableEquipmentKeys: {
+            'barbell',
+            'dumbbell',
+          }, // no pull up equipment
           completedExerciseSlugs: {},
           completedMovementSlugs: {},
           catalogBySlug: catalogBySlug,
@@ -273,36 +278,33 @@ void main() {
       },
     );
 
-    test(
-      'exercise not belonging to any ladder returns noSafeCandidate',
-      () {
-        final standalone = _makeExercise(
-          id: 99,
-          slug: 'custom-lateral-raise',
-          name: 'Custom Lateral Raise',
-          scalingGroup: null,
-          scalingOrder: null,
-        );
+    test('exercise not belonging to any ladder returns noSafeCandidate', () {
+      final standalone = _makeExercise(
+        id: 99,
+        slug: 'custom-lateral-raise',
+        name: 'Custom Lateral Raise',
+        scalingGroup: null,
+        scalingOrder: null,
+      );
 
-        final result = resolver.regress(
-          target: standalone,
-          groupCandidates: ladderCandidates,
-          experience: ExperienceLevel.intermediate,
-          style: TrainingStyle.basic,
-          availableEquipmentKeys: {'dumbbell'},
-          completedExerciseSlugs: {},
-          completedMovementSlugs: {},
-          catalogBySlug: catalogBySlug,
-        );
+      final result = resolver.regress(
+        target: standalone,
+        groupCandidates: ladderCandidates,
+        experience: ExperienceLevel.intermediate,
+        style: TrainingStyle.basic,
+        availableEquipmentKeys: {'dumbbell'},
+        completedExerciseSlugs: {},
+        completedMovementSlugs: {},
+        catalogBySlug: catalogBySlug,
+      );
 
-        expect(result.isSuccess, isFalse);
-        expect(result.candidate, isNull);
-        expect(
-          result.rationale,
-          contains('Custom Lateral Raise does not belong to a scaling ladder.'),
-        );
-      },
-    );
+      expect(result.isSuccess, isFalse);
+      expect(result.candidate, isNull);
+      expect(
+        result.rationale,
+        contains('Custom Lateral Raise does not belong to a scaling ladder.'),
+      );
+    });
 
     test(
       'lowest ladder candidate (order 1) returns noSafeCandidate when regressed',

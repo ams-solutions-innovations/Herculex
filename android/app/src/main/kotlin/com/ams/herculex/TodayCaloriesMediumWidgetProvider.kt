@@ -93,7 +93,7 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
                 strokeWidthPx = 21f,
                 progress = 0f,
                 progressColor = Color.parseColor("#E5E5EA"),
-                trackColor = Color.parseColor("#2C2C32")
+                trackColor = Color.parseColor("#2B374E")
             )
             views.setImageViewBitmap(R.id.calories_ring_image, emptyRing)
         } else {
@@ -110,7 +110,7 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
                 strokeWidthPx = 21f,
                 progress = progress,
                 progressColor = ringColor,
-                trackColor = Color.parseColor("#2C2C32")
+                trackColor = Color.parseColor("#2B374E")
             )
             views.setImageViewBitmap(R.id.calories_ring_image, ringBitmap)
 
@@ -145,7 +145,7 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
             searchIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.btn_search_food, searchPendingIntent)
+        views.setOnClickPendingIntent(R.id.col_search_food, searchPendingIntent)
 
         // Action: Scanner button opens Barcode Scanner
         val scanIntent = Intent(context, MainActivity::class.java).apply {
@@ -158,7 +158,7 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
             scanIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.btn_scan_food, scanPendingIntent)
+        views.setOnClickPendingIntent(R.id.col_scan_food, scanPendingIntent)
 
         // Action: Camera button opens the food-photo camera capture directly,
         // matching its icon (same principle as the scan button opening the
@@ -173,7 +173,7 @@ class TodayCaloriesMediumWidgetProvider : AppWidgetProvider() {
             cameraIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.btn_camera_food, cameraPendingIntent)
+        views.setOnClickPendingIntent(R.id.col_camera_food, cameraPendingIntent)
 
         return views
     }

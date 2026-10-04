@@ -261,7 +261,8 @@ class PlannedSessionResolver {
       final role = SlotRole.fromId(slot?.role ?? pde.slotRole);
       final rawMethod = _methodFrom(slot?.trainingMethod ?? pde.trainingMethod);
       final model = PeriodizationModel.fromId(program.periodizationModel);
-      final method = (rawMethod == SlotTrainingMethod.dynamicEffort &&
+      final method =
+          (rawMethod == SlotTrainingMethod.dynamicEffort &&
               model == PeriodizationModel.linear)
           ? SlotTrainingMethod.straightSets
           : rawMethod;
@@ -434,7 +435,8 @@ class PlannedSessionResolver {
     required String mechanics,
     required String modality,
   }) {
-    final effectiveMethod = (method == SlotTrainingMethod.dynamicEffort &&
+    final effectiveMethod =
+        (method == SlotTrainingMethod.dynamicEffort &&
             model == PeriodizationModel.linear)
         ? SlotTrainingMethod.straightSets
         : method;

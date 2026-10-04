@@ -9,7 +9,7 @@ import android.widget.RemoteViews
 /**
  * Fat pill widget.
  *
- * Purple (#BF5AF2) accent color matching the app's fat color shown in the
+ * Yellow (#FFD60A) accent color matching the app's fat color shown in the
  * Macros Consumed card screenshot.
  */
 class FatWidgetProvider : AppWidgetProvider() {
@@ -46,7 +46,7 @@ class FatWidgetProvider : AppWidgetProvider() {
             views.setProgressBar(R.id.macro_progress, 100, pct, false)
         }
 
-        views.setOnClickPendingIntent(R.id.macro_current, launchAppIntent(context))
+        views.setOnClickPendingIntent(R.id.widget_root, openNutritionIntent(context))
         return views
     }
 

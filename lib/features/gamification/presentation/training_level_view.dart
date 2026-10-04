@@ -90,8 +90,12 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
 
         final filteredLevels = switch (_selectedBandIndex) {
           1 => trainingLevels.where((l) => l.band == LevelBand.novice).toList(),
-          2 => trainingLevels.where((l) => l.band == LevelBand.intermediate).toList(),
-          3 => trainingLevels.where((l) => l.band == LevelBand.advanced).toList(),
+          2 =>
+            trainingLevels
+                .where((l) => l.band == LevelBand.intermediate)
+                .toList(),
+          3 =>
+            trainingLevels.where((l) => l.band == LevelBand.advanced).toList(),
           _ => trainingLevels,
         };
 
@@ -126,27 +130,35 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Progression Ladder',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Progression Ladder',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '15 Herculex training ranks across 3 tiers',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: hx.secondary,
+                      const SizedBox(height: 2),
+                      Text(
+                        '15 Herculex training ranks across 3 tiers',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: hx.secondary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: HxSpace.x2),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: currentBandColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(99),
@@ -223,7 +235,9 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
                 const Spacer(),
                 Text(
                   '${entries.length} logged entries',
-                  style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: hx.secondary,
+                  ),
                 ),
               ],
             ),
@@ -236,7 +250,11 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(Icons.fitness_center_rounded, size: 36, color: hx.secondary),
+                      Icon(
+                        Icons.fitness_center_rounded,
+                        size: 36,
+                        color: hx.secondary,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'No XP entries recorded yet',
@@ -245,7 +263,9 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
                       const SizedBox(height: 4),
                       Text(
                         'Complete a workout or sync your training history to start earning XP!',
-                        style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: hx.secondary,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -338,7 +358,10 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: bandColor.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
@@ -483,23 +506,20 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
     final borderColor = isCurrent
         ? bandColor
         : isCompleted
-            ? bandColor.withValues(alpha: 0.3)
-            : hx.surfaceVariant.withValues(alpha: 0.3);
+        ? bandColor.withValues(alpha: 0.3)
+        : hx.surfaceVariant.withValues(alpha: 0.3);
 
     final bgColor = isCurrent
         ? bandColor.withValues(alpha: 0.12)
         : isCompleted
-            ? hx.surfaceVariant.withValues(alpha: 0.15)
-            : hx.surfaceVariant.withValues(alpha: 0.05);
+        ? hx.surfaceVariant.withValues(alpha: 0.15)
+        : hx.surfaceVariant.withValues(alpha: 0.05);
 
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: borderColor,
-          width: isCurrent ? 1.8 : 1.0,
-        ),
+        border: Border.all(color: borderColor, width: isCurrent ? 1.8 : 1.0),
         boxShadow: isCurrent
             ? [
                 BoxShadow(
@@ -522,22 +542,26 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
               color: isCurrent
                   ? bandColor
                   : isCompleted
-                      ? bandColor.withValues(alpha: 0.2)
-                      : hx.surfaceVariant.withValues(alpha: 0.3),
+                  ? bandColor.withValues(alpha: 0.2)
+                  : hx.surfaceVariant.withValues(alpha: 0.3),
             ),
             child: Center(
               child: isCompleted
                   ? Icon(Icons.check_rounded, size: 20, color: bandColor)
                   : isCurrent
-                      ? const Icon(Icons.star_rounded, size: 22, color: Colors.black)
-                      : Text(
-                          '${level.number}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: hx.secondary,
-                          ),
-                        ),
+                  ? const Icon(
+                      Icons.star_rounded,
+                      size: 22,
+                      color: Colors.black,
+                    )
+                  : Text(
+                      '${level.number}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: hx.secondary,
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 14),
@@ -550,14 +574,19 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
                     Text(
                       level.title,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight: isCurrent
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                         color: isLocked ? hx.secondary : null,
                       ),
                     ),
                     const SizedBox(width: 8),
                     if (isCurrent)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: bandColor,
                           borderRadius: BorderRadius.circular(6),
@@ -620,10 +649,7 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
     );
   }
 
-  Widget _buildHowXpWorksCard({
-    required ThemeData theme,
-    required dynamic hx,
-  }) {
+  Widget _buildHowXpWorksCard({required ThemeData theme, required dynamic hx}) {
     return HxCard(
       padding: const EdgeInsets.all(20),
       radius: HxRadius.lg,
@@ -638,7 +664,11 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
                   color: AppColors.primary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.emoji_events_rounded, color: AppColors.primary, size: 20),
+                child: Icon(
+                  Icons.emoji_events_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -784,7 +814,11 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.fitness_center_rounded, size: 16, color: AppColors.primary),
+                  Icon(
+                    Icons.fitness_center_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Training Session',
@@ -827,7 +861,10 @@ class _TrainingLevelViewState extends ConsumerState<TrainingLevelView> {
               children: [
                 for (final reason in entry.reasons)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: hx.surfaceVariant.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(6),

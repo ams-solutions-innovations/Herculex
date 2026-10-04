@@ -30,6 +30,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        dartWidgetReady = false
 
         val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, wearChannel)
         methodChannel = channel
@@ -199,12 +200,6 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
 
-        PhoneWearListenerService.onWatchMediaCommandListener = { commandJson ->
-            runOnUiThread {
-                methodChannel?.invokeMethod("onWatchMediaCommand", mapOf("command_json" to commandJson))
-            }
-        }
-
         // ── Home-screen widget sync channel ──────────────────────────────────
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, widgetChannel)
             .setMethodCallHandler { call, result ->
@@ -340,6 +335,19 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(null)
                     }
 
+                    "takePendingAction" -> {
+                        // Dart's first call after registering its handler. Anything a
+                        // widget tap queued before that point (cold start) is handed
+                        // over here, since invokeMethod to a not-yet-registered
+                        // handler is silently dropped.
+                        dartWidgetReady = true
+                        val pending = pendingWidgetAction
+                        pendingWidgetAction = null
+                        result.success(
+                            pending?.let { mapOf("method" to it.first, "args" to it.second) }
+                        )
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -426,6 +434,8 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    private var dartWidgetReady = false
+    private var pendingWidgetAction: Pair<String, Map<String, Any?>?>? = null
     private var pendingSessionJson: String? = null
     private var pendingJumpToWorkout: Boolean = false
 
@@ -467,37 +477,27 @@ class MainActivity : FlutterFragmentActivity() {
 
     private fun handleWorkoutsIntent(intent: Intent?) {
         if (intent?.action == ScannerWidgetProvider.ACTION_SCAN) {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("openScanner", null)
-            }
+            dispatchWidgetAction("openScanner")
             intent?.action = null
         }
 
         if (intent?.action == TodayCaloriesMediumWidgetProvider.ACTION_SEARCH_FOOD) {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("openFoodSearch", null)
-            }
+            dispatchWidgetAction("openFoodSearch")
             intent?.action = null
         }
 
         if (intent?.action == TodayCaloriesMediumWidgetProvider.ACTION_OPEN_CAMERA_FOOD_LOG) {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("openCameraFoodLog", null)
-            }
+            dispatchWidgetAction("openCameraFoodLog")
             intent?.action = null
         }
 
         if (intent?.action == TodayCaloriesSmallWidgetProvider.ACTION_OPEN_NUTRITION) {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("openNutrition", null)
-            }
+            dispatchWidgetAction("openNutrition")
             intent?.action = null
         }
 
         if (intent?.action == QuickActionsWidgetProvider.ACTION_ADD_WATER) {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("addWater", null)
-            }
+            dispatchWidgetAction("addWater")
             intent?.action = null
         }
 
@@ -517,9 +517,19 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun openActiveWorkoutInFlutter(action: String? = null) {
-        flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-            val args = if (action != null) mapOf("action" to action) else null
-            MethodChannel(messenger, widgetChannel).invokeMethod("openActiveWorkout", args)
+        dispatchWidgetAction("openActiveWorkout", if (action != null) mapOf("action" to action) else null)
+    }
+
+    /**
+     * Delivers a widget tap to Dart, or parks it until Dart asks for it
+     * ("takePendingAction"). Only the latest tap is kept.
+     */
+    private fun dispatchWidgetAction(method: String, args: Map<String, Any?>? = null) {
+        val messenger = flutterEngine?.dartExecutor?.binaryMessenger
+        if (dartWidgetReady && messenger != null) {
+            MethodChannel(messenger, widgetChannel).invokeMethod(method, args)
+        } else {
+            pendingWidgetAction = method to args
         }
     }
 

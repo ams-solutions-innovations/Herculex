@@ -15,10 +15,7 @@ import '../support/test_database.dart';
 
 class _FakeScheduledWorkoutService extends Fake
     implements ScheduledWorkoutService {
-  _FakeScheduledWorkoutService({
-    this.workoutResult,
-    this.previewResult,
-  });
+  _FakeScheduledWorkoutService({this.workoutResult, this.previewResult});
 
   TodaysScheduledWorkout? workoutResult;
   PlannedSessionSnapshot? previewResult;
@@ -62,14 +59,18 @@ void main() {
         .insert(ProgramsCompanion.insert(name: 'Test Program'));
     final weekId = await db
         .into(db.programWeeks)
-        .insert(ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0));
-    final dayId = await db.into(db.programDays).insert(
-      ProgramDaysCompanion.insert(
-        programWeekId: weekId,
-        dayOfWeek: 1,
-        name: 'Upper Body A',
-      ),
-    );
+        .insert(
+          ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+        );
+    final dayId = await db
+        .into(db.programDays)
+        .insert(
+          ProgramDaysCompanion.insert(
+            programWeekId: weekId,
+            dayOfWeek: 1,
+            name: 'Upper Body A',
+          ),
+        );
     final day = await (db.select(
       db.programDays,
     )..where((t) => t.id.equals(dayId))).getSingle();
@@ -89,16 +90,18 @@ void main() {
   }
 
   Future<int> insertExercise(String name) {
-    return db.into(db.exerciseCatalog).insert(
-      ExerciseCatalogCompanion.insert(
-        name: name,
-        primaryMuscle: 'chest',
-        equipment: 'barbell',
-        mechanics: 'compound',
-        force: 'push',
-        plane: 'sagittal',
-      ),
-    );
+    return db
+        .into(db.exerciseCatalog)
+        .insert(
+          ExerciseCatalogCompanion.insert(
+            name: name,
+            primaryMuscle: 'chest',
+            equipment: 'barbell',
+            mechanics: 'compound',
+            force: 'push',
+            plane: 'sagittal',
+          ),
+        );
   }
 
   Widget wrap(ProviderContainer container, Widget child) {

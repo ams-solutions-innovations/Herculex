@@ -55,7 +55,10 @@ void main() {
 
       expect(brief.splitType, SplitType.upperLower);
       expect(brief.periodizationModel, PeriodizationModel.linear);
-      expect(brief.phaseIntent, 'Build upper body symmetry ahead of the next block.');
+      expect(
+        brief.phaseIntent,
+        'Build upper body symmetry ahead of the next block.',
+      );
 
       expect(brief.dayRoles, hasLength(2));
       expect(brief.dayRoles[0].dayIndex, 0);
@@ -71,10 +74,9 @@ void main() {
       expect(brief.musclePriorities[0].muscleId, 'chest');
       expect(brief.musclePriorities[0].priority, ProgrammingPriorityLevel.high);
       expect(brief.musclePriorities[1].muscleId, 'back');
-      expect(
-        brief.musclePriorities[1].uncertainties,
-        ['Limited pulling volume history'],
-      );
+      expect(brief.musclePriorities[1].uncertainties, [
+        'Limited pulling volume history',
+      ]);
     });
   });
 
@@ -100,16 +102,13 @@ void main() {
       expect(() => ProgramBrief.fromJson(json), throwsFormatException);
     });
 
-    test(
-      'unknown musclePriorities[].muscleId rejects the whole brief '
-      '(reuses ProgrammingMusclePriority.fromJson verbatim — D-01)',
-      () {
-        final json = _cloneValid();
-        (json['musclePriorities'] as List)[0]['muscleId'] = 'forearm';
+    test('unknown musclePriorities[].muscleId rejects the whole brief '
+        '(reuses ProgrammingMusclePriority.fromJson verbatim — D-01)', () {
+      final json = _cloneValid();
+      (json['musclePriorities'] as List)[0]['muscleId'] = 'forearm';
 
-        expect(() => ProgramBrief.fromJson(json), throwsFormatException);
-      },
-    );
+      expect(() => ProgramBrief.fromJson(json), throwsFormatException);
+    });
   });
 
   group(
@@ -243,7 +242,10 @@ void main() {
 
       expect(roundTripped.dayRoles, hasLength(original.dayRoles.length));
       for (var i = 0; i < original.dayRoles.length; i++) {
-        expect(roundTripped.dayRoles[i].dayIndex, original.dayRoles[i].dayIndex);
+        expect(
+          roundTripped.dayRoles[i].dayIndex,
+          original.dayRoles[i].dayIndex,
+        );
         expect(roundTripped.dayRoles[i].role, original.dayRoles[i].role);
         expect(roundTripped.dayRoles[i].focus, original.dayRoles[i].focus);
         expect(

@@ -84,9 +84,9 @@ class _HistoryEntryCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   summary.targetAestheticStyle,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               Text(
@@ -100,9 +100,9 @@ class _HistoryEntryCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             summary.timeframeRange,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: context.hx.onSurfaceVariant,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: context.hx.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -143,9 +143,9 @@ class _Stat extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: context.hx.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: context.hx.onSurfaceVariant),
         ),
         Text(
           value,

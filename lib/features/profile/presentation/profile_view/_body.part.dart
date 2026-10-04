@@ -1245,7 +1245,10 @@ class _ProfileLevelCard extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.military_tech_rounded, color: AppColors.primary),
+                      Icon(
+                        Icons.military_tech_rounded,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1281,7 +1284,9 @@ class _ProfileLevelCard extends ConsumerWidget {
                     child: LinearProgressIndicator(
                       value: progress.progressToNext,
                       minHeight: 8,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.16),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.16,
+                      ),
                       color: AppColors.primary,
                     ),
                   ),

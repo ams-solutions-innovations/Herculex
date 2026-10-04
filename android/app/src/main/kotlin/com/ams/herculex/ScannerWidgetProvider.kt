@@ -42,8 +42,7 @@ class ScannerWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        views.setOnClickPendingIntent(R.id.scanner_label, pendingIntent)
-        views.setOnClickPendingIntent(R.id.scanner_icon, pendingIntent)
+        views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
         return views
     }
 

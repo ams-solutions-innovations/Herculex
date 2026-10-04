@@ -34,6 +34,14 @@ class HxGlass extends StatelessWidget {
   final Color? borderColor;
   final BoxShape shape;
 
+  /// Light neutral-tinted fill that lets the blur show through, matching the
+  /// quick-add button's translucency. Used by the nav bar and back button.
+  static Color frostedFill(HxColors hx) =>
+      hx.onSurface.withValues(alpha: hx.isDark ? 0.10 : 0.06);
+
+  static Color frostedBorder(HxColors hx) =>
+      hx.onSurface.withValues(alpha: hx.isDark ? 0.22 : 0.16);
+
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;

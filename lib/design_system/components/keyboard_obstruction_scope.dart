@@ -45,7 +45,9 @@ class KeyboardObstructionScope extends StatelessWidget {
           child: AnimatedOpacity(
             // Hiding is immediate: the obstruction must never overlap a
             // visible control. Restoring still uses the standard fade.
-            duration: hidden ? Duration.zero : const Duration(milliseconds: 150),
+            duration: hidden
+                ? Duration.zero
+                : const Duration(milliseconds: 150),
             opacity: hidden ? 0 : 1,
             child: child,
           ),

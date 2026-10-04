@@ -216,7 +216,8 @@ class DashboardView extends ConsumerWidget {
                                   details.data != index,
                               onAcceptWithDetails: (details) {
                                 final sourceIndex = details.data;
-                                final sourceSlot = (sourceIndex >= 0 &&
+                                final sourceSlot =
+                                    (sourceIndex >= 0 &&
                                         sourceIndex < config.widgets.length)
                                     ? config.widgets[sourceIndex]
                                     : null;
@@ -236,12 +237,14 @@ class DashboardView extends ConsumerWidget {
                               builder: (context, candidate, rejected) {
                                 final isTarget = candidate.isNotEmpty;
                                 final draggedIdx = candidate.firstOrNull;
-                                final draggedSlot = (draggedIdx != null &&
+                                final draggedSlot =
+                                    (draggedIdx != null &&
                                         draggedIdx >= 0 &&
                                         draggedIdx < config.widgets.length)
                                     ? config.widgets[draggedIdx]
                                     : null;
-                                final isStackCandidate = isTarget &&
+                                final isStackCandidate =
+                                    isTarget &&
                                     draggedSlot != null &&
                                     w.canStackWith(draggedSlot);
 
@@ -265,10 +268,13 @@ class DashboardView extends ConsumerWidget {
                                       boxShadow: isTarget
                                           ? [
                                               BoxShadow(
-                                                color: (isStackCandidate
-                                                        ? context.hx.primary
-                                                        : context.hx.secondary)
-                                                    .withValues(alpha: 0.5),
+                                                color:
+                                                    (isStackCandidate
+                                                            ? context.hx.primary
+                                                            : context
+                                                                  .hx
+                                                                  .secondary)
+                                                        .withValues(alpha: 0.5),
                                                 blurRadius: 18,
                                                 spreadRadius: 2,
                                               ),
@@ -931,8 +937,9 @@ class _StackedDashboardWidgetState
     final shape = ref.watch(dashboardCardShapeProvider);
     final height = _heightForTypes(widget.types);
     final count = widget.types.length;
-    final isPillOnly =
-        widget.types.every((t) => t.kind == DashboardWidgetKind.pill);
+    final isPillOnly = widget.types.every(
+      (t) => t.kind == DashboardWidgetKind.pill,
+    );
     final layerRadius = isPillOnly ? shape.pillRadius : shape.cardRadius;
 
     return GestureDetector(
@@ -997,8 +1004,7 @@ class _StackedDashboardWidgetState
                   itemBuilder: (context, index) {
                     final type = widget.types[index];
                     final child = widget.renderWidget(type);
-                    if (height > 100 &&
-                        type.kind == DashboardWidgetKind.pill) {
+                    if (height > 100 && type.kind == DashboardWidgetKind.pill) {
                       return Center(child: child);
                     }
                     return child;

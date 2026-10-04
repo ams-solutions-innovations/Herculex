@@ -5,80 +5,74 @@ import 'package:herculex/features/workouts/domain/workout_duration_estimator.dar
 
 void main() {
   group('WorkoutDurationEstimator.estimateExercise', () {
-    test(
-      'standard sets: duration is strictly greater than rest-time alone and '
-      'strictly less than double the same call with isUnilateral: true',
-      () {
-        const workingSets = 3;
-        const repsMin = 8;
-        const repsMax = 8;
-        const restSeconds = 90;
+    test('standard sets: duration is strictly greater than rest-time alone and '
+        'strictly less than double the same call with isUnilateral: true', () {
+      const workingSets = 3;
+      const repsMin = 8;
+      const repsMax = 8;
+      const restSeconds = 90;
 
-        final duration = WorkoutDurationEstimator.estimateExercise(
-          workingSets: workingSets,
-          repsMin: repsMin,
-          repsMax: repsMax,
-          restSeconds: restSeconds,
-          setType: SetType.standard,
-        );
+      final duration = WorkoutDurationEstimator.estimateExercise(
+        workingSets: workingSets,
+        repsMin: repsMin,
+        repsMax: repsMax,
+        restSeconds: restSeconds,
+        setType: SetType.standard,
+      );
 
-        final restOnly = Duration(seconds: workingSets * restSeconds);
-        expect(duration, greaterThan(restOnly));
+      final restOnly = Duration(seconds: workingSets * restSeconds);
+      expect(duration, greaterThan(restOnly));
 
-        final unilateral = WorkoutDurationEstimator.estimateExercise(
-          workingSets: workingSets,
-          repsMin: repsMin,
-          repsMax: repsMax,
-          restSeconds: restSeconds,
-          setType: SetType.standard,
-          isUnilateral: true,
-        );
-        final naiveDoubled = Duration(
-          seconds: 2 * workingSets * (restSeconds + repsMax * 4),
-        );
-        expect(unilateral, lessThan(naiveDoubled));
-      },
-    );
+      final unilateral = WorkoutDurationEstimator.estimateExercise(
+        workingSets: workingSets,
+        repsMin: repsMin,
+        repsMax: repsMax,
+        restSeconds: restSeconds,
+        setType: SetType.standard,
+        isUnilateral: true,
+      );
+      final naiveDoubled = Duration(
+        seconds: 2 * workingSets * (restSeconds + repsMax * 4),
+      );
+      expect(unilateral, lessThan(naiveDoubled));
+    });
 
-    test(
-      'isUnilateral roughly doubles the per-set working time versus '
-      'bilateral, holding rest constant',
-      () {
-        const workingSets = 3;
-        const repsMin = 8;
-        const repsMax = 8;
-        const restSeconds = 90;
+    test('isUnilateral roughly doubles the per-set working time versus '
+        'bilateral, holding rest constant', () {
+      const workingSets = 3;
+      const repsMin = 8;
+      const repsMax = 8;
+      const restSeconds = 90;
 
-        final bilateral = WorkoutDurationEstimator.estimateExercise(
-          workingSets: workingSets,
-          repsMin: repsMin,
-          repsMax: repsMax,
-          restSeconds: restSeconds,
-          setType: SetType.standard,
-        );
-        final unilateral = WorkoutDurationEstimator.estimateExercise(
-          workingSets: workingSets,
-          repsMin: repsMin,
-          repsMax: repsMax,
-          restSeconds: restSeconds,
-          setType: SetType.standard,
-          isUnilateral: true,
-        );
+      final bilateral = WorkoutDurationEstimator.estimateExercise(
+        workingSets: workingSets,
+        repsMin: repsMin,
+        repsMax: repsMax,
+        restSeconds: restSeconds,
+        setType: SetType.standard,
+      );
+      final unilateral = WorkoutDurationEstimator.estimateExercise(
+        workingSets: workingSets,
+        repsMin: repsMin,
+        repsMax: repsMax,
+        restSeconds: restSeconds,
+        setType: SetType.standard,
+        isUnilateral: true,
+      );
 
-        // Working-set-only time (rest excluded) for bilateral:
-        const secondsPerRep = 3.5;
-        const avgReps = (repsMin + repsMax) / 2;
-        final bilateralWorkOnly = workingSets * avgReps * secondsPerRep;
-        final unilateralWorkOnly = workingSets * avgReps * secondsPerRep * 2;
+      // Working-set-only time (rest excluded) for bilateral:
+      const secondsPerRep = 3.5;
+      const avgReps = (repsMin + repsMax) / 2;
+      final bilateralWorkOnly = workingSets * avgReps * secondsPerRep;
+      final unilateralWorkOnly = workingSets * avgReps * secondsPerRep * 2;
 
-        final bilateralTotal = bilateral.inSeconds;
-        final unilateralTotal = unilateral.inSeconds;
-        final restTotal = workingSets * restSeconds;
+      final bilateralTotal = bilateral.inSeconds;
+      final unilateralTotal = unilateral.inSeconds;
+      final restTotal = workingSets * restSeconds;
 
-        expect(bilateralTotal - restTotal, closeTo(bilateralWorkOnly, 1));
-        expect(unilateralTotal - restTotal, closeTo(unilateralWorkOnly, 1));
-      },
-    );
+      expect(bilateralTotal - restTotal, closeTo(bilateralWorkOnly, 1));
+      expect(unilateralTotal - restTotal, closeTo(unilateralWorkOnly, 1));
+    });
 
     test(
       'myo-reps mini-set bursts add time beyond an equivalent standard set',
@@ -151,36 +145,24 @@ void main() {
         exercise,
       ]);
 
-      expect(
-        total,
-        cappedSegment + exercise + const Duration(seconds: 2 * 90),
-      );
+      expect(total, cappedSegment + exercise + const Duration(seconds: 2 * 90));
     });
   });
 
   group('WorkoutDurationEstimator.estimateSession', () {
-    test(
-      'total accounts for one inter-exercise transition per exercise, '
-      'strictly greater than the sum of inputs alone',
-      () {
-        final durations = [
-          const Duration(minutes: 5),
-          const Duration(minutes: 8),
-          const Duration(minutes: 6),
-        ];
-        final sumOnly = durations.fold(
-          Duration.zero,
-          (sum, d) => sum + d,
-        );
+    test('total accounts for one inter-exercise transition per exercise, '
+        'strictly greater than the sum of inputs alone', () {
+      final durations = [
+        const Duration(minutes: 5),
+        const Duration(minutes: 8),
+        const Duration(minutes: 6),
+      ];
+      final sumOnly = durations.fold(Duration.zero, (sum, d) => sum + d);
 
-        final total = WorkoutDurationEstimator.estimateSession(durations);
+      final total = WorkoutDurationEstimator.estimateSession(durations);
 
-        expect(total, greaterThan(sumOnly));
-        expect(
-          total,
-          sumOnly + Duration(seconds: durations.length * 90),
-        );
-      },
-    );
+      expect(total, greaterThan(sumOnly));
+      expect(total, sumOnly + Duration(seconds: durations.length * 90));
+    });
   });
 }

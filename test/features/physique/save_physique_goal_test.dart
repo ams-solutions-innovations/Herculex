@@ -56,6 +56,7 @@ class _FakeStarter implements PhysiqueGoalStarter {
     required DreamPhysiqueAnalysisResult result,
     required List<StagedPhoto> staged,
     required int targetPhotoCount,
+    File? targetPhoto,
   }) async {
     startCalls++;
     if (fail) throw StateError('disk full');

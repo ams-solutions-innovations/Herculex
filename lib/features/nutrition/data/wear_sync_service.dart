@@ -33,12 +33,7 @@ class WearSyncService {
   static Function(String?)? _onWatchFastingCommand;
   static Function(String?)? _onWatchQuickAddCommand;
   static Function(String?)? _onWatchMacroCommand;
-  static Function(String?)? _onWatchMediaCommand;
   static Function()? onRequestSync;
-
-  static set onWatchMediaCommand(Function(String?)? handler) {
-    _onWatchMediaCommand = handler;
-  }
 
   /// Watch events that arrived before the handlers below were registered.
   ///
@@ -153,11 +148,6 @@ class WearSyncService {
           break;
         case 'onWatchRamblerCommand':
           _deliverRamblerCommand(call.arguments?['command_json'] as String?);
-          break;
-        case 'onWatchMediaCommand':
-          _onWatchMediaCommand?.call(
-            call.arguments?['command_json'] as String?,
-          );
           break;
         case 'onRequestSync':
           onRequestSync?.call();

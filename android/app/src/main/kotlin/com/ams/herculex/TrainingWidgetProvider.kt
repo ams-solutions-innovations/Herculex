@@ -147,7 +147,7 @@ class TrainingWidgetProvider : AppWidgetProvider() {
             views.setInt(dotIds[i], "setImageAlpha", if (isTaken) 255 else 0)
             views.setTextColor(
                 nameIds[i],
-                if (isTaken) Color.parseColor("#8A8A8E") else Color.parseColor("#F5F5F7")
+                if (isTaken) Color.parseColor("#64748B") else Color.parseColor("#F5F5F7")
             )
         }
 

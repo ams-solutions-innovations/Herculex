@@ -68,12 +68,16 @@ class DreamPhysiqueSummaryCard extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            hasSummary
-                                ? 'Dream Physique saved'
-                                : 'Dream Physique AI',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          Flexible(
+                            child: Text(
+                              hasSummary
+                                  ? 'Dream Physique saved'
+                                  : 'Dream Physique AI',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -138,9 +142,10 @@ class DreamPhysiqueSummaryCard extends ConsumerWidget {
                 ),
                 if (hasGoal)
                   Padding(
-                    padding: const EdgeInsets.only(right: 4),
+                    padding: const EdgeInsets.only(left: 8, right: 4),
                     child: Text(
                       'View progress',
+                      maxLines: 1,
                       style: PhysiqueText.label(
                         context,
                         color: context.hx.onSurfaceVariant,

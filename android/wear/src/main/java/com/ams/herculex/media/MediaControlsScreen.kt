@@ -67,7 +67,8 @@ fun MediaControlsScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black)
+            .mediaVolumeRotary { controller.adjustVolume(it) },
         contentAlignment = Alignment.Center,
     ) {
         // ── 1. Fullscreen Media Artwork / Default Backdrop ──────────────────

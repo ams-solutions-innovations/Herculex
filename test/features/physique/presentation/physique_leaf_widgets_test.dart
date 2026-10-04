@@ -87,27 +87,27 @@ void main() {
     testWidgets('${t.$1}: exact copy', (tester) async {
       expect(
         RestrictionNotice.copyFor(PhaseRestrictionReason.under18),
-        "Cut and Bulk aren't available under 18. Maintain, Recomp or a small "
-        'Maingain keep you progressing safely, and Maintain is a good place to '
-        'start.',
+        'Redukcija in Masa nista na voljo pod 18 let. Vzdrževanje, '
+        'Rekompozicija ali majhna Čista rast te varno vodijo naprej, '
+        'Vzdrževanje pa je dobra izhodiščna izbira.',
       );
       expect(
         RestrictionNotice.copyFor(PhaseRestrictionReason.ageMissing),
-        'Add your age to unlock every phase. Until then we offer Maintain, '
-        'Recomp and Maingain.',
+        'Dodaj starost, da odkleneš vse faze. Do takrat ponujamo Vzdrževanje, '
+        'Rekompozicijo in Čisto rast.',
       );
       expect(
         RestrictionNotice.copyFor(PhaseRestrictionReason.lowConfidence),
-        "This analysis isn't confident enough to plan a cut or bulk. Log your "
-        'measurements to refine it.',
+        'Ta analiza ni dovolj zanesljiva za načrt redukcije ali mase. '
+        'Vnesi meritve, da jo izboljšaš.',
       );
       expect(
         RestrictionNotice.actionLabelFor(PhaseRestrictionReason.ageMissing),
-        'Add age in Profile',
+        'Dodaj starost v profilu',
       );
       expect(
         RestrictionNotice.actionLabelFor(PhaseRestrictionReason.lowConfidence),
-        'Log measurements',
+        'Vnesi meritve',
       );
     });
 

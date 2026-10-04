@@ -475,7 +475,9 @@ class SetTypeMenu extends StatelessWidget {
   // per-show() `allowAdvancedTechniques`.
   List<SetTypeInfo> get _hypertrophyItems => SetTypeInfo.all
       .where(
-        (i) => i.category == SetTypeCategory.hypertrophy && allowAdvancedTechniques,
+        (i) =>
+            i.category == SetTypeCategory.hypertrophy &&
+            allowAdvancedTechniques,
       )
       .toList();
   List<SetTypeInfo> get _timedItems => SetTypeInfo.all

@@ -94,9 +94,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(
-            home: MainScaffold(),
-          ),
+          child: const MaterialApp(home: MainScaffold()),
         ),
       );
       await settle(tester);
@@ -106,22 +104,38 @@ void main() {
 
       // Initially, controls are visible (bottom: 0) and interactive (ignoring: false)
       final initialNavPos = tester.widget<AnimatedPositioned>(
-        find.ancestor(of: find.byType(HxNavBar), matching: find.byType(AnimatedPositioned)),
+        find.ancestor(
+          of: find.byType(HxNavBar),
+          matching: find.byType(AnimatedPositioned),
+        ),
       );
       expect(initialNavPos.bottom, 0);
 
       final initialFinishPos = tester.widget<AnimatedPositioned>(
-        find.ancestor(of: find.text('Finish'), matching: find.byType(AnimatedPositioned)),
+        find.ancestor(
+          of: find.text('Finish'),
+          matching: find.byType(AnimatedPositioned),
+        ),
       );
       expect(initialFinishPos.bottom, 0);
 
       final initialNavIgnore = tester.widget<IgnorePointer>(
-        find.ancestor(of: find.byType(HxNavBar), matching: find.byType(IgnorePointer)).first,
+        find
+            .ancestor(
+              of: find.byType(HxNavBar),
+              matching: find.byType(IgnorePointer),
+            )
+            .first,
       );
       expect(initialNavIgnore.ignoring, isFalse);
 
       final initialFinishIgnore = tester.widget<IgnorePointer>(
-        find.ancestor(of: find.text('Finish'), matching: find.byType(IgnorePointer)).first,
+        find
+            .ancestor(
+              of: find.text('Finish'),
+              matching: find.byType(IgnorePointer),
+            )
+            .first,
       );
       expect(initialFinishIgnore.ignoring, isFalse);
 
@@ -130,22 +144,38 @@ void main() {
       await settle(tester, frames: 3);
 
       final hiddenNavPos = tester.widget<AnimatedPositioned>(
-        find.ancestor(of: find.byType(HxNavBar), matching: find.byType(AnimatedPositioned)),
+        find.ancestor(
+          of: find.byType(HxNavBar),
+          matching: find.byType(AnimatedPositioned),
+        ),
       );
       expect(hiddenNavPos.bottom, -120);
 
       final hiddenFinishPos = tester.widget<AnimatedPositioned>(
-        find.ancestor(of: find.text('Finish'), matching: find.byType(AnimatedPositioned)),
+        find.ancestor(
+          of: find.text('Finish'),
+          matching: find.byType(AnimatedPositioned),
+        ),
       );
       expect(hiddenFinishPos.bottom, -140);
 
       final hiddenNavIgnore = tester.widget<IgnorePointer>(
-        find.ancestor(of: find.byType(HxNavBar), matching: find.byType(IgnorePointer)).first,
+        find
+            .ancestor(
+              of: find.byType(HxNavBar),
+              matching: find.byType(IgnorePointer),
+            )
+            .first,
       );
       expect(hiddenNavIgnore.ignoring, isTrue);
 
       final hiddenFinishIgnore = tester.widget<IgnorePointer>(
-        find.ancestor(of: find.text('Finish'), matching: find.byType(IgnorePointer)).first,
+        find
+            .ancestor(
+              of: find.text('Finish'),
+              matching: find.byType(IgnorePointer),
+            )
+            .first,
       );
       expect(hiddenFinishIgnore.ignoring, isTrue);
 
@@ -154,22 +184,38 @@ void main() {
       await settle(tester, frames: 3);
 
       final restoredNavPos = tester.widget<AnimatedPositioned>(
-        find.ancestor(of: find.byType(HxNavBar), matching: find.byType(AnimatedPositioned)),
+        find.ancestor(
+          of: find.byType(HxNavBar),
+          matching: find.byType(AnimatedPositioned),
+        ),
       );
       expect(restoredNavPos.bottom, 0);
 
       final restoredFinishPos = tester.widget<AnimatedPositioned>(
-        find.ancestor(of: find.text('Finish'), matching: find.byType(AnimatedPositioned)),
+        find.ancestor(
+          of: find.text('Finish'),
+          matching: find.byType(AnimatedPositioned),
+        ),
       );
       expect(restoredFinishPos.bottom, 0);
 
       final restoredNavIgnore = tester.widget<IgnorePointer>(
-        find.ancestor(of: find.byType(HxNavBar), matching: find.byType(IgnorePointer)).first,
+        find
+            .ancestor(
+              of: find.byType(HxNavBar),
+              matching: find.byType(IgnorePointer),
+            )
+            .first,
       );
       expect(restoredNavIgnore.ignoring, isFalse);
 
       final restoredFinishIgnore = tester.widget<IgnorePointer>(
-        find.ancestor(of: find.text('Finish'), matching: find.byType(IgnorePointer)).first,
+        find
+            .ancestor(
+              of: find.text('Finish'),
+              matching: find.byType(IgnorePointer),
+            )
+            .first,
       );
       expect(restoredFinishIgnore.ignoring, isFalse);
 

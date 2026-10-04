@@ -18,25 +18,27 @@ class ExerciseErgonomicsRepository {
       if (!file.existsSync()) return;
       raw = file.readAsStringSync();
     }
-    
+
     final map = jsonDecode(raw) as Map<String, dynamic>;
-    
+
     final result = <String, ExerciseErgonomics>{};
     for (final entry in map.entries) {
       final movementSlug = entry.key;
       final guidanceMap = entry.value as Map<String, dynamic>;
-      
+
       final parsedGuidance = <String, ErgonomicGuidance>{};
       for (final gEntry in guidanceMap.entries) {
-        parsedGuidance[gEntry.key] = ErgonomicGuidance.fromJson(gEntry.value as Map<String, dynamic>);
+        parsedGuidance[gEntry.key] = ErgonomicGuidance.fromJson(
+          gEntry.value as Map<String, dynamic>,
+        );
       }
-      
+
       result[movementSlug] = ExerciseErgonomics(
         movementSlug: movementSlug,
         guidanceByRatio: parsedGuidance,
       );
     }
-    
+
     _cache = result;
   }
 
@@ -44,12 +46,12 @@ class ExerciseErgonomicsRepository {
   ExerciseErgonomics? getForMovement(String movementSlug) {
     return _cache[movementSlug];
   }
-  
+
   /// Retrieves specific guidance for a [movementSlug] and [ratioKey].
   ErgonomicGuidance? getGuidance(String movementSlug, String ratioKey) {
     return _cache[movementSlug]?.guidanceByRatio[ratioKey];
   }
-  
+
   /// For testing or direct injection
   void seed(Map<String, ExerciseErgonomics> data) {
     _cache = data;

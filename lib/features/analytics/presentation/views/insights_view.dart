@@ -186,9 +186,7 @@ class _SleepVsRpeCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: hx.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,11 +201,7 @@ class _SleepVsRpeCard extends ConsumerWidget {
                 ),
               ),
               IconButton(
-                icon: Icon(
-                  Icons.info_outline,
-                  size: 18,
-                  color: hx.secondary,
-                ),
+                icon: Icon(Icons.info_outline, size: 18, color: hx.secondary),
                 onPressed: () => _showMethodologyDialog(
                   context,
                   "Sleep vs. RPE Correlation",
@@ -218,9 +212,7 @@ class _SleepVsRpeCard extends ConsumerWidget {
           ),
           Text(
             'Sleep duration hours (X) vs. average session RPE (Y)',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: hx.secondary,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
           ),
           const SizedBox(height: 24),
           async.when(
@@ -232,7 +224,9 @@ class _SleepVsRpeCard extends ConsumerWidget {
                     child: Text(
                       'No correlation data available yet.\nLog workouts and sleep to see analysis.',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
                     ),
                   ),
                 );
@@ -248,12 +242,18 @@ class _SleepVsRpeCard extends ConsumerWidget {
               final maxX = (maxXVal + 0.6).ceilToDouble();
               final safeMaxX = (maxX - minX < 2.0) ? minX + 2.0 : maxX;
               final xSpan = safeMaxX - minX;
-              final xInterval = xSpan <= 4.0 ? 1.0 : (xSpan <= 8.0 ? 2.0 : (xSpan / 4).ceilToDouble());
+              final xInterval = xSpan <= 4.0
+                  ? 1.0
+                  : (xSpan <= 8.0 ? 2.0 : (xSpan / 4).ceilToDouble());
 
               final minY = max(1.0, (minYVal - 0.5).floorToDouble());
               final maxY = min(10.0, (maxYVal + 0.5).ceilToDouble());
-              final safeMaxY = (maxY - minY < 2.0) ? min(10.0, minY + 2.0) : maxY;
-              final safeMinY = (safeMaxY - minY < 2.0) ? max(1.0, safeMaxY - 2.0) : minY;
+              final safeMaxY = (maxY - minY < 2.0)
+                  ? min(10.0, minY + 2.0)
+                  : maxY;
+              final safeMinY = (safeMaxY - minY < 2.0)
+                  ? max(1.0, safeMaxY - 2.0)
+                  : minY;
               final ySpan = safeMaxY - safeMinY;
               final yInterval = ySpan <= 3.0 ? 1.0 : (ySpan / 4).ceilToDouble();
 
@@ -396,9 +396,7 @@ class _HrVsTonnageCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: hx.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: hx.outlineVariant.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,11 +411,7 @@ class _HrVsTonnageCard extends ConsumerWidget {
                 ),
               ),
               IconButton(
-                icon: Icon(
-                  Icons.info_outline,
-                  size: 18,
-                  color: hx.secondary,
-                ),
+                icon: Icon(Icons.info_outline, size: 18, color: hx.secondary),
                 onPressed: () => _showMethodologyDialog(
                   context,
                   "Resting HR vs. Tonnage Correlation",
@@ -428,9 +422,7 @@ class _HrVsTonnageCard extends ConsumerWidget {
           ),
           Text(
             'Resting HR bpm (X) vs. session tonnage kg (Y)',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: hx.secondary,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
           ),
           const SizedBox(height: 24),
           async.when(
@@ -442,7 +434,9 @@ class _HrVsTonnageCard extends ConsumerWidget {
                     child: Text(
                       'No correlation data available yet.\nLog workouts and heart rate samples to see analysis.',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: hx.secondary,
+                      ),
                     ),
                   ),
                 );
@@ -458,14 +452,20 @@ class _HrVsTonnageCard extends ConsumerWidget {
               final maxX = ((maxXVal + 5) / 5).ceil() * 5.0;
               final safeMaxX = (maxX - minX < 15.0) ? minX + 15.0 : maxX;
               final xSpan = safeMaxX - minX;
-              final xInterval = xSpan <= 20.0 ? 5.0 : (xSpan <= 40.0 ? 10.0 : (xSpan / 4).ceilToDouble());
+              final xInterval = xSpan <= 20.0
+                  ? 5.0
+                  : (xSpan <= 40.0 ? 10.0 : (xSpan / 4).ceilToDouble());
 
               // Smart bounds for Tonnage (Y: kg)
               final minY = max(0.0, ((minYVal * 0.9) / 500).floor() * 500.0);
               final maxY = ((maxYVal * 1.1) / 500).ceil() * 500.0;
               final safeMaxY = (maxY - minY < 1000.0) ? minY + 1000.0 : maxY;
               final ySpan = safeMaxY - minY;
-              final yInterval = ySpan <= 2000.0 ? 500.0 : (ySpan <= 5000.0 ? 1000.0 : (ySpan / 4 / 500).ceil() * 500.0);
+              final yInterval = ySpan <= 2000.0
+                  ? 500.0
+                  : (ySpan <= 5000.0
+                        ? 1000.0
+                        : (ySpan / 4 / 500).ceil() * 500.0);
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

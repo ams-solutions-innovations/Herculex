@@ -67,8 +67,9 @@ class FastingInsights extends ConsumerWidget {
               Expanded(
                 child: Text(
                   title,
-                  style:
-                      theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: hx.secondary,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

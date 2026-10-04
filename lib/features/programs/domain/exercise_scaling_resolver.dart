@@ -10,10 +10,9 @@ class ScalingResolutionResult {
     required this.rationale,
   }) : isSuccess = true;
 
-  const ScalingResolutionResult.noSafeCandidate({
-    required this.rationale,
-  })  : candidate = null,
-        isSuccess = false;
+  const ScalingResolutionResult.noSafeCandidate({required this.rationale})
+    : candidate = null,
+      isSuccess = false;
 
   final ExerciseCatalogData? candidate;
   final bool isSuccess;
@@ -44,13 +43,16 @@ class ExerciseScalingResolver {
     }
 
     // Filter ladder candidates with strictly lower scalingOrder, sorted descending (highest regression first)
-    final regressions = groupCandidates
-        .where((e) =>
-            e.scalingGroup == target.scalingGroup &&
-            e.scalingOrder != null &&
-            e.scalingOrder! < target.scalingOrder!)
-        .toList()
-      ..sort((a, b) => b.scalingOrder!.compareTo(a.scalingOrder!));
+    final regressions =
+        groupCandidates
+            .where(
+              (e) =>
+                  e.scalingGroup == target.scalingGroup &&
+                  e.scalingOrder != null &&
+                  e.scalingOrder! < target.scalingOrder!,
+            )
+            .toList()
+          ..sort((a, b) => b.scalingOrder!.compareTo(a.scalingOrder!));
 
     for (final candidate in regressions) {
       // 1. Difficulty ceiling: Novices receive only novice movements
@@ -98,14 +100,16 @@ class ExerciseScalingResolver {
 
       return ScalingResolutionResult.success(
         candidate: candidate,
-        rationale: 'Regressed from ${target.name} (order ${target.scalingOrder}) '
+        rationale:
+            'Regressed from ${target.name} (order ${target.scalingOrder}) '
             'to ${candidate.name} (order ${candidate.scalingOrder}) based on safety gates.',
       );
     }
 
     // Strict group boundary enforcement (D-16): Never silently jump modalities or groups
     return ScalingResolutionResult.noSafeCandidate(
-      rationale: 'No safe candidate found in scaling ladder "${target.scalingGroup}" '
+      rationale:
+          'No safe candidate found in scaling ladder "${target.scalingGroup}" '
           'matching available equipment and experience level.',
     );
   }

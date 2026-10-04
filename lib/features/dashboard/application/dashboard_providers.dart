@@ -381,10 +381,7 @@ final widgetTrainingSyncControllerProvider = Provider<void>((ref) {
 
   Future<void> doSync() async {
     final workout = ref.read(todaysScheduledWorkoutProvider).valueOrNull;
-    final supplementState = ref
-        .read(supplementDayStateProvider)
-        .asData
-        ?.value;
+    final supplementState = ref.read(supplementDayStateProvider).asData?.value;
     final supplements =
         supplementState?.supplements.take(4).toList() ?? const [];
     final takenIds = supplementState?.takenIds ?? const <String>{};
@@ -403,9 +400,7 @@ final widgetTrainingSyncControllerProvider = Provider<void>((ref) {
       supplementNames: [for (final s in supplements) s.name],
       supplementDoses: [for (final s in supplements) s.doseLabel ?? ''],
       supplementTimes: [for (final s in supplements) s.timeHHMM ?? ''],
-      supplementTaken: [
-        for (final s in supplements) takenIds.contains(s.id),
-      ],
+      supplementTaken: [for (final s in supplements) takenIds.contains(s.id)],
       supplementTakenCount: supplementState?.takenCount ?? 0,
       supplementTotalCount: supplementState?.totalCount ?? 0,
     );

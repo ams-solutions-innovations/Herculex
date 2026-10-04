@@ -9,7 +9,7 @@ import android.widget.RemoteViews
 /**
  * Protein pill widget.
  *
- * Orange/gold (#FF9F0A) accent color matching the app's protein color shown
+ * Blue (#4DA3FF) accent color matching the app's protein color shown
  * in the Macros Consumed card screenshot.
  */
 class ProteinWidgetProvider : AppWidgetProvider() {
@@ -46,7 +46,7 @@ class ProteinWidgetProvider : AppWidgetProvider() {
             views.setProgressBar(R.id.macro_progress, 100, pct, false)
         }
 
-        views.setOnClickPendingIntent(R.id.macro_current, launchAppIntent(context))
+        views.setOnClickPendingIntent(R.id.widget_root, openNutritionIntent(context))
         return views
     }
 

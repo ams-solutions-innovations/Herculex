@@ -48,7 +48,9 @@ void main() {
       });
     });
 
-    testWidgets('shows ergonomic guidance when user has matching proportion', (tester) async {
+    testWidgets('shows ergonomic guidance when user has matching proportion', (
+      tester,
+    ) async {
       const profile = Profile(
         goal: FitnessGoal.maintenance,
         activityLevel: ActivityLevel.active,
@@ -62,12 +64,12 @@ void main() {
         ProviderScope(
           overrides: [
             profileProvider.overrideWith((ref) => Stream.value(profile)),
-            exerciseErgonomicsRepositoryProvider.overrideWith((ref) => Future.value(ergoRepo)),
+            exerciseErgonomicsRepositoryProvider.overrideWith(
+              (ref) => Future.value(ergoRepo),
+            ),
           ],
           child: const MaterialApp(
-            home: Scaffold(
-              body: ErgonomicsCard(exercise: squatExercise),
-            ),
+            home: Scaffold(body: ErgonomicsCard(exercise: squatExercise)),
           ),
         ),
       );
@@ -75,85 +77,99 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Anthropometric Ergonomics'), findsOneWidget);
-      expect(find.text('Consider a low-bar placement to center mass.'), findsOneWidget);
+      expect(
+        find.text('Consider a low-bar placement to center mass.'),
+        findsOneWidget,
+      );
       expect(find.text('Sources: Starting Strength'), findsOneWidget);
     });
 
-    testWidgets('hides ergonomic guidance when measurements are missing (ERG-03)', (tester) async {
-      const profileWithoutMeasurements = Profile(
-        goal: FitnessGoal.maintenance,
-        activityLevel: ActivityLevel.active,
-        heightCm: 180,
-        // No limb or torso measurements
-      );
+    testWidgets(
+      'hides ergonomic guidance when measurements are missing (ERG-03)',
+      (tester) async {
+        const profileWithoutMeasurements = Profile(
+          goal: FitnessGoal.maintenance,
+          activityLevel: ActivityLevel.active,
+          heightCm: 180,
+          // No limb or torso measurements
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            profileProvider.overrideWith((ref) => Stream.value(profileWithoutMeasurements)),
-            exerciseErgonomicsRepositoryProvider.overrideWith((ref) => Future.value(ergoRepo)),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: ErgonomicsCard(exercise: squatExercise),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              profileProvider.overrideWith(
+                (ref) => Stream.value(profileWithoutMeasurements),
+              ),
+              exerciseErgonomicsRepositoryProvider.overrideWith(
+                (ref) => Future.value(ergoRepo),
+              ),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: ErgonomicsCard(exercise: squatExercise)),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Anthropometric Ergonomics'), findsNothing);
-      expect(find.text('Consider a low-bar placement to center mass.'), findsNothing);
-    });
+        expect(find.text('Anthropometric Ergonomics'), findsNothing);
+        expect(
+          find.text('Consider a low-bar placement to center mass.'),
+          findsNothing,
+        );
+      },
+    );
 
-    testWidgets('hides when exercise has no movementSlug or no matching guidance', (tester) async {
-      const profile = Profile(
-        goal: FitnessGoal.maintenance,
-        activityLevel: ActivityLevel.active,
-        heightCm: 180,
-        inseamCm: 90,
-        armSpanCm: 180,
-        torsoCm: 60,
-      );
+    testWidgets(
+      'hides when exercise has no movementSlug or no matching guidance',
+      (tester) async {
+        const profile = Profile(
+          goal: FitnessGoal.maintenance,
+          activityLevel: ActivityLevel.active,
+          heightCm: 180,
+          inseamCm: 90,
+          armSpanCm: 180,
+          torsoCm: 60,
+        );
 
-      const unguidedExercise = ExerciseCatalogData(
-        id: 2,
-        name: 'Custom Bicep Curl',
-        primaryMuscle: 'Biceps',
-        equipment: 'Dumbbell',
-        mechanics: 'isolation',
-        force: 'pull',
-        plane: 'vertical',
-        defaultRestSeconds: 90,
-        isCustom: false,
-        category: 'strength',
-        modality: 'dumbbell',
-        cnsScore: 1,
-        recoveryImpact: 1,
-        movementSlug: 'bicep_curl', // Not in ergoRepo
-        loggingMetric: 'weight_reps',
-        supportsWeightedBodyweight: false,
-        isReviewed: true,
-      );
+        const unguidedExercise = ExerciseCatalogData(
+          id: 2,
+          name: 'Custom Bicep Curl',
+          primaryMuscle: 'Biceps',
+          equipment: 'Dumbbell',
+          mechanics: 'isolation',
+          force: 'pull',
+          plane: 'vertical',
+          defaultRestSeconds: 90,
+          isCustom: false,
+          category: 'strength',
+          modality: 'dumbbell',
+          cnsScore: 1,
+          recoveryImpact: 1,
+          movementSlug: 'bicep_curl', // Not in ergoRepo
+          loggingMetric: 'weight_reps',
+          supportsWeightedBodyweight: false,
+          isReviewed: true,
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            profileProvider.overrideWith((ref) => Stream.value(profile)),
-            exerciseErgonomicsRepositoryProvider.overrideWith((ref) => Future.value(ergoRepo)),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: ErgonomicsCard(exercise: unguidedExercise),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              profileProvider.overrideWith((ref) => Stream.value(profile)),
+              exerciseErgonomicsRepositoryProvider.overrideWith(
+                (ref) => Future.value(ergoRepo),
+              ),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: ErgonomicsCard(exercise: unguidedExercise)),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Anthropometric Ergonomics'), findsNothing);
-    });
+        expect(find.text('Anthropometric Ergonomics'), findsNothing);
+      },
+    );
   });
 }

@@ -78,10 +78,9 @@ class XpLedgerRepository {
     required TrainingSnapshot? snapshot,
     required double? bodyweightKg,
   }) async {
-    final completed = sessions
-        .where((s) => s.endedAt != null && s.deletedAt == null)
-        .toList()
-      ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+    final completed =
+        sessions.where((s) => s.endedAt != null && s.deletedAt == null).toList()
+          ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
 
     final missing = completed
         .where((s) => !_entries.any((e) => e.id == 'workout:${s.id}'))
@@ -93,9 +92,8 @@ class XpLedgerRepository {
     final updatedEntries = List<XpLedgerEntry>.from(_entries);
 
     for (final session in missing) {
-      final sessionSets = snapshot?.sets
-              .where((s) => s.session.id == session.id)
-              .toList() ??
+      final sessionSets =
+          snapshot?.sets.where((s) => s.session.id == session.id).toList() ??
           const <ResolvedSet>[];
 
       final award = evaluator.evaluate(

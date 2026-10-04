@@ -61,7 +61,7 @@
                     android:layout_height="wrap_content"
                     android:text="Remaining"
                     android:textSize="10sp"
-                    android:textColor="#8E8E93"
+                    android:textColor="#94A3B8"
                     android:includeFontPadding="false"
                     android:layout_marginTop="1dp" />
 
@@ -91,7 +91,7 @@
                     android:layout_width="10dp"
                     android:layout_height="10dp"
                     android:background="@drawable/widget_dot"
-                    android:backgroundTint="#FF9F0A" />
+                    android:backgroundTint="#4DA3FF" />
 
                 <ProgressBar
                     android:id="@+id/macro_progress_protein"
@@ -103,8 +103,8 @@
                     android:layout_marginEnd="6dp"
                     android:max="100"
                     android:progress="0"
-                    android:progressTint="#FF9F0A"
-                    android:progressBackgroundTint="#2C2C32" />
+                    android:progressTint="#4DA3FF"
+                    android:progressBackgroundTint="#2B374E" />
 
                 <TextView
                     android:id="@+id/macro_text_protein"
@@ -112,7 +112,7 @@
                     android:layout_height="wrap_content"
                     android:text="0/0"
                     android:textSize="10sp"
-                    android:textColor="#8E8E93" />
+                    android:textColor="#94A3B8" />
 
             </LinearLayout>
 
@@ -128,7 +128,7 @@
                     android:layout_width="10dp"
                     android:layout_height="10dp"
                     android:background="@drawable/widget_dot"
-                    android:backgroundTint="#64D2FF" />
+                    android:backgroundTint="#34C759" />
 
                 <ProgressBar
                     android:id="@+id/macro_progress_carbs"
@@ -140,8 +140,8 @@
                     android:layout_marginEnd="6dp"
                     android:max="100"
                     android:progress="0"
-                    android:progressTint="#64D2FF"
-                    android:progressBackgroundTint="#2C2C32" />
+                    android:progressTint="#34C759"
+                    android:progressBackgroundTint="#2B374E" />
 
                 <TextView
                     android:id="@+id/macro_text_carbs"
@@ -149,7 +149,7 @@
                     android:layout_height="wrap_content"
                     android:text="0/0"
                     android:textSize="10sp"
-                    android:textColor="#8E8E93" />
+                    android:textColor="#94A3B8" />
 
             </LinearLayout>
 
@@ -165,7 +165,7 @@
                     android:layout_width="10dp"
                     android:layout_height="10dp"
                     android:background="@drawable/widget_dot"
-                    android:backgroundTint="#BF5AF2" />
+                    android:backgroundTint="#FFD60A" />
 
                 <ProgressBar
                     android:id="@+id/macro_progress_fat"
@@ -177,8 +177,8 @@
                     android:layout_marginEnd="6dp"
                     android:max="100"
                     android:progress="0"
-                    android:progressTint="#BF5AF2"
-                    android:progressBackgroundTint="#2C2C32" />
+                    android:progressTint="#FFD60A"
+                    android:progressBackgroundTint="#2B374E" />
 
                 <TextView
                     android:id="@+id/macro_text_fat"
@@ -186,7 +186,7 @@
                     android:layout_height="wrap_content"
                     android:text="0/0"
                     android:textSize="10sp"
-                    android:textColor="#8E8E93" />
+                    android:textColor="#94A3B8" />
 
             </LinearLayout>
 
@@ -200,7 +200,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#2C2C32"
+        android:background="#2B374E"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp" />
 
@@ -215,6 +215,7 @@
 
         <!-- Search -->
         <LinearLayout
+        android:id="@+id/col_search_food"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -236,7 +237,7 @@
                 android:layout_marginTop="4dp"
                 android:text="Search"
                 android:textSize="9sp"
-                android:textColor="#8E8E93" />
+                android:textColor="#94A3B8" />
 
         </LinearLayout>
 
@@ -246,10 +247,11 @@
         <FrameLayout
             android:layout_width="1dp"
             android:layout_height="34dp"
-            android:background="#2C2C32" />
+            android:background="#2B374E" />
 
         <!-- Scan -->
         <LinearLayout
+        android:id="@+id/col_scan_food"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -271,7 +273,7 @@
                 android:layout_marginTop="4dp"
                 android:text="Scan"
                 android:textSize="9sp"
-                android:textColor="#8E8E93" />
+                android:textColor="#94A3B8" />
 
         </LinearLayout>
 
@@ -281,10 +283,11 @@
         <FrameLayout
             android:layout_width="1dp"
             android:layout_height="34dp"
-            android:background="#2C2C32" />
+            android:background="#2B374E" />
 
         <!-- Photo (highlighted, per mockup) -->
         <LinearLayout
+        android:id="@+id/col_camera_food"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -306,7 +309,7 @@
                 android:layout_marginTop="4dp"
                 android:text="Photo"
                 android:textSize="9sp"
-                android:textColor="#8E8E93" />
+                android:textColor="#94A3B8" />
 
         </LinearLayout>
 

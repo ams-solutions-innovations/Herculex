@@ -53,6 +53,8 @@ class HxNavBar extends StatelessWidget {
             Expanded(
               child: HxGlass(
                 borderRadius: HxRadius.pillAll,
+                fill: HxGlass.frostedFill(context.hx),
+                borderColor: HxGlass.frostedBorder(context.hx),
                 padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
                 child: LayoutBuilder(
                   builder: (context, constraints) {

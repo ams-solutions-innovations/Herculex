@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
@@ -9,6 +11,7 @@ import 'package:herculex/features/physique/data/ml_kit_face_detector.dart';
 import 'package:herculex/features/physique/data/physique_assessment_repository.dart';
 import 'package:herculex/features/physique/data/physique_checkin_service.dart';
 import 'package:herculex/features/physique/data/physique_date_keys.dart';
+import 'package:herculex/features/physique/data/physique_dream_photo_repository.dart';
 import 'package:herculex/features/physique/data/physique_goal_repository.dart';
 import 'package:herculex/features/physique/data/physique_legacy_migrator.dart';
 import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
@@ -64,6 +67,23 @@ final physiquePhotoStoreProvider = Provider<PhysiquePhotoStore>((ref) {
 
 final physiquePhotoSanitizerProvider = Provider<PhysiquePhotoSanitizer>((ref) {
   return PhysiquePhotoSanitizer(faceDetector: MlKitFaceDetector());
+});
+
+final physiqueDreamPhotoRepositoryProvider =
+    Provider<PhysiqueDreamPhotoRepository>((ref) {
+      return PhysiqueDreamPhotoRepository(
+        store: ref.watch(physiquePhotoStoreProvider),
+        sanitizer: ref.watch(physiquePhotoSanitizerProvider),
+      );
+    });
+
+/// The saved dream physique photo for the goal with this sync uuid. Invalidate
+/// it after saving a new one.
+final physiqueDreamPhotoProvider = FutureProvider.family<File?, String>((
+  ref,
+  goalUuid,
+) {
+  return ref.watch(physiqueDreamPhotoRepositoryProvider).find(goalUuid);
 });
 
 final physiquePrivacyPreferencesProvider = Provider<PhysiquePrivacyPreferences>(

@@ -9,9 +9,9 @@ class MediaSyncService {
   String _lastSyncedPayload = '';
   bool _isRunning = false;
 
-  MediaSyncService(this._wearSyncService) {
-    WearSyncService.onWatchMediaCommand = _handleWatchMediaCommand;
-  }
+  /// Watch transport/volume commands are handled natively in
+  /// `PhoneWearListenerService`; this service only mirrors phone state out.
+  MediaSyncService(this._wearSyncService);
 
   void start() {
     if (_isRunning) return;
@@ -88,35 +88,6 @@ class MediaSyncService {
       }
     } catch (e) {
       // Best-effort polling: e.g. permission not granted or emulator environment
-    }
-  }
-
-  Future<void> _handleWatchMediaCommand(String? commandJson) async {
-    if (commandJson == null || commandJson.isEmpty) return;
-    debugPrint('MediaSyncService: Received command from watch: $commandJson');
-    try {
-      final map = jsonDecode(commandJson) as Map<String, dynamic>;
-      final action = map['action'] as String? ?? '';
-
-      switch (action) {
-        case 'play_pause':
-        case 'play':
-        case 'pause':
-          await _wearSyncService.sendMediaActionNative('playPause');
-          break;
-        case 'next':
-          await _wearSyncService.sendMediaActionNative('next');
-          break;
-        case 'previous':
-          await _wearSyncService.sendMediaActionNative('previous');
-          break;
-      }
-
-      // Fast sync after transport command
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-      await _pollAndSync();
-    } catch (e) {
-      debugPrint('MediaSyncService: Failed to handle watch command: $e');
     }
   }
 }

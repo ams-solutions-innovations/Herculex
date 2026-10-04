@@ -438,7 +438,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         );
                         final allowed = isAdvancedTechniqueAllowed(
                           role,
-                          widget.workoutExercise.plannedAllowsAdvancedTechniques,
+                          widget
+                              .workoutExercise
+                              .plannedAllowsAdvancedTechniques,
                         );
                         final sel = await SetTypeMenu.show(
                           context,

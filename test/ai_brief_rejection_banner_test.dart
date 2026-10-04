@@ -13,48 +13,47 @@ void main() {
     final themeName = theme.$1;
     final themeData = theme.$2;
 
-    testWidgets(
-      '$themeName: renders heading, body and footer verbatim',
-      (tester) async {
-        await tester.pumpWidget(
-          ProviderScope(
-            child: MaterialApp(
-              theme: themeData,
-              home: const Scaffold(
-                body: AiBriefRejectionBanner(
-                  heading: "Herculex AI suggestion couldn't be used",
-                  body:
-                      'The AI suggested a 6-day PPL with Max Effort, which '
-                      'exceeds the safety limit.',
-                  footer:
-                      'Showing the recommended Smart/Guided setup instead - '
-                      'you can still adjust anything below.',
-                ),
+    testWidgets('$themeName: renders heading, body and footer verbatim', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: themeData,
+            home: const Scaffold(
+              body: AiBriefRejectionBanner(
+                heading: "Herculex AI suggestion couldn't be used",
+                body:
+                    'The AI suggested a 6-day PPL with Max Effort, which '
+                    'exceeds the safety limit.',
+                footer:
+                    'Showing the recommended Smart/Guided setup instead - '
+                    'you can still adjust anything below.',
               ),
             ),
           ),
-        );
+        ),
+      );
 
-        expect(
-          find.text("Herculex AI suggestion couldn't be used"),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            'The AI suggested a 6-day PPL with Max Effort, which exceeds '
-            'the safety limit.',
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            'Showing the recommended Smart/Guided setup instead - you can '
-            'still adjust anything below.',
-          ),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(
+        find.text("Herculex AI suggestion couldn't be used"),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'The AI suggested a 6-day PPL with Max Effort, which exceeds '
+          'the safety limit.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Showing the recommended Smart/Guided setup instead - you can '
+          'still adjust anything below.',
+        ),
+        findsOneWidget,
+      );
+    });
 
     testWidgets('$themeName: icon and heading use the warning token', (
       tester,

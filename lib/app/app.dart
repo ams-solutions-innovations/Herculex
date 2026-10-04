@@ -131,7 +131,7 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
     // When the user taps the widget, Android sends 'openScanner' via
     // the widget MethodChannel. We push the barcode scanner route.
     const widgetChannel = MethodChannel('com.ams.herculex/widget');
-    widgetChannel.setMethodCallHandler((call) async {
+    Future<void> handleWidgetCall(MethodCall call) async {
       if (call.method == 'openActiveWorkout' && mounted) {
         final args = (call.arguments as Map?)?.cast<String, dynamic>();
         final action = args?['action'] as String?;
@@ -248,6 +248,19 @@ class _HerculexAppState extends ConsumerState<HerculexApp> {
             date: date,
           );
         }
+      }
+    }
+
+    widgetChannel.setMethodCallHandler(handleWidgetCall);
+    // A widget tap that cold-started the app was parked natively because this
+    // handler did not exist yet. Collect it once the first frame is up.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final pending = await widgetChannel.invokeMapMethod<String, dynamic>(
+        'takePendingAction',
+      );
+      final method = pending?['method'] as String?;
+      if (method != null && mounted) {
+        await handleWidgetCall(MethodCall(method, pending?['args']));
       }
     });
 

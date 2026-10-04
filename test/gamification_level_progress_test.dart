@@ -62,65 +62,71 @@ void main() {
       restored.dispose();
     });
 
-    test('reconciles synced sessions idempotently and counts all logged workouts', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final repository = XpLedgerRepository(prefs);
+    test(
+      'reconciles synced sessions idempotently and counts all logged workouts',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final repository = XpLedgerRepository(prefs);
 
-      final sessions = [
-        WorkoutSessionData(
-          id: 10,
-          startedAt: DateTime(2026, 9, 1, 10),
-          endedAt: DateTime(2026, 9, 1, 11),
-          name: 'Workout 1',
-        ),
-        WorkoutSessionData(
-          id: 11,
-          startedAt: DateTime(2026, 9, 3, 10),
-          endedAt: DateTime(2026, 9, 3, 11),
-          name: 'Workout 2',
-        ),
-        WorkoutSessionData(
-          id: 12,
-          startedAt: DateTime(2026, 9, 5, 10),
-          endedAt: DateTime(2026, 9, 5, 11),
-          name: 'Workout 3',
-        ),
-        // Active workout not yet ended should be ignored
-        WorkoutSessionData(
-          id: 13,
-          startedAt: DateTime(2026, 9, 6, 10),
-          endedAt: null,
-          name: 'Ongoing',
-        ),
-      ];
+        final sessions = [
+          WorkoutSessionData(
+            id: 10,
+            startedAt: DateTime(2026, 9, 1, 10),
+            endedAt: DateTime(2026, 9, 1, 11),
+            name: 'Workout 1',
+          ),
+          WorkoutSessionData(
+            id: 11,
+            startedAt: DateTime(2026, 9, 3, 10),
+            endedAt: DateTime(2026, 9, 3, 11),
+            name: 'Workout 2',
+          ),
+          WorkoutSessionData(
+            id: 12,
+            startedAt: DateTime(2026, 9, 5, 10),
+            endedAt: DateTime(2026, 9, 5, 11),
+            name: 'Workout 3',
+          ),
+          // Active workout not yet ended should be ignored
+          WorkoutSessionData(
+            id: 13,
+            startedAt: DateTime(2026, 9, 6, 10),
+            endedAt: null,
+            name: 'Ongoing',
+          ),
+        ];
 
-      final reconciled = await repository.reconcileWithSessions(
-        sessions: sessions,
-        snapshot: null,
-        bodyweightKg: 80,
-      );
+        final reconciled = await repository.reconcileWithSessions(
+          sessions: sessions,
+          snapshot: null,
+          bodyweightKg: 80,
+        );
 
-      expect(reconciled, isTrue);
-      // 3 completed sessions reconciled
-      expect(repository.progress.completedWorkouts, 3);
-      // Base XP is 40 per workout + 10 for consistency when gap is 20-96h
-      expect(repository.progress.totalXp, greaterThanOrEqualTo(120));
+        expect(reconciled, isTrue);
+        // 3 completed sessions reconciled
+        expect(repository.progress.completedWorkouts, 3);
+        // Base XP is 40 per workout + 10 for consistency when gap is 20-96h
+        expect(repository.progress.totalXp, greaterThanOrEqualTo(120));
 
-      // Re-reconciling same sessions must do nothing
-      final second = await repository.reconcileWithSessions(
-        sessions: sessions,
-        snapshot: null,
-        bodyweightKg: 80,
-      );
-      expect(second, isFalse);
-      expect(repository.progress.completedWorkouts, 3);
+        // Re-reconciling same sessions must do nothing
+        final second = await repository.reconcileWithSessions(
+          sessions: sessions,
+          snapshot: null,
+          bodyweightKg: 80,
+        );
+        expect(second, isFalse);
+        expect(repository.progress.completedWorkouts, 3);
 
-      // Filtering active sessions returns only non-deleted
-      final filteredProgress = repository.getProgressForActiveSessions([10, 11]);
-      expect(filteredProgress.completedWorkouts, 2);
+        // Filtering active sessions returns only non-deleted
+        final filteredProgress = repository.getProgressForActiveSessions([
+          10,
+          11,
+        ]);
+        expect(filteredProgress.completedWorkouts, 2);
 
-      repository.dispose();
-    });
+        repository.dispose();
+      },
+    );
   });
 }

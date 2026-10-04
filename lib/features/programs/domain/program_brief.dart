@@ -175,18 +175,18 @@ class ProgramBrief {
 
     final rawDayRoles = json['dayRoles'];
     if (rawDayRoles is! List || rawDayRoles.isEmpty) {
-      throw const FormatException(
-        'Herculex AI program brief has no dayRoles.',
-      );
+      throw const FormatException('Herculex AI program brief has no dayRoles.');
     }
-    final dayRoles = rawDayRoles.map((value) {
-      if (value is! Map) {
-        throw const FormatException(
-          'Invalid day role in Herculex AI program brief.',
-        );
-      }
-      return DayRoleBrief.fromJson(Map<String, dynamic>.from(value));
-    }).toList(growable: false);
+    final dayRoles = rawDayRoles
+        .map((value) {
+          if (value is! Map) {
+            throw const FormatException(
+              'Invalid day role in Herculex AI program brief.',
+            );
+          }
+          return DayRoleBrief.fromJson(Map<String, dynamic>.from(value));
+        })
+        .toList(growable: false);
 
     final rawMusclePriorities = json['musclePriorities'];
     if (rawMusclePriorities is! List || rawMusclePriorities.isEmpty) {
@@ -194,16 +194,18 @@ class ProgramBrief {
         'Herculex AI program brief has no musclePriorities.',
       );
     }
-    final musclePriorities = rawMusclePriorities.map((value) {
-      if (value is! Map) {
-        throw const FormatException(
-          'Invalid muscle priority in Herculex AI program brief.',
-        );
-      }
-      return ProgrammingMusclePriority.fromJson(
-        Map<String, dynamic>.from(value),
-      );
-    }).toList(growable: false);
+    final musclePriorities = rawMusclePriorities
+        .map((value) {
+          if (value is! Map) {
+            throw const FormatException(
+              'Invalid muscle priority in Herculex AI program brief.',
+            );
+          }
+          return ProgrammingMusclePriority.fromJson(
+            Map<String, dynamic>.from(value),
+          );
+        })
+        .toList(growable: false);
 
     return ProgramBrief(
       splitType: splitType,

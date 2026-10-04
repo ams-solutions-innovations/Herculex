@@ -39,8 +39,7 @@ abstract final class WorkoutDurationEstimator {
         ? 2 * (avgReps * 0.4 * _secondsPerRep + 15)
         : 0;
 
-    final totalSeconds =
-        workingSetSeconds + warmupSeconds + miniSetSeconds;
+    final totalSeconds = workingSetSeconds + warmupSeconds + miniSetSeconds;
     return Duration(seconds: totalSeconds.round());
   }
 
@@ -64,10 +63,7 @@ abstract final class WorkoutDurationEstimator {
     Iterable<Duration> exerciseDurations, {
     int transitionSecondsPerExercise = 90,
   }) {
-    final total = exerciseDurations.fold(
-      Duration.zero,
-      (sum, d) => sum + d,
-    );
+    final total = exerciseDurations.fold(Duration.zero, (sum, d) => sum + d);
     return total +
         Duration(
           seconds: exerciseDurations.length * transitionSecondsPerExercise,

@@ -18,10 +18,7 @@ import 'package:herculex/features/profile/data/dream_physique_summary_repository
 /// Allows viewing muscle rationales, target aesthetic details, adjusting priority
 /// levels, and launching a new photo analysis.
 class DreamPhysiquePrioritiesView extends ConsumerStatefulWidget {
-  const DreamPhysiquePrioritiesView({
-    super.key,
-    this.initialProfile,
-  });
+  const DreamPhysiquePrioritiesView({super.key, this.initialProfile});
 
   final DreamPhysiqueProgrammingProfile? initialProfile;
 
@@ -160,9 +157,7 @@ class _DreamPhysiquePrioritiesViewState
     if (_profile == null || _priorities.isEmpty) {
       return HxScreenShell(
         title: 'Dream Physique Priorities',
-        children: [
-          _buildEmptyState(theme),
-        ],
+        children: [_buildEmptyState(theme)],
       );
     }
 
@@ -246,10 +241,7 @@ class _DreamPhysiquePrioritiesViewState
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
@@ -316,20 +308,21 @@ class _DreamPhysiquePrioritiesViewState
     );
   }
 
-  Widget _buildSummaryCard(ThemeData theme, DreamPhysiqueAnalysisSummary summary) {
+  Widget _buildSummaryCard(
+    ThemeData theme,
+    DreamPhysiqueAnalysisSummary summary,
+  ) {
     final weightChangeLabel = summary.weightChangeKg == 0
         ? 'Scale-weight steady'
         : '${summary.weightChangeKg > 0 ? '+' : ''}'
-            '${summary.weightChangeKg.toStringAsFixed(1)} kg';
+              '${summary.weightChangeKg.toStringAsFixed(1)} kg';
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,7 +462,9 @@ class _DreamPhysiquePrioritiesViewState
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _priorityColor(value).withValues(alpha: 0.15),
+                              color: _priorityColor(
+                                value,
+                              ).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(

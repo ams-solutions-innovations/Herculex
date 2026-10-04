@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/physique/application/physique_goal_starter.dart';
+import 'package:herculex/features/physique/data/physique_dream_photo_repository.dart';
 import 'package:herculex/features/physique/data/physique_goal_repository.dart';
 import 'package:herculex/features/physique/data/physique_photo_sanitizer.dart';
 import 'package:herculex/features/physique/data/physique_photo_store.dart';
@@ -97,6 +98,13 @@ void main() {
       stagingDirectory: () async => staging,
     ),
     store: PhysiquePhotoStore(documentsDirectory: () async => docs),
+    dreamPhotos: PhysiqueDreamPhotoRepository(
+      store: PhysiquePhotoStore(documentsDirectory: () async => docs),
+      sanitizer: PhysiquePhotoSanitizer(
+        faceDetector: FakeFaceDetector(boxes: faces),
+        stagingDirectory: () async => staging,
+      ),
+    ),
     privacy: PhysiquePrivacyPreferences(prefs),
     clock: clock,
     readProfile: () => profile,

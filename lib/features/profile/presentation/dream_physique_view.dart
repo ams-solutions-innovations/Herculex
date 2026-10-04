@@ -283,6 +283,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         result: result,
         currentPhotos: _currentFiles,
         targetPhotoCount: _targetFiles.length,
+        targetPhoto: _targetFiles.first,
       );
       if (saved) await _adoptTargetWeight(profile, result);
     } catch (e) {

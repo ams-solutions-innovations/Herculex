@@ -20,7 +20,9 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(preferences),
-          dreamPhysiqueSummaryProvider.overrideWith((ref) => Stream.value(null)),
+          dreamPhysiqueSummaryProvider.overrideWith(
+            (ref) => Stream.value(null),
+          ),
         ],
         child: const MaterialApp(
           home: DreamPhysiquePrioritiesView(

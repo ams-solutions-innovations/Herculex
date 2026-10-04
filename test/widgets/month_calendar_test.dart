@@ -25,19 +25,23 @@ void main() {
   tearDown(() => db.close());
 
   Future<ScheduledWorkoutRow> createTestRow({required int scheduleId}) async {
-    final programId = await db.into(db.programs).insert(
-      ProgramsCompanion.insert(name: '4-Week Hypertrophy'),
-    );
-    final weekId = await db.into(db.programWeeks).insert(
-      ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
-    );
-    final dayId = await db.into(db.programDays).insert(
-      ProgramDaysCompanion.insert(
-        programWeekId: weekId,
-        dayOfWeek: 1,
-        name: 'Upper Body A',
-      ),
-    );
+    final programId = await db
+        .into(db.programs)
+        .insert(ProgramsCompanion.insert(name: '4-Week Hypertrophy'));
+    final weekId = await db
+        .into(db.programWeeks)
+        .insert(
+          ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+        );
+    final dayId = await db
+        .into(db.programDays)
+        .insert(
+          ProgramDaysCompanion.insert(
+            programWeekId: weekId,
+            dayOfWeek: 1,
+            name: 'Upper Body A',
+          ),
+        );
 
     final program = await (db.select(
       db.programs,

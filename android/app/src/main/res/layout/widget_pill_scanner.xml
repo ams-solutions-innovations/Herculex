@@ -1,30 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Scanner shortcut pill widget layout. Tapping opens the barcode scanner. -->
+<!-- Scanner shortcut pill. The whole pill is the tap target (widget_root). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center"
-    android:padding="10dp"
+    android:paddingStart="14dp"
+    android:paddingEnd="16dp"
     android:background="@drawable/widget_pill_bg_scanner">
 
-    <TextView
+    <ImageView
         android:id="@+id/scanner_icon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="📷"
-        android:textSize="18sp"
-        android:paddingEnd="8dp" />
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@drawable/ic_widget_barcode"
+        android:contentDescription="Scan food" />
 
     <TextView
         android:id="@+id/scanner_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="SCAN FOOD"
-        android:textSize="11sp"
+        android:layout_marginStart="8dp"
+        android:text="Scan food"
+        android:textSize="13sp"
         android:textColor="#FFFFFF"
         android:textStyle="bold"
-        android:letterSpacing="0.05"
-        android:textAllCaps="true" />
+        android:includeFontPadding="false" />
 
 </LinearLayout>

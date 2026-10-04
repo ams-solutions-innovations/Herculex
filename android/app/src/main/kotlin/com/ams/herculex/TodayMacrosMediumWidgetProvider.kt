@@ -74,7 +74,7 @@ class TodayMacrosMediumWidgetProvider : AppWidgetProvider() {
             remainingId = R.id.carbs_remaining_value,
             current = carbsCurrent,
             target = carbsTarget,
-            color = Color.parseColor("#64D2FF"), // Cyan / Teal
+            color = Color.parseColor("#34C759"), // Green
         )
         bindColumn(
             views,
@@ -84,7 +84,7 @@ class TodayMacrosMediumWidgetProvider : AppWidgetProvider() {
             remainingId = R.id.fat_remaining_value,
             current = fatCurrent,
             target = fatTarget,
-            color = Color.parseColor("#BF5AF2"), // Purple
+            color = Color.parseColor("#FFD60A"), // Yellow
         )
         bindColumn(
             views,
@@ -94,7 +94,7 @@ class TodayMacrosMediumWidgetProvider : AppWidgetProvider() {
             remainingId = R.id.protein_remaining_value,
             current = proteinCurrent,
             target = proteinTarget,
-            color = Color.parseColor("#FF9F0A"), // Orange
+            color = Color.parseColor("#4DA3FF"), // Blue
         )
 
         // Action: Tap card opens Nutrition tab
@@ -127,7 +127,7 @@ class TodayMacrosMediumWidgetProvider : AppWidgetProvider() {
         target: Int,
         color: Int,
     ) {
-        val trackColor = Color.parseColor("#2C2C32")
+        val trackColor = Color.parseColor("#2B374E")
         val hasData = current >= 0
 
         val progress =

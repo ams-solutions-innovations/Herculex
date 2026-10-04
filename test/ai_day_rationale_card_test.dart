@@ -61,9 +61,7 @@ void main() {
       final context = tester.element(find.byType(AiDayRationaleCard));
       final expectedPrimary = context.hx.primary;
 
-      final icon = tester.widget<Icon>(
-        find.byIcon(Icons.auto_awesome_rounded),
-      );
+      final icon = tester.widget<Icon>(find.byIcon(Icons.auto_awesome_rounded));
       expect(icon.color, expectedPrimary);
 
       final headingText = tester.widget<Text>(find.text('Why this day'));
@@ -76,9 +74,7 @@ void main() {
         ProviderScope(
           child: MaterialApp(
             theme: themeData,
-            home: const Scaffold(
-              body: AiDayRationaleCard(rationale: 'ok'),
-            ),
+            home: const Scaffold(body: AiDayRationaleCard(rationale: 'ok')),
           ),
         ),
       );

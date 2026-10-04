@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:text="KCAL LEFT"
             android:textSize="9sp"
-            android:textColor="#98989F"
+            android:textColor="#94A3B8"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 

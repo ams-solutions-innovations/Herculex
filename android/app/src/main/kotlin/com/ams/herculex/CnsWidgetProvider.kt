@@ -47,7 +47,7 @@ class CnsWidgetProvider : AppWidgetProvider() {
                 strokeWidthPx = 16f,
                 progress = 0f,
                 progressColor = Color.parseColor("#E5E5EA"),
-                trackColor = Color.parseColor("#2C2C32")
+                trackColor = Color.parseColor("#2B374E")
             )
             views.setImageViewBitmap(R.id.cns_ring_image, emptyRing)
         } else {
@@ -67,7 +67,7 @@ class CnsWidgetProvider : AppWidgetProvider() {
                 strokeWidthPx = 16f,
                 progress = (readiness / 100f).coerceIn(0f, 1f),
                 progressColor = ringColor,
-                trackColor = Color.parseColor("#2C2C32")
+                trackColor = Color.parseColor("#2B374E")
             )
             views.setImageViewBitmap(R.id.cns_ring_image, ringBitmap)
         }
@@ -173,6 +173,20 @@ fun launchAppIntent(context: Context): PendingIntent {
     return PendingIntent.getActivity(
         context,
         0,
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+}
+
+/** Opens the Nutrition tab (routed through MainActivity, see its pending-action hand-off). */
+fun openNutritionIntent(context: Context): PendingIntent {
+    val intent = Intent(context, MainActivity::class.java).apply {
+        action = TodayCaloriesSmallWidgetProvider.ACTION_OPEN_NUTRITION
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    }
+    return PendingIntent.getActivity(
+        context,
+        206,
         intent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )

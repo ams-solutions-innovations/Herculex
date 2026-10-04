@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Recovery Score pill widget layout. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
@@ -8,13 +9,13 @@
     android:padding="10dp"
     android:background="@drawable/widget_pill_bg_dark">
 
-    <TextView
+    <ImageView
         android:id="@+id/recovery_icon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="💪"
-        android:textSize="16sp"
-        android:paddingEnd="6dp" />
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginEnd="8dp"
+        android:src="@drawable/ic_widget_bolt"
+        android:contentDescription="Recovery" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -29,7 +30,7 @@
             android:layout_height="wrap_content"
             android:text="RECOVERY"
             android:textSize="9sp"
-            android:textColor="#98989F"
+            android:textColor="#94A3B8"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -56,7 +57,7 @@
             android:max="100"
             android:progress="0"
             android:progressTint="#30D158"
-            android:progressBackgroundTint="#3A383A"
+            android:progressBackgroundTint="#2B374E"
             android:visibility="gone" />
         <ProgressBar
             android:id="@+id/recovery_progress_amber"
@@ -66,7 +67,7 @@
             android:max="100"
             android:progress="0"
             android:progressTint="#FFD60A"
-            android:progressBackgroundTint="#3A383A"
+            android:progressBackgroundTint="#2B374E"
             android:visibility="gone" />
         <ProgressBar
             android:id="@+id/recovery_progress_red"
@@ -76,7 +77,7 @@
             android:max="100"
             android:progress="0"
             android:progressTint="#FF453A"
-            android:progressBackgroundTint="#3A383A"
+            android:progressBackgroundTint="#2B374E"
             android:visibility="gone" />
     </FrameLayout>
 

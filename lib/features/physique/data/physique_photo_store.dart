@@ -67,10 +67,17 @@ class PhysiquePhotoStore {
   }
 
   /// Moves [staged] into `physique/<goalUuid>/` and returns the relative path.
-  Future<String> adopt(File staged, {required String goalUuid}) async {
-    final relative = relativePathFor(goalUuid: goalUuid);
+  ///
+  /// A [fileName] makes the slot fixed, so the new file replaces the old one.
+  Future<String> adopt(
+    File staged, {
+    required String goalUuid,
+    String? fileName,
+  }) async {
+    final relative = relativePathFor(goalUuid: goalUuid, fileName: fileName);
     final target = await resolve(relative);
     await target.parent.create(recursive: true);
+    if (fileName != null && await target.exists()) await target.delete();
     try {
       await staged.rename(target.path);
     } on FileSystemException {

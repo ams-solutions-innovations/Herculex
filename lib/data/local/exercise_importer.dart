@@ -277,10 +277,10 @@ class ExerciseImporter {
     final rawDisciplines = raw['disciplines'];
     final disciplines = rawDisciplines is List
         ? rawDisciplines
-            .whereType<String>()
-            .where(canonicalDisciplines.contains)
-            .toSet()
-            .toList()
+              .whereType<String>()
+              .where(canonicalDisciplines.contains)
+              .toSet()
+              .toList()
         : const <String>[];
 
     final rawPrereqs = raw['prerequisiteSlugs'];
@@ -299,7 +299,9 @@ class ExerciseImporter {
 
     return _ProgrammingProfile(
       difficulty: difficulties.contains(difficulty) ? difficulty! : 'advanced',
-      commonness: commonnesses.contains(commonness) ? commonness! : 'manualOnly',
+      commonness: commonnesses.contains(commonness)
+          ? commonness!
+          : 'manualOnly',
       allowedStyles: allowedStyles,
       technicalEligibility: technicalEligibility.contains(eligibility)
           ? eligibility!
@@ -312,8 +314,8 @@ class ExerciseImporter {
       scalingOrder: scalingOrder,
       competitionAnchor:
           (competitionAnchor != null && competitionAnchor.isNotEmpty)
-              ? competitionAnchor
-              : null,
+          ? competitionAnchor
+          : null,
       specializationTags: specializationTags,
     );
   }

@@ -23,7 +23,7 @@
             android:layout_weight="1"
             android:text="CNS"
             android:textSize="9sp"
-            android:textColor="#98989F"
+            android:textColor="#94A3B8"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -83,7 +83,7 @@
                     android:layout_height="wrap_content"
                     android:text="readiness"
                     android:textSize="9sp"
-                    android:textColor="#8E8E93"
+                    android:textColor="#94A3B8"
                     android:includeFontPadding="false"
                     android:layout_marginTop="1dp" />
 

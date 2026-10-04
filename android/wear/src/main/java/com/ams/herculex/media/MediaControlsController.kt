@@ -174,17 +174,43 @@ class MediaControlsController(private val context: Context) {
         }
     }
 
+    /**
+     * One volume step up (+1) or down (-1), driven by the rotating bezel.
+     * Follows the transport rule: when a phone session is mirrored the phone's
+     * music volume changes, otherwise the watch's own stream does.
+     */
+    fun adjustVolume(direction: Int) {
+        if (direction == 0) return
+        if (WearMediaStore.current()?.hasContent == true) {
+            scope.launch {
+                syncManager.sendMediaCommand(if (direction > 0) "volume_up" else "volume_down")
+            }
+            return
+        }
+        try {
+            audioManager.adjustStreamVolume(
+                AudioManager.STREAM_MUSIC,
+                if (direction > 0) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER,
+                0,
+            )
+        } catch (_: Exception) {}
+        _stateFlow.value = snapshot()
+    }
+
     fun setVolume(volume: Int) {
         val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         val clamped = volume.coerceIn(0, maxVol)
+        _stateFlow.value = _stateFlow.value.copy(volume = clamped)
+
+        if (WearMediaStore.current()?.hasContent == true) {
+            // Phone and watch have different volume ranges: send a percentage.
+            val percent = if (maxVol > 0) clamped * 100 / maxVol else 0
+            scope.launch { syncManager.sendMediaCommand("set_volume_percent", percent) }
+            return
+        }
         try {
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, clamped, 0)
         } catch (_: Exception) {}
-
-        _stateFlow.value = _stateFlow.value.copy(volume = clamped)
-        scope.launch {
-            syncManager.sendMediaCommand("set_volume", clamped)
-        }
     }
 
     fun getVolume(): Int = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)

@@ -40,12 +40,12 @@ final workoutsRepositoryProvider = Provider<WorkoutsRepository>((ref) {
   return WorkoutsRepository(db, clock);
 });
 
-final exerciseErgonomicsRepositoryProvider = FutureProvider<ExerciseErgonomicsRepository>((ref) async {
-  final repo = ExerciseErgonomicsRepository();
-  await repo.load();
-  return repo;
-});
-
+final exerciseErgonomicsRepositoryProvider =
+    FutureProvider<ExerciseErgonomicsRepository>((ref) async {
+      final repo = ExerciseErgonomicsRepository();
+      await repo.load();
+      return repo;
+    });
 
 final wearWorkoutSyncServiceProvider = Provider<WearWorkoutSyncService>((ref) {
   return WearWorkoutSyncService(
@@ -70,7 +70,9 @@ final recentSessionsProvider = StreamProvider<List<WorkoutSessionData>>((ref) {
   return ref.watch(workoutsRepositoryProvider).watchRecentSessions();
 });
 
-final completedSessionsProvider = StreamProvider<List<WorkoutSessionData>>((ref) {
+final completedSessionsProvider = StreamProvider<List<WorkoutSessionData>>((
+  ref,
+) {
   return ref.watch(workoutsRepositoryProvider).watchCompletedSessions();
 });
 
@@ -564,4 +566,3 @@ final wearWorkoutSyncControllerProvider = Provider<void>((ref) {
 
 /// True when any numeric or text input field in an active workout has focus.
 final workoutInputFocusedProvider = StateProvider<bool>((ref) => false);
-

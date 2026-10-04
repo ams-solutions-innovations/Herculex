@@ -22,6 +22,7 @@ Future<bool> savePhysiqueGoal(
   required DreamPhysiqueAnalysisResult result,
   required List<File> currentPhotos,
   required int targetPhotoCount,
+  File? targetPhoto,
 }) async {
   final starter = ref.read(physiqueGoalStarterProvider);
   List<StagedPhoto> staged = const [];
@@ -57,6 +58,7 @@ Future<bool> savePhysiqueGoal(
       result: result,
       staged: staged,
       targetPhotoCount: targetPhotoCount,
+      targetPhoto: targetPhoto,
     );
     return true;
   } on Object catch (e) {

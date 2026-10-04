@@ -117,12 +117,11 @@ class _SmartSubstitutionSheetState
             data: (catalog) {
               return recentHistoryAsync.when(
                 data: (recentHistory) {
-                  final matches =
-                      ExerciseSubstitution.getRankedSubstitutes(
-                        original: widget.originalExercise,
-                        candidates: catalog,
-                        recentExerciseIds: recentHistory,
-                      );
+                  final matches = ExerciseSubstitution.getRankedSubstitutes(
+                    original: widget.originalExercise,
+                    candidates: catalog,
+                    recentExerciseIds: recentHistory,
+                  );
 
                   // Apply local interactive filters
                   var filtered = matches;
@@ -140,37 +139,33 @@ class _SmartSubstitutionSheetState
                     filtered = filtered
                         .where(
                           (m) =>
-                              m.exercise.name.toLowerCase().contains(
+                              m.exercise.name.toLowerCase().contains(query) ||
+                              m.exercise.primaryMuscle.toLowerCase().contains(
                                 query,
-                              ) ||
-                              m.exercise.primaryMuscle
-                                  .toLowerCase()
-                                  .contains(query),
+                              ),
                         )
                         .toList();
                   }
 
                   if (filtered.isEmpty) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 40,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 40),
                       alignment: Alignment.center,
                       child: Column(
                         children: [
                           Icon(
                             Icons.fitness_center_rounded,
                             size: 48,
-                            color: AppColors.onSurfaceVariant
-                                .withValues(alpha: 0.4),
+                            color: AppColors.onSurfaceVariant.withValues(
+                              alpha: 0.4,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             "No matching candidates found",
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: AppColors.secondary,
-                                ),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.secondary,
+                            ),
                           ),
                         ],
                       ),
@@ -181,21 +176,18 @@ class _SmartSubstitutionSheetState
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (ctx, index) {
                       final match = filtered[index];
                       return _buildReplacementCard(match, theme);
                     },
                   );
                 },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, _) => Center(child: Text("Error: $err")),
               );
             },
-            loading: () =>
-                const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(child: Text("Error: $err")),
           ),
           const SizedBox(height: 40),

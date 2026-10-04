@@ -31,7 +31,9 @@ void main() {
         ),
       );
 
-  Future<({List<int> rowIds, List<int> dayIds, int programId, int a, int b, int c})>
+  Future<
+    ({List<int> rowIds, List<int> dayIds, int programId, int a, int b, int c})
+  >
   rotatingFixture() async {
     final a = await exercise('Exercise A');
     final b = await exercise('Exercise B');
@@ -258,14 +260,14 @@ void main() {
 
       // Mark week 0's occurrence as user-touched, mirroring a real
       // in-progress session.
-      await (db.update(db.scheduledWorkouts)
-            ..where((t) => t.id.equals(week0Scheduled.id)))
-          .write(
-            ScheduledWorkoutsCompanion(
-              status: const Value(ScheduleStatus.inProgress),
-              completedSessionId: Value(completedSessionId),
-            ),
-          );
+      await (db.update(
+        db.scheduledWorkouts,
+      )..where((t) => t.id.equals(week0Scheduled.id))).write(
+        ScheduledWorkoutsCompanion(
+          status: const Value(ScheduleStatus.inProgress),
+          completedSessionId: Value(completedSessionId),
+        ),
+      );
 
       // entireBlock is the widest replacement scope — the worst case for
       // EDIT-03's safety property. If even this cannot disturb the

@@ -14,7 +14,7 @@
         android:layout_width="8dp"
         android:layout_height="8dp"
         android:background="@drawable/widget_dot"
-        android:backgroundTint="#BF5AF2"
+        android:backgroundTint="#FFD60A"
         android:layout_marginEnd="8dp"
         android:contentDescription="@null" />
 
@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:text="FAT"
             android:textSize="9sp"
-            android:textColor="#98989F"
+            android:textColor="#94A3B8"
             android:letterSpacing="0.08"
             android:textAllCaps="true" />
 
@@ -53,7 +53,7 @@
                 android:layout_height="wrap_content"
                 android:text="/70g"
                 android:textSize="10sp"
-                android:textColor="#98989F"
+                android:textColor="#94A3B8"
                 android:layout_marginStart="2dp"
                 android:layout_marginBottom="1dp" />
 
@@ -67,7 +67,7 @@
         android:layout_height="6dp"
         android:max="100"
         android:progress="74"
-        android:progressTint="#BF5AF2"
-        android:progressBackgroundTint="#3A383A" />
+        android:progressTint="#FFD60A"
+        android:progressBackgroundTint="#2B374E" />
 
 </LinearLayout>

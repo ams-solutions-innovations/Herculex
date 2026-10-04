@@ -18,7 +18,8 @@ import 'package:herculex/features/workouts/data/scheduled_workout_service.dart';
 import '../support/go_router_test_harness.dart';
 import '../support/test_database.dart';
 
-class _FakeScheduledWorkoutService extends Fake implements ScheduledWorkoutService {
+class _FakeScheduledWorkoutService extends Fake
+    implements ScheduledWorkoutService {
   int? lastStartedScheduleId;
   int startCalls = 0;
   PlannedSessionSnapshot? previewResult;
@@ -31,12 +32,11 @@ class _FakeScheduledWorkoutService extends Fake implements ScheduledWorkoutServi
   }
 
   @override
-  Future<PlannedSessionSnapshot?> previewScheduledWorkout(int scheduleId) async {
+  Future<PlannedSessionSnapshot?> previewScheduledWorkout(
+    int scheduleId,
+  ) async {
     return previewResult ??
-        const PlannedSessionSnapshot(
-          name: 'Preview Upper Body',
-          exercises: [],
-        );
+        const PlannedSessionSnapshot(name: 'Preview Upper Body', exercises: []);
   }
 }
 
@@ -61,23 +61,33 @@ void main() {
     required String status,
     int? completedSessionId,
   }) async {
-    final programId = await db.into(db.programs).insert(
-      ProgramsCompanion.insert(name: '4-Week Hypertrophy'),
-    );
-    final weekId = await db.into(db.programWeeks).insert(
-      ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
-    );
-    final dayId = await db.into(db.programDays).insert(
-      ProgramDaysCompanion.insert(
-        programWeekId: weekId,
-        dayOfWeek: 1,
-        name: 'Upper Body A',
-      ),
-    );
+    final programId = await db
+        .into(db.programs)
+        .insert(ProgramsCompanion.insert(name: '4-Week Hypertrophy'));
+    final weekId = await db
+        .into(db.programWeeks)
+        .insert(
+          ProgramWeeksCompanion.insert(programId: programId, weekIndex: 0),
+        );
+    final dayId = await db
+        .into(db.programDays)
+        .insert(
+          ProgramDaysCompanion.insert(
+            programWeekId: weekId,
+            dayOfWeek: 1,
+            name: 'Upper Body A',
+          ),
+        );
 
-    final program = await (db.select(db.programs)..where((t) => t.id.equals(programId))).getSingle();
-    final week = await (db.select(db.programWeeks)..where((t) => t.id.equals(weekId))).getSingle();
-    final day = await (db.select(db.programDays)..where((t) => t.id.equals(dayId))).getSingle();
+    final program = await (db.select(
+      db.programs,
+    )..where((t) => t.id.equals(programId))).getSingle();
+    final week = await (db.select(
+      db.programWeeks,
+    )..where((t) => t.id.equals(weekId))).getSingle();
+    final day = await (db.select(
+      db.programDays,
+    )..where((t) => t.id.equals(dayId))).getSingle();
 
     return ScheduledWorkoutRow(
       schedule: ScheduledWorkoutData(
@@ -99,7 +109,10 @@ void main() {
   testWidgets(
     'Tapping Start workout calls startScheduledWorkoutById and switches to Workouts tab (tab 2)',
     (tester) async {
-      final row = await createTestRow(scheduleId: 101, status: ScheduleStatus.planned);
+      final row = await createTestRow(
+        scheduleId: 101,
+        status: ScheduleStatus.planned,
+      );
       final range = ScheduleRange.week(date, programId: row.program.id);
 
       final container = ProviderContainer(
@@ -107,7 +120,9 @@ void main() {
           appDatabaseProvider.overrideWithValue(db),
           scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
           scheduleByDateProvider(range).overrideWith(
-            (ref) => Stream.value({iso: [row]}),
+            (ref) => Stream.value({
+              iso: [row],
+            }),
           ),
         ],
       );
@@ -140,7 +155,10 @@ void main() {
   testWidgets(
     'Tapping Resume workout calls startScheduledWorkoutById and switches to Workouts tab (tab 2)',
     (tester) async {
-      final row = await createTestRow(scheduleId: 202, status: ScheduleStatus.inProgress);
+      final row = await createTestRow(
+        scheduleId: 202,
+        status: ScheduleStatus.inProgress,
+      );
       final range = ScheduleRange.week(date, programId: row.program.id);
 
       final container = ProviderContainer(
@@ -148,7 +166,9 @@ void main() {
           appDatabaseProvider.overrideWithValue(db),
           scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
           scheduleByDateProvider(range).overrideWith(
-            (ref) => Stream.value({iso: [row]}),
+            (ref) => Stream.value({
+              iso: [row],
+            }),
           ),
         ],
       );
@@ -180,7 +200,10 @@ void main() {
   testWidgets(
     'Tapping View workout pushes the planned workout preview route and creates no sessions',
     (tester) async {
-      final row = await createTestRow(scheduleId: 303, status: ScheduleStatus.planned);
+      final row = await createTestRow(
+        scheduleId: 303,
+        status: ScheduleStatus.planned,
+      );
       final range = ScheduleRange.week(date, programId: row.program.id);
 
       final container = ProviderContainer(
@@ -188,7 +211,9 @@ void main() {
           appDatabaseProvider.overrideWithValue(db),
           scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
           scheduleByDateProvider(range).overrideWith(
-            (ref) => Stream.value({iso: [row]}),
+            (ref) => Stream.value({
+              iso: [row],
+            }),
           ),
         ],
       );
@@ -258,11 +283,8 @@ void main() {
       home: (context) => Scaffold(
         body: Center(
           child: ElevatedButton(
-            onPressed: () => DayDetailSheet.show(
-              context,
-              date: date,
-              programId: programId,
-            ),
+            onPressed: () =>
+                DayDetailSheet.show(context, date: date, programId: programId),
             child: const Text('Open'),
           ),
         ),
@@ -295,7 +317,9 @@ void main() {
           appDatabaseProvider.overrideWithValue(db),
           scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
           scheduleByDateProvider(range).overrideWith(
-            (ref) => Stream.value({iso: [row]}),
+            (ref) => Stream.value({
+              iso: [row],
+            }),
           ),
         ],
       );
@@ -303,7 +327,11 @@ void main() {
 
       final harness = harnessFor(programId: row.program.id);
 
-      await pumpAndOpenDayDetail(tester, container: container, harness: harness);
+      await pumpAndOpenDayDetail(
+        tester,
+        container: container,
+        harness: harness,
+      );
 
       expect(find.text('View workout'), findsOneWidget);
 
@@ -329,7 +357,9 @@ void main() {
           appDatabaseProvider.overrideWithValue(db),
           scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
           scheduleByDateProvider(range).overrideWith(
-            (ref) => Stream.value({iso: [row]}),
+            (ref) => Stream.value({
+              iso: [row],
+            }),
           ),
         ],
       );
@@ -337,7 +367,11 @@ void main() {
 
       final harness = harnessFor(programId: row.program.id);
 
-      await pumpAndOpenDayDetail(tester, container: container, harness: harness);
+      await pumpAndOpenDayDetail(
+        tester,
+        container: container,
+        harness: harness,
+      );
 
       expect(find.text('View workout'), findsOneWidget);
 
@@ -363,7 +397,9 @@ void main() {
           appDatabaseProvider.overrideWithValue(db),
           scheduledWorkoutServiceProvider.overrideWithValue(fakeService),
           scheduleByDateProvider(range).overrideWith(
-            (ref) => Stream.value({iso: [row]}),
+            (ref) => Stream.value({
+              iso: [row],
+            }),
           ),
         ],
       );
@@ -371,7 +407,11 @@ void main() {
 
       final harness = harnessFor(programId: row.program.id);
 
-      await pumpAndOpenDayDetail(tester, container: container, harness: harness);
+      await pumpAndOpenDayDetail(
+        tester,
+        container: container,
+        harness: harness,
+      );
 
       expect(find.text('View workout'), findsOneWidget);
 
