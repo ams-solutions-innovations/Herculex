@@ -35,6 +35,10 @@ import {
   programming,
   recovery,
 } from "./knowledge_base.ts";
+import {
+  assertNumbersInFacts,
+  sanitizeWeeklyReportFacts,
+} from "./weekly_report_guard.ts";
 
 type GeminiKind =
   | "food_photo"
@@ -292,6 +296,17 @@ Deno.serve(async (req) => {
   const consentError = imageConsentError(payload);
   if (consentError) {
     return json({ error: consentError }, 400);
+  }
+
+  // WR-04: a malformed weekly_report request must not spend a quota unit,
+  // so facts are validated and sanitised BEFORE bumpUsage.
+  let weeklyFacts: Record<string, unknown> | null = null;
+  if (payload.kind === "weekly_report") {
+    const prepared = prepareWeeklyReportRequest(payload);
+    if ("error" in prepared) {
+      return json({ error: prepared.error }, prepared.status);
+    }
+    weeklyFacts = prepared.facts;
   }
 
   const quota = await bumpUsage(
@@ -567,16 +582,19 @@ Deno.serve(async (req) => {
       }
 
       case "weekly_report": {
-        if (!isValidWeeklyReportFacts(payload.facts)) {
+        if (!weeklyFacts) {
           return json({ error: "facts is required." }, 400);
         }
         const generated = await generateJson({
           images: [],
-          promptText: weeklyReportPrompt(payload.facts),
+          promptText: weeklyReportPrompt(weeklyFacts),
           temperature: 0.3,
           systemInstruction: weeklyReportSystemInstruction(),
         });
-        const result = normalizeWeeklyReportResult(generated.result);
+        const result = normalizeWeeklyReportResult(
+          generated.result,
+          weeklyFacts,
+        );
         return json({
           result,
           provenance: {
@@ -909,10 +927,26 @@ export function isValidWeeklyReportFacts(
   }
 }
 
+/// WR-04/WR-05: validates and re-sanitises the facts of a weekly_report
+/// request. Runs before the quota call so a bad request costs nothing.
+export function prepareWeeklyReportRequest(
+  payload: { facts?: unknown },
+): { error: string; status: number } | { facts: Record<string, unknown> } {
+  if (!isValidWeeklyReportFacts(payload.facts)) {
+    return { error: "facts is required.", status: 400 };
+  }
+  const facts = sanitizeWeeklyReportFacts(payload.facts);
+  if (!facts) {
+    return { error: "facts is invalid.", status: 400 };
+  }
+  return { facts };
+}
+
 /// Structural gate for the weekly report narrative (T-29-12). Throws on the
 /// first deviation; the Dart client parser remains the authoritative gate.
 export function normalizeWeeklyReportResult(
   raw: Record<string, unknown>,
+  facts?: Record<string, unknown>,
 ): { summary: string; suggestions: string[] } {
   const summary = requiredString(raw.summary, "summary");
   if (summary.length > maxWeeklyReportSummaryChars) {
@@ -935,6 +969,8 @@ export function normalizeWeeklyReportResult(
     }
     return text;
   });
+  // WR-05: every number must occur in the facts the model was given.
+  if (facts) assertNumbersInFacts(summary, suggestions, facts);
   return { summary, suggestions };
 }
 
