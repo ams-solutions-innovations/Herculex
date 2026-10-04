@@ -65,7 +65,10 @@ class WeeklyReportRecord {
 /// TDEE decision are write-once (`... IS NULL` guards). One report per ISO week
 /// is enforced here, inside the insert transaction, because the table has no
 /// unique key (a cross-device duplicate must be tolerated on pull, plan 05);
-/// reads therefore always pick the earliest live row by (generatedAt, id).
+/// reads and mutators therefore all pick one winner via [_pickWinner]: most
+/// decided state first (TDEE decision, then narrative), then earliest
+/// generatedAt, then syncUuid, then id. Tombstoned rows are never deleted
+/// locally so their remote delete can still be pushed.
 class WeeklyReportRepository {
   WeeklyReportRepository(this._db, this._clock);
 
@@ -79,8 +82,9 @@ class WeeklyReportRepository {
   $WeeklyReportsTable get _t => _db.weeklyReports;
 
   /// Get-or-create the frozen snapshot for [week]. A live row is returned
-  /// untouched; a week that only has soft-deleted rows is regenerable, so they
-  /// are removed and a fresh row inserted, all in one transaction.
+  /// untouched; a week that only has soft-deleted rows is regenerable: a fresh
+  /// row is inserted next to the tombstones, which are kept so their remote
+  /// delete can still be pushed.
   Future<WeeklyReportRecord> insertSnapshot({
     required IsoWeek week,
     required int payloadVersion,
@@ -90,14 +94,6 @@ class WeeklyReportRepository {
       final existing = await _rowsForWeek(week).get();
       for (final row in existing) {
         if (row.deletedAt == null) return WeeklyReportRecord.fromRow(row);
-      }
-      if (existing.isNotEmpty) {
-        await (_db.delete(_t)..where(
-              (t) =>
-                  t.isoYear.equals(week.isoYear) &
-                  t.isoWeek.equals(week.isoWeek),
-            ))
-            .go();
       }
       final id = await _db
           .into(_t)
@@ -119,17 +115,18 @@ class WeeklyReportRepository {
   }
 
   Future<WeeklyReportRecord?> forWeek(IsoWeek week) async {
-    final rows = await _liveForWeek(week).get();
-    return rows.isEmpty ? null : WeeklyReportRecord.fromRow(rows.first);
+    final winner = _pickWinner(await _liveForWeek(week).get());
+    return winner == null ? null : WeeklyReportRecord.fromRow(winner);
   }
 
   Stream<WeeklyReportRecord?> watchWeek(IsoWeek week) =>
-      _liveForWeek(week).watch().map(
-        (rows) => rows.isEmpty ? null : WeeklyReportRecord.fromRow(rows.first),
-      );
+      _liveForWeek(week).watch().map((rows) {
+        final winner = _pickWinner(rows);
+        return winner == null ? null : WeeklyReportRecord.fromRow(winner);
+      });
 
   /// Newest week first; soft-deleted rows excluded; one record per week (the
-  /// earliest by generatedAt then id when duplicates exist).
+  /// winner per [_pickWinner] when duplicates exist).
   Stream<List<WeeklyReportRecord>> watchHistory() {
     final query = _db.select(_t)
       ..where((t) => t.deletedAt.isNull())
@@ -140,13 +137,17 @@ class WeeklyReportRepository {
         (t) => OrderingTerm.asc(t.id),
       ]);
     return query.watch().map((rows) {
-      final seen = <IsoWeek>{};
-      final out = <WeeklyReportRecord>[];
+      final groups = <IsoWeek, List<WeeklyReportData>>{};
       for (final row in rows) {
-        final record = WeeklyReportRecord.fromRow(row);
-        if (seen.add(record.week)) out.add(record);
+        groups
+            .putIfAbsent(IsoWeek(row.isoYear, row.isoWeek), () => [])
+            .add(row);
       }
-      return out;
+      // Rows arrive newest week first, and map keys keep insertion order.
+      return [
+        for (final group in groups.values)
+          WeeklyReportRecord.fromRow(_pickWinner(group)!),
+      ];
     });
   }
 
@@ -155,7 +156,7 @@ class WeeklyReportRepository {
   /// call so a crash mid-call cannot cause a free retry loop.
   Future<int> incrementNarrativeAttempts(IsoWeek week) {
     return _db.transaction(() async {
-      final row = await _earliestLive(week);
+      final row = await _winnerLive(week);
       if (row == null) return 0;
       final next = row.narrativeAttempts + 1;
       await (_db.update(_t)..where((t) => t.id.equals(row.id))).write(
@@ -174,7 +175,7 @@ class WeeklyReportRepository {
     String? modelVersion,
   }) {
     return _db.transaction(() async {
-      final row = await _earliestLive(week);
+      final row = await _winnerLive(week);
       if (row == null) return false;
       final changed =
           await (_db.update(_t)
@@ -212,7 +213,7 @@ class WeeklyReportRepository {
       );
     }
     return _db.transaction(() async {
-      final row = await _earliestLive(week);
+      final row = await _winnerLive(week);
       if (row == null) return false;
       final changed =
           await (_db.update(
@@ -230,7 +231,7 @@ class WeeklyReportRepository {
   /// Sets viewedAt to now, only when it is still null.
   Future<void> markViewed(IsoWeek week) {
     return _db.transaction(() async {
-      final row = await _earliestLive(week);
+      final row = await _winnerLive(week);
       if (row == null) return;
       await (_db.update(_t)
             ..where((t) => t.id.equals(row.id) & t.viewedAt.isNull()))
@@ -265,12 +266,36 @@ class WeeklyReportRepository {
       ..orderBy([
         (t) => OrderingTerm.asc(t.generatedAt),
         (t) => OrderingTerm.asc(t.id),
-      ])
-      ..limit(1);
+      ]);
   }
 
-  Future<WeeklyReportData?> _earliestLive(IsoWeek week) async {
-    final rows = await _liveForWeek(week).get();
-    return rows.isEmpty ? null : rows.first;
+  /// The one row every read and mutator agrees on among live duplicates.
+  static WeeklyReportData? _pickWinner(List<WeeklyReportData> rows) {
+    WeeklyReportData? best;
+    for (final row in rows) {
+      if (row.deletedAt != null) continue;
+      if (best == null || _compare(row, best) < 0) best = row;
+    }
+    return best;
+  }
+
+  static int _compare(WeeklyReportData a, WeeklyReportData b) {
+    final decided = (b.tdeeDecision != null ? 1 : 0).compareTo(
+      a.tdeeDecision != null ? 1 : 0,
+    );
+    if (decided != 0) return decided;
+    final narrated = (b.narrativeJson != null ? 1 : 0).compareTo(
+      a.narrativeJson != null ? 1 : 0,
+    );
+    if (narrated != 0) return narrated;
+    final byTime = a.generatedAt.compareTo(b.generatedAt);
+    if (byTime != 0) return byTime;
+    final byUuid = (a.syncUuid ?? '').compareTo(b.syncUuid ?? '');
+    if (byUuid != 0) return byUuid;
+    return a.id.compareTo(b.id);
+  }
+
+  Future<WeeklyReportData?> _winnerLive(IsoWeek week) async {
+    return _pickWinner(await _liveForWeek(week).get());
   }
 }

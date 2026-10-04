@@ -32,6 +32,9 @@ void main() {
     required String payload,
     required DateTime generatedAt,
     DateTime? deletedAt,
+    String? syncUuid,
+    String? narrative,
+    String? decision,
   }) {
     return db
         .into(db.weeklyReports)
@@ -43,6 +46,9 @@ void main() {
             payloadJson: payload,
             generatedAt: Value(generatedAt),
             deletedAt: Value(deletedAt),
+            syncUuid: syncUuid == null ? const Value.absent() : Value(syncUuid),
+            narrativeJson: Value(narrative),
+            tdeeDecision: Value(decision),
           ),
         );
   }
@@ -103,23 +109,28 @@ void main() {
       expect(await db.select(db.weeklyReports).get(), hasLength(2));
     });
 
-    test('a tombstoned-only week is replaced by a fresh row', () async {
-      await insertRaw(
-        w: week,
-        payload: '{"old":true}',
-        generatedAt: DateTime(2026, 10, 1),
-        deletedAt: DateTime(2026, 10, 2),
-      );
-      final r = await repo.insertSnapshot(
-        week: week,
-        payloadVersion: 1,
-        payloadJson: '{"fresh":true}',
-      );
-      expect(r.payloadJson, '{"fresh":true}');
-      final rows = await db.select(db.weeklyReports).get();
-      expect(rows, hasLength(1));
-      expect(rows.single.deletedAt, isNull);
-    });
+    test(
+      'a tombstoned-only week keeps its tombstone beside a fresh row',
+      () async {
+        await insertRaw(
+          w: week,
+          payload: '{"old":true}',
+          generatedAt: DateTime(2026, 10, 1),
+          deletedAt: DateTime(2026, 10, 2),
+        );
+        final r = await repo.insertSnapshot(
+          week: week,
+          payloadVersion: 1,
+          payloadJson: '{"fresh":true}',
+        );
+        expect(r.payloadJson, '{"fresh":true}');
+        final rows = await db.select(db.weeklyReports).get();
+        expect(rows, hasLength(2));
+        final dead = rows.where((r) => r.deletedAt != null).single;
+        expect(dead.payloadJson, '{"old":true}');
+        expect(rows.where((r) => r.deletedAt == null), hasLength(1));
+      },
+    );
 
     test('a live row is never rewritten even beside a tombstone', () async {
       await insertRaw(
@@ -363,5 +374,132 @@ void main() {
     expect(rows.single.weekStartIso, week.startIso);
     expect(rows.single.isoYear, 2026);
     expect(rows.single.isoWeek, 40);
+  });
+
+  group('winner among duplicates (WR-02)', () {
+    Future<void> expectAllReadsReturn(String payload) async {
+      expect((await repo.forWeek(week))!.payloadJson, payload);
+      expect((await repo.watchWeek(week).first)!.payloadJson, payload);
+      final history = await repo.watchHistory().first;
+      expect(history, hasLength(1));
+      expect(history.single.payloadJson, payload);
+    }
+
+    test('a decided row beats an earlier undecided one', () async {
+      await insertRaw(
+        w: week,
+        payload: 'A',
+        generatedAt: DateTime(2026, 10, 1),
+      );
+      await insertRaw(
+        w: week,
+        payload: 'B',
+        generatedAt: DateTime(2026, 10, 2),
+        decision: 'kept',
+      );
+      await expectAllReadsReturn('B');
+    });
+
+    test('narrative beats age, decision beats narrative', () async {
+      await insertRaw(
+        w: week,
+        payload: 'A',
+        generatedAt: DateTime(2026, 10, 1),
+      );
+      await insertRaw(
+        w: week,
+        payload: 'B',
+        generatedAt: DateTime(2026, 10, 2),
+        narrative: '{}',
+      );
+      await insertRaw(
+        w: week,
+        payload: 'C',
+        generatedAt: DateTime(2026, 10, 3),
+        narrative: '{}',
+      );
+      await expectAllReadsReturn('B');
+      await insertRaw(
+        w: week,
+        payload: 'D',
+        generatedAt: DateTime(2026, 10, 4),
+        decision: 'updated',
+      );
+      await expectAllReadsReturn('D');
+    });
+
+    for (final order in [true, false]) {
+      test('identical state: lower syncUuid wins (a first: $order)', () async {
+        final t = DateTime(2026, 10, 1);
+        Future<void> a() => insertRaw(
+          w: week,
+          payload: 'A',
+          generatedAt: t,
+          syncUuid: 'aaa',
+        ).then((_) {});
+        Future<void> b() => insertRaw(
+          w: week,
+          payload: 'B',
+          generatedAt: t,
+          syncUuid: 'bbb',
+        ).then((_) {});
+        if (order) {
+          await a();
+          await b();
+        } else {
+          await b();
+          await a();
+        }
+        await expectAllReadsReturn('A');
+      });
+    }
+
+    test('mutators hit the row forWeek returns', () async {
+      await insertRaw(
+        w: week,
+        payload: 'A',
+        generatedAt: DateTime(2026, 10, 1),
+      );
+      await insertRaw(
+        w: week,
+        payload: 'B',
+        generatedAt: DateTime(2026, 10, 2),
+        decision: 'kept',
+      );
+      final rows = await db.select(db.weeklyReports).get();
+      final b = rows.firstWhere((r) => r.payloadJson == 'B');
+      final a = rows.firstWhere((r) => r.payloadJson == 'A');
+      expect(await repo.recordTdeeDecision(week, decision: 'updated'), isFalse);
+      expect(await repo.incrementNarrativeAttempts(week), 1);
+      expect(await repo.saveNarrative(week, narrativeJson: '{"n":1}'), isTrue);
+      await repo.markViewed(week);
+      final after = await db.select(db.weeklyReports).get();
+      final b2 = after.firstWhere((r) => r.id == b.id);
+      final a2 = after.firstWhere((r) => r.id == a.id);
+      expect(b2.narrativeAttempts, 1);
+      expect(b2.narrativeJson, '{"n":1}');
+      expect(b2.viewedAt, isNotNull);
+      expect(a2.narrativeAttempts, 0);
+      expect(a2.narrativeJson, isNull);
+      expect(a2.viewedAt, isNull);
+      expect(a2.tdeeDecision, isNull);
+    });
+
+    test('a tombstoned row never wins', () async {
+      await insertRaw(
+        w: week,
+        payload: 'dead',
+        generatedAt: DateTime(2026, 10, 1),
+        deletedAt: DateTime(2026, 10, 2),
+        decision: 'kept',
+        narrative: '{}',
+      );
+      await insertRaw(
+        w: week,
+        payload: 'live',
+        generatedAt: DateTime(2026, 10, 3),
+      );
+      await expectAllReadsReturn('live');
+    });
   });
 }
