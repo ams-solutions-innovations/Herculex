@@ -18,19 +18,99 @@ import 'dart:convert';
 
 import 'package:herculex/features/weekly_report/domain/causal_language_guard.dart';
 
-const _maxSummaryChars = 700;
-const _maxSuggestionChars = 300;
-const _minSuggestions = 2;
-const _maxSuggestions = 3;
+const _maxSummaryChars = WeeklyNarrativeLimits.summaryChars;
+const _maxSuggestionChars = WeeklyNarrativeLimits.suggestionChars;
+const _minSuggestions = WeeklyNarrativeLimits.minSuggestions;
+const _maxSuggestions = WeeklyNarrativeLimits.maxSuggestions;
+
+/// The narrative limits, public so a test can assert they equal the Edge
+/// Function's constants in `supabase/functions/gemini-analyze/index.ts`
+/// (IN-03). Change both together.
+abstract final class WeeklyNarrativeLimits {
+  static const int summaryChars = 700;
+  static const int suggestionChars = 300;
+  static const int minSuggestions = 2;
+  static const int maxSuggestions = 3;
+  static const int factsChars = 8000;
+}
+
+/// Integers 0..[_alwaysAllowedMax] never need to occur in the facts.
+const _alwaysAllowedMax = 60;
+
+/// Keys whose values are dates; mirrored from weekly_report_guard.ts.
+const _dateKeys = <String>{
+  'weekStartIso',
+  'weekEndIso',
+  'windowEnd',
+  'start',
+  'end',
+};
+
+// Mirrored from weekly_report_guard.ts (`extractNumbers`): "2,150" / "2 150"
+// are one number; "3, 4" and "1,20" stay separate; "." is the decimal mark.
+final _numberPattern = RegExp(
+  r'\d{1,3}(?:[, ]\d{3})+(?:\.\d+)?(?!\d)|\d+(?:\.\d+)?',
+);
+final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
+/// Absolute, canonical numbers in [text] (identical to the server).
+List<double> extractNarrativeNumbers(String text) {
+  final out = <double>[];
+  for (final m in _numberPattern.allMatches(text)) {
+    final n = double.tryParse(m.group(0)!.replaceAll(RegExp('[, ]'), ''));
+    if (n != null && n.isFinite) out.add(n);
+  }
+  return out;
+}
+
+/// Every number that may be quoted from [facts] (identical to the server).
+Set<double> collectFactNumbers(Object? facts) {
+  final out = <double>{};
+  void walk(Object? value, String? key) {
+    if (key != null && _dateKeys.contains(key)) return;
+    if (value is num) {
+      if (value.isFinite) out.add(value.abs().toDouble());
+    } else if (value is String) {
+      if (_isoDate.hasMatch(value.trim())) return;
+      out.addAll(extractNarrativeNumbers(value));
+    } else if (value is List) {
+      for (final v in value) {
+        walk(v, null);
+      }
+    } else if (value is Map) {
+      value.forEach((k, v) => walk(v, k.toString()));
+    }
+  }
+
+  walk(facts, null);
+  return out;
+}
+
+/// Returns the first number in [texts] that is neither in [facts] nor an
+/// always-allowed integer 0..60, or null.
+double? firstNumberNotInFacts(Iterable<String> texts, Object? facts) {
+  final allowed = collectFactNumbers(facts);
+  for (final text in texts) {
+    for (final n in extractNarrativeNumbers(text)) {
+      final small =
+          n == n.truncateToDouble() && n >= 0 && n <= _alwaysAllowedMax;
+      if (!small && !allowed.contains(n)) return n;
+    }
+  }
+  return null;
+}
 
 /// A validated weekly narrative: one summary plus 2-3 suggestions.
 class WeeklyNarrative {
   const WeeklyNarrative({required this.summary, required this.suggestions});
 
   /// Strict parse. Throws [FormatException] on any miss. Pass
-  /// `checkCausalLanguage: false` to skip only the causal-wording guard.
+  /// `checkCausalLanguage: false` to skip the causal-wording guard and the
+  /// number-in-facts check. When [facts] is given, every number in the text
+  /// must occur in it (WR-05).
   factory WeeklyNarrative.fromJson(
     Map<String, dynamic> json, {
+    Map<String, dynamic>? facts,
     bool checkCausalLanguage = true,
   }) {
     final summary = _requiredString(json, 'summary', _maxSummaryChars);
@@ -71,6 +151,12 @@ class WeeklyNarrative {
       ]);
       if (token != null) {
         throw FormatException('Causal wording rejected: $token');
+      }
+      if (facts != null) {
+        final stray = firstNumberNotInFacts([summary, ...suggestions], facts);
+        if (stray != null) {
+          throw FormatException('Number not in facts: $stray');
+        }
       }
     }
 

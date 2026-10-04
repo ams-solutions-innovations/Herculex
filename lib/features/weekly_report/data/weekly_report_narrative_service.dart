@@ -85,7 +85,7 @@ class WeeklyReportNarrativeService {
     }
 
     try {
-      return (WeeklyNarrative.fromJson(result), provenance);
+      return (WeeklyNarrative.fromJson(result, facts: facts), provenance);
     } on FormatException {
       // Structural failure and causal-wording rejection are the same outcome
       // (D-12): the text is discarded and the report shows "pending".

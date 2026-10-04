@@ -23,6 +23,11 @@ class _FakeWeeklyReportBackend implements WeeklyReportBackend {
   }
 }
 
+const _facts = <String, dynamic>{
+  'week': '2026-W40',
+  'nutrition': {'avgProteinG': 142},
+};
+
 const _goodResult = <String, dynamic>{
   'summary': 'Protein averaged 142 g on days you trained.',
   'suggestions': ['Keep logging meals.', 'Aim for 7 hours of sleep.'],
@@ -33,7 +38,7 @@ Future<WeeklyReportNarrativeException> _failure(Object error) async {
     _FakeWeeklyReportBackend(error: error),
   );
   try {
-    await service.generate(const {'week': '2026-W40'});
+    await service.generate(_facts);
   } on WeeklyReportNarrativeException catch (e) {
     return e;
   }
@@ -47,7 +52,7 @@ Future<WeeklyReportNarrativeException> _rejected(
     _FakeWeeklyReportBackend(result: result),
   );
   try {
-    await service.generate(const {'week': '2026-W40'});
+    await service.generate(_facts);
   } on WeeklyReportNarrativeException catch (e) {
     return e;
   }
@@ -55,6 +60,14 @@ Future<WeeklyReportNarrativeException> _rejected(
 }
 
 void main() {
+  test('a number absent from the facts is rejected', () async {
+    final e = await _rejected(const {
+      'summary': 'Protein averaged 180 g on days you trained.',
+      'suggestions': ['Keep logging meals.', 'Sleep a little more.'],
+    });
+    expect(e.kind, NarrativeFailureKind.rejected);
+  });
+
   group('WeeklyReportNarrativeService.generate success', () {
     test(
       'returns a validated narrative with provenance passed through',
@@ -65,7 +78,7 @@ void main() {
         );
         final (narrative, provenance) = await WeeklyReportNarrativeService(
           backend,
-        ).generate(const {'week': '2026-W40'});
+        ).generate(_facts);
 
         expect(narrative.summary, contains('142 g'));
         expect(narrative.suggestions, hasLength(2));
@@ -78,6 +91,7 @@ void main() {
       final facts = {
         'week': '2026-W40',
         'training': {'sessions': 4},
+        'nutrition': {'avgProteinG': 142},
       };
       await WeeklyReportNarrativeService(backend).generate(facts);
 
