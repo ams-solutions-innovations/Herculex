@@ -18,6 +18,8 @@ import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/design_system/theme/theme_provider.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/gamification/application/gamification_providers.dart';
+import 'package:herculex/features/measurements/data/body_fat_ai_service.dart';
+import 'package:herculex/features/measurements/data/measurements_repository.dart';
 import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/speech_to_text_service.dart';
@@ -31,6 +33,7 @@ import 'package:herculex/features/profile/presentation/widgets/dream_physique_nu
 import 'package:herculex/features/profile/presentation/widgets/sync_status_badge.dart';
 import 'package:herculex/features/workouts/application/workout_bubble_controller.dart';
 import 'package:herculex/services/platform/workout_bubble_service.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 part 'profile_view/_auth.part.dart';
@@ -38,6 +41,18 @@ part 'profile_view/_body.part.dart';
 part 'profile_view/_identity.part.dart';
 part 'profile_view/_settings.part.dart';
 part 'profile_view/_target_cards.part.dart';
+
+/// Latest logged value per body-measurement metric (waist, neck, hips ...).
+final _latestMeasurementsProvider = StreamProvider<Map<String, double>>((ref) {
+  return ref.watch(measurementsRepositoryProvider).watchAll().map((rows) {
+    final latest = <String, double>{};
+    // Rows arrive oldest-first, so later entries overwrite earlier ones.
+    for (final r in rows) {
+      latest[r.metric] = r.value;
+    }
+    return latest;
+  });
+});
 
 // ── Profile view ─────────────────────────────────────────────────────────────
 //

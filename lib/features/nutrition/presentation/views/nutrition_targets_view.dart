@@ -2360,7 +2360,6 @@ class __MinimumTargetsSectionState
     extends ConsumerState<_MinimumTargetsSection> {
   late TextEditingController _kcalController;
   late TextEditingController _customGramsController;
-  bool _expanded = false;
 
   @override
   void initState() {
@@ -2407,7 +2406,6 @@ class __MinimumTargetsSectionState
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             initiallyExpanded: false,
-            onExpansionChanged: (exp) => setState(() => _expanded = exp),
             tilePadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 4,
