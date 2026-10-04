@@ -126,6 +126,45 @@ void main() {
       },
     );
 
+    group('due week vs snapshot (WR-07)', () {
+      test(
+        'Sunday at the trigger: due week is the current, snapshot ok',
+        () async {
+          await build(now: DateTime(2026, 10, 4, 18));
+          await enable();
+          final due = container.read(weeklyReportDueWeekProvider);
+          expect(due, IsoWeek(2026, 40));
+          expect(due, IsoWeek.forNotificationTap(clock.now(), '18:00'));
+          expect(
+            container.read(weeklyReportServiceProvider).canSnapshot(due!),
+            isTrue,
+          );
+          await container.read(weeklyReportProvider(due).future);
+          expect(container.read(weeklyReportReadyProvider), due);
+        },
+      );
+
+      test('Tuesday: due week is the previous, ended week', () async {
+        await build(now: DateTime(2026, 9, 29, 10));
+        await enable();
+        final due = container.read(weeklyReportDueWeekProvider);
+        expect(due, IsoWeek(2026, 39));
+        expect(due, IsoWeek.forNotificationTap(clock.now(), '18:00'));
+        expect(
+          container.read(weeklyReportServiceProvider).canSnapshot(due!),
+          isTrue,
+        );
+        await container.read(weeklyReportProvider(due).future);
+        expect(container.read(weeklyReportReadyProvider), due);
+        expect(
+          container
+              .read(weeklyReportServiceProvider)
+              .canSnapshot(IsoWeek(2026, 40)),
+          isFalse,
+        );
+      });
+    });
+
     group('weeklyReportReadyProvider', () {
       Future<IsoWeek?> ready() async {
         // Let the week stream resolve before reading the derived value.

@@ -7,6 +7,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_controller.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_providers.dart';
 import 'package:herculex/features/weekly_report/data/weekly_report_repository.dart';
@@ -82,6 +83,7 @@ class _WeeklyReportViewState extends ConsumerState<WeeklyReportView> {
             }
             return switch (_result) {
               WeeklyReportNoData() => const _NoDataState(),
+              WeeklyReportInProgress() => const _InProgressState(),
               WeeklyReportFailed() => const _LoadError(),
               _ => const _Message('Loading report'),
             };
@@ -203,6 +205,48 @@ class _NoDataState extends StatelessWidget {
   Widget build(BuildContext context) {
     return HxCard(
       child: Text('No data this week', style: ReportText.label(context)),
+    );
+  }
+}
+
+/// The running week is not due yet, so nothing was frozen (RPT-04, WR-07).
+class _InProgressState extends ConsumerWidget {
+  const _InProgressState();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hx = context.hx;
+    final time = ref.watch(
+      notificationSettingsProvider.select((s) => s.weeklyReportTimeHHMM),
+    );
+    return HxCard(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Row(
+          children: [
+            Icon(Icons.schedule, size: 20, color: hx.onSurfaceVariant),
+            const SizedBox(width: HxSpace.x3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Week still in progress',
+                    style: ReportText.body(
+                      context,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    'Your report for this week is ready on Sunday at $time.',
+                    style: ReportText.label(context),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

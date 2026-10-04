@@ -8,6 +8,7 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:herculex/features/nutrition/application/tdee_display_providers.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_controller.dart';
@@ -174,6 +175,8 @@ Future<_Harness> _pump(
     now: now,
     openResult: openResult,
   );
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
   final router = GoRouterTestHarness(
     home: (_) => WeeklyReportView(week: _week),
     stubRoutes: {
@@ -184,6 +187,7 @@ Future<_Harness> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         weeklyReportControllerProvider.overrideWithValue(h.controller),
         weeklyReportProvider.overrideWith((ref, week) {
           return Stream.value(h.record);
@@ -228,6 +232,51 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
       expect(h.controller.opened, [_week]);
+    });
+  });
+
+  group('WeeklyReportView in-progress state (WR-07)', () {
+    testWidgets('no row mid-week shows the in-progress state only', (
+      tester,
+    ) async {
+      final h = await _pump(
+        tester,
+        now: DateTime(2026, 9, 29, 10),
+        openResult: const WeeklyReportInProgress(),
+      );
+      expect(h.controller.opened, [_week]);
+      expect(find.text('Week still in progress'), findsOneWidget);
+      expect(
+        find.text('Your report for this week is ready on Sunday at 18:00.'),
+        findsOneWidget,
+      );
+      expect(find.byType(NutritionSectionCard), findsNothing);
+      expect(find.byType(AiNarrativeCard), findsNothing);
+      expect(_retry, findsNothing);
+    });
+
+    testWidgets('a stored row renders the report, not the in-progress state', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        record: _record(),
+        now: DateTime(2026, 9, 29, 10),
+        openResult: WeeklyReportReady(_record()),
+      );
+      expect(find.text('Week still in progress'), findsNothing);
+      expect(find.byType(NutritionSectionCard), findsOneWidget);
+    });
+
+    testWidgets('opt-in off still shows Turn on weekly report', (tester) async {
+      await _pump(
+        tester,
+        enabled: false,
+        now: DateTime(2026, 9, 29, 10),
+        openResult: const WeeklyReportInProgress(),
+      );
+      expect(find.text('Turn on weekly report'), findsOneWidget);
+      expect(find.text('Week still in progress'), findsNothing);
     });
   });
 
