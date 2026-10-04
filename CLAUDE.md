@@ -89,8 +89,9 @@ unconditionally: the hand-written fixtures sit on both sides of any given step
 — some are too narrow to have the table at all, others build it from current
 definitions and already have the columns.
 
-Migrations are written but **not applied**. `0015` and `0016` are both
-outstanding; apply in order before shipping a build that carries local v37.
+Migrations are written by the executor and applied by `supabase db push`.
+All through `20261003000000_weekly_reports_v48` are applied (2026-10-04);
+check `supabase migration list` before assuming anything else is outstanding.
 
 ## Gotchas
 
