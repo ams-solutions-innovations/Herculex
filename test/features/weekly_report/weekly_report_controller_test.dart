@@ -347,6 +347,81 @@ void main() {
       expect((await repository.forWeek(week))!.viewedAt, first);
     });
 
+    group('running week before it is due (WR-07)', () {
+      final tuesday = DateTime(2026, 9, 29, 10);
+
+      test('no row: InProgress, nothing written, no narrative', () async {
+        await seedFood();
+        clock.set(tuesday);
+
+        final result = await controller.open(week);
+
+        expect(result, isA<WeeklyReportInProgress>());
+        expect(await reportRows(), 0);
+        expect(backend.calls, 0);
+        expect(prefs.getString('weekly_report_dismissed_week'), isNull);
+        expect(dismissed, isEmpty);
+      });
+
+      test('an existing row is still returned (RPT-04)', () async {
+        await seedFood();
+        await controller.open(week);
+        await controller.narrationInFlight(week);
+        clock.set(tuesday);
+
+        final result = await controller.open(week);
+
+        expect(result, isA<WeeklyReportReady>());
+        expect(await reportRows(), 1);
+      });
+
+      test('Sunday before the configured time is still in progress', () async {
+        await seedFood();
+        clock.set(DateTime(2026, 10, 4, 17, 59));
+
+        expect(await controller.open(week), isA<WeeklyReportInProgress>());
+        expect(await reportRows(), 0);
+      });
+
+      test('a future week stays NoData and writes the marker', () async {
+        clock.set(tuesday);
+        final result = await controller.open(IsoWeek(2026, 41));
+
+        expect(result, isA<WeeklyReportNoData>());
+        expect(prefs.getString('weekly_report_dismissed_week'), isNotNull);
+      });
+
+      test('an ended week opens as before', () async {
+        await seedFood();
+        clock.set(DateTime(2026, 10, 6, 9));
+
+        expect(await controller.open(week), isA<WeeklyReportReady>());
+        expect(await reportRows(), 1);
+        await controller.narrationInFlight(week);
+      });
+
+      test('opt-in off, no row: Disabled wins over InProgress', () async {
+        clock.set(tuesday);
+        enabled = false;
+
+        expect(await controller.open(week), isA<WeeklyReportDisabled>());
+      });
+
+      test('concurrent opens share one InProgress result', () async {
+        await seedFood();
+        clock.set(tuesday);
+
+        final results = await Future.wait([
+          controller.open(week),
+          controller.open(week),
+        ]);
+
+        expect(results[0], isA<WeeklyReportInProgress>());
+        expect(results[1], isA<WeeklyReportInProgress>());
+        expect(await reportRows(), 0);
+      });
+    });
+
     test('service exceptions become state, never thrown', () async {
       final throwing = _ThrowingService(
         repository: repository,

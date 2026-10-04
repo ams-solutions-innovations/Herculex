@@ -35,6 +35,13 @@ final class WeeklyReportNoData extends WeeklyReportOpenResult {
   const WeeklyReportNoData();
 }
 
+/// The running week is not due yet (before Sunday at the configured report
+/// time), so no snapshot was taken: no row, no narrative, no dismissed marker
+/// (RPT-04, WR-07).
+final class WeeklyReportInProgress extends WeeklyReportOpenResult {
+  const WeeklyReportInProgress();
+}
+
 /// The opt-in is off and the week has no stored report (D-07).
 final class WeeklyReportDisabled extends WeeklyReportOpenResult {
   const WeeklyReportDisabled();
@@ -165,6 +172,8 @@ NarrativeCardModel? narrativeStatusFor({
 ///   narrative, zero attempts, narrative signal). After any failure only an
 ///   explicit [retryNarrative] fires again (D-02, RPT-04).
 /// * With the opt-in off nothing is generated (D-07).
+/// * The running week is not snapshotted before it is due: [open] returns
+///   [WeeklyReportInProgress] and writes nothing (RPT-04, WR-07).
 /// * Fail-soft, like the TDEE recalibrator: errors become state, never throw.
 ///
 /// Time comes only from the injected [Clock].
@@ -218,6 +227,15 @@ class WeeklyReportController {
         final existing = await _repository.forWeek(week);
         if (existing == null) return const WeeklyReportDisabled();
         return WeeklyReportReady(await _viewed(week, existing));
+      }
+
+      // The running week is frozen only once it is due (RPT-04). Before that,
+      // an existing row is still shown, but nothing is created and the week is
+      // not marked as dismissed.
+      if (week == IsoWeek.fromDate(_clock.now()) &&
+          !_service.canSnapshot(week)) {
+        final existing = await _repository.forWeek(week);
+        if (existing == null) return const WeeklyReportInProgress();
       }
 
       final generated = await _service.generate(week);
