@@ -64,24 +64,42 @@ WeeklyReportRecord _record({
 
 class _FakeActions implements TdeeDecisionActions {
   final updates =
-      <({IsoWeek week, TdeeTargetProposal proposal, String label})>[];
+      <
+        ({IsoWeek week, TdeeTargetProposal displayed, int oldKcal, int newKcal})
+      >[];
   final keeps = <({IsoWeek week, int currentKcal})>[];
-  Completer<bool>? gate;
+  Completer<TdeeActionResult>? gate;
+  TdeeActionResult result = TdeeActionResult.applied;
+  Object? error;
 
-  @override
-  Future<bool> update({
-    required IsoWeek week,
-    required TdeeTargetProposal proposal,
-    required String label,
-  }) async {
-    updates.add((week: week, proposal: proposal, label: label));
-    return gate?.future ?? true;
+  Future<TdeeActionResult> _answer() async {
+    if (error != null) throw error!;
+    return gate?.future ?? result;
   }
 
   @override
-  Future<bool> keep({required IsoWeek week, required int currentKcal}) async {
+  Future<TdeeActionResult> update({
+    required IsoWeek week,
+    required int oldEstimateKcal,
+    required int newEstimateKcal,
+    required TdeeTargetProposal displayed,
+  }) {
+    updates.add((
+      week: week,
+      displayed: displayed,
+      oldKcal: oldEstimateKcal,
+      newKcal: newEstimateKcal,
+    ));
+    return _answer();
+  }
+
+  @override
+  Future<TdeeActionResult> keep({
+    required IsoWeek week,
+    required int currentKcal,
+  }) {
     keeps.add((week: week, currentKcal: currentKcal));
-    return gate?.future ?? true;
+    return _answer();
   }
 }
 
@@ -91,6 +109,7 @@ Future<void> _pump(
   required _FakeActions actions,
   TdeeTargetProposalResult? result,
   IsoWeek? dueWeek,
+  TargetRule rule = _rule,
 }) async {
   tester.view.physicalSize = const Size(900, 3000);
   tester.view.devicePixelRatio = 1;
@@ -107,8 +126,7 @@ Future<void> _pump(
         tdeeTargetProposalProvider.overrideWith(
           (ref, shift) async => proposalResult,
         ),
-        savedTargetForTodayProvider.overrideWith((ref) async => _rule),
-        savedTargetLabelProvider.overrideWith((ref, appliesTo) async => 'Plan'),
+        savedTargetForTodayProvider.overrideWith((ref) async => rule),
       ],
       child: MaterialApp(
         theme: AppTheme.darkTheme,
@@ -166,8 +184,9 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(actions.updates, hasLength(1));
-      expect(actions.updates.single.proposal.kcal, 2540);
-      expect(actions.updates.single.label, 'Plan');
+      expect(actions.updates.single.displayed.kcal, 2540);
+      expect(actions.updates.single.oldKcal, 2500);
+      expect(actions.updates.single.newKcal, 2640);
       expect(actions.updates.single.week, IsoWeek(2026, 40));
       expect(actions.keeps, isEmpty);
       expect(find.text('Target updated to 2540 kcal'), findsOneWidget);
@@ -186,7 +205,7 @@ void main() {
     });
 
     testWidgets('both buttons ignore taps while a call runs', (tester) async {
-      final actions = _FakeActions()..gate = Completer<bool>();
+      final actions = _FakeActions()..gate = Completer<TdeeActionResult>();
       await _pump(tester, record: _record(), actions: actions);
       await tester.tap(_updateButton);
       await tester.pump();
@@ -195,8 +214,121 @@ void main() {
       await tester.pump();
       expect(actions.updates, hasLength(1));
       expect(actions.keeps, isEmpty);
-      actions.gate!.complete(true);
+      actions.gate!.complete(TdeeActionResult.applied);
       await tester.pumpAndSettle();
+    });
+    group('results and failures', () {
+      Future<void> tapUpdate(WidgetTester tester, _FakeActions actions) async {
+        await _pump(tester, record: _record(), actions: actions);
+        await tester.tap(_updateButton);
+        await tester.pump();
+        await tester.pump();
+      }
+
+      void expectEnabled(WidgetTester tester) {
+        expect(
+          tester
+              .widget<IgnorePointer>(
+                find
+                    .ancestor(
+                      of: find.byType(PremiumButton),
+                      matching: find.byType(IgnorePointer),
+                    )
+                    .first,
+              )
+              .ignoring,
+          isFalse,
+        );
+        expect(
+          tester
+              .widget<TextButton>(
+                find.widgetWithText(TextButton, 'Keep current target'),
+              )
+              .onPressed,
+          isNotNull,
+        );
+      }
+
+      final cases = <TdeeActionResult, String>{
+        TdeeActionResult.alreadyDecided:
+            'You already made this choice for this week.',
+        TdeeActionResult.stale:
+            'Your target changed since this suggestion. '
+            'Review it in nutrition settings.',
+        TdeeActionResult.notActionable: 'This report is read-only.',
+        TdeeActionResult.invalidInput: "Couldn't save your choice. Try again.",
+      };
+      for (final entry in cases.entries) {
+        testWidgets('update ${entry.key.name} shows a message and re-enables', (
+          tester,
+        ) async {
+          final actions = _FakeActions()..result = entry.key;
+          await tapUpdate(tester, actions);
+          expect(find.text(entry.value), findsOneWidget);
+          expectEnabled(tester);
+        });
+      }
+
+      testWidgets('success clears busy even if the record has not updated', (
+        tester,
+      ) async {
+        final actions = _FakeActions();
+        await tapUpdate(tester, actions);
+        expect(find.text('Target updated to 2540 kcal'), findsOneWidget);
+        expectEnabled(tester);
+      });
+
+      testWidgets('an exception shows the failure message and re-enables', (
+        tester,
+      ) async {
+        final actions = _FakeActions()..error = StateError('x');
+        await tapUpdate(tester, actions);
+        expect(
+          find.text("Couldn't update your target. Try again."),
+          findsOneWidget,
+        );
+        expectEnabled(tester);
+      });
+
+      testWidgets('keep exception shows a message and re-enables', (
+        tester,
+      ) async {
+        final actions = _FakeActions()..error = StateError('x');
+        await _pump(tester, record: _record(), actions: actions);
+        await tester.tap(_keepButton);
+        await tester.pump();
+        await tester.pump();
+        expect(
+          find.text("Couldn't save your choice. Try again."),
+          findsOneWidget,
+        );
+        expectEnabled(tester);
+      });
+
+      testWidgets('keep with a saved kcal below 800 does not call the action', (
+        tester,
+      ) async {
+        final actions = _FakeActions();
+        await _pump(
+          tester,
+          record: _record(),
+          actions: actions,
+          rule: const TargetRule(
+            kcal: 799,
+            proteinG: 100,
+            carbsG: 100,
+            fatG: 30,
+            appliesTo: 'global',
+          ),
+        );
+        await tester.tap(_keepButton);
+        await tester.pump();
+        expect(actions.keeps, isEmpty);
+        expect(
+          find.text("Couldn't save your choice. Try again."),
+          findsOneWidget,
+        );
+      });
     });
   });
 

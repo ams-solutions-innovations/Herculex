@@ -31,8 +31,9 @@ class TdeeShiftCard extends ConsumerStatefulWidget {
 }
 
 class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
-  // Stays true after a successful call: the stored decision then re-renders
-  // the card as read-only, and a second tap must never be possible meanwhile.
+  // Cleared in a finally block after every call: the card never stays dimmed.
+  // On success the stored decision re-renders it read-only (the footer branches
+  // on `record.tdeeDecision`), so clearing busy is harmless.
   bool _busy = false;
 
   static const String _title = 'Your energy estimate moved';
@@ -40,44 +41,74 @@ class _TdeeShiftCardState extends ConsumerState<TdeeShiftCard> {
       'Your target already follows your energy estimate.';
   static const String _noSuggestion =
       'No target change is suggested for this shift.';
+  static const String _saveFailed = "Couldn't save your choice. Try again.";
+
+  String? _message(TdeeActionResult result, {required String applied}) {
+    switch (result) {
+      case TdeeActionResult.applied:
+        return applied;
+      case TdeeActionResult.alreadyDecided:
+        return 'You already made this choice for this week.';
+      case TdeeActionResult.stale:
+        return 'Your target changed since this suggestion. '
+            'Review it in nutrition settings.';
+      case TdeeActionResult.notActionable:
+        return 'This report is read-only.';
+      case TdeeActionResult.invalidInput:
+        return _saveFailed;
+    }
+  }
 
   Future<void> _update(TdeeTargetProposal proposal) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     setState(() => _busy = true);
+    String? message;
     try {
-      final label = await ref.read(
-        savedTargetLabelProvider(proposal.appliesTo).future,
-      );
-      final done = await ref
+      final result = await ref
           .read(tdeeDecisionActionsProvider)
-          .update(week: widget.record.week, proposal: proposal, label: label);
-      if (done) {
-        messenger?.showSnackBar(
-          SnackBar(content: Text('Target updated to ${proposal.kcal} kcal')),
-        );
-      }
-    } catch (_) {
-      if (mounted) setState(() => _busy = false);
-      messenger?.showSnackBar(
-        const SnackBar(
-          content: Text("Couldn't update your target. Try again."),
-        ),
+          .update(
+            week: widget.record.week,
+            oldEstimateKcal: widget.section.oldKcal,
+            newEstimateKcal: widget.section.newKcal,
+            displayed: proposal,
+          );
+      message = _message(
+        result,
+        applied: 'Target updated to ${proposal.kcal} kcal',
       );
+    } catch (_) {
+      message = "Couldn't update your target. Try again.";
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+    if (message != null) {
+      messenger?.showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
   Future<void> _keep(int currentKcal) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    if (currentKcal < WeeklyReportRepository.minDecisionKcal ||
+        currentKcal > WeeklyReportRepository.maxDecisionKcal) {
+      messenger?.showSnackBar(const SnackBar(content: Text(_saveFailed)));
+      return;
+    }
     setState(() => _busy = true);
+    String? message;
     try {
-      await ref
+      final result = await ref
           .read(tdeeDecisionActionsProvider)
           .keep(week: widget.record.week, currentKcal: currentKcal);
+      // A kept decision re-renders the card; no snackbar on success.
+      message = _message(result, applied: '');
+      if (result == TdeeActionResult.applied) message = null;
     } catch (_) {
+      message = _saveFailed;
+    } finally {
       if (mounted) setState(() => _busy = false);
-      messenger?.showSnackBar(
-        const SnackBar(content: Text("Couldn't save your choice. Try again.")),
-      );
+    }
+    if (message != null) {
+      messenger?.showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
