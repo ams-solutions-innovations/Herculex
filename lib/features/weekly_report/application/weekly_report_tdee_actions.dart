@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/application/tdee_display_providers.dart';
@@ -11,9 +12,11 @@ import 'package:herculex/features/weekly_report/domain/tdee_target_proposal.dart
 
 // This file holds the ONLY write path from the weekly report to the user's
 // nutrition targets (TDEE-05, D-11). Both methods of [TdeeDecisionActions]
-// are invoked from a user tap in `TdeeShiftCard` and nowhere else. Nothing in
-// the narrative path, the service or the controller may call `upsertTarget`:
-// the AI never writes, the user confirms.
+// are invoked from a user tap in `TdeeShiftCard` and nowhere else, and both
+// go through `WeeklyReportRepository.applyTdeeDecision` so the target write and
+// the decision record are one transaction. Nothing in the narrative path, the
+// service or the controller may call `upsertTarget`: the AI never writes, the
+// user confirms.
 
 /// Label used when the saved target row cannot be found.
 const String fallbackTargetLabel = 'Target';
@@ -24,57 +27,119 @@ bool isActionableWeek(IsoWeek week, DateTime now, IsoWeek? dueWeek) {
   return week == IsoWeek.fromDate(now) || (dueWeek != null && week == dueWeek);
 }
 
+/// Outcome of a TDEE card action. Anything but [applied] wrote nothing.
+enum TdeeActionResult {
+  applied,
+  alreadyDecided,
+  stale,
+  notActionable,
+  invalidInput,
+}
+
 /// The two user-confirmed outcomes of the TDEE shift card. Each records a
 /// write-once decision on the report row.
 class TdeeDecisionActions {
-  TdeeDecisionActions(this._reports, this._nutrition);
+  TdeeDecisionActions(
+    this._reports,
+    this._nutrition,
+    this._clock,
+    this._dueWeek,
+    this._resolveProposal,
+    this._labelFor,
+  );
 
   final WeeklyReportRepository _reports;
   final NutritionRepository _nutrition;
+  final Clock _clock;
+  final IsoWeek? Function() _dueWeek;
+  final Future<TdeeTargetProposalResult> Function(int oldKcal, int newKcal)
+  _resolveProposal;
+  final Future<String> Function(String appliesTo) _labelFor;
 
-  /// Applies [proposal] to the user's saved target and records `updated`.
-  ///
-  /// Returns false, having written nothing, when the week has no report, a
-  /// decision already exists, or the proposal cannot be stored as a decision.
-  Future<bool> update({
+  bool _actionable(IsoWeek week) =>
+      isActionableWeek(week, _clock.now(), _dueWeek());
+
+  static bool _validKcal(int kcal) =>
+      kcal >= WeeklyReportRepository.minDecisionKcal &&
+      kcal <= WeeklyReportRepository.maxDecisionKcal;
+
+  /// Applies the CURRENT proposal for the shift to the user's saved target and
+  /// records `updated`, atomically. The proposal is re-resolved against the
+  /// saved rule first; if its kcal or appliesTo differ from [displayed] the
+  /// suggestion is out of date and nothing is written. The write always uses
+  /// the freshly resolved macros, never the displayed ones.
+  Future<TdeeActionResult> update({
     required IsoWeek week,
-    required TdeeTargetProposal proposal,
-    required String label,
+    required int oldEstimateKcal,
+    required int newEstimateKcal,
+    required TdeeTargetProposal displayed,
   }) async {
-    final kcal = proposal.kcal;
-    if (kcal < WeeklyReportRepository.minDecisionKcal ||
-        kcal > WeeklyReportRepository.maxDecisionKcal) {
-      return false;
-    }
-    final record = await _reports.forWeek(week);
-    if (record == null || record.tdeeDecision != null) return false;
+    if (!_actionable(week)) return TdeeActionResult.notActionable;
+    if (!_validKcal(displayed.kcal)) return TdeeActionResult.invalidInput;
 
-    await _nutrition.upsertTarget(
-      label: label,
-      appliesTo: proposal.appliesTo,
-      kcal: kcal,
-      proteinG: proposal.proteinG,
-      carbsG: proposal.carbsG,
-      fatG: proposal.fatG,
-      fiberG: proposal.fiberG,
+    final resolved = await _resolveProposal(oldEstimateKcal, newEstimateKcal);
+    final fresh = resolved.proposal;
+    if (resolved.status != TdeeProposalStatus.proposed ||
+        fresh == null ||
+        fresh.kcal != displayed.kcal ||
+        fresh.appliesTo != displayed.appliesTo) {
+      return TdeeActionResult.stale;
+    }
+    if (!_validKcal(fresh.kcal)) return TdeeActionResult.invalidInput;
+
+    final label = await _labelFor(fresh.appliesTo);
+    final done = await _reports.applyTdeeDecision(
+      week,
+      decision: 'updated',
+      kcal: fresh.kcal,
+      beforeRecord: () => _nutrition.upsertTarget(
+        label: label,
+        appliesTo: fresh.appliesTo,
+        kcal: fresh.kcal,
+        proteinG: fresh.proteinG,
+        carbsG: fresh.carbsG,
+        fatG: fresh.fatG,
+        fiberG: fresh.fiberG,
+      ),
     );
-    return _reports.recordTdeeDecision(week, decision: 'updated', kcal: kcal);
+    return done ? TdeeActionResult.applied : TdeeActionResult.alreadyDecided;
   }
 
   /// Records `kept` at [currentKcal]. Never touches targets.
-  Future<bool> keep({required IsoWeek week, required int currentKcal}) {
-    return _reports.recordTdeeDecision(
+  Future<TdeeActionResult> keep({
+    required IsoWeek week,
+    required int currentKcal,
+  }) async {
+    if (!_actionable(week)) return TdeeActionResult.notActionable;
+    if (!_validKcal(currentKcal)) return TdeeActionResult.invalidInput;
+    final done = await _reports.applyTdeeDecision(
       week,
       decision: 'kept',
       kcal: currentKcal,
     );
+    return done ? TdeeActionResult.applied : TdeeActionResult.alreadyDecided;
   }
 }
 
 final tdeeDecisionActionsProvider = Provider<TdeeDecisionActions>((ref) {
+  // Everything live is read at call time (ref.read inside the closures), so
+  // building this provider never depends on the proposal providers.
   return TdeeDecisionActions(
     ref.watch(weeklyReportRepositoryProvider),
     ref.watch(nutritionRepositoryProvider),
+    ref.watch(clockProvider),
+    () => ref.read(weeklyReportDueWeekProvider),
+    (oldKcal, newKcal) {
+      final provider = tdeeTargetProposalProvider((oldKcal, newKcal));
+      // Drop any cached value so the current saved rule is used.
+      ref.invalidate(provider);
+      return ref.read(provider.future);
+    },
+    (appliesTo) {
+      final provider = savedTargetLabelProvider(appliesTo);
+      ref.invalidate(provider);
+      return ref.read(provider.future);
+    },
   );
 });
 

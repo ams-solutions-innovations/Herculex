@@ -10,6 +10,7 @@ import 'package:herculex/features/nutrition/domain/phase_eligibility.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/weekly_report/application/weekly_report_providers.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_tdee_actions.dart';
 import 'package:herculex/features/weekly_report/data/weekly_report_repository.dart';
 import 'package:herculex/features/weekly_report/domain/iso_week.dart';
@@ -301,6 +302,8 @@ void main() {
     late NutritionRepository nutrition;
     late WeeklyReportRepository reports;
     late TdeeDecisionActions actions;
+    late TdeeTargetProposalResult resolved;
+    IsoWeek? dueWeek;
     final week = IsoWeek(2026, 40);
 
     const proposal = TdeeTargetProposal(
@@ -315,12 +318,34 @@ void main() {
     Future<List<NutritionTargetData>> targets() =>
         db.select(db.nutritionTargets).get();
 
+    Future<TdeeActionResult> update({
+      IsoWeek? w,
+      TdeeTargetProposal displayed = proposal,
+    }) => actions.update(
+      week: w ?? week,
+      oldEstimateKcal: 2500,
+      newEstimateKcal: 2640,
+      displayed: displayed,
+    );
+
     setUp(() async {
       db = await openTestDatabase();
       clock = FakeClock(DateTime(2026, 10, 1, 9));
       nutrition = NutritionRepository(db, OpenFoodFactsClient(), clock);
       reports = WeeklyReportRepository(db, clock);
-      actions = TdeeDecisionActions(reports, nutrition);
+      dueWeek = null;
+      resolved = const TdeeTargetProposalResult(
+        TdeeProposalStatus.proposed,
+        proposal,
+      );
+      actions = TdeeDecisionActions(
+        reports,
+        nutrition,
+        clock,
+        () => dueWeek,
+        (_, _) async => resolved,
+        (_) async => 'Cut',
+      );
       await nutrition.upsertTarget(
         label: 'Cut',
         appliesTo: 'global',
@@ -338,13 +363,8 @@ void main() {
 
     tearDown(() => db.close());
 
-    test('update writes the target, then records the decision', () async {
-      final ok = await actions.update(
-        week: week,
-        proposal: proposal,
-        label: 'Cut',
-      );
-      expect(ok, isTrue);
+    test('update writes the target and the decision together', () async {
+      expect(await update(), TdeeActionResult.applied);
       final rows = await targets();
       expect(rows, hasLength(1));
       expect(rows.single.kcal, 2540);
@@ -356,39 +376,122 @@ void main() {
     });
 
     test('a second update is refused and writes nothing', () async {
-      await actions.update(week: week, proposal: proposal, label: 'Cut');
-      final ok = await actions.update(
-        week: week,
-        proposal: const TdeeTargetProposal(
+      await update();
+      resolved = const TdeeTargetProposalResult(
+        TdeeProposalStatus.proposed,
+        TdeeTargetProposal(
           kcal: 2700,
           proteinG: 180,
           carbsG: 350,
           fatG: 70,
           appliesTo: 'global',
         ),
-        label: 'Cut',
       );
-      expect(ok, isFalse);
-      final rows = await targets();
-      expect(rows.single.kcal, 2540);
+      final r = await update(displayed: resolved.proposal!);
+      expect(r, TdeeActionResult.alreadyDecided);
+      expect((await targets()).single.kcal, 2540);
       expect((await reports.forWeek(week))!.tdeeDecisionKcal, 2540);
     });
 
-    test('update after keep is refused and leaves targets alone', () async {
+    test('update after keep leaves targets alone', () async {
       await actions.keep(week: week, currentKcal: 2400);
-      final ok = await actions.update(
-        week: week,
-        proposal: proposal,
-        label: 'Cut',
-      );
-      expect(ok, isFalse);
+      expect(await update(), TdeeActionResult.alreadyDecided);
       expect((await targets()).single.kcal, 2400);
     });
 
-    test('keep records the decision and never touches targets', () async {
+    test('a week without a report writes nothing', () async {
+      dueWeek = IsoWeek(2026, 39);
+      expect(
+        await update(w: IsoWeek(2026, 39)),
+        TdeeActionResult.alreadyDecided,
+      );
+      expect((await targets()).single.kcal, 2400);
+    });
+
+    test('a non-actionable week writes nothing (update and keep)', () async {
+      await reports.insertSnapshot(
+        week: IsoWeek(2026, 36),
+        payloadVersion: 1,
+        payloadJson: '{}',
+      );
+      expect(
+        await update(w: IsoWeek(2026, 36)),
+        TdeeActionResult.notActionable,
+      );
+      expect(
+        await actions.keep(week: IsoWeek(2026, 36), currentKcal: 2400),
+        TdeeActionResult.notActionable,
+      );
+      expect((await targets()).single.kcal, 2400);
+      expect((await reports.forWeek(IsoWeek(2026, 36)))!.tdeeDecision, isNull);
+    });
+
+    test(
+      'a changed proposal kcal or scope is stale, nothing written',
+      () async {
+        resolved = const TdeeTargetProposalResult(
+          TdeeProposalStatus.proposed,
+          TdeeTargetProposal(
+            kcal: 2300,
+            proteinG: 180,
+            carbsG: 200,
+            fatG: 70,
+            appliesTo: 'global',
+          ),
+        );
+        expect(await update(), TdeeActionResult.stale);
+        resolved = const TdeeTargetProposalResult(
+          TdeeProposalStatus.proposed,
+          TdeeTargetProposal(
+            kcal: 2540,
+            proteinG: 180,
+            carbsG: 298,
+            fatG: 70,
+            appliesTo: 'training',
+          ),
+        );
+        expect(await update(), TdeeActionResult.stale);
+        expect((await targets()).single.kcal, 2400);
+        expect((await reports.forWeek(week))!.tdeeDecision, isNull);
+      },
+    );
+
+    test('a non-proposed re-resolve is stale', () async {
+      for (final status in [
+        TdeeProposalStatus.noSavedRule,
+        TdeeProposalStatus.noChange,
+        TdeeProposalStatus.belowMacroFloor,
+      ]) {
+        resolved = TdeeTargetProposalResult(status);
+        expect(await update(), TdeeActionResult.stale);
+      }
+      expect((await targets()).single.kcal, 2400);
+    });
+
+    test('the write uses the fresh macros, not the displayed ones', () async {
+      resolved = const TdeeTargetProposalResult(
+        TdeeProposalStatus.proposed,
+        TdeeTargetProposal(
+          kcal: 2540,
+          proteinG: 190,
+          carbsG: 280,
+          fatG: 72,
+          appliesTo: 'global',
+        ),
+      );
+      expect(await update(), TdeeActionResult.applied);
+      final row = (await targets()).single;
+      expect(row.proteinG, 190);
+      expect(row.carbsG, 280);
+      expect(row.fatG, 72);
+    });
+
+    test('keep records kept and never touches targets', () async {
       final before = await targets();
-      final ok = await actions.keep(week: week, currentKcal: 2400);
-      expect(ok, isTrue);
+      expect(
+        await actions.keep(week: week, currentKcal: 2400),
+        TdeeActionResult.applied,
+      );
       final record = await reports.forWeek(week);
       expect(record!.tdeeDecision, 'kept');
       expect(record.tdeeDecisionKcal, 2400);
@@ -398,29 +501,27 @@ void main() {
       expect(after.single.carbsG, before.single.carbsG);
     });
 
-    test('update without a stored report writes nothing', () async {
-      final ok = await actions.update(
-        week: IsoWeek(2026, 39),
-        proposal: proposal,
-        label: 'Cut',
-      );
-      expect(ok, isFalse);
-      expect((await targets()).single.kcal, 2400);
+    test('keep with kcal outside 800..6000 is refused, no throw', () async {
+      for (final kcal in const [799, 6001]) {
+        expect(
+          await actions.keep(week: week, currentKcal: kcal),
+          TdeeActionResult.invalidInput,
+        );
+      }
+      expect((await reports.forWeek(week))!.tdeeDecision, isNull);
     });
 
     test('an out-of-range proposal is refused before any write', () async {
-      final ok = await actions.update(
-        week: week,
-        proposal: const TdeeTargetProposal(
+      final r = await update(
+        displayed: const TdeeTargetProposal(
           kcal: 9000,
           proteinG: 180,
           carbsG: 250,
           fatG: 70,
           appliesTo: 'global',
         ),
-        label: 'Cut',
       );
-      expect(ok, isFalse);
+      expect(r, TdeeActionResult.invalidInput);
       expect((await targets()).single.kcal, 2400);
     });
   });
@@ -486,6 +587,59 @@ void main() {
           carbsG: 250,
           fatG: 70,
         );
+
+    test('actions provider re-resolves against the current rule', () async {
+      await build();
+      await saveRule(2400);
+      final week = IsoWeek(2026, 40);
+      final reports = container.read(weeklyReportRepositoryProvider);
+      await reports.insertSnapshot(
+        week: week,
+        payloadVersion: 1,
+        payloadJson: '{}',
+      );
+      const displayed = TdeeTargetProposal(
+        kcal: 2540,
+        proteinG: 180,
+        carbsG: 250,
+        fatG: 70,
+        appliesTo: 'global',
+      );
+      final actions = container.read(tdeeDecisionActionsProvider);
+      // Prime the cache the way the card does, then change the rule.
+      final sub = container.listen(
+        tdeeTargetProposalProvider((2500, 2640)),
+        (_, _) {},
+      );
+      addTearDown(sub.close);
+      await container.read(tdeeTargetProposalProvider((2500, 2640)).future);
+      await saveRule(2200);
+      await pumpEventQueue();
+      expect(
+        await actions.update(
+          week: week,
+          oldEstimateKcal: 2500,
+          newEstimateKcal: 2640,
+          displayed: displayed,
+        ),
+        TdeeActionResult.stale,
+      );
+      expect((await reports.forWeek(week))!.tdeeDecision, isNull);
+      // Back to a rule that yields the displayed kcal: applied.
+      await saveRule(2400);
+      await pumpEventQueue();
+      expect(
+        await actions.update(
+          week: week,
+          oldEstimateKcal: 2500,
+          newEstimateKcal: 2640,
+          displayed: displayed,
+        ),
+        TdeeActionResult.applied,
+      );
+      final rows = await db.select(db.nutritionTargets).get();
+      expect(rows.single.kcal, 2540);
+    });
 
     test('no saved rule -> noSavedRule', () async {
       await build();
