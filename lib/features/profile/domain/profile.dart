@@ -67,6 +67,8 @@ class Profile {
   final double? weightKg;
   final double? targetWeightKg;
   final double? heightCm;
+  final double? inseamCm;
+  final double? armSpanCm;
   final BiologicalSex? sex;
   final MeasurementUnit preferredUnit;
   final bool countBurnedCalories;
@@ -79,6 +81,8 @@ class Profile {
     this.weightKg,
     this.targetWeightKg,
     this.heightCm,
+    this.inseamCm,
+    this.armSpanCm,
     this.sex,
     this.preferredUnit = MeasurementUnit.metric,
     this.countBurnedCalories = false,
@@ -95,6 +99,8 @@ class Profile {
     double? weightKg,
     double? targetWeightKg,
     double? heightCm,
+    double? inseamCm,
+    double? armSpanCm,
     BiologicalSex? sex,
     MeasurementUnit? preferredUnit,
     bool? countBurnedCalories,
@@ -106,6 +112,8 @@ class Profile {
     weightKg: weightKg ?? this.weightKg,
     targetWeightKg: targetWeightKg ?? this.targetWeightKg,
     heightCm: heightCm ?? this.heightCm,
+    inseamCm: inseamCm ?? this.inseamCm,
+    armSpanCm: armSpanCm ?? this.armSpanCm,
     sex: sex ?? this.sex,
     preferredUnit: preferredUnit ?? this.preferredUnit,
     countBurnedCalories: countBurnedCalories ?? this.countBurnedCalories,
@@ -119,6 +127,8 @@ class Profile {
     'weightKg': weightKg,
     'targetWeightKg': targetWeightKg,
     'heightCm': heightCm,
+    'inseamCm': inseamCm,
+    'armSpanCm': armSpanCm,
     'sex': sex?.name,
     'preferredUnit': preferredUnit.name,
     'countBurnedCalories': countBurnedCalories,
@@ -137,6 +147,8 @@ class Profile {
         (json['target_weight_kg'] as num?)?.toDouble(),
     heightCm: (json['heightCm'] as num?)?.toDouble() ??
         (json['height_cm'] as num?)?.toDouble(),
+    inseamCm: (json['inseamCm'] as num?)?.toDouble(),
+    armSpanCm: (json['armSpanCm'] as num?)?.toDouble(),
     sex: json['sex'] == null
         ? null
         : BiologicalSex.values.byName(json['sex'] as String),

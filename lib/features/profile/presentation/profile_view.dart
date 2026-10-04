@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../app/providers.dart';
@@ -21,11 +22,25 @@ import '../../../ui/ui.dart';
 import '../../nutrition/data/speech_to_text_service.dart';
 import '../../nutrition/domain/diet_phase.dart';
 import '../../nutrition/presentation/goals_providers.dart';
+import '../../measurements/data/body_fat_ai_service.dart';
+import '../../measurements/data/measurements_repository.dart';
 import '../../nutrition/presentation/nutrition_providers.dart';
 import '../../workouts/presentation/workout_bubble_controller.dart';
 import '../../../services/workout_bubble_service.dart';
 import '../data/local_profile_repository.dart';
 import '../domain/profile.dart';
+
+/// Latest logged value per body-measurement metric (waist, neck, hips …).
+final _latestMeasurementsProvider = StreamProvider<Map<String, double>>((ref) {
+  return ref.watch(measurementsRepositoryProvider).watchAll().map((rows) {
+    final latest = <String, double>{};
+    // Rows arrive oldest-first, so later entries overwrite earlier ones.
+    for (final r in rows) {
+      latest[r.metric] = r.value;
+    }
+    return latest;
+  });
+});
 
 // ── Profile view ─────────────────────────────────────────────────────────────
 //
@@ -74,6 +89,11 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   final _weightCtrl = TextEditingController();
   final _targetWeightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
+  final _inseamCtrl = TextEditingController();
+  final _armSpanCtrl = TextEditingController();
+  final _waistCtrl = TextEditingController();
+
+  bool _showMore = false;
 
   Timer? _autoSaveTimer;
   bool _saving = false;
@@ -85,11 +105,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   /// dispose runs on a normal back-navigation pop — so the final draft flush
   /// could take the teardown down with it.
   late final LocalProfileRepository _profileRepository;
+  late final MeasurementsRepository _measurementsRepository;
 
   @override
   void initState() {
     super.initState();
     _profileRepository = ref.read(localProfileRepositoryProvider);
+    _measurementsRepository = ref.read(measurementsRepositoryProvider);
     final p = widget.profile;
     _goal = p?.goal ?? FitnessGoal.maintenance;
     _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
@@ -111,6 +133,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _heightCtrl.text = p?.heightCm == null
         ? ''
         : heightFmt.formatValue(p!.heightCm!);
+    _inseamCtrl.text = p?.inseamCm == null
+        ? ''
+        : heightFmt.formatValue(p!.inseamCm!);
+    _armSpanCtrl.text = p?.armSpanCm == null
+        ? ''
+        : heightFmt.formatValue(p!.armSpanCm!);
   }
 
   @override
@@ -137,6 +165,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       if (_weightCtrl.text != weightStr) _weightCtrl.text = weightStr;
       if (_targetWeightCtrl.text != targetStr) _targetWeightCtrl.text = targetStr;
       if (_heightCtrl.text != heightStr) _heightCtrl.text = heightStr;
+      final inseamStr = p?.inseamCm == null ? '' : heightFmt.formatValue(p!.inseamCm!);
+      final armSpanStr = p?.armSpanCm == null ? '' : heightFmt.formatValue(p!.armSpanCm!);
+      if (_inseamCtrl.text != inseamStr) _inseamCtrl.text = inseamStr;
+      if (_armSpanCtrl.text != armSpanStr) _armSpanCtrl.text = armSpanStr;
     }
   }
 
@@ -150,8 +182,24 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         if (draft.targetWeightKg != null) {
           ref.read(goalWeightProvider.notifier).set(draft.targetWeightKg!);
         }
+        _saveWaist();
       }
     });
+  }
+
+  /// Waist lives in the measurement log (shared with the Measurements screen
+  /// and the body-fat formula), not on the profile — so it is written there.
+  Future<void> _saveWaist() async {
+    final display = double.tryParse(_waistCtrl.text.trim());
+    if (display == null || display <= 0) return;
+    final cm = ref.read(heightFormatProvider).toCm(display);
+    final latest = ref.read(_latestMeasurementsProvider).valueOrNull?['waist'];
+    if (latest != null && (latest - cm).abs() < 0.05) return;
+    await _measurementsRepository.logMeasurement(
+      dateIso: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      metric: 'waist',
+      value: cm,
+    );
   }
 
   /// Re-renders the body-stat fields when the measurement system flips, so a
@@ -165,6 +213,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _weightCtrl.text = kg == null ? '' : weightFmt.formatValue(kg);
     _targetWeightCtrl.text = targetKg == null ? '' : weightFmt.formatValue(targetKg);
     _heightCtrl.text = cm == null ? '' : heightFmt.formatValue(cm);
+    final inseam = widget.profile?.inseamCm;
+    final armSpan = widget.profile?.armSpanCm;
+    _inseamCtrl.text = inseam == null ? '' : heightFmt.formatValue(inseam);
+    _armSpanCtrl.text = armSpan == null ? '' : heightFmt.formatValue(armSpan);
+    final waist = ref.read(_latestMeasurementsProvider).valueOrNull?['waist'];
+    _waistCtrl.text = waist == null ? '' : heightFmt.formatValue(waist);
   }
 
   @override
@@ -177,6 +231,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _weightCtrl.dispose();
     _targetWeightCtrl.dispose();
     _heightCtrl.dispose();
+    _inseamCtrl.dispose();
+    _armSpanCtrl.dispose();
+    _waistCtrl.dispose();
     super.dispose();
   }
 
@@ -187,6 +244,8 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final weight = double.tryParse(_weightCtrl.text.trim());
     final targetWeight = double.tryParse(_targetWeightCtrl.text.trim());
     final height = double.tryParse(_heightCtrl.text.trim());
+    final inseam = double.tryParse(_inseamCtrl.text.trim());
+    final armSpan = double.tryParse(_armSpanCtrl.text.trim());
     return Profile(
       name: name.isEmpty ? null : name,
       goal: _goal,
@@ -204,6 +263,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       heightCm: height == null
           ? null
           : ref.read(heightFormatProvider).toCm(height),
+      inseamCm: inseam == null
+          ? null
+          : ref.read(heightFormatProvider).toCm(inseam),
+      armSpanCm: armSpan == null
+          ? null
+          : ref.read(heightFormatProvider).toCm(armSpan),
       preferredUnit: ref.read(unitsProvider),
     );
   }
@@ -216,6 +281,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     if (draft.targetWeightKg != null) {
       ref.read(goalWeightProvider.notifier).set(draft.targetWeightKg!);
     }
+    await _saveWaist();
     if (!mounted) return;
     setState(() => _saving = false);
     ref.read(hxToastControllerProvider.notifier).show(HxToastItem.profileSaved());
@@ -270,6 +336,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isMetric = ref.watch(unitsProvider) == MeasurementUnit.metric;
+    final latest = ref.watch(_latestMeasurementsProvider).valueOrNull ?? const {};
+    // Fill the waist field once the measurement log has loaded, but never
+    // while the user is typing.
+    ref.listen(_latestMeasurementsProvider, (_, next) {
+      final waist = next.valueOrNull?['waist'];
+      if (waist == null || _autoSaveTimer?.isActive == true) return;
+      final text = ref.read(heightFormatProvider).formatValue(waist);
+      if (_waistCtrl.text != text) _waistCtrl.text = text;
+    });
+    final lenUnit = isMetric ? 'cm' : 'in';
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 120),
@@ -338,10 +414,66 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         // BMI chip (read-only, calculated)
         if (widget.profile?.weightKg != null &&
             widget.profile?.heightCm != null)
-          _BmiChip(
-            weightKg: widget.profile!.weightKg!,
-            heightCm: widget.profile!.heightCm!,
+          Center(
+            child: _BmiChip(
+              weightKg: widget.profile!.weightKg!,
+              heightCm: widget.profile!.heightCm!,
+            ),
           ),
+
+        // ── Show more: inseam, arm span, waist, body fat ──────────────────
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => setState(() => _showMore = !_showMore),
+            icon: Icon(
+              _showMore
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+            ),
+            label: Text(_showMore ? 'Show less' : 'Show more'),
+          ),
+        ),
+        if (_showMore) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: _StatField(
+                  label: 'Inseam ($lenUnit)',
+                  hint: lenUnit,
+                  controller: _inseamCtrl,
+                  onChanged: _onFieldChanged,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatField(
+                  label: 'Arm Span ($lenUnit)',
+                  hint: lenUnit,
+                  controller: _armSpanCtrl,
+                  onChanged: _onFieldChanged,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _StatField(
+                  label: 'Waist ($lenUnit)',
+                  hint: lenUnit,
+                  controller: _waistCtrl,
+                  onChanged: _onFieldChanged,
+                ),
+              ),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Center(child: _bodyFatChip(latest)),
+        ],
 
         const SizedBox(height: 28),
 
@@ -704,6 +836,66 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
           ],
         ),
       ],
+    );
+  }
+
+  /// Body-fat estimate computed from the profile: US Navy tape formula when
+  /// waist and neck are logged, otherwise the BMI-based Deurenberg formula.
+  Widget _bodyFatChip(Map<String, double> latest) {
+    final draft = _draft();
+    final height = draft.heightCm;
+    final weight = draft.weightKg;
+    final age = draft.ageYears;
+    final isMale = draft.sex != BiologicalSex.female;
+    final waistDisplay = double.tryParse(_waistCtrl.text.trim());
+    final waistCm = waistDisplay == null
+        ? latest['waist']
+        : ref.read(heightFormatProvider).toCm(waistDisplay);
+    final neckCm = latest['neck'];
+
+    double? bf;
+    if (height != null && waistCm != null && neckCm != null) {
+      bf = BodyFatAiService.calculateNavyBodyFat(
+        heightCm: height,
+        waistCm: waistCm,
+        neckCm: neckCm,
+        hipsCm: latest['hips'],
+        isMale: isMale,
+      );
+    }
+    if (bf == null && height != null && weight != null && age != null) {
+      bf = BodyFatAiService.calculateBmiBodyFat(
+        weightKg: weight,
+        heightCm: height,
+        ageYears: age,
+        isMale: isMale,
+      );
+    }
+    if (bf == null) return const SizedBox.shrink();
+
+    final color = context.hx.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.percent_rounded, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            'Body fat ~${bf.toStringAsFixed(1)}%',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

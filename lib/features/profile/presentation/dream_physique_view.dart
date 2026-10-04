@@ -11,6 +11,7 @@ import '../../../theme/colors.dart';
 import '../../../theme/haptics.dart';
 import '../../../ui/ui.dart';
 import '../../nutrition/domain/macro_targets.dart';
+import '../../nutrition/presentation/goals_providers.dart';
 import '../data/dream_physique_service.dart';
 import '../domain/profile.dart';
 
@@ -175,6 +176,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         _analyzing = false;
         _result = result;
       });
+      await _adoptTargetWeight(profile, result);
       Haptics.heavy();
     } catch (e) {
       if (!mounted) return;
@@ -183,6 +185,22 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         _error = e.toString().replaceAll('Exception: ', '');
       });
     }
+  }
+
+  /// The analysed physique becomes the active goal, so the profile's target
+  /// weight follows it (current weight + the projected change).
+  Future<void> _adoptTargetWeight(
+    Profile? profile,
+    DreamPhysiqueAnalysisResult result,
+  ) async {
+    final current = profile?.weightKg;
+    if (profile == null || current == null) return;
+    final target = double.parse((current + result.weightChangeKg).toStringAsFixed(1));
+    if (target <= 0) return;
+    await ref
+        .read(localProfileRepositoryProvider)
+        .save(profile.copyWith(targetWeightKg: target), syncToLog: false);
+    await ref.read(goalWeightProvider.notifier).set(target);
   }
 
   @override
