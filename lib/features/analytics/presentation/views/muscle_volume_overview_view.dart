@@ -35,7 +35,7 @@ class MuscleVolumeOverviewView extends ConsumerWidget {
                 currentTimeframe: selectedTimeframe,
                 currentMode: displayMode,
               ),
-              const SizedBox(height: HxSpace.x4),
+              const SizedBox(height: HxSpace.x2),
               _FilterAndSortBar(
                 currentRegion: selectedRegion,
                 currentSort: selectedSort,
@@ -218,7 +218,10 @@ class _MetricTile extends StatelessWidget {
   }
 }
 
-// ── 2. Timeframe & Mode Selector ─────────────────────────────────────────────
+// ── 2 & 3. Filter menus ──────────────────────────────────────────────────────
+//
+// Every filter is a pop-up menu rather than a horizontally scrolling chip row,
+// so all options are visible at once and nothing is clipped off-screen.
 
 class _TimeframeAndModeSelector extends ConsumerWidget {
   const _TimeframeAndModeSelector({
@@ -231,125 +234,33 @@ class _TimeframeAndModeSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hx = context.hx;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final tf in VolumeTimeframe.values) ...[
-                      GestureDetector(
-                        onTap: () {
-                          Haptics.selection();
-                          ref
-                                  .read(
-                                    selectedVolumeTimeframeProvider.notifier,
-                                  )
-                                  .state =
-                              tf;
-                        },
-                        child: AnimatedContainer(
-                          duration: HxMotion.base,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 13,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: tf == currentTimeframe
-                                ? hx.primary
-                                : hx.surfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(HxRadius.pill),
-                            border: Border.all(
-                              color: tf == currentTimeframe
-                                  ? hx.primary
-                                  : hx.outlineVariant.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Text(
-                            tf.label,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: tf == currentTimeframe
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: tf == currentTimeframe
-                                  ? Colors.white
-                                  : hx.onSurface,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: HxSpace.x2),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: HxSpace.x2),
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: hx.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(HxRadius.pill),
-                border: Border.all(
-                  color: hx.outlineVariant.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final mode in VolumeMetricDisplayMode.values)
-                    InkWell(
-                      onTap: () {
-                        Haptics.selection();
-                        ref
-                                .read(volumeMetricDisplayModeProvider.notifier)
-                                .state =
-                            mode;
-                      },
-                      borderRadius: BorderRadius.circular(HxRadius.pill),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: mode == currentMode
-                              ? hx.primary
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(HxRadius.pill),
-                        ),
-                        child: Text(
-                          mode.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: mode == currentMode
-                                ? FontWeight.bold
-                                : FontWeight.w500,
-                            color: mode == currentMode
-                                ? Colors.white
-                                : hx.secondary,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+        Expanded(
+          child: _FilterMenu<VolumeTimeframe>(
+            icon: Icons.calendar_today_rounded,
+            value: currentTimeframe,
+            values: VolumeTimeframe.values,
+            labelOf: (tf) => tf.label,
+            onSelected: (tf) =>
+                ref.read(selectedVolumeTimeframeProvider.notifier).state = tf,
+          ),
+        ),
+        const SizedBox(width: HxSpace.x2),
+        Expanded(
+          child: _FilterMenu<VolumeMetricDisplayMode>(
+            icon: Icons.bar_chart_rounded,
+            value: currentMode,
+            values: VolumeMetricDisplayMode.values,
+            labelOf: (m) => m.label,
+            onSelected: (m) =>
+                ref.read(volumeMetricDisplayModeProvider.notifier).state = m,
+          ),
         ),
       ],
     );
   }
 }
-
-// ── 3. Filter & Sort Bar ─────────────────────────────────────────────────────
 
 class _FilterAndSortBar extends ConsumerWidget {
   const _FilterAndSortBar({
@@ -362,108 +273,104 @@ class _FilterAndSortBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final hx = context.hx;
-
     return Row(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final r in MuscleRegionFilter.values) ...[
-                  InkWell(
-                    onTap: () {
-                      Haptics.selection();
-                      ref.read(volumeRegionFilterProvider.notifier).state = r;
-                    },
-                    borderRadius: BorderRadius.circular(HxRadius.pill),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: r == currentRegion
-                            ? hx.primary.withValues(alpha: 0.15)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(HxRadius.pill),
-                        border: Border.all(
-                          color: r == currentRegion
-                              ? hx.primary
-                              : hx.outlineVariant.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Text(
-                        r.label,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: r == currentRegion
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: r == currentRegion ? hx.primary : hx.secondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: HxSpace.x2),
-                ],
-              ],
-            ),
+          child: _FilterMenu<MuscleRegionFilter>(
+            icon: Icons.accessibility_new_rounded,
+            value: currentRegion,
+            values: MuscleRegionFilter.values,
+            labelOf: (r) => r.label,
+            onSelected: (r) =>
+                ref.read(volumeRegionFilterProvider.notifier).state = r,
           ),
         ),
         const SizedBox(width: HxSpace.x2),
-        PopupMenuButton<MuscleVolumeSort>(
-          initialValue: currentSort,
-          onSelected: (sort) {
-            Haptics.selection();
-            ref.read(volumeSortByProvider.notifier).state = sort;
-          },
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(HxRadius.lg),
+        Expanded(
+          child: _FilterMenu<MuscleVolumeSort>(
+            icon: Icons.sort,
+            value: currentSort,
+            values: MuscleVolumeSort.values,
+            labelOf: (s) => s.label,
+            onSelected: (s) =>
+                ref.read(volumeSortByProvider.notifier).state = s,
           ),
-          color: hx.surfaceContainerLowest,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: hx.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(HxRadius.pill),
-              border: Border.all(
-                color: hx.outlineVariant.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.sort, size: 14, color: hx.secondary),
-                const SizedBox(width: 4),
-                Text(
-                  currentSort.label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: hx.secondary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          itemBuilder: (context) => [
-            for (final s in MuscleVolumeSort.values)
-              PopupMenuItem(
-                value: s,
-                child: Text(
-                  s.label,
-                  style: TextStyle(
-                    color: s == currentSort ? hx.primary : hx.onSurface,
-                    fontWeight: s == currentSort
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-              ),
-          ],
         ),
       ],
+    );
+  }
+}
+
+/// A pill showing the current choice that opens a pop-up menu of all options.
+class _FilterMenu<T> extends StatelessWidget {
+  const _FilterMenu({
+    required this.icon,
+    required this.value,
+    required this.values,
+    required this.labelOf,
+    required this.onSelected,
+  });
+
+  final IconData icon;
+  final T value;
+  final List<T> values;
+  final String Function(T) labelOf;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final hx = context.hx;
+    return PopupMenuButton<T>(
+      initialValue: value,
+      onSelected: (v) {
+        Haptics.selection();
+        onSelected(v);
+      },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(HxRadius.lg),
+      ),
+      color: hx.surfaceContainerLowest,
+      position: PopupMenuPosition.under,
+      itemBuilder: (context) => [
+        for (final v in values)
+          PopupMenuItem<T>(
+            value: v,
+            child: Text(
+              labelOf(v),
+              style: TextStyle(
+                color: v == value ? hx.primary : hx.onSurface,
+                fontWeight: v == value ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: hx.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(HxRadius.pill),
+          border: Border.all(color: hx.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: hx.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                labelOf(value),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: hx.onSurface,
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_drop_down_rounded, color: hx.secondary),
+          ],
+        ),
+      ),
     );
   }
 }
