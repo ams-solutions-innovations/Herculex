@@ -8,7 +8,6 @@ import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/theme/app_theme.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:herculex/features/nutrition/application/tdee_display_providers.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
 import 'package:herculex/features/weekly_report/application/weekly_report_controller.dart';
@@ -26,6 +25,7 @@ import 'package:herculex/features/weekly_report/presentation/widgets/physique_se
 import 'package:herculex/features/weekly_report/presentation/widgets/recovery_section_card.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/tdee_shift_card.dart';
 import 'package:herculex/features/weekly_report/presentation/widgets/training_section_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../support/fake_clock.dart';
 import '../../support/go_router_test_harness.dart';
