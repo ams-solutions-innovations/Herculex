@@ -11,6 +11,7 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
 import 'package:herculex/features/physique/presentation/save_physique_goal.dart';
@@ -276,13 +277,14 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
       });
       Haptics.heavy();
       if (!mounted) return;
-      await savePhysiqueGoal(
+      final saved = await savePhysiqueGoal(
         context,
         ref,
         result: result,
         currentPhotos: _currentFiles,
         targetPhotoCount: _targetFiles.length,
       );
+      if (saved) await _adoptTargetWeight(profile, result);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -290,6 +292,24 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         _error = _analysisErrorMessage(e);
       });
     }
+  }
+
+  /// The saved physique goal becomes the active one, so the profile's target
+  /// weight follows it (current weight + the projected change).
+  Future<void> _adoptTargetWeight(
+    Profile? profile,
+    DreamPhysiqueAnalysisResult result,
+  ) async {
+    final current = profile?.weightKg;
+    if (profile == null || current == null) return;
+    final target = double.parse(
+      (current + result.weightChangeKg).toStringAsFixed(1),
+    );
+    if (target <= 0) return;
+    await ref
+        .read(localProfileRepositoryProvider)
+        .save(profile.copyWith(targetWeightKg: target), syncToLog: false);
+    await ref.read(goalWeightProvider.notifier).set(target);
   }
 
   String _analysisErrorMessage(Object error) {
