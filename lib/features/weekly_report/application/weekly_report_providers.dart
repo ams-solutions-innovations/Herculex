@@ -44,6 +44,8 @@ final weeklyReportServiceProvider = Provider<WeeklyReportService>((ref) {
     inputs: ref.watch(weeklyReportInputsRepositoryProvider),
     narrative: ref.watch(weeklyReportNarrativeServiceProvider),
     clock: ref.watch(clockProvider),
+    reportTimeHHMM: () =>
+        ref.read(notificationSettingsProvider).weeklyReportTimeHHMM,
     targetForDay: (day) async {
       try {
         return await ref.read(effectiveTargetsProvider(day).future);

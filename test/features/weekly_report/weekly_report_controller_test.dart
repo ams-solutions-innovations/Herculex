@@ -76,7 +76,8 @@ void main() {
 
   // 2026-W40: Monday 2026-09-28 to Sunday 2026-10-04.
   final week = IsoWeek(2026, 40);
-  final wednesday = DateTime(2026, 9, 30, 18);
+  // Sunday at the default 18:00 report time: the running week is due.
+  final sundayDue = DateTime(2026, 10, 4, 18);
 
   group('WeeklyReportController', () {
     late AppDatabase db;
@@ -107,7 +108,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       prefs = await SharedPreferences.getInstance();
       db = await openTestDatabase();
-      clock = FakeClock(wednesday);
+      clock = FakeClock(sundayDue);
       nutrition = NutritionRepository(db, OpenFoodFactsClient(), clock);
       repository = WeeklyReportRepository(db, clock);
       inputs = WeeklyReportInputsRepository(
@@ -373,7 +374,7 @@ void main() {
       await controller.narrationInFlight(week);
 
       expect(ui().failure, NarrativeFailureKind.quotaExhausted);
-      expect(ui().quotaDayIso, '2026-09-30');
+      expect(ui().quotaDayIso, '2026-10-04');
     });
   });
 

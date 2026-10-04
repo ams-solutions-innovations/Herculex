@@ -64,10 +64,12 @@ void main() {
     // 2026-W40: Monday 2026-09-28 to Sunday 2026-10-04.
     final week = IsoWeek(2026, 40);
     final wednesday = DateTime(2026, 9, 30, 18);
+    // Sunday at the default 18:00 report time: the running week is due.
+    final sundayDue = DateTime(2026, 10, 4, 18);
 
     setUp(() async {
       db = await openTestDatabase();
-      clock = FakeClock(wednesday);
+      clock = FakeClock(sundayDue);
       nutrition = NutritionRepository(db, OpenFoodFactsClient(), clock);
       tdee = TdeeEstimatesRepository(db, clock);
       inputs = WeeklyReportInputsRepository(db, nutrition, tdee);
@@ -169,12 +171,44 @@ void main() {
         expect(await reportRows(), 1);
         final payload = WeeklyReportPayload.tryDecode(record!.payloadJson);
         expect(payload, isNotNull);
-        expect(payload!.windowEnd, wednesday);
+        expect(payload!.windowEnd, sundayDue);
         expect(payload.nutrition?.daysLogged, 2);
         expect(payload.training?.sessions, 1);
         expect(payload.hasNarrativeSignal, isTrue);
         expect(record.narrativeJson, isNull);
         expect(record.narrativeAttempts, 0);
+      });
+
+      test('the running week before Sunday report time persists nothing '
+          '(WR-07)', () async {
+        await seedFoodAndWorkout();
+        clock.set(wednesday);
+
+        expect(service.canSnapshot(week), isFalse);
+        expect(await service.generate(week), isNull);
+        expect(await reportRows(), 0);
+      });
+
+      test('Sunday before the report time is not due, at it is', () async {
+        await seedFoodAndWorkout();
+        clock.set(DateTime(2026, 10, 4, 17, 59));
+        expect(service.canSnapshot(week), isFalse);
+        expect(await service.generate(week), isNull);
+        clock.set(DateTime(2026, 10, 4, 18));
+        expect(service.canSnapshot(week), isTrue);
+        expect(await service.generate(week), isNotNull);
+      });
+
+      test('an existing row for the running week is returned mid-week '
+          '(RPT-04)', () async {
+        await seedFoodAndWorkout();
+        final first = await service.generate(week);
+        clock.set(wednesday);
+
+        final again = await service.generate(week);
+
+        expect(again!.id, first!.id);
+        expect(await reportRows(), 1);
       });
 
       test('a past week ends at the week end, not at now (D-05)', () async {
@@ -192,7 +226,7 @@ void main() {
           'snapshot', () async {
         final f = await food('Oats', 400);
         await logAt(f, DateTime(2026, 9, 29));
-        await logAt(f, DateTime(2026, 10, 2)); // later than "now"
+        await logAt(f, DateTime(2026, 10, 5)); // next week, after "now"
 
         final record = await service.generate(week);
 

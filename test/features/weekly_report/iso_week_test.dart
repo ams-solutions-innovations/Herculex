@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/features/weekly_report/domain/iso_week.dart';
 
 void main() {
+  isSnapshotDueTests();
   group('IsoWeek.fromDate', () {
     final cases = <(DateTime, int, int)>[
       (DateTime(2026, 12, 31), 2026, 53),
@@ -179,6 +180,37 @@ void main() {
         IsoWeek.forNotificationTap(DateTime(2026, 10, 4, 21, 0), '21:00'),
         const IsoWeek(2026, 40),
       );
+    });
+  });
+}
+
+void isSnapshotDueTests() {
+  group('IsoWeek.isSnapshotDue', () {
+    const w = IsoWeek(2026, 40); // Mon 2026-09-28 .. Sun 2026-10-04
+    test('running week before Sunday report time is not due', () {
+      expect(w.isSnapshotDue(DateTime(2026, 9, 29, 12), '18:00'), isFalse);
+      expect(w.isSnapshotDue(DateTime(2026, 10, 4, 17, 59), '18:00'), isFalse);
+    });
+    test('Sunday at or after report time is due', () {
+      expect(w.isSnapshotDue(DateTime(2026, 10, 4, 18), '18:00'), isTrue);
+      expect(w.isSnapshotDue(DateTime(2026, 10, 4, 23, 59), '18:00'), isTrue);
+    });
+    test('ended weeks are due, future weeks are not', () {
+      expect(w.isSnapshotDue(DateTime(2026, 10, 5), '18:00'), isTrue);
+      expect(w.isSnapshotDue(DateTime(2026, 12, 1), '18:00'), isTrue);
+      expect(w.isSnapshotDue(DateTime(2026, 9, 20), '18:00'), isFalse);
+    });
+    test('custom and malformed times', () {
+      expect(w.isSnapshotDue(DateTime(2026, 10, 4, 7, 29), '07:30'), isFalse);
+      expect(w.isSnapshotDue(DateTime(2026, 10, 4, 7, 30), '07:30'), isTrue);
+      expect(w.isSnapshotDue(DateTime(2026, 10, 4, 17, 59), 'bogus'), isFalse);
+      expect(w.isSnapshotDue(DateTime(2026, 10, 4, 18), 'bogus'), isTrue);
+    });
+    test('ISO year boundary 2026-W53 on Sun 2027-01-03', () {
+      const w53 = IsoWeek(2026, 53);
+      expect(w53.isSnapshotDue(DateTime(2027, 1, 3, 17, 59), '18:00'), isFalse);
+      expect(w53.isSnapshotDue(DateTime(2027, 1, 3, 18), '18:00'), isTrue);
+      expect(w53.isSnapshotDue(DateTime(2027, 1, 1, 12), '18:00'), isFalse);
     });
   });
 }

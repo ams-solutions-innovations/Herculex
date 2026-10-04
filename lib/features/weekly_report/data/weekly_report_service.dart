@@ -53,7 +53,10 @@ class NarrativeOutcome {
 /// Order of guarantees:
 /// * D-01 / RPT-04: an existing row is returned untouched, never recomputed.
 /// * D-02: the measured snapshot is persisted before any AI work starts.
-/// * D-04 / D-05: the window is Monday through `min(now, week end)`.
+/// * D-04 / D-05: the window is Monday through `min(now, week end)`, and the
+///   running week is persisted only once due (week over, or Sunday at/after
+///   the weekly-report time), so a mid-week open freezes nothing.
+
 /// * D-06: a week with nothing logged inside it, or a future week, creates no
 ///   row.
 /// * House rule: the AI never writes. [generateNarrative] only passes facts
@@ -69,7 +72,9 @@ class WeeklyReportService {
     required WeeklyReportNarrativeService narrative,
     required Clock clock,
     required Future<MacroTargets?> Function(DateTime day) targetForDay,
-  }) : _repository = repository,
+    String Function()? reportTimeHHMM,
+  }) : _reportTimeHHMM = reportTimeHHMM ?? _defaultReportTime,
+       _repository = repository,
        _inputs = inputs,
        _narrative = narrative,
        _clock = clock,
@@ -80,6 +85,13 @@ class WeeklyReportService {
   final WeeklyReportNarrativeService _narrative;
   final Clock _clock;
   final Future<MacroTargets?> Function(DateTime day) _targetForDay;
+  final String Function() _reportTimeHHMM;
+
+  static String _defaultReportTime() => '18:00';
+
+  /// Whether [week] may be persisted right now (see [IsoWeek.isSnapshotDue]).
+  bool canSnapshot(IsoWeek week) =>
+      week.isSnapshotDue(_clock.now(), _reportTimeHHMM());
 
   /// Returns the stored report for [week], creating it first if this is the
   /// first time the week is opened. Null when the week is in the future or
@@ -90,6 +102,7 @@ class WeeklyReportService {
 
     final now = _clock.now();
     if (week.start.isAfter(now)) return null;
+    if (!canSnapshot(week)) return null;
     final windowEnd = week.windowEnd(now);
 
     final inputs = await _inputs.load(week: week, windowEnd: windowEnd);

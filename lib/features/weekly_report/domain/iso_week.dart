@@ -85,6 +85,21 @@ class IsoWeek implements Comparable<IsoWeek> {
 
   bool isAfter(IsoWeek other) => compareTo(other) > 0;
 
+  /// Whether a report for this week may be frozen at [now] (RPT-04).
+  ///
+  /// True once the week has ended, or on its Sunday at/after [timeHHMM] (the
+  /// weekly-report time; malformed input falls back to 18:00). False for a
+  /// future week and for any earlier moment of the running week, so a mid-week
+  /// open never freezes a partial week.
+  bool isSnapshotDue(DateTime now, String timeHHMM) {
+    if (!now.isBefore(endExclusive)) return true;
+    if (start.isAfter(now)) return false;
+    if (now.weekday != DateTime.sunday) return false;
+    final (hour, minute) = _parseHHMM(timeHHMM);
+    final due = DateTime(now.year, now.month, now.day, hour, minute);
+    return !now.isBefore(due);
+  }
+
   /// The week a weekly-report notification tap should open (D-05, D-09).
   ///
   /// The notification is a repeating `dayOfWeekAndTime` one, so its payload is
