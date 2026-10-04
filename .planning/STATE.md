@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Training Programs Revamp, Dream Physique & Gamification
 status: ready_to_plan
-last_updated: "2026-10-04T08:43:23.155Z"
+last_updated: "2026-10-04T08:53:03.562Z"
 progress:
   total_phases: 15
   completed_phases: 12
   total_plans: 111
-  completed_plans: 108
+  completed_plans: 109
   percent: 80
 ---
 
@@ -1638,3 +1638,10 @@ Execution order is **not** numeric — see ROADMAP.md. Recommended:
   - **Plan 16-03 (META-02, META-04):** Implemented dual-check prerequisite gate in `ExerciseProgrammingEligibility.verifyPrerequisites` with canonical `movementSlug` family alias resolution; built `ExerciseScalingResolver` domain service with progressive ladder regression, strict group boundaries, and explainable rationales.
 - Validation: 0 Dart static analysis errors; 46/46 automated tests passing across 6 test suites in 15s.
 - Next implementation focus: `/gsd-plan-phase 17` (Deterministic Program Planner & Hard Guardrails).
+
+---
+
+## Session update — 2026-10-04 (Plan 29-23)
+
+- Plan 29-23 done (WR-04, WR-05, IN-03): weekly_report facts validated and re-sanitised before `bumpUsage`; `<facts>` delimiters in prompt; number-in-facts check on server and Dart client with shared fixture `test/fixtures/weekly_report_number_cases.json`; TS/Dart limits asserted equal. Knowledge-range allowance dropped (only 0..60 always allowed).
+- gemini-analyze needs redeploy by the orchestrator. Flaky pre-existing test: `weekly_report_repository_test.dart` "reads equal generatedAt falls back to the lowest id".
