@@ -72,3 +72,8 @@ app.*.map.json
 /android/build/
 /android/*/build/
 /android/.gradle/
+
+# Local media / model cache of the bodybuilding-blueprint transcription
+# pipeline (several GB of .webm and whisper weights). It once got committed
+# and made a push fail: GitHub rejects files over 100 MB.
+outputs/bodybuilding-blueprint/
