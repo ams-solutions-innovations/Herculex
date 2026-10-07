@@ -1,14 +1,52 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
+import 'package:herculex/features/gamification/data/xp_ledger_repository.dart';
 import 'package:herculex/features/gamification/domain/achievement_evaluator.dart';
+import 'package:herculex/features/gamification/domain/level_progress.dart';
+import 'package:herculex/features/gamification/domain/workout_xp_evaluator.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 
 final achievementEvaluatorProvider = Provider<AchievementEvaluator>((ref) {
   return const AchievementEvaluator();
+});
+
+final xpLedgerRepositoryProvider = Provider<XpLedgerRepository>((ref) {
+  final repository = XpLedgerRepository(ref.watch(sharedPreferencesProvider));
+  ref.onDispose(repository.dispose);
+  return repository;
+});
+
+final levelProgressProvider = StreamProvider<LevelProgress>((ref) async* {
+  final ledger = ref.watch(xpLedgerRepositoryProvider);
+  final completedSessionsAsync = ref.watch(completedSessionsProvider);
+  final snapshotAsync = ref.watch(trainingSnapshotProvider);
+  final profile = ref.watch(profileProvider).valueOrNull;
+
+  final sessions = completedSessionsAsync.valueOrNull;
+  if (sessions != null && sessions.isNotEmpty) {
+    final snapshot = snapshotAsync.valueOrNull;
+    await ledger.reconcileWithSessions(
+      sessions: sessions,
+      snapshot: snapshot,
+      bodyweightKg: profile?.weightKg,
+    );
+  }
+
+  final activeIds = sessions?.map((s) => s.id).toList();
+  yield ledger.getProgressForActiveSessions(activeIds);
+
+  yield* ledger.watch();
+});
+
+final xpLedgerEntriesProvider = Provider<List<XpLedgerEntry>>((ref) {
+  ref.watch(levelProgressProvider);
+  return ref.watch(xpLedgerRepositoryProvider).entries;
 });
 
 /// Service / helper that connects database snapshot, evaluator, and in-app
@@ -72,10 +110,27 @@ class GamificationService {
   }) async {
     try {
       final snapshot = await _ref.read(trainingSnapshotProvider.future);
+      final profile = _ref.read(profileProvider).valueOrNull;
+      final ledger = _ref.read(xpLedgerRepositoryProvider);
+      final evaluator = const WorkoutXpEvaluator();
+      final sessionSets = snapshot.sets
+          .where((set) => set.session.id == sessionId)
+          .toList();
+      final award = evaluator.evaluate(
+        sessionSets: sessionSets,
+        bodyweightKg: profile?.weightKg,
+        previousEntries: ledger.entries,
+        completedAt: endedAt,
+      );
+      await ledger.record(
+        id: 'workout:$sessionId',
+        awardedAt: endedAt,
+        award: award,
+      );
       final weightFormat = _ref.read(weightFormatProvider);
-      final evaluator = _ref.read(achievementEvaluatorProvider);
+      final achievementEvaluator = _ref.read(achievementEvaluatorProvider);
 
-      return evaluator.evaluateSessionSummaryAchievements(
+      return achievementEvaluator.evaluateSessionSummaryAchievements(
         snapshot: snapshot,
         currentSessionId: sessionId,
         workoutName: workoutName,

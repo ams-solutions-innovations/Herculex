@@ -13,9 +13,11 @@ import 'package:herculex/features/analytics/presentation/views/cns_view.dart';
 import 'package:herculex/features/analytics/presentation/views/insights_view.dart';
 import 'package:herculex/features/analytics/presentation/views/muscle_volume_detail_view.dart';
 import 'package:herculex/features/analytics/presentation/views/muscle_volume_overview_view.dart';
+import 'package:herculex/features/analytics/presentation/views/personal_records_view.dart';
 import 'package:herculex/features/buddy/presentation/buddy_join_scanner_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_schedule_view.dart';
 import 'package:herculex/features/fasting/presentation/fasting_view.dart';
+import 'package:herculex/features/gamification/presentation/training_level_view.dart';
 import 'package:herculex/features/gyms/presentation/gyms_view.dart';
 import 'package:herculex/features/health/presentation/cycle_tracking_view.dart';
 import 'package:herculex/features/health/presentation/health_integrations_view.dart';
@@ -23,6 +25,7 @@ import 'package:herculex/features/health/presentation/health_platform_detail_vie
 import 'package:herculex/features/measurements/presentation/measurements_view.dart';
 import 'package:herculex/features/measurements/presentation/metric_detail_view.dart';
 import 'package:herculex/features/notifications/presentation/notification_settings_view.dart';
+import 'package:herculex/features/nutrition/domain/diet_phase.dart';
 import 'package:herculex/features/nutrition/presentation/views/calorie_macro_goals_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/calorie_meal_goals_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/goals_view.dart';
@@ -32,18 +35,26 @@ import 'package:herculex/features/nutrition/presentation/views/nutrient_settings
 import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
 import 'package:herculex/features/nutrition/presentation/views/weekly_calories_view.dart';
 import 'package:herculex/features/onboarding/presentation/onboarding_view.dart';
+import 'package:herculex/features/physique/presentation/views/physique_progress_view.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/features/profile/presentation/custom_foods_view.dart';
 import 'package:herculex/features/profile/presentation/custom_recipes_view.dart';
+import 'package:herculex/features/profile/presentation/dream_physique_history_view.dart';
+import 'package:herculex/features/profile/presentation/dream_physique_priorities_view.dart';
 import 'package:herculex/features/profile/presentation/dream_physique_view.dart';
 import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/programs/presentation/views/rotation_pools_view.dart';
 import 'package:herculex/features/recovery/presentation/recovery_view.dart';
 import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/shell/splash_view.dart';
+import 'package:herculex/features/supplements/presentation/supplements_view.dart';
+import 'package:herculex/features/weekly_report/domain/iso_week.dart';
+import 'package:herculex/features/weekly_report/presentation/views/weekly_report_view.dart';
+import 'package:herculex/features/weekly_report/presentation/views/weekly_reports_history_view.dart';
 import 'package:herculex/features/workouts/presentation/views/exercise_details_view.dart';
 import 'package:herculex/features/workouts/presentation/views/exercise_library_view.dart';
 import 'package:herculex/features/workouts/presentation/views/micro_workouts_view.dart';
+import 'package:herculex/features/workouts/presentation/views/planned_workout_preview_view.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_history_view.dart';
 
 /// Bridges the Riverpod profile stream into a [Listenable] so
@@ -69,6 +80,21 @@ Widget _badParam(BuildContext context, GoRouterState state, String name) =>
       message: "'${state.pathParameters[name]}' isn't a valid $name.",
       onGoHome: () => context.go(AppRoutes.app),
     );
+
+/// Builder of [AppRoutes.weeklyReport]. Both path parameters are untrusted
+/// (deep links, restored routes): a non-number or an impossible ISO week (week
+/// 0, week 99, week 53 in a 52-week year) shows the bad-parameter screen and
+/// never reaches the report view.
+@visibleForTesting
+Widget buildWeeklyReportRoute(BuildContext context, GoRouterState state) {
+  final year = _intParam(state, 'isoYear');
+  final week = _intParam(state, 'isoWeek');
+  if (year == null) return _badParam(context, state, 'isoYear');
+  if (week == null) return _badParam(context, state, 'isoWeek');
+  final isoWeek = IsoWeek.tryCreate(year, week);
+  if (isoWeek == null) return _badParam(context, state, 'isoWeek');
+  return WeeklyReportView(week: isoWeek);
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh(ref);
@@ -124,6 +150,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: AppRoutes.plannedWorkoutPreview,
+        builder: (context, state) {
+          final id = _intParam(state, 'id');
+          if (id == null) return _badParam(context, state, 'id');
+          return PlannedWorkoutPreviewView(scheduleId: id);
+        },
+      ),
+      GoRoute(
         path: AppRoutes.exercise,
         builder: (context, state) {
           final id = _intParam(state, 'id');
@@ -160,8 +194,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: AppRoutes.cns, builder: (_, _) => const CnsView()),
       GoRoute(
+        path: AppRoutes.weeklyReports,
+        builder: (_, _) => const WeeklyReportsHistoryView(),
+      ),
+      GoRoute(path: AppRoutes.weeklyReport, builder: buildWeeklyReportRoute),
+      GoRoute(
         path: AppRoutes.recovery,
         builder: (_, _) => const RecoveryView(),
+      ),
+      GoRoute(
+        path: AppRoutes.personalRecords,
+        builder: (_, _) => const PersonalRecordsView(),
+      ),
+      GoRoute(
+        path: AppRoutes.supplements,
+        builder: (_, _) => const SupplementsView(),
       ),
       GoRoute(
         path: AppRoutes.muscleVolume,
@@ -197,12 +244,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: AppRoutes.profile, builder: (_, _) => const ProfileView()),
       GoRoute(
+        path: AppRoutes.trainingLevel,
+        builder: (_, _) => const TrainingLevelView(),
+      ),
+      GoRoute(
         path: AppRoutes.notifications,
         builder: (_, _) => const NotificationSettingsView(),
       ),
       GoRoute(
         path: AppRoutes.dreamPhysique,
         builder: (_, _) => const DreamPhysiqueView(),
+      ),
+      GoRoute(
+        path: AppRoutes.dreamPhysiquePriorities,
+        builder: (_, _) => const DreamPhysiquePrioritiesView(),
+      ),
+      GoRoute(
+        path: AppRoutes.dreamPhysiqueHistory,
+        builder: (_, _) => const DreamPhysiqueHistoryView(),
+      ),
+      GoRoute(
+        path: AppRoutes.dreamPhysiqueProgress,
+        builder: (_, state) => PhysiqueProgressView(
+          goalId: int.tryParse(state.uri.queryParameters['goalId'] ?? ''),
+        ),
       ),
       GoRoute(
         path: AppRoutes.customFoods,
@@ -214,7 +279,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.nutritionTargets,
-        builder: (_, _) => const NutritionTargetsView(),
+        builder: (_, state) =>
+            NutritionTargetsView(initialPhase: state.extra as DietPhase?),
       ),
       GoRoute(
         path: AppRoutes.nutritionMealSlots,

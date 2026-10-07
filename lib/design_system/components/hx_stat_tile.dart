@@ -53,13 +53,18 @@ class HxStatTile extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: hx.secondary,
-                  letterSpacing: 1.0,
+              // Flexible so a long caption wraps instead of overflowing next
+              // to the icon bubble in a narrow tile or at a large text scale.
+              Flexible(
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: hx.secondary,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ),
+              const SizedBox(width: HxSpace.x2),
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
@@ -77,10 +82,12 @@ class HxStatTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text(
-                    value,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Flexible(
+                    child: Text(
+                      value,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   if (secondaryValue != null) ...[

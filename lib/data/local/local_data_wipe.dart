@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:herculex/data/local/database.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// Erases every trace of the signed-in person from this device.
 ///
@@ -22,8 +23,12 @@ import 'package:herculex/data/local/database.dart';
 /// (`is_custom = 1`) and does go, taking its children with it through the
 /// `on delete cascade` already declared on `exercise_muscles`,
 /// `exercise_aliases` and `food_micros`.
-Future<void> wipeAllLocalUserData(AppDatabase db) async {
+Future<void> wipeAllLocalUserData(
+  AppDatabase db, {
+  Directory? documentsDirectory,
+}) async {
   await _deleteProgressPhotoFiles(db);
+  await _deletePhysiquePhotoFiles(documentsDirectory);
 
   await db.transaction(() async {
     // Ordinary `DELETE`s in an order that does not follow the FK graph, so
@@ -67,6 +72,25 @@ Future<void> _deleteProgressPhotoFiles(AppDatabase db) async {
   }
 }
 
+/// Folder under the documents directory holding private physique photos.
+/// Must equal `PhysiquePhotoStore.rootFolderName` (enforced by a test, so this
+/// file does not have to import a feature).
+const physiquePhotoFolderName = 'physique';
+
+/// Physique photos live under `<documents>/physique/<goalUuid>/`; they are
+/// GDPR Article 9 data and must not survive account deletion.
+Future<void> _deletePhysiquePhotoFiles(Directory? override) async {
+  try {
+    final docs = override ?? await getApplicationDocumentsDirectory();
+    final dir = Directory(
+      '${docs.path}${Platform.pathSeparator}$physiquePhotoFolderName',
+    );
+    if (dir.existsSync()) await dir.delete(recursive: true);
+  } catch (_) {
+    // No plugin (tests) or an undeletable file must not abort the wipe.
+  }
+}
+
 /// Seeded + custom rows share these tables; only the custom ones are the
 /// user's. Mirrors `isCustomFilteredTableNames` in
 /// `migrations/sync_backfill.dart`, minus `recipes` — every recipe is
@@ -96,6 +120,12 @@ const _fullyClearedTables = [
   'programs',
   'program_weeks',
   'program_days',
+  'program_exercise_slots',
+  'program_slot_pool_members',
+  'rotation_assignments',
+  'prescription_templates',
+  'physique_programming_profiles',
+  'exercise_preferences',
   'program_day_exercises',
   'scheduled_workouts',
   'exercise_rotations',
@@ -104,6 +134,7 @@ const _fullyClearedTables = [
   'micro_workouts',
   'machine_settings',
   'gyms',
+  'gym_equipment',
   // Nutrition
   'recipes',
   'recipe_ingredients',
@@ -124,4 +155,15 @@ const _fullyClearedTables = [
   // Local-only feature state
   'buddy_sessions_local',
   'buddy_choreography_slots',
+  // Physique goals, assessments, roadmaps and photo metadata (Article 9).
+  'physique_goals',
+  'physique_assessments',
+  'physique_roadmap_phases',
+  'physique_photos',
+  // Found while editing this list: synced user tables the wipe was missing.
+  'tdee_estimates',
+  'herculex_ai_program_briefs',
+  // Weekly reports hold aggregated health data (GDPR Art. 9); account
+  // deletion must clear them.
+  'weekly_reports',
 ];

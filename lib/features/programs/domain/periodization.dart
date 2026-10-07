@@ -7,7 +7,7 @@ enum PeriodizationModel {
   linear('linear', 'Linear'),
   concurrent('concurrent', 'Concurrent'),
   block('block', 'Block'),
-  maxEffort('max_effort', 'Max Effort (Westside)');
+  maxEffort('max_effort', 'Max Effort — Westside (Conjugate)');
 
   const PeriodizationModel(this.id, this.label);
   final String id;
@@ -53,6 +53,22 @@ class Periodization {
       PeriodizationModel.block => _block(weeks),
       PeriodizationModel.maxEffort => _maxEffort(weeks),
     };
+  }
+
+  /// Whether this is a deliberately prescribed deload, as opposed to a
+  /// normal volume taper (or the lower volume of a realization phase).
+  ///
+  /// Keep presentation and workout resolution on this explicit flag.  Volume
+  /// alone is not enough to identify a deload: linear programs taper before
+  /// their fourth week and block programs intentionally lower volume while
+  /// peaking.
+  static bool isPlannedDeload({
+    required PeriodizationModel model,
+    required int totalWeeks,
+    required int weekIndex,
+  }) {
+    if (weekIndex < 0 || weekIndex >= totalWeeks) return false;
+    return plan(model, totalWeeks)[weekIndex].isDeload;
   }
 
   /// Linear: intensity ramps weekly while volume tapers; every 4th week is a

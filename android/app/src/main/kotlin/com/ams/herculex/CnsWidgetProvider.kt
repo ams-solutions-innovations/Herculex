@@ -17,7 +17,7 @@ class CnsWidgetProvider : HxWidgetProvider() {
         val prefs = getPrefs(context)
         val readiness = prefs.getInt(KEY_CNS_READINESS, -1)
         val status = prefs.getString(KEY_CNS_STATUS, null)
-        val known = readiness >= 0 && status != null
+        val known = !isWidgetDataStale(prefs) && readiness >= 0 && status != null
         return renderer.cns(w, h, HxCns(readiness.takeIf { known }, status.takeIf { known }))
     }
 

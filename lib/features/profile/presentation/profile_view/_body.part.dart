@@ -41,6 +41,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   final _weightCtrl = TextEditingController();
   final _targetWeightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
+  final _inseamCtrl = TextEditingController();
+  final _armSpanCtrl = TextEditingController();
+  final _torsoCtrl = TextEditingController();
+  final _waistCtrl = TextEditingController();
+
+  bool _showMore = false;
 
   Timer? _autoSaveTimer;
   bool _saving = false;
@@ -52,11 +58,13 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   /// dispose runs on a normal back-navigation pop — so the final draft flush
   /// could take the teardown down with it.
   late final LocalProfileRepository _profileRepository;
+  late final MeasurementsRepository _measurementsRepository;
 
   @override
   void initState() {
     super.initState();
     _profileRepository = ref.read(localProfileRepositoryProvider);
+    _measurementsRepository = ref.read(measurementsRepositoryProvider);
     final p = widget.profile;
     _goal = p?.goal ?? FitnessGoal.maintenance;
     _activityLevel = p?.activityLevel ?? ActivityLevel.lightlyActive;
@@ -79,6 +87,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _heightCtrl.text = p?.heightCm == null
         ? ''
         : heightFmt.formatValue(p!.heightCm!);
+    _inseamCtrl.text = p?.inseamCm == null
+        ? ''
+        : heightFmt.formatValue(p!.inseamCm!);
+    _armSpanCtrl.text = p?.armSpanCm == null
+        ? ''
+        : heightFmt.formatValue(p!.armSpanCm!);
+    _torsoCtrl.text = p?.torsoCm == null
+        ? ''
+        : heightFmt.formatValue(p!.torsoCm!);
   }
 
   @override
@@ -107,10 +124,22 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       final heightStr = p?.heightCm == null
           ? ''
           : heightFmt.formatValue(p!.heightCm!);
+      final inseamStr = p?.inseamCm == null
+          ? ''
+          : heightFmt.formatValue(p!.inseamCm!);
+      final armSpanStr = p?.armSpanCm == null
+          ? ''
+          : heightFmt.formatValue(p!.armSpanCm!);
+      final torsoStr = p?.torsoCm == null
+          ? ''
+          : heightFmt.formatValue(p!.torsoCm!);
       if (_weightCtrl.text != weightStr) _weightCtrl.text = weightStr;
       if (_targetWeightCtrl.text != targetStr)
         _targetWeightCtrl.text = targetStr;
       if (_heightCtrl.text != heightStr) _heightCtrl.text = heightStr;
+      if (_inseamCtrl.text != inseamStr) _inseamCtrl.text = inseamStr;
+      if (_armSpanCtrl.text != armSpanStr) _armSpanCtrl.text = armSpanStr;
+      if (_torsoCtrl.text != torsoStr) _torsoCtrl.text = torsoStr;
     }
   }
 
@@ -124,8 +153,24 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         if (draft.targetWeightKg != null) {
           ref.read(goalWeightProvider.notifier).set(draft.targetWeightKg!);
         }
+        _saveWaist();
       }
     });
+  }
+
+  /// Waist lives in the measurement log (shared with the Measurements screen
+  /// and the body-fat formula), not on the profile, so it is written there.
+  Future<void> _saveWaist() async {
+    final display = double.tryParse(_waistCtrl.text.trim());
+    if (display == null || display <= 0) return;
+    final cm = ref.read(heightFormatProvider).toCm(display);
+    final latest = ref.read(_latestMeasurementsProvider).valueOrNull?['waist'];
+    if (latest != null && (latest - cm).abs() < 0.05) return;
+    await _measurementsRepository.logMeasurement(
+      dateIso: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      metric: 'waist',
+      value: cm,
+    );
   }
 
   /// Re-renders the body-stat fields when the measurement system flips, so a
@@ -137,11 +182,19 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final targetKg =
         widget.profile?.targetWeightKg ?? ref.read(goalWeightProvider);
     final cm = widget.profile?.heightCm;
+    final inseam = widget.profile?.inseamCm;
+    final armSpan = widget.profile?.armSpanCm;
+    final torso = widget.profile?.torsoCm;
     _weightCtrl.text = kg == null ? '' : weightFmt.formatValue(kg);
     _targetWeightCtrl.text = targetKg == null
         ? ''
         : weightFmt.formatValue(targetKg);
     _heightCtrl.text = cm == null ? '' : heightFmt.formatValue(cm);
+    _inseamCtrl.text = inseam == null ? '' : heightFmt.formatValue(inseam);
+    _armSpanCtrl.text = armSpan == null ? '' : heightFmt.formatValue(armSpan);
+    _torsoCtrl.text = torso == null ? '' : heightFmt.formatValue(torso);
+    final waist = ref.read(_latestMeasurementsProvider).valueOrNull?['waist'];
+    _waistCtrl.text = waist == null ? '' : heightFmt.formatValue(waist);
   }
 
   @override
@@ -154,6 +207,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     _weightCtrl.dispose();
     _targetWeightCtrl.dispose();
     _heightCtrl.dispose();
+    _inseamCtrl.dispose();
+    _armSpanCtrl.dispose();
+    _torsoCtrl.dispose();
+    _waistCtrl.dispose();
     super.dispose();
   }
 
@@ -164,6 +221,9 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     final weight = double.tryParse(_weightCtrl.text.trim());
     final targetWeight = double.tryParse(_targetWeightCtrl.text.trim());
     final height = double.tryParse(_heightCtrl.text.trim());
+    final inseam = double.tryParse(_inseamCtrl.text.trim());
+    final armSpan = double.tryParse(_armSpanCtrl.text.trim());
+    final torso = double.tryParse(_torsoCtrl.text.trim());
     return Profile(
       name: name.isEmpty ? null : name,
       goal: _goal,
@@ -182,6 +242,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       heightCm: height == null
           ? null
           : ref.read(heightFormatProvider).toCm(height),
+      inseamCm: inseam == null
+          ? null
+          : ref.read(heightFormatProvider).toCm(inseam),
+      armSpanCm: armSpan == null
+          ? null
+          : ref.read(heightFormatProvider).toCm(armSpan),
+      torsoCm: torso == null
+          ? null
+          : ref.read(heightFormatProvider).toCm(torso),
       preferredUnit: ref.read(unitsProvider),
     );
   }
@@ -194,11 +263,14 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     if (draft.targetWeightKg != null) {
       ref.read(goalWeightProvider.notifier).set(draft.targetWeightKg!);
     }
+    await _saveWaist();
     if (!mounted) return;
     setState(() => _saving = false);
-    ref
-        .read(hxToastControllerProvider.notifier)
-        .show(HxToastItem.profileSaved());
+    AppNotice.showWith(
+      ref,
+      'Profile saved',
+      title: 'Stats and targets are up to date',
+    );
   }
 
   Future<void> _clearData(BuildContext context) async {
@@ -250,6 +322,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isMetric = ref.watch(unitsProvider) == MeasurementUnit.metric;
+    final latest =
+        ref.watch(_latestMeasurementsProvider).valueOrNull ?? const {};
+    // Fill the waist field once the measurement log has loaded, but never
+    // while the user is typing.
+    ref.listen(_latestMeasurementsProvider, (_, next) {
+      final waist = next.valueOrNull?['waist'];
+      if (waist == null || _autoSaveTimer?.isActive == true) return;
+      final text = ref.read(heightFormatProvider).formatValue(waist);
+      if (_waistCtrl.text != text) _waistCtrl.text = text;
+    });
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 120),
@@ -313,15 +395,94 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
             ),
           ],
         ),
-
         const SizedBox(height: 8),
         // BMI chip (read-only, calculated)
         if (widget.profile?.weightKg != null &&
             widget.profile?.heightCm != null)
-          _BmiChip(
-            weightKg: widget.profile!.weightKg!,
-            heightCm: widget.profile!.heightCm!,
+          Center(
+            child: _BmiChip(
+              weightKg: widget.profile!.weightKg!,
+              heightCm: widget.profile!.heightCm!,
+            ),
           ),
+        // Body-fat chip (read-only, calculated) sits right under BMI.
+        const SizedBox(height: 8),
+        Center(child: _bodyFatChip(latest)),
+
+        // -- Show more: inseam, arm span, torso, waist ---------------------
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => setState(() => _showMore = !_showMore),
+            icon: Icon(
+              _showMore
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+            ),
+            label: Text(_showMore ? 'Show less' : 'Show more'),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeInOutCubic,
+          alignment: Alignment.topCenter,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 220),
+            opacity: _showMore ? 1 : 0,
+            child: !_showMore
+                ? const SizedBox(width: double.infinity)
+                : Column(
+                    children: [
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Inseam (cm)' : 'Inseam (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _inseamCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric
+                                  ? 'Arm Span (cm)'
+                                  : 'Arm Span (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _armSpanCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Torso (cm)' : 'Torso (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _torsoCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatField(
+                              label: isMetric ? 'Waist (cm)' : 'Waist (in)',
+                              hint: isMetric ? 'cm' : 'in',
+                              controller: _waistCtrl,
+                              onChanged: _onFieldChanged,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
+        ),
 
         const SizedBox(height: 28),
 
@@ -356,29 +517,24 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
         // ── Activity level ────────────────────────────────────────────────
         _SectionHeader('Activity Level'),
         const SizedBox(height: 12),
-        Column(
-          children: ActivityLevel.values.map((a) {
-            final selected = _activityLevel == a;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _ActivityTile(
-                level: a,
-                selected: selected,
-                onTap: () {
-                  setState(() => _activityLevel = a);
-                  _onFieldChanged();
-                },
-              ),
-            );
-          }).toList(),
+        ActivityLevelSection(
+          selected: _activityLevel,
+          onChanged: (a) {
+            setState(() => _activityLevel = a);
+            _onFieldChanged();
+          },
         ),
 
         const SizedBox(height: 20),
 
         // ── Active Target & Dieting Phase (Gradient Squircle) ──
+        const _ProfileLevelCard(),
+        const SizedBox(height: 12),
         const _ProfileActiveTargetSquircleCard(),
         const SizedBox(height: 12),
-        const _DreamPhysiqueCard(),
+        const DreamPhysiqueSummaryCard(),
+        const SizedBox(height: 12),
+        const DreamPhysiqueNutritionDirectionCard(),
 
         const SizedBox(height: 28),
 
@@ -411,6 +567,16 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                   ),
                 ],
               ),
+            ),
+            _SettingsDivider(),
+            _SettingsTile(
+              icon: Icons.music_note_rounded,
+              label: 'Media Controls Permission',
+              trailing: Icon(
+                Icons.chevron_right,
+                color: context.hx.onSurfaceVariant,
+              ),
+              onTap: () => WearSyncService().openMediaControlsPermission(),
             ),
             _SettingsDivider(),
             _SettingsTile(
@@ -725,6 +891,66 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     );
   }
 
+  /// Body-fat estimate computed from the profile: US Navy tape formula when
+  /// waist and neck are logged, otherwise the BMI-based Deurenberg formula.
+  Widget _bodyFatChip(Map<String, double> latest) {
+    final draft = _draft();
+    final height = draft.heightCm;
+    final weight = draft.weightKg;
+    final age = draft.ageYears;
+    final isMale = draft.sex != BiologicalSex.female;
+    final waistDisplay = double.tryParse(_waistCtrl.text.trim());
+    final waistCm = waistDisplay == null
+        ? latest['waist']
+        : ref.read(heightFormatProvider).toCm(waistDisplay);
+    final neckCm = latest['neck'];
+
+    double? bf;
+    if (height != null && waistCm != null && neckCm != null) {
+      bf = BodyFatAiService.calculateNavyBodyFat(
+        heightCm: height,
+        waistCm: waistCm,
+        neckCm: neckCm,
+        hipsCm: latest['hips'],
+        isMale: isMale,
+      );
+    }
+    if (bf == null && height != null && weight != null && age != null) {
+      bf = BodyFatAiService.calculateBmiBodyFat(
+        weightKg: weight,
+        heightCm: height,
+        ageYears: age,
+        isMale: isMale,
+      );
+    }
+    if (bf == null) return const SizedBox.shrink();
+
+    final color = context.hx.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.percent_rounded, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            'Body fat ~${bf.toStringAsFixed(1)}%',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _deleteAccount(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -783,9 +1009,12 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     if (error != null) {
       // Nothing was deleted — `AccountDeletionService` only wipes the device
       // after the backend confirms — so this is safe to retry.
-      ref
-          .read(hxToastControllerProvider.notifier)
-          .show(HxToastItem.saveFailed(message: error));
+      AppNotice.showWith(
+        ref,
+        error.trim().isEmpty ? 'Check your connection and retry' : error,
+        title: 'Could not save',
+        kind: AppNoticeKind.error,
+      );
     }
     // On success the cleared profile drops the router back to onboarding,
     // exactly as `_clearData` does.
@@ -935,43 +1164,26 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
     await notifier.set(granted);
     if (granted || !mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Herculex needs "Display over other apps" to float the workout '
-          'bubble. You can grant it any time in system settings.',
-        ),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-      ),
+    AppNotice.show(
+      context,
+      'Herculex needs "Display over other apps" to float the workout '
+      'bubble. You can grant it any time in system settings.',
+      kind: AppNoticeKind.info,
     );
   }
 
   void _exportData(BuildContext context) {
-    // ScaffoldMessenger indicating that export is started
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Exporting data as JSON...'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-      ),
+    // Tell the user the export has started
+    AppNotice.show(
+      context,
+      'Exporting data as JSON...',
+      kind: AppNoticeKind.info,
     );
-    final messenger = ScaffoldMessenger.of(context);
+    final notices = AppNotice.of(context);
     // In a real implementation this would fetch from Drift and use path_provider to save a file.
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: const Text('Data export saved to Downloads folder.'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-        ),
-      );
+      notices.show('Data export saved to Downloads folder.');
     });
   }
 
@@ -1001,5 +1213,116 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
 }
 
 // ── Avatar header ─────────────────────────────────────────────────────────────
+
+class _ProfileLevelCard extends ConsumerWidget {
+  const _ProfileLevelCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final progressAsync = ref.watch(levelProgressProvider);
+    return progressAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (progress) {
+        final level = progress.level;
+        final remaining = progress.xpRemaining;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: () {
+              Haptics.selection();
+              context.push(AppRoutes.trainingLevel);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.military_tech_rounded,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Training level',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        level.title,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.primary.withValues(alpha: 0.8),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${progress.totalXp} XP · ${progress.completedWorkouts} workouts logged',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: progress.progressToNext,
+                      minHeight: 8,
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.16,
+                      ),
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        remaining == null
+                            ? 'Top training level reached'
+                            : '$remaining XP to ${progress.nextLevel!.title}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: context.hx.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        'View Details',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
 
 /// Gradient squircle card displaying the active target calories, phase, pace and macros.

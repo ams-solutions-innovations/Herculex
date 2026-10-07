@@ -368,7 +368,11 @@ class ProgramVolumeCalculator {
     final totalWeeks = weeks.isNotEmpty ? weeks.length : program.weeks;
 
     for (final week in weeks) {
-      final isDeload = week.adjustmentFactor < 0.95;
+      final isDeload = Periodization.isPlannedDeload(
+        model: PeriodizationModel.fromId(program.periodizationModel),
+        totalWeeks: program.weeks,
+        weekIndex: week.weekIndex,
+      );
       final phase = week.blockPhase;
       String label = 'Week ${week.weekIndex + 1}';
       if (isDeload) {

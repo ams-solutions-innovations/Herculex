@@ -178,7 +178,7 @@ class _SupplementAiScanDialogState
                           ),
                         ),
                         Text(
-                          'Gemini AI Vision analiza deklaracije in odmerka',
+                          'Herculex AI Vision analiza deklaracije in odmerka',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.secondary,
                           ),
@@ -255,7 +255,7 @@ class _SupplementAiScanDialogState
               ),
               const SizedBox(height: 8),
               Text(
-                'Gemini AI bo samodejno prebral ime izdelka, proizvajalca, priporočen odmerek ter razbral vsebnost vitaminov in mineralov.',
+                'Herculex AI bo samodejno prebral ime izdelka, proizvajalca, priporočen odmerek ter razbral vsebnost vitaminov in mineralov.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.secondary,
                   height: 1.35,
@@ -374,7 +374,7 @@ class _SupplementAiScanDialogState
             ),
             SizedBox(height: 18),
             Text(
-              'Gemini AI analizira prehransko dopolnilo in deklaracijo...',
+              'Herculex AI analizira prehransko dopolnilo in deklaracijo...',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               textAlign: TextAlign.center,
             ),

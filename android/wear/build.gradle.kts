@@ -112,6 +112,9 @@ dependencies {
     // Ongoing Activity
     implementation("androidx.wear:wear-ongoing:1.0.0")
 
+    // Live heart rate during workouts (MeasureClient).
+    implementation("androidx.health:health-services-client:1.0.0")
+
     // Tooling
     debugImplementation("androidx.compose.ui:ui-tooling:1.5.4")
 

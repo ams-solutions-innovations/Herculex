@@ -4,6 +4,7 @@ import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/data/programs_repository.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
+import 'package:herculex/features/workouts/data/planned_session_resolver.dart';
 import 'package:herculex/features/workouts/data/templates_repository.dart';
 
 /// Today's scheduled workout resolved with its program-day name and exercise
@@ -46,13 +47,12 @@ class ScheduledWorkoutService {
   final AppDatabase _db;
   final Clock _clock;
   final ProgramsRepository _programs;
-  final TemplatesRepository _templates;
 
   ScheduledWorkoutService(
     this._db,
     this._clock,
     this._programs,
-    this._templates,
+    TemplatesRepository _,
   );
 
   static String _dateIso(DateTime d) =>
@@ -60,17 +60,46 @@ class ScheduledWorkoutService {
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
 
-  /// The (first) workout scheduled for today, or null when nothing is planned.
-  Future<TodaysScheduledWorkout?> todaysWorkout() async {
+  /// Every workout scheduled for today, in its display order.
+  ///
+  /// The dashboard still presents the first item as its compact smart
+  /// launcher, but calendar actions must resolve their own [scheduleId]. In
+  /// particular, querying with `limit(1)` here used to make a tap on a second
+  /// same-day workout accidentally operate on the first one.
+  Future<List<TodaysScheduledWorkout>> todaysWorkouts() async {
     final iso = _dateIso(_clock.now());
-    final schedule =
+    final schedules =
         await (_db.select(_db.scheduledWorkouts)
               ..where((t) => t.dateIso.equals(iso))
-              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)])
-              ..limit(1))
-            .getSingleOrNull();
-    if (schedule == null) return null;
+              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+            .get();
+    final workouts = <TodaysScheduledWorkout>[];
+    for (final schedule in schedules) {
+      final workout = await _resolveSchedule(schedule);
+      if (workout != null) workouts.add(workout);
+    }
+    return workouts;
+  }
 
+  /// The first workout scheduled for today, for the dashboard's compact smart
+  /// launcher. Calendar callers should use [workoutForSchedule] instead.
+  Future<TodaysScheduledWorkout?> todaysWorkout() async {
+    final workouts = await todaysWorkouts();
+    return workouts.isEmpty ? null : workouts.first;
+  }
+
+  /// Resolves exactly one scheduled occurrence. This is intentionally keyed by
+  /// [scheduleId], not date, so two sessions on the same day cannot cross over.
+  Future<TodaysScheduledWorkout?> workoutForSchedule(int scheduleId) async {
+    final schedule = await (_db.select(
+      _db.scheduledWorkouts,
+    )..where((t) => t.id.equals(scheduleId))).getSingleOrNull();
+    return schedule == null ? null : _resolveSchedule(schedule);
+  }
+
+  Future<TodaysScheduledWorkout?> _resolveSchedule(
+    ScheduledWorkoutData schedule,
+  ) async {
     final day = await (_db.select(
       _db.programDays,
     )..where((t) => t.id.equals(schedule.programDayId))).getSingleOrNull();
@@ -98,78 +127,74 @@ class ScheduledWorkoutService {
     );
   }
 
+  /// Resolves the current planned content without creating a workout session.
+  /// This keeps the calendar's “View workout” action safely read-only.
+  Future<PlannedSessionSnapshot?> previewScheduledWorkout(
+    int scheduleId,
+  ) async {
+    final workout = await workoutForSchedule(scheduleId);
+    if (workout == null) return null;
+    return PlannedSessionResolver(_db).resolveProgramDay(
+      workout.programDay.id,
+      templateOverride: workout.schedule.templateIdOverride,
+    );
+  }
+
   /// Starts a session pre-populated from the scheduled day and links it back to
   /// the schedule. Returns the new session id. [gymId] tags the session like a
   /// normal start.
   Future<int> startScheduledWorkout(
     TodaysScheduledWorkout today, {
     int? gymId,
-  }) async {
-    final templateId =
-        today.schedule.templateIdOverride ?? today.programDay.templateId;
+  }) => startScheduledWorkoutById(today.schedule.id, gymId: gymId);
 
-    final sessionId = templateId != null
-        // Reuse the template start path so scheduled sessions inherit template
-        // sets, set types and warmups rather than a thinner copy of them.
-        ? await _templates.startSessionFromTemplate(
-            templateId,
-            startedAt: _clock.now(),
-            gymId: gymId,
-            notes: today.title,
-          )
-        : await _startFromInlineExercises(today, gymId: gymId);
+  /// Starts the exact scheduled occurrence, or returns its existing open
+  /// session when the user taps Resume. The existing link is never replaced;
+  /// that protects in-progress logging from a duplicate materialization.
+  Future<int> startScheduledWorkoutById(int scheduleId, {int? gymId}) async {
+    final today = await workoutForSchedule(scheduleId);
+    if (today == null) {
+      throw StateError('This scheduled workout no longer exists.');
+    }
+    if (today.schedule.dateIso != _dateIso(_clock.now())) {
+      throw StateError(
+        'This workout can only be started on its scheduled day.',
+      );
+    }
 
-    await (_db.update(
-      _db.scheduledWorkouts,
-    )..where((t) => t.id.equals(today.schedule.id))).write(
-      ScheduledWorkoutsCompanion(
-        completedSessionId: Value(sessionId),
-        // Starting is not finishing — `markScheduleCompleted` flips this to
-        // done when the session actually ends.
-        status: const Value(ScheduleStatus.inProgress),
-      ),
+    final linkedSessionId = today.schedule.completedSessionId;
+    if (linkedSessionId != null) {
+      final linked = await (_db.select(
+        _db.workoutSessions,
+      )..where((t) => t.id.equals(linkedSessionId))).getSingleOrNull();
+      if (linked != null && linked.endedAt == null) return linked.id;
+      throw StateError('This scheduled workout has already been completed.');
+    }
+
+    final resolver = PlannedSessionResolver(_db);
+    final plan = await resolver.resolveProgramDay(
+      today.programDay.id,
+      templateOverride: today.schedule.templateIdOverride,
     );
 
-    return sessionId;
-  }
-
-  Future<int> _startFromInlineExercises(
-    TodaysScheduledWorkout today, {
-    int? gymId,
-  }) {
     return _db.transaction(() async {
-      final sessionId = await _db
-          .into(_db.workoutSessions)
-          .insert(
-            WorkoutSessionsCompanion.insert(
-              startedAt: _clock.now(),
-              notes: Value(today.programDay.name),
-              gymId: Value(gymId),
-            ),
-          );
+      final sessionId = await resolver.materialize(
+        plan,
+        startedAt: _clock.now(),
+        gymId: gymId,
+        notes: today.title,
+      );
 
-      final exercises =
-          await (_db.select(_db.programDayExercises)
-                ..where((t) => t.programDayId.equals(today.programDay.id))
-                ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
-              .get();
-
-      for (final (i, pde) in exercises.indexed) {
-        final catalogRow = await (_db.select(
-          _db.exerciseCatalog,
-        )..where((t) => t.id.equals(pde.exerciseId))).getSingleOrNull();
-        await _db
-            .into(_db.workoutExercises)
-            .insert(
-              WorkoutExercisesCompanion.insert(
-                sessionId: sessionId,
-                exerciseId: pde.exerciseId,
-                orderIndex: i,
-                targetRestSeconds: Value(catalogRow?.defaultRestSeconds),
-                equipmentVariant: Value(pde.equipmentVariant),
-              ),
-            );
-      }
+      await (_db.update(
+        _db.scheduledWorkouts,
+      )..where((t) => t.id.equals(today.schedule.id))).write(
+        ScheduledWorkoutsCompanion(
+          completedSessionId: Value(sessionId),
+          // Starting is not finishing — `markScheduleCompleted` flips this to
+          // done when the session actually ends.
+          status: const Value(ScheduleStatus.inProgress),
+        ),
+      );
 
       return sessionId;
     });

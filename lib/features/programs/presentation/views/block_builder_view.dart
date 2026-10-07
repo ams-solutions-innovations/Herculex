@@ -1,6 +1,12 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
@@ -8,47 +14,140 @@ import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/components/premium_text_field.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/hx_colors.dart';
+import 'package:herculex/design_system/tokens/hx_geometry.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/data/herculex_ai_brief_service.dart';
+import 'package:herculex/features/programs/data/smart_program_planner.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/primary_lift_specialization.dart';
+import 'package:herculex/features/programs/domain/program_brief.dart';
+import 'package:herculex/features/programs/domain/program_guardrails.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
+import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
+import 'package:herculex/features/programs/presentation/views/program_method_guide_view.dart';
+import 'package:herculex/features/programs/presentation/views/program_review_view.dart';
+import 'package:herculex/features/programs/presentation/widgets/ai_brief_rejection_banner.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
+import 'package:herculex/features/programs/presentation/widgets/specialization_volume_floor_card.dart';
+import 'package:herculex/features/recovery/application/recovery_providers.dart';
+import 'package:herculex/features/recovery/domain/joint_model.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:intl/intl.dart';
 
-/// Four-step block builder: basics → split → content → schedule.
+part 'block_builder_view/standalone_widgets.part.dart';
+part 'block_builder_view/shared_helpers.part.dart';
+part 'block_builder_view/dialogs.part.dart';
+part 'block_builder_view/step_mode_and_split.part.dart';
+part 'block_builder_view/step_parameters.part.dart';
+part 'block_builder_view/step_parameters_specialization.part.dart';
+part 'block_builder_view/step_pools.part.dart';
+part 'block_builder_view/step_methods.part.dart';
+part 'block_builder_view/step_schedule_summary.part.dart';
+part 'block_builder_view/actions.part.dart';
+
+/// Five-step builder shared by Smart, Guided and Manual programming.
 ///
 /// Step 3 attaches *real* workout templates to each split slot. The previous
 /// version offered a list of seven hardcoded strings labelled "CHOOSE TEMPLATE"
 /// and wrote them into the day name, so every block it built materialized
 /// sessions with no exercises at all.
 class BlockBuilderView extends ConsumerStatefulWidget {
-  const BlockBuilderView({super.key});
+  const BlockBuilderView({super.key, this.autoRecommendExperience = true});
+
+  /// Kept injectable so the UI contract can be rendered deterministically in
+  /// widget tests without launching background database reads.
+  final bool autoRecommendExperience;
 
   @override
   ConsumerState<BlockBuilderView> createState() => _BlockBuilderViewState();
 }
 
-class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
-  static const _stepCount = 4;
+/// Field-holding base for the builder's state. Every concern-grouped mixin
+/// below is declared `on _BuilderStateBase` so it can share this private
+/// field surface and call sibling mixins' methods via the abstract stubs
+/// declared here — Dart cannot split one class body across files, so this
+/// abstract-base-plus-mixins shape is the part/part-of-compatible substitute.
+abstract class _BuilderStateBase extends ConsumerState<BlockBuilderView> {
+  static const _stepCount = 6;
 
   int _step = 1;
   bool _saving = false;
+  bool _dreamPhysiqueTuned = false;
+
+  ProgramBuildMode _buildMode = ProgramBuildMode.smart;
+  TrainingGoal _goal = TrainingGoal.hypertrophy;
+  ExperienceLevel _experience = ExperienceLevel.novice;
+  ExperienceRecommendation? _experienceRecommendation;
 
   // Step 1
   final _nameCtrl = TextEditingController();
   int _weeks = 8;
   PeriodizationModel _model = PeriodizationModel.linear;
+  TrainingStyle _trainingStyle = TrainingStyle.weightlifting;
+  int _workoutDurationMinutes = 60;
+  bool _allowTimeSavingSetTechniques = false;
+  bool _includeAutomaticWarmups = false;
+  bool _includeGppConditioning = true;
+  bool _useLiftSpecialization = false;
+  final _currentSquatCtrl = TextEditingController();
+  final _targetSquatCtrl = TextEditingController(text: '140');
+  PrimaryLift _specializationLift = PrimaryLift.squat;
+  PrimaryLiftStickingPoint _liftStickingPoint =
+      PrimaryLiftStickingPoint.unknown;
 
   // Step 2
   SplitType _split = SplitType.upperLower;
   int _daysPerWeek = SplitType.upperLower.defaultDaysPerWeek;
   ScheduleMode _mode = ScheduleMode.weekly;
   int _cycleLength = 5;
+  final Map<int, String> _weeklyDayLabels = {};
+  final Set<int> _weeklyTrainingWeekdays = {};
+  bool _hasCustomWeeklyPlacement = false;
 
   // Step 3 — template per split slot.
   final Map<int, int?> _templatesBySlot = {};
+
+  // Step 4 — per-day main slot method. Every supplemental/accessory slot is
+  // still resolved independently by the planner.
+  final Map<String, SlotTrainingMethod> _mainMethodByDayLabel = {};
+  final Map<String, DayStressRole> _dayRoles = {};
+  int? _waveOverrideWeeks;
+
+  // Optional user-owned alternative to the Dream Physique analysis. A weight
+  // is normalized in the UI, so users can think in relative percentages
+  // rather than knowing programming labels such as MEV/MRV.
+  bool _useManualMusclePlan = false;
+  final Map<String, int> _manualMuscleWeights = {};
+  final Map<String, int> _manualSetCaps = {};
+  MuscleFocusWave _muscleFocusWave = MuscleFocusWave.steady;
+  Map<String, String> _dreamPhysiquePriorities = const {};
+
+  // Herculex AI mode (27-11): Generate/Regenerate state. _acceptedHerculexBrief
+  // and _herculexBriefProvenance are the "brief accepted, ready to pre-fill"
+  // signal plan 27-13's pre-fill/persistence wiring consumes directly.
+  bool _generatingBrief = false;
+  ProgramBrief? _acceptedHerculexBrief;
+  // Read by _create() (plan 27-13) to pass through to
+  // HerculexAiBriefService.persistBrief()'s provenance parameter.
+  Map<String, dynamic> _herculexBriefProvenance = const {};
+  String? _herculexRejectionMessage;
+  String? _herculexDegradationMessage;
+
+  static const _manualMuscleLabels = <String, String>{
+    'chest': 'Chest',
+    'back': 'Back',
+    'side_delts': 'Shoulders',
+    'biceps': 'Biceps',
+    'triceps': 'Triceps',
+    'quads': 'Quads',
+    'hamstrings': 'Hamstrings',
+    'glutes': 'Glutes',
+    'calves': 'Calves',
+    'abs': 'Core',
+  };
 
   // Step 4
   DateTime _startDate = _today();
@@ -65,657 +164,68 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
     daysPerWeek: _daysPerWeek,
     mode: _mode,
     cycleLength: _mode == ScheduleMode.cycle ? _cycleLength : null,
+    weeklyDayLabels: _mode == ScheduleMode.weekly ? _weeklyDayLabels : null,
+    preferredWeekdays: _mode == ScheduleMode.weekly && _hasCustomWeeklyPlacement
+        ? _weeklyTrainingWeekdays.toList()
+        : null,
   );
 
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    super.dispose();
-  }
+  // ── Abstract stubs: cross-mixin private-method surface ──────────────────
+  // Each mixin below is declared `on _BuilderStateBase` only, so a mixin
+  // calling a method implemented by a *different* mixin (or by the final
+  // glue class) needs a signature-only stub here. Discovered mechanically
+  // by iterating `flutter analyze` until zero "isn't defined" errors
+  // remained — see 27-01-SUMMARY.md for the full method-to-file map.
 
-  String get _effectiveName {
-    final typed = _nameCtrl.text.trim();
-    if (typed.isNotEmpty) return typed;
-    return '$_weeks-week ${_split.label}';
-  }
+  // Implemented on the final composed class (_BlockBuilderViewState) only.
+  void _applySmartDefaults();
+  void _applyDreamPhysiqueTuning();
+  String get _effectiveName;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return HxScreenShell(
-      title: 'New block',
-      pinnedBottom: _footer(theme),
-      children: [
-        _stepIndicator(theme),
-        const SizedBox(height: 12),
-        switch (_step) {
-          1 => _stepBasics(theme),
-          2 => _stepSplit(theme),
-          3 => _stepContent(theme),
-          _ => _stepSchedule(theme),
-        },
-      ],
-    );
-  }
-
-  Widget _stepIndicator(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-      child: Row(
-        children: [
-          for (var i = 1; i <= _stepCount; i++)
-            Expanded(
-              child: Container(
-                height: 4,
-                margin: EdgeInsets.only(right: i == _stepCount ? 0 : 6),
-                decoration: BoxDecoration(
-                  color: i <= _step
-                      ? AppColors.primary
-                      : AppColors.outlineVariant.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ── Step 1: basics ─────────────────────────────────────────────────────────
-
-  Widget _stepBasics(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _title(theme, 'Basics', 'Name it and choose how long it runs.'),
-        _sectionLabel(theme, 'Block name'),
-        PremiumTextField(controller: _nameCtrl, hintText: _effectiveName),
-        const SizedBox(height: 24),
-        _sectionLabel(theme, 'Length'),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final w in const [4, 6, 8, 12, 16, 24])
-              _choiceChip(
-                label: '$w weeks',
-                selected: _weeks == w,
-                onTap: () => setState(() => _weeks = w),
-              ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _sectionLabel(theme, 'Periodization'),
-        for (final model in PeriodizationModel.values)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _radioCard(
-              theme,
-              title: model.label,
-              subtitle: _modelDescriptions[model]!,
-              selected: _model == model,
-              onTap: () => setState(() => _model = model),
-            ),
-          ),
-      ],
-    );
-  }
-
-  static const _modelDescriptions = {
-    PeriodizationModel.none:
-        'Flat load across all weeks. You control progression manually.',
-    PeriodizationModel.linear:
-        'Intensity rises ~2.5%/week; volume tapers. Deload every 4th week.',
-    PeriodizationModel.concurrent:
-        'All qualities trained together on a heavy/medium/light wave.',
-    PeriodizationModel.block:
-        'Accumulation → Transmutation → Realization, peaking to high intensity.',
-    PeriodizationModel.maxEffort:
-        'Westside-style: work up to a heavy single each session; rotate the lift.',
-  };
-
-  // ── Step 2: split ──────────────────────────────────────────────────────────
-
-  Widget _stepSplit(ThemeData theme) {
-    final plan = _plan;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _title(
-          theme,
-          'Split',
-          'Pick the shape of the week — or a rotation that ignores weekdays.',
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final type in SplitType.values)
-              _choiceChip(
-                label: type.label,
-                selected: _split == type,
-                onTap: () => setState(() {
-                  _split = type;
-                  _daysPerWeek = type.defaultDaysPerWeek;
-                  _templatesBySlot.clear();
-                }),
-              ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _sectionLabel(
-          theme,
-          _mode == ScheduleMode.weekly
-              ? 'Training days per week'
-              : 'Training days per cycle',
-        ),
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.remove_circle_outline_rounded),
-              onPressed: _daysPerWeek <= 1
-                  ? null
-                  : () => setState(() {
-                      _daysPerWeek--;
-                      _templatesBySlot.clear();
-                    }),
-            ),
-            Expanded(
-              child: Text(
-                '$_daysPerWeek',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline_rounded),
-              onPressed: _daysPerWeek >= (_mode == ScheduleMode.weekly ? 7 : 10)
-                  ? null
-                  : () => setState(() {
-                      _daysPerWeek++;
-                      if (_cycleLength <= _daysPerWeek) {
-                        _cycleLength = _daysPerWeek + 1;
-                      }
-                      _templatesBySlot.clear();
-                    }),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _sectionLabel(theme, 'Repeat'),
-        Row(
-          children: [
-            Expanded(
-              child: _radioCard(
-                theme,
-                title: 'Weekly',
-                subtitle: 'Fixed weekdays, repeating every 7 days.',
-                selected: _mode == ScheduleMode.weekly,
-                onTap: () => setState(() => _mode = ScheduleMode.weekly),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _radioCard(
-                theme,
-                title: 'Cycle',
-                subtitle: 'N-on / N-off, drifting across the calendar.',
-                selected: _mode == ScheduleMode.cycle,
-                onTap: () => setState(() {
-                  _mode = ScheduleMode.cycle;
-                  if (_cycleLength <= _daysPerWeek) {
-                    _cycleLength = _daysPerWeek + 1;
-                  }
-                }),
-              ),
-            ),
-          ],
-        ),
-        if (_mode == ScheduleMode.cycle) ...[
-          const SizedBox(height: 16),
-          _sectionLabel(theme, 'Cycle length'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (var len = _daysPerWeek; len <= _daysPerWeek + 4; len++)
-                if (len >= 1)
-                  _choiceChip(
-                    label: '$len days',
-                    selected: _cycleLength == len,
-                    onTap: () => setState(() => _cycleLength = len),
-                  ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$_daysPerWeek on, ${_cycleLength - _daysPerWeek} off — repeating '
-            'every $_cycleLength days regardless of the weekday.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.secondary,
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-        _sectionLabel(theme, 'Preview'),
-        _planPreview(theme, plan),
-      ],
-    );
-  }
-
-  Widget _planPreview(ThemeData theme, SplitPlan plan) {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    return GlassContainer(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        children: [
-          if (plan.mode == ScheduleMode.weekly)
-            for (var i = 0; i < 7; i++)
-              _previewRow(
-                theme,
-                weekdays[i],
-                plan.days
-                    .where((d) => d.index == i)
-                    .map((d) => d.label)
-                    .join(', '),
-              )
-          else
-            for (final day in plan.days)
-              _previewRow(
-                theme,
-                'Day ${day.index + 1}',
-                day.isRest ? '' : day.label,
-              ),
-        ],
-      ),
-    );
-  }
-
-  Widget _previewRow(ThemeData theme, String slot, String label) {
-    final isRest = label.isEmpty;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 52,
-            child: Text(
-              slot,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.secondary,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              isRest ? 'Rest' : label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: isRest ? FontWeight.w400 : FontWeight.w600,
-                color: isRest ? AppColors.outlineVariant : null,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Step 3: content ────────────────────────────────────────────────────────
-
-  Widget _stepContent(ThemeData theme) {
-    final slots = _plan.slotSummary;
-    final templates = ref.watch(workoutTemplatesProvider(-1)).value ?? const [];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _title(
-          theme,
-          'Content',
-          'Attach one of your templates to each day. The link stays live — edit '
-              'the template later and every future session follows.',
-        ),
-        for (final slot in slots)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _slotCard(theme, slot, templates),
-          ),
-        const SizedBox(height: 8),
-        Text(
-          'You can leave a day empty and fill it in later from the block '
-          'editor.',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.secondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _slotCard(
+  // Implemented in shared_helpers.part.dart.
+  Widget _title(
     ThemeData theme,
-    ({int slotIndex, String label}) slot,
-    List<WorkoutTemplateData> templates,
-  ) {
-    final templateId = _templatesBySlot[slot.slotIndex];
-    final template = templateId == null
-        ? null
-        : templates.where((t) => t.id == templateId).firstOrNull;
-    final repeats = _plan.trainingDays
-        .where((d) => d.slotIndex == slot.slotIndex)
-        .length;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () async {
-        final picked = await TemplatePickerSheet.show(context);
-        if (picked == null) return;
-        setState(() => _templatesBySlot[slot.slotIndex] = picked.id);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: template != null
-                ? AppColors.primary.withValues(alpha: 0.5)
-                : AppColors.outlineVariant.withValues(alpha: 0.4),
-            width: template != null ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    slot.label,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    template?.name ??
-                        'Tap to link a template'
-                            '${repeats > 1 ? ' · used $repeats× per week' : ''}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: template != null
-                          ? AppColors.primary
-                          : AppColors.secondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (template != null)
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.close_rounded, color: AppColors.secondary),
-                onPressed: () =>
-                    setState(() => _templatesBySlot.remove(slot.slotIndex)),
-              )
-            else
-              Icon(Icons.add_rounded, color: AppColors.primary),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Step 4: schedule ───────────────────────────────────────────────────────
-
-  Widget _stepSchedule(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _title(theme, 'Schedule', 'When does week 1 begin?'),
-        _radioCard(
-          theme,
-          title: DateFormat('EEEE, MMMM d, yyyy').format(_startDate),
-          subtitle: 'Start date',
-          selected: true,
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: _startDate,
-              firstDate: _today().subtract(const Duration(days: 30)),
-              lastDate: _today().add(const Duration(days: 365)),
-            );
-            if (picked != null) setState(() => _startDate = picked);
-          },
-        ),
-        const SizedBox(height: 24),
-        _sectionLabel(theme, 'Default start time (optional)'),
-        _radioCard(
-          theme,
-          title: _defaultStartTime == null
-              ? 'No particular time'
-              : _defaultStartTime!.format(context),
-          subtitle: 'Applied to every session; edit any one later',
-          selected: true,
-          onTap: () async {
-            final picked = await showTimePicker(
-              context: context,
-              initialTime:
-                  _defaultStartTime ?? const TimeOfDay(hour: 7, minute: 0),
-            );
-            if (picked != null) setState(() => _defaultStartTime = picked);
-          },
-          trailing: _defaultStartTime == null
-              ? null
-              : IconButton(
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.close_rounded, color: AppColors.secondary),
-                  onPressed: () => setState(() => _defaultStartTime = null),
-                ),
-        ),
-        const SizedBox(height: 24),
-        _sectionLabel(theme, 'Planned break (optional)'),
-        GlassContainer(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Icon(Icons.beach_access, color: AppColors.primary, size: 34),
-              const SizedBox(height: 12),
-              Text(
-                'Sessions in this range are marked skipped instead of quietly '
-                'piling up as missed.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
-              const SizedBox(height: 18),
-              PremiumButton(
-                text: _vacation == null
-                    ? 'Select trip dates'
-                    : '${DateFormat('MMM d').format(_vacation!.start)} – '
-                          '${DateFormat('MMM d').format(_vacation!.end)}',
-                isPrimary: false,
-                icon: Icons.date_range,
-                onTap: () async {
-                  final range = await showDateRangePicker(
-                    context: context,
-                    firstDate: _startDate,
-                    lastDate: _startDate.add(const Duration(days: 365)),
-                  );
-                  if (range != null) setState(() => _vacation = range);
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        _summaryCard(theme),
-      ],
-    );
-  }
-
-  Widget _summaryCard(ThemeData theme) {
-    final plan = _plan;
-    final linked = plan.slotSummary
-        .where((s) => _templatesBySlot[s.slotIndex] != null)
-        .length;
-    final total = plan.slotSummary.length;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _effectiveName,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${_split.label} · $_weeks weeks · '
-            '${plan.trainingDayCount} sessions per '
-            '${_mode == ScheduleMode.weekly ? 'week' : 'cycle'} · '
-            '${_model.label}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.secondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                linked == total
-                    ? Icons.check_circle_rounded
-                    : Icons.info_outline_rounded,
-                size: 16,
-                color: linked == total ? AppColors.primary : AppColors.tertiary,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  linked == total
-                      ? 'All $total days have a template.'
-                      : '$linked of $total days have a template — the rest '
-                            'start empty.',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: linked == total
-                        ? AppColors.primary
-                        : AppColors.tertiary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (linked > 0) ...[
-            const SizedBox(height: 16),
-            FutureBuilder<ProgramVolumeBreakdown>(
-              future: ProgramVolumeCalculator.computeFromTemplates(
-                db: ref.read(appDatabaseProvider),
-                templatesBySlot: _templatesBySlot,
-                plan: plan,
-                weeks: _weeks,
-                model: _model,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                  return ProgramMuscleVolumeCard(
-                    breakdown: snapshot.data!,
-                    title: 'Estimated Volume per Muscle Group',
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ── Shared bits ────────────────────────────────────────────────────────────
-
-  Widget _title(ThemeData theme, String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.secondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionLabel(ThemeData theme, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        text.toUpperCase(),
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: AppColors.secondary,
-          letterSpacing: 1.1,
-        ),
-      ),
-    );
-  }
-
+    String title,
+    String subtitle, {
+    bool centered = false,
+  });
+  Widget _sectionLabel(ThemeData theme, String text);
   Widget _choiceChip({
     required String label,
     required bool selected,
     required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        Haptics.selection();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary
-              : AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected
-                ? AppColors.primary
-                : AppColors.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : AppColors.onSurfaceVariant,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
+  });
+  Widget _pickerTile(
+    ThemeData theme, {
+    Key? key,
+    required IconData icon,
+    required String label,
+    required String value,
+    String? subtitle,
+    String? badge,
+    required VoidCallback onTap,
+  });
+  Widget _settingToggleTile(
+    ThemeData theme, {
+    Key? key,
+    required IconData icon,
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required VoidCallback onInfoTap,
+    String? tooltip,
+  });
+  Widget _sheetOptionCard<T>({
+    required BuildContext sheetContext,
+    required ThemeData theme,
+    required T item,
+    required T selectedItem,
+    required String title,
+    String? subtitle,
+    IconData? icon,
+    bool isRecommended = false,
+    required ValueChanged<T> onSelected,
+  });
   Widget _radioCard(
     ThemeData theme, {
     required String title,
@@ -723,139 +233,191 @@ class _BlockBuilderViewState extends ConsumerState<BlockBuilderView> {
     required bool selected,
     required VoidCallback onTap,
     Widget? trailing,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        Haptics.selection();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.10)
-              : AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected
-                ? AppColors.primary
-                : AppColors.outlineVariant.withValues(alpha: 0.3),
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ?trailing,
-          ],
-        ),
-      ),
-    );
+    bool recommended = false,
+    bool centered = false,
+  });
+
+  // Implemented in dialogs.part.dart.
+  Widget _dreamPhysiqueAutoFillBanner(ThemeData theme);
+  void _showGoalPicker(ThemeData theme);
+  void _showTrainingStylePicker(ThemeData theme);
+  void _showExperiencePicker(ThemeData theme);
+  void _showLengthPicker(ThemeData theme);
+  void _showSpecializationInfoDialog(ThemeData theme);
+  void _showInfoDialog(
+    ThemeData theme, {
+    required String title,
+    required IconData icon,
+    required String body,
+  });
+
+  // Implemented in step_mode_and_split.part.dart.
+  void _clearCustomWeeklyPlacement();
+
+  // Implemented in step_pools.part.dart.
+  Widget _builderInputCard(
+    ThemeData theme, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Widget? actionWidget,
+    String? action,
+    VoidCallback? onTap,
+    VoidCallback? onCardTap,
+    bool selected = false,
+    String? status,
+  });
+  String get _manualPlanSummary;
+  Future<void> _showManualMusclePlan();
+  Widget _slotCard(
+    ThemeData theme,
+    ({int slotIndex, String label}) slot,
+    List<WorkoutTemplateData> templates,
+  );
+
+  // Implemented in step_parameters_specialization.part.dart.
+  Future<bool> _showSpecializationModal(ThemeData theme);
+  double? get _currentSquatKg;
+  double get _targetSquatKg;
+  int get _liftRecommendedWeeks;
+  PrimaryLiftSpecialization? get _primaryLiftSpecialization;
+
+  // Implemented in actions.part.dart.
+  Future<void> _create();
+  Future<void> _loadDreamPhysiquePriorities();
+  Future<void> _generateHerculexBrief();
+  String get _trainingStyleDescription;
+}
+
+class _BlockBuilderViewState extends _BuilderStateBase
+    with
+        _SharedHelpersMixin,
+        _DialogsMixin,
+        _StepModeAndSplitMixin,
+        _StepParametersMixin,
+        _StepParametersSpecializationMixin,
+        _StepPoolsMixin,
+        _StepMethodsMixin,
+        _StepScheduleSummaryMixin,
+        _BuilderActionsMixin {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoRecommendExperience) {
+      Future<void>.microtask(_recommendExperience);
+    }
+    Future<void>.microtask(_loadDreamPhysiquePriorities);
   }
 
-  Widget _footer(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          if (_step > 1)
-            TextButton(
-              onPressed: _saving ? null : () => setState(() => _step--),
-              child: const Text('Back'),
-            )
-          else
-            Text(
-              'Step $_step of $_stepCount',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.secondary,
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _currentSquatCtrl.dispose();
+    _targetSquatCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  String get _effectiveName {
+    final typed = _nameCtrl.text.trim();
+    if (typed.isNotEmpty) return typed;
+    return '$_weeks-week ${_split.label}';
+  }
+
+  Future<void> _recommendExperience() async {
+    final db = ref.read(appDatabaseProvider);
+    final now = DateTime.now();
+    final recent =
+        await (db.select(db.workoutSessions)..where(
+              (t) => t.startedAt.isBiggerOrEqualValue(
+                now.subtract(const Duration(days: 84)),
               ),
-            ),
-          const Spacer(),
-          PremiumButton(
-            text: _saving
-                ? 'Creating…'
-                : _step == _stepCount
-                ? 'Create block'
-                : 'Continue',
-            onTap: _saving
-                ? () {}
-                : () {
-                    if (_step < _stepCount) {
-                      setState(() => _step++);
-                    } else {
-                      _create();
-                    }
-                  },
-          ),
+            ))
+            .get();
+    final all = await (db.select(
+      db.workoutSessions,
+    )..orderBy([(t) => OrderingTerm(expression: t.startedAt)])).get();
+    final rpeRows =
+        await (db.select(db.setEntries)
+              ..where((t) => t.rpeX10.isNotNull())
+              ..limit(1))
+            .get();
+    final structured =
+        await (db.select(db.programs)
+              ..where((t) => t.periodizationModel.isNotIn(['none']))
+              ..limit(1))
+            .get();
+    final months = all.isEmpty
+        ? 0
+        : now.difference(all.first.startedAt).inDays ~/ 30;
+    final recommendation = ExperienceLevel.recommend(
+      consistentTrainingMonths: months,
+      sessionsLast12Weeks: recent.length,
+      understandsRirRpe: rpeRows.isNotEmpty,
+      hasRunStructuredBlocks: structured.isNotEmpty,
+    );
+    if (!mounted) return;
+    setState(() {
+      _experienceRecommendation = recommendation;
+      _experience = recommendation.level;
+      _applySmartDefaults();
+    });
+  }
+
+  @override
+  void _applySmartDefaults() {
+    _model = switch ((_goal, _experience)) {
+      (TrainingGoal.strength, ExperienceLevel.advanced) =>
+        PeriodizationModel.block,
+      (TrainingGoal.strength, _) => PeriodizationModel.linear,
+      (TrainingGoal.powerbuilding, _) => PeriodizationModel.concurrent,
+      (TrainingGoal.athletic, _) => PeriodizationModel.concurrent,
+      _ => PeriodizationModel.linear,
+    };
+  }
+
+  @override
+  void _applyDreamPhysiqueTuning() {
+    if (_useManualMusclePlan || _dreamPhysiquePriorities.isEmpty) return;
+    final summary = ref.read(dreamPhysiqueSummaryProvider).valueOrNull;
+    _goal = TrainingGoal.hypertrophy;
+    _trainingStyle = TrainingStyle.weightlifting;
+    if (summary != null && summary.estimatedMonths > 0) {
+      if (summary.estimatedMonths <= 2) {
+        _weeks = 8;
+      } else {
+        _weeks = 12;
+      }
+    }
+    _applySmartDefaults();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return PopScope(
+      canPop: _step == 1,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || _step == 1 || _saving) return;
+        _goBackStep();
+      },
+      child: HxScreenShell(
+        key: ValueKey('block-builder-step-$_step'),
+        title: 'New block',
+        padding: EdgeInsets.symmetric(horizontal: _step == 5 ? 12 : 20),
+        pinnedBottom: _footer(theme),
+        children: [
+          switch (_step) {
+            1 => _stepBuildModeAndPriorities(theme),
+            2 => _stepExercisePools(theme),
+            3 => _stepParameters(theme),
+            4 => _stepSplit(theme),
+            5 => _stepContentAndMethods(theme),
+            _ => _stepSchedule(theme),
+          },
         ],
       ),
     );
-  }
-
-  Future<void> _create() async {
-    setState(() => _saving = true);
-    final repo = ref.read(programsRepositoryProvider);
-    final navigator = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-
-    try {
-      final programId = await repo.createProgramFromSplit(
-        name: _effectiveName,
-        description: '${_model.label} periodization.',
-        weeks: _weeks,
-        plan: _plan,
-        startDate: _startDate,
-        periodizationModel: _model.id,
-        templateIdsBySlot: _templatesBySlot,
-        defaultStartTimeMinutes: _defaultStartTime == null
-            ? null
-            : _defaultStartTime!.hour * 60 + _defaultStartTime!.minute,
-      );
-
-      if (_vacation != null) {
-        await repo.addExternalEvent(
-          from: _vacation!.start,
-          to: _vacation!.end,
-          type: 'vacation',
-        );
-      }
-
-      // Focus the Blocks tab on the day the block starts.
-      ref.read(selectedBlockDateProvider.notifier).state = _startDate;
-      if (programId > 0) Haptics.success();
-      navigator.pop();
-    } catch (e) {
-      if (mounted) setState(() => _saving = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Could not create the block: $e')),
-      );
-    }
   }
 }

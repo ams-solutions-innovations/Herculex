@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -65,12 +64,11 @@ Future<void> quickLogWeight(BuildContext context, WidgetRef ref) async {
           value: fmt.toKg(value),
         );
     ref.invalidate(latestBodyweightProvider);
-    ref
-        .read(hxToastControllerProvider.notifier)
-        .show(
-          HxToastItem.weightLogged(
-            weightFormatted: fmt.format(fmt.toKg(value)),
-          ),
-        );
+    AppNotice.showWith(
+      ref,
+      fmt.format(fmt.toKg(value)),
+      title: 'Weight logged',
+      kind: AppNoticeKind.info,
+    );
   }
 }

@@ -115,6 +115,26 @@ void main() {
       }
     }
 
+    // ---- Rule 2b: one notification style --------------------------------
+    // Every confirmation, warning and error goes through AppNotice (the
+    // dropping pill that also announces PRs). A stray bottom SnackBar is the
+    // inconsistency this rule exists to stop coming back.
+    final snackBarLines = <int>[
+      for (var i = 0; i < lines.length; i++)
+        if (lines[i].contains('showSnackBar(') &&
+            !lines[i].trimLeft().startsWith('//'))
+          i + 1,
+    ];
+    if (snackBarLines.isNotEmpty) {
+      violations.add(
+        Violation(
+          'use AppNotice, not showSnackBar',
+          path,
+          'line(s) ${snackBarLines.join(', ')}',
+        ),
+      );
+    }
+
     // ---- Rule 3: file kind matches folder ------------------------------
     final feature = _featureOf(path);
     if (feature != null && !kLayoutExemptFeatures.contains(feature)) {

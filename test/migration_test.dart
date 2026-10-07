@@ -1,6 +1,6 @@
 // RB-04 Phase 4: schema tooling. Verifies the hand-written `tables.dart`
 // declarations (as materialized by `AppDatabase`) match the schema drift_dev
-// dumped to `drift_schemas/drift_schema_v38.json`. `schema dump` only
+// dumped to `drift_schemas/drift_schema_v48.json`. `schema dump` only
 // captures the *current* version — there is no retroactive v1-v22 snapshot —
 // so this only proves "the code matches what was dumped", not a full
 // migration-chain replay. Re-run `dart run drift_dev schema dump
@@ -17,10 +17,379 @@ import 'support/test_database.dart';
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  test('current schema matches the v38 drift_schemas snapshot', () async {
+  test('current schema matches the v48 drift_schemas snapshot', () async {
     final db = await openTestDatabase();
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
+  });
+
+  test('upgrades cleanly from a generated v47 fixture to v48', () async {
+    final connection = await verifier.startAt(47);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 48);
+
+    final exists = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'weekly_reports'",
+        )
+        .get();
+    expect(
+      exists,
+      hasLength(1),
+      reason: 'weekly_reports missing after upgrade',
+    );
+
+    final index = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name = 'idx_sync_uuid_weekly_reports'",
+        )
+        .get();
+    expect(index, hasLength(1), reason: 'sync_uuid index missing');
+
+    // The outbox triggers: without them an upgraded install would never
+    // enqueue weekly reports.
+    final triggers = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'trigger' "
+          "AND tbl_name = 'weekly_reports'",
+        )
+        .get();
+    expect(triggers, isNotEmpty, reason: 'outbox triggers missing');
+  });
+
+  test(
+    'v48 upgrade tolerates a fixture that already has weekly_reports',
+    () async {
+      // Fixtures sit on both sides of a step: some build the table from
+      // current definitions. Copy the exact v48 DDL onto a v47 fixture and
+      // confirm the sqlite_master guard skips createTable instead of throwing.
+      final v48Schema = await verifier.schemaAt(48);
+      final ddl =
+          v48Schema.rawDatabase
+                  .select(
+                    "SELECT sql FROM sqlite_master WHERE type = 'table' "
+                    "AND name = 'weekly_reports'",
+                  )
+                  .single['sql']
+              as String;
+      v48Schema.rawDatabase.dispose();
+
+      final v47Schema = await verifier.schemaAt(47);
+      v47Schema.rawDatabase.execute(ddl);
+      final db = AppDatabase.forTesting(v47Schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, 48);
+
+      final index = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'index' "
+            "AND name = 'idx_sync_uuid_weekly_reports'",
+          )
+          .get();
+      expect(index, hasLength(1));
+    },
+  );
+
+  test('upgrades cleanly from a generated v46 fixture to v47', () async {
+    final connection = await verifier.startAt(46);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 48);
+
+    const tables = <String>[
+      'physique_goals',
+      'physique_assessments',
+      'physique_roadmap_phases',
+      'physique_photos',
+    ];
+    for (final table in tables) {
+      final exists = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = '$table'",
+          )
+          .get();
+      expect(exists, hasLength(1), reason: '$table missing after upgrade');
+
+      final index = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'index' "
+            "AND name = 'idx_sync_uuid_$table'",
+          )
+          .get();
+      expect(index, hasLength(1), reason: 'sync_uuid index missing: $table');
+
+      // The outbox trigger: without it an upgraded install would never
+      // enqueue these rows.
+      final triggers = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'trigger' "
+            "AND tbl_name = '$table'",
+          )
+          .get();
+      expect(triggers, isNotEmpty, reason: 'outbox triggers missing: $table');
+    }
+  });
+
+  test('upgrades cleanly from a generated v45 fixture to v46', () async {
+    final connection = await verifier.startAt(45);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 48);
+
+    final columns = await db
+        .customSelect('PRAGMA table_info(herculex_ai_program_briefs)')
+        .get();
+    expect(
+      columns.map((row) => row.read<String>('name')),
+      containsAll(<String>[
+        'id',
+        'program_id',
+        'brief_json',
+        'source',
+        'knowledge_version',
+        'model_version',
+        'confirmed_at',
+        'active',
+        'sync_uuid',
+      ]),
+    );
+
+    final index = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name = 'idx_sync_uuid_herculex_ai_program_briefs'",
+        )
+        .get();
+    expect(index, hasLength(1));
+
+    // The outbox trigger installed by installSyncTriggers: without it an
+    // upgraded install would never enqueue herculex_ai_program_briefs rows.
+    final triggers = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'trigger' "
+          "AND tbl_name = 'herculex_ai_program_briefs'",
+        )
+        .get();
+    expect(triggers, isNotEmpty);
+  });
+
+  test('upgrades cleanly from a generated v44 fixture to v45', () async {
+    final connection = await verifier.startAt(44);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 48);
+
+    final columns = await db
+        .customSelect('PRAGMA table_info(tdee_estimates)')
+        .get();
+    expect(
+      columns.map((row) => row.read<String>('name')),
+      containsAll(<String>[
+        'date_iso',
+        'estimated_at',
+        'method',
+        'confidence',
+        'window_days',
+        'kcal',
+        'observed_qualified',
+        'inputs_json',
+        'sync_uuid',
+      ]),
+    );
+
+    final index = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name = 'idx_sync_uuid_tdee_estimates'",
+        )
+        .get();
+    expect(index, hasLength(1));
+
+    // The outbox trigger installed by installSyncTriggers: without it an
+    // upgraded install would never enqueue tdee_estimates rows.
+    final triggers = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'trigger' "
+          "AND tbl_name = 'tdee_estimates'",
+        )
+        .get();
+    expect(triggers, isNotEmpty);
+  });
+
+  test('upgrades cleanly from a generated v43 fixture to v44', () async {
+    final connection = await verifier.startAt(43);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 48);
+
+    final programExerciseSlotColumns = await db
+        .customSelect('PRAGMA table_info(program_exercise_slots)')
+        .get();
+    expect(
+      programExerciseSlotColumns.map((row) => row.read<String>('name')),
+      contains('session_segment'),
+    );
+
+    final programDayExerciseColumns = await db
+        .customSelect('PRAGMA table_info(program_day_exercises)')
+        .get();
+    final programDayExerciseColumnNames = programDayExerciseColumns.map(
+      (row) => row.read<String>('name'),
+    );
+    expect(programDayExerciseColumnNames, contains('session_segment'));
+    expect(programDayExerciseColumnNames, contains('superset_group'));
+
+    final workoutExerciseColumns = await db
+        .customSelect('PRAGMA table_info(workout_exercises)')
+        .get();
+    expect(
+      workoutExerciseColumns.map((row) => row.read<String>('name')),
+      contains('planned_session_segment'),
+    );
+  });
+
+  test('upgrades cleanly from a generated v42 fixture to v43', () async {
+    final connection = await verifier.startAt(42);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 48);
+
+    final programDayExerciseColumns = await db
+        .customSelect('PRAGMA table_info(program_day_exercises)')
+        .get();
+    expect(
+      programDayExerciseColumns.map((row) => row.read<String>('name')),
+      contains('prescription_codec_json'),
+    );
+
+    final programColumns = await db
+        .customSelect('PRAGMA table_info(programs)')
+        .get();
+    expect(
+      programColumns.map((row) => row.read<String>('name')),
+      contains('allow_time_saving_set_techniques'),
+    );
+
+    final workoutExerciseColumns = await db
+        .customSelect('PRAGMA table_info(workout_exercises)')
+        .get();
+    expect(
+      workoutExerciseColumns.map((row) => row.read<String>('name')),
+      contains('planned_allows_advanced_techniques'),
+    );
+  });
+
+  test('upgrades cleanly from a generated v41 fixture to v42', () async {
+    final connection = await verifier.startAt(41);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 48);
+
+    final columns = await db
+        .customSelect('PRAGMA table_info(program_slot_explanations)')
+        .get();
+    final columnNames = columns.map((row) => row.read<String>('name')).toSet();
+    expect(
+      columnNames,
+      containsAll(<String>[
+        'id',
+        'slot_id',
+        'week_index',
+        'chosen_exercise_id',
+        'status',
+        'rationale',
+        'excluded_json',
+      ]),
+    );
+
+    final syncIndexes = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND tbl_name = 'program_slot_explanations'",
+        )
+        .get();
+    expect(
+      syncIndexes.map((row) => row.read<String>('name')),
+      isNot(contains('idx_sync_uuid_program_slot_explanations')),
+    );
+  });
+
+  // There is no drift_schema_v39.json or drift_schema_v40.json: `schema
+  // dump` only captures the *current* version (see the file header comment),
+  // and by the time this plan (17-01) ran, no commit's `schemaVersion => 39`
+  // or `=> 40` had ever been dumped — the two per-version replay tests that
+  // used to live here (`startAt(39)`, `startAt(40)`) referenced generated
+  // fixture classes that were never committed, so `schema.dart` could not
+  // resolve them. v38 is the newest fixture that can be replayed from; this
+  // single test covers the v39, v40 and v41 steps together, same reasoning
+  // as the v32 -> v34 combined replay above.
+  test('upgrades cleanly from a generated v38 fixture to v42', () async {
+    final connection = await verifier.startAt(38);
+    final db = AppDatabase.forTesting(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 48);
+
+    final tables = await db
+        .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .get();
+    final names = tables.map((row) => row.read<String>('name')).toSet();
+    expect(
+      names,
+      containsAll(<String>[
+        'program_exercise_slots',
+        'program_slot_pool_members',
+        'rotation_assignments',
+        'prescription_templates',
+        'physique_programming_profiles',
+        'exercise_preferences',
+        'gym_equipment',
+        'program_slot_explanations',
+      ]),
+    );
+
+    final setColumns = await db
+        .customSelect('PRAGMA table_info(set_entries)')
+        .get();
+    expect(
+      setColumns.map((row) => row.read<String>('name')),
+      containsAll(<String>[
+        'planned_reps_min',
+        'planned_reps_max',
+        'planned_weight_kg',
+        'planned_rpe_x10',
+        'planned_rir',
+        'planned_percent_of1_rm',
+        'planned_intent',
+      ]),
+    );
+
+    final columns = await db
+        .customSelect('PRAGMA table_info(exercise_catalog)')
+        .get();
+    final columnNames = columns.map((row) => row.read<String>('name')).toSet();
+    expect(
+      columnNames,
+      containsAll(<String>[
+        'disciplines',
+        'prerequisite_slugs',
+        'scaling_group',
+        'scaling_order',
+        'competition_anchor',
+        'specialization_tags',
+      ]),
+    );
+
+    final indexes = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name = 'idx_exercise_catalog_scaling'",
+        )
+        .get();
+    expect(indexes, isNotEmpty);
   });
 
   // With two dumped snapshots (v23, v24) now on disk, startAt(23) has real
@@ -31,7 +400,7 @@ void main() {
     final connection = await verifier.startAt(23);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // Phase 10 sync (v25) touches every synced table at once — this is the
@@ -41,7 +410,7 @@ void main() {
     final connection = await verifier.startAt(24);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // The v26 step used to create three local-only assisted-rep-tracking
@@ -52,7 +421,7 @@ void main() {
     final connection = await verifier.startAt(25);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // UI rework Phase 6 (v27) adds the fasting_schedules table. Same
@@ -61,7 +430,7 @@ void main() {
     final connection = await verifier.startAt(26);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // UI rework Phase 8 (v28) adds start_time_minutes to program_days and
@@ -71,7 +440,7 @@ void main() {
     final connection = await verifier.startAt(27);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // Phase 11 Gym Buddy (v29) adds two local-only buddy mirror tables plus
@@ -81,7 +450,7 @@ void main() {
     final connection = await verifier.startAt(28);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // The v30 step used to add rep_tracking_settings.auto_count_enabled here;
@@ -91,7 +460,7 @@ void main() {
     final connection = await verifier.startAt(29);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // GSD 12-04 (v31): set_entries gains duration_seconds, distance_m and
@@ -101,7 +470,7 @@ void main() {
     final connection = await verifier.startAt(30);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // Recovery page (v32): joint_pain_logs, a new synced table. Same
@@ -110,7 +479,7 @@ void main() {
     final connection = await verifier.startAt(31);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // v33 (workout_sessions.photo_path + calories_burned) and v34 (the two
@@ -130,7 +499,7 @@ void main() {
     final connection = await verifier.startAt(32);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // v35 (achievements + the two Hercul tables), v36 (fasting_stages) and v37
@@ -146,7 +515,7 @@ void main() {
     final connection = await verifier.startAt(34);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
   });
 
   // v38 removes assisted rep tracking. drift_schema_v37.json was dumped
@@ -161,7 +530,7 @@ void main() {
     final connection = await verifier.startAt(37);
     final db = AppDatabase.forTesting(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 38);
+    await verifier.migrateAndValidate(db, 48);
 
     final remaining = await db
         .customSelect(

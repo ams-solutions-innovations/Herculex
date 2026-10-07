@@ -485,7 +485,9 @@ class SyncService {
       // untouched.
       if (e.kind == SyncErrorKind.auth) {
         final nextRetry =
-            DateTime.now().add(const Duration(seconds: 30)).millisecondsSinceEpoch ~/
+            DateTime.now()
+                .add(const Duration(seconds: 30))
+                .millisecondsSinceEpoch ~/
             1000;
         await _db.customUpdate(
           'UPDATE pending_sync_ops '

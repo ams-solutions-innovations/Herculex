@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
@@ -10,6 +11,7 @@ import 'package:herculex/features/fasting/application/fasting_providers.dart';
 import 'package:herculex/features/fasting/domain/fasting_sync_snapshot.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
+import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/data/nutrition_repository.dart';
@@ -22,12 +24,13 @@ import 'package:herculex/features/nutrition/domain/macro_targets.dart';
 import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:herculex/features/nutrition/domain/target_resolver.dart';
+import 'package:herculex/features/nutrition/domain/tdee_estimate.dart';
 import 'package:herculex/services/platform/widget_sync_service.dart';
 import 'package:intl/intl.dart';
 
 /// Singleton [WidgetSyncService] for pushing data to Android home-screen widgets.
 final widgetSyncServiceProvider = Provider<WidgetSyncService>((ref) {
-  return WidgetSyncService();
+  return WidgetSyncService(clock: ref.watch(clockProvider));
 });
 
 final openFoodFactsClientProvider = Provider<OpenFoodFactsClient>((ref) {
@@ -63,12 +66,18 @@ final dailyTotalsProvider = StreamProvider.autoDispose
       return ref.watch(nutritionRepositoryProvider).watchDailyTotals(date);
     });
 
-/// Profile-derived baseline target (Mifflin-St Jeor). Used as the fallback
-/// when no day-specific rule applies.
+/// Baseline target used as the fallback when no day-specific rule applies.
+/// Maintenance comes from the adaptive estimate; the goal delta is re-added
+/// once inside [MacroTargets.fromMaintenance]. Cold start is exactly the
+/// legacy profile seed (D-08).
 final baselineTargetsProvider = Provider<MacroTargets?>((ref) {
   final profile = ref.watch(profileProvider).asData?.value;
   if (profile == null) return null;
-  return MacroTargets.fromProfile(profile);
+  final est = ref.watch(tdeeEstimateProvider);
+  if (est == null || est.method == TdeeMethod.coldStart) {
+    return MacroTargets.fromProfile(profile);
+  }
+  return MacroTargets.fromMaintenance(profile, est.kcal.toDouble());
 });
 
 final nutritionTargetsProvider = StreamProvider<List<NutritionTargetData>>((
@@ -245,6 +254,30 @@ final suggestedFoodsProvider = StreamProvider.autoDispose
       return ref
           .watch(nutritionRepositoryProvider)
           .watchSuggestedFoods(hour: params.hour, mealKey: params.mealKey);
+    });
+
+class FoodPairingParams {
+  final int foodId;
+  final String mealKey;
+
+  const FoodPairingParams({required this.foodId, required this.mealKey});
+
+  @override
+  bool operator ==(Object other) =>
+      other is FoodPairingParams &&
+      other.foodId == foodId &&
+      other.mealKey == mealKey;
+
+  @override
+  int get hashCode => Object.hash(foodId, mealKey);
+}
+
+/// Learns food combinations from the user's own previous meals.
+final frequentlyPairedFoodsProvider = FutureProvider.autoDispose
+    .family<List<FoodData>, FoodPairingParams>((ref, params) {
+      return ref
+          .watch(nutritionRepositoryProvider)
+          .frequentlyPairedFoods(params.foodId, mealKey: params.mealKey);
     });
 
 /// Group entries by meal for rendering meal sections.
@@ -459,6 +492,11 @@ final wearSyncControllerProvider = Provider<void>((ref) {
         if (active != null) {
           await repo.endSession(
             completed: decoded['completed'] as bool? ?? true,
+            // Preserve the watch's actual stop instant after an offline
+            // period instead of incorrectly ending the fast at reconnect.
+            endedAt: endedAtEpochMs != null
+                ? DateTime.fromMillisecondsSinceEpoch(endedAtEpochMs)
+                : null,
           );
         } else if (startedAtEpochMs != null) {
           final startedAt = DateTime.fromMillisecondsSinceEpoch(
@@ -667,14 +705,18 @@ final wearSyncControllerProvider = Provider<void>((ref) {
             carbsPer100g: item.carbsPer100g,
             fatPer100g: item.fatPer100g,
             servingGrams: item.servingGrams,
-            servingLabel: '${item.servingGrams.toStringAsFixed(0)} g',
+            servingAmount: item.portionAmount,
+            servingUnit: item.portionUnit,
+            servingLabel:
+                '${item.portionAmount.toStringAsFixed(item.portionAmount % 1 == 0 ? 0 : 1)} ${item.portionUnit}${item.portionUnit == 'g' ? '' : ' (${item.servingGrams.toStringAsFixed(0)} g)'}',
           );
 
           await repo.logFood(
             date: DateTime.now(),
             mealKey: selectedMeal,
             foodId: food.id,
-            grams: item.servingGrams,
+            portionAmount: item.portionAmount,
+            portionUnit: item.portionUnit,
           );
         }
       }
@@ -690,17 +732,27 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     }
   };
 
+  Timer? nutritionSyncDebounce;
+  ref.onDispose(() => nutritionSyncDebounce?.cancel());
+  void scheduleNutritionSync() {
+    nutritionSyncDebounce?.cancel();
+    nutritionSyncDebounce = Timer(const Duration(milliseconds: 750), () {
+      nutritionSyncDebounce = null;
+      syncAllToWear();
+    });
+  }
+
   ref.listen<AsyncValue<DailyTotals>>(dailyTotalsProvider(today), (
     previous,
     next,
   ) {
     if (next.hasValue && next.value != null) {
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   }, fireImmediately: true);
 
   ref.listen<List<MealSlot>>(mealSlotsProvider, (previous, next) {
-    syncQuickAddToWear();
+    scheduleNutritionSync();
   });
 
   ref.listen<AsyncValue<FastingSessionData?>>(activeFastingSessionProvider, (
@@ -709,7 +761,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
   ) {
     if (next.hasValue) {
       syncFastingToWear();
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   });
 
@@ -718,7 +770,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue && next.value != null) {
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   });
 
@@ -727,7 +779,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue) {
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   });
 
@@ -736,7 +788,7 @@ final wearSyncControllerProvider = Provider<void>((ref) {
     next,
   ) {
     if (next.hasValue) {
-      syncAllToWear();
+      scheduleNutritionSync();
     }
   });
 });

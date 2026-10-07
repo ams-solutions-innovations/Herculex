@@ -98,7 +98,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
         setState(() {
           _analyzing = false;
           _error =
-              'Gemini AI na sliki ni zaznal fitnes naprave ali vaje. Poskusite znova z bolj jasnega kota.';
+              'Herculex AI na sliki ni zaznal fitnes naprave ali vaje. Poskusite znova z bolj jasnega kota.';
         });
       } else {
         setState(() {
@@ -174,7 +174,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
                           ),
                         ),
                         Text(
-                          'Gemini AI Vision analiza opreme in vaj',
+                          'Herculex AI Vision analiza opreme in vaj',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.secondary,
                           ),
@@ -251,7 +251,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Gemini AI bo samodejno prepoznal napravo, določil ciljne mišične skupine in poiskal ustrezno vajo v Herculex katalogu.',
+                'Herculex AI bo samodejno prepoznal napravo, določil ciljne mišične skupine in poiskal ustrezno vajo v Herculex katalogu.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.secondary,
                   height: 1.35,
@@ -353,7 +353,7 @@ class _ExerciseAiScanDialogState extends ConsumerState<ExerciseAiScanDialog> {
             const CircularProgressIndicator(),
             const SizedBox(height: 18),
             Text(
-              'Gemini AI analizira fitnes napravo in opremo...',
+              'Herculex AI analizira fitnes napravo in opremo...',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),

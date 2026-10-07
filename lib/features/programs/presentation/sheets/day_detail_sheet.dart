@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -11,7 +14,9 @@ import 'package:herculex/features/programs/application/programs_providers.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
+import 'package:herculex/features/programs/presentation/sheets/template_scope_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/session_tile.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/views/template_builder_view.dart';
@@ -19,48 +24,92 @@ import 'package:intl/intl.dart';
 
 /// Everything you can do to one day of a block: see its sessions, attach or
 /// swap templates, start, skip, move or delete.
-class DayDetailSheet extends ConsumerWidget {
+class DayDetailSheet extends ConsumerStatefulWidget {
   const DayDetailSheet({
     super.key,
     required this.date,
     required this.programId,
+    this.initialScheduleId,
   });
 
   final DateTime date;
   final int? programId;
 
+  /// When set, the matching session's card scrolls into view and renders
+  /// with a highlighted border on open — the sheet still lists every
+  /// session for the day (D-05); this only marks which one was tapped.
+  final int? initialScheduleId;
+
   static Future<void> show(
     BuildContext context, {
     required DateTime date,
     required int? programId,
+    int? initialScheduleId,
   }) {
     return HxSheet.show(
       context,
-      builder: (_) => DayDetailSheet(date: date, programId: programId),
+      builder: (_) => DayDetailSheet(
+        date: date,
+        programId: programId,
+        initialScheduleId: initialScheduleId,
+      ),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DayDetailSheet> createState() => _DayDetailSheetState();
+}
+
+class _DayDetailSheetState extends ConsumerState<DayDetailSheet> {
+  final _highlightKey = GlobalKey();
+  bool _didScrollToInitial = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final range = ScheduleRange.week(date, programId: programId);
+    final range = ScheduleRange.week(widget.date, programId: widget.programId);
     final byDate = ref.watch(scheduleByDateProvider(range));
-    final iso = _iso(date);
+    final iso = _iso(widget.date);
     final rows = sortedByStartTime(
       byDate.value?[iso] ?? const <ScheduledWorkoutRow>[],
     );
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_didScrollToInitial) return;
+      final context = _highlightKey.currentContext;
+      if (context == null) return;
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 300),
+      );
+      _didScrollToInitial = true;
+    });
+
     return HxSheet(
-      title: DateFormat('EEEE, MMMM d').format(date),
-      subtitle: rows.isEmpty
-          ? 'Nothing scheduled'
-          : rows.length == 1
-          ? '1 session'
-          : '${rows.length} sessions',
       initialSize: 0.65,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text(
+            DateFormat('EEEE, MMMM d').format(widget.date),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            rows.isEmpty
+                ? 'Nothing scheduled'
+                : rows.length == 1
+                ? '1 session'
+                : '${rows.length} sessions',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.secondary,
+            ),
+          ),
+          const SizedBox(height: 20),
           if (rows.isEmpty)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 28),
@@ -98,7 +147,12 @@ class DayDetailSheet extends ConsumerWidget {
             for (final row in rows)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _SessionCard(row: row),
+                child: row.id == widget.initialScheduleId
+                    ? KeyedSubtree(
+                        key: _highlightKey,
+                        child: _SessionCard(row: row, highlighted: true),
+                      )
+                    : _SessionCard(row: row),
               ),
         ],
       ),
@@ -112,9 +166,14 @@ class DayDetailSheet extends ConsumerWidget {
 }
 
 class _SessionCard extends ConsumerWidget {
-  const _SessionCard({required this.row});
+  const _SessionCard({required this.row, this.highlighted = false});
 
   final ScheduledWorkoutRow row;
+
+  /// True when this is the exact session the user tapped to open the sheet
+  /// (`DayDetailSheet.initialScheduleId`) — renders a visually-distinguishable
+  /// border so it's clear which of the day's sessions was selected.
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -127,7 +186,10 @@ class _SessionCard extends ConsumerWidget {
         color: AppColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          color: highlighted
+              ? AppColors.primary
+              : AppColors.outlineVariant.withValues(alpha: 0.4),
+          width: highlighted ? 2 : 1,
         ),
       ),
       child: Column(
@@ -172,12 +234,22 @@ class _SessionCard extends ConsumerWidget {
           _timeRow(context, ref, theme),
           const SizedBox(height: 14),
           if (ScheduleStatus.isOpen(row.status) && !row.isEmpty)
-            PremiumButton(
-              text: row.isInProgress ? 'Resume workout' : 'Start workout',
-              icon: Icons.play_arrow_rounded,
-              onTap: () => _start(context, ref),
+            Center(
+              child: PremiumButton(
+                text: row.isInProgress ? 'Resume workout' : 'Start workout',
+                icon: Icons.play_arrow_rounded,
+                onTap: () => _start(context, ref),
+              ),
             ),
           const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => _viewWorkout(context, ref),
+              icon: const Icon(Icons.visibility_outlined, size: 18),
+              label: const Text('View workout'),
+            ),
+          ),
+          const SizedBox(height: 4),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -378,20 +450,47 @@ class _SessionCard extends ConsumerWidget {
   Future<void> _start(BuildContext context, WidgetRef ref) async {
     final navigator = Navigator.of(context);
     final service = ref.read(scheduledWorkoutServiceProvider);
-    final today = await service.todaysWorkout();
-    if (today == null || today.schedule.id != row.id) {
+    try {
+      await service.startScheduledWorkoutById(row.id);
+      // Transition directly to the active workout screen on the Workouts tab.
+      ref.read(mainTabIndexProvider.notifier).state = 2;
+      navigator.pop();
+    } on StateError catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'You can only start a session on the day it is scheduled.',
-          ),
-        ),
+      AppNotice.show(
+        context,
+        error.message.toString(),
+        kind: AppNoticeKind.error,
       );
+    }
+  }
+
+  /// Status-gated: `done`/`in_progress` rows already have a real session
+  /// (`completedSessionId` is set at start time, not completion) so they open
+  /// the actual logged/live `WorkoutHistoryView` — never the stale plan.
+  /// Every other status (`planned`, `moved`, `skipped`) still pushes the
+  /// standalone preview route, so looking ahead in the calendar gets a real
+  /// back-stack entry and never materializes a session, since the preview
+  /// resolves its own plan read-only via `plannedWorkoutPreviewProvider`.
+  Future<void> _viewWorkout(BuildContext context, WidgetRef ref) async {
+    if (row.isDone || row.isInProgress) {
+      final completedSessionId = row.completedSessionId;
+      if (completedSessionId == null) {
+        AppNotice.show(
+          context,
+          'This scheduled workout no longer exists.',
+          kind: AppNoticeKind.info,
+        );
+        return;
+      }
+      Navigator.of(context).pop();
+      if (!context.mounted) return;
+      context.push(AppPaths.workoutHistory(completedSessionId));
       return;
     }
-    await service.startScheduledWorkout(today);
-    navigator.pop();
+    Navigator.of(context).pop();
+    if (!context.mounted) return;
+    context.push(AppPaths.plannedWorkoutPreview(row.id));
   }
 
   Future<void> _assignTemplate(BuildContext context, WidgetRef ref) async {
@@ -409,52 +508,21 @@ class _SessionCard extends ConsumerWidget {
     await _applyTemplate(context, ref, created.id);
   }
 
-  /// Asks whether the template applies to this occurrence only or to every
-  /// future session of this program day — the difference between a one-off swap
-  /// and re-pointing the live link.
   Future<void> _applyTemplate(
     BuildContext context,
     WidgetRef ref,
     int templateId,
   ) async {
-    final scope = await showModalBottomSheet<_TemplateScope>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => HxSheet(
-        scrollable: false,
-        title: 'Apply to',
-        subtitle: 'This template can cover one session or all of them.',
-        child: Column(
-          children: [
-            _ScopeOption(
-              icon: Icons.today_rounded,
-              title: 'This session only',
-              subtitle: 'Swap just ${DateFormat('MMM d').format(row.date)}.',
-              onTap: () => Navigator.pop(context, _TemplateScope.thisSession),
-            ),
-            const SizedBox(height: 8),
-            _ScopeOption(
-              icon: Icons.repeat_rounded,
-              title: 'Every future ${row.title} day',
-              subtitle:
-                  'Re-links the program day; past sessions are untouched.',
-              onTap: () => Navigator.pop(context, _TemplateScope.everyFuture),
-            ),
-          ],
-        ),
-      ),
+    await TemplateScopeSheet.apply(
+      context,
+      ref,
+      scheduleId: row.id,
+      programDayId: row.day.id,
+      programId: row.program.id,
+      date: row.date,
+      dayTitle: row.title,
+      templateId: templateId,
     );
-    if (scope == null) return;
-
-    final repo = ref.read(programsRepositoryProvider);
-    Haptics.success();
-    if (scope == _TemplateScope.thisSession) {
-      await repo.setScheduleTemplateOverride(row.id, templateId);
-    } else {
-      await repo.setProgramDayTemplate(row.day.id, templateId);
-      await repo.setScheduleTemplateOverride(row.id, null);
-      await repo.rematerializeProgram(row.program.id);
-    }
   }
 
   Future<void> _unlink(BuildContext context, WidgetRef ref) async {
@@ -483,66 +551,6 @@ class _SessionCard extends ConsumerWidget {
       final calId = ref.read(selectedCalendarIdProvider);
       unawaited(calService.syncWorkoutNow(row.id, targetCalendarId: calId));
     }
-  }
-}
-
-enum _TemplateScope { thisSession, everyFuture }
-
-class _ScopeOption extends StatelessWidget {
-  const _ScopeOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

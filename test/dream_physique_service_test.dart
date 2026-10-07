@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/features/physique/domain/physique_guardrails.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/gemini_backend_service.dart';
@@ -14,10 +15,13 @@ void main() {
         final service = DreamPhysiqueService(fakeBackend);
 
         final tempDir = await Directory.systemTemp.createTemp('dp_test_');
+        addTearDown(() => tempDir.delete(recursive: true));
         final currentFile = File('${tempDir.path}/current.jpg');
         await currentFile.writeAsBytes([1, 2, 3]);
         final targetFile = File('${tempDir.path}/target.jpg');
         await targetFile.writeAsBytes([4, 5, 6]);
+        final targetFileTwo = File('${tempDir.path}/target-two.jpg');
+        await targetFileTwo.writeAsBytes([7, 8, 9]);
 
         const profile = Profile(
           goal: FitnessGoal.muscleGain,
@@ -30,9 +34,9 @@ void main() {
 
         final result = await service.compareAndAnalyzePhysique(
           currentImages: [currentFile],
-          targetImage: targetFile,
+          targetImages: [targetFile, targetFileTwo],
+          consentGranted: true,
           profile: profile,
-          targetGoalStyle: 'Lean & Aesthetic',
           userNote: 'Goal is classic aesthetic',
         );
 
@@ -45,18 +49,34 @@ void main() {
         expect(result.musclePriorities.length, 2);
         expect(result.musclePriorities.first.group, 'Upper chest');
         expect(result.musclePriorities.first.priority, 'high');
+        expect(result.programmingProfile?.schemaVersion, 1);
+        expect(
+          result.programmingProfile?.musclePriorities.first.muscleId,
+          'chest',
+        );
+        expect(
+          result.programmingProfile?.musclePriorities.first.priority,
+          ProgrammingPriorityLevel.high,
+        );
+        expect(
+          result.programmingProfile?.musclePriorities.first.confidence,
+          0.87,
+        );
         expect(result.isAiGenerated, isTrue);
+        expect(result.targetAestheticStyle, contains('V-taper'));
         expect(fakeBackend.calledDreamPhysique, isTrue);
+        expect(fakeBackend.receivedTargetImages, hasLength(2));
       },
     );
 
-    test('Provides fallback computation when backend call fails', () async {
+    test('propagates an honest recoverable error when backend fails', () async {
       final failingBackend = _FailingGeminiBackend();
       final service = DreamPhysiqueService(failingBackend);
 
       final tempDir = await Directory.systemTemp.createTemp(
         'dp_fallback_test_',
       );
+      addTearDown(() => tempDir.delete(recursive: true));
       final currentFile = File('${tempDir.path}/curr.jpg');
       await currentFile.writeAsBytes([1]);
       final targetFile = File('${tempDir.path}/targ.jpg');
@@ -71,34 +91,149 @@ void main() {
         sex: BiologicalSex.male,
       );
 
-      final result = await service.compareAndAnalyzePhysique(
-        currentImages: [currentFile],
-        targetImage: targetFile,
-        profile: profile,
-        targetGoalStyle: 'Lean & Aesthetic',
+      await expectLater(
+        service.compareAndAnalyzePhysique(
+          currentImages: [currentFile],
+          targetImages: [targetFile],
+          consentGranted: true,
+          profile: profile,
+        ),
+        throwsA(
+          isA<DreamPhysiqueAnalysisException>()
+              .having((error) => error.recoverable, 'recoverable', isTrue)
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Server unreachable'),
+              ),
+        ),
       );
 
-      expect(result.estimatedMonths, greaterThan(0));
-      expect(result.leanMuscleGainKg, greaterThan(0));
-      expect(result.fatLossKg, greaterThan(0));
-      expect(result.musclePriorities.isNotEmpty, isTrue);
-      expect(result.isAiGenerated, isFalse);
+      expect(failingBackend.calledDreamPhysique, isTrue);
+      expect(currentFile.existsSync(), isTrue);
+      expect(targetFile.existsSync(), isTrue);
+    });
+
+    test('does not read or upload images before explicit consent', () async {
+      final backend = _MockGeminiBackend();
+      final service = DreamPhysiqueService(backend);
+
+      await expectLater(
+        service.compareAndAnalyzePhysique(
+          currentImages: [File('does-not-need-to-exist.jpg')],
+          targetImages: [File('also-not-read.jpg')],
+          consentGranted: false,
+        ),
+        throwsA(
+          isA<DreamPhysiqueAnalysisException>()
+              .having((error) => error.recoverable, 'recoverable', isFalse)
+              .having(
+                (error) => error.message,
+                'message',
+                contains('privacy notice'),
+              ),
+        ),
+      );
+
+      expect(backend.calledDreamPhysique, isFalse);
+    });
+
+    test('keeps current response fields compatible without new profile', () {
+      final result = DreamPhysiqueAnalysisResult.fromJson({
+        'estimatedMonths': 8,
+        'timeframeRange': '6 - 9 months',
+        'weightChangeKg': -2.5,
+        'leanMuscleGainKg': 3.5,
+        'fatLossKg': 6.0,
+        'targetBfPercent': 11.0,
+        'currentEstimatedBf': 17.5,
+        'musclePriorities': [
+          {
+            'group': 'Upper chest',
+            'priority': 'high',
+            'focus': 'Additional upper-chest emphasis',
+          },
+        ],
+        'nutritionStrategy': 'Slight deficit.',
+        'trainingAdvice': 'Progressive training.',
+        'overallAssessment': 'Goal is achievable.',
+        'targetAestheticStyle': 'Lean athletic physique.',
+      });
+
+      expect(result.estimatedMonths, 8);
+      expect(result.musclePriorities.single.group, 'Upper chest');
+      expect(result.programmingProfile, isNull);
+      expect(result.currentBfRangeMin, isNull);
+      expect(result.currentBfRangeMax, isNull);
+      expect(result.assessmentConfidence, AssessmentConfidence.unknown);
+    });
+
+    Map<String, dynamic> withExtras(Map<String, dynamic> extras) => {
+      'estimatedMonths': 8,
+      'timeframeRange': '6 - 9 months',
+      'weightChangeKg': -2.5,
+      'leanMuscleGainKg': 3.5,
+      'fatLossKg': 6.0,
+      'targetBfPercent': 11.0,
+      'currentEstimatedBf': 17.5,
+      'musclePriorities': [
+        {'group': 'Chest', 'priority': 'high', 'focus': 'Incline'},
+      ],
+      'nutritionStrategy': 'Slight deficit.',
+      'trainingAdvice': 'Progressive training.',
+      'overallAssessment': 'Goal is achievable.',
+      'targetAestheticStyle': 'Lean athletic physique.',
+      ...extras,
+    };
+
+    test('parses BF range and assessment confidence when present', () {
+      final result = DreamPhysiqueAnalysisResult.fromJson(
+        withExtras({
+          'currentBfRangeMin': 15,
+          'currentBfRangeMax': 19.5,
+          'assessmentConfidence': 'medium',
+        }),
+      );
+      expect(result.currentBfRangeMin, 15);
+      expect(result.currentBfRangeMax, 19.5);
+      expect(result.assessmentConfidence, AssessmentConfidence.medium);
+    });
+
+    test('drops inverted or out-of-range BF ranges without throwing', () {
+      for (final extras in [
+        {'currentBfRangeMin': 20, 'currentBfRangeMax': 15},
+        {'currentBfRangeMin': 2, 'currentBfRangeMax': 10},
+        {'currentBfRangeMin': 10, 'currentBfRangeMax': 71},
+        {'currentBfRangeMin': 'x', 'currentBfRangeMax': 12},
+      ]) {
+        final result = DreamPhysiqueAnalysisResult.fromJson(withExtras(extras));
+        expect(result.currentBfRangeMin, isNull);
+        expect(result.currentBfRangeMax, isNull);
+      }
+    });
+
+    test('unrecognised confidence parses as unknown', () {
+      final result = DreamPhysiqueAnalysisResult.fromJson(
+        withExtras({'assessmentConfidence': 'certain'}),
+      );
+      expect(result.assessmentConfidence, AssessmentConfidence.unknown);
     });
   });
 }
 
 class _MockGeminiBackend implements GeminiBackend {
   bool calledDreamPhysique = false;
+  List<Map<String, dynamic>>? receivedTargetImages;
 
   @override
   Future<Map<String, dynamic>> analyzeDreamPhysique({
     required List<Map<String, dynamic>> currentImages,
-    required List<int> targetImageBytes,
-    required String targetImageMimeType,
+    required List<Map<String, dynamic>> targetImages,
     Map<String, dynamic>? biometrics,
     String? userNote,
   }) async {
     calledDreamPhysique = true;
+    receivedTargetImages = targetImages;
     return {
       'estimatedMonths': 8,
       'timeframeRange': '6 - 9 months',
@@ -119,9 +254,31 @@ class _MockGeminiBackend implements GeminiBackend {
           'focus': 'Lateral raises',
         },
       ],
+      'programmingProfile': {
+        'schemaVersion': 1,
+        'overallConfidence': 0.81,
+        'musclePriorities': [
+          {
+            'muscleId': 'chest',
+            'priority': 'high',
+            'confidence': 0.87,
+            'rationale': 'The target has more upper-chest emphasis.',
+            'uncertainties': ['Camera angle differs.'],
+          },
+          {
+            'muscleId': 'side_delts',
+            'priority': 'high',
+            'confidence': 0.79,
+            'rationale': 'Shoulder width differs visibly.',
+            'uncertainties': ['Lighting differs.'],
+          },
+        ],
+        'uncertainties': ['Visual estimates are pose-dependent.'],
+      },
       'nutritionStrategy': 'Slight deficit.',
       'trainingAdvice': 'PPL split 5x weekly.',
       'overallAssessment': 'Goal is achievable.',
+      'targetAestheticStyle': 'Athletic V-taper physique.',
     };
   }
 
@@ -178,17 +335,26 @@ class _MockGeminiBackend implements GeminiBackend {
     required String text,
     String? preferredMealKey,
   }) async => throw UnimplementedError();
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
+  }) async => throw UnimplementedError();
 }
 
 class _FailingGeminiBackend implements GeminiBackend {
+  bool calledDreamPhysique = false;
+
   @override
   Future<Map<String, dynamic>> analyzeDreamPhysique({
     required List<Map<String, dynamic>> currentImages,
-    required List<int> targetImageBytes,
-    required String targetImageMimeType,
+    required List<Map<String, dynamic>> targetImages,
     Map<String, dynamic>? biometrics,
     String? userNote,
   }) async {
+    calledDreamPhysique = true;
     throw Exception('Server unreachable');
   }
 
@@ -244,5 +410,12 @@ class _FailingGeminiBackend implements GeminiBackend {
   Future<Map<String, dynamic>> analyzeRamblerText({
     required String text,
     String? preferredMealKey,
+  }) async => throw UnimplementedError();
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
   }) async => throw UnimplementedError();
 }

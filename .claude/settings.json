@@ -227,13 +227,33 @@
       "Bash(git diff *)",
       "Bash(grep -vE \"^[+-]import |^[+-]export |^[+-]\\\\s*$\")",
       "Bash(echo \"HEAD format-clean? exit=$? \\(0=clean, 1=needs formatting\\)\")",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(python3)",
+      "Bash(python3 \"C:/Users/marti/AppData/Local/Temp/claude/c--Users-marti-AMS-d-o-o-Herculex/30410b08-4178-473c-973e-8b37c3961b50/scratchpad/diff.py\")",
+      "Bash(find / -path /proc -prune -o -name \"reorderable_list.dart\" -print 2>/dev/null)",
+      "Bash(sed -i 's/^\\\\\\(                android:layout_height=\"\\\\\\)6dp\"$/\\\\18dp\"/' widget_today_calories_medium.xml)",
+      "Bash(sed -i 's/^\\\\\\(                android:layout_width=\"\\\\\\)8dp\"$/\\\\110dp\"/; s/^\\\\\\(                android:layout_height=\"\\\\\\)8dp\"$/\\\\110dp\"/' widget_today_calories_medium.xml)",
+      "Bash(sed -i 's/sizePx = 220,/sizePx = 288,/g; s/strokeWidthPx = 16f,/strokeWidthPx = 21f,/g' TodayCaloriesMediumWidgetProvider.kt)",
+      "Bash(sed -i 's/sizePx = 160,/sizePx = 240,/g; s/strokeWidthPx = 14f,/strokeWidthPx = 21f,/g' TodayMacrosMediumWidgetProvider.kt)",
+      "Bash(tasklist //FI \"IMAGENAME eq dart.exe\")",
+      "Bash(tasklist //FI \"IMAGENAME eq flutter_tester.exe\")",
+      "Bash(taskkill //F //IM flutter_tester.exe)",
+      "Bash(taskkill //F //IM dart.exe)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(perl -0777 -pi -e 's{\\(  <acceptance_criteria>\\\\n    - File exists and exports.*?\\\\n  </acceptance_criteria>\\\\n\\)}{$1  <done>GoRouterTestHarness and StubRouteScreen exist, compile, and have zero AppRoutes.* dependencies.</done>\\\\n}s' 20-01-PLAN.md)",
+      "Bash(git reset *)",
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; grep \"^requirements:\" {}')",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\('passed:',j.passed,'covered:',j.covered+'/'+j.total\\);console.log\\('uncovered:',JSON.stringify\\(j.uncovered.map\\(u=>u.id\\)\\)\\);}\\)\")",
+      "Bash(command -v deno)",
+      "Bash(deno test *)",
+      "Bash(echo \"EXIT CODE: $?\")"
     ],
     "additionalDirectories": [
       "c:\\c\\Users\\marti\\AMS d.o.o\\Herculex\\lib\\features\\dashboard\\presentation",
       "C:\\Users\\marti\\.claude\\get-shit-done\\workflows",
       "c:\\Users\\marti\\AMS d.o.o\\Herculex\\.planning\\phases\\11-gym-buddy-live-workout",
-      "C:\\Users\\marti\\AppData\\Local\\Temp\\claude\\c--Users-marti-AMS-d-o-o-Herculex\\c9e30185-0e3e-4058-a743-4c49fd4ef7de\\scratchpad"
+      "C:\\Users\\marti\\AppData\\Local\\Temp\\claude\\c--Users-marti-AMS-d-o-o-Herculex\\c9e30185-0e3e-4058-a743-4c49fd4ef7de\\scratchpad",
+      "\\tmp"
     ]
   }
 }

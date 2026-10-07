@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/services/platform/widget_sync_service.dart';
+
+class _FixedClock implements Clock {
+  _FixedClock(this.value);
+  final DateTime value;
+
+  @override
+  DateTime now() => value;
+}
+
+/// Days since 1970-01-01 of 2026-10-07, the date the tests pin the clock to.
+const _epochDayOct7 = 20733;
 
 /// Payload contract between [WidgetSyncService] and the Android widget
 /// channel handler in MainActivity.kt, which stores these for the
@@ -30,7 +42,9 @@ void main() {
   test(
     'syncRecovery sends the most fatigued muscles as name/score maps',
     () async {
-      await WidgetSyncService().syncRecovery(
+      await WidgetSyncService(
+        clock: _FixedClock(DateTime(2026, 10, 7, 9)),
+      ).syncRecovery(
         scorePct: 78,
         muscles: const [('Quads', 42), ('Hamstrings', 58)],
       );
@@ -42,6 +56,7 @@ void main() {
           {'name': 'Quads', 'score': 42},
           {'name': 'Hamstrings', 'score': 58},
         ],
+        'epochDay': _epochDayOct7,
       });
     },
   );
@@ -133,6 +148,72 @@ void main() {
         },
         {'key': 'volume', 'data': null},
       ]);
+    },
+  );
+
+  test('payloads describing today carry the local epoch day', () async {
+    // Late evening: the day number must follow the calendar date, not UTC.
+    final sync = WidgetSyncService(
+      clock: _FixedClock(DateTime(2026, 10, 7, 23, 59)),
+    );
+    await sync.syncNutrition(
+      baseGoalKcal: 2400,
+      foodKcal: 1200,
+      exerciseKcal: 300,
+      remainingKcal: 1500,
+      carbsCurrent: 100,
+      carbsTarget: 250,
+      fatCurrent: 40,
+      fatTarget: 80,
+      proteinCurrent: 90,
+      proteinTarget: 180,
+    );
+    await sync.syncMacros(
+      carbsCurrent: 100,
+      carbsTarget: 250,
+      fatCurrent: 40,
+      fatTarget: 80,
+      proteinCurrent: 90,
+      proteinTarget: 180,
+    );
+    await sync.syncCns(readinessPct: 70, status: 'FRESH');
+    await sync.syncRecovery(scorePct: 55);
+
+    expect(calls.map((c) => c.method), [
+      'syncNutrition',
+      'syncMacros',
+      'syncCns',
+      'syncRecovery',
+    ]);
+    for (final call in calls) {
+      expect((call.arguments as Map)['epochDay'], _epochDayOct7);
+    }
+  });
+
+  test(
+    'self-timed and display-ready payloads do not refresh the day stamp',
+    () async {
+      // MainActivity stamps "synced today" from any call that carries epochDay,
+      // so a theme or fasting sync must not claim yesterday's totals are fresh.
+      final sync = WidgetSyncService(
+        clock: _FixedClock(DateTime(2026, 10, 7, 9)),
+      );
+      await sync.syncFasting(
+        startedAt: null,
+        targetSeconds: null,
+        planLabel: null,
+      );
+      await sync.syncTheme(
+        mode: ThemeMode.dark,
+        dark: HxColors.of(Brightness.dark, AppColorTheme.pinky),
+        light: HxColors.of(Brightness.light, AppColorTheme.pinky),
+      );
+      await sync.syncWidgetData('week', {'done': 2});
+
+      expect(calls, hasLength(3));
+      for (final call in calls) {
+        expect((call.arguments as Map).containsKey('epochDay'), isFalse);
+      }
     },
   );
 }

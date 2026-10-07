@@ -1,6 +1,5 @@
 package com.ams.herculex
 
-import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
 import android.util.Log
@@ -32,6 +31,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        dartWidgetReady = false
 
         val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, wearChannel)
         methodChannel = channel
@@ -134,6 +134,19 @@ class MainActivity : FlutterFragmentActivity() {
                     performMediaActionNative(action)
                     result.success(null)
                 }
+                "openMediaControlsPermission" -> {
+                    startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                    result.success(null)
+                }
+                "syncRestTimer" -> {
+                    val restJson = call.argument<String>("rest_json") ?: ""
+                    lifecycleScope.launch {
+                        val delivered = runCatching {
+                            wearSyncManager.sendRestTimer(restJson)
+                        }.getOrDefault(false)
+                        result.success(delivered)
+                    }
+                }
                 "sendAchievement" -> {
                     val achievementJson = call.argument<String>("achievement_json") ?: ""
                     sendAchievementToWear(achievementJson)
@@ -197,17 +210,18 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
 
-        PhoneWearListenerService.onWatchMediaCommandListener = { commandJson ->
-            runOnUiThread {
-                methodChannel?.invokeMethod("onWatchMediaCommand", mapOf("command_json" to commandJson))
-            }
-        }
-
         // ── Home-screen widget sync channel ──────────────────────────────────
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, widgetChannel)
             .setMethodCallHandler { call, result ->
                 val prefs = CnsWidgetProvider.getPrefs(applicationContext)
                 val editor = prefs.edit()
+
+                // Stamp the day the payload belongs to (Dart derives it from
+                // Clock). Providers compare it against today and fall back to
+                // their placeholder rather than showing yesterday's numbers.
+                call.argument<Int>("epochDay")?.let {
+                    editor.putLong(KEY_SYNCED_EPOCH_DAY, it.toLong())
+                }
 
                 when (call.method) {
                     "syncNutrition", "syncMacros" -> {
@@ -350,6 +364,19 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(null)
                     }
 
+                    "takePendingAction" -> {
+                        // Dart's first call after registering its handler. Anything a
+                        // widget tap queued before that point (cold start) is handed
+                        // over here, since invokeMethod to a not-yet-registered
+                        // handler is silently dropped.
+                        dartWidgetReady = true
+                        val pending = pendingWidgetAction
+                        pendingWidgetAction = null
+                        result.success(
+                            pending?.let { mapOf("method" to it.first, "args" to it.second) }
+                        )
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -386,6 +413,7 @@ class MainActivity : FlutterFragmentActivity() {
                                 tonnageText = call.argument<String>("tonnageText") ?: "0 kg",
                                 lastSetText = call.argument<String>("lastSetText"),
                                 targetSetId = call.argument<Number>("targetSetId")?.toLong(),
+                                isWarmup = call.argument<Boolean>("isWarmup") ?: false,
                                 actions = parseBubbleActions(call.argument("actions")),
                             ),
                         )
@@ -436,24 +464,18 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    private var dartWidgetReady = false
+    private var pendingWidgetAction: Pair<String, Map<String, Any?>?>? = null
     private var pendingSessionJson: String? = null
     private var pendingJumpToWorkout: Boolean = false
 
+    /**
+     * Thin wrapper over the shared [broadcastWidgetUpdate] helper in
+     * WidgetFreshness.kt, kept so the vararg call sites above read unchanged.
+     * WidgetBootReceiver calls the shared helper directly.
+     */
     private fun refreshWidgets(vararg providerClasses: Class<*>) {
-        val manager = AppWidgetManager.getInstance(applicationContext)
-        for (cls in providerClasses) {
-            @Suppress("UNCHECKED_CAST")
-            val ids = manager.getAppWidgetIds(
-                ComponentName(applicationContext, cls as Class<android.appwidget.AppWidgetProvider>)
-            )
-            if (ids.isNotEmpty()) {
-                val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
-                    component = ComponentName(applicationContext, cls)
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-                }
-                sendBroadcast(intent)
-            }
-        }
+        broadcastWidgetUpdate(applicationContext, providerClasses.toList())
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -485,42 +507,36 @@ class MainActivity : FlutterFragmentActivity() {
 
     private fun handleWorkoutsIntent(intent: Intent?) {
         if (intent?.action == ScannerWidgetProvider.ACTION_SCAN) {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("openScanner", null)
-            }
+            dispatchWidgetAction("openScanner")
             intent?.action = null
         }
 
         if (intent?.action == TodayCaloriesMediumWidgetProvider.ACTION_SEARCH_FOOD) {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("openFoodSearch", null)
-            }
+            dispatchWidgetAction("openFoodSearch")
             intent?.action = null
         }
 
         if (intent?.action == HxWidgetProvider.ACTION_WIDGET_COMMAND) {
-            val args = mapOf(
-                "command" to intent.getStringExtra(HxWidgetProvider.EXTRA_COMMAND),
-                "arg" to intent.getStringExtra(HxWidgetProvider.EXTRA_ARG),
+            dispatchWidgetAction(
+                "widgetCommand",
+                mapOf(
+                    "command" to intent.getStringExtra(HxWidgetProvider.EXTRA_COMMAND),
+                    "arg" to intent.getStringExtra(HxWidgetProvider.EXTRA_ARG),
+                ),
             )
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("widgetCommand", args)
-            }
             intent.action = null
         }
 
         if (intent?.action == HxWidgetProvider.ACTION_OPEN_ROUTE) {
-            val route = intent.getStringExtra(HxWidgetProvider.EXTRA_ROUTE)
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("openRoute", route)
-            }
+            dispatchWidgetAction(
+                "openRoute",
+                mapOf("route" to intent.getStringExtra(HxWidgetProvider.EXTRA_ROUTE)),
+            )
             intent.action = null
         }
 
         if (intent?.action == TodayCaloriesSmallWidgetProvider.ACTION_OPEN_NUTRITION) {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, widgetChannel).invokeMethod("openNutrition", null)
-            }
+            dispatchWidgetAction("openNutrition")
             intent?.action = null
         }
 
@@ -540,9 +556,19 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun openActiveWorkoutInFlutter(action: String? = null) {
-        flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-            val args = if (action != null) mapOf("action" to action) else null
-            MethodChannel(messenger, widgetChannel).invokeMethod("openActiveWorkout", args)
+        dispatchWidgetAction("openActiveWorkout", if (action != null) mapOf("action" to action) else null)
+    }
+
+    /**
+     * Delivers a widget tap to Dart, or parks it until Dart asks for it
+     * ("takePendingAction"). Only the latest tap is kept.
+     */
+    private fun dispatchWidgetAction(method: String, args: Map<String, Any?>? = null) {
+        val messenger = flutterEngine?.dartExecutor?.binaryMessenger
+        if (dartWidgetReady && messenger != null) {
+            MethodChannel(messenger, widgetChannel).invokeMethod(method, args)
+        } else {
+            pendingWidgetAction = method to args
         }
     }
 
@@ -722,6 +748,12 @@ class MainActivity : FlutterFragmentActivity() {
     /// entry, which has no ordering guarantee and can be some other app's
     /// paused/idle session ahead of Spotify's.
     private fun getCurrentMediaInfoNative(): Map<String, Any> {
+        val audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager
+        val stream = android.media.AudioManager.STREAM_MUSIC
+        val curVol = audioManager?.getStreamVolume(stream) ?: 8
+        val maxVol = audioManager?.getStreamMaxVolume(stream) ?: 15
+        val volPercent = if (maxVol > 0) curVol * 100 / maxVol else 50
+
         val mediaSessionManager = getSystemService(android.content.Context.MEDIA_SESSION_SERVICE)
             as android.media.session.MediaSessionManager
         val componentName = ComponentName(
@@ -730,17 +762,27 @@ class MainActivity : FlutterFragmentActivity() {
         )
         try {
             val controllers = mediaSessionManager.getActiveSessions(componentName)
-            val controller = controllers.firstOrNull {
-                it.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
-            } ?: controllers.firstOrNull()
+            val spotifyPlaying = controllers.firstOrNull {
+                it.packageName.contains("spotify", ignoreCase = true) && it.playbackState.isAudiblyPlaying()
+            }
+            val anyPlaying = controllers.firstOrNull { it.playbackState.isAudiblyPlaying() }
+            val spotifyAny = controllers.firstOrNull { it.packageName.contains("spotify", ignoreCase = true) }
+            val controller = spotifyPlaying ?: anyPlaying ?: spotifyAny ?: controllers.firstOrNull()
+
             if (controller != null) {
                 val metadata = controller.metadata
-                val isPlaying = controller.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
+                val isPlaying = controller.playbackState.isAudiblyPlaying()
                 val artwork = metadata?.getBitmap(android.media.MediaMetadata.METADATA_KEY_ART)
                     ?: metadata?.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART)
                 val thumbnailBase64 = artwork?.let { bitmap ->
                     val out = java.io.ByteArrayOutputStream()
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                    // Wear Data Layer messages have a practical payload ceiling;
+                    // 160px JPEG keeps cover art comfortably below it.
+                    val size = minOf(bitmap.width, bitmap.height, 160)
+                    val scaled = if (bitmap.width > size || bitmap.height > size) {
+                        android.graphics.Bitmap.createScaledBitmap(bitmap, size, size, true)
+                    } else bitmap
+                    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out)
                     android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.DEFAULT)
                 } ?: ""
                 return mapOf(
@@ -749,14 +791,27 @@ class MainActivity : FlutterFragmentActivity() {
                     "isPlaying" to isPlaying,
                     "packageName" to controller.packageName,
                     "thumbnailUrl" to thumbnailBase64,
+                    "positionMs" to (controller.playbackState?.position ?: 0L),
+                    "durationMs" to (metadata?.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION) ?: 0L),
+                    "volume" to curVol,
+                    "maxVolume" to maxVol,
+                    "volumePercent" to volPercent,
                     "hasPermission" to true,
                 )
             }
         } catch (e: SecurityException) {
             Log.w("MediaInfo", "Notification listener access not granted for MediaNotificationListener", e)
-            return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "", "hasPermission" to false)
+            return mapOf(
+                "track" to "", "artist" to "", "isPlaying" to false, "packageName" to "",
+                "thumbnailUrl" to "", "volume" to curVol, "maxVolume" to maxVol,
+                "volumePercent" to volPercent, "hasPermission" to false
+            )
         }
-        return mapOf("track" to "", "artist" to "", "isPlaying" to false, "packageName" to "", "thumbnailUrl" to "", "hasPermission" to true)
+        return mapOf(
+            "track" to "", "artist" to "", "isPlaying" to false, "packageName" to "",
+            "thumbnailUrl" to "", "volume" to curVol, "maxVolume" to maxVol,
+            "volumePercent" to volPercent, "hasPermission" to true
+        )
     }
 
     /// Replaces the `flutter_media_controller` plugin's own `mediaAction` —
@@ -772,14 +827,19 @@ class MainActivity : FlutterFragmentActivity() {
         )
         try {
             val controllers = mediaSessionManager.getActiveSessions(componentName)
-            val controller = controllers.firstOrNull {
-                it.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING
-            } ?: controllers.firstOrNull() ?: return
+            val spotifyPlaying = controllers.firstOrNull {
+                it.packageName.contains("spotify", ignoreCase = true) && it.playbackState.isAudiblyPlaying()
+            }
+            val anyPlaying = controllers.firstOrNull { it.playbackState.isAudiblyPlaying() }
+            val spotifyAny = controllers.firstOrNull { it.packageName.contains("spotify", ignoreCase = true) }
+            val controller = spotifyPlaying ?: anyPlaying ?: spotifyAny ?: controllers.firstOrNull() ?: return
             when (action) {
                 "previous" -> controller.transportControls.skipToPrevious()
                 "next" -> controller.transportControls.skipToNext()
+                "play" -> controller.transportControls.play()
+                "pause" -> controller.transportControls.pause()
                 "playPause", "play_pause" -> {
-                    if (controller.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING) {
+                    if (controller.playbackState.isAudiblyPlaying()) {
                         controller.transportControls.pause()
                     } else {
                         controller.transportControls.play()
@@ -790,6 +850,11 @@ class MainActivity : FlutterFragmentActivity() {
             Log.w("MediaInfo", "Notification listener access not granted for MediaNotificationListener", e)
         }
     }
+
+    private fun android.media.session.PlaybackState?.isAudiblyPlaying(): Boolean =
+        this?.state == android.media.session.PlaybackState.STATE_PLAYING ||
+            this?.state == android.media.session.PlaybackState.STATE_BUFFERING ||
+            this?.state == android.media.session.PlaybackState.STATE_CONNECTING
 
     private fun sendAchievementToWear(achievementJson: String) {
         if (achievementJson.isBlank()) return

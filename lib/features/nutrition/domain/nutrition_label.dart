@@ -4,6 +4,7 @@ class NutritionLabelDraft {
   final String name;
   final String? brand;
   final double? servingGrams;
+  final double? portionAmount;
   final String servingUnit;
   final double? kcalPer100g;
   final double? proteinPer100g;
@@ -21,6 +22,7 @@ class NutritionLabelDraft {
     required this.name,
     this.brand,
     this.servingGrams,
+    this.portionAmount,
     this.servingUnit = 'g',
     this.kcalPer100g,
     this.proteinPer100g,
@@ -45,6 +47,7 @@ class NutritionLabelDraft {
     name: name,
     brand: brand,
     servingGrams: servingGrams,
+    portionAmount: portionAmount,
     servingUnit: servingUnit,
     kcalPer100g: kcalPer100g,
     proteinPer100g: proteinPer100g,

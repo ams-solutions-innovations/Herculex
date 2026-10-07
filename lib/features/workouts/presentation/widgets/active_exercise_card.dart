@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
@@ -7,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
@@ -22,6 +25,7 @@ import 'package:herculex/features/workouts/domain/equipment_variants.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
 import 'package:herculex/features/workouts/domain/set_metric_format.dart';
+import 'package:herculex/features/workouts/domain/set_numbering.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/sheets/accessory_tray_sheet.dart';
 import 'package:herculex/features/workouts/presentation/sheets/down_set_config_sheet.dart';
@@ -161,6 +165,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
               ),
             ],
           ),
+
           lastPerformance.maybeWhen(
             data: (snapshot) {
               final allLastSets = snapshot?.sets ?? const <SetEntryData>[];
@@ -183,15 +188,35 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                 final nextLabel = _nextLabel(snapshot, currentRows);
                 return Padding(
                   padding: const EdgeInsets.only(top: 4, bottom: 8),
-                  child: Tooltip(
-                    message: nextTarget.rationale ?? '',
-                    child: Text(
-                      '$nextLabel: ${nextTarget.text}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Tooltip(
+                          message: nextTarget.rationale ?? '',
+                          child: Text(
+                            '$nextLabel: ${nextTarget.text}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      if (currentRows.any(
+                        (row) => !row.isCompleted && !row.isWarmup,
+                      ))
+                        TextButton(
+                          onPressed: () => _applyNumericTarget(
+                            context,
+                            repo,
+                            currentRows,
+                            weightKg: nextTarget.weightKg,
+                            reps: nextTarget.reps,
+                            rationale: nextTarget.rationale,
+                          ),
+                          child: const Text('Use'),
+                        ),
+                    ],
                   ),
                 );
               }
@@ -257,6 +282,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                 downSetChain = r.setType == 'down_sets' ? downSetChain + 1 : 0;
                 downSetOrdinals.add(downSetChain);
               }
+              // Working sets count from 1 past any warmups (W W 1 2 3).
+              final setNumbers = numberSets(rows);
               // Collapse long set lists (item 7) but never hide the set the
               // user is about to log.
               final collapse =
@@ -280,7 +307,7 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                 children: [
                   for (final i in visibleIndices)
                     _SetRow(
-                      index: i + 1,
+                      index: setNumbers[i].ordinal,
                       set: rows[i],
                       metric: metric,
                       downSetOrdinal: downSetOrdinals[i],
@@ -309,6 +336,9 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                         clearRpe: values.clearRpe,
                       ),
                       onComplete: (completed) async {
+                        // The rest timer starts itself from the database
+                        // change (restTimerAutoStartProvider), so it no
+                        // longer depends on anything below succeeding.
                         await repo.updateSet(
                           setId: rows[i].id,
                           isCompleted: completed,
@@ -351,59 +381,42 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                                   setType: SetType.fromId(rows[i].setType),
                                 );
                           }
-                          final isLinked =
-                              workoutExercise.supersetGroup != null;
-                          final advanced = isLinked
-                              ? (widget.onCompletedSet?.call(
-                                      workoutExercise.id,
-                                      rows[i].setIndex,
-                                    ) ??
-                                    false)
-                              : false;
-                          if (!advanced) {
-                            final rest =
-                                workoutExercise.targetRestSeconds ??
-                                exercise.defaultRestSeconds;
-                            ref
-                                .read(restTimerProvider.notifier)
-                                .start(
-                                  seconds: rest,
-                                  exerciseName: exercise.name,
-                                );
+                          if (workoutExercise.supersetGroup != null) {
+                            widget.onCompletedSet?.call(
+                              workoutExercise.id,
+                              rows[i].setIndex,
+                            );
                           }
                         }
                       },
                       onDelete: () async {
                         final setToRestore = rows[i];
-                        final setNumber = i + 1;
+                        final setNumber = setNumbers[i].short;
                         final bands = await repo.bandsForSet(setToRestore.id);
                         final accessories = await repo.accessoriesForSet(
                           setToRestore.id,
                         );
                         await repo.deleteSet(setToRestore.id);
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Set $setNumber deleted'),
-                              duration: const Duration(seconds: 3),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              action: SnackBarAction(
-                                label: 'Undo',
-                                textColor: AppColors.primary,
-                                onPressed: () async {
-                                  await repo.restoreSet(
-                                    setToRestore,
-                                    bands: bands,
-                                    accessories: accessories,
-                                  );
-                                },
-                              ),
-                            ),
-                          );
+                          ref
+                              .read(
+                                inAppNotificationControllerProvider.notifier,
+                              )
+                              .show(
+                                InAppNotificationItem.workoutAction(
+                                  label:
+                                      '${widget.exercise.name} · Set deleted',
+                                  value: 'Set $setNumber deleted',
+                                  actionLabel: 'Undo',
+                                  onAction: () async {
+                                    await repo.restoreSet(
+                                      setToRestore,
+                                      bands: bands,
+                                      accessories: accessories,
+                                    );
+                                  },
+                                ),
+                              );
                         }
                       },
                       // One-tap set-type switch (§15, §26).
@@ -412,11 +425,12 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                           context,
                           current: SetType.fromId(rows[i].setType),
                           isWarmup: rows[i].isWarmup,
+                          allowAdvancedTechniques: true,
                         );
                         if (sel != null) {
                           if (sel.delete) {
                             final setToRestore = rows[i];
-                            final setNumber = i + 1;
+                            final setNumber = setNumbers[i].short;
                             final bands = await repo.bandsForSet(
                               setToRestore.id,
                             );
@@ -425,30 +439,26 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                             );
                             await repo.deleteSet(setToRestore.id);
                             if (context.mounted) {
-                              ScaffoldMessenger.of(
-                                context,
-                              ).hideCurrentSnackBar();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Set $setNumber deleted'),
-                                  duration: const Duration(seconds: 3),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  action: SnackBarAction(
-                                    label: 'Undo',
-                                    textColor: AppColors.primary,
-                                    onPressed: () async {
-                                      await repo.restoreSet(
-                                        setToRestore,
-                                        bands: bands,
-                                        accessories: accessories,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              );
+                              ref
+                                  .read(
+                                    inAppNotificationControllerProvider
+                                        .notifier,
+                                  )
+                                  .show(
+                                    InAppNotificationItem.workoutAction(
+                                      label:
+                                          '${widget.exercise.name} · Set deleted',
+                                      value: 'Set $setNumber deleted',
+                                      actionLabel: 'Undo',
+                                      onAction: () async {
+                                        await repo.restoreSet(
+                                          setToRestore,
+                                          bands: bands,
+                                          accessories: accessories,
+                                        );
+                                      },
+                                    ),
+                                  );
                             }
                           } else if (sel.isWarmup == true) {
                             await repo.updateSet(
@@ -760,7 +770,8 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     return 'Next';
   }
 
-  ({String text, String? rationale})? _formatNextTarget(
+  ({String text, String? rationale, double weightKg, int reps})?
+  _formatNextTarget(
     WidgetRef ref,
     List<SetEntryData> currentRows,
     List<SetEntryData> allLastSets,
@@ -769,6 +780,10 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
   ) {
     if (allLastSets.isEmpty) return null;
     if (!metric.isRepBased) return null;
+    if (widget.workoutExercise.plannedTrainingMethod == 'max_effort' ||
+        widget.workoutExercise.plannedTrainingMethod == 'dynamic_effort') {
+      return null;
+    }
 
     SetEntryData? prior;
     if (currentRows.isEmpty) {
@@ -822,7 +837,54 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
         'weighted';
     final nextPrefix = isWeightedBw && target.weightKg > 0 ? '+' : '';
     final text = '$nextPrefix${fmt.format(target.weightKg)} × ${target.reps}';
-    return (text: text, rationale: target.rationale);
+    return (
+      text: text,
+      rationale: target.rationale,
+      weightKg: target.weightKg,
+      reps: target.reps,
+    );
+  }
+
+  Future<void> _applyNumericTarget(
+    BuildContext context,
+    WorkoutsRepository repo,
+    List<SetEntryData> rows, {
+    required double weightKg,
+    required int reps,
+    String? rationale,
+  }) async {
+    final targets = rows
+        .where((row) => !row.isCompleted && !row.isWarmup)
+        .toList(growable: false);
+    if (targets.isEmpty) return;
+    final before = [
+      for (final row in targets)
+        (id: row.id, weightKg: row.weightKg, reps: row.reps),
+    ];
+    for (final row in targets) {
+      await repo.updateSet(setId: row.id, weightKg: weightKg, reps: reps);
+    }
+    if (!context.mounted) return;
+    ref
+        .read(inAppNotificationControllerProvider.notifier)
+        .show(
+          InAppNotificationItem.workoutAction(
+            label: widget.exercise.name,
+            value: rationale == null || rationale.trim().isEmpty
+                ? 'Safe numeric target applied'
+                : 'Target applied: $rationale',
+            actionLabel: 'Undo',
+            onAction: () async {
+              for (final row in before) {
+                await repo.updateSet(
+                  setId: row.id,
+                  weightKg: row.weightKg,
+                  reps: row.reps,
+                );
+              }
+            },
+          ),
+        );
   }
 
   /// Per-row micro-label under a set (item 1): a compact "Down: X-Y" once per
@@ -973,7 +1035,6 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
     final isMachine =
         (widget.workoutExercise.equipmentVariant ?? widget.exercise.modality)
             .startsWith('machine');
-    final slug = widget.exercise.slug;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1012,6 +1073,37 @@ class _ActiveExerciseCardState extends ConsumerState<ActiveExerciseCard> {
                   context.push(AppPaths.exercise(widget.exercise.id));
                 },
               ),
+              if (widget.workoutExercise.plannedPrescriptionWhy != null &&
+                  widget.workoutExercise.plannedPrescriptionWhy!
+                      .trim()
+                      .isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('Prescription target'),
+                  subtitle: Text(
+                    widget.workoutExercise.plannedPrescriptionWhy!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('Prescription target'),
+                        content: Text(
+                          widget.workoutExercise.plannedPrescriptionWhy!,
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('Got it'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.fitness_center),
                 title: const Text('Change equipment'),
@@ -1348,10 +1440,15 @@ class _SetRowState extends ConsumerState<_SetRow> {
   final _caloriesFieldKey = GlobalKey();
   final _rpeFieldKey = GlobalKey();
 
+  /// Saves typed values shortly after the user stops typing, so a value is
+  /// never lost because the keyboard was dismissed some way other than
+  /// "done" or a tap outside (back gesture, app switch, the field scrolling
+  /// away) — and so the watch sees the edit without waiting for a blur.
+  Timer? _commitDebounce;
+
   /// Set the moment the user types in the reps field. A detected count never
   /// overwrites a number the user entered themselves — a proposal that
   /// silently replaced typing would be worse than no proposal at all.
-  bool _repsEditedByUser = false;
 
   @override
   void initState() {
@@ -1387,10 +1484,14 @@ class _SetRowState extends ConsumerState<_SetRow> {
       _weightFocusNode.addListener(_scrollWeightIntoViewOnFocus);
     }
     // Resync if upstream value diverged (e.g. duplicated from prev set).
-    if (oldWidget.set.weightKg != widget.set.weightKg) {
+    // A field with focus is the user's: a debounced save of their own
+    // half-typed value echoing back from the database must not overwrite
+    // what they have typed since.
+    if (oldWidget.set.weightKg != widget.set.weightKg &&
+        !_weightFocusNode.hasFocus) {
       _weight.text = _fmtWeight(widget.set.weightKg);
     }
-    if (oldWidget.set.reps != widget.set.reps) {
+    if (oldWidget.set.reps != widget.set.reps && !_repsFocusNode.hasFocus) {
       _reps.text = widget.set.reps == 0 ? '' : widget.set.reps.toString();
     }
     if (oldWidget.set.durationSeconds != widget.set.durationSeconds) {
@@ -1415,6 +1516,13 @@ class _SetRowState extends ConsumerState<_SetRow> {
 
   @override
   void dispose() {
+    _commitDebounce?.cancel();
+    if (_weightFocusNode.hasFocus || _repsFocusNode.hasFocus) {
+      // Deferred for the same reason as ActiveWorkoutView.deactivate: the
+      // shell watches this flag and the tree is locked during disposal.
+      final focused = ref.read(workoutInputFocusedProvider.notifier);
+      Future.microtask(() => focused.state = false);
+    }
     _weightFocusNode.removeListener(_scrollWeightIntoViewOnFocus);
     _repsFocusNode.removeListener(_scrollRepsIntoViewOnFocus);
     _fallbackWeightFocusNode.dispose();
@@ -1431,16 +1539,37 @@ class _SetRowState extends ConsumerState<_SetRow> {
   FocusNode get _weightFocusNode =>
       widget.weightFocusNode ?? _fallbackWeightFocusNode;
 
+  void _syncInputFocus() {
+    if (_weightFocusNode.hasFocus || _repsFocusNode.hasFocus) {
+      ref.read(workoutInputFocusedProvider.notifier).state = true;
+    } else {
+      ref.read(workoutInputFocusedProvider.notifier).state = false;
+    }
+  }
+
   void _scrollWeightIntoViewOnFocus() {
+    _syncInputFocus();
     if (_weightFocusNode.hasFocus) {
       _scrollFieldIntoView(_weightFieldKey);
+    } else {
+      _commit();
     }
   }
 
   void _scrollRepsIntoViewOnFocus() {
+    _syncInputFocus();
     if (_repsFocusNode.hasFocus) {
       _scrollFieldIntoView(_repsFieldKey);
+    } else {
+      _commit();
     }
+  }
+
+  void _scheduleCommit() {
+    _commitDebounce?.cancel();
+    _commitDebounce = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) _commit();
+    });
   }
 
   void _scrollFieldIntoView(GlobalKey fieldKey) {
@@ -1495,16 +1624,25 @@ class _SetRowState extends ConsumerState<_SetRow> {
   /// in when the user completes a set without typing anything.
   String _hintFor(SetField field) {
     final prior = widget.priorSet;
-    if (prior == null) return '';
     return switch (field) {
-      SetField.weight => _fmtWeight(prior.weightKg),
-      SetField.reps => prior.reps == 0 ? '' : prior.reps.toString(),
+      SetField.weight =>
+        widget.set.plannedWeightKg != null
+            ? _fmtWeight(widget.set.plannedWeightKg!)
+            : prior == null
+            ? ''
+            : _fmtWeight(prior.weightKg),
+      SetField.reps =>
+        widget.set.plannedRepsMin != null
+            ? widget.set.plannedRepsMin.toString()
+            : prior == null || prior.reps == 0
+            ? ''
+            : prior.reps.toString(),
       SetField.duration => SetMetricFormat.durationFieldText(
-        prior.durationSeconds,
+        prior?.durationSeconds,
       ),
-      SetField.distance => _fmtDistance(prior.distanceM),
+      SetField.distance => _fmtDistance(prior?.distanceM),
       SetField.calories =>
-        prior.calories == null ? '' : prior.calories.toString(),
+        prior?.calories == null ? '' : prior!.calories.toString(),
     };
   }
 
@@ -1528,6 +1666,8 @@ class _SetRowState extends ConsumerState<_SetRow> {
   }
 
   void _commit() {
+    _commitDebounce?.cancel();
+    _commitDebounce = null;
     final metric = widget.metric;
     final rpe = double.tryParse(_rpe.text);
     // Only the fields this exercise actually declares are sent. A field the
@@ -2082,7 +2222,6 @@ class _SetRowState extends ConsumerState<_SetRow> {
           focusNode: _repsFocusNode,
           fieldKey: _repsFieldKey,
           hintText: _hintFor(field),
-          onChanged: (_) => _repsEditedByUser = true,
         );
       case SetField.duration:
         final currentSec =
@@ -2144,7 +2283,7 @@ class _SetRowState extends ConsumerState<_SetRow> {
       key: fieldKey,
       controller: ctrl,
       focusNode: focusNode,
-      onChanged: onChanged,
+      onChanged: onChanged ?? (_) => _scheduleCommit(),
       textInputAction: TextInputAction.done,
       onTap: fieldKey == null ? null : () => _scrollFieldIntoView(fieldKey),
       onEditingComplete: _commit,
@@ -2213,7 +2352,11 @@ class _SetRowState extends ConsumerState<_SetRow> {
           borderRadius: BorderRadius.circular(24),
         ),
         child: Text(
-          val != null ? val.toStringAsFixed(1) : 'RPE',
+          val != null
+              ? val.toStringAsFixed(1)
+              : widget.set.plannedRpeX10 != null
+              ? '→ ${(widget.set.plannedRpeX10! / 10).toStringAsFixed(1)}'
+              : 'RPE',
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: val != null ? FontWeight.bold : FontWeight.normal,
             color: val != null ? Colors.purple : AppColors.secondary,

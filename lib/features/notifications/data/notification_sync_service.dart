@@ -34,11 +34,17 @@ class NotificationSyncService {
           prev?.dailyLogTimeHHMM != next.dailyLogTimeHHMM) {
         _syncDailyLog();
       }
+      if (prev?.weeklyReportEnabled != next.weeklyReportEnabled ||
+          prev?.weeklyReportTimeHHMM != next.weeklyReportTimeHHMM) {
+        _syncWeeklyReport();
+      }
     });
 
     _ref.listen(mealSlotsProvider, (_, _) => _syncMeals());
 
     _ref.listen(supplementsProvider, (_, _) => _syncSupplements());
+
+    _ref.listen(takenTodayProvider, (_, _) => _syncSupplements());
 
     _ref.listen(fastingSchedulesProvider, (_, _) => _syncFastingSchedules());
   }
@@ -49,6 +55,7 @@ class NotificationSyncService {
       _syncSupplements(),
       _syncFastingSchedules(),
       _syncDailyLog(),
+      _syncWeeklyReport(),
     ]);
   }
 
@@ -67,9 +74,13 @@ class NotificationSyncService {
       final supplements =
           _ref.read(supplementsProvider).asData?.value ??
           _ref.read(supplementRepositoryProvider).loadSupplements();
+      final takenToday =
+          _ref.read(takenTodayProvider).asData?.value ??
+          _ref.read(supplementRepositoryProvider).loadTakenToday();
       final scheduler = _ref.read(supplementNotificationSchedulerProvider);
       await scheduler.reschedule(
         supplements,
+        takenTodayIds: takenToday,
         enabled: settings.supplementRemindersEnabled,
       );
     } catch (_) {}
@@ -97,6 +108,14 @@ class NotificationSyncService {
     try {
       final settings = _ref.read(notificationSettingsProvider);
       final scheduler = _ref.read(dailyLogNotificationSchedulerProvider);
+      await scheduler.reschedule(settings);
+    } catch (_) {}
+  }
+
+  Future<void> _syncWeeklyReport() async {
+    try {
+      final settings = _ref.read(notificationSettingsProvider);
+      final scheduler = _ref.read(weeklyReportNotificationSchedulerProvider);
       await scheduler.reschedule(settings);
     } catch (_) {}
   }

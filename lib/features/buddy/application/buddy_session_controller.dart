@@ -196,8 +196,10 @@ class BuddySessionController extends StateNotifier<BuddySessionState> {
       if (otherIds.isNotEmpty) {
         state = state.copyWith(
           pendingJoinToken: () => null,
-          partner: () =>
-              BuddyParticipant(userId: otherIds.first, displayName: 'Gym Buddy'),
+          partner: () => BuddyParticipant(
+            userId: otherIds.first,
+            displayName: 'Gym Buddy',
+          ),
           isLive: true,
         );
       }

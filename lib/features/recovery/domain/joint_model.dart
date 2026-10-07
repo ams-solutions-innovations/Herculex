@@ -64,4 +64,19 @@ abstract final class JointModel {
           HealthWorkoutActivityType.HIKING,
         ],
       };
+
+  /// Derives the set of muscles to exclude from selection given a set of
+  /// already-flagged joint names (Phase 17, D-05/D-06). Callers are
+  /// responsible for pre-filtering `JointPainStatus.isFlagged` before
+  /// calling this — this file must not depend on the data-layer
+  /// `joint_pain_repository.dart`. Mirrors the weighting
+  /// `TrainingSuggestionEngine` already uses (>= 0.5 by default).
+  static Set<String> excludedMusclesFor(
+    Set<String> flaggedJoints, {
+    double weightThreshold = 0.5,
+  }) => {
+    for (final joint in flaggedJoints)
+      for (final entry in (influencingMuscles[joint] ?? const {}).entries)
+        if (entry.value >= weightThreshold) entry.key,
+  };
 }

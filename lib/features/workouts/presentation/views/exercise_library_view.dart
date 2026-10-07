@@ -8,6 +8,8 @@ import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/views/custom_exercise_builder_view.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
@@ -97,6 +99,7 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
 
     return HxScreenShell(
       title: 'Exercise Library',
+      titleIcon: Icons.fitness_center,
       actions: [
         IconButton(
           tooltip: 'Add Custom Exercise',
@@ -283,16 +286,19 @@ class _ExerciseLibraryViewState extends ConsumerState<ExerciseLibraryView> {
   }
 }
 
-class _ExerciseLibraryTile extends StatelessWidget {
+class _ExerciseLibraryTile extends ConsumerWidget {
   final ExerciseCatalogData exercise;
   final VoidCallback onTap;
 
   const _ExerciseLibraryTile({required this.exercise, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final hx = context.hx;
+    final affinity =
+        ref.watch(exerciseAffinityProvider(exercise.id)).asData?.value ??
+        ExerciseAffinity.okay;
 
     return Container(
       decoration: BoxDecoration(
@@ -340,27 +346,15 @@ class _ExerciseLibraryTile extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (exercise.isCustom) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: hx.primary.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'Custom',
-                                style: TextStyle(
-                                  color: hx.primary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        children: [
+                          _AffinityBadge(affinity: affinity),
+                          if (exercise.isCustom)
+                            const _SmallBadge(label: 'Custom'),
                         ],
                       ),
                     ],
@@ -375,6 +369,70 @@ class _ExerciseLibraryTile extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AffinityBadge extends StatelessWidget {
+  const _AffinityBadge({required this.affinity});
+
+  final ExerciseAffinity affinity;
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, icon) = switch (affinity) {
+      ExerciseAffinity.never => (Colors.redAccent, Icons.block_rounded),
+      ExerciseAffinity.okay => (AppColors.secondary, Icons.check_rounded),
+      ExerciseAffinity.liked => (Colors.pinkAccent, Icons.favorite_rounded),
+      ExerciseAffinity.core => (Colors.amber.shade800, Icons.star_rounded),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .13),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text(
+            affinity.label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallBadge extends StatelessWidget {
+  const _SmallBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = context.hx.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

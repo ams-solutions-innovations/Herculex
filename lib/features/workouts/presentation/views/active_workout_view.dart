@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_nav_bar.dart';
+import 'package:herculex/design_system/components/keyboard_obstruction_scope.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/buddy/application/buddy_providers.dart';
@@ -13,15 +15,16 @@ import 'package:herculex/features/buddy/domain/buddy_scope.dart';
 import 'package:herculex/features/buddy/presentation/buddy_presence_bar.dart';
 import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
+import 'package:herculex/features/shell/main_scaffold.dart';
 import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/finish_workout_action.dart';
-import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/circuit_stats.dart';
 import 'package:herculex/features/workouts/domain/workout_name_generator.dart';
 import 'package:herculex/features/workouts/presentation/dialogs/duration_picker_dialog.dart';
 import 'package:herculex/features/workouts/presentation/sheets/equipment_variant_sheet.dart';
 import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/sheets/reorder_exercises_sheet.dart';
 import 'package:herculex/features/workouts/presentation/sheets/workout_settings_sheet.dart';
 import 'package:herculex/features/workouts/presentation/views/dynamic_workout_view.dart';
 import 'package:herculex/features/workouts/presentation/views/workout_finish_view.dart';
@@ -37,12 +40,39 @@ class ActiveWorkoutView extends ConsumerStatefulWidget {
   ConsumerState<ActiveWorkoutView> createState() => _ActiveWorkoutViewState();
 }
 
-class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
+class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView>
+    with WidgetsBindingObserver {
   final Map<int, FocusNode> _firstSetFocusNodes = {};
+
+  /// Keyboard inset seen by the previous [didChangeMetrics] call.
+  double _lastBottomInset = 0;
+
+  /// Buckets [rows] into superset groups, preserving first-appearance order
+  /// so a linked group always drags — and lands — as one unit.
+  List<List<WorkoutExerciseData>> _groupRows(List<WorkoutExerciseData> rows) {
+    final groups = <List<WorkoutExerciseData>>[];
+    final indexByGroupId = <int, int>{};
+    for (final row in rows) {
+      final groupId = row.supersetGroup;
+      if (groupId == null) {
+        groups.add([row]);
+        continue;
+      }
+      final existingIndex = indexByGroupId[groupId];
+      if (existingIndex == null) {
+        indexByGroupId[groupId] = groups.length;
+        groups.add([row]);
+      } else {
+        groups[existingIndex].add(row);
+      }
+    }
+    return groups;
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Enable wakelock if the user preference is on (default: true).
     _applyWakelock();
   }
@@ -53,13 +83,57 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   }
 
   @override
+  void activate() {
+    super.activate();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void deactivate() {
+    // Finishing a workout removes this view while the Finish dialog (and its
+    // keyboard) is still closing. Metrics callbacks from that keyboard must
+    // not reach a view that is leaving the tree: `didChangeMetrics` looks up
+    // `View.of(context)` and calls setState.
+    WidgetsBinding.instance.removeObserver(this);
+    if (ref.read(workoutInputFocusedProvider)) {
+      // Deferred: the shell watches this flag, and the tree is locked while
+      // elements deactivate — a synchronous write would schedule a rebuild
+      // mid-teardown.
+      final focused = ref.read(workoutInputFocusedProvider.notifier);
+      Future.microtask(() => focused.state = false);
+    }
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // Always release the wakelock when leaving the workout screen.
     WakelockPlus.disable();
     for (final node in _firstSetFocusNodes.values) {
       node.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    // Scaffold removes the bottom MediaQuery inset from its body while it
+    // resizes. Listening to platform metrics keeps this floating bar in sync
+    // with the actual keyboard instead.
+    if (!mounted) return;
+    final bottomInset = View.of(context).viewInsets.bottom;
+    // Only a keyboard that was up and has now gone counts as "closed". The
+    // first metrics event after tapping a field still reports a zero inset
+    // (the keyboard has not started animating in yet); treating that as a
+    // close used to unfocus the field the instant it was tapped.
+    final keyboardJustClosed = _lastBottomInset > 0 && bottomInset == 0;
+    _lastBottomInset = bottomInset;
+    if (keyboardJustClosed && ref.read(workoutInputFocusedProvider)) {
+      ref.read(workoutInputFocusedProvider.notifier).state = false;
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    setState(() {});
   }
 
   @override
@@ -92,333 +166,357 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     if (ref.watch(dynamicWorkoutModeProvider)) {
       return DynamicWorkoutView(session: session);
     }
+    final inputFocused = ref.watch(workoutInputFocusedProvider);
+    final keyboardOpen = _keyboardOpen(context) || inputFocused;
     // Floating action bar sits above the nav bar and overlays the list.
     return Stack(
       children: [
         // ── Main scrollable column ──────────────────────────────────────
-        Column(
-          children: [
-            // Top SafeArea so the header clears the status bar / notch.
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () =>
-                                _editWorkoutName(context, ref, session),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    (session.name != null &&
-                                            session.name!.isNotEmpty)
-                                        ? session.name!
-                                        : 'Workout in progress',
-                                    style: theme.textTheme.displayMedium
-                                        ?.copyWith(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.edit_outlined,
-                                  size: 16,
-                                  color: AppColors.primary,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.group_add_outlined, size: 22),
-                          tooltip: 'Gym Buddy',
-                          onPressed: () => BuddyShareSheet.show(context),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.settings_outlined, size: 22),
-                          tooltip: 'Workout settings',
-                          onPressed: () => WorkoutSettingsSheet.show(context),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.fullscreen, size: 22),
-                          tooltip: 'Dynamic mode',
-                          onPressed: () =>
-                              ref
-                                      .read(dynamicWorkoutModeProvider.notifier)
-                                      .state =
-                                  true,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 22),
-                          tooltip: 'Cancel workout',
-                          onPressed: () => _confirmCancel(context, ref),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _ActiveWorkoutStatsBar(
-                      startedAt: session.startedAt,
-                      originalEndedAt: editingOriginalEndedAt,
-                      formatElapsed: _elapsed,
-                      totalSets: liveStats.totalSets,
-                      completedSets: liveStats.completedSets,
-                      tonnageText: weightFormat.formatTonnage(
-                        liveStats.totalTonnageKg,
-                      ),
-                      onEditDuration: () async {
-                        final currentDur = _resolvedEndedAt(
-                          session.startedAt,
-                          editingOriginalEndedAt,
-                        ).difference(session.startedAt);
-                        final newMins = await DurationPickerDialog.show(
-                          context,
-                          initialMinutes: currentDur.inMinutes > 0
-                              ? currentDur.inMinutes
-                              : 45,
-                        );
-                        if (newMins != null && newMins > 0) {
-                          final newEndedAt = session.startedAt.add(
-                            Duration(minutes: newMins),
-                          );
-                          ref
-                              .read(
-                                editingSessionOriginalEndedAtProvider.notifier,
-                              )
-                              .update(
-                                (state) => {...state, session.id: newEndedAt},
-                              );
-                          setState(() {});
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const BuddyPresenceBar(),
-            const _HealthActivityAdjustmentBanner(),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: RestTimerBanner(),
-            ),
-            Expanded(
-              child: sessionExercises.when(
-                data: (rows) {
-                  if (rows.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            if (ref.read(workoutInputFocusedProvider)) {
+              ref.read(workoutInputFocusedProvider.notifier).state = false;
+            }
+            FocusScope.of(context).unfocus();
+          },
+          child: Column(
+            children: [
+              // Top SafeArea so the header clears the status bar / notch.
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Icon(
-                            Icons.fitness_center,
-                            size: 56,
-                            color: AppColors.primary.withValues(alpha: 0.4),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 18,
+                            ),
+                            tooltip: 'Back to Dashboard',
+                            onPressed: () {
+                              if (ref.read(workoutInputFocusedProvider)) {
+                                ref
+                                        .read(
+                                          workoutInputFocusedProvider.notifier,
+                                        )
+                                        .state =
+                                    false;
+                              }
+                              FocusScope.of(context).unfocus();
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              } else {
+                                ref.read(mainTabIndexProvider.notifier).state =
+                                    0;
+                              }
+                            },
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No exercises yet',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppColors.secondary,
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () =>
+                                  _editWorkoutName(context, ref, session),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      (session.name != null &&
+                                              session.name!.isNotEmpty)
+                                          ? session.name!
+                                          : 'Workout in progress',
+                                      style: theme.textTheme.displayMedium
+                                          ?.copyWith(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.edit_outlined,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap + Add Exercise to start logging',
-                            style: theme.textTheme.bodySmall,
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(
+                              Icons.group_add_outlined,
+                              size: 20,
+                            ),
+                            tooltip: 'Gym Buddy',
+                            onPressed: () => BuddyShareSheet.show(context),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.settings_outlined, size: 20),
+                            tooltip: 'Workout settings',
+                            onPressed: () => WorkoutSettingsSheet.show(context),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.fullscreen, size: 20),
+                            tooltip: 'Dynamic mode',
+                            onPressed: () =>
+                                ref
+                                        .read(
+                                          dynamicWorkoutModeProvider.notifier,
+                                        )
+                                        .state =
+                                    true,
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.close, size: 20),
+                            tooltip: 'Cancel workout',
+                            onPressed: () => _confirmCancel(context, ref),
                           ),
                         ],
                       ),
-                    );
-                  }
-                  return ReorderableListView.builder(
-                    // Enough clearance for the floating bar + nav bar.
-                    padding: const EdgeInsets.only(bottom: 200),
-                    itemCount: rows.length,
-                    buildDefaultDragHandles: false,
-                    proxyDecorator: (child, _, animation) => AnimatedBuilder(
-                      animation: animation,
-                      builder: (_, child) => Transform.scale(
-                        scale: 1 + animation.value * 0.02,
-                        child: Material(
-                          elevation: 8 * animation.value,
-                          color: Colors.transparent,
-                          child: child,
+                      const SizedBox(height: 10),
+                      _ActiveWorkoutStatsBar(
+                        startedAt: session.startedAt,
+                        originalEndedAt: editingOriginalEndedAt,
+                        formatElapsed: _elapsed,
+                        totalSets: liveStats.totalSets,
+                        completedSets: liveStats.completedSets,
+                        tonnageText: weightFormat.formatTonnage(
+                          liveStats.totalTonnageKg,
                         ),
-                      ),
-                      child: child,
-                    ),
-                    onReorderItem: (oldIndex, newIndex) {
-                      repo.reorderWorkoutExercises(
-                        sessionId: session.id,
-                        oldIndex: oldIndex,
-                        newIndex: newIndex,
-                      );
-                      if (buddySender != null) {
-                        final reordered = List<WorkoutExerciseData>.from(rows);
-                        final moved = reordered.removeAt(oldIndex);
-                        reordered.insert(
-                          newIndex > oldIndex ? newIndex - 1 : newIndex,
-                          moved,
-                        );
-                        buddySender.reorder(
-                          workoutExerciseIdsInOrder: reordered
-                              .map((r) => r.id)
-                              .toList(),
-                          scope: BuddyScope.both,
-                        );
-                      }
-                    },
-                    itemBuilder: (_, i) {
-                      final we = rows[i];
-                      final exercise = catalog.asData?.value.firstWhere(
-                        (e) => e.id == we.exerciseId,
-                        orElse: () => _placeholderExercise(we.exerciseId),
-                      );
-                      if (exercise == null) {
-                        return SizedBox.shrink(
-                          key: ValueKey('exercise_${we.id}'),
-                        );
-                      }
-                      return _LinkedExerciseTile(
-                        key: ValueKey('exercise_${we.id}'),
-                        index: i,
-                        workoutExercise: we,
-                        rows: rows,
-                        builder: (_, dragHandle) => ActiveExerciseCard(
-                          workoutExercise: we,
-                          exercise: exercise,
-                          sessionExercises: rows,
-                          catalogExercises: catalog.asData?.value ?? const [],
-                          firstSetFocusNode: _focusNodeFor(we.id),
-                          onCompletedSet:
-                              (completedWorkoutExerciseId, setIndex) =>
-                                  _advanceWithinLinkedGroup(
-                                    rows,
-                                    completedWorkoutExerciseId,
-                                    setIndex,
-                                  ),
-                          onRemove: () {
-                            if (buddySender != null) {
-                              buddySender.removeExercise(
-                                workoutExerciseId: we.id,
-                                scope: BuddyScope.mine,
-                              );
-                            } else {
-                              repo.removeWorkoutExercise(we.id);
-                            }
-                          },
-                          dragHandle: dragHandle,
-                        ),
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-              ),
-            ),
-          ],
-        ),
-        // ── Floating action bar ─────────────────────────────────────────
-        // Hidden while the keyboard is up (logging kg/reps/RPE) so it never
-        // covers the field being edited; slides back in once it closes.
-        AnimatedPositioned(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          left: 0,
-          right: 0,
-          bottom: _keyboardOpen(context) ? -140 : 0,
-          child: IgnorePointer(
-            ignoring: _keyboardOpen(context),
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 150),
-              opacity: _keyboardOpen(context) ? 0 : 1,
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _FloatyButton(
-                          text: 'Exercise',
-                          icon: Icons.add,
-                          isPrimary: false,
-                          onTap: () async {
-                            final results = await ExercisePickerSheet.show(
-                              context,
+                        onEditDuration: () async {
+                          final currentDur = _resolvedEndedAt(
+                            session.startedAt,
+                            editingOriginalEndedAt,
+                          ).difference(session.startedAt);
+                          final newMins = await DurationPickerDialog.show(
+                            context,
+                            initialMinutes: currentDur.inMinutes > 0
+                                ? currentDur.inMinutes
+                                : 45,
+                          );
+                          if (newMins != null && newMins > 0) {
+                            final newEndedAt = session.startedAt.add(
+                              Duration(minutes: newMins),
                             );
-                            if (results == null ||
-                                results.isEmpty ||
-                                !context.mounted)
-                              return;
-                            final circuitIds = <int>{};
-                            for (final result in results) {
-                              if (!context.mounted) return;
-                              if (result.circuitId != null) {
-                                if (!circuitIds.contains(result.circuitId!)) {
-                                  circuitIds.add(result.circuitId!);
-                                  await ref
-                                      .read(circuitsRepositoryProvider)
-                                      .addCircuitToSession(
-                                        sessionId: session.id,
-                                        circuitId: result.circuitId!,
-                                      );
-                                }
-                                continue;
-                              }
-                              final picked = result.exercise;
-                              final String? variant =
-                                  result.equipmentVariant ??
-                                  ((results.length > 1 ||
-                                          result.equipmentAlreadyChosen)
-                                      ? picked.modality
-                                      : await EquipmentVariantSheet.show(
-                                          context,
-                                          picked,
-                                        ));
-                              if (variant == null) continue;
-                              if (buddySender != null) {
-                                await buddySender.addExercise(
-                                  exerciseId: picked.id,
-                                  equipmentVariant: variant,
-                                  scope: BuddyScope.both,
+                            ref
+                                .read(
+                                  editingSessionOriginalEndedAtProvider
+                                      .notifier,
+                                )
+                                .update(
+                                  (state) => {...state, session.id: newEndedAt},
                                 );
-                              } else {
-                                await repo.addExerciseToSession(
-                                  sessionId: session.id,
-                                  exerciseId: picked.id,
-                                  equipmentVariant: variant,
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _FloatyButton(
-                          text: 'Finish',
-                          icon: Icons.check,
-                          isPrimary: true,
-                          onTap: () async {
-                            await _showFinishSummary(session);
-                          },
-                        ),
+                            setState(() {});
+                          }
+                        },
                       ),
                     ],
                   ),
                 ),
+              ),
+              const BuddyPresenceBar(),
+              const _HealthActivityAdjustmentBanner(),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: RestTimerBanner(),
+              ),
+              Expanded(
+                child: sessionExercises.when(
+                  data: (rows) {
+                    if (rows.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.fitness_center,
+                              size: 56,
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No exercises yet',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap + Add Exercise to start logging',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    final groups = _groupRows(rows);
+                    ExerciseCatalogData exerciseFor(WorkoutExerciseData we) =>
+                        catalog.asData?.value.firstWhere(
+                          (e) => e.id == we.exerciseId,
+                          orElse: () => _placeholderExercise(we.exerciseId),
+                        ) ??
+                        _placeholderExercise(we.exerciseId);
+                    Future<void> openReorder() async {
+                      FocusScope.of(context).unfocus();
+                      final orderedIds = await ReorderExercisesSheet.show(
+                        context,
+                        groups: groups,
+                        exerciseFor: exerciseFor,
+                      );
+                      if (orderedIds == null) return;
+                      await repo.reorderWorkoutExerciseGroups(
+                        sessionId: session.id,
+                        orderedWorkoutExerciseIds: orderedIds,
+                      );
+                      buddySender?.reorder(
+                        workoutExerciseIdsInOrder: orderedIds,
+                        scope: BuddyScope.both,
+                      );
+                    }
+
+                    return ListView.builder(
+                      // Enough clearance for the floating bar + nav bar.
+                      padding: const EdgeInsets.only(bottom: 200),
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      itemCount: groups.length,
+                      itemBuilder: (_, i) {
+                        final group = groups[i];
+                        return _ExerciseGroupTile(
+                          key: ValueKey('exercise_group_${group.first.id}'),
+                          members: group,
+                          onReorder: openReorder,
+                          catalogExercises: catalog.asData?.value ?? const [],
+                          placeholderExercise: _placeholderExercise,
+                          cardBuilder: (we, exercise, dragHandle) =>
+                              ActiveExerciseCard(
+                                workoutExercise: we,
+                                exercise: exercise,
+                                sessionExercises: rows,
+                                catalogExercises:
+                                    catalog.asData?.value ?? const [],
+                                firstSetFocusNode: _focusNodeFor(we.id),
+                                onCompletedSet:
+                                    (completedWorkoutExerciseId, setIndex) =>
+                                        _advanceWithinLinkedGroup(
+                                          rows,
+                                          completedWorkoutExerciseId,
+                                          setIndex,
+                                        ),
+                                onRemove: () {
+                                  if (buddySender != null) {
+                                    buddySender.removeExercise(
+                                      workoutExerciseId: we.id,
+                                      scope: BuddyScope.mine,
+                                    );
+                                  } else {
+                                    repo.removeWorkoutExercise(we.id);
+                                  }
+                                },
+                                dragHandle: dragHandle,
+                              ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(child: Text('Error: $e')),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // ── Floating action bar ─────────────────────────────────────────
+        // Hidden while the keyboard is up (logging kg/reps/RPE) so it never
+        // covers the field being edited; slides back in once it closes.
+        KeyboardObstructionScope(
+          hidden: keyboardOpen,
+          hiddenOffset: 140,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, HxNavBar.clearance),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _FloatyButton(
+                      text: 'Exercise',
+                      icon: Icons.add,
+                      isPrimary: false,
+                      onTap: () async {
+                        final results = await ExercisePickerSheet.show(context);
+                        if (results == null ||
+                            results.isEmpty ||
+                            !context.mounted) {
+                          return;
+                        }
+                        final circuitIds = <int>{};
+                        for (final result in results) {
+                          if (!context.mounted) return;
+                          if (result.circuitId != null) {
+                            if (!circuitIds.contains(result.circuitId!)) {
+                              circuitIds.add(result.circuitId!);
+                              await ref
+                                  .read(circuitsRepositoryProvider)
+                                  .addCircuitToSession(
+                                    sessionId: session.id,
+                                    circuitId: result.circuitId!,
+                                  );
+                            }
+                            continue;
+                          }
+                          final picked = result.exercise;
+                          final String? variant =
+                              result.equipmentVariant ??
+                              ((results.length > 1 ||
+                                      result.equipmentAlreadyChosen)
+                                  ? picked.modality
+                                  : await EquipmentVariantSheet.show(
+                                      context,
+                                      picked,
+                                    ));
+                          if (variant == null) continue;
+                          if (buddySender != null) {
+                            await buddySender.addExercise(
+                              exerciseId: picked.id,
+                              equipmentVariant: variant,
+                              scope: BuddyScope.both,
+                            );
+                          } else {
+                            await repo.addExerciseToSession(
+                              sessionId: session.id,
+                              exerciseId: picked.id,
+                              equipmentVariant: variant,
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _FloatyButton(
+                      text: 'Finish',
+                      icon: Icons.check,
+                      isPrimary: true,
+                      onTap: () async {
+                        await _showFinishSummary(session);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -428,7 +526,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
   }
 
   bool _keyboardOpen(BuildContext context) =>
-      MediaQuery.viewInsetsOf(context).bottom > 0;
+      View.of(context).viewInsets.bottom > 0;
 
   DateTime _resolvedEndedAt(DateTime startedAt, DateTime? originalEndedAt) {
     if (originalEndedAt != null) return originalEndedAt;
@@ -469,25 +567,10 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     final groupIndex = groupRows.indexWhere((r) => r.id == workoutExerciseId);
     if (groupIndex < 0) return false;
 
-    final isLastInGroup = groupIndex == groupRows.length - 1;
-    if (isLastInGroup) {
-      // Completed the round for the entire superset / giant set group!
-      final rest = currentEx.targetRestSeconds ?? 90;
-      final groupLabel = groupRows.length == 2
-          ? 'Superset'
-          : (groupRows.length == 3 ? 'Tri-Set' : 'Giant Set');
-      ref
-          .read(restTimerProvider.notifier)
-          .start(
-            seconds: rest,
-            exerciseName: '$groupLabel Rest (Round $setIndex)',
-          );
-      // Dismiss keyboard cleanly when round ends — user is resting
-      FocusManager.instance.primaryFocus?.unfocus();
-    } else {
-      // Intra-round transition between linked exercises: dismiss keyboard cleanly
-      FocusManager.instance.primaryFocus?.unfocus();
-    }
+    // Either the round ended (the group rests — restTimerAutoStartProvider
+    // starts that from the database change) or the user moves straight on to
+    // the next linked exercise. Both want the keyboard out of the way.
+    FocusManager.instance.primaryFocus?.unfocus();
     return true;
   }
 
@@ -500,6 +583,7 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
     force: '',
     plane: '',
     defaultRestSeconds: 120,
+    maxEffortEligibility: 'unsuitable',
     isCustom: false,
     category: 'strength',
     modality: 'barbell',
@@ -680,13 +764,15 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
                             session.startedAt,
                             currentEndedAt,
                           ).difference(session.startedAt);
+                          // `ctx`, not this view's context: the dialog
+                          // outlives the view once the workout is finished.
                           final newMins = await DurationPickerDialog.show(
-                            context,
+                            ctx,
                             initialMinutes: currentDur.inMinutes > 0
                                 ? currentDur.inMinutes
                                 : 45,
                           );
-                          if (newMins != null && newMins > 0) {
+                          if (newMins != null && newMins > 0 && ctx.mounted) {
                             setStateDialog(() {
                               currentEndedAt = session.startedAt.add(
                                 Duration(minutes: newMins),
@@ -815,32 +901,41 @@ class _ActiveWorkoutViewState extends ConsumerState<ActiveWorkoutView> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _LinkedExerciseTile extends ConsumerWidget {
-  final int index;
-  final WorkoutExerciseData workoutExercise;
-  final List<WorkoutExerciseData> rows;
-  final Widget Function(BuildContext context, Widget dragHandle) builder;
+/// Renders one unit of the exercise list — a single exercise, or (when
+/// [members] has more than one row) a whole superset group. Every member's
+/// handle opens [ReorderExercisesSheet], where the group moves as one.
+class _ExerciseGroupTile extends ConsumerWidget {
+  final List<WorkoutExerciseData> members;
+  final VoidCallback onReorder;
+  final List<ExerciseCatalogData> catalogExercises;
+  final ExerciseCatalogData Function(int exerciseId) placeholderExercise;
+  final Widget Function(
+    WorkoutExerciseData workoutExercise,
+    ExerciseCatalogData exercise,
+    Widget dragHandle,
+  )
+  cardBuilder;
 
-  const _LinkedExerciseTile({
+  const _ExerciseGroupTile({
     super.key,
-    required this.index,
-    required this.workoutExercise,
-    required this.rows,
-    required this.builder,
+    required this.members,
+    required this.onReorder,
+    required this.catalogExercises,
+    required this.placeholderExercise,
+    required this.cardBuilder,
   });
+
+  ExerciseCatalogData _exerciseFor(WorkoutExerciseData we) {
+    return catalogExercises.firstWhere(
+      (e) => e.id == we.exerciseId,
+      orElse: () => placeholderExercise(we.exerciseId),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final group = workoutExercise.supersetGroup;
-    final groupRows = group == null
-        ? <WorkoutExerciseData>[]
-        : (rows.where((r) => r.supersetGroup == group).toList()
-            ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex)));
-    final isLinked = groupRows.length > 1;
-    final groupIndex = groupRows.indexWhere((r) => r.id == workoutExercise.id);
-    final isFirst = groupIndex == 0;
-    final isLast = groupIndex == groupRows.length - 1;
-    final groupCount = groupRows.length;
+    final isLinked = members.length > 1;
+    final groupCount = members.length;
     final label = groupCount == 2
         ? 'SUPERSET'
         : (groupCount == 3 ? 'TRI-SET' : 'GIANT SET');
@@ -848,24 +943,14 @@ class _LinkedExerciseTile extends ConsumerWidget {
         ? 'Superset'
         : (groupCount == 3 ? 'Tri-Set' : 'Giant Set');
 
-    // Calculate circuit metrics
-    CircuitPerformanceStats stats = CircuitPerformanceStats.empty;
-    if (isLinked) {
-      final setsByExercise = <int, List<SetEntryData>>{};
-      for (final gr in groupRows) {
-        final setsAsync = ref.watch(workoutExerciseSetsProvider(gr.id));
-        setsByExercise[gr.id] = setsAsync.asData?.value ?? [];
-      }
-      stats = calculateCircuitStats(
-        exercises: groupRows,
-        setsByExerciseId: setsByExercise,
-      );
-    }
-
     final dragHandle = Tooltip(
-      message: 'Hold to reorder',
-      child: ReorderableDelayedDragStartListener(
-        index: index,
+      message: 'Reorder exercises',
+      child: GestureDetector(
+        onTap: onReorder,
+        onLongPress: () {
+          Haptics.medium();
+          onReorder();
+        },
         child: Container(
           width: 32,
           height: 32,
@@ -886,6 +971,51 @@ class _LinkedExerciseTile extends ConsumerWidget {
       ),
     );
 
+    // Calculate circuit metrics
+    CircuitPerformanceStats stats = CircuitPerformanceStats.empty;
+    if (isLinked) {
+      final setsByExercise = <int, List<SetEntryData>>{};
+      for (final gr in members) {
+        final setsAsync = ref.watch(workoutExerciseSetsProvider(gr.id));
+        setsByExercise[gr.id] = setsAsync.asData?.value ?? [];
+      }
+      stats = calculateCircuitStats(
+        exercises: members,
+        setsByExerciseId: setsByExercise,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var j = 0; j < members.length; j++)
+          _buildMember(
+            member: members[j],
+            memberIndex: j,
+            isLinked: isLinked,
+            isFirst: j == 0,
+            isLast: j == members.length - 1,
+            label: label,
+            tooltipMsg: tooltipMsg,
+            stats: stats,
+            dragHandle: dragHandle,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMember({
+    required WorkoutExerciseData member,
+    required int memberIndex,
+    required bool isLinked,
+    required bool isFirst,
+    required bool isLast,
+    required String label,
+    required String tooltipMsg,
+    required CircuitPerformanceStats stats,
+    required Widget dragHandle,
+  }) {
+    final exercise = _exerciseFor(member);
     return Stack(
       children: [
         if (isLinked)
@@ -914,7 +1044,7 @@ class _LinkedExerciseTile extends ConsumerWidget {
                   ),
                 ),
                 child: Text(
-                  '${groupIndex + 1}',
+                  '${memberIndex + 1}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -987,7 +1117,7 @@ class _LinkedExerciseTile extends ConsumerWidget {
                     ],
                   ),
                 ),
-              builder(context, dragHandle),
+              cardBuilder(member, exercise, dragHandle),
             ],
           ),
         ),

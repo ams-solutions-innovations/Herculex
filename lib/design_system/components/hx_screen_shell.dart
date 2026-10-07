@@ -15,6 +15,7 @@ class HxScreenShell extends StatefulWidget {
   const HxScreenShell({
     super.key,
     required this.title,
+    this.titleIcon,
     this.children,
     this.slivers,
     this.actions = const [],
@@ -27,6 +28,9 @@ class HxScreenShell extends StatefulWidget {
        );
 
   final String title;
+
+  /// Optional icon shown before the title in the header.
+  final IconData? titleIcon;
 
   /// Simple body: a vertical list of widgets.
   final List<Widget>? children;
@@ -117,6 +121,16 @@ class _HxScreenShellState extends State<HxScreenShell>
     final theme = Theme.of(context);
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // Each header action occupies a 48 px button plus its 8 px gap.  The
+    // title used to reserve a fixed 56 px on the right, which let it draw
+    // underneath the first action whenever a screen had more than one.
+    const headerActionSlotWidth = HxSpace.x10 + HxSpace.x4;
+    // Keep the title centered against the standard back-button slot even on
+    // screens that intentionally hide it.
+    const titleLeftInset = headerActionSlotWidth;
+    final titleRightInset = widget.actions.isEmpty
+        ? headerActionSlotWidth
+        : headerActionSlotWidth * widget.actions.length;
 
     final slivers =
         widget.slivers ??
@@ -138,7 +152,11 @@ class _HxScreenShellState extends State<HxScreenShell>
                     bottom:
                         bottomInset +
                         HxSpace.x8 +
-                        (widget.pinnedBottom == null ? 0 : 80),
+                        // A pinned action sits on top of the scroll view.
+                        // Reserve its full touch area plus breathing room so
+                        // the last card can always scroll above it instead of
+                        // being obscured by the CTA.
+                        (widget.pinnedBottom == null ? 0 : 112),
                   ),
                   sliver: slivers.length == 1
                       ? slivers.first
@@ -151,24 +169,17 @@ class _HxScreenShellState extends State<HxScreenShell>
           // Floating header.
           Positioned(
             top: topInset,
-            left: widget.padding.left,
-            right: widget.padding.right,
+            // The header keeps the standard gutter even when the body runs
+            // edge to edge (padding: zero), so the back button never moves.
+            left: HxSpace.x5,
+            right: HxSpace.x5,
             child: AnimatedBuilder(
               animation: _header,
               builder: (context, child) {
                 final t = Curves.easeOut.transform(_header.value);
                 return IgnorePointer(
                   ignoring: t < 0.05,
-                  child: Opacity(
-                    opacity: t,
-                    child: Transform.translate(
-                      offset: Offset(
-                        0,
-                        -(_headerHeight + HxSpace.x2) * (1 - t),
-                      ),
-                      child: child,
-                    ),
-                  ),
+                  child: Opacity(opacity: t, child: child),
                 );
               },
               child: SizedBox(
@@ -186,18 +197,35 @@ class _HxScreenShellState extends State<HxScreenShell>
                           ignoring: !_isAtTop,
                           child: Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 56,
+                              padding: EdgeInsets.only(
+                                left: titleLeftInset,
+                                right: titleRightInset,
                               ),
-                              child: Text(
-                                widget.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (widget.titleIcon != null) ...[
+                                    Icon(
+                                      widget.titleIcon,
+                                      size: 20,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: HxSpace.x2),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      widget.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

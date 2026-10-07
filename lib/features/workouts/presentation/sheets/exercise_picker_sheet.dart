@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -203,6 +204,15 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
       ),
     );
     final recentIdsAsync = ref.watch(recentExerciseIdsProvider);
+    final gyms = ref.watch(gymsProvider).asData?.value ?? const <GymData>[];
+    final activeGym = gyms.where((gym) => gym.isDefault).firstOrNull;
+    final equipmentRows = activeGym == null || activeGym.allEquipment
+        ? null
+        : ref.watch(gymEquipmentProvider(activeGym.id)).asData?.value;
+    final availableEquipment = equipmentRows
+        ?.where((row) => row.available)
+        .map((row) => row.equipmentKey)
+        .toSet();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
@@ -276,7 +286,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                           Icons.camera_alt_outlined,
                           color: AppColors.primary,
                         ),
-                        tooltip: 'Gemini AI: Skeniraj napravo / vajo',
+                        tooltip: 'Herculex AI: Skeniraj napravo / vajo',
                         onPressed: () async {
                           final match = await ExerciseAiScanDialog.show(
                             context,
@@ -354,9 +364,18 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                           data: (list) {
                             final recentIds =
                                 recentIdsAsync.asData?.value ?? <int>{};
-                            var filteredList = list;
+                            var filteredList = availableEquipment == null
+                                ? list
+                                : list
+                                      .where(
+                                        (exercise) => _availableAtGym(
+                                          exercise,
+                                          availableEquipment,
+                                        ),
+                                      )
+                                      .toList();
                             if (_category == 'Recent') {
-                              filteredList = list
+                              filteredList = filteredList
                                   .where((e) => recentIds.contains(e.id))
                                   .toList();
                             } else if (recentIds.isNotEmpty && _query.isEmpty) {
@@ -364,7 +383,7 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
                               // query is typed, relevance wins — otherwise any of the 50
                               // recent exercises outranks an exact name match.
                               filteredList = sortRecentExercisesFirst(
-                                list,
+                                filteredList,
                                 recentIds,
                               );
                             }
@@ -465,6 +484,18 @@ class _ExercisePickerSheetState extends ConsumerState<ExercisePickerSheet> {
         ),
       ),
     );
+  }
+
+  bool _availableAtGym(ExerciseCatalogData exercise, Set<String> available) {
+    try {
+      final required = exercise.requiredEquipmentKeys == null
+          ? <String>[exercise.modality]
+          : (jsonDecode(exercise.requiredEquipmentKeys!) as List)
+                .cast<String>();
+      return required.every(available.contains);
+    } catch (_) {
+      return available.contains(exercise.modality);
+    }
   }
 }
 
@@ -1093,6 +1124,7 @@ class _CircuitsPickerList extends ConsumerWidget {
                                 force: '',
                                 plane: '',
                                 defaultRestSeconds: 90,
+                                maxEffortEligibility: 'unsuitable',
                                 isCustom: false,
                                 category: 'strength',
                                 modality: 'barbell',
@@ -1261,6 +1293,7 @@ class _CircuitPickerCard extends ConsumerWidget {
                           force: '',
                           plane: '',
                           defaultRestSeconds: 90,
+                          maxEffortEligibility: 'unsuitable',
                           isCustom: false,
                           category: 'strength',
                           modality: 'barbell',

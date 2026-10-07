@@ -49,6 +49,8 @@ class MobileWearSyncManager(
         )
     }
 
+    fun getStoredMediaState(): String? = stateStore.readString("media_state_json")
+
     suspend fun syncMediaState(mediaJson: String) {
         stateStore.saveString("media_state_json", mediaJson)
         putState(
@@ -62,6 +64,33 @@ class MobileWearSyncManager(
             path = WearSyncPaths.MESSAGE_MEDIA_STATE,
             payload = mediaJson,
         )
+    }
+
+    /// Mirrors the phone's rest timer onto the watch. Returns whether at
+    /// least one watch received it — when one did, that watch delivers the
+    /// "rest over" buzz and the phone keeps its own notification quiet.
+    suspend fun sendRestTimer(restJson: String): Boolean {
+        val nodes = try {
+            nodeClient.connectedNodes.awaitResult()
+        } catch (error: Exception) {
+            Log.e(TAG, "connectedNodes lookup failed for rest timer", error)
+            emptyList()
+        }
+        val bytes = restJson.toByteArray(Charsets.UTF_8)
+        var delivered = false
+        for (node in nodes) {
+            try {
+                messageClient.sendMessage(
+                    node.id,
+                    WearSyncPaths.MESSAGE_START_REST_TIMER,
+                    bytes,
+                ).awaitResult()
+                delivered = true
+            } catch (error: Exception) {
+                Log.e(TAG, "Failed to send rest timer to ${node.displayName}", error)
+            }
+        }
+        return delivered
     }
 
     suspend fun sendAchievement(achievementJson: String) {

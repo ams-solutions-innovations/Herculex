@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/app_bottom_sheet.dart';
@@ -8,6 +9,7 @@ import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
 import 'package:herculex/features/programs/presentation/sheets/day_detail_sheet.dart';
 import 'package:herculex/features/programs/presentation/views/block_builder_view.dart';
@@ -51,17 +53,28 @@ class TrainingBlocksView extends ConsumerWidget {
                     anchor: selected,
                     programId: program.id,
                     onOpenDay: (date) => _openDay(context, ref, date, program),
-                    onOpenSession: (row) =>
-                        _openDay(context, ref, row.date, program),
+                    onOpenSession: (row) => _openDay(
+                      context,
+                      ref,
+                      row.date,
+                      program,
+                      initialScheduleId: row.id,
+                    ),
                   )
                 else
                   MonthCalendar(
                     anchor: selected,
                     programId: program.id,
                     selected: selected,
-                    onSelect: (date) {
+                    onSelect: (date, {scheduleId}) {
                       ref.read(selectedBlockDateProvider.notifier).state = date;
-                      _openDay(context, ref, date, program);
+                      _openDay(
+                        context,
+                        ref,
+                        date,
+                        program,
+                        initialScheduleId: scheduleId,
+                      );
                     },
                   ),
               ],
@@ -76,9 +89,15 @@ class TrainingBlocksView extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     DateTime date,
-    ProgramData program,
-  ) {
-    DayDetailSheet.show(context, date: date, programId: program.id);
+    ProgramData program, {
+    int? initialScheduleId,
+  }) {
+    DayDetailSheet.show(
+      context,
+      date: date,
+      programId: program.id,
+      initialScheduleId: initialScheduleId,
+    );
   }
 }
 
@@ -187,15 +206,12 @@ class _BlockHeader extends ConsumerWidget {
                 .read(calendarSyncControllerProvider.notifier)
                 .syncNow();
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    res.success
-                        ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
-                        : 'Sync error: ${res.error}',
-                  ),
-                  duration: const Duration(seconds: 2),
-                ),
+              AppNotice.show(
+                context,
+                res.success
+                    ? 'Calendar synced (${res.pushedCount} pushed, ${res.pulledCount} pulled)'
+                    : 'Sync error: ${res.error}',
+                kind: res.success ? AppNoticeKind.success : AppNoticeKind.error,
               );
             }
           },
@@ -489,7 +505,11 @@ class _PhaseChip extends ConsumerWidget {
     if (index < 0 || index >= weeks.length) return const SizedBox.shrink();
     final week = weeks[index];
 
-    final isDeload = week.adjustmentFactor < 0.95;
+    final isDeload = Periodization.isPlannedDeload(
+      model: PeriodizationModel.fromId(program.periodizationModel),
+      totalWeeks: program.weeks,
+      weekIndex: week.weekIndex,
+    );
     final label = isDeload
         ? 'Deload'
         : switch (week.blockPhase) {

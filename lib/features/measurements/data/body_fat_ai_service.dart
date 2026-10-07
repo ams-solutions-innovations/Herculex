@@ -214,7 +214,7 @@ class BodyFatAiService {
             ? double.parse(fatMass.toStringAsFixed(1))
             : null,
         recommendations:
-            'Add a photo for more accurate visual analysis with Gemini AI.',
+            'Add a photo for more accurate visual analysis with Herculex AI.',
         isAiGenerated: false,
       );
     }

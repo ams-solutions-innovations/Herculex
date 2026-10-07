@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/core/notifications/in_app_notification_controller.dart';
 import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/data/local/database.dart';
@@ -15,6 +16,7 @@ import 'package:herculex/features/nutrition/application/nutrient_settings_provid
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/domain/daily_totals.dart';
 import 'package:herculex/features/nutrition/domain/food_insights.dart';
+import 'package:herculex/features/nutrition/domain/food_portion.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 import 'package:intl/intl.dart';
 
@@ -127,7 +129,6 @@ class LogEntrySheet extends ConsumerStatefulWidget {
 }
 
 // ─── Units supported for food logging ───────────────────────────────────────
-const _kFoodUnits = ['g', 'ml', 'oz', 'tsp', 'tbsp', 'cup'];
 const Map<String, double> _kUnitToGrams = {
   'g': 1.0,
   'ml': 1.0,
@@ -161,9 +162,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
       final grams =
           widget.existingIngredient?.grams ??
           widget.initialGrams ??
-          widget.food?.servingAmount ??
-          widget.food?.servingGrams ??
-          100;
+          (widget.food == null ? 100 : FoodPortion.defaultAmount(widget.food!));
       _quantity = TextEditingController(
         text: grams % 1 == 0
             ? grams.toStringAsFixed(0)
@@ -179,15 +178,14 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
             : amount.toStringAsFixed(1),
       );
       final savedUnit = entry.portionUnit ?? _defaultUnit;
-      _selectedUnit = _kFoodUnits.contains(savedUnit)
-          ? savedUnit
-          : _defaultUnit;
+      // Keep historical entries editable as they were logged. Old data may
+      // use a unit that newer serving rules no longer offer by default.
+      _selectedUnit = savedUnit;
       _time = TimeOfDay.fromDateTime(entry.loggedAt);
     } else {
       _quantity = TextEditingController(
         text: widget.food != null
-            ? (widget.food!.servingAmount ?? widget.food!.servingGrams ?? 100)
-                  .toStringAsFixed(0)
+            ? FoodPortion.defaultAmount(widget.food!).toStringAsFixed(0)
             : '1',
       );
       _selectedUnit = _defaultUnit;
@@ -201,14 +199,13 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     return portion * _servings;
   }
 
-  /// Default unit derived from the food's reference basis.
+  /// Keeps the measure saved on the food (e.g. scoop/nugget) instead of
+  /// guessing grams from the nutrition reference basis.
   String get _defaultUnit {
     if (widget.recipe != null) return 'servings';
     final food = widget.food;
     if (food == null) return 'g';
-    final basis = food.referenceBasis.toLowerCase();
-    if (basis.contains('100 ml')) return 'ml';
-    return 'g';
+    return FoodPortion.defaultUnit(food);
   }
 
   @override
@@ -221,8 +218,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final textVal = _quantity.text.trim().replaceAll(',', '.');
     final parsed = double.tryParse(textVal);
     if (parsed == null || parsed <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
+      AppNotice.show(
+        context,
+        'Please enter a valid amount',
+        kind: AppNoticeKind.info,
       );
       return;
     }
@@ -238,8 +237,18 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final repo = ref.read(nutritionRepositoryProvider);
 
     if (widget.isIngredient) {
-      final factor = _kUnitToGrams[_selectedUnit] ?? 1.0;
-      final grams = total * factor;
+      final grams = widget.food == null
+          ? total * (_kUnitToGrams[_selectedUnit] ?? 1.0)
+          : FoodPortion.massForAmount(widget.food!, total, _selectedUnit);
+      if (grams == null) {
+        AppNotice.show(
+          context,
+          'This serving has no verified weight. Use grams.',
+          kind: AppNoticeKind.info,
+        );
+        setState(() => _saving = false);
+        return;
+      }
       if (widget.existingIngredient != null) {
         await repo.updateIngredient(
           id: widget.existingIngredient!.id,
@@ -261,11 +270,10 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
         widget.food != null ||
         (widget.existingEntry != null && widget.existingEntry!.foodId != null);
 
-    double? grams;
-    if (isFood && _selectedUnit != 'servings') {
-      final factor = _kUnitToGrams[_selectedUnit] ?? 1.0;
-      grams = total * factor;
-    }
+    // Preserve named portions such as scoops and nuggets. The repository can
+    // calculate them from their saved serving mass; storing a fake gram value
+    // here would erase the measure selected by the user.
+    final grams = isFood && _selectedUnit == 'g' ? total : null;
 
     if (widget.existingEntry != null) {
       final unit = isFood ? _selectedUnit : 'servings';
@@ -650,7 +658,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
                           GestureDetector(
                             onTap: () {
                               Haptics.selection();
-                              setState(() => _selectedUnit = u);
+                              _switchFoodUnit(u);
                               setModalState(() {});
                             },
                             child: Container(
@@ -704,6 +712,37 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     );
   }
 
+  void _switchFoodUnit(String nextUnit) {
+    final food = widget.food;
+    if (food == null || nextUnit == _selectedUnit) {
+      setState(() => _selectedUnit = nextUnit);
+      return;
+    }
+    final currentAmount = double.tryParse(
+      _quantity.text.trim().replaceAll(',', '.'),
+    );
+    final mass = currentAmount == null
+        ? null
+        : FoodPortion.massForAmount(food, currentAmount, _selectedUnit);
+    setState(() {
+      _selectedUnit = nextUnit;
+      if (mass == null) return;
+      if (nextUnit == 'g' || nextUnit == 'ml') {
+        _quantity.text = _fmtAmount(mass);
+        return;
+      }
+      final nativeMass = food.servingGrams;
+      final nativeAmount = food.servingAmount;
+      if (FoodPortion.isNativeUnit(food, nextUnit) &&
+          nativeMass != null &&
+          nativeMass > 0 &&
+          nativeAmount != null &&
+          nativeAmount > 0) {
+        _quantity.text = _fmtAmount(mass * nativeAmount / nativeMass);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -729,12 +768,17 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
     final title = widget.food?.name ?? widget.recipe?.name ?? 'Logged Item';
     final subtitle = isFood
         ? (widget.food != null
-              ? '${widget.food!.kcalPer100g.toStringAsFixed(0)} kcal / ${widget.food!.referenceBasis}'
+              ? '${FoodPortion.label(widget.food!)} · ${(widget.food!.kcalPer100g * FoodPortion.nutritionFactor(widget.food!, FoodPortion.defaultAmount(widget.food!), FoodPortion.defaultUnit(widget.food!))).toStringAsFixed(0)} kcal'
               : 'Food item entry')
         : (widget.recipe != null
               ? '${widget.recipe!.servings} servings per recipe'
               : 'Recipe entry');
-    final availableUnits = isFood ? _kFoodUnits : const ['servings'];
+    final baseAvailableUnits = widget.food == null
+        ? const ['servings']
+        : FoodPortion.availableUnits(widget.food!);
+    final availableUnits = baseAvailableUnits.contains(_selectedUnit)
+        ? baseAvailableUnits
+        : [_selectedUnit, ...baseAvailableUnits];
     final timestampEnabled =
         !widget.isIngredient && ref.watch(logTimestampEnabledProvider);
 
@@ -788,55 +832,46 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(Icons.check, color: AppColors.primary, size: 24),
-            onPressed: _saving ? null : _save,
-            tooltip: 'Save',
+          PopupMenuButton<_LogEntryAction>(
+            tooltip: 'More options',
+            onSelected: (action) {
+              if (action == _LogEntryAction.changeMeasure) {
+                _showServingSizePicker(context, isFood, availableUnits);
+              } else {
+                _delete();
+              }
+            },
+            itemBuilder: (_) => [
+              if (isFood)
+                const PopupMenuItem(
+                  value: _LogEntryAction.changeMeasure,
+                  child: Text('Change measure'),
+                ),
+              if (isEditing)
+                PopupMenuItem(
+                  value: _LogEntryAction.delete,
+                  child: Text(
+                    widget.isIngredient ? 'Remove from recipe' : 'Delete log',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              PremiumButton(text: buttonText, onTap: _saving ? () {} : _save),
-              if (isEditing) ...[
-                const SizedBox(height: 6),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: _saving ? null : _delete,
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      size: 18,
-                      color: Colors.redAccent,
-                    ),
-                    label: Text(
-                      widget.isIngredient
-                          ? 'Remove from recipe'
-                          : 'Delete from log',
-                      style: const TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Transform.translate(
+        offset: const Offset(0, -12),
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width - 32,
+          child: PremiumButton(
+            text: buttonText,
+            onTap: _saving ? () {} : _save,
           ),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 112),
         children: [
           // ── Food Title & Subtitle ─────────────────────────────────────────
           Column(
@@ -943,7 +978,7 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
           // ── Nutrition Breakdown & Goals Preview ────────────────────────────
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: _quantity,
-            builder: (context, _, __) {
+            builder: (context, _, _) {
               return _NutritionPreview(
                 food: widget.food,
                 recipe: widget.recipe,
@@ -953,8 +988,85 @@ class _LogEntrySheetState extends ConsumerState<LogEntrySheet> {
               );
             },
           ),
+          if (widget.food != null && !widget.isIngredient) ...[
+            const SizedBox(height: 12),
+            _FrequentlyPairedFoods(
+              food: widget.food!,
+              date: widget.date,
+              mealKey: _mealKey,
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+enum _LogEntryAction { changeMeasure, delete }
+
+class _FrequentlyPairedFoods extends ConsumerWidget {
+  const _FrequentlyPairedFoods({
+    required this.food,
+    required this.date,
+    required this.mealKey,
+  });
+
+  final FoodData food;
+  final DateTime date;
+  final String mealKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pairedFoods = ref.watch(
+      frequentlyPairedFoodsProvider(
+        FoodPairingParams(foodId: food.id, mealKey: mealKey),
+      ),
+    );
+    return pairedFoods.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (foods) {
+        if (foods.isEmpty) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Usually added with ${food.name}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final paired in foods)
+                    ActionChip(
+                      avatar: const Icon(Icons.add, size: 16),
+                      label: Text(paired.name),
+                      onPressed: () => LogEntrySheet.forFood(
+                        context,
+                        food: paired,
+                        date: date,
+                        initialMealKey: mealKey,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -195,6 +195,8 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
             appAction(context, requestCode, ACTION_OPEN_ROUTE, route)
 
         fun nutrition(prefs: SharedPreferences): HxNutrition {
+            // Yesterday's totals must not read as today's (see isWidgetDataStale).
+            if (isWidgetDataStale(prefs)) return HxNutrition.UNSYNCED
             val goal = prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_BASE_GOAL, 0)
             val food = prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_FOOD, 0)
             val exercise = prefs.getInt(TodayCaloriesSmallWidgetProvider.KEY_CALORIES_EXERCISE, 0)
@@ -219,6 +221,7 @@ abstract class HxWidgetProvider : AppWidgetProvider() {
         }
 
         fun recovery(prefs: SharedPreferences): HxRecovery {
+            if (isWidgetDataStale(prefs)) return HxRecovery(null, emptyList())
             val score = prefs.getInt(RecoveryWidgetProvider.KEY_RECOVERY_SCORE, -1)
             val muscles = try {
                 val arr = JSONArray(prefs.getString(RecoveryWidgetProvider.KEY_RECOVERY_MUSCLES, "[]"))

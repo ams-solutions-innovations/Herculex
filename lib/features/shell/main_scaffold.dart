@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/hx_nav_bar.dart';
+import 'package:herculex/design_system/components/keyboard_obstruction_scope.dart';
 import 'package:herculex/features/dashboard/application/dashboard_providers.dart';
 import 'package:herculex/features/dashboard/presentation/dashboard_view.dart';
 import 'package:herculex/features/measurements/presentation/body_fat_ai_dialog.dart';
@@ -12,6 +14,9 @@ import 'package:herculex/features/nutrition/domain/meal.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/gemini_photo_analysis_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/dialogs/label_capture_dialog.dart';
 import 'package:herculex/features/nutrition/presentation/views/nutrition_view.dart';
+import 'package:herculex/features/physique/application/physique_capture_providers.dart';
+import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/data/physique_legacy_migrator.dart';
 import 'package:herculex/features/profile/presentation/profile_view.dart';
 import 'package:herculex/features/shell/quick_add_menu.dart';
 import 'package:herculex/features/supplements/presentation/supplement_ai_scan_dialog.dart';
@@ -38,7 +43,8 @@ class MainScaffold extends ConsumerStatefulWidget {
 
 final mainTabIndexProvider = StateProvider<int>((ref) => 0);
 
-class _MainScaffoldState extends ConsumerState<MainScaffold> {
+class _MainScaffoldState extends ConsumerState<MainScaffold>
+    with WidgetsBindingObserver {
   static const _tabs = <Widget>[
     DashboardView(),
     NutritionView(),
@@ -49,10 +55,15 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   late final PageController _pageController;
   final _quickAddMenuKey = GlobalKey<QuickAddMenuState>();
   bool _quickAddOpen = false;
+  bool _migrationNoticeShown = false;
+
+  /// Keyboard inset seen by the previous [didChangeMetrics] call.
+  double _lastBottomInset = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController(
       initialPage: ref.read(mainTabIndexProvider),
     );
@@ -165,6 +176,18 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             ref.invalidate(workoutSessionProvider(sessionId));
           }
           break;
+
+        case AiScanContextType.physiqueCheckin:
+          final resumed = pendingContext == null
+              ? null
+              : ResumedCapture.fromPending(pendingContext, file.path);
+          if (resumed != null && mounted) {
+            ref.read(physiqueResumedCaptureProvider.notifier).state = resumed;
+            context.push(
+              AppPaths.dreamPhysiqueProgress(goalId: resumed.goalId),
+            );
+          }
+          break;
       }
     } catch (e) {
       debugPrint('Error recovering lost image data: $e');
@@ -173,21 +196,64 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
   }
 
   @override
+  void didChangeMetrics() {
+    // ActiveWorkoutView sits below Scaffold, which deliberately removes its
+    // bottom MediaQuery inset while resizing. Rebuild this shell from the
+    // platform view metrics instead so its navigation reliably follows the
+    // physical keyboard both opening and closing.
+    if (!mounted) return;
+    final bottomInset = View.of(context).viewInsets.bottom;
+    // Same rule as ActiveWorkoutView: only an inset that drops from >0 to 0
+    // is the keyboard closing. A zero inset right after a field is tapped is
+    // the keyboard not having opened yet.
+    final keyboardJustClosed = _lastBottomInset > 0 && bottomInset == 0;
+    _lastBottomInset = bottomInset;
+    if (keyboardJustClosed && ref.read(workoutInputFocusedProvider)) {
+      ref.read(workoutInputFocusedProvider.notifier).state = false;
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     ref.watch(appShortcutsControllerProvider);
+    ref.listen<AsyncValue<LegacyMigrationResult?>>(
+      physiqueLegacyMigrationProvider,
+      (prev, next) {
+        if (_migrationNoticeShown) return;
+        final message = LegacyMigrationNotice.messageFor(next.valueOrNull);
+        if (message == null) return;
+        _migrationNoticeShown = true;
+        AppNotice.show(context, message, kind: AppNoticeKind.info);
+      },
+    );
     final index = ref.watch(mainTabIndexProvider);
     final hasActiveSession =
         ref.watch(activeSessionProvider).asData?.value != null;
     final dashboardEditMode = ref.watch(dashboardEditModeProvider);
     final showBanner = hasActiveSession && index != 2;
     final bannerAtTop = ref.watch(liveWorkoutBannerAtTopProvider);
+    // Keep the active-workout controls clear while logging a value with the
+    // on-screen keyboard. The workout view handles its own floating actions;
+    // this covers the app-wide navigation bar rendered by this shell.
+    final workoutInputFocused = ref.watch(workoutInputFocusedProvider);
+    final hideWorkoutChrome =
+        index == 2 &&
+        hasActiveSession &&
+        (View.of(context).viewInsets.bottom > 0 || workoutInputFocused);
 
     ref.listen<int>(mainTabIndexProvider, (prev, next) {
+      if (prev != next && ref.read(workoutInputFocusedProvider)) {
+        ref.read(workoutInputFocusedProvider.notifier).state = false;
+        FocusManager.instance.primaryFocus?.unfocus();
+      }
       if (!_pageController.hasClients) return;
       final current = _pageController.page?.round() ?? 0;
       if (current == next) return;
@@ -260,10 +326,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
                 action(context, ref);
               },
             ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
+          KeyboardObstructionScope(
+            hidden: hideWorkoutChrome,
+            hiddenOffset: 120,
             child: HxNavBar(
               currentIndex: index,
               onTap: (i) => ref.read(mainTabIndexProvider.notifier).state = i,

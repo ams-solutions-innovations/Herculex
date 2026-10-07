@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/presentation/views/exercise_library_view.dart';
 
@@ -98,6 +100,9 @@ void main() {
             }
             return AsyncValue.data(list);
           }),
+          exerciseAffinityProvider.overrideWith(
+            (ref, exerciseId) => Stream.value(ExerciseAffinity.okay),
+          ),
         ],
         child: const MaterialApp(home: ExerciseLibraryView()),
       ),
@@ -127,6 +132,7 @@ void main() {
     expect(find.text('Custom Cable Fly'), findsOneWidget);
     expect(find.text('Custom'), findsNWidgets(2)); // Chip + item 3 badge
     expect(find.text('3 exercises'), findsOneWidget);
+    expect(find.text('Okay'), findsNWidgets(3));
   });
 
   testWidgets(
@@ -143,6 +149,9 @@ void main() {
             exerciseSearchProvider.overrideWith((ref, filter) {
               return AsyncValue.data(sampleExercises);
             }),
+            exerciseAffinityProvider.overrideWith(
+              (ref, exerciseId) => Stream.value(ExerciseAffinity.okay),
+            ),
           ],
           child: const MaterialApp(home: ExerciseLibraryView()),
         ),

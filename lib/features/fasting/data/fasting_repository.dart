@@ -32,7 +32,7 @@ class FastingRepository {
         );
   }
 
-  Future<void> endSession({bool completed = true}) async {
+  Future<void> endSession({bool completed = true, DateTime? endedAt}) async {
     final active =
         await (_db.select(_db.fastingSessions)
               ..where((t) => t.endedAt.isNull())
@@ -51,7 +51,7 @@ class FastingRepository {
       _db.fastingSessions,
     )..where((t) => t.id.equals(active.id))).write(
       FastingSessionsCompanion(
-        endedAt: Value(_clock.now()),
+        endedAt: Value(endedAt ?? _clock.now()),
         completed: Value(completed),
       ),
     );

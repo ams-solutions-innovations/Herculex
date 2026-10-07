@@ -4,6 +4,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/buddy/presentation/buddy_share_sheet.dart';
+import 'package:herculex/features/notifications/application/notification_settings_provider.dart';
 import 'package:herculex/features/workouts/application/rest_timer_controller.dart';
 import 'package:herculex/features/workouts/data/workout_quick_action_settings.dart';
 import 'package:herculex/features/workouts/presentation/sheets/plate_calculator_sheet.dart';
@@ -190,6 +191,31 @@ class WorkoutSettingsSheet extends ConsumerWidget {
                       value: restTimerEnabled,
                       onChanged: (v) =>
                           ref.read(restTimerEnabledProvider.notifier).set(v),
+                    ),
+                    // Same setting as Notifications → Rest timer alerts.
+                    Consumer(
+                      builder: (context, ref, _) => SwitchListTile(
+                        secondary: Icon(
+                          Icons.notifications_active_outlined,
+                          color: AppColors.primary,
+                        ),
+                        title: const Text('Rest finished alert'),
+                        subtitle: const Text(
+                          "\"IT'S GO TIME\" when the rest is over — a short "
+                          'buzz on your watch if it is following the '
+                          'workout, otherwise on your phone',
+                        ),
+                        value:
+                            restTimerEnabled &&
+                            ref
+                                .watch(notificationSettingsProvider)
+                                .restTimerAlertsEnabled,
+                        onChanged: restTimerEnabled
+                            ? (v) => ref
+                                  .read(notificationSettingsProvider.notifier)
+                                  .setRestTimerAlertsEnabled(v)
+                            : null,
+                      ),
                     ),
                     Divider(height: 1, color: AppColors.outlineVariant),
 

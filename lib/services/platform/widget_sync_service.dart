@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/services.dart';
+import 'package:herculex/core/utils/clock.dart';
 import 'package:herculex/design_system/tokens/hx_colors.dart';
 
 /// Pushes nutrition and fitness data to the Android home-screen widgets.
@@ -11,7 +12,25 @@ import 'package:herculex/design_system/tokens/hx_colors.dart';
 /// the channel call also triggers [AppWidgetManager.updateAppWidget] for every
 /// registered widget instance on the Kotlin side.
 class WidgetSyncService {
+  WidgetSyncService({Clock clock = const SystemClock()}) : _clock = clock;
+
+  final Clock _clock;
+
   static const _channel = MethodChannel('com.ams.herculex/widget');
+
+  /// Local day number the data being pushed belongs to.
+  ///
+  /// Stored alongside every payload so the Kotlin providers can tell "synced
+  /// today" from "left over from yesterday" and render their `—` placeholder
+  /// instead of stale numbers. Goes through [Clock] so tests can pin the day.
+  /// Built via [DateTime.utc] so the result is the plain calendar-date day
+  /// number, independent of the device's UTC offset. The Kotlin side derives
+  /// the same number from a local midnight plus its zone/DST offset.
+  int get _epochDay {
+    final now = _clock.now();
+    return DateTime.utc(now.year, now.month, now.day).millisecondsSinceEpoch ~/
+        Duration.millisecondsPerDay;
+  }
 
   /// Sync full nutrition data (calories goal, food, exercise, remaining, and macros)
   /// to the home-screen widgets.
@@ -39,6 +58,7 @@ class WidgetSyncService {
         'fatTarget': fatTarget,
         'proteinCurrent': proteinCurrent,
         'proteinTarget': proteinTarget,
+        'epochDay': _epochDay,
       });
     } on PlatformException catch (e) {
       debugPrint('[WidgetSync] syncNutrition failed: ${e.message}');
@@ -62,6 +82,7 @@ class WidgetSyncService {
         'fatTarget': fatTarget,
         'proteinCurrent': proteinCurrent,
         'proteinTarget': proteinTarget,
+        'epochDay': _epochDay,
       });
     } on PlatformException catch (e) {
       // Widget sync is non-critical — log and continue.
@@ -78,6 +99,7 @@ class WidgetSyncService {
       await _channel.invokeMethod('syncCns', {
         'readinessPct': readinessPct,
         'status': status,
+        'epochDay': _epochDay,
       });
     } on PlatformException catch (e) {
       debugPrint('[WidgetSync] syncCns failed: ${e.message}');
@@ -99,6 +121,7 @@ class WidgetSyncService {
         'muscles': [
           for (final (name, score) in muscles) {'name': name, 'score': score},
         ],
+        'epochDay': _epochDay,
       });
     } on PlatformException catch (e) {
       debugPrint('[WidgetSync] syncRecovery failed: ${e.message}');

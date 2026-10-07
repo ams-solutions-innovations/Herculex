@@ -25,12 +25,34 @@ enum ScheduleMode {
 
 /// The training splits the builder can generate.
 enum SplitType {
-  fullBody('full_body', 'Full Body', [
+  fullBody('full_body', 'Full Body A / B / C', [
     'Full Body A',
     'Full Body B',
     'Full Body C',
   ], 3),
+  fullBodyLinear('full_body_linear', 'Full Body Linear', ['Full Body'], 3),
+  fullBodyAb('full_body_ab', 'Full Body A / B', [
+    'Full Body A',
+    'Full Body B',
+  ], 3),
+
+  /// Two full-body strength sessions plus a standalone GPP day. Scheduling
+  /// two or all three days remains the caller's choice.
+  fullBodyAbGpp('full_body_ab_gpp', 'Full Body A / B + GPP', [
+    'Full Body A',
+    'Full Body B',
+    'GPP',
+  ], 3),
+
+  /// Conservative conditioning-first skeleton for the initial CrossFit flow.
+  /// It does not automatically imply technical Olympic lifts or kipping.
+  crossfit('crossfit', 'CrossFit conditioning', ['CrossFit'], 3),
   upperLower('upper_lower', 'Upper / Lower', ['Upper', 'Lower'], 4),
+  upperLowerFullBody('upper_lower_full_body', 'Upper / Lower / Full Body', [
+    'Upper',
+    'Lower',
+    'Full Body',
+  ], 3),
   ppl('ppl', 'Push / Pull / Legs', ['Push', 'Pull', 'Legs'], 6),
   ab('ab', 'A / B', ['A', 'B'], 4),
   abc('abc', 'A / B / C', ['A', 'B', 'C'], 3),
@@ -148,6 +170,8 @@ abstract final class SplitTemplates {
   /// remaining slots become rest days.
   ///
   /// [preferredWeekdays] (1–7) overrides [weekdaySpacing] in weekly mode.
+  /// [weeklyDayLabels] lets the user decide which split slot falls on each
+  /// selected weekday. Labels outside this split are ignored.
   /// [customSlots] supplies the slot names for [SplitType.custom].
   static SplitPlan generate({
     required SplitType type,
@@ -156,6 +180,7 @@ abstract final class SplitTemplates {
     int? cycleLength,
     List<String>? customSlots,
     List<int>? preferredWeekdays,
+    Map<int, String>? weeklyDayLabels,
   }) {
     final slots = _slotsFor(type, customSlots, daysPerWeek);
 
@@ -174,11 +199,19 @@ abstract final class SplitTemplates {
         cycleLength: 7,
         days: [
           for (var i = 0; i < weekdays.length; i++)
-            SplitDaySpec(
-              index: weekdays[i] - 1,
-              slotIndex: i % slots.length,
-              label: slots[i % slots.length],
-            ),
+            () {
+              final weekday = weekdays[i];
+              final requestedLabel = weeklyDayLabels?[weekday];
+              final slotIndex = requestedLabel == null
+                  ? i % slots.length
+                  : slots.indexOf(requestedLabel);
+              final resolvedSlot = slotIndex < 0 ? i % slots.length : slotIndex;
+              return SplitDaySpec(
+                index: weekday - 1,
+                slotIndex: resolvedSlot,
+                label: slots[resolvedSlot],
+              );
+            }(),
         ],
       );
     }

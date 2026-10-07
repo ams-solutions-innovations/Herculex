@@ -4,6 +4,7 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/features/notifications/data/daily_log_notification_scheduler.dart';
 import 'package:herculex/features/notifications/data/meal_notification_scheduler.dart';
 import 'package:herculex/features/notifications/data/notification_settings_repository.dart';
+import 'package:herculex/features/notifications/data/weekly_report_notification_scheduler.dart';
 import 'package:herculex/features/notifications/domain/notification_settings.dart';
 import 'package:herculex/features/supplements/data/supplement_notification_scheduler.dart';
 
@@ -71,6 +72,14 @@ class NotificationSettingsNotifier extends StateNotifier<NotificationSettings> {
   Future<void> setDailyLogTime(String timeHHMM) async {
     await update(state.copyWith(dailyLogTimeHHMM: timeHHMM));
   }
+
+  Future<void> setWeeklyReportEnabled(bool enabled) async {
+    await update(state.copyWith(weeklyReportEnabled: enabled));
+  }
+
+  Future<void> setWeeklyReportTime(String timeHHMM) async {
+    await update(state.copyWith(weeklyReportTimeHHMM: timeHHMM));
+  }
 }
 
 final notificationSettingsProvider =
@@ -100,9 +109,18 @@ final dailyLogNotificationSchedulerProvider =
       );
     });
 
+final weeklyReportNotificationSchedulerProvider =
+    Provider<WeeklyReportNotificationScheduler>((ref) {
+      return WeeklyReportNotificationScheduler(
+        ref.watch(localNotificationsPluginProvider),
+        clock: ref.watch(clockProvider),
+      );
+    });
+
 final supplementNotificationSchedulerProvider =
     Provider<SupplementNotificationScheduler>((ref) {
       return SupplementNotificationScheduler(
         ref.watch(localNotificationsPluginProvider),
+        clock: ref.watch(clockProvider),
       );
     });

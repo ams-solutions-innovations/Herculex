@@ -41,6 +41,11 @@ class DashboardConfigNotifier extends Notifier<DashboardConfig> {
     ref.read(dashboardConfigRepositoryProvider).save(state);
   }
 
+  void stackSlots(int sourceIndex, int targetIndex) {
+    state = state.stackSlots(sourceIndex, targetIndex);
+    ref.read(dashboardConfigRepositoryProvider).save(state);
+  }
+
   void stackWidgets(DashboardWidgetType target, DashboardWidgetType added) {
     state = state.stackWidgets(target, added);
     ref.read(dashboardConfigRepositoryProvider).save(state);

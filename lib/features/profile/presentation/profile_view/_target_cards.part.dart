@@ -18,6 +18,7 @@ class _ProfileActiveTargetSquircleCard extends ConsumerWidget {
       DietPhase.cut => AppColors.macroKcal,
       DietPhase.bulk => const Color(0xFF30D158),
       DietPhase.maingain => const Color(0xFFBF5AF2),
+      DietPhase.recomp => const Color(0xFFFF9F0A),
       DietPhase.maintain => const Color(0xFF64D2FF),
     };
 
@@ -25,6 +26,7 @@ class _ProfileActiveTargetSquircleCard extends ConsumerWidget {
       DietPhase.cut => Icons.trending_down_rounded,
       DietPhase.bulk => Icons.trending_up_rounded,
       DietPhase.maingain => Icons.auto_awesome_rounded,
+      DietPhase.recomp => Icons.change_circle_rounded,
       DietPhase.maintain => Icons.balance_rounded,
     };
 
@@ -283,104 +285,6 @@ class _ProfileMacroSquircleBadge extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DreamPhysiqueCard extends StatelessWidget {
-  const _DreamPhysiqueCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            context.hx.primary.withValues(alpha: 0.12),
-            context.hx.surfaceContainer,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: context.hx.primary.withValues(alpha: 0.3)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            context.push(AppRoutes.dreamPhysique);
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: context.hx.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: 22,
-                    color: context.hx.primary,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Dream Physique AI',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.hx.primary,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'AI',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Comparison with target physique, estimated months, muscle & BF%',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: context.hx.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: context.hx.onSurfaceVariant),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

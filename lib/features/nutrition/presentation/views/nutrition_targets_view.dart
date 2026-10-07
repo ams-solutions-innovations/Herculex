@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
@@ -11,14 +12,44 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/nutrition/application/goals_providers.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/application/tdee_providers.dart';
 import 'package:herculex/features/nutrition/data/carb_cycle_service.dart';
 import 'package:herculex/features/nutrition/domain/carb_cycling.dart';
 import 'package:herculex/features/nutrition/domain/diet_phase.dart';
-import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/features/nutrition/presentation/widgets/tdee_estimate_badge.dart';
+import 'package:herculex/features/physique/application/physique_providers.dart';
+import 'package:herculex/features/physique/presentation/widgets/restriction_notice.dart';
+
+/// Presentation-only chip/card styling for a [DietPhase]. Kept as a single
+/// extension so the quick planner card and its chip buttons can't drift
+/// apart on color or icon the way they previously did as two hand-copied
+/// switch statements.
+extension DietPhaseUi on DietPhase {
+  Color get uiColor => switch (this) {
+    DietPhase.cut => AppColors.macroKcal,
+    DietPhase.bulk => const Color(0xFF30D158),
+    DietPhase.maingain => const Color(0xFFBF5AF2),
+    DietPhase.maintain => const Color(0xFF64D2FF),
+    DietPhase.recomp => const Color(0xFFFF9F0A),
+  };
+
+  IconData get uiIcon => switch (this) {
+    DietPhase.cut => Icons.trending_down_rounded,
+    DietPhase.bulk => Icons.trending_up_rounded,
+    DietPhase.maingain => Icons.auto_awesome_rounded,
+    DietPhase.maintain => Icons.balance_rounded,
+    DietPhase.recomp => Icons.change_circle_rounded,
+  };
+}
 
 /// Hub for everything target-related (§5).
 class NutritionTargetsView extends ConsumerWidget {
-  const NutritionTargetsView({super.key});
+  /// Pre-selects the quick planner's phase, e.g. when arriving from the
+  /// Dream Physique "Optional next nutrition phase" card so the chosen
+  /// direction isn't silently dropped in favor of the active plan's phase.
+  final DietPhase? initialPhase;
+
+  const NutritionTargetsView({super.key, this.initialPhase});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,13 +58,13 @@ class NutritionTargetsView extends ConsumerWidget {
     final schedule = ref.watch(activeDietScheduleProvider).asData?.value;
 
     return HxScreenShell(
-      title: 'Targets & Dieting',
+      title: 'Goals & nutrition',
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
           child: Text(
-            'Set target calories, quickly choose a diet phase, and adjust '
-            'macronutrients based on your lifestyle and training.',
+            'Set your calorie target, pick a nutrition phase quickly and '
+            'adjust macros to your lifestyle and training.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: hx.onSurfaceVariant,
@@ -45,19 +76,18 @@ class NutritionTargetsView extends ConsumerWidget {
         const SizedBox(height: HxSpace.x5),
 
         // ── Quick Phase & Calorie Planner ──
-        const _QuickPhasePlannerSection(),
+        _QuickPhasePlannerSection(initialPhase: initialPhase),
 
         const SizedBox(height: HxSpace.x6),
-        _SectionHeaderTitle('ADVANCED SETTINGS & SCHEDULES'),
+        _SectionHeaderTitle('ADVANCED SETTINGS AND SCHEDULES'),
         const SizedBox(height: HxSpace.x3),
 
         _HubTile(
           icon: Icons.flag_rounded,
-          title: 'Daily Targets',
+          title: 'Daily targets',
           subtitle: targets == null || targets.isEmpty
-              ? 'Using profile-calculated targets'
-              : '${targets.length} custom target'
-                    '${targets.length == 1 ? '' : 's'}',
+              ? 'Using targets calculated from your profile'
+              : 'Custom targets: ${targets.length}',
           onTap: () => Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const DailyTargetsView())),
@@ -65,13 +95,13 @@ class NutritionTargetsView extends ConsumerWidget {
         const SizedBox(height: HxSpace.x3),
         _HubTile(
           icon: Icons.timeline_rounded,
-          title: 'Active Schedule',
+          title: 'Active schedule',
           subtitle: schedule == null
-              ? 'No automated calorie change running'
+              ? 'Automatic calorie adjustment is off'
               : schedule.reducePct < 0
-              ? 'Bulk · +${(-schedule.reducePct).toStringAsFixed(1)}% '
+              ? 'Bulk · +${(-schedule.reducePct).toStringAsFixed(1)} % '
                     'every ${schedule.intervalDays} days'
-              : 'Cut · −${schedule.reducePct.toStringAsFixed(1)}% '
+              : 'Cut · −${schedule.reducePct.toStringAsFixed(1)} % '
                     'every ${schedule.intervalDays} days',
           onTap: () => Navigator.of(
             context,
@@ -80,8 +110,8 @@ class NutritionTargetsView extends ConsumerWidget {
         const SizedBox(height: HxSpace.x3),
         _HubTile(
           icon: Icons.bakery_dining_rounded,
-          title: 'Carb Cycle',
-          subtitle: 'Hardest training days get the most carbs',
+          title: 'Carb cycling',
+          subtitle: 'Hardest workouts get the most carbs',
           onTap: () => Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const CarbCycleView())),
@@ -112,7 +142,9 @@ class _SectionHeaderTitle extends StatelessWidget {
 
 /// Interactive quick calorie and phase planning section right on the main Targets view.
 class _QuickPhasePlannerSection extends ConsumerStatefulWidget {
-  const _QuickPhasePlannerSection();
+  final DietPhase? initialPhase;
+
+  const _QuickPhasePlannerSection({this.initialPhase});
 
   @override
   ConsumerState<_QuickPhasePlannerSection> createState() =>
@@ -131,7 +163,7 @@ class _QuickPhasePlannerSectionState
     super.didChangeDependencies();
     if (!_initialized) {
       final activePlan = ref.read(activeDietPlanProvider);
-      _selectedPhase = activePlan.phase;
+      _selectedPhase = widget.initialPhase ?? activePlan.phase;
       final options = DietPhaseCalculator.paceOptionsFor(_selectedPhase);
       final idx = options.indexWhere(
         (o) =>
@@ -145,7 +177,13 @@ class _QuickPhasePlannerSectionState
     }
   }
 
+  /// Live-coerced, never captured, so an allowed phase returns once the
+  /// profile arrives (PHYS-04).
+  DietPhase get _effectivePhase =>
+      ref.read(physiqueEditorEligibilityProvider).coerce(_selectedPhase);
+
   void _onPhaseSelected(DietPhase phase) {
+    if (!ref.read(physiqueEditorEligibilityProvider).allows(phase)) return;
     if (_selectedPhase == phase) return;
     setState(() {
       _selectedPhase = phase;
@@ -158,11 +196,11 @@ class _QuickPhasePlannerSectionState
   Widget build(BuildContext context) {
     final hx = context.hx;
     final profile = ref.watch(profileProvider).asData?.value;
-    final baseline = ref.watch(baselineTargetsProvider);
-    final baselineKcal = baseline?.kcal ?? 2500;
+    final baselineKcal = ref.watch(maintenanceKcalProvider) ?? 2500;
     final bwKg = profile?.weightKg;
 
-    final paceOptions = DietPhaseCalculator.paceOptionsFor(_selectedPhase);
+    final eligibility = ref.watch(physiqueEditorEligibilityProvider);
+    final paceOptions = DietPhaseCalculator.paceOptionsFor(_effectivePhase);
     final currentPace =
         (_selectedPaceIndex >= 0 && _selectedPaceIndex < paceOptions.length)
         ? paceOptions[_selectedPaceIndex]
@@ -172,8 +210,10 @@ class _QuickPhasePlannerSectionState
     final minProteinG = minTargets.resolvedMinProteinG(bwKg);
     final minKcal = minTargets.effectiveMinCaloriesKcal;
 
+    // PHYS-04: eligibility clamps the delta for restricted members.
     final targets = DietPhaseCalculator.apply(
-      phase: _selectedPhase,
+      phase: _effectivePhase,
+      eligibility: eligibility,
       baselineKcal: baselineKcal,
       bodyweightKg: bwKg,
       calorieDeltaOverride: currentPace.kcalDelta,
@@ -181,30 +221,9 @@ class _QuickPhasePlannerSectionState
       minCaloriesKcal: minKcal,
     );
 
-    final phaseColor = switch (_selectedPhase) {
-      DietPhase.cut => AppColors.macroKcal,
-      DietPhase.bulk => const Color(0xFF30D158),
-      DietPhase.maingain => const Color(0xFFBF5AF2),
-      DietPhase.maintain => const Color(0xFF64D2FF),
-    };
-
-    final phaseIcon = switch (_selectedPhase) {
-      DietPhase.cut => Icons.trending_down_rounded,
-      DietPhase.bulk => Icons.trending_up_rounded,
-      DietPhase.maingain => Icons.auto_awesome_rounded,
-      DietPhase.maintain => Icons.balance_rounded,
-    };
-
-    final phaseSubtitle = switch (_selectedPhase) {
-      DietPhase.cut =>
-        'Caloric deficit for fat loss with high protein to protect muscle mass (2.2g protein/kg).',
-      DietPhase.bulk =>
-        'Caloric surplus with plenty of carbohydrates for maximum strength and muscle growth.',
-      DietPhase.maingain =>
-        'Body recomposition: build muscle with 2.2g/kg protein and minimal surplus without fat gain. Differs from maintenance by its anabolic focus and higher protein.',
-      DietPhase.maintain =>
-        'Zero caloric delta (TDEE) and 1.8g/kg protein for weight stabilization and recovery.',
-    };
+    final phaseColor = _effectivePhase.uiColor;
+    final phaseIcon = _effectivePhase.uiIcon;
+    final phaseSubtitle = _effectivePhase.subtitle;
 
     return Container(
       decoration: BoxDecoration(
@@ -242,7 +261,7 @@ class _QuickPhasePlannerSectionState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Quick Calories & Phase Planner',
+                      'Quick calorie and phase plan',
                       style: TextStyle(
                         color: hx.onSurface,
                         fontWeight: FontWeight.bold,
@@ -264,65 +283,65 @@ class _QuickPhasePlannerSectionState
           ),
           const SizedBox(height: 16),
 
-          // ── Phase Selector (Cut, Bulk, Maingain, Maintain) ──
-          Row(
-            children: [
-              for (final phase in DietPhase.values) ...[
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: _PhaseChipButton(
-                      phase: phase,
-                      selected: _selectedPhase == phase,
-                      onTap: () => _onPhaseSelected(phase),
+          RestrictionNoticeList(
+            eligibility: eligibility,
+            onAddAge: () => context.push(AppRoutes.profile),
+          ),
+          if (eligibility.isRestricted) const SizedBox(height: 12),
+          // ── Phase selector (opens a bottom sheet) ──
+          HxPickerPill(
+            caption: 'GOAL',
+            label: _effectivePhase.label,
+            icon: phaseIcon,
+            color: phaseColor,
+            onTap: () async {
+              final picked = await showHxPicker<DietPhase>(
+                context,
+                title: 'Goal',
+                selected: _effectivePhase,
+                options: [
+                  for (final phase in DietPhase.values)
+                    HxPickerOption<DietPhase>(
+                      value: phase,
+                      label: phase.label,
+                      description: phase.subtitle,
+                      icon: phase.uiIcon,
+                      color: phase.uiColor,
+                      enabled: eligibility.allows(phase),
                     ),
-                  ),
-                ),
-              ],
-            ],
+                ],
+              );
+              if (picked != null) _onPhaseSelected(picked);
+            },
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
-          // ── Pace / Rate Selector ──
-          Text(
-            _selectedPhase == DietPhase.maintain
-                ? 'TEMPO & INTENZIVNOST'
-                : 'TEDENSKI TEMPO / AGRESIVNOST',
-            style: TextStyle(
-              color: hx.onSurfaceVariant,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (int i = 0; i < paceOptions.length; i++)
-                ChoiceChip(
-                  label: Text(paceOptions[i].label),
-                  selected: _selectedPaceIndex == i,
-                  selectedColor: phaseColor.withValues(alpha: 0.25),
-                  labelStyle: TextStyle(
-                    color: _selectedPaceIndex == i
-                        ? phaseColor
-                        : hx.onSurfaceVariant,
-                    fontWeight: _selectedPaceIndex == i
-                        ? FontWeight.bold
-                        : FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                  side: BorderSide(
-                    color: _selectedPaceIndex == i
-                        ? phaseColor
-                        : hx.outlineVariant.withValues(alpha: 0.4),
-                  ),
-                  onSelected: (_) => setState(() => _selectedPaceIndex = i),
-                ),
-            ],
+          // ── Pace / aggressiveness selector (opens a bottom sheet) ──
+          HxPickerPill(
+            caption: _effectivePhase == DietPhase.maintain
+                ? 'PACE AND INTENSITY'
+                : 'WEEKLY PACE / AGGRESSIVENESS',
+            label: currentPace.label,
+            icon: Icons.speed_rounded,
+            color: phaseColor,
+            onTap: () async {
+              final picked = await showHxPicker<int>(
+                context,
+                title: 'Weekly pace',
+                selected: _selectedPaceIndex,
+                options: [
+                  for (int i = 0; i < paceOptions.length; i++)
+                    HxPickerOption<int>(
+                      value: i,
+                      label: paceOptions[i].label,
+                      description: paceOptions[i].description,
+                      color: phaseColor,
+                    ),
+                ],
+              );
+              if (picked != null) setState(() => _selectedPaceIndex = picked);
+            },
           ),
 
           const SizedBox(height: 6),
@@ -365,7 +384,7 @@ class _QuickPhasePlannerSectionState
                           ),
                         ),
                         Text(
-                          'Target daily intake',
+                          'Daily target intake',
                           style: TextStyle(
                             color: hx.onSurfaceVariant,
                             fontSize: 12,
@@ -387,7 +406,7 @@ class _QuickPhasePlannerSectionState
                       ),
                       child: Text(
                         targets.deltaKcal == 0
-                            ? 'TDEE Maintenance'
+                            ? 'TDEE maintenance'
                             : '${targets.deltaKcal > 0 ? '+' : ''}${targets.deltaKcal} kcal / day',
                         style: TextStyle(
                           color: phaseColor,
@@ -419,7 +438,7 @@ class _QuickPhasePlannerSectionState
                     const SizedBox(width: 8),
                     Expanded(
                       child: _MacroStatBox(
-                        label: 'Carbohydrates',
+                        label: 'Carbs',
                         value: '${targets.carbsG}g',
                         subtext:
                             '${((targets.carbsG * 4 / targets.kcal) * 100).round()}%',
@@ -464,7 +483,7 @@ class _QuickPhasePlannerSectionState
                             ),
                           ),
                           child: Text(
-                            'Min Protein Floor: ${minProteinG}g',
+                            'Min. protein: ${minProteinG} g',
                             style: TextStyle(
                               color: AppColors.macroProtein,
                               fontSize: 11,
@@ -486,7 +505,7 @@ class _QuickPhasePlannerSectionState
                             ),
                           ),
                           child: Text(
-                            'Min Kcal Floor: ${minKcal} kcal',
+                            'Min. calories: $minKcal kcal',
                             style: TextStyle(
                               color: AppColors.macroKcal,
                               fontSize: 11,
@@ -542,8 +561,8 @@ class _QuickPhasePlannerSectionState
                   : const Icon(Icons.check_circle_outline_rounded, size: 20),
               label: Text(
                 _saving
-                    ? 'Saving…'
-                    : 'Apply ${_selectedPhase.label} (${targets.kcal} kcal)',
+                    ? 'Saving …'
+                    : 'Apply: ${_effectivePhase.label} (${targets.kcal} kcal)',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
@@ -555,7 +574,7 @@ class _QuickPhasePlannerSectionState
                       setState(() => _saving = true);
                       final repo = ref.read(nutritionRepositoryProvider);
                       await repo.upsertTarget(
-                        label: 'Global (${_selectedPhase.label})',
+                        label: 'General (${_effectivePhase.label})',
                         appliesTo: 'global',
                         kcal: targets.kcal,
                         proteinG: targets.proteinG,
@@ -565,92 +584,22 @@ class _QuickPhasePlannerSectionState
                       await ref
                           .read(activeDietPlanProvider.notifier)
                           .setPlan(
-                            phase: _selectedPhase,
+                            phase: _effectivePhase,
                             weeklyRateKg: currentPace.weeklyKg,
                             kcalDelta: currentPace.kcalDelta,
                             paceLabel: currentPace.label,
                           );
                       if (!mounted) return;
                       setState(() => _saving = false);
-                      ref
-                          .read(hxToastControllerProvider.notifier)
-                          .show(
-                            HxToastItem.targetsUpdated(
-                              message:
-                                  '${_selectedPhase.label} • ${targets.kcal} kcal',
-                            ),
-                          );
+                      AppNotice.showWith(
+                        ref,
+                        '${_effectivePhase.label} • ${targets.kcal} kcal',
+                        title: 'Targets updated',
+                      );
                     },
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PhaseChipButton extends StatelessWidget {
-  final DietPhase phase;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _PhaseChipButton({
-    required this.phase,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final hx = context.hx;
-    final color = switch (phase) {
-      DietPhase.cut => AppColors.macroKcal,
-      DietPhase.bulk => const Color(0xFF30D158),
-      DietPhase.maingain => const Color(0xFFBF5AF2),
-      DietPhase.maintain => const Color(0xFF64D2FF),
-    };
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        decoration: BoxDecoration(
-          color: selected
-              ? color.withValues(alpha: 0.2)
-              : hx.surfaceContainer.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? color : hx.outlineVariant.withValues(alpha: 0.3),
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              switch (phase) {
-                DietPhase.cut => Icons.trending_down_rounded,
-                DietPhase.bulk => Icons.trending_up_rounded,
-                DietPhase.maingain => Icons.auto_awesome_rounded,
-                DietPhase.maintain => Icons.balance_rounded,
-              },
-              size: 18,
-              color: selected ? color : hx.onSurfaceVariant,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              phase.label,
-              style: TextStyle(
-                color: selected ? color : hx.onSurfaceVariant,
-                fontWeight: selected ? FontWeight.bold : FontWeight.w600,
-                fontSize: 12,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -804,7 +753,7 @@ class DailyTargetsView extends ConsumerWidget {
     final targets = ref.watch(nutritionTargetsProvider);
 
     return HxScreenShell(
-      title: 'Daily Targets',
+      title: 'Daily targets',
       pinnedBottom: SizedBox(
         width: double.infinity,
         child: PremiumButton(
@@ -820,7 +769,7 @@ class DailyTargetsView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
           child: Text(
-            'The most specific scope wins: date > weekday > training/rest day > global.',
+            'The most specific target wins: date > weekday > training/rest > general.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: hx.onSurfaceVariant,
@@ -859,7 +808,7 @@ class DailyTargetsView extends ConsumerWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Currently using the baseline calories and macros calculated from your profile.',
+                        'Baseline calories and macros calculated from your profile currently apply.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
@@ -883,24 +832,21 @@ class DailyTargetsView extends ConsumerWidget {
                           final repo = ref.read(nutritionRepositoryProvider);
                           await repo.deleteTarget(t.id);
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Deleted "${t.label}" target'),
-                                action: SnackBarAction(
-                                  label: 'Undo',
-                                  onPressed: () {
-                                    repo.upsertTarget(
-                                      label: t.label,
-                                      appliesTo: t.appliesTo,
-                                      kcal: t.kcal,
-                                      proteinG: t.proteinG,
-                                      carbsG: t.carbsG,
-                                      fatG: t.fatG,
-                                      fiberG: t.fiberG,
-                                    );
-                                  },
-                                ),
-                              ),
+                            AppNotice.show(
+                              context,
+                              'Target "${t.label}" deleted',
+                              actionLabel: 'Undo',
+                              onAction: () {
+                                repo.upsertTarget(
+                                  label: t.label,
+                                  appliesTo: t.appliesTo,
+                                  kcal: t.kcal,
+                                  proteinG: t.proteinG,
+                                  carbsG: t.carbsG,
+                                  fatG: t.fatG,
+                                  fiberG: t.fiberG,
+                                );
+                              },
                             );
                           }
                         },
@@ -1086,7 +1032,7 @@ class ActiveScheduleView extends ConsumerWidget {
     final schedule = ref.watch(activeDietScheduleProvider);
 
     return HxScreenShell(
-      title: 'Active Schedule',
+      title: 'Active schedule',
       pinnedBottom: Row(
         children: [
           Expanded(
@@ -1112,8 +1058,8 @@ class ActiveScheduleView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
           child: Text(
-            'A schedule steps your calories up or down automatically at a '
-            'fixed interval, so you don\'t have to re-enter targets.',
+            'A schedule automatically raises or lowers calories at fixed '
+            'intervals so you do not have to re-enter targets.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: hx.onSurfaceVariant,
@@ -1144,7 +1090,7 @@ class ActiveScheduleView extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'No Active Schedule',
+                      'No active schedule',
                       style: TextStyle(
                         color: hx.onSurface,
                         fontWeight: FontWeight.bold,
@@ -1153,7 +1099,7 @@ class ActiveScheduleView extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Automate gradual calorie adjustments by starting a cut or bulk cycle below.',
+                      'Automatic gradual calorie adjustment: start a cut or bulk cycle below.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: hx.onSurfaceVariant,
@@ -1198,7 +1144,7 @@ class ActiveScheduleView extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              isBulk ? 'Active Bulk' : 'Active Cut',
+                              isBulk ? 'Active bulk' : 'Active cut',
                               style: TextStyle(
                                 color: hx.onSurface,
                                 fontWeight: FontWeight.bold,
@@ -1208,8 +1154,8 @@ class ActiveScheduleView extends ConsumerWidget {
                             const SizedBox(height: 2),
                             Text(
                               isBulk
-                                  ? '+${(-s.reducePct).toStringAsFixed(1)}% every ${s.intervalDays} days'
-                                  : '−${s.reducePct.toStringAsFixed(1)}% every ${s.intervalDays} days',
+                                  ? '+${(-s.reducePct).toStringAsFixed(1)} % every ${s.intervalDays} days'
+                                  : '−${s.reducePct.toStringAsFixed(1)} % every ${s.intervalDays} days',
                               style: TextStyle(
                                 color: color,
                                 fontWeight: FontWeight.w600,
@@ -1288,11 +1234,11 @@ class CarbCycleView extends ConsumerWidget {
     );
 
     return HxScreenShell(
-      title: 'Carb Cycle',
+      title: 'Carb cycling',
       pinnedBottom: SizedBox(
         width: double.infinity,
         child: PremiumButton(
-          text: 'SAVE THIS WEEK\'S PLAN',
+          text: 'SAVE WEEKLY PLAN',
           isPrimary: true,
           icon: Icons.auto_awesome_rounded,
           onTap: () async {
@@ -1305,14 +1251,11 @@ class CarbCycleView extends ConsumerWidget {
                   dayLevelsJson: CarbCycleService.encodeLevels(levels),
                 );
             if (context.mounted) {
-              ref
-                  .read(hxToastControllerProvider.notifier)
-                  .show(
-                    HxToastItem.targetsUpdated(
-                      title: 'Carb cycle saved',
-                      message: 'This week\'s plan is ready',
-                    ),
-                  );
+              AppNotice.showWith(
+                ref,
+                'Carb cycling saved',
+                title: 'Weekly plan is ready',
+              );
             }
           },
         ),
@@ -1321,7 +1264,7 @@ class CarbCycleView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: HxSpace.x2),
           child: Text(
-            'Generated from your training schedule: the hardest days get the most carbs to fuel performance.',
+            'Generated from your training: the hardest days get the most carbs for better performance.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: hx.onSurfaceVariant,
@@ -1385,8 +1328,8 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   @override
   void initState() {
     super.initState();
-    final profile = ref.read(profileProvider).asData?.value;
-    final baseline = profile == null ? null : MacroTargets.fromProfile(profile);
+    final baseline = ref.read(baselineTargetsProvider);
+    final maintenance = ref.read(maintenanceKcalProvider);
 
     if (widget.initialTarget != null) {
       final t = widget.initialTarget!;
@@ -1403,14 +1346,11 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
       if (t.fiberG != null && t.fiberG! > 0) {
         _fiber.text = t.fiberG.toString();
       }
-      if (baseline != null) {
-        _maintenanceKcal.text = baseline.kcal.toString();
-      } else {
-        _maintenanceKcal.text = t.kcal.toString();
-      }
+      _maintenanceKcal.text = (maintenance ?? baseline?.kcal ?? t.kcal)
+          .toString();
     } else {
       if (baseline != null) {
-        _maintenanceKcal.text = baseline.kcal.toString();
+        _maintenanceKcal.text = (maintenance ?? baseline.kcal).toString();
         _kcal.text = baseline.kcal.toString();
         _protein.text = baseline.proteinG.toString();
         _carbs.text = baseline.carbsG.toString();
@@ -1444,12 +1384,15 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
 
   /// Recomputes every field from the maintenance figure for [_phase] (§5).
   void _applyPhase(DietPhase phase) {
+    final eligibility = ref.read(physiqueEditorEligibilityProvider);
+    if (!eligibility.allows(phase)) return;
     final baseline = int.tryParse(_maintenanceKcal.text.trim());
     setState(() {
       _phase = phase;
       if (baseline == null || baseline <= 0) return;
       final t = DietPhaseCalculator.apply(
         phase: phase,
+        eligibility: eligibility,
         baselineKcal: baseline,
         bodyweightKg: _bodyweightKg,
       );
@@ -1510,7 +1453,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   }
 
   String get _scopeLabel {
-    if (_scope == 'global') return 'Global';
+    if (_scope == 'global') return 'General';
     if (_scope == 'training_day') return 'Training day';
     if (_scope == 'rest_day') return 'Rest day';
     if (_scope == 'weekday' && _weekday != null) {
@@ -1523,14 +1466,14 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
   Future<void> _save() async {
     final resolved = _resolve();
     if (resolved == null) {
-      String msg = 'Please fill in calories and all macro fields.';
+      String msg = 'Fill in calories and all macro fields.';
       if (_mode == _MacroMode.percent && (_pctSum - 100).abs() > 1) {
         msg =
-            'Macro percentages must add up to 100% (currently ${_pctSum.round()}%).';
+            'Macro percentages must add up to 100 % (currently ${_pctSum.round()} %).';
       } else if (_mode == _MacroMode.perLb && _bodyweightKg == null) {
-        msg = 'Add your bodyweight in profile first.';
+        msg = 'Add your body weight in your profile first.';
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      AppNotice.show(context, msg, kind: AppNoticeKind.info);
       return;
     }
     await ref
@@ -1544,12 +1487,13 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           fatG: resolved.fat,
           fiberG: int.tryParse(_fiber.text),
         );
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
     final hx = context.hx;
+    final eligibility = ref.watch(physiqueEditorEligibilityProvider);
     final bwKg = _bodyweightKg;
     final bwLb = bwKg != null ? bwKg * 2.20462 : null;
 
@@ -1557,7 +1501,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
     final resolved = kcalVal > 0 ? _resolve() : null;
 
     return HxScreenShell(
-      title: widget.initialTarget != null ? 'Edit Target' : 'Add Target',
+      title: widget.initialTarget != null ? 'Edit target' : 'Add target',
       pinnedBottom: SizedBox(
         width: double.infinity,
         child: PremiumButton(
@@ -1570,7 +1514,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
       children: [
         Center(
           child: Text(
-            'Saving the same scope replaces any existing target for that scope.',
+            'Saving for the same scope replaces the existing target for that scope.',
             textAlign: TextAlign.center,
             style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
           ),
@@ -1578,8 +1522,13 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         const SizedBox(height: HxSpace.x5),
 
         // ── Dieting phase (§5) ──
-        _SectionTitle('DIETING PHASE'),
+        _SectionTitle('NUTRITION PHASE'),
         const SizedBox(height: HxSpace.x2),
+        RestrictionNoticeList(
+          eligibility: eligibility,
+          onAddAge: () => context.push(AppRoutes.profile),
+        ),
+        if (eligibility.isRestricted) const SizedBox(height: HxSpace.x3),
         Wrap(
           spacing: 8,
           children: [
@@ -1587,7 +1536,9 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               ChoiceChip(
                 label: Text(phase.label),
                 selected: _phase == phase,
-                onSelected: (_) => _applyPhase(phase),
+                onSelected: eligibility.allows(phase)
+                    ? (_) => _applyPhase(phase)
+                    : null,
               ),
           ],
         ),
@@ -1598,17 +1549,11 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           suffix: 'kcal',
           onChanged: (_) => _applyPhase(_phase),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: HxSpace.x2),
+        const TdeeEstimateBadge(),
+        const SizedBox(height: HxSpace.x2),
         Text(
-          _phase == DietPhase.maintain
-              ? 'Maintain applies 0 kcal deficit/surplus with 1.8g/kg protein for weight stability.'
-              : _phase == DietPhase.maingain
-              ? 'Maingain applies a lean recomp surplus (+${DietPhaseCalculator.defaultMaingainSurplusKcal} kcal) and 2.2g/kg protein to build muscle without fat gain.'
-              : _phase == DietPhase.cut
-              ? 'Cut applies a ${DietPhaseCalculator.defaultCutPct.round()}% '
-                    'deficit and raises protein to protect lean mass.'
-              : 'Bulk applies a ${DietPhaseCalculator.defaultBulkPct.round()}% '
-                    'surplus, with the extra going to carbs.',
+          _phase.subtitle,
           style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
         ),
 
@@ -1621,7 +1566,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           spacing: 8,
           children: [
             for (final entry in {
-              'global': 'Global (Every day)',
+              'global': 'General (every day)',
               'training_day': 'Training day',
               'rest_day': 'Rest day',
               'weekday': 'Specific weekday',
@@ -1639,7 +1584,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         if (_scope == 'weekday') ...[
           const SizedBox(height: HxSpace.x3),
           Text(
-            'SELECT DAY',
+            'CHOOSE DAY',
             style: TextStyle(
               color: hx.onSurfaceVariant,
               fontSize: 11,
@@ -1678,7 +1623,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         const SizedBox(height: HxSpace.x6),
 
         // ── Macro input mode ──
-        _SectionTitle('MACRO INPUT METHOD'),
+        _SectionTitle('MACRO INPUT MODE'),
         const SizedBox(height: HxSpace.x2),
         Wrap(
           spacing: 8,
@@ -1694,7 +1639,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               onSelected: (_) => setState(() => _mode = _MacroMode.percent),
             ),
             ChoiceChip(
-              label: const Text('g / lb bodyweight'),
+              label: const Text('g / lb body weight'),
               selected: _mode == _MacroMode.perLb,
               onSelected: (_) => setState(() => _mode = _MacroMode.perLb),
             ),
@@ -1719,7 +1664,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _carbs,
-                  label: 'Carbs',
+                  label: 'OH',
                   suffix: 'g',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1763,7 +1708,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
 
         if (_mode == _MacroMode.percent) ...[
           Text(
-            'Set the percentage of total calories for each macro. Total must equal 100%.',
+            'Set the share of total calories for each macro. Must add up to 100 %.',
             style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(height: 10),
@@ -1781,7 +1726,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
               Expanded(
                 child: _NumField(
                   controller: _carbsPct,
-                  label: 'Carbs',
+                  label: 'OH',
                   suffix: '%',
                   onChanged: (_) => setState(() {}),
                 ),
@@ -1801,7 +1746,7 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           Row(
             children: [
               Text(
-                'Total: ${_pctSum.round()}%',
+                'Total: ${_pctSum.round()} %',
                 style: TextStyle(
                   color: (_pctSum - 100).abs() <= 1
                       ? const Color(0xFF30D158)
@@ -1827,12 +1772,12 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
         if (_mode == _MacroMode.perLb) ...[
           if (bwLb != null)
             Text(
-              'Your bodyweight: ${bwLb.toStringAsFixed(1)} lb (${bwKg!.toStringAsFixed(1)} kg)',
+              'Your body weight: ${bwLb.toStringAsFixed(1)} lb (${bwKg!.toStringAsFixed(1)} kg)',
               style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
             )
           else
             Text(
-              'Add bodyweight in your profile to use this mode.',
+              'Add your body weight in your profile to use this mode.',
               style: TextStyle(color: hx.danger, fontSize: 13),
             ),
           const SizedBox(height: 10),
@@ -1861,12 +1806,12 @@ class _TargetEditorViewState extends ConsumerState<TargetEditorView> {
           if (bwLb != null) ...[
             const SizedBox(height: 6),
             Text(
-              'Suggested: 1.0 g/lb = ${(bwLb * 1.0).round()} g protein',
+              'Suggestion: 1.0 g/lb = ${(bwLb * 1.0).round()} g protein',
               style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
             ),
           ],
           Text(
-            'Remaining calories split: 55% carbs / 45% fat.',
+            'Remaining calories are split: 55 % carbs / 45 % fat.',
             style: TextStyle(color: hx.onSurfaceVariant, fontSize: 12),
           ),
         ],
@@ -1942,7 +1887,7 @@ class _MacroKcalSummary extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Macro sum: $totalMacroKcal kcal ${targetKcal > 0 ? '(Target: $targetKcal kcal · ${diff >= 0 ? '+' : ''}$diff)' : ''}',
+              'Macro total: $totalMacroKcal kcal ${targetKcal > 0 ? '(target: $targetKcal kcal · ${diff >= 0 ? '+' : ''}$diff)' : ''}',
               style: TextStyle(
                 color: isMatch ? const Color(0xFF30D158) : hx.onSurfaceVariant,
                 fontSize: 12,
@@ -1980,7 +1925,7 @@ class _LivePreviewCard extends StatelessWidget {
             color: AppColors.macroProtein,
           ),
           _PreviewItem(
-            label: 'Carbs',
+            label: 'OH',
             value: '${resolved.carbs}g',
             color: AppColors.macroCarbs,
           ),
@@ -2065,8 +2010,10 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
     final pct = double.tryParse(_pct.text);
     final interval = int.tryParse(_interval.text);
     if (pct == null || interval == null || pct <= 0 || interval <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter valid positive numbers')),
+      AppNotice.show(
+        context,
+        'Enter valid positive numbers',
+        kind: AppNoticeKind.info,
       );
       return;
     }
@@ -2086,8 +2033,8 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
     final hx = context.hx;
     final mq = MediaQuery.of(context);
     final color = widget.isBulk ? const Color(0xFF30D158) : hx.primary;
-    final title = widget.isBulk ? 'Start Bulk' : 'Start Cut';
-    final verb = widget.isBulk ? 'Increase' : 'Reduce';
+    final title = widget.isBulk ? 'Start bulk' : 'Start cut';
+    final verb = widget.isBulk ? 'Increase' : 'Decrease';
 
     return Padding(
       padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
@@ -2137,8 +2084,8 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
               const SizedBox(height: 6),
               Text(
                 widget.isBulk
-                    ? 'Calories increase by the set % every interval. Protein is preserved; surplus goes to carbs and fat.'
-                    : 'Calories reduce by the set % every interval. Protein is preserved; deficit comes from carbs and fat.',
+                    ? 'Calories increase by the set % every interval. Protein stays the same; the surplus goes to carbs and fat.'
+                    : 'Calories decrease by the set % every interval. Protein stays the same; the deficit comes from carbs and fat.',
                 style: TextStyle(color: hx.onSurfaceVariant, fontSize: 13),
               ),
               const SizedBox(height: 20),
@@ -2157,7 +2104,7 @@ class _CutBulkSheetState extends State<_CutBulkSheet> {
                     child: _NumField(
                       controller: _interval,
                       label: 'Every (days)',
-                      suffix: 'days',
+                      suffix: 'dni',
                       hint: '14',
                     ),
                   ),
@@ -2341,7 +2288,6 @@ class __MinimumTargetsSectionState
     extends ConsumerState<_MinimumTargetsSection> {
   late TextEditingController _kcalController;
   late TextEditingController _customGramsController;
-  bool _expanded = false;
 
   @override
   void initState() {
@@ -2387,8 +2333,7 @@ class __MinimumTargetsSectionState
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
-            initiallyExpanded: minTargets.enabled || _expanded,
-            onExpansionChanged: (exp) => setState(() => _expanded = exp),
+            initiallyExpanded: false,
             tilePadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 4,
@@ -2406,7 +2351,7 @@ class __MinimumTargetsSectionState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Minimalni cilji (Proteini in Kalorije)',
+                        'Minimum targets (protein and calories)',
                         style: TextStyle(
                           color: hx.onSurface,
                           fontWeight: FontWeight.bold,
@@ -2416,7 +2361,7 @@ class __MinimumTargetsSectionState
                       if (minTargets.enabled && resolvedMinP != null) ...[
                         const SizedBox(height: 2),
                         Text(
-                          'Min. proteini: ${resolvedMinP}g'
+                          'Min. protein: ${resolvedMinP} g'
                           '${minTargets.minCaloriesKcal != null ? ' • Min. ${minTargets.minCaloriesKcal} kcal' : ''}',
                           style: TextStyle(
                             color: hx.primary,
@@ -2427,7 +2372,7 @@ class __MinimumTargetsSectionState
                       ] else if (!minTargets.enabled) ...[
                         const SizedBox(height: 2),
                         Text(
-                          'Nastavi spodnjo mejo za proteine in kalorije',
+                          'Set a lower limit for protein and calories',
                           style: TextStyle(
                             color: hx.onSurfaceVariant,
                             fontSize: 11,
@@ -2455,7 +2400,7 @@ class __MinimumTargetsSectionState
 
                       // ── Minimum Protein Presets & Formulas ──
                       Text(
-                        'MINIMALNI PROTEINI (FORMULA)',
+                        'MINIMUM PROTEIN (FORMULA)',
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
                           fontSize: 10,
@@ -2469,7 +2414,7 @@ class __MinimumTargetsSectionState
                         runSpacing: 6,
                         children: [
                           _MinProteinChip(
-                            label: '1.0 g/lb (Optimalno)',
+                            label: '1.0 g/lb (Optimal)',
                             selected:
                                 minTargets.mode == MinProteinMode.perLb &&
                                 (minTargets.proteinValue - 1.0).abs() < 0.05,
@@ -2489,7 +2434,7 @@ class __MinimumTargetsSectionState
                             },
                           ),
                           _MinProteinChip(
-                            label: '1.2 g/lb (Visoko)',
+                            label: '1.2 g/lb (High)',
                             selected:
                                 minTargets.mode == MinProteinMode.perLb &&
                                 (minTargets.proteinValue - 1.2).abs() < 0.05,
@@ -2534,7 +2479,7 @@ class __MinimumTargetsSectionState
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  'Izračunan minimum: ${resolvedMinP}g '
+                                  'Calculated minimum: ${resolvedMinP}g '
                                   '(${bwLb.toStringAsFixed(1)} lb @ ${minTargets.proteinValue} ${minTargets.mode.label})',
                                   style: TextStyle(
                                     color: AppColors.macroProtein,
@@ -2548,7 +2493,7 @@ class __MinimumTargetsSectionState
                         )
                       else
                         Text(
-                          'Za samodejni izračun g/lb dodajte težo v profilu.',
+                          'Add your weight in your profile for automatic g/lb calculation.',
                           style: TextStyle(
                             color: hx.onSurfaceVariant,
                             fontSize: 11,
@@ -2559,7 +2504,7 @@ class __MinimumTargetsSectionState
 
                       // ── Minimum Calories Floor ──
                       Text(
-                        'MINIMALNE KALORIJE (MEJA DEFICITA)',
+                        'MINIMUM CALORIES (DEFICIT LIMIT)',
                         style: TextStyle(
                           color: hx.onSurfaceVariant,
                           fontSize: 10,
@@ -2573,9 +2518,9 @@ class __MinimumTargetsSectionState
                           Expanded(
                             child: _NumField(
                               controller: _kcalController,
-                              label: 'Minimalne kalorije',
+                              label: 'Minimum calories',
                               suffix: 'kcal',
-                              hint: 'npr. 1500',
+                              hint: 'e.g. 1500',
                               onChanged: (val) {
                                 final parsed = int.tryParse(val.trim());
                                 notifier.setMinCalories(parsed);

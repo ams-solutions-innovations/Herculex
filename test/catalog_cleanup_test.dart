@@ -201,34 +201,18 @@ void main() {
     });
 
     test('every "similar" reference points at an exercise that exists', () {
-      // Renames and merges leave these dangling — they are plain name strings.
+      // Similar references are canonical names, not free-form spreadsheet
+      // suggestions. This keeps substitutions resolvable after renames.
       final names = {for (final row in catalogJson) row['name'] as String};
-      final aliases = <String>{
-        for (final row in catalogJson) ...(row['aka'] as List).cast<String>(),
-      };
-      final dangling = <String>{};
+      final dangling = <String>[];
       for (final row in catalogJson) {
         for (final name in (row['similar'] as List).cast<String>()) {
-          if (!names.contains(name) && !aliases.contains(name)) {
-            dangling.add(name);
+          if (!names.contains(name)) {
+            dangling.add('${row['name']} -> $name');
           }
         }
       }
-      // The source spreadsheet's "Similar Exercises" column names plenty of
-      // exercises the catalog never carried; this only guards against cleanup
-      // *creating* new dangling references.
-      for (final merge in kExerciseMerges) {
-        expect(dangling.any((d) => d.contains(merge.loser)), isFalse);
-      }
-      for (final gone in const [
-        'Chest Dips',
-        'Lateral Raise (DB)',
-        'Front Raise (DB)',
-        'Weighted Dip',
-        'Swiss Bar Skull Crusher',
-      ]) {
-        expect(dangling, isNot(contains(gone)));
-      }
+      expect(dangling, isEmpty);
     });
   });
 }

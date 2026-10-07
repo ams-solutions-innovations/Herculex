@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
+import 'package:herculex/design_system/tokens/hx_colors.dart';
 import 'package:herculex/features/fasting/presentation/fasting_food_log_dialog.dart';
 import 'package:herculex/features/nutrition/application/meal_slots_provider.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/data/speech_to_text_service.dart';
+import 'package:herculex/features/nutrition/domain/food_portion.dart';
 import 'package:herculex/features/nutrition/domain/meal_slots.dart';
 
 class RamblerFoodDialog extends ConsumerStatefulWidget {
@@ -36,6 +38,7 @@ class RamblerFoodDialog extends ConsumerStatefulWidget {
 class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
     with SingleTickerProviderStateMixin {
   final TextEditingController _textCtrl = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   late String _selectedMealKey;
 
   bool _isAnalyzing = false;
@@ -61,6 +64,10 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
       end: 1.25,
     ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
+    _focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     // Pre-initialize STT
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(speechToTextServiceProvider).initialize();
@@ -70,6 +77,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
   @override
   void dispose() {
     _pulseCtrl.dispose();
+    _focusNode.dispose();
     _textCtrl.dispose();
     super.dispose();
   }
@@ -166,14 +174,21 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
           carbsPer100g: item.carbsPer100g,
           fatPer100g: item.fatPer100g,
           servingGrams: item.servingGrams,
-          servingLabel: '${item.servingGrams.toStringAsFixed(0)} g',
+          servingAmount: item.portionAmount,
+          servingUnit: item.portionUnit,
+          servingLabel: FoodPortion.labelFor(
+            amount: item.portionAmount,
+            unit: item.portionUnit,
+            mass: item.servingGrams,
+          ),
         );
 
         await repo.logFood(
           date: widget.date,
           mealKey: _selectedMealKey,
           foodId: food.id,
-          grams: item.servingGrams,
+          portionAmount: item.portionAmount,
+          portionUnit: item.portionUnit,
         );
       }
 
@@ -383,56 +398,108 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
   }
 
   Widget _buildInputSection(SpeechToTextService stt, ThemeData theme) {
+    final hx = context.hx;
+    final isActive = stt.isListening || _focusNode.hasFocus;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainer,
+            color: hx.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: stt.isListening
-                  ? AppColors.primary
-                  : AppColors.outlineVariant.withValues(alpha: 0.4),
-              width: stt.isListening ? 2 : 1,
+                  ? Colors.redAccent
+                  : _focusNode.hasFocus
+                  ? hx.primary
+                  : hx.outlineVariant.withValues(alpha: 0.5),
+              width: isActive ? 1.5 : 1.0,
             ),
+            boxShadow: [
+              if (isActive)
+                BoxShadow(
+                  color: (stt.isListening ? Colors.redAccent : hx.primary)
+                      .withValues(alpha: 0.12),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+            ],
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextField(
                 controller: _textCtrl,
+                focusNode: _focusNode,
                 maxLines: 4,
                 minLines: 3,
-                style: const TextStyle(fontSize: 15, height: 1.4),
+                onChanged: (_) => setState(() {}),
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.45,
+                  color: hx.onSurface,
+                  fontWeight: FontWeight.w400,
+                ),
+                cursorColor: hx.primary,
                 decoration: InputDecoration(
+                  isDense: true,
+                  filled: false,
+                  fillColor: Colors.transparent,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
                   hintText: stt.selectedLocaleId.toLowerCase().startsWith('sl')
                       ? 'Npr. "Za kosilo sem pojedel 200g piščančjih prsi, 150g riža in skledo zelene solate z oljem..."'
                       : 'E.g. "I had 2 scrambled eggs on whole wheat toast with half an avocado and black coffee..."',
                   hintStyle: TextStyle(
-                    color: AppColors.secondary.withValues(alpha: 0.6),
+                    color: hx.secondary.withValues(alpha: 0.65),
                     fontSize: 13.5,
+                    height: 1.4,
                   ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(16),
+                  contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     if (_textCtrl.text.isNotEmpty)
-                      TextButton.icon(
-                        icon: const Icon(Icons.clear, size: 16),
-                        label: const Text('Počisti'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.secondary,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        onPressed: () {
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
                           Haptics.selection();
                           setState(() => _textCtrl.clear());
                         },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.close_rounded,
+                                size: 15,
+                                color: hx.secondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Počisti',
+                                style: TextStyle(
+                                  color: hx.secondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       )
                     else
                       const SizedBox.shrink(),
@@ -445,9 +512,11 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.redAccent.withValues(alpha: 0.2),
+                            color: Colors.redAccent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.redAccent),
+                            border: Border.all(
+                              color: Colors.redAccent.withValues(alpha: 0.5),
+                            ),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
@@ -455,9 +524,9 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                               Icon(
                                 Icons.fiber_manual_record,
                                 color: Colors.redAccent,
-                                size: 10,
+                                size: 9,
                               ),
-                              SizedBox(width: 6),
+                              SizedBox(width: 5),
                               Text(
                                 'Poslušam...',
                                 style: TextStyle(
@@ -488,23 +557,18 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: stt.isListening
-                        ? Colors.redAccent
-                        : AppColors.primary,
+                    color: stt.isListening ? Colors.redAccent : hx.primary,
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            (stt.isListening
-                                    ? Colors.redAccent
-                                    : AppColors.primary)
-                                .withValues(alpha: 0.4),
+                        color: (stt.isListening ? Colors.redAccent : hx.primary)
+                            .withValues(alpha: 0.35),
                         blurRadius: stt.isListening ? 20 : 12,
                         spreadRadius: stt.isListening ? 4 : 1,
                       ),
                     ],
                   ),
                   child: Icon(
-                    stt.isListening ? Icons.stop : Icons.mic,
+                    stt.isListening ? Icons.stop_rounded : Icons.mic_rounded,
                     color: Colors.white,
                     size: 34,
                   ),
@@ -517,9 +581,7 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                     : 'Pritisnite za govor (STT)',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: stt.isListening
-                      ? Colors.redAccent
-                      : AppColors.secondary,
+                  color: stt.isListening ? Colors.redAccent : hx.secondary,
                 ),
               ),
             ],
@@ -683,8 +745,14 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                   ),
                   decoration: const InputDecoration(
                     isDense: true,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     contentPadding: EdgeInsets.zero,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
                   ),
                 ),
               ),
@@ -810,8 +878,8 @@ class _RamblerFoodDialogState extends ConsumerState<RamblerFoodDialog>
                       : const Icon(Icons.auto_awesome),
                   label: Text(
                     _isAnalyzing
-                        ? 'Razčlenjujem z Gemini AI...'
-                        : 'Analiziraj z Gemini AI',
+                        ? 'Razčlenjujem z Herculex AI...'
+                        : 'Analiziraj z Herculex AI',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,

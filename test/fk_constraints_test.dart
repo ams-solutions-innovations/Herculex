@@ -32,10 +32,10 @@ class _FkEdge {
 
 /// The full, hard-coded inventory of every foreign key declared in
 /// `lib/data/local/tables.dart` (emitted in `database.g.dart`), captured by
-/// `PRAGMA foreign_key_list` against a freshly-migrated database. 21 CASCADE
-/// + 11 RESTRICT + 8 SET NULL = 40 edges. Any future `tables.dart` edit that
-/// adds, removes, or changes the `onDelete` action of an edge must update
-/// this list deliberately — that is the point of the test.
+/// `PRAGMA foreign_key_list` against a freshly-migrated database. Schema v47
+/// has 32 CASCADE + 13 RESTRICT + 13 SET NULL + 1 NO ACTION = 59 edges. Any
+/// future `tables.dart` edit that changes an edge must update this inventory
+/// deliberately — that is the point of the test.
 const _expectedEdges = <_FkEdge>[
   _FkEdge(
     'buddy_sessions_local',
@@ -92,6 +92,13 @@ const _expectedEdges = <_FkEdge>[
   _FkEdge('food_entries', 'recipe_id', 'recipes', 'id', 'RESTRICT'),
   _FkEdge('food_entries', 'food_id', 'foods', 'id', 'RESTRICT'),
   _FkEdge('food_micros', 'food_id', 'foods', 'id', 'CASCADE'),
+  _FkEdge(
+    'herculex_ai_program_briefs',
+    'program_id',
+    'programs',
+    'id',
+    'CASCADE',
+  ),
   // NOTE: the only edge in the schema without an explicit onDelete —
   // HerculMessageLog.ruleId uses a bare .references(HerculRules, #id), so
   // drift emits NO ACTION. Recorded here as-is rather than silently
@@ -112,6 +119,67 @@ const _expectedEdges = <_FkEdge>[
     'exercise_catalog',
     'id',
     'RESTRICT',
+  ),
+  _FkEdge('physique_assessments', 'goal_id', 'physique_goals', 'id', 'CASCADE'),
+  _FkEdge('physique_photos', 'goal_id', 'physique_goals', 'id', 'CASCADE'),
+  _FkEdge(
+    'physique_photos',
+    'assessment_id',
+    'physique_assessments',
+    'id',
+    'SET NULL',
+  ),
+  _FkEdge(
+    'physique_roadmap_phases',
+    'goal_id',
+    'physique_goals',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge('program_exercise_slots', 'program_id', 'programs', 'id', 'CASCADE'),
+  _FkEdge(
+    'program_slot_pool_members',
+    'slot_id',
+    'program_exercise_slots',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'program_slot_pool_members',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'RESTRICT',
+  ),
+  _FkEdge(
+    'rotation_assignments',
+    'slot_id',
+    'program_exercise_slots',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'rotation_assignments',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'RESTRICT',
+  ),
+  _FkEdge(
+    'exercise_preferences',
+    'exercise_id',
+    'exercise_catalog',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge('exercise_preferences', 'program_id', 'programs', 'id', 'CASCADE'),
+  _FkEdge('gym_equipment', 'gym_id', 'gyms', 'id', 'CASCADE'),
+  _FkEdge(
+    'program_day_exercises',
+    'program_exercise_slot_id',
+    'program_exercise_slots',
+    'id',
+    'SET NULL',
   ),
   _FkEdge(
     'program_day_exercises',
@@ -209,6 +277,20 @@ const _expectedEdges = <_FkEdge>[
   ),
   _FkEdge(
     'workout_exercises',
+    'rotation_assignment_id',
+    'rotation_assignments',
+    'id',
+    'SET NULL',
+  ),
+  _FkEdge(
+    'workout_exercises',
+    'program_exercise_slot_id',
+    'program_exercise_slots',
+    'id',
+    'SET NULL',
+  ),
+  _FkEdge(
+    'workout_exercises',
     'exercise_id',
     'exercise_catalog',
     'id',
@@ -233,6 +315,21 @@ const _expectedEdges = <_FkEdge>[
     'workout_templates',
     'folder_id',
     'workout_folders',
+    'id',
+    'SET NULL',
+  ),
+  // Schema v42 (17-01): explanation trail for every slot, every week.
+  _FkEdge(
+    'program_slot_explanations',
+    'slot_id',
+    'program_exercise_slots',
+    'id',
+    'CASCADE',
+  ),
+  _FkEdge(
+    'program_slot_explanations',
+    'chosen_exercise_id',
+    'exercise_catalog',
     'id',
     'SET NULL',
   ),
@@ -290,14 +387,15 @@ void main() {
     expect(actualEdges.toSet(), _expectedEdges.toSet());
   });
 
-  test('edge action counts are 21 CASCADE / 11 RESTRICT / 8 SET NULL', () {
+  test('edge action counts match the schema-v42 inventory', () {
     final byAction = <String, int>{};
     for (final edge in _expectedEdges) {
       byAction[edge.onDelete] = (byAction[edge.onDelete] ?? 0) + 1;
     }
-    expect(byAction['CASCADE'], 21);
-    expect(byAction['RESTRICT'], 11);
-    expect(byAction['SET NULL'], 8);
+    expect(byAction['CASCADE'], 32);
+    expect(byAction['RESTRICT'], 13);
+    expect(byAction['SET NULL'], 13);
+    expect(byAction['NO ACTION'], 1);
   });
 
   test('every SET NULL edge targets a nullable column', () async {

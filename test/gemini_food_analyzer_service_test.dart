@@ -23,6 +23,24 @@ void main() {
       expect(backend.lastUserNote, 'large bowl');
       expect(result.name, 'Test meal');
       expect(result.kcalPer100g, 123);
+      expect(result.portionAmount, 1);
+      expect(result.portionUnit, 'scoop');
+    },
+  );
+
+  test(
+    'food photo analysis falls back to the Herculex AI brand default when the backend response omits brand',
+    () async {
+      final backend = _FakeGeminiBackendNoBrand();
+      final service = GeminiFoodAnalyzerService(backend);
+      final image = await _tempImage('.png');
+
+      final result = await service.analyzeFoodPhoto(
+        imageFile: image,
+        userNote: null,
+      );
+
+      expect(result.brand, 'Herculex AI');
     },
   );
 
@@ -44,6 +62,8 @@ void main() {
       expect(draft.source, LabelExtractionSource.gemini);
       expect(draft.kcalPer100g, 400);
       expect(draft.proteinPer100g, 20);
+      expect(draft.portionAmount, 1);
+      expect(draft.servingUnit, 'scoop');
     },
   );
 
@@ -94,8 +114,10 @@ class _FakeGeminiBackend implements GeminiBackend {
     lastUserNote = userNote;
     return {
       'name': 'Test meal',
-      'brand': 'Gemini AI',
+      'brand': 'Herculex AI',
       'estimatedServingGrams': 250,
+      'portionAmount': 1,
+      'portionUnit': 'scoop',
       'kcalPer100g': 123,
       'proteinPer100g': 12,
       'carbsPer100g': 20,
@@ -119,6 +141,8 @@ class _FakeGeminiBackend implements GeminiBackend {
       'name': 'Protein bar',
       'brand': 'Test',
       'servingGrams': 50,
+      'portionAmount': 1,
+      'portionUnit': 'scoop',
       'kcalPerServing': 200,
       'proteinPerServing': 10,
       'carbsPerServing': 18,
@@ -212,8 +236,7 @@ class _FakeGeminiBackend implements GeminiBackend {
   @override
   Future<Map<String, dynamic>> analyzeDreamPhysique({
     required List<Map<String, dynamic>> currentImages,
-    required List<int> targetImageBytes,
-    required String targetImageMimeType,
+    required List<Map<String, dynamic>> targetImages,
     Map<String, dynamic>? biometrics,
     String? userNote,
   }) async {
@@ -237,6 +260,16 @@ class _FakeGeminiBackend implements GeminiBackend {
 
   String? lastText;
   String? lastPreferredMealKey;
+
+  @override
+  Future<(Map<String, dynamic> result, Map<String, dynamic> provenance)>
+  generateProgramBrief({
+    required Map<String, dynamic> profileInputs,
+    String? userNote,
+  }) async {
+    lastKind = 'program_brief';
+    return (<String, dynamic>{}, <String, dynamic>{});
+  }
 
   @override
   Future<Map<String, dynamic>> analyzeRamblerText({
@@ -275,6 +308,36 @@ class _FakeGeminiBackend implements GeminiBackend {
           'confidence': 0.9,
         },
       ],
+    };
+  }
+}
+
+/// Same fixture as [_FakeGeminiBackend] but with the `brand` key omitted
+/// entirely from the `analyzeFoodPhoto` response, to prove the
+/// `GeminiFoodAnalysisResult` fallback path when the model's JSON simply
+/// doesn't include a brand.
+class _FakeGeminiBackendNoBrand extends _FakeGeminiBackend {
+  @override
+  Future<Map<String, dynamic>> analyzeFoodPhoto({
+    required List<int> imageBytes,
+    required String mimeType,
+    String? userNote,
+  }) async {
+    lastKind = 'food_photo';
+    lastMimeType = mimeType;
+    lastUserNote = userNote;
+    return {
+      'name': 'Test meal',
+      'estimatedServingGrams': 250,
+      'portionAmount': 1,
+      'portionUnit': 'scoop',
+      'kcalPer100g': 123,
+      'proteinPer100g': 12,
+      'carbsPer100g': 20,
+      'fatPer100g': 5,
+      'fiberPer100g': 2,
+      'rating': 8,
+      'ratingReason': 'Looks balanced.',
     };
   }
 }

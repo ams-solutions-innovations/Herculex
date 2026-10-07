@@ -3,9 +3,11 @@ import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/health/application/health_providers.dart';
 import 'package:herculex/features/health/data/health_service.dart';
+import 'package:herculex/features/workouts/application/calendar_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/data/wear_workout_sync_service.dart';
 import 'package:herculex/features/workouts/data/workouts_repository.dart';
+import 'package:herculex/features/workouts/domain/calendar_service.dart';
 
 /// Ends a workout session: names it, stamps `ended_at` and calories, mirrors it
 /// to Health, and tells the watch.
@@ -31,12 +33,16 @@ class FinishWorkoutAction {
     required WorkoutsRepository repository,
     required HealthService healthService,
     required WearWorkoutSyncService wearSync,
+    required CalendarService calendarService,
+    required bool isCalendarSyncEnabled,
     required DateTime now,
     required double bodyweightKg,
     required void Function(int sessionId) clearEditedEndedAt,
   }) : _repository = repository,
        _healthService = healthService,
        _wearSync = wearSync,
+       _calendarService = calendarService,
+       _isCalendarSyncEnabled = isCalendarSyncEnabled,
        _now = now,
        _bodyweightKg = bodyweightKg,
        _clearEditedEndedAt = clearEditedEndedAt;
@@ -54,6 +60,8 @@ class FinishWorkoutAction {
       repository: ref.read(workoutsRepositoryProvider),
       healthService: ref.read(healthServiceProvider),
       wearSync: ref.read(wearWorkoutSyncServiceProvider),
+      calendarService: ref.read(calendarServiceProvider),
+      isCalendarSyncEnabled: ref.read(calendarSyncEnabledProvider),
       now: ref.read(clockProvider).now(),
       // The 20 kg floor rejects placeholder/imported junk, not real users.
       bodyweightKg: (weightKg != null && weightKg > 20)
@@ -72,6 +80,8 @@ class FinishWorkoutAction {
   final WorkoutsRepository _repository;
   final HealthService _healthService;
   final WearWorkoutSyncService _wearSync;
+  final CalendarService _calendarService;
+  final bool _isCalendarSyncEnabled;
   final DateTime _now;
   final double _bodyweightKg;
   final void Function(int sessionId) _clearEditedEndedAt;
@@ -125,6 +135,14 @@ class FinishWorkoutAction {
       _wearSync.notifySessionEnded(session.sessionUuid);
     } catch (_) {
       // Watch may be absent or the channel unregistered on this platform.
+    }
+
+    if (_isCalendarSyncEnabled) {
+      try {
+        await _calendarService.syncTwoWay();
+      } catch (_) {
+        // Best-effort calendar mirror.
+      }
     }
 
     if (endedAt != null) {

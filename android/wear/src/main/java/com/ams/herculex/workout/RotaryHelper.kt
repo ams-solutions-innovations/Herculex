@@ -79,6 +79,7 @@ fun Modifier.attachWorkoutSetPickerRotary(
     rotaryTarget: RotaryTarget,
     focusRequester: FocusRequester,
     isFocused: Boolean = true,
+    onUserStep: ((RotaryTarget) -> Unit)? = null,
 ): Modifier = attachRoutedPickerRotary(
     focusRequester = focusRequester,
     isFocused = isFocused,
@@ -98,6 +99,7 @@ fun Modifier.attachWorkoutSetPickerRotary(
         val newIdx = (pickerState.selectedOption + steps).coerceIn(0, maxOptions - 1)
         if (newIdx != pickerState.selectedOption) {
             pickerState.scrollToOption(newIdx)
+            onUserStep?.invoke(rotaryTarget)
         }
     },
 )

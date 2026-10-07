@@ -1,0 +1,60 @@
+{
+  "squat": {
+    "long_femur": {
+      "guidance": "A longer femur relative to the torso pushes the hips further back to keep the bar over the mid-foot. This necessitates a more horizontal back angle. Consider a low-bar placement to center the mass better over the hips, or use a wider stance and weightlifting shoes with an elevated heel to allow the knees to travel further forward and keep the torso more upright.",
+      "sources": [
+        "Starting Strength: Basic Barbell Training",
+        "The Mechanics of the Squat"
+      ]
+    },
+    "short_torso": {
+      "guidance": "A proportionally short torso requires the back angle to be more horizontal to maintain balance over the mid-foot. Focus heavily on core stability and lower back strength. Low-bar squats often feel more natural.",
+      "sources": [
+        "Starting Strength: Basic Barbell Training"
+      ]
+    },
+    "long_torso": {
+      "guidance": "A long torso relative to the femurs allows for a very upright squatting position. High bar or front squats will feel very natural and allow for deep ranges of motion with less lower back strain.",
+      "sources": [
+        "Starting Strength: Basic Barbell Training"
+      ]
+    }
+  },
+  "deadlift": {
+    "long_arms": {
+      "guidance": "Long arms (or a large arm span relative to height) are highly advantageous for deadlifting. They reduce the total range of motion and allow for a more upright starting back angle, reducing sheer force on the lumbar spine.",
+      "sources": [
+        "Starting Strength: Basic Barbell Training",
+        "Biomechanics of the Deadlift"
+      ]
+    },
+    "short_arms": {
+      "guidance": "Short arms require a deeper starting hip position and a more horizontal back angle to reach the bar. If conventional deadlifts cause excessive lower back rounding or discomfort, consider transitioning to a sumo deadlift which artificially 'lengthens' the arms relative to the stance.",
+      "sources": [
+        "Starting Strength: Basic Barbell Training"
+      ]
+    }
+  },
+  "bench_press": {
+    "long_arms": {
+      "guidance": "Long arms significantly increase the range of motion in the bench press and can place greater stress on the shoulders at the bottom of the movement. Utilizing a wider grip (within legal competition limits) can help reduce the ROM, or incorporating a slight arch to elevate the chest.",
+      "sources": [
+        "Starting Strength: Basic Barbell Training"
+      ]
+    },
+    "short_arms": {
+      "guidance": "Short arms are advantageous for the bench press as they naturally restrict the range of motion and typically allow for heavier weights to be lifted safely. A standard or even slightly narrower grip can be highly effective.",
+      "sources": [
+        "Starting Strength: Basic Barbell Training"
+      ]
+    }
+  },
+  "overhead_press": {
+    "long_arms": {
+      "guidance": "Long arms require a longer bar path to lockout. Focus on maintaining strict core and glute stability throughout the extended time under tension.",
+      "sources": [
+        "Starting Strength: Basic Barbell Training"
+      ]
+    }
+  }
+}

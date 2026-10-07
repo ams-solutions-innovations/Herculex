@@ -15,7 +15,10 @@ class SplashView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
-              'assets/images/logo.png',
+              // The launcher artwork includes a navy background. Use the
+              // transparent H/barbell foreground in the UI so it can follow
+              // the active app colour without showing the legacy lion mark.
+              'assets/images/app_icon_foreground.png',
               width: 120,
               height: 120,
               color: AppColors.primary,

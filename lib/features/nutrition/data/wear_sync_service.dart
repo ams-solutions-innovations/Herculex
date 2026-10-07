@@ -33,12 +33,7 @@ class WearSyncService {
   static Function(String?)? _onWatchFastingCommand;
   static Function(String?)? _onWatchQuickAddCommand;
   static Function(String?)? _onWatchMacroCommand;
-  static Function(String?)? _onWatchMediaCommand;
   static Function()? onRequestSync;
-
-  static set onWatchMediaCommand(Function(String?)? handler) {
-    _onWatchMediaCommand = handler;
-  }
 
   /// Watch events that arrived before the handlers below were registered.
   ///
@@ -153,11 +148,6 @@ class WearSyncService {
           break;
         case 'onWatchRamblerCommand':
           _deliverRamblerCommand(call.arguments?['command_json'] as String?);
-          break;
-        case 'onWatchMediaCommand':
-          _onWatchMediaCommand?.call(
-            call.arguments?['command_json'] as String?,
-          );
           break;
         case 'onRequestSync':
           onRequestSync?.call();
@@ -440,6 +430,22 @@ class WearSyncService {
     }
   }
 
+  /// Mirrors the rest timer onto the watch. Returns true when a connected
+  /// watch received it (and will buzz at the end itself).
+  Future<bool> syncRestTimer(String restJson) async {
+    try {
+      final delivered = await _channel.invokeMethod<bool>('syncRestTimer', {
+        'rest_json': restJson,
+      });
+      return delivered ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Failed to sync rest timer to wear: ${e.message}');
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
   Future<void> syncMediaState(String mediaJson) async {
     try {
       await _channel.invokeMethod('syncMediaState', {'media_json': mediaJson});
@@ -473,6 +479,14 @@ class WearSyncService {
       await _channel.invokeMethod('mediaActionNative', {'action': action});
     } on PlatformException catch (e) {
       debugPrint('Failed to send native media action: ${e.message}');
+    }
+  }
+
+  Future<void> openMediaControlsPermission() async {
+    try {
+      await _channel.invokeMethod('openMediaControlsPermission');
+    } on PlatformException catch (e) {
+      debugPrint('Failed to open media controls permission: ${e.message}');
     }
   }
 

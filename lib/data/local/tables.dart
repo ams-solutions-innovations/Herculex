@@ -107,6 +107,69 @@ class ExerciseCatalog extends Table with SyncColumns, SyncTombstone {
   /// Machine option on a selectorized hamstring curl.
   TextColumn get allowedEquipment => text().nullable()();
 
+  /// JSON array of concrete equipment keys required to perform the exercise.
+  /// Unlike [allowedEquipment], every listed key must be available at the
+  /// selected gym. An empty/null list means the legacy modality is used.
+  TextColumn get requiredEquipmentKeys => text().nullable()();
+
+  /// suitable | advanced_manual | unsuitable. Smart programming only uses
+  /// `suitable`; guided/manual flows may expose the guarded advanced option.
+  TextColumn get maxEffortEligibility => text().nullable()();
+
+  // ── Program-generation curation (v40) ────────────────────────────────
+  //
+  // These fields deliberately have conservative defaults.  The bundled
+  // catalogue is large and historical rows (and user-created exercises) must
+  // never become eligible for automatic programming simply because a field
+  // was added.  Only entries in assets/data/exercise_programming_metadata.json
+  // are promoted from advanced/specialty/manual-only to an authored profile.
+  //
+  // novice | intermediate | advanced
+  TextColumn get programmingDifficulty =>
+      text().nullable().withDefault(const Constant('advanced'))();
+
+  // basic | common | specialty | manualOnly.
+  TextColumn get programmingCommonness =>
+      text().nullable().withDefault(const Constant('manualOnly'))();
+
+  /// JSON array of canonical programme styles the exercise is curated for,
+  /// such as ["weightlifting", "basic"] or ["calisthenics"].  An empty
+  /// list means the row is manual-only until it is explicitly curated.
+  TextColumn get allowedTrainingStyles =>
+      text().nullable().withDefault(const Constant('[]'))();
+
+  /// automatic | technical_review | manual_only.  This is independent of
+  /// difficulty: an advanced athlete may opt into a technical-review lift,
+  /// while `manual_only` movements are never selected by the generator.
+  TextColumn get technicalEligibility =>
+      text().nullable().withDefault(const Constant('manual_only'))();
+
+  /// JSON array of canonical disciplines: weights, calisthenics, crossfit,
+  /// olympic, gpp.
+  TextColumn get disciplines =>
+      text().nullable().withDefault(const Constant('[]'))();
+
+  /// JSON array of exercise or movement slugs required as foundational
+  /// prerequisites before this movement is eligible for auto-programming.
+  TextColumn get prerequisiteSlugs =>
+      text().nullable().withDefault(const Constant('[]'))();
+
+  /// Progression ladder identifier (e.g. 'vertical_pull', 'horizontal_push',
+  /// 'dips', 'squat', 'hinge').
+  TextColumn get scalingGroup => text().nullable()();
+
+  /// 1-indexed difficulty rank within the [scalingGroup] (1 = easiest regression).
+  IntColumn get scalingOrder => integer().nullable()();
+
+  /// Primary competition anchor identity (e.g. 'squat', 'bench', 'deadlift',
+  /// 'overhead_press').
+  TextColumn get competitionAnchor => text().nullable()();
+
+  /// JSON array of sticking-point or specialization tags (e.g.
+  /// '["squat-bottom", "squat-mid"]').
+  TextColumn get specializationTags =>
+      text().nullable().withDefault(const Constant('[]'))();
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {name, equipment},
@@ -207,6 +270,26 @@ class WorkoutExercises extends Table with SyncColumns, SyncTombstone {
   /// Machine settings snapshot for this log, JSON object
   /// (e.g. {"seat":"6","angle":"45°"}). Null for non-machine work.
   TextColumn get machineConfigJson => text().nullable()();
+
+  // ── Immutable planned-session snapshot (v39) ──
+  IntColumn get programExerciseSlotId => integer().nullable().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  IntColumn get rotationAssignmentId => integer().nullable().references(
+    RotationAssignments,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get plannedSlotRole => text().nullable()();
+  TextColumn get plannedSessionSegment => text().nullable()();
+  TextColumn get plannedTrainingMethod => text().nullable()();
+  TextColumn get plannedPrescriptionWhy => text().nullable()();
+  IntColumn get plannedWaveIndex => integer().nullable()();
+  IntColumn get plannedWaveCount => integer().nullable()();
+  BoolColumn get plannedAllowsAdvancedTechniques =>
+      boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('SetEntryData')
@@ -271,6 +354,17 @@ class SetEntries extends Table with SyncColumns, SyncTombstone {
   /// Calories as reported by an erg or bike console. Not an estimate the app
   /// computes — it is a number the machine displayed and the user copied.
   IntColumn get calories => integer().nullable()();
+
+  // ── Immutable target values (v39) ──
+  // Existing weight/reps/rpe columns remain the completed values. These
+  // columns preserve what the program prescribed when the workout started.
+  IntColumn get plannedRepsMin => integer().nullable()();
+  IntColumn get plannedRepsMax => integer().nullable()();
+  RealColumn get plannedWeightKg => real().nullable()();
+  IntColumn get plannedRpeX10 => integer().nullable()();
+  IntColumn get plannedRir => integer().nullable()();
+  RealColumn get plannedPercentOf1Rm => real().nullable()();
+  TextColumn get plannedIntent => text().nullable()();
 }
 
 // ── Nutrition ──────────────────────────────────────────────────────────────
@@ -621,6 +715,20 @@ class Programs extends Table with SyncColumns, SyncTombstone {
   /// The invariant is enforced only by `ProgramsRepository.setActiveProgram`;
   /// never write this column from anywhere else.
   BoolColumn get isActive => boolean().withDefault(const Constant(false))();
+
+  // smart | guided | manual
+  TextColumn get buildMode => text().withDefault(const Constant('manual'))();
+  // hypertrophy | strength | powerbuilding | athletic
+  TextColumn get trainingGoal =>
+      text().withDefault(const Constant('hypertrophy'))();
+  // novice | intermediate | advanced
+  TextColumn get experienceLevel =>
+      text().withDefault(const Constant('intermediate'))();
+  // automatic_numeric | review_structural | locked
+  TextColumn get adaptationMode =>
+      text().withDefault(const Constant('review_structural'))();
+  BoolColumn get allowTimeSavingSetTechniques =>
+      boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('ProgramWeekData')
@@ -682,6 +790,9 @@ class ProgramDays extends Table with SyncColumns, SyncTombstone {
   /// editing it and re-materializing only reaches future untouched `planned`
   /// occurrences, same as [templateId].
   IntColumn get startTimeMinutes => integer().nullable()();
+
+  /// intensity | volume | dynamic_technique | mixed
+  TextColumn get stressRole => text().withDefault(const Constant('mixed'))();
 }
 
 @DataClassName('ProgramDayExerciseData')
@@ -717,6 +828,184 @@ class ProgramDayExercises extends Table with SyncColumns, SyncTombstone {
 
   /// Prescribed equipment variant; null = exercise default.
   TextColumn get equipmentVariant => text().nullable()();
+
+  IntColumn get programExerciseSlotId => integer().nullable().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get slotRole => text().withDefault(const Constant('accessory'))();
+  TextColumn get sessionSegment => text().nullable()();
+  // Same group number across rows ⇒ superset/metcon group. Null = standalone.
+  IntColumn get supersetGroup => integer().nullable()();
+  TextColumn get trainingMethod => text().withDefault(const Constant('auto'))();
+  IntColumn get targetRir => integer().nullable()();
+  IntColumn get restSeconds => integer().nullable()();
+  TextColumn get prescriptionWhy => text().nullable()();
+  TextColumn get prescriptionJson => text().nullable()();
+  TextColumn get prescriptionCodecJson => text().nullable()();
+  TextColumn get variantConfigJson => text().nullable()();
+}
+
+/// Stable exercise slot shared by all materialized weeks of a program (v39).
+/// The slot owns selection constraints, method, prescription and fatigue
+/// budget; individual week/day rows only reference the resolved assignment.
+@DataClassName('ProgramExerciseSlotData')
+class ProgramExerciseSlots extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get programId =>
+      integer().references(Programs, #id, onDelete: KeyAction.cascade)();
+  TextColumn get slotKey => text()();
+  TextColumn get daySlotLabel => text()();
+  IntColumn get orderIndex => integer()();
+  TextColumn get role => text().withDefault(const Constant('accessory'))();
+  TextColumn get sessionSegment => text().nullable()();
+  TextColumn get movementPattern => text().nullable()();
+  TextColumn get primaryMuscle => text().nullable()();
+  TextColumn get trainingMethod => text().withDefault(const Constant('auto'))();
+  TextColumn get prescriptionJson => text().nullable()();
+  TextColumn get rotationPolicyJson => text().nullable()();
+  IntColumn get fatigueBudget => integer().withDefault(const Constant(3))();
+  BoolColumn get userLocked => boolean().withDefault(const Constant(false))();
+  IntColumn get waveOverrideWeeks => integer().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {programId, slotKey},
+  ];
+}
+
+@DataClassName('ProgramSlotPoolMemberData')
+class ProgramSlotPoolMembers extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get slotId => integer().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+  IntColumn get orderIndex => integer().withDefault(const Constant(0))();
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {slotId, exerciseId},
+  ];
+}
+
+@DataClassName('RotationAssignmentData')
+class RotationAssignments extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get slotId => integer().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get exerciseId => integer().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.restrict,
+  )();
+  IntColumn get weekIndex => integer()();
+  TextColumn get source => text().withDefault(const Constant('planned'))();
+  TextColumn get reason => text()();
+  TextColumn get variantConfigJson => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {slotId, weekIndex},
+  ];
+}
+
+/// Per-slot, per-week record of why the deterministic planner filled or
+/// left empty a program slot (Phase 17, D-01). Local-only: this data is
+/// fully re-derivable by regenerating the program, so it never syncs and
+/// must never be added to `syncedTableNames` or `syncTableSpecs`.
+@DataClassName('ProgramSlotExplanationData')
+class ProgramSlotExplanations extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get slotId => integer().references(
+    ProgramExerciseSlots,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  IntColumn get weekIndex => integer()();
+  IntColumn get chosenExerciseId => integer().nullable().references(
+    ExerciseCatalog,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get status => text()(); // 'filled' | 'empty'
+  TextColumn get rationale => text()();
+  // Reserved for a future per-candidate rationale stretch goal; left
+  // unpopulated in this phase.
+  TextColumn get excludedJson => text().nullable()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {slotId, weekIndex},
+  ];
+}
+
+@DataClassName('PrescriptionTemplateData')
+class PrescriptionTemplates extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get method => text()();
+  TextColumn get prescriptionJson => text()();
+  BoolColumn get isBuiltIn => boolean().withDefault(const Constant(false))();
+}
+
+@DataClassName('PhysiqueProgrammingProfileData')
+class PhysiqueProgrammingProfiles extends Table
+    with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get prioritiesJson => text()();
+  TextColumn get source => text().withDefault(const Constant('manual'))();
+  TextColumn get modelVersion => text().nullable()();
+  DateTimeColumn get confirmedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+
+/// Phase 27 (Herculex AI Program Generation, D-08): the persisted program
+/// design brief Herculex AI returns before a program is created. Modeled
+/// directly on [PhysiqueProgrammingProfiles]'s shape — one JSON blob
+/// ([briefJson], carrying split/periodization/day-roles-with-rationale/
+/// musclePriorities/phaseIntent per D-09) plus queryable provenance
+/// metadata. [programId] is non-nullable: every brief belongs to exactly
+/// one program (unlike [ExercisePreferences.programId], which is optional).
+@DataClassName('HerculexAiProgramBriefData')
+class HerculexAiProgramBriefs extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get programId =>
+      integer().references(Programs, #id, onDelete: KeyAction.cascade)();
+  TextColumn get briefJson => text()();
+  TextColumn get source => text().withDefault(const Constant('herculex_ai'))();
+  TextColumn get knowledgeVersion => text().nullable()();
+  TextColumn get modelVersion => text().nullable()();
+  DateTimeColumn get confirmedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+}
+
+@DataClassName('ExercisePreferenceData')
+class ExercisePreferences extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get exerciseId =>
+      integer().references(ExerciseCatalog, #id, onDelete: KeyAction.cascade)();
+  IntColumn get programId => integer().nullable().references(
+    Programs,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  TextColumn get affinity => text().withDefault(const Constant('okay'))();
+  TextColumn get allowedRolesJson => text().nullable()();
+  TextColumn get note => text().nullable()();
 }
 
 /// A pool of exercise variations for one movement pattern. The program
@@ -900,6 +1189,139 @@ class JointPainLogs extends Table with SyncColumns, SyncTombstone {
   TextColumn get note => text().nullable()();
 }
 
+/// One adaptive-TDEE recalibration result (Phase 28, D-11). Append-mostly
+/// history, roughly one row per recalibration: Phase 29 diffs consecutive
+/// rows to describe change, so the history has to survive a reinstall. That
+/// is why this table syncs, unlike [HealthSamples] which is raw local
+/// telemetry and carries no [SyncColumns].
+///
+/// [estimatedAt] is a domain timestamp, deliberately separate from the
+/// sync-owned `updated_at`: two estimates on one [dateIso] must still order
+/// deterministically, and a local `updated_at` must not carry domain meaning
+/// (see `SyncTableSpec.columnRenames`).
+///
+/// [observedQualified] records that the adherence gates passed at that
+/// recalibration, whether or not the observed method was actually promoted.
+/// [inputsJson] is a display-only snapshot and is never used for control
+/// flow.
+@DataClassName('TdeeEstimateData')
+class TdeeEstimates extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get dateIso => text()(); // local calendar day key from Clock
+  DateTimeColumn get estimatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  TextColumn get method => text()(); // observed | classifier | coldStart
+  TextColumn get confidence => text()(); // high | medium | low
+  IntColumn get windowDays => integer()();
+  IntColumn get kcal => integer()();
+  BoolColumn get observedQualified =>
+      boolean().withDefault(const Constant(false))();
+  TextColumn get inputsJson => text()(); // display-only snapshot
+}
+
+// ── Phase 23: persistent Dream Physique (v47) ──────────────────────────────
+//
+// All four physique tables sync METADATA only. No image bytes ever leave the
+// device: [PhysiquePhotos.relativePath] is a path relative to the documents
+// directory, never an absolute one (D-09).
+
+/// A persistent Dream Physique goal. Both [estimatedMonths] and
+/// [targetBfPercent] are null for a `legacy_import` goal built from photos
+/// alone ("no target, maintain-only", D-08); every `ai_analysis` and `manual`
+/// goal sets both (enforced at the repository boundary, not by a CHECK).
+/// [targetAestheticStyle] is empty only for that same photos-only case.
+@DataClassName('PhysiqueGoalData')
+class PhysiqueGoals extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  // active | archived
+  TextColumn get status => text().withDefault(const Constant('active'))();
+  // ai_analysis | legacy_import | manual
+  TextColumn get source => text().withDefault(const Constant('ai_analysis'))();
+  TextColumn get targetAestheticStyle =>
+      text().withDefault(const Constant(''))();
+  TextColumn get timeframeRange => text().withDefault(const Constant(''))();
+  IntColumn get estimatedMonths => integer().nullable()();
+  RealColumn get targetBfPercent => real().nullable()();
+  RealColumn get startWeightKg => real().nullable()();
+  RealColumn get startBfPercent => real().nullable()();
+  DateTimeColumn get startedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get archivedAt => dateTime().nullable()();
+  DateTimeColumn get roadmapAcceptedAt => dateTime().nullable()();
+  DateTimeColumn get advanceSnoozedUntil => dateTime().nullable()();
+}
+
+/// One analysis or check-in against a [PhysiqueGoals] row. [summaryJson] is a
+/// display-only snapshot and is never used for control flow.
+@DataClassName('PhysiqueAssessmentData')
+class PhysiqueAssessments extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get goalId =>
+      integer().references(PhysiqueGoals, #id, onDelete: KeyAction.cascade)();
+  TextColumn get kind => text()(); // analysis | checkin
+  DateTimeColumn get assessedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get dateIso => text()(); // local calendar day key from Clock
+  RealColumn get weightKg => real().nullable()();
+  RealColumn get currentBfPercent => real().nullable()();
+  RealColumn get bfRangeMin => real().nullable()();
+  RealColumn get bfRangeMax => real().nullable()();
+  // low | medium | high | unknown
+  TextColumn get confidence => text().withDefault(const Constant('unknown'))();
+  // on_track | off_track | inconclusive
+  TextColumn get verdict => text().nullable()();
+  RealColumn get directionBandLow => real().nullable()();
+  RealColumn get directionBandHigh => real().nullable()();
+  TextColumn get reason => text().nullable()();
+  TextColumn get limitationsJson => text().nullable()();
+  // ai | legacy_import | no_analysis
+  TextColumn get source => text().withDefault(const Constant('ai'))();
+  TextColumn get modelVersion => text().nullable()();
+  TextColumn get knowledgeVersion => text().nullable()();
+  TextColumn get summaryJson => text().nullable()(); // display-only snapshot
+}
+
+/// One planned phase of a goal's multi-phase nutrition roadmap.
+@DataClassName('PhysiqueRoadmapPhaseData')
+class PhysiqueRoadmapPhases extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get goalId =>
+      integer().references(PhysiqueGoals, #id, onDelete: KeyAction.cascade)();
+  IntColumn get orderIndex => integer()();
+  TextColumn get phaseType => text()(); // DietPhase.name
+  IntColumn get plannedWeeks => integer()();
+  RealColumn get targetWeightKg => real().nullable()();
+  RealColumn get targetBfPercent => real().nullable()();
+  RealColumn get weeklyRateKg => real().nullable()();
+  BoolColumn get tempoCapped => boolean().withDefault(const Constant(false))();
+  // upcoming | current | done
+  TextColumn get status => text().withDefault(const Constant('upcoming'))();
+  DateTimeColumn get startedAt => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+}
+
+/// Photo metadata only. [relativePath] is relative to the documents
+/// directory and is never absolute; image bytes are never stored or synced.
+/// [legacyRef] is an idempotency marker such as `progress_photo:12`.
+@DataClassName('PhysiquePhotoData')
+class PhysiquePhotos extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get goalId =>
+      integer().references(PhysiqueGoals, #id, onDelete: KeyAction.cascade)();
+  IntColumn get assessmentId => integer().nullable().references(
+    PhysiqueAssessments,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
+  TextColumn get role => text()(); // baseline | checkin
+  TextColumn get pose => text()(); // front | side | back
+  TextColumn get dateIso => text()();
+  DateTimeColumn get takenAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get relativePath => text()();
+  BoolColumn get blurred => boolean().withDefault(const Constant(false))();
+  // capture | legacy_import
+  TextColumn get source => text().withDefault(const Constant('capture'))();
+  TextColumn get legacyRef => text().nullable()();
+}
+
 @DataClassName('PendingSyncOpData')
 class PendingSyncOps extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -1037,6 +1459,21 @@ class Gyms extends Table with SyncColumns, SyncTombstone {
   TextColumn get name => text()();
   BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get allEquipment => boolean().withDefault(const Constant(true))();
+}
+
+@DataClassName('GymEquipmentData')
+class GymEquipment extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get gymId =>
+      integer().references(Gyms, #id, onDelete: KeyAction.cascade)();
+  TextColumn get equipmentKey => text()();
+  BoolColumn get available => boolean().withDefault(const Constant(true))();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {gymId, equipmentKey},
+  ];
 }
 
 /// Lifting accessory catalog (belt, sleeves, wraps, straps, fat grips, chains
@@ -1206,4 +1643,37 @@ class BuddyChoreographySlots extends Table {
 
   @override
   Set<Column> get primaryKey => {buddySessionId, slotId};
+}
+
+// ── Phase 29: weekly report (v48) ──────────────────────────────────────────
+
+/// One weekly report per ISO week. [payloadJson] is the immutable measured
+/// snapshot (D-01) and is never updated after insert; [narrativeJson] and
+/// [tdeeDecision] are write-once (D-02, D-11). The row holds aggregated health
+/// data (GDPR Art. 9), so account deletion must clear it.
+///
+/// There is deliberately NO unique key on (iso_year, iso_week), locally or
+/// remotely. Two devices can each generate the same week and the duplicate only
+/// meets on pull; with a local unique key that INSERT throws out of
+/// `SyncService._pullTable` (no per-row catch), aborting the whole pull cycle
+/// and never advancing the cursor (test/sync/weekly_reports_duplicate_pull_test).
+/// One-per-week is enforced by the repository's insert transaction instead, and
+/// readers pick the earliest row by (generated_at, id).
+@DataClassName('WeeklyReportData')
+class WeeklyReports extends Table with SyncColumns, SyncTombstone {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get isoYear => integer()();
+  IntColumn get isoWeek => integer()();
+  TextColumn get weekStartIso => text()(); // Monday, yyyy-MM-dd
+  DateTimeColumn get generatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+  IntColumn get payloadVersion => integer().withDefault(const Constant(1))();
+  TextColumn get payloadJson => text()(); // immutable measured snapshot
+  TextColumn get narrativeJson => text().nullable()(); // write-once
+  IntColumn get narrativeAttempts => integer().withDefault(const Constant(0))();
+  TextColumn get knowledgeVersion => text().nullable()();
+  TextColumn get modelVersion => text().nullable()();
+  TextColumn get tdeeDecision => text().nullable()(); // updated | kept
+  IntColumn get tdeeDecisionKcal => integer().nullable()();
+  DateTimeColumn get viewedAt => dateTime().nullable()();
 }

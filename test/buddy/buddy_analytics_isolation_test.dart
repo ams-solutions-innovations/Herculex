@@ -86,105 +86,99 @@ void main() {
           .where((s) => s.session.id == sessionId)
           .fold(0.0, (sum, s) => sum + s.tonnageKg);
 
-  test(
-    'a buddy-linked session contributes identical tonnage to an otherwise '
-    'identical solo session',
-    () async {
-      final db = await openTestDatabase();
-      addTearDown(db.close);
+  test('a buddy-linked session contributes identical tonnage to an otherwise '
+      'identical solo session', () async {
+    final db = await openTestDatabase();
+    addTearDown(db.close);
 
-      final exerciseId = await insertBenchPress(db);
-      final soloId = await insertSession(db, DateTime(2026, 8, 24));
-      final buddyId = await insertSession(
-        db,
-        DateTime(2026, 8, 24),
-        buddySessionId: 'bud-session-analytics-1',
-      );
+    final exerciseId = await insertBenchPress(db);
+    final soloId = await insertSession(db, DateTime(2026, 8, 24));
+    final buddyId = await insertSession(
+      db,
+      DateTime(2026, 8, 24),
+      buddySessionId: 'bud-session-analytics-1',
+    );
 
-      for (final sessionId in [soloId, buddyId]) {
-        await insertSet(
-          db,
-          sessionId: sessionId,
-          exerciseId: exerciseId,
-          weightKg: 80,
-          reps: 5,
-        );
-        await insertSet(
-          db,
-          sessionId: sessionId,
-          exerciseId: exerciseId,
-          weightKg: 82.5,
-          reps: 5,
-        );
-      }
-
-      final snapshot = await TrainingSnapshot.load(db);
-
-      final soloTonnage = totalTonnage(snapshot, sessionId: soloId);
-      final buddyTonnage = totalTonnage(snapshot, sessionId: buddyId);
-
-      expect(soloTonnage, greaterThan(0));
-      expect(
-        buddyTonnage,
-        soloTonnage,
-        reason:
-            'buddySessionId must be inert to volume — a linked session is '
-            "not weighted, scaled or otherwise treated as the partner's "
-            'contribution too',
-      );
-    },
-  );
-
-  test(
-    'two local sessions that happen to share a buddySessionId are summed '
-    'plainly, once each, never doubled',
-    () async {
-      // Not a realistic device state — each participant's sessions live on
-      // separate devices, so one local database never actually holds two
-      // rows for the same buddy session. Included anyway as a defence in
-      // depth: if a future bug (a mishandled rejoin, a replayed local-only
-      // insert) ever did produce two same-buddySessionId rows on one
-      // device, this pins that analytics still just adds them — it must
-      // never key off buddySessionId to dedupe, collapse or multiply.
-      final db = await openTestDatabase();
-      addTearDown(db.close);
-
-      final exerciseId = await insertBenchPress(db);
-      const sharedBuddyId = 'bud-session-analytics-2';
-      final sessionA = await insertSession(
-        db,
-        DateTime(2026, 8, 24),
-        buddySessionId: sharedBuddyId,
-      );
-      final sessionB = await insertSession(
-        db,
-        DateTime(2026, 8, 25),
-        buddySessionId: sharedBuddyId,
-      );
-
+    for (final sessionId in [soloId, buddyId]) {
       await insertSet(
         db,
-        sessionId: sessionA,
+        sessionId: sessionId,
         exerciseId: exerciseId,
         weightKg: 80,
         reps: 5,
       );
       await insertSet(
         db,
-        sessionId: sessionB,
+        sessionId: sessionId,
         exerciseId: exerciseId,
-        weightKg: 80,
+        weightKg: 82.5,
         reps: 5,
       );
+    }
 
-      final snapshot = await TrainingSnapshot.load(db);
-      final combined = snapshot.sets
-          .where((s) => s.session.id == sessionA || s.session.id == sessionB)
-          .fold(0.0, (sum, s) => sum + s.tonnageKg);
+    final snapshot = await TrainingSnapshot.load(db);
 
-      // 80 kg x 5 reps, twice: plain addition, not 4x from some
-      // buddySessionId-keyed grouping collapsing then re-inflating the pair.
-      expect(combined, 800);
-    },
-  );
+    final soloTonnage = totalTonnage(snapshot, sessionId: soloId);
+    final buddyTonnage = totalTonnage(snapshot, sessionId: buddyId);
+
+    expect(soloTonnage, greaterThan(0));
+    expect(
+      buddyTonnage,
+      soloTonnage,
+      reason:
+          'buddySessionId must be inert to volume — a linked session is '
+          "not weighted, scaled or otherwise treated as the partner's "
+          'contribution too',
+    );
+  });
+
+  test('two local sessions that happen to share a buddySessionId are summed '
+      'plainly, once each, never doubled', () async {
+    // Not a realistic device state — each participant's sessions live on
+    // separate devices, so one local database never actually holds two
+    // rows for the same buddy session. Included anyway as a defence in
+    // depth: if a future bug (a mishandled rejoin, a replayed local-only
+    // insert) ever did produce two same-buddySessionId rows on one
+    // device, this pins that analytics still just adds them — it must
+    // never key off buddySessionId to dedupe, collapse or multiply.
+    final db = await openTestDatabase();
+    addTearDown(db.close);
+
+    final exerciseId = await insertBenchPress(db);
+    const sharedBuddyId = 'bud-session-analytics-2';
+    final sessionA = await insertSession(
+      db,
+      DateTime(2026, 8, 24),
+      buddySessionId: sharedBuddyId,
+    );
+    final sessionB = await insertSession(
+      db,
+      DateTime(2026, 8, 25),
+      buddySessionId: sharedBuddyId,
+    );
+
+    await insertSet(
+      db,
+      sessionId: sessionA,
+      exerciseId: exerciseId,
+      weightKg: 80,
+      reps: 5,
+    );
+    await insertSet(
+      db,
+      sessionId: sessionB,
+      exerciseId: exerciseId,
+      weightKg: 80,
+      reps: 5,
+    );
+
+    final snapshot = await TrainingSnapshot.load(db);
+    final combined = snapshot.sets
+        .where((s) => s.session.id == sessionA || s.session.id == sessionB)
+        .fold(0.0, (sum, s) => sum + s.tonnageKg);
+
+    // 80 kg x 5 reps, twice: plain addition, not 4x from some
+    // buddySessionId-keyed grouping collapsing then re-inflating the pair.
+    expect(combined, 800);
+  });
 }

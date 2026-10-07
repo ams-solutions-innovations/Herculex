@@ -38,6 +38,7 @@ WorkoutExerciseData _we(int id, int exerciseId, {int sessionId = 1}) =>
       sessionId: sessionId,
       exerciseId: exerciseId,
       orderIndex: 0,
+      plannedAllowsAdvancedTechniques: false,
     );
 
 SetEntryData _set(

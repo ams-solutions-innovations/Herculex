@@ -505,17 +505,36 @@ class _CnsLoadChartCard extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 22,
-                      interval: 7,
                       getTitlesWidget: (val, meta) {
                         final idx = val.toInt();
-                        if (idx < 0 || idx >= daily.length)
+                        if (idx < 0 || idx >= daily.length) {
                           return const SizedBox.shrink();
+                        }
+
+                        // Show ~4-5 evenly spaced date labels across 28 days to prevent collision
+                        final step = max(1, (daily.length / 4).round());
+                        final isLast = idx == daily.length - 1;
+                        final isStep =
+                            idx % step == 0 &&
+                            (daily.length - 1 - idx) >= step / 2;
+
+                        if (!isStep && !isLast) {
+                          return const SizedBox.shrink();
+                        }
+
                         final d = daily[idx].day;
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          space: 4,
                           child: Text(
                             DateFormat('d. MMM').format(d),
-                            style: TextStyle(fontSize: 9, color: hx.secondary),
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: isLast
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: hx.secondary,
+                            ),
                           ),
                         );
                       },
@@ -843,11 +862,15 @@ class _SessionImpactTileState extends State<_SessionImpactTile> {
                               children: [
                                 Row(
                                   children: [
-                                    Text(
-                                      s.exerciseName,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
+                                    Flexible(
+                                      child: Text(
+                                        s.exerciseName,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     if (s.hasWeightedBonus) ...[
@@ -1085,12 +1108,14 @@ class _CnsEngineExplainerCard extends StatelessWidget {
             children: [
               Icon(Icons.functions, size: 18, color: hx.primary),
               const SizedBox(width: 8),
-              Text(
-                'HOW HERCULEX CALCULATES CNS STRAIN',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: hx.secondary,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
+              Expanded(
+                child: Text(
+                  'HOW HERCULEX CALCULATES CNS STRAIN',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: hx.secondary,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ),
             ],

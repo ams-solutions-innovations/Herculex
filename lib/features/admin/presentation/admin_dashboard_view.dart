@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/app/router/routes.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 
 /// Developer-only content tooling. Reachable only in debug builds (the routes
@@ -90,7 +91,7 @@ class AdminDashboardView extends ConsumerWidget {
   /// Sign in first: the push is a no-op without a user id, and signing in
   /// after enqueueing would clear the outbox again (`_claimLocalDatabaseFor`).
   Future<void> _confirmReupload(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final notices = AppNotice.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -115,16 +116,12 @@ class AdminDashboardView extends ConsumerWidget {
     );
     if (confirmed != true) return;
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Queueing local data for upload…')),
-    );
+    notices.show('Queueing local data for upload…', kind: AppNoticeKind.info);
     try {
       final count = await ref.read(syncServiceProvider).reuploadAllLocalData();
-      messenger.showSnackBar(
-        SnackBar(content: Text('Queued $count row(s). Watch the sync badge.')),
-      );
+      notices.show('Queued $count row(s). Watch the sync badge.');
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Re-upload failed: $e')));
+      notices.show('Re-upload failed: $e', kind: AppNoticeKind.error);
     }
   }
 

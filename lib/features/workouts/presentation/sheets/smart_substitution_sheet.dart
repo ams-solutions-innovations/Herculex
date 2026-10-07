@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/in_app_notification_controller.dart';
+import 'package:herculex/core/notifications/in_app_notification_model.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/design_system/components/hx_sheet.dart';
 import 'package:herculex/design_system/components/premium_text_field.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
@@ -22,10 +25,8 @@ class SmartSubstitutionSheet extends ConsumerStatefulWidget {
     required WorkoutExerciseData workoutExercise,
     required ExerciseCatalogData originalExercise,
   }) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    HxSheet.show(
+      context,
       builder: (_) => SmartSubstitutionSheet(
         workoutExercise: workoutExercise,
         originalExercise: originalExercise,
@@ -77,174 +78,122 @@ class _SmartSubstitutionSheetState
     );
     final recentHistoryAsync = ref.watch(recentExerciseIdsProvider);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (_, controller) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainer,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.3),
+    return HxSheet(
+      title: 'Smart Substitution',
+      subtitle:
+          'Replace ${widget.originalExercise.name} with a biomechanically similar exercise',
+      scrollable: true,
+      initialSize: 0.85,
+      minSize: 0.5,
+      maxSize: 0.95,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildOriginalExercise(theme),
+          const SizedBox(height: 24),
+          Text(
+            "Filter Candidates",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
           ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.swap_horiz_rounded,
-                      color: AppColors.primary,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Smart Substitution",
-                      style: theme.textTheme.displayMedium?.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView(
-                  controller: controller,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    _buildOriginalExercise(theme),
-                    const SizedBox(height: 24),
-                    Text(
-                      "Filter Candidates",
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    PremiumTextField(
-                      controller: _searchController,
-                      hintText: "Search candidates by name...",
-                      prefixIcon: Icons.search,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildEquipmentFilterRow(),
-                    const SizedBox(height: 24),
-                    Text(
-                      "Suggested Biomechanical Matches",
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    catalogAsync.when(
-                      data: (catalog) {
-                        return recentHistoryAsync.when(
-                          data: (recentHistory) {
-                            final matches =
-                                ExerciseSubstitution.getRankedSubstitutes(
-                                  original: widget.originalExercise,
-                                  candidates: catalog,
-                                  recentExerciseIds: recentHistory,
-                                );
-
-                            // Apply local interactive filters
-                            var filtered = matches;
-                            if (_selectedEquipment != 'All') {
-                              filtered = filtered
-                                  .where(
-                                    (m) =>
-                                        m.exercise.equipment.toLowerCase() ==
-                                        _selectedEquipment.toLowerCase(),
-                                  )
-                                  .toList();
-                            }
-                            if (_searchQuery.trim().isNotEmpty) {
-                              final query = _searchQuery.toLowerCase();
-                              filtered = filtered
-                                  .where(
-                                    (m) =>
-                                        m.exercise.name.toLowerCase().contains(
-                                          query,
-                                        ) ||
-                                        m.exercise.primaryMuscle
-                                            .toLowerCase()
-                                            .contains(query),
-                                  )
-                                  .toList();
-                            }
-
-                            if (filtered.isEmpty) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 40,
-                                ),
-                                alignment: Alignment.center,
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.fitness_center_rounded,
-                                      size: 48,
-                                      color: AppColors.onSurfaceVariant
-                                          .withValues(alpha: 0.4),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      "No matching candidates found",
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: AppColors.secondary,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-
-                            return ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: filtered.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (ctx, index) {
-                                final match = filtered[index];
-                                return _buildReplacementCard(match, theme);
-                              },
-                            );
-                          },
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (err, _) => Center(child: Text("Error: $err")),
-                        );
-                      },
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (err, _) => Center(child: Text("Error: $err")),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(height: 12),
+          PremiumTextField(
+            controller: _searchController,
+            hintText: "Search candidates by name...",
+            prefixIcon: Icons.search,
           ),
-        );
-      },
+          const SizedBox(height: 12),
+          _buildEquipmentFilterRow(),
+          const SizedBox(height: 24),
+          Text(
+            "Suggested Biomechanical Matches",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          catalogAsync.when(
+            data: (catalog) {
+              return recentHistoryAsync.when(
+                data: (recentHistory) {
+                  final matches = ExerciseSubstitution.getRankedSubstitutes(
+                    original: widget.originalExercise,
+                    candidates: catalog,
+                    recentExerciseIds: recentHistory,
+                  );
+
+                  // Apply local interactive filters
+                  var filtered = matches;
+                  if (_selectedEquipment != 'All') {
+                    filtered = filtered
+                        .where(
+                          (m) =>
+                              m.exercise.equipment.toLowerCase() ==
+                              _selectedEquipment.toLowerCase(),
+                        )
+                        .toList();
+                  }
+                  if (_searchQuery.trim().isNotEmpty) {
+                    final query = _searchQuery.toLowerCase();
+                    filtered = filtered
+                        .where(
+                          (m) =>
+                              m.exercise.name.toLowerCase().contains(query) ||
+                              m.exercise.primaryMuscle.toLowerCase().contains(
+                                query,
+                              ),
+                        )
+                        .toList();
+                  }
+
+                  if (filtered.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      alignment: Alignment.center,
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.fitness_center_rounded,
+                            size: 48,
+                            color: AppColors.onSurfaceVariant.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            "No matching candidates found",
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (ctx, index) {
+                      final match = filtered[index];
+                      return _buildReplacementCard(match, theme);
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, _) => Center(child: Text("Error: $err")),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, _) => Center(child: Text("Error: $err")),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
     );
   }
 
@@ -414,30 +363,14 @@ class _SmartSubstitutionSheetState
         ref.invalidate(recentExerciseIdsProvider);
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    permanently
-                        ? "Permanently replaced with ${candidate.name}"
-                        : "Substituted to ${candidate.name}",
-                  ),
-                ],
-              ),
-              backgroundColor: AppColors.primary,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          ref
+              .read(inAppNotificationControllerProvider.notifier)
+              .show(
+                InAppNotificationItem.exerciseReplaced(
+                  exerciseName: candidate.name,
+                  permanently: permanently,
+                ),
+              );
         }
       },
       borderRadius: BorderRadius.circular(24),

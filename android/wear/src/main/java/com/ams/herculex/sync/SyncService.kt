@@ -156,7 +156,6 @@ class SyncService : WearableListenerService() {
                         )
                         if (accepted && !hadActiveSession) {
                             startOngoingServiceIfNeeded(sessionJson, isNewStart = true)
-                            openActiveWorkoutScreenOnWatch()
                         } else if (accepted) {
                             updateOngoingService(sessionJson)
                         }
@@ -202,7 +201,12 @@ class SyncService : WearableListenerService() {
         Log.d("SyncService", "onMessageReceived ${messageEvent.path} (${messageEvent.data.size}B), vm=${activeViewModel != null}")
         when (messageEvent.path) {
             WearSyncPaths.MESSAGE_START_REST_TIMER -> {
-                Log.d("SyncService", "Received rest timer event: ${String(messageEvent.data)}")
+                // The phone started, extended or skipped a rest: mirror it
+                // under the set number and buzz "IT'S GO TIME" at the end.
+                com.ams.herculex.workout.RestTimerStore.applyFromPhone(
+                    applicationContext,
+                    String(messageEvent.data),
+                )
             }
             WearSyncPaths.MESSAGE_UPDATE_WEIGHT -> {
                 Log.d("SyncService", "Received weight update event: ${String(messageEvent.data)}")

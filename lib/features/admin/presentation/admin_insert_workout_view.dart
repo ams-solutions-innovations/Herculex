@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
 import 'package:herculex/design_system/components/premium_text_field.dart';
 
@@ -42,13 +43,9 @@ class AdminInsertWorkoutView extends StatelessWidget {
             child: PremiumButton(
               text: "Save Workout",
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "Workout saved (stub — persistence lands in Phase 2)",
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+                AppNotice.show(
+                  context,
+                  "Workout saved (stub — persistence lands in Phase 2)",
                 );
                 Navigator.pop(context);
               },

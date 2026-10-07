@@ -1,112 +1,141 @@
-# Requirements: Herculex Nutrition completion
+# Requirements: Milestone v2.0 — Training Programs Revamp, Dream Physique & Gamification
 
-**Defined:** 2026-07-30
-**Core Value:** Find or capture the correct food, choose a realistic portion, and log it with trustworthy nutrient totals in seconds.
+**Defined:** 2026-09-13  
+**Amended:** 2026-09-27 — Herculex AI scope added (Phases 26–29, PHYS-05–08). See [`docs/herculex-ai-plan-2026-09-27.md`](../docs/herculex-ai-plan-2026-09-27.md).  
+**Source Blueprint:** [`docs/training-programs-physique-gamification-plan-2026-09-10.md`](../docs/training-programs-physique-gamification-plan-2026-09-10.md)  
+**Core Value:** Safe, deterministic, and explainable training program generation; flexible program and wave editing; persistent Dream Physique goals with phased nutrition; and an authentic 15-tier XP gamification system. Herculex AI is an additive, bounded layer over that core — it proposes and explains, the deterministic engines decide.
 
-## v1 Requirements
+---
 
-### Catalogue and search
+## Requirements
 
-- [ ] **CAT-01**: App contains an export of all source workbook food rows with source, basis, nutrient, allergen and quality metadata preserved.
-- [ ] **CAT-02**: Exact barcode lookup treats barcode identifiers as strings and works offline.
-- [ ] **CAT-03**: Search ranks exact barcode/name/brand matches ahead of partial matches and supports brand/category/country filters.
-- [ ] **CAT-04**: User can inspect source basis, completeness and nutrients before logging.
+### 1. Regression & Safety Fixes (Phase 15)
 
-### Diary and portions
+- [ ] **FIX-01**: Novice linear full-body programs never receive Dynamic Effort 8×3 sets without explicit user opt-in.
+- [ ] **FIX-02**: Replacement exercise modal renders using opaque `surfaceContainer` (via `HxSheet`) across light and dark themes.
+- [ ] **FIX-03**: Active workout input focus hides and un-focuses navigation bar, Finish, and Add buttons simultaneously with hit-testing disabled.
+- [ ] **FIX-04**: Calendar day detail launches scheduled workouts by explicit `scheduleId`, cleanly differentiating Start from Resume.
 
-- [ ] **DIA-01**: User can log a food by grams, millilitres where applicable, or an available labelled serving.
-- [ ] **DIA-02**: User can add, rename, reorder, duplicate and delete meal slots under Edit nutrients; default slots remain Breakfast, Lunch, Dinner and Snacks.
-- [ ] **DIA-03**: Diary supports recent, frequent, favourite, quick-add, copy-meal/day, timestamps, notes, saved meals, recipes and edits/deletes.
+### 2. Exercise Programming Metadata & Disciplines (Phase 16)
 
-### Nutrients and goals
+- [x] **META-01**: Exercise catalog defines explicit `difficultyLevel` (novice, intermediate, advanced), `commonnessTier` (basic, common, specialty, manualOnly), and `disciplines`.
+- [x] **META-02**: Technical movements enforce prerequisite checks (`prerequisiteSlugs`) before entering candidate pools.
+- [x] **META-03**: `basicWeights` training style restricts movements strictly to standard barbell, dumbbell, cable, and machine equipment without specialty bars/variants.
+- [x] **META-04**: Scaling groups (`scalingGroup`, `scalingOrder`) allow automated progressive regression for advanced movements.
 
-- [x] **NUT-01**: Each food preserves all supplied macro/micronutrients with canonical units and an explicit reference basis.
-- [x] **NUT-02**: User can select nutrients shown in the diary and choose per-day/week views and targets where data exists.
-- [x] **NUT-03**: Totals never imply zero when a selected nutrient is unavailable; UI displays availability/completeness.
+### 3. Deterministic Planner & Hard Guardrails (Phase 17)
 
-### Capture
+- [ ] **PLAN-01**: Unified `ProgramGenerationRequest` acts as single authoritative entry point for all generation parameters.
+- [ ] **PLAN-02**: Hard filters (injury/pain, equipment, style, experience, prerequisites) execute before scoring and are never relaxed to fill a slot.
+- [x] **PLAN-03**: Core anchor movements remain guaranteed across block weeks rather than rotating out on affinity scoring.
+- [x] **PLAN-04**: Planner returns human-readable selection rationales (`SelectionExplanation`) for every chosen and excluded movement.
 
-- [x] **CAP-01**: Barcode scan validates/normalizes EAN-8, UPC-A, EAN-13 and GTIN-14 and offers manual entry on a miss.
-- [x] **CAP-02**: A label-photo OCR flow maps nutrition-label values into an editable draft before saving/logging.
-- [x] **CAP-03**: Food-photo analysis is opt-in, shows confidence and proposed foods/portions, and requires review; internet lookup is an explicit secondary mode.
+### 4. Time Budget, Warmups & Prescriptions (Phase 18)
 
-### Ongoing workout surface
+- [ ] **PRES-01**: `SlotPrescription` uses a versioned JSON codec (`SlotPrescriptionCodec`) guaranteed byte-equivalent across review, editor, and workout.
+- [ ] **PRES-02**: `WorkoutDurationEstimator` calculates realistic workout durations including warmups, rest intervals, and unilateral work.
+- [ ] **PRES-03**: `WarmupResolver` automatically scales warmup sets according to planned target intensity and movement order.
+- [ ] **PRES-04**: Advanced intensity techniques (failure, rest-pause, drop, myo-reps) are opt-in and barred from technical compound lifts.
 
-- [x] **NOWBAR-01**: The ongoing workout is published as an Android 16 promotable Live Update — `requestPromotedOngoing(true)`, `ProgressStyle` and short critical text via the real platform API, so `hasPromotableCharacteristics()` reports true on a supporting device.
-- [x] **NOWBAR-02**: Exactly one code path owns the ongoing workout notification id. The Flutter and native renderers never post to the same id, and the surface is not rebuilt once per second.
-- [x] **NOWBAR-03**: The surface is cleared when the workout ends and when the app widget is disposed, and an action declaring `requiresUnlock` is not executed silently from the lock screen.
+### 5. Program & Wave Editor (Phase 19)
 
-### Analytics correctness
+- [x] **EDIT-01**: Program viewer renders single active week with dedicated Week dropdown and exercise wave indicators (`Week N of M`, `Wave X of Y`).
+- [x] **EDIT-02**: Exercise replacements offer scoped choices: `thisWave`, `thisAndFutureWaves`, or `entireBlock`.
+- [x] **EDIT-03**: Program edits never mutate or overwrite previously started or completed workout occurrences.
+- [x] **EDIT-04**: Periodization options (Linear, Concurrent, Westside, Block) display dedicated educational guides with 8-week examples.
 
-- [x] **ANLY-01**: All recovery, CNS, balance and correlation providers read from the shared `trainingSnapshotProvider` effective-load snapshot instead of independent unfiltered table scans.
-- [x] **ANLY-02**: The legacy coarse recovery engine (`muscle_recovery.dart`, `cnsFatigueProvider`) and the duplicate recovery card in Insights are removed; exactly one recovery model is shown.
-- [x] **ANLY-03**: Every analytics query excludes soft-deleted (`deletedAt`) sets, sessions and exercises, so a cross-device sync delete cannot inflate tonnage, CNS load or recovery fatigue on another device.
-- [x] **ANLY-04**: Push/pull balance and biometric-correlation cards compute from effective load (bands, chains, bodyweight) rather than raw weight/reps.
+### 6. Active Workout Shell & Calendar Execution Flow (Phase 20)
 
-### Gym Buddy — live shared workout
+- [ ] **FLOW-01**: `KeyboardObstructionScope` manages keyboard visibility, animations, and hit-testing across shell and active workout screens.
+- [ ] **FLOW-02**: `PlannedWorkoutPreviewView` renders full workout preview with exercise details without writing to the database.
+- [ ] **FLOW-03**: Calendar entries correctly route to Preview & Start, Resume active session, or History detail based on status.
 
-*(Re-verified 2026-09-02 against the actual `lib/features/buddy/` implementation and its 80-test suite, not against the phase ledger — see the ROADMAP.md Phase 11 note for what that ledger had wrong.)*
+### 7. CrossFit & GPP Training Tracks (Phase 21)
 
-- [x] **BUD-01**: Sharing an active workout is an explicit user action. A partner joins by scanning a short-lived, single-session QR code reached from an additional entry in the `+` button; the token cannot be reused after the session ends. `buddy_create_session`/`buddy_join_session` (10-minute TTL, single-use, one combined rejection message for every failure cause — no existence oracle). Wired: "Gym Buddy" button in `active_workout_view.dart` → `BuddyShareSheet`; "Join Gym Buddy" in the `+` menu → `BuddyJoinScannerView`.
-- [x] **BUD-02**: Each participant keeps their own `WorkoutSessions` row, owned by them and synced under their own `user_id`. A shared `buddySessionId` links the two. No participant's sets, reps, weight, RPE or measurements are ever written into another participant's tables, and buddy sessions never double-count in analytics. Proven by `test/buddy/buddy_two_device_test.dart` (separate rows, separate ids, scoped removes) and `test/buddy/buddy_analytics_isolation_test.dart` (`buddySessionId` is inert to `TrainingSnapshot.load`'s tonnage calculation — the field is not filtered, weighted or grouped on anywhere in that path).
-- [x] **BUD-03**: Exercise choreography — add, remove, reorder and replace — propagates live between participants. Every change offers a scope choice of "both of us" or "only me"; "only me" never mutates the partner's exercise list. `BuddyChoreographySender`/`BuddyChoreographyApplier`, scope threaded through every call site in `active_workout_view.dart`.
-- [x] **BUD-04**: Live state travels over Supabase Realtime broadcast, and every choreography event is also appended to a durable event log, so a participant who loses connection, backgrounds the app or restarts the phone rejoins at the correct shared state rather than an empty one. The broadcast/event-log/replay mechanism (`BuddyEventStream`, `fetchEventsSince`, `commitSeq`) existed; the app-restart half did not — `BuddySessionController` only ever populated its state from a fresh host/join action, so a killed-and-reopened app silently lost a live session. Closed 2026-09-02: `resumeIfActive()` reads the persisted `buddy_sessions_local` row and reconnects from its `lastSeenSeq`, called once at app startup. Tested in `test/buddy/buddy_session_controller_test.dart`'s `resumeIfActive` group (reconnects from the persisted seq not 0, resumes as the correct role, and reconciles a session whose linked workout already ended instead of resuming it).
-- [x] **BUD-05**: The existing owner-only RLS policies in `0003_sync_rls.sql` are left unchanged. Cross-user visibility is confined to the new buddy tables and to a minimal participant display identity; no policy grants a partner read access to another user's training, nutrition or biometric tables. SHA-256-pinned by `test/buddy/rls_frozen_test.dart`.
-- [x] **BUD-06**: Either participant can leave a buddy session at any time. The other's workout continues uninterrupted, both sessions save normally, and a partner disconnecting is never able to complete, alter or discard the other's sets. `leave()`/`endForEveryone()`; `buddy_two_device_test.dart` proves a guest leaving does not end the host's session. The server-side half (`buddy_append_event` re-checks `left_at`/`ended_at` on every call, independent of the realtime authorization cache) is implemented and was read in full against `supabase/migrations/0011_buddy_sessions.sql` — a live smoke test for it (`test/sync/live_buddy_test.dart`, 5 tests per `11-05-PLAN.md` Task 2) is written but not yet green: `.secrets/live_sync.json` currently points at a different Supabase project (`jioesomepkauponjrena`, SummitSki) than the one migration 0011 was actually applied to (`ldzgyzigvbwofbswitrv`, Herculex) — a pre-existing credentials mismatch unrelated to this phase's code, blocking on the correct anon key.
+- [x] **CF-01**: CrossFit sessions structure into ordered blueprint segments (warmup, skill/strength, metcon, cooldown) with time caps.
+- [x] **CF-02**: CrossFit experience levels scale movement complexity and metcon formats (AMRAP, EMOM, For Time).
+- [x] **CF-03**: Full Body 2× + GPP split delivers dedicated conditioning sessions without unintended Dynamic Effort sets.
 
-## v2 Requirements
+### 8. Primary Lift Strength Specialization (Phase 22)
 
-- **BUD-07**: Buddy VS comparison in workout history — per-exercise winner, calisthenics rep counts and per-session volume, computed after the fact from both participants' sessions via the shared `buddySessionId`.
-- **BUD-08**: Persistent friends model — user identity, search/invite, accept/block, so a relationship outlives a single scanned session.
-- **BUD-09**: Friend challenges — each participant sets a goal with a deadline (strength target, body-fat %, kg lost or gained), progress is tracked from existing measurement and training data, and the challenge resolves at the deadline.
-- **PLAN-01**: Recipe URL import with user review/matching.
-- **PLAN-02**: Meal planner, grocery list and dietary-preference/allergen planning.
-- **SOC-01**: Sharing/copying diaries across users after an account and sync model exist.
-- **VOICE-01**: Voice food entry when a supported, privacy-reviewed recogniser is selected.
+- [x] **SPEC-01**: Strength specialization targets user-selected lift (e.g. Squat) with current 1RM, target weight, and sticking point analysis (bottom, mid, lockout).
+- [x] **SPEC-02**: Specialization planner preserves anchor lift frequency while maintaining all non-target muscle groups above baseline maintenance volume.
+- [x] **SPEC-03**: Unrealistic target timelines generate realistic projected time horizons with warnings rather than aggressive programming.
 
-### Exercise catalogue (Phase 12)
+### 9. Persistent Dream Physique & Multi-Phase Nutrition (Phase 23)
 
-- [x] **EXR-01**: Equipment variants of one movement collapse to a single picker entry; the plain version of a movement is the one a bare-name search lands on.
-- [x] **EXR-02**: Grip, attachment and start-position variants collapse into their movement rather than occupying separate top-level rows.
-- [x] **EXR-03**: Every category the app offers as a filter has exercises in it — including cardio, CrossFit and mobility.
-- [x] **EXR-04**: `loggingMetric` is a single typed registry; the catalogue asset, the custom-exercise builder and the logger all read the same vocabulary.
-- [x] **EXR-05**: A set is stored and displayed in its exercise's own units — duration, distance or calories where reps and kilos do not apply — without distorting tonnage or volume analytics.
+- [x] **PHYS-01**: Dream Physique goals, assessments, and check-in history persist in synchronized local/remote tables.
+- [x] **PHYS-02**: Physique photos are stored in app-sandboxed local documents with EXIF stripped and optional facial blur.
+- [x] **PHYS-03**: Multi-phase nutrition roadmaps (`cut`, `maintain`, `recomp`, `maingain`, `bulk`) compute realistic deficit/surplus pacing.
+- [x] **PHYS-04**: Underage users and low-confidence visual assessments are barred from aggressive caloric deficits or surpluses.
+- [x] **PHYS-05**: Progress screen shows the active body-composition phase (`cut`, `recomp`, `maingain`, `bulk`, `maintain`), position within the multi-phase roadmap, time in phase, and exit criteria, driven by the persisted plan from PHYS-03.
+- [x] **PHYS-06**: Check-in photos are rate-limited to at most one per 7 days per goal, enforced in the repository rather than the widget, with the next eligible date surfaced in the UI.
+- [x] **PHYS-07**: Each check-in returns a Herculex AI directional verdict (on track, off track, inconclusive) as a confidence-banded range against the baseline, never a false-precision percentage, and never auto-changes calorie targets.
+- [x] **PHYS-08**: Progress screen charts bodyweight trend, strength trend (e1RM on canonical lifts), training level, and the phase-target band across the goal horizon.
 
-### Hercul coaching layer (Phase 13)
+### 10. Gamification & 15-Rank XP Ledger (Phase 24)
 
-- [ ] **HRC-01**: A dashboard card surfaces ranked observations derived from the user's own training, nutrition and bodyweight data.
-- [ ] **HRC-02**: Observations come from an authored rule corpus stored as a JSON asset and imported locally, replaceable from the cloud later without changing the engine.
-- [ ] **HRC-03**: Rule evaluation is a pure function; a rule with missing signals is skipped, and a fired rule is suppressed for its cooldown.
-- [ ] **HRC-04**: The user chooses between two voices; the blunt voice is opt-in, gated on a stated age of 18 or over, and never targets the user's body or sex.
-- [ ] **HRC-05**: No message asserts anything the app cannot show the underlying numbers for, and none constitutes medical advice.
+- [ ] **XP-01**: Double-entry idempotent `xp_events` ledger records verifiable points from completed workouts, PRs, and physique check-ins.
+- [ ] **XP-02**: 15 Herculex ranks (`Novice I–V`, `Intermediate I–V`, `Advanced I–V`) reflect earned lifetime XP without manipulating generator eligibility.
+- [ ] **XP-03**: Strength XP normalizes against historical bodyweight and canonical movement slugs using `TrainingSnapshot` effective load.
+- [ ] **XP-04**: UI displays transparent progress breakdown, recent XP events, and upcoming rank requirements without negative gamification.
 
-### Anthropometric ergonomics (Phase 14)
+### 11. Cloud Sync, Privacy & Export Hardening (Phase 25)
 
-- [ ] **ERG-01**: Profile height, plus optional inseam, arm span and torso measurements, yield proportion ratios.
-- [ ] **ERG-02**: Movements carry variant guidance keyed to those proportions, with sources recorded.
-- [ ] **ERG-03**: Guidance appears on the exercise and through Hercul, is absent when measurements are unknown, and is phrased as a trade-off rather than a correction.
+- [ ] **SYNC-01**: Drift schemas and Supabase migrations support all v2.0 tables with strict foreign keys, outbox triggers, and owner-only RLS.
+- [ ] **SYNC-02**: Local data wipe completely purges all v2.0 tables, XP ledgers, and physical image assets.
+- [ ] **SYNC-03**: Full structured JSON export packages all workout, program, physique, and gamification history for user download.
 
-## Out of Scope
+### 12. Herculex AI Knowledge Base & Brand Unification (Phase 26)
 
-| Feature | Reason |
-|---|---|
-| MyFitnessPal subscription/paywall model | Product decision unrelated to nutrition correctness. |
-| Automatic camera diagnosis/logging | Insufficiently reliable without confirmation. |
-| Public food-catalogue server | User asked for a JSON export first; server contract follows. |
+- [x] **KB-01**: A versioned coaching knowledge base ships server-side beside `prompts.ts`, is injected as system instruction for knowledge-grounded kinds, and never appears in the app bundle. _(Foundational scope per 26-CONTEXT.md D-04: corpus + injection plumbing shipped; no kind consumes it yet — that's a later phase's job.)_
+- [x] **KB-02**: Every AI result records `knowledgeVersion` and `modelVersion`, so any recommendation is traceable to the corpus that produced it. _(Foundational scope per D-06: modelVersion ships on all 8 kinds now; knowledgeVersion intentionally deferred until a kind injects a corpus segment.)_
+- [x] **KB-03**: No user-visible string reads "Gemini"; every AI surface reads "Herculex AI", while provider naming remains internal to class names, `kind` values, and docs.
+- [x] **KB-04**: Hercul gains a labelled AI advice channel alongside the deterministic engine; `hercul_rules.json`, `HerculSignals.all`, and the closed-vocabulary test stay intact and keep working offline. _(Non-regression half verified. The "labelled AI advice channel" itself is deferred — human decision 2026-09-28, see 26-VERIFICATION.md — and not yet claimed by any future phase; Phase 27/28/29 planning should pick this up.)_
+- [x] **KB-05**: Per-kind AI quotas replace the single shared daily cap, and quota exhaustion fails closed with a clear message rather than silently.
+
+### 13. Herculex AI Program Generation (Phase 27)
+
+- [x] **AIP-01**: `ProgramBuildMode` gains a fourth mode so the builder offers both a manual path and a Herculex AI path.
+- [x] **AIP-02**: Herculex AI returns a program design brief (split, periodization model, weekly day roles, muscle priorities, phase intent, rationale) and never an exercise list; `SmartProgramPlanner` remains the sole exercise selector. _(27-03 built the client-side gate that proves this contract — `ProgramBrief.fromJson` strictly validates every enum and rejects any exercise-shaped field at any nesting depth. 27-05 added `GeminiBackend.generateProgramBrief()`, the client-side entry point. 27-06 added the Edge Function's `program_brief` kind itself — prompt, quota, and `normalizeProgramBriefResult()` as the server-side first line of the two-tier defense. 27-09 added `HerculexAiBriefService.generateBrief()`, the calling service — a brief can now actually be requested, transported, and strictly parsed end-to-end, proven by test. UI wiring to trigger it (plan 27-11) is a separate concern from this contract being true.)_
+- [x] **AIP-03**: The brief is validated against a strict schema and rejected, falling back to the deterministic recommendation, if it violates any existing guardrail. _(27-02 laid the pre-refactor groundwork; 27-03 delivered the strict-schema half — `ProgramBrief.fromJson` — reusing Dream Physique's musclePriorities shape and rejecting unknown enum values as a whole-brief FormatException. 27-05/27-06 wired the client/server transport. 27-07 built the rejection-message UI (`AiBriefRejectionBanner`). 27-08 extracted the Max-Effort-per-week and 6-day-PPL+Max-Effort checks into `ProgramGuardrails.validateConfiguration()`. 27-11 closes the loop: `_generateHerculexBrief()` calls `validateConfiguration()` against the parsed brief's implied split/periodization immediately after a successful generate, and on any blocking issue shows `AiBriefRejectionBanner` with the validator's verbatim message while leaving the existing Smart/Guided recommendation as the active builder state — never applying the rejected brief. Proven by 7 new widget tests in `test/block_builder_view_test.dart`.)_
+- [x] **AIP-04**: An AI-generated program enters the existing review gate archived and unactivated, shows its rationale per day, and requires explicit user confirmation. _(27-04 built the local persistence target the review-gate rendering will read from — `HerculexAiProgramBriefs`, schema v46, D-08's `briefJson` blob carrying D-09's per-day rationale, FK'd to `programId`. 27-07 built the per-day rationale UI (`AiDayRationaleCard`, primary-tinted, fixed "Why this day" heading, renders `dayRoles[].rationale` verbatim, D-09). 27-09 built `HerculexAiBriefService.persistBrief()`/`watchBriefForProgram()`, the sole read/write seam the review gate calls. 27-10 applied and independently verified the matching Supabase migration (chore 5 — owner-only RLS, triggers, realtime, pull index — all confirmed live on `ldzgyzigvbwofbswitrv` via 4 read-only queries), so persisted briefs now sync instead of quarantining. 27-11 added the Generate/Regenerate UI and the accepted-brief state (`_acceptedHerculexBrief`/`_herculexBriefProvenance`) plan 27-13 pre-fills/persists from. 27-12 closes the loop: `ProgramReviewView._DayCard` now renders `AiDayRationaleCard` per day, additive to the existing `EmptySlotNotice` rendering, conditional on an active `HerculexAiProgramBriefs` row with `source == 'herculex_ai'` for the reviewed program — absent entirely for manual/smart/guided programs. `_confirm()` (the sole activation point) is unchanged, proven by `git diff` showing zero changed lines in that method. Proven by 6 new widget tests in `test/program_review_view_test.dart`.)_
+- [x] **AIP-05**: AI generation degrades to the existing Smart/Guided path when offline, unconfigured, or over quota. _(27-09 built the failure-category signal this depends on — `HerculexAiBriefException.isQuotaExhausted`, distinguishing an over-quota failure from the generic offline/unconfigured case (detected via the Edge Function's exact 429 message substrings), proven by test. 27-11 wires the UI degrade-to-Smart/Guided behavior: `_generateHerculexBrief()` catches `HerculexAiBriefException` and shows one of two distinct UI-SPEC-exact messages — offline/unconfigured vs. over-quota — via `AiBriefRejectionBanner`, always leaving the existing Smart/Guided recommendation as the active state. Proven by 2 dedicated widget tests.)_
+
+### 14. Adaptive TDEE & Activity Calibration (Phase 28)
+
+- [x] **TDEE-01**: An observed-expenditure estimator derives TDEE from logged intake and the bodyweight trend over a rolling window, and becomes the baseline source when adherence passes a stated threshold.
+- [x] **TDEE-02**: When adherence is insufficient, an activity classifier derives the activity level from `HealthSamples` plus logged training, and Mifflin-St Jeor runs with the derived multiplier instead of the hand-picked one.
+- [x] **TDEE-03**: The app chooses its own calibration window and re-calibration cadence from data density; the user never picks a measurement duration.
+- [x] **TDEE-04**: Every estimate carries method, confidence, sample window, and inputs, is visible to the user, and never overrides a manually-set maintenance value.
+- [x] **TDEE-05**: A material TDEE shift is surfaced in the weekly report and never silently rewrites confirmed targets. _(Non-regression half delivered: `TdeeEstimator.isMaterialShift` persists every shift to `tdee_estimates` and never overwrites a saved manual target, per D-11. The "surfaced in the weekly report" half is deferred to Phase 29 by design (D-10/D-11) — no accept/dismiss UI or material-shift event exists yet.)_
+
+### 15. Weekly Report & Herculex AI Narrative (Phase 29)
+
+- [ ] **RPT-01**: One persisted report row per ISO week, opt-in, covering nutrition adherence, frequent foods, training volume and strength, recovery/sleep/activity, physique progress, and TDEE drift.
+- [x] **RPT-02**: The measured section is computed locally from existing analytics; Herculex AI adds a knowledge-grounded narrative on top, visually separated from the numbers.
+- [x] **RPT-03**: A Sunday notification uses `DateTimeComponents.dayOfWeekAndTime` and deep-links into the report; the report is generated on open, never in the notification callback.
+- [x] **RPT-04**: Reports are browsable as history and never regenerate differently for a past week.
+- [x] **RPT-05**: The report attributes how recovery, sleep, and activity correlate with performance using existing correlation providers, stated as correlation rather than causation.
+
+---
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |---|---:|---|
-| CAT-01 | 1 | Complete |
-| CAT-02–04 | 2 | Complete |
-| DIA-01–03 | 3 | Complete |
-| NUT-01–03 | 4 | Complete |
-| CAP-01 | 5 | Complete |
-| CAP-02–03 | 6 | Complete |
-| NOWBAR-01–03 | 8 | Pending |
-| ANLY-01–04 | 9 | Complete |
-| BUD-01–06 | 11 | Complete (live smoke test written, blocked on `.secrets/live_sync.json` pointing at the wrong project) |
-| EXR-01–05 | 12 | Complete |
-| HRC-01–05 | 13 | Pending |
-| ERG-01–03 | 14 | Pending |
+| FIX-01–04 | 15 | Pending |
+| META-01–04 | 16 | Pending |
+| PLAN-01–04 | 17 | Pending |
+| PRES-01–04 | 18 | Pending |
+| EDIT-01–04 | 19 | Complete |
+| FLOW-01–03 | 20 | Complete |
+| CF-01–03 | 21 | Complete |
+| SPEC-01–03 | 22 | Complete |
+| PHYS-01–08 | 23 | Complete |
+| XP-01–04 | 24 | Pending |
+| SYNC-01–03 | 25 | Pending |
+| KB-01–05 | 26 | Complete |
+| AIP-01–05 | 27 | Pending |
+| TDEE-01–05 | 28 | Complete |
+| RPT-01–05 | 29 | Pending |

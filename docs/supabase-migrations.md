@@ -108,6 +108,8 @@ Applied migrations, in the order they reached the live project:
 | `0011_buddy_sessions` | 2026-08-18 | Phase 11 wave 2. The `realtime.send` preflight guard passed, so no signature patch was needed. Closes the blocking half of plan 11-05. |
 | `0012_product_catalogue` | 2026-08-18 | Shared community barcode table; deliberately outside the per-user sync/RLS loop. |
 | `0013_set_entry_metrics` | 2026-08-19 | GSD 12-04 / local schema v31. Three nullable columns on `set_entries`. Had to land *before* any v31 build ships — see the ordering note in the file. |
+| `20261002000000_physique_v47` | 2026-10-04 | Applied via `supabase db push` (it was still pending on remote until then; an earlier note here said it had been applied). |
+| `20261003000000_weekly_reports_v48` | 2026-10-04 | Applied via `supabase db push` (Phase 29 plan 20). Verified: 17 columns, 4 owner-only RLS policies, 2 triggers, `(user_id, updated_at, id)` index, RLS on. No remote unique on (iso_year, iso_week) by design. |
 
 If a future `migration list` ever shows a migration present locally but with
 an empty Remote column (because it was applied outside the CLI, e.g. via the

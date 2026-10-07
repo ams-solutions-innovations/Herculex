@@ -1,6 +1,6 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/app/providers.dart';
 import 'package:herculex/core/utils/units.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
@@ -8,17 +8,18 @@ import 'package:herculex/design_system/components/hx_screen_shell.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/tokens/tokens.dart';
 import 'package:herculex/features/analytics/application/analytics_providers.dart';
-import 'package:herculex/features/analytics/domain/training_snapshot.dart';
 import 'package:herculex/features/analytics/domain/variant_performance.dart';
+import 'package:herculex/features/profile/domain/anthropometry.dart';
+import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/equipment_variants.dart';
+import 'package:herculex/features/workouts/domain/exercise_ergonomics.dart';
 import 'package:herculex/features/workouts/domain/logging_metric.dart';
-import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 import 'package:herculex/features/workouts/domain/progression_engine.dart';
 import 'package:herculex/features/workouts/presentation/sheets/progression_override_sheet.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_analytics_cards.dart';
 import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
-import 'package:intl/intl.dart';
 
 class ExerciseDetailsView extends ConsumerWidget {
   final int exerciseId;
@@ -97,6 +98,10 @@ class _ExerciseDetailsBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 14),
+        _ProgrammingPreferenceCard(exercise: exercise),
+        const SizedBox(height: 14),
+        ErgonomicsCard(exercise: exercise),
+        const SizedBox(height: 14),
         // An estimated 1RM is a weight for a rep. A plank, a sled push and a
         // row erg have no such number, so the trend card is simply absent
         // rather than plotting a flat line through their placeholder zeros
@@ -156,180 +161,168 @@ class _ExerciseDetailsBody extends ConsumerWidget {
   }
 }
 
-class _TrendCard extends ConsumerWidget {
-  final int exerciseId;
+class _ProgrammingPreferenceCard extends ConsumerWidget {
+  const _ProgrammingPreferenceCard({required this.exercise});
 
-  const _TrendCard({required this.exerciseId});
+  final ExerciseCatalogData exercise;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final snapshot = ref.watch(trainingSnapshotProvider);
+    final selected =
+        ref.watch(exerciseAffinityProvider(exercise.id)).asData?.value ??
+        ExerciseAffinity.okay;
     return HxCard(
-      child: snapshot.when(
-        loading: () => const _CardLoading(),
-        error: (error, _) => Text('Could not load trend: $error'),
-        data: (value) {
-          final points = _trendPoints(value, exerciseId);
-          if (points.isEmpty) {
-            return const _EmptyCardContent(
-              title: 'Estimated 1RM trend',
-              message: 'Complete a working set to start this trend.',
-            );
-          }
-          return _TrendChart(points: points);
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Programming preference',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Used by Smart exercise selection. “Never” is a hard filter.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.secondary),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final affinity in ExerciseAffinity.values)
+                ChoiceChip(
+                  label: Text(affinity.label),
+                  selected: selected == affinity,
+                  onSelected: (_) => ref
+                      .read(exercisePreferencesRepositoryProvider)
+                      .setAffinity(exerciseId: exercise.id, affinity: affinity),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            exercise.maxEffortEligibility == MaxEffortEligibility.eligible.id
+                ? 'Eligible for Smart Max Effort selection.'
+                : exercise.maxEffortEligibility ==
+                      MaxEffortEligibility.advancedOnly.id
+                ? 'Max Effort is available only as an advanced manual choice.'
+                : 'Not suitable for Max Effort.',
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: AppColors.secondary),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _TrendChart extends StatelessWidget {
-  final List<_TrendPoint> points;
+class ErgonomicsCard extends ConsumerWidget {
+  const ErgonomicsCard({super.key, required this.exercise});
 
-  const _TrendChart({required this.points});
+  final ExerciseCatalogData exercise;
 
   @override
-  Widget build(BuildContext context) {
-    final hx = context.hx;
-    final values = points.map((point) => point.value).toList();
-    final minValue = values.reduce((a, b) => a < b ? a : b);
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
-    final spread = (maxValue - minValue).abs();
-    final padding = spread < 1 ? 8 : spread * 0.18;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final slug = exercise.movementSlug;
+    if (slug == null) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Estimated 1RM trend',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Best estimated 1RM per completed session',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.secondary),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          height: 220,
-          child: LineChart(
-            LineChartData(
-              minX: 0,
-              // Never 0: with a single completed session `minX == maxX`, and
-              // fl_chart's x-normalisation divides by `(maxX - minX)` — the
-              // resulting NaN offsets fail a RenderBox assertion. Every user
-              // hits this the first time they open exercise details after one
-              // workout.
-              maxX: points.length > 1 ? (points.length - 1).toDouble() : 1.0,
-              minY: (minValue - padding).clamp(0, double.infinity).toDouble(),
-              maxY: maxValue + padding,
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                horizontalInterval: _interval(minValue, maxValue),
-                getDrawingHorizontalLine: (_) => FlLine(
-                  color: hx.outlineVariant.withValues(alpha: 0.35),
-                  strokeWidth: 1,
+    final profile = ref.watch(profileProvider).asData?.value;
+    if (profile == null) return const SizedBox.shrink();
+
+    final ratios = AnthropometryRatios(profile);
+    if (!ratios.hasRequiredMeasurements) return const SizedBox.shrink();
+
+    final ergoRepo = ref
+        .watch(exerciseErgonomicsRepositoryProvider)
+        .asData
+        ?.value;
+    if (ergoRepo == null) return const SizedBox.shrink();
+
+    final ergonomics = ergoRepo.getForMovement(slug);
+    if (ergonomics == null) return const SizedBox.shrink();
+
+    final activeGuidance = <ErgonomicGuidance>[];
+
+    // Legs / Femur
+    if (ratios.legProportion == LegProportion.long) {
+      final g =
+          ergonomics.guidanceByRatio['long_femur'] ??
+          ergonomics.guidanceByRatio['long_legs'];
+      if (g != null) activeGuidance.add(g);
+    } else if (ratios.legProportion == LegProportion.short) {
+      final g =
+          ergonomics.guidanceByRatio['short_femur'] ??
+          ergonomics.guidanceByRatio['short_legs'];
+      if (g != null) activeGuidance.add(g);
+    }
+
+    // Torso
+    if (ratios.torsoProportion == TorsoProportion.short) {
+      final g = ergonomics.guidanceByRatio['short_torso'];
+      if (g != null) activeGuidance.add(g);
+    } else if (ratios.torsoProportion == TorsoProportion.long) {
+      final g = ergonomics.guidanceByRatio['long_torso'];
+      if (g != null) activeGuidance.add(g);
+    }
+
+    // Arms
+    if (ratios.armProportion == ArmProportion.long) {
+      final g = ergonomics.guidanceByRatio['long_arms'];
+      if (g != null) activeGuidance.add(g);
+    } else if (ratios.armProportion == ArmProportion.short) {
+      final g = ergonomics.guidanceByRatio['short_arms'];
+      if (g != null) activeGuidance.add(g);
+    }
+
+    if (activeGuidance.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+
+    return HxCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.accessibility_new, size: 20, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Anthropometric Ergonomics',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 42,
-                    interval: _interval(minValue, maxValue),
-                    getTitlesWidget: (value, _) => Text(
-                      value.round().toString(),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 28,
-                    interval: points.length > 5 ? 2 : 1,
-                    getTitlesWidget: (value, _) {
-                      final index = value.round();
-                      if (index < 0 || index >= points.length) {
-                        return const SizedBox.shrink();
-                      }
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          DateFormat('d.M.').format(points[index].date),
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(color: AppColors.secondary),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              lineTouchData: LineTouchData(
-                touchTooltipData: LineTouchTooltipData(
-                  getTooltipItems: (spots) => spots
-                      .map(
-                        (spot) => LineTooltipItem(
-                          '${spot.y.toStringAsFixed(1)} kg e1RM',
-                          TextStyle(
-                            color: hx.onPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: [
-                    for (var i = 0; i < points.length; i++)
-                      FlSpot(i.toDouble(), points[i].value),
-                  ],
-                  isCurved: true,
-                  color: hx.primary,
-                  barWidth: 3,
-                  dotData: FlDotData(
-                    show: true,
-                    getDotPainter: (_, _, _, _) => FlDotCirclePainter(
-                      radius: 4,
-                      color: hx.primary,
-                      strokeWidth: 2,
-                      strokeColor: hx.onPrimary,
-                    ),
-                  ),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: hx.primary.withValues(alpha: 0.12),
-                  ),
-                ),
-              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Guidance tailored to your body proportions',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.secondary,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          for (final item in activeGuidance) ...[
+            Text(item.guidance, style: theme.textTheme.bodyMedium),
+            if (item.sources.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Sources: ${item.sources.join(", ")}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.secondary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
     );
-  }
-
-  static double _interval(double min, double max) {
-    final spread = (max - min).abs();
-    if (spread < 10) return 5;
-    if (spread < 40) return 10;
-    return 20;
   }
 }
 
@@ -482,30 +475,6 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _EmptyCardContent extends StatelessWidget {
-  final String title;
-  final String message;
-
-  const _EmptyCardContent({required this.title, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(message, style: TextStyle(color: AppColors.secondary)),
-      ],
-    );
-  }
-}
-
 class _CardLoading extends StatelessWidget {
   const _CardLoading();
 
@@ -536,38 +505,6 @@ class _DetailsMessage extends StatelessWidget {
     backgroundColor: Colors.transparent,
     body: Center(child: Text(message)),
   );
-}
-
-class _TrendPoint {
-  final DateTime date;
-  final double value;
-
-  const _TrendPoint({required this.date, required this.value});
-}
-
-List<_TrendPoint> _trendPoints(TrainingSnapshot snapshot, int exerciseId) {
-  final bestByDay = <DateTime, double>{};
-  for (final resolved in snapshot.sets) {
-    if (resolved.exercise.id != exerciseId) continue;
-    final e1rm =
-        OneRepMax.estimate(
-          weightKg: resolved.effectiveKg,
-          reps: resolved.set.reps,
-        ) ??
-        resolved.effectiveKg;
-    final date = resolved.session.endedAt ?? resolved.session.startedAt;
-    final day = DateTime(date.year, date.month, date.day);
-    final current = bestByDay[day];
-    if (current == null || e1rm > current) bestByDay[day] = e1rm;
-  }
-
-  final points = [
-    for (final entry in bestByDay.entries)
-      _TrendPoint(date: entry.key, value: entry.value),
-  ]..sort((a, b) => a.date.compareTo(b.date));
-
-  if (points.length <= 8) return points;
-  return points.sublist(points.length - 8);
 }
 
 class _ProgressionGoalCard extends ConsumerWidget {

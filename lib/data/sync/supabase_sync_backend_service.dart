@@ -75,11 +75,10 @@ class SupabaseSyncBackendService implements SyncBackendService {
                 'and(updated_at.eq."$cursorIso",id.gt."$cursorId")',
               );
 
-        final rows =
-            await filtered
-                .order('updated_at', ascending: true)
-                .order('id', ascending: true)
-                .limit(pullPageSize);
+        final rows = await filtered
+            .order('updated_at', ascending: true)
+            .order('id', ascending: true)
+            .limit(pullPageSize);
 
         final page = (rows as List).cast<Map<String, dynamic>>();
         if (page.isEmpty) break;
@@ -221,11 +220,7 @@ class SupabaseSyncBackendService implements SyncBackendService {
         case 'PGRST302':
         case '401':
         case '403':
-          return SyncBackendException(
-            SyncErrorKind.auth,
-            message,
-            code: code,
-          );
+          return SyncBackendException(SyncErrorKind.auth, message, code: code);
         // PGRST204: column named in the payload does not exist remotely.
         // 42P01 / 42703: table / column does not exist. All three mean a
         // migration in supabase/migrations/ has not been applied — see the

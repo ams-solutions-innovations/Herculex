@@ -38,6 +38,15 @@ enum AchievementType {
   /// Daily protein or macro target reached.
   proteinGoal,
 
+  /// Minimum calories or protein floor reached for the day.
+  minimumReached,
+
+  /// Exercise substitution or replacement in a workout.
+  exerciseSubstitution,
+
+  /// General workout action notification (e.g. set deleted, target applied).
+  workoutAction,
+
   /// Extensible custom celebration.
   custom,
 }
@@ -76,6 +85,12 @@ class InAppNotificationItem {
   final VoidCallback? onTap;
   final Duration duration;
 
+  /// Optional action button label (e.g. "Undo").
+  final String? actionLabel;
+
+  /// Optional callback invoked when the user taps the action button.
+  final VoidCallback? onAction;
+
   const InAppNotificationItem({
     required this.id,
     required this.type,
@@ -90,6 +105,8 @@ class InAppNotificationItem {
     this.primaryColor = const Color(0xFFFFD700), // Gold default
     this.secondaryColor,
     this.onTap,
+    this.actionLabel,
+    this.onAction,
     // kAchievementEnterDuration (1160ms) + kAchievementDefaultHold (1800ms):
     // the notifier's auto-dismiss Timer should fire exactly when the hold ends.
     this.duration = const Duration(milliseconds: 2960),
@@ -376,6 +393,188 @@ class InAppNotificationItem {
       primaryColor: const Color(0xFF00E5FF), // Cyan
       secondaryColor: const Color(0xFF00B0FF),
       onTap: onTap,
+    );
+  }
+
+  /// Factory helper for the daily minimum calories / protein floor being met.
+  factory InAppNotificationItem.minimumReached({
+    required bool isProtein,
+    required double current,
+    required int minimum,
+    VoidCallback? onTap,
+  }) {
+    final unit = isProtein ? 'g' : ' kcal';
+    return InAppNotificationItem(
+      id:
+          'min_reached_${isProtein ? 'protein' : 'kcal'}_'
+          '${DateTime.now().microsecondsSinceEpoch}',
+      type: AchievementType.minimumReached,
+      badgeText: isProtein ? 'MIN PROTEIN REACHED' : 'MIN CALORIES REACHED',
+      title: 'Daily Minimum',
+      valueText: '${current.round()}$unit / $minimum$unit',
+      subtitle: isProtein
+          ? 'You hit your minimum protein for today!'
+          : 'You hit your minimum calories for today!',
+      label: isProtein ? 'Minimum protein' : 'Minimum calories',
+      value: '${current.round()}$unit',
+      delta: '/$minimum$unit',
+      icon: isProtein
+          ? Icons.egg_alt_rounded
+          : Icons.local_fire_department_rounded,
+      primaryColor: isProtein
+          ? const Color(0xFF00E5FF)
+          : const Color(0xFFFF9F0A),
+      secondaryColor: isProtein
+          ? const Color(0xFF00B0FF)
+          : const Color(0xFFFF6D00),
+      onTap: onTap,
+    );
+  }
+
+  /// Factory helper for Exercise Replacement / Substitution in a workout.
+  factory InAppNotificationItem.exerciseReplaced({
+    required String exerciseName,
+    bool permanently = false,
+    VoidCallback? onTap,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    return InAppNotificationItem(
+      id: 'ex_replace_${DateTime.now().microsecondsSinceEpoch}',
+      type: AchievementType.exerciseSubstitution,
+      badgeText: permanently ? '🔄 PERMANENT REPLACEMENT' : '🔄 SUBSTITUTION',
+      title: exerciseName,
+      valueText: permanently
+          ? 'Permanently replaced with $exerciseName'
+          : 'Substituted to $exerciseName',
+      subtitle: permanently
+          ? 'Workout routine template updated'
+          : 'Session exercise substituted',
+      label: permanently ? 'Permanent replacement' : 'Exercise substituted',
+      value: exerciseName,
+      icon: Icons.swap_horiz_rounded,
+      primaryColor: const Color(0xFF00E676), // Vibrant emerald
+      secondaryColor: const Color(0xFF1DE9B6),
+      onTap: onTap,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      duration: const Duration(milliseconds: 3200),
+    );
+  }
+
+  /// Factory helper for workout actions (e.g. set deleted, target applied).
+  factory InAppNotificationItem.workoutAction({
+    required String label,
+    required String value,
+    String? delta,
+    IconData icon = Icons.check_circle_rounded,
+    Color primaryColor = const Color(0xFF00E676),
+    String? actionLabel,
+    VoidCallback? onAction,
+    VoidCallback? onTap,
+    Duration duration = const Duration(milliseconds: 3500),
+  }) {
+    return InAppNotificationItem(
+      id: 'workout_act_${DateTime.now().microsecondsSinceEpoch}',
+      type: AchievementType.workoutAction,
+      badgeText: 'WORKOUT ACTION',
+      title: value,
+      valueText: value,
+      label: label,
+      value: value,
+      delta: delta,
+      icon: icon,
+      primaryColor: primaryColor,
+      onTap: onTap,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      duration: duration,
+    );
+  }
+
+  /// Factory helper for general in-app success messages.
+  factory InAppNotificationItem.success({
+    required String label,
+    required String value,
+    IconData icon = Icons.check_circle_rounded,
+    Color primaryColor = const Color(0xFF00E676),
+    String? actionLabel,
+    VoidCallback? onAction,
+    VoidCallback? onTap,
+    Duration duration = const Duration(milliseconds: 3000),
+  }) {
+    return InAppNotificationItem(
+      id: 'success_${DateTime.now().microsecondsSinceEpoch}',
+      type: AchievementType.workoutAction,
+      badgeText: 'SUCCESS',
+      title: value,
+      valueText: value,
+      label: label,
+      value: value,
+      icon: icon,
+      primaryColor: primaryColor,
+      onTap: onTap,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      duration: duration,
+    );
+  }
+
+  /// Factory helper for neutral information (a sync finished, a setting took
+  /// effect) — same pill as a PR, in a calm blue.
+  factory InAppNotificationItem.info({
+    required String label,
+    required String value,
+    IconData icon = Icons.info_rounded,
+    Color primaryColor = const Color(0xFF64B5F6),
+    String? actionLabel,
+    VoidCallback? onAction,
+    VoidCallback? onTap,
+    Duration duration = const Duration(milliseconds: 3000),
+  }) {
+    return InAppNotificationItem(
+      id: 'info_${DateTime.now().microsecondsSinceEpoch}',
+      type: AchievementType.workoutAction,
+      badgeText: 'INFO',
+      title: value,
+      valueText: value,
+      label: label,
+      value: value,
+      icon: icon,
+      primaryColor: primaryColor,
+      onTap: onTap,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      duration: duration,
+    );
+  }
+
+  /// Factory helper for failures the user should notice — red pill, held a
+  /// little longer than a confirmation.
+  factory InAppNotificationItem.error({
+    required String label,
+    required String value,
+    IconData icon = Icons.error_rounded,
+    Color primaryColor = const Color(0xFFFF453A),
+    String? actionLabel,
+    VoidCallback? onAction,
+    VoidCallback? onTap,
+    Duration duration = const Duration(milliseconds: 4000),
+  }) {
+    return InAppNotificationItem(
+      id: 'error_${DateTime.now().microsecondsSinceEpoch}',
+      type: AchievementType.workoutAction,
+      badgeText: 'ERROR',
+      title: value,
+      valueText: value,
+      label: label,
+      value: value,
+      icon: icon,
+      primaryColor: primaryColor,
+      onTap: onTap,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      duration: duration,
     );
   }
 }

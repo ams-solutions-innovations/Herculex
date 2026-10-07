@@ -1,13 +1,20 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/app/router/routes.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
-import 'package:herculex/features/nutrition/domain/macro_targets.dart';
+import 'package:herculex/features/nutrition/application/goals_providers.dart';
+import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
+import 'package:herculex/features/nutrition/presentation/views/nutrition_targets_view.dart';
+import 'package:herculex/features/physique/presentation/save_physique_goal.dart';
 import 'package:herculex/features/profile/data/dream_physique_service.dart';
 import 'package:herculex/features/profile/domain/profile.dart';
 import 'package:herculex/services/ai/pending_ai_scan_service.dart';
@@ -21,24 +28,22 @@ class DreamPhysiqueView extends ConsumerStatefulWidget {
 }
 
 class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
+  static const _maxComparisonPhotos = 4;
+  static const _maxCurrentPhotos = 3;
+
   final List<File> _currentFiles = [];
-  File? _targetFile;
-  String _selectedGoalStyle = 'Lean & Aesthetic';
+  final List<File> _targetFiles = [];
   final _userNoteCtrl = TextEditingController();
 
   bool _analyzing = false;
+  bool _privacyConsentGranted = false;
+  bool _savingPriorities = false;
   String? _error;
   DreamPhysiqueAnalysisResult? _result;
+  List<ProgrammingMusclePriority> _reviewedProgrammingPriorities = [];
   List<ProgressPhotoData> _savedPhotos = [];
   Map<String, double> _measurements = {};
   bool _loadingData = true;
-
-  static const _goalStyles = [
-    'Lean & Aesthetic',
-    'Athletic / V-Taper',
-    'Classic Muscular',
-    'Defined Cut',
-  ];
 
   @override
   void initState() {
@@ -78,6 +83,13 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
   Future<void> _pickCurrentPhoto(ImageSource source) async {
     Haptics.light();
+    if (_currentFiles.length >= _maxCurrentPhotos ||
+        _currentFiles.length + _targetFiles.length >= _maxComparisonPhotos) {
+      setState(() {
+        _error = 'You can use up to $_maxComparisonPhotos photos in total.';
+      });
+      return;
+    }
     try {
       await ref
           .read(pendingAiScanServiceProvider)
@@ -103,8 +115,61 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
     }
   }
 
-  Future<void> _pickTargetPhoto() async {
+  /// The gallery flow deliberately uses the system multi-picker. Comparing a
+  /// front, side and back image together is more useful than making the user
+  /// repeat the same action three times.
+  Future<void> _pickCurrentPhotos() async {
     Haptics.light();
+    final remainingSlots = [
+      _maxComparisonPhotos - _currentFiles.length - _targetFiles.length,
+      _maxCurrentPhotos - _currentFiles.length,
+    ].reduce((a, b) => a < b ? a : b);
+    if (remainingSlots <= 0) {
+      setState(
+        () =>
+            _error = 'You can use up to $_maxComparisonPhotos photos in total.',
+      );
+      return;
+    }
+    try {
+      await ref
+          .read(pendingAiScanServiceProvider)
+          .setPendingContext(
+            PendingAiScanContext(type: AiScanContextType.dreamPhysique),
+          );
+      final picked = await ImagePicker().pickMultiImage(
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      await ref.read(pendingAiScanServiceProvider).clearPendingContext();
+      if (picked.isNotEmpty && mounted) {
+        setState(() {
+          final existingPaths = _currentFiles.map((file) => file.path).toSet();
+          _currentFiles.addAll(
+            picked
+                .map((image) => File(image.path))
+                .where((file) => !existingPaths.contains(file.path))
+                .take(remainingSlots),
+          );
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Error selecting images: $e');
+    }
+  }
+
+  Future<void> _pickTargetPhotos() async {
+    Haptics.light();
+    final remainingSlots =
+        _maxComparisonPhotos - _currentFiles.length - _targetFiles.length;
+    if (remainingSlots <= 0) {
+      setState(() {
+        _error = 'You can use up to $_maxComparisonPhotos photos in total.';
+      });
+      return;
+    }
     try {
       await ref
           .read(pendingAiScanServiceProvider)
@@ -112,16 +177,21 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             PendingAiScanContext(type: AiScanContextType.dreamPhysique),
           );
       final picker = ImagePicker();
-      final picked = await picker.pickImage(
-        source: ImageSource.gallery,
+      final picked = await picker.pickMultiImage(
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 85,
       );
       await ref.read(pendingAiScanServiceProvider).clearPendingContext();
-      if (picked != null && mounted) {
+      if (picked.isNotEmpty && mounted) {
         setState(() {
-          _targetFile = File(picked.path);
+          final existingPaths = _targetFiles.map((file) => file.path).toSet();
+          _targetFiles.addAll(
+            picked
+                .map((image) => File(image.path))
+                .where((file) => !existingPaths.contains(file.path))
+                .take(remainingSlots),
+          );
           _error = null;
         });
       }
@@ -133,10 +203,21 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
   void _toggleSavedPhoto(ProgressPhotoData photo) {
     Haptics.selection();
     final file = File(photo.filePath);
+    final existingIndex = _currentFiles.indexWhere(
+      (selected) => selected.path == file.path,
+    );
+    if (existingIndex < 0 &&
+        (_currentFiles.length >= _maxCurrentPhotos ||
+            _currentFiles.length + _targetFiles.length >=
+                _maxComparisonPhotos)) {
+      setState(() {
+        _error = 'You can use up to $_maxComparisonPhotos photos in total.';
+      });
+      return;
+    }
     setState(() {
-      final idx = _currentFiles.indexWhere((f) => f.path == file.path);
-      if (idx >= 0) {
-        _currentFiles.removeAt(idx);
+      if (existingIndex >= 0) {
+        _currentFiles.removeAt(existingIndex);
       } else {
         _currentFiles.add(file);
       }
@@ -152,9 +233,16 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
       );
       return;
     }
-    if (_targetFile == null) {
+    if (_targetFiles.isEmpty) {
       setState(
         () => _error = 'Please select a target photo of your dream physique.',
+      );
+      return;
+    }
+    if (!_privacyConsentGranted) {
+      setState(
+        () => _error =
+            'Confirm the photo privacy notice before starting the analysis.',
       );
       return;
     }
@@ -171,10 +259,10 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
       final result = await service.compareAndAnalyzePhysique(
         currentImages: _currentFiles,
-        targetImage: _targetFile!,
+        targetImages: _targetFiles,
+        consentGranted: _privacyConsentGranted,
         profile: profile,
         measurements: _measurements,
-        targetGoalStyle: _selectedGoalStyle,
         userNote: _userNoteCtrl.text.trim().isEmpty
             ? null
             : _userNoteCtrl.text.trim(),
@@ -184,14 +272,105 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
       setState(() {
         _analyzing = false;
         _result = result;
+        _reviewedProgrammingPriorities =
+            result.programmingProfile?.musclePriorities.toList() ?? [];
       });
       Haptics.heavy();
+      if (!mounted) return;
+      final saved = await savePhysiqueGoal(
+        context,
+        ref,
+        result: result,
+        currentPhotos: _currentFiles,
+        targetPhotoCount: _targetFiles.length,
+        targetPhoto: _targetFiles.first,
+      );
+      if (saved) await _adoptTargetWeight(profile, result);
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _analyzing = false;
-        _error = e.toString().replaceAll('Exception: ', '');
+        _error = _analysisErrorMessage(e);
       });
+    }
+  }
+
+  /// The saved physique goal becomes the active one, so the profile's target
+  /// weight follows it (current weight + the projected change).
+  Future<void> _adoptTargetWeight(
+    Profile? profile,
+    DreamPhysiqueAnalysisResult result,
+  ) async {
+    final current = profile?.weightKg;
+    if (profile == null || current == null) return;
+    final target = double.parse(
+      (current + result.weightChangeKg).toStringAsFixed(1),
+    );
+    if (target <= 0) return;
+    await ref
+        .read(localProfileRepositoryProvider)
+        .save(profile.copyWith(targetWeightKg: target), syncToLog: false);
+    await ref.read(goalWeightProvider.notifier).set(target);
+  }
+
+  String _analysisErrorMessage(Object error) {
+    final message = error.toString().replaceAll('Exception: ', '');
+    if (message.contains('Gemini API request failed (401)') ||
+        message.contains('Gemini server authorization failed')) {
+      return 'Herculex AI is not authorised on the server yet. Your photos are '
+          'still selected; ask the administrator to replace the server '
+          'GEMINI_API_KEY with a valid Google AI Studio API key, then try again.';
+    }
+    return message;
+  }
+
+  Future<void> _saveProgrammingPriorities(
+    DreamPhysiqueProgrammingProfile profile,
+  ) async {
+    if (_savingPriorities || _reviewedProgrammingPriorities.isEmpty) return;
+    setState(() => _savingPriorities = true);
+    final db = ref.read(appDatabaseProvider);
+    try {
+      final payload = {
+        'schemaVersion': profile.schemaVersion,
+        'overallConfidence': profile.overallConfidence,
+        'musclePriorities': [
+          for (final priority in _reviewedProgrammingPriorities)
+            {
+              'muscleId': priority.muscleId,
+              'priority': priority.priority.wireValue,
+              'confidence': priority.confidence,
+              'rationale': priority.rationale,
+              'uncertainties': priority.uncertainties,
+            },
+        ],
+        'uncertainties': profile.uncertainties,
+      };
+      await db.transaction(() async {
+        await db
+            .update(db.physiqueProgrammingProfiles)
+            .write(
+              const PhysiqueProgrammingProfilesCompanion(active: Value(false)),
+            );
+        await db
+            .into(db.physiqueProgrammingProfiles)
+            .insert(
+              PhysiqueProgrammingProfilesCompanion.insert(
+                prioritiesJson: jsonEncode(payload),
+                source: const Value('gemini_confirmed'),
+                modelVersion: Value('schema-${profile.schemaVersion}'),
+              ),
+            );
+      });
+      if (!mounted) return;
+      Haptics.success();
+      await _showSavedDialog(
+        title: 'Priorities saved',
+        message: 'Your reviewed priorities are ready to use in Smart programs.',
+        icon: Icons.check_circle_outline_rounded,
+      );
+    } finally {
+      if (mounted) setState(() => _savingPriorities = false);
     }
   }
 
@@ -202,6 +381,14 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
 
     return HxScreenShell(
       title: 'Dream Physique AI',
+      actions: [
+        IconButton(
+          key: const Key('open-dream-physique-history'),
+          icon: const Icon(Icons.history_rounded),
+          tooltip: 'History',
+          onPressed: () => context.push(AppRoutes.dreamPhysiqueHistory),
+        ),
+      ],
       children: _loadingData
           ? const [
               Padding(
@@ -231,7 +418,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
   Widget _buildSetupView(ThemeData theme, Profile? profile) {
     final weight = profile?.weightKg;
     final height = profile?.heightCm;
-    final macro = profile != null ? MacroTargets.fromProfile(profile) : null;
+    final macro = ref.watch(baselineTargetsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,8 +498,8 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.photo_library_outlined, size: 20),
-                  onPressed: () => _pickCurrentPhoto(ImageSource.gallery),
-                  tooltip: 'Gallery',
+                  onPressed: _pickCurrentPhotos,
+                  tooltip: 'Choose multiple from gallery',
                 ),
               ],
             ),
@@ -320,7 +507,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Select from saved photos or upload a new one.',
+          'Select up to 3 saved or gallery photos at once (front, side and back work best).',
           style: theme.textTheme.bodySmall?.copyWith(
             color: AppColors.secondary,
           ),
@@ -484,67 +671,68 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Upload a photo of the physique you want to achieve (from gallery or web).',
+          'Add one or more photos of the physique you want to achieve (from gallery or web).',
           style: theme.textTheme.bodySmall?.copyWith(
             color: AppColors.secondary,
           ),
         ),
         const SizedBox(height: 12),
 
+        if (_targetFiles.isNotEmpty)
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final file in _targetFiles)
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        file,
+                        width: 104,
+                        height: 130,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: InkWell(
+                        onTap: () => setState(() => _targetFiles.remove(file)),
+                        child: const CircleAvatar(
+                          radius: 13,
+                          backgroundColor: Colors.black87,
+                          child: Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        if (_targetFiles.isNotEmpty) const SizedBox(height: 10),
         GestureDetector(
-          onTap: _pickTargetPhoto,
+          onTap: _pickTargetPhotos,
           child: Container(
-            height: 160,
+            height: _targetFiles.isEmpty ? 160 : 58,
             width: double.infinity,
             decoration: BoxDecoration(
               color: AppColors.surfaceContainer,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _targetFile != null
+                color: _targetFiles.isNotEmpty
                     ? AppColors.primary
                     : AppColors.outlineVariant.withValues(alpha: 0.4),
-                width: _targetFile != null ? 2 : 1,
+                width: _targetFiles.isNotEmpty ? 2 : 1,
               ),
             ),
-            child: _targetFile != null && _targetFile!.existsSync()
-                ? Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: Image.file(_targetFile!, fit: BoxFit.cover),
-                      ),
-                      Positioned(
-                        bottom: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.75),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.edit, size: 12, color: Colors.white),
-                              SizedBox(width: 4),
-                              Text(
-                                'Change photo',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
+            child: _targetFiles.isEmpty
+                ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
@@ -554,7 +742,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Choose target photo from gallery',
+                        'Choose target photos from gallery',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -568,40 +756,16 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                         ),
                       ),
                     ],
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_photo_alternate_outlined),
+                      SizedBox(width: 8),
+                      Text('Add more target photos'),
+                    ],
                   ),
           ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // ── 3. Target Aesthetic Style ──
-        Text(
-          'Desired aesthetic style',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _goalStyles.map((style) {
-            final selected = _selectedGoalStyle == style;
-            return ChoiceChip(
-              label: Text(style),
-              selected: selected,
-              onSelected: (_) {
-                Haptics.selection();
-                setState(() => _selectedGoalStyle = style);
-              },
-              selectedColor: AppColors.primary.withValues(alpha: 0.2),
-              side: BorderSide(
-                color: selected
-                    ? AppColors.primary
-                    : AppColors.outlineVariant.withValues(alpha: 0.3),
-              ),
-            );
-          }).toList(),
         ),
 
         const SizedBox(height: 20),
@@ -635,17 +799,58 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           ),
         ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
+
+        // Explicit, per-analysis consent. This state is intentionally kept in
+        // memory only and survives recoverable request failures.
+        Material(
+          color: AppColors.surfaceContainer,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: _privacyConsentGranted
+                  ? AppColors.primary.withValues(alpha: 0.5)
+                  : AppColors.outlineVariant.withValues(alpha: 0.35),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: CheckboxListTile(
+            key: const Key('dream-physique-privacy-consent'),
+            value: _privacyConsentGranted,
+            onChanged: (value) {
+              Haptics.selection();
+              setState(() {
+                _privacyConsentGranted = value ?? false;
+                _error = null;
+              });
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+            activeColor: AppColors.primary,
+            title: const Text(
+              'I agree to send these photos to Herculex AI (powered by Google Gemini)',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            subtitle: const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'The images are sent only for this analysis. Herculex does not persist them on its servers. Google processes them to produce the result.',
+                style: TextStyle(fontSize: 11, height: 1.35),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
 
         // Trigger Button
         SizedBox(
           width: double.infinity,
           height: 52,
           child: FilledButton.icon(
-            onPressed: _startAnalysis,
+            key: const Key('dream-physique-start-analysis'),
+            onPressed: _privacyConsentGranted ? _startAnalysis : null,
             icon: const Icon(Icons.auto_awesome),
             label: const Text(
-              'Compare and create plan with Gemini AI',
+              'Compare and create plan with Herculex AI',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: FilledButton.styleFrom(
@@ -683,7 +888,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
             const CircularProgressIndicator(),
             const SizedBox(height: 24),
             Text(
-              'Gemini AI is comparing physiques...',
+              'Herculex AI is comparing physiques...',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -808,7 +1013,7 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                     child: Column(
                       children: [
                         Text(
-                          'Goal (Dream)',
+                          'Goal (Dream${_targetFiles.length > 1 ? ' • ${_targetFiles.length} photos' : ''})',
                           style: theme.textTheme.labelMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
@@ -818,9 +1023,10 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child:
-                              _targetFile != null && _targetFile!.existsSync()
+                              _targetFiles.isNotEmpty &&
+                                  _targetFiles.first.existsSync()
                               ? Image.file(
-                                  _targetFile!,
+                                  _targetFiles.first,
                                   height: 140,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
@@ -901,38 +1107,49 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         ),
         const SizedBox(height: 24),
 
-        // ── Muscle Priority Matrix ──
-        Row(
-          children: [
-            Icon(
-              Icons.format_list_bulleted,
-              size: 20,
-              color: AppColors.primary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Aesthetic Muscle Group Focus',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+        // ── Reviewable Programming Profile ──
+        if (r.programmingProfile != null)
+          _buildProgrammingProfileReview(theme, r.programmingProfile!)
+        else ...[
+          Row(
+            children: [
+              Icon(
+                Icons.format_list_bulleted,
+                size: 20,
+                color: AppColors.primary,
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'To achieve target symmetry, prioritize these muscles:',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.secondary,
+              const SizedBox(width: 8),
+              Text(
+                'Aesthetic Muscle Group Focus',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 12),
-
-        for (final p in r.musclePriorities) ...[
-          _MusclePriorityCard(priority: p),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          Text(
+            'Review these legacy analysis priorities. No program has been changed.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.secondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final p in r.musclePriorities) ...[
+            _MusclePriorityCard(priority: p),
+            const SizedBox(height: 8),
+          ],
         ],
 
         const SizedBox(height: 20),
+
+        _SectionCard(
+          title: 'Detected target aesthetic',
+          icon: Icons.auto_awesome_outlined,
+          content: r.targetAestheticStyle,
+          theme: theme,
+        ),
+        const SizedBox(height: 12),
 
         // ── Nutrition Strategy Card ──
         _SectionCard(
@@ -940,6 +1157,16 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           icon: Icons.restaurant_outlined,
           content: r.nutritionStrategy,
           theme: theme,
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            key: const Key('edit-nutrition-targets-from-dream-physique'),
+            onPressed: _openNutritionTargets,
+            icon: const Icon(Icons.tune_rounded, size: 18),
+            label: const Text('Update nutrition targets'),
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -969,7 +1196,11 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
           child: OutlinedButton.icon(
             onPressed: () {
               Haptics.selection();
-              setState(() => _result = null);
+              setState(() {
+                _result = null;
+                _reviewedProgrammingPriorities = [];
+                _privacyConsentGranted = false;
+              });
             },
             icon: const Icon(Icons.refresh),
             label: const Text('New analysis / Change photos'),
@@ -977,6 +1208,242 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openNutritionTargets() async {
+    Haptics.selection();
+    final customTargets = ref.read(nutritionTargetsProvider).asData?.value;
+    NutritionTargetData? initialTarget;
+    if (customTargets != null) {
+      for (final target in customTargets) {
+        if (target.appliesTo == 'global') {
+          initialTarget = target;
+          break;
+        }
+      }
+    }
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TargetEditorView(initialTarget: initialTarget),
+      ),
+    );
+    if (saved == true && mounted) {
+      Haptics.success();
+      await _showSavedDialog(
+        title: 'Nutrition targets updated',
+        message:
+            'Your daily calories and macros are now active for nutrition tracking.',
+        icon: Icons.restaurant_menu_rounded,
+      );
+    }
+  }
+
+  Future<void> _showSavedDialog({
+    required String title,
+    required String message,
+    required IconData icon,
+  }) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return Dialog(
+          backgroundColor: AppColors.surfaceContainer,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: AppColors.primary, size: 32),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.secondary,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Continue'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProgrammingProfileReview(
+    ThemeData theme,
+    DreamPhysiqueProgrammingProfile profile,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.fact_check_outlined, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Review before programming',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'This is an editable analysis only. Herculex has not changed or activated any training program.',
+                      style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Icon(Icons.tune, size: 20, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Programming priorities',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Text(
+              'AI confidence ${(profile.overallConfidence * 100).round()}%',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Change a priority or remove it if the visual comparison does not match your intent.',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.secondary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_reviewedProgrammingPriorities.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Text(
+              'No AI priorities selected. You can run a new analysis or choose priorities manually later.',
+            ),
+          )
+        else
+          for (
+            var index = 0;
+            index < _reviewedProgrammingPriorities.length;
+            index++
+          ) ...[
+            _ProgrammingPriorityReviewCard(
+              key: ValueKey(
+                'programming-priority-${_reviewedProgrammingPriorities[index].muscleId}',
+              ),
+              priority: _reviewedProgrammingPriorities[index],
+              onPriorityChanged: (value) {
+                setState(() {
+                  _reviewedProgrammingPriorities[index] =
+                      _reviewedProgrammingPriorities[index].copyWith(
+                        priority: value,
+                      );
+                });
+              },
+              onRemove: () {
+                Haptics.light();
+                setState(() => _reviewedProgrammingPriorities.removeAt(index));
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        if (profile.uncertainties.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _SectionCard(
+            title: 'Analysis limitations',
+            icon: Icons.info_outline,
+            content: profile.uncertainties.map((item) => '• $item').join('\n'),
+            theme: theme,
+          ),
+        ],
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            key: const Key('confirm-dream-physique-programming-profile'),
+            onPressed:
+                _reviewedProgrammingPriorities.isEmpty || _savingPriorities
+                ? null
+                : () => _saveProgrammingPriorities(profile),
+            icon: _savingPriorities
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.check_circle_outline),
+            label: Text(
+              _savingPriorities
+                  ? 'Saving priorities…'
+                  : 'Save priorities & continue',
             ),
           ),
         ),
@@ -1005,6 +1472,132 @@ class _DreamPhysiqueViewState extends ConsumerState<DreamPhysiqueView> {
         ],
       ),
     );
+  }
+}
+
+class _ProgrammingPriorityReviewCard extends StatelessWidget {
+  final ProgrammingMusclePriority priority;
+  final ValueChanged<ProgrammingPriorityLevel> onPriorityChanged;
+  final VoidCallback onRemove;
+
+  const _ProgrammingPriorityReviewCard({
+    super.key,
+    required this.priority,
+    required this.onPriorityChanged,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _muscleLabel(priority.muscleId),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${(priority.confidence * 100).round()}% confidence',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              DropdownButtonHideUnderline(
+                child: DropdownButton<ProgrammingPriorityLevel>(
+                  value: priority.priority,
+                  borderRadius: BorderRadius.circular(12),
+                  items: ProgrammingPriorityLevel.values
+                      .map(
+                        (value) => DropdownMenuItem(
+                          value: value,
+                          child: Text(_priorityLabel(value)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) onPriorityChanged(value);
+                  },
+                ),
+              ),
+              IconButton(
+                onPressed: onRemove,
+                icon: const Icon(Icons.close, size: 18),
+                tooltip: 'Remove priority',
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            priority.rationale,
+            style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+          ),
+          if (priority.uncertainties.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              priority.uncertainties.join(' '),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static String _priorityLabel(ProgrammingPriorityLevel value) {
+    return switch (value) {
+      ProgrammingPriorityLevel.high => 'High',
+      ProgrammingPriorityLevel.medium => 'Medium',
+      ProgrammingPriorityLevel.maintenance => 'Maintenance',
+    };
+  }
+
+  static String _muscleLabel(String muscleId) {
+    const labels = <String, String>{
+      'chest': 'Chest',
+      'back': 'Back',
+      'lats': 'Lats',
+      'traps': 'Traps',
+      'front_delts': 'Front delts',
+      'side_delts': 'Side delts',
+      'rear_delts': 'Rear delts',
+      'biceps': 'Biceps',
+      'triceps': 'Triceps',
+      'forearms': 'Forearms',
+      'abs': 'Abs',
+      'obliques': 'Obliques',
+      'neck': 'Neck',
+      'quads': 'Quads',
+      'hamstrings': 'Hamstrings',
+      'glutes': 'Glutes',
+      'calves': 'Calves',
+      'adductors': 'Adductors',
+      'abductors': 'Abductors',
+    };
+    return labels[muscleId] ?? muscleId;
   }
 }
 
@@ -1078,9 +1671,19 @@ class _MusclePriorityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isHigh = priority.priority.toLowerCase() == 'high';
-    final badgeColor = isHigh ? Colors.redAccent : Colors.orangeAccent;
-    final badgeText = isHigh ? 'VISOKA PRIORITETA' : 'SREDNJA PRIORITETA';
+    final normalizedPriority = priority.priority.toLowerCase();
+    final isHigh = normalizedPriority == 'high';
+    final isMaintenance = normalizedPriority == 'maintenance';
+    final badgeColor = isHigh
+        ? Colors.redAccent
+        : isMaintenance
+        ? Colors.blueAccent
+        : Colors.orangeAccent;
+    final badgeText = isHigh
+        ? 'HIGH PRIORITY'
+        : isMaintenance
+        ? 'MAINTENANCE'
+        : 'MEDIUM PRIORITY';
 
     return Container(
       padding: const EdgeInsets.all(14),

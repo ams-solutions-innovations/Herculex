@@ -10,7 +10,6 @@ class FastingInsights extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final hx = context.hx;
     final streakAsync = ref.watch(fastingStreakProvider);
     final avgEatingAsync = ref.watch(fastingAverageEatingWindowProvider);
@@ -34,7 +33,7 @@ class FastingInsights extends ConsumerWidget {
         Expanded(
           child: _metricCard(
             context,
-            title: "Avg. Fasting Window",
+            title: "Avg. Window",
             value: avgEatingAsync.when(
               data: (hrs) =>
                   "${(24.0 - hrs).clamp(0.0, 24.0).toStringAsFixed(1)} hrs",
@@ -64,12 +63,18 @@ class FastingInsights extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: theme.textTheme.bodySmall?.copyWith(color: hx.secondary),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: hx.secondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 4),
               Icon(icon, size: 18, color: accent),
             ],
           ),

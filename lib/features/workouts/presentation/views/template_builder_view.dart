@@ -8,6 +8,7 @@ import 'package:herculex/features/workouts/application/circuits_providers.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
 import 'package:herculex/features/workouts/presentation/sheets/exercise_picker_sheet.dart';
+import 'package:herculex/features/workouts/presentation/widgets/exercise_artwork.dart';
 import 'package:herculex/features/workouts/presentation/widgets/set_type_menu.dart';
 
 class TemplateBuilderView extends ConsumerStatefulWidget {
@@ -89,22 +90,20 @@ class _TemplateBuilderViewState extends ConsumerState<TemplateBuilderView> {
     return HxScreenShell(
       title: templateId == null ? 'New Template' : 'Edit Template',
       actions: [
+        // A frosted circle like the back button: the shell reserves exactly one
+        // circle per action, so a text button here ran underneath the title.
         if (templateId != null && !_saving)
-          TextButton(
-            onPressed: () async {
+          HxCircleButton(
+            icon: Icons.check_rounded,
+            iconColor: AppColors.primary,
+            tooltip: widget.returnsSelection ? 'Use template' : 'Save',
+            onTap: () async {
               final navigator = Navigator.of(context);
               await _save(widget.existing!);
               if (!mounted || !widget.returnsSelection) return;
               // Hand the finished template back to whatever opened us.
               navigator.pop(widget.existing);
             },
-            child: Text(
-              widget.returnsSelection ? 'Use template' : 'Save',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
           ),
       ],
       children: [
@@ -300,74 +299,65 @@ class _EditBodyState extends ConsumerState<_EditBody> {
           orElse: () => const SizedBox.shrink(),
         ),
 
-        Stack(
-          alignment: Alignment.center,
+        // The label used to be centred in a Stack under the controls, so the
+        // two collided on narrow screens. A Row gives each its own space.
+        Row(
           children: [
-            Text(
-              'EXERCISES',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.secondary,
-                letterSpacing: 1.2,
+            Expanded(
+              child: Text(
+                'EXERCISES',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.secondary,
+                  letterSpacing: 1.2,
+                ),
               ),
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _SetsCountChip(
-                    label: 'Sets',
-                    count: _defaultTargetSets,
-                    onTap: () async {
-                      final chosen = await _pickSetCount(
-                        context,
-                        current: _defaultTargetSets,
-                        title: 'Default Sets For New Exercises',
-                      );
-                      if (chosen != null && chosen > 0) {
-                        setState(
-                          () => _defaultTargetSets = chosen.clamp(1, 50),
-                        );
-                      }
-                    },
-                  ),
-                  TextButton.icon(
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add Exercise'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                    ),
-                    onPressed: () async {
-                      final results = await ExercisePickerSheet.show(context);
-                      if (results == null ||
-                          results.isEmpty ||
-                          !context.mounted)
-                        return;
-                      final circuitIds = <int>{};
-                      for (final picked in results) {
-                        if (picked.circuitId != null) {
-                          if (!circuitIds.contains(picked.circuitId!)) {
-                            circuitIds.add(picked.circuitId!);
-                            await ref
-                                .read(circuitsRepositoryProvider)
-                                .addCircuitToTemplate(
-                                  templateId: template.id,
-                                  circuitId: picked.circuitId!,
-                                );
-                          }
-                          continue;
-                        }
-                        await repo.addExerciseToTemplate(
-                          templateId: template.id,
-                          exerciseId: picked.exercise.id,
-                          targetSets: _defaultTargetSets,
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
+            _SetsCountChip(
+              label: 'Sets',
+              count: _defaultTargetSets,
+              onTap: () async {
+                final chosen = await _pickSetCount(
+                  context,
+                  current: _defaultTargetSets,
+                  title: 'Default Sets For New Exercises',
+                );
+                if (chosen != null && chosen > 0) {
+                  setState(() => _defaultTargetSets = chosen.clamp(1, 50));
+                }
+              },
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add Exercise'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              onPressed: () async {
+                final results = await ExercisePickerSheet.show(context);
+                if (results == null || results.isEmpty || !context.mounted) {
+                  return;
+                }
+                final circuitIds = <int>{};
+                for (final picked in results) {
+                  if (picked.circuitId != null) {
+                    if (!circuitIds.contains(picked.circuitId!)) {
+                      circuitIds.add(picked.circuitId!);
+                      await ref
+                          .read(circuitsRepositoryProvider)
+                          .addCircuitToTemplate(
+                            templateId: template.id,
+                            circuitId: picked.circuitId!,
+                          );
+                    }
+                    continue;
+                  }
+                  await repo.addExerciseToTemplate(
+                    templateId: template.id,
+                    exerciseId: picked.exercise.id,
+                    targetSets: _defaultTargetSets,
+                  );
+                }
+              },
             ),
           ],
         ),
@@ -464,6 +454,7 @@ class _EditBodyState extends ConsumerState<_EditBody> {
     force: '',
     plane: '',
     defaultRestSeconds: 120,
+    maxEffortEligibility: 'unsuitable',
     isCustom: false,
     category: 'strength',
     modality: 'barbell',
@@ -544,19 +535,32 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
                 color: AppColors.primary,
               ),
               const SizedBox(width: 8),
-              Text(
-                'Muscle Groups / Volume',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '$totalWorkingSets ${totalWorkingSets == 1 ? 'set' : 'sets'}${totalWarmupSets > 0 ? ' (+$totalWarmupSets warmup)' : ''}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.secondary,
+              // Title and total share the header, so the total sits under
+              // the title instead of beside it — side by side they overflowed
+              // the card on phone widths.
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Muscle Groups / Volume',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Text(
+                      '$totalWorkingSets ${totalWorkingSets == 1 ? 'set' : 'sets'}${totalWarmupSets > 0 ? ' (+$totalWarmupSets warmup)' : ''}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -658,6 +662,7 @@ class _MuscleGroupHeaderCard extends ConsumerWidget {
     force: '',
     plane: '',
     defaultRestSeconds: 120,
+    maxEffortEligibility: 'unsuitable',
     isCustom: false,
     category: 'strength',
     modality: 'barbell',
@@ -703,20 +708,9 @@ class _TemplateExerciseCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.fitness_center,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
-              ),
+              ExerciseArtwork(exercise: exercise, size: 48, radius: 12),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -738,30 +732,38 @@ class _TemplateExerciseCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              _SetsCountChip(
-                label: 'Sets',
-                count: te.targetSets > 0 ? te.targetSets : 3,
-                onTap: () async {
-                  final chosen = await _pickSetCount(
-                    context,
-                    current: te.targetSets > 0 ? te.targetSets : 3,
-                    title: 'Number of Sets',
-                  );
-                  if (chosen != null && chosen > 0) {
-                    await repo.updateTemplateExercise(
-                      te.id,
-                      targetSets: chosen.clamp(1, 50),
-                    );
-                  }
-                },
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline,
-                  size: 20,
-                  color: AppColors.secondary,
-                ),
-                onPressed: onRemove,
+              // Sets sits under the bin rather than beside it: beside it the
+              // pair ate the width and wrapped the exercise name.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: AppColors.secondary,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onRemove,
+                  ),
+                  _SetsCountChip(
+                    label: 'Sets',
+                    count: te.targetSets > 0 ? te.targetSets : 3,
+                    onTap: () async {
+                      final chosen = await _pickSetCount(
+                        context,
+                        current: te.targetSets > 0 ? te.targetSets : 3,
+                        title: 'Number of Sets',
+                      );
+                      if (chosen != null && chosen > 0) {
+                        await repo.updateTemplateExercise(
+                          te.id,
+                          targetSets: chosen.clamp(1, 50),
+                        );
+                      }
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -1019,6 +1021,12 @@ class _TemplateSetRowState extends State<_TemplateSetRow> {
                   context,
                   current: setType,
                   isWarmup: isWarmup,
+                  // Manual workout templates have no SlotRole/program opt-in
+                  // context (they're user-authored, not generator slots) —
+                  // preserve pre-existing unrestricted behavior here. The
+                  // D-11/D-12 gate applies only to generator-materialized
+                  // workout exercises (see active_exercise_card.dart).
+                  allowAdvancedTechniques: true,
                 );
                 if (selection != null) {
                   widget.onUpdateSetType(selection);

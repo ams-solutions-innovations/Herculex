@@ -8,6 +8,7 @@ import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/features/nutrition/application/nutrition_providers.dart';
 import 'package:herculex/features/nutrition/data/gemini_food_analyzer_service.dart';
 import 'package:herculex/features/nutrition/data/product_catalogue_repository.dart';
+import 'package:herculex/features/nutrition/domain/food_portion.dart';
 
 /// Shown after [GeminiFoodAnalyzerService.analyzeBarcodeProduct] returns for
 /// a barcode the app didn't already know: the model's guess is editable, the
@@ -48,6 +49,8 @@ class _BarcodeProductReviewDialogState
     extends ConsumerState<BarcodeProductReviewDialog> {
   final _nameCtrl = TextEditingController();
   final _brandCtrl = TextEditingController();
+  final _portionCtrl = TextEditingController();
+  final _portionUnitCtrl = TextEditingController();
   final _gramsCtrl = TextEditingController();
   final _kcalCtrl = TextEditingController();
   final _proteinCtrl = TextEditingController();
@@ -73,6 +76,8 @@ class _BarcodeProductReviewDialogState
     for (final c in [
       _nameCtrl,
       _brandCtrl,
+      _portionCtrl,
+      _portionUnitCtrl,
       _gramsCtrl,
       _kcalCtrl,
       _proteinCtrl,
@@ -114,6 +119,10 @@ class _BarcodeProductReviewDialogState
         _result = result;
         _nameCtrl.text = result.name;
         _brandCtrl.text = result.brand ?? '';
+        _portionCtrl.text = result.portionAmount.toStringAsFixed(
+          result.portionAmount % 1 == 0 ? 0 : 1,
+        );
+        _portionUnitCtrl.text = result.portionUnit;
         _gramsCtrl.text = result.servingGrams.toStringAsFixed(0);
         _kcalCtrl.text = result.kcalPer100g.toStringAsFixed(0);
         _proteinCtrl.text = result.proteinPer100g.toStringAsFixed(1);
@@ -139,6 +148,10 @@ class _BarcodeProductReviewDialogState
         ? null
         : _brandCtrl.text.trim();
     final servingGrams = double.tryParse(_gramsCtrl.text) ?? 100;
+    final portionAmount = double.tryParse(_portionCtrl.text) ?? 1;
+    final portionUnit = _portionUnitCtrl.text.trim().isEmpty
+        ? 'serving'
+        : _portionUnitCtrl.text.trim();
     final kcalPer100g = double.tryParse(_kcalCtrl.text) ?? 0;
     final proteinPer100g = double.tryParse(_proteinCtrl.text) ?? 0;
     final carbsPer100g = double.tryParse(_carbsCtrl.text) ?? 0;
@@ -159,7 +172,13 @@ class _BarcodeProductReviewDialogState
         carbsPer100g: carbsPer100g,
         fatPer100g: fatPer100g,
         servingGrams: servingGrams,
-        servingLabel: '${servingGrams.toStringAsFixed(0)} g',
+        servingAmount: portionAmount,
+        servingUnit: portionUnit,
+        servingLabel: FoodPortion.labelFor(
+          amount: portionAmount,
+          unit: portionUnit,
+          mass: servingGrams,
+        ),
         sodiumMgPer100g: sodiumMgPer100g,
         sourceMetadataJson: jsonEncode({
           'source': 'gemini',
@@ -237,7 +256,7 @@ class _BarcodeProductReviewDialogState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Gemini AI · Product Lookup',
+                      'Herculex AI · Product Lookup',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -290,7 +309,7 @@ class _BarcodeProductReviewDialogState
                           const CircularProgressIndicator(),
                           const SizedBox(height: 16),
                           const Text(
-                            'Gemini AI is searching for product online...',
+                            'Herculex AI is searching for product online...',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
@@ -366,6 +385,26 @@ class _BarcodeProductReviewDialogState
                     _Field(controller: _nameCtrl, label: 'Product name'),
                     const SizedBox(height: 12),
                     _Field(controller: _brandCtrl, label: 'Brand'),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Field(
+                            controller: _portionCtrl,
+                            label: 'Serving quantity',
+                            suffix: '×',
+                            decimal: true,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _Field(
+                            controller: _portionUnitCtrl,
+                            label: 'Measure (scoop, bar…)',
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [

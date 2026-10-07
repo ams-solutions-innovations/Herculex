@@ -2,7 +2,18 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:herculex/design_system/theme/colors.dart';
+import 'package:herculex/features/programs/domain/slot_role.dart';
 import 'package:herculex/features/workouts/domain/set_type.dart';
+
+/// Single source of truth for whether advanced intensity techniques (drop,
+/// rest-pause, myo-reps, AMRAP) may be offered in the set-type menu.
+///
+/// `SlotRole.main` lifts never allow these, regardless of [programAllows]
+/// (D-12). Every other role only allows them when the owning program's
+/// `allowTimeSavingSetTechniques` opt-in is set (D-11). Do not duplicate this
+/// `!= SlotRole.main` check elsewhere — call this instead.
+bool isAdvancedTechniqueAllowed(SlotRole role, bool programAllows) =>
+    role != SlotRole.main && programAllows;
 
 /// Result of the set-type menu: a type plus its serialized metadata.
 class SetTypeSelection {
@@ -404,19 +415,30 @@ class SetTypeInfo {
 class SetTypeMenu extends StatelessWidget {
   final SetType current;
   final bool isWarmup;
+  final bool allowAdvancedTechniques;
 
-  const SetTypeMenu({super.key, required this.current, this.isWarmup = false});
+  const SetTypeMenu({
+    super.key,
+    required this.current,
+    this.isWarmup = false,
+    this.allowAdvancedTechniques = true,
+  });
 
   static Future<SetTypeSelection?> show(
     BuildContext context, {
     required SetType current,
     bool isWarmup = false,
+    bool allowAdvancedTechniques = true,
   }) {
     return showModalBottomSheet<SetTypeSelection>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => SetTypeMenu(current: current, isWarmup: isWarmup),
+      builder: (_) => SetTypeMenu(
+        current: current,
+        isWarmup: isWarmup,
+        allowAdvancedTechniques: allowAdvancedTechniques,
+      ),
     );
   }
 
@@ -446,11 +468,24 @@ class SetTypeMenu extends StatelessWidget {
   static final List<SetTypeInfo> _basicItems = SetTypeInfo.all
       .where((i) => i.category == SetTypeCategory.basic)
       .toList();
-  static final List<SetTypeInfo> _hypertrophyItems = SetTypeInfo.all
-      .where((i) => i.category == SetTypeCategory.hypertrophy)
+
+  // Hard-hide, not disabled-but-visible (D-13, T-18-05): filtered at
+  // list-construction time so a gated technique never enters the rendered
+  // list. Instance getters (not static) because filtering depends on
+  // per-show() `allowAdvancedTechniques`.
+  List<SetTypeInfo> get _hypertrophyItems => SetTypeInfo.all
+      .where(
+        (i) =>
+            i.category == SetTypeCategory.hypertrophy &&
+            allowAdvancedTechniques,
+      )
       .toList();
-  static final List<SetTypeInfo> _timedItems = SetTypeInfo.all
-      .where((i) => i.category == SetTypeCategory.timed)
+  List<SetTypeInfo> get _timedItems => SetTypeInfo.all
+      .where(
+        (i) =>
+            i.category == SetTypeCategory.timed &&
+            (i.type != SetType.amrap || allowAdvancedTechniques),
+      )
       .toList();
 
   @override
@@ -602,34 +637,38 @@ class SetTypeMenu extends StatelessWidget {
                   const SizedBox(height: 14),
 
                   // Category 2: Hypertrophy & Intensity
-                  _CategoryHeader(category: SetTypeCategory.hypertrophy),
-                  const SizedBox(height: 6),
-                  for (final item in _hypertrophyItems)
-                    _SquircleSetTypeTile(
-                      info: item,
-                      isSelected: !isWarmup && item.type == current,
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pop(SetTypeSelection(item.type!)),
-                      onHelpTap: () => SetTypeDetailDialog.show(context, item),
-                    ),
-
-                  const SizedBox(height: 14),
+                  if (_hypertrophyItems.isNotEmpty) ...[
+                    _CategoryHeader(category: SetTypeCategory.hypertrophy),
+                    const SizedBox(height: 6),
+                    for (final item in _hypertrophyItems)
+                      _SquircleSetTypeTile(
+                        info: item,
+                        isSelected: !isWarmup && item.type == current,
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pop(SetTypeSelection(item.type!)),
+                        onHelpTap: () =>
+                            SetTypeDetailDialog.show(context, item),
+                      ),
+                    const SizedBox(height: 14),
+                  ],
 
                   // Category 3: Timed & Functional
-                  _CategoryHeader(category: SetTypeCategory.timed),
-                  const SizedBox(height: 6),
-                  for (final item in _timedItems)
-                    _SquircleSetTypeTile(
-                      info: item,
-                      isSelected: !isWarmup && item.type == current,
-                      onTap: () => Navigator.of(
-                        context,
-                      ).pop(SetTypeSelection(item.type!)),
-                      onHelpTap: () => SetTypeDetailDialog.show(context, item),
-                    ),
-
-                  const SizedBox(height: 14),
+                  if (_timedItems.isNotEmpty) ...[
+                    _CategoryHeader(category: SetTypeCategory.timed),
+                    const SizedBox(height: 6),
+                    for (final item in _timedItems)
+                      _SquircleSetTypeTile(
+                        info: item,
+                        isSelected: !isWarmup && item.type == current,
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pop(SetTypeSelection(item.type!)),
+                        onHelpTap: () =>
+                            SetTypeDetailDialog.show(context, item),
+                      ),
+                    const SizedBox(height: 14),
+                  ],
 
                   // Delete Set Action Squircle
                   Container(

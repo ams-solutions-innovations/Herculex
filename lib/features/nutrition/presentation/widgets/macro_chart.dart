@@ -52,6 +52,12 @@ double macroValueForTotals(DailyTotals totals, String macro) {
   };
 }
 
+const _minLineColor = Color(0xFFFF9F0A);
+
+/// A usable horizontal-line value: positive and finite, else null.
+double? _validLine(double? v) =>
+    (v == null || v <= 0 || v.isNaN || v.isInfinite) ? null : v;
+
 /// Line chart of one macro over the trailing [range], with an optional dashed
 /// target line. Days missing from [historyMap] render as zero.
 class MacroTrendChart extends StatelessWidget {
@@ -61,6 +67,7 @@ class MacroTrendChart extends StatelessWidget {
     required this.macro,
     required this.range,
     this.targetValue,
+    this.minValue,
     this.height = 160,
   });
 
@@ -68,6 +75,9 @@ class MacroTrendChart extends StatelessWidget {
   final String macro;
   final String range;
   final double? targetValue;
+
+  /// Minimum floor (protein or calories) drawn as a second dashed line.
+  final double? minValue;
   final double height;
 
   @override
@@ -78,7 +88,8 @@ class MacroTrendChart extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final color = macroColorFor(macro);
     final unit = macroUnitFor(macro);
-    final targetValue = this.targetValue;
+    final targetValue = _validLine(this.targetValue);
+    final minValue = _validLine(this.minValue);
 
     final spots = <FlSpot>[];
     final dates = <DateTime>[];
@@ -114,12 +125,12 @@ class MacroTrendChart extends StatelessWidget {
     }
 
     final maxYValue = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    final topBound =
-        (targetValue != null &&
-            !targetValue.isNaN &&
-            !targetValue.isInfinite &&
-            targetValue > maxYValue)
-        ? targetValue * 1.15
+    final lineMax = [
+      ?targetValue,
+      ?minValue,
+    ].fold<double>(0, (a, b) => a > b ? a : b);
+    final topBound = lineMax > maxYValue
+        ? lineMax * 1.15
         : maxYValue > 0
         ? maxYValue * 1.2
         : 100.0;
@@ -183,32 +194,48 @@ class MacroTrendChart extends StatelessWidget {
             ),
           ),
           borderData: FlBorderData(show: false),
-          extraLinesData:
-              targetValue == null ||
-                  targetValue <= 0 ||
-                  targetValue.isNaN ||
-                  targetValue.isInfinite
+          extraLinesData: (targetValue == null && minValue == null)
               ? null
               : ExtraLinesData(
                   horizontalLines: [
-                    HorizontalLine(
-                      y: targetValue,
-                      color: color.withValues(alpha: 0.5),
-                      strokeWidth: 1.5,
-                      dashArray: [4, 4],
-                      label: HorizontalLineLabel(
-                        show: true,
-                        alignment: Alignment.topRight,
-                        padding: const EdgeInsets.only(right: 8, bottom: 2),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: color,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
+                    if (targetValue != null)
+                      HorizontalLine(
+                        y: targetValue,
+                        color: color.withValues(alpha: 0.5),
+                        strokeWidth: 1.5,
+                        dashArray: [4, 4],
+                        label: HorizontalLineLabel(
+                          show: true,
+                          alignment: Alignment.topRight,
+                          padding: const EdgeInsets.only(right: 8, bottom: 2),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: color,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          labelResolver: (_) =>
+                              'Target: ${targetValue.round()} $unit',
                         ),
-                        labelResolver: (_) =>
-                            'Target: ${targetValue.round()} $unit',
                       ),
-                    ),
+                    if (minValue != null)
+                      HorizontalLine(
+                        y: minValue,
+                        color: _minLineColor,
+                        strokeWidth: 1.5,
+                        dashArray: [2, 3],
+                        label: HorizontalLineLabel(
+                          show: true,
+                          alignment: Alignment.bottomRight,
+                          padding: const EdgeInsets.only(right: 8, top: 2),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: _minLineColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          labelResolver: (_) =>
+                              'Min: ${minValue.round()} $unit',
+                        ),
+                      ),
                   ],
                 ),
           lineTouchData: LineTouchData(

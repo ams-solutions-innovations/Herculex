@@ -30,7 +30,7 @@ class NutritionLabelOcrService {
         );
       } catch (_) {
         return ocrDraft.withWarning(
-          'OCR confidence is low and Gemini fallback failed. Check all fields before saving.',
+          'OCR confidence is low and Herculex AI fallback failed. Check all fields before saving.',
         );
       }
     } finally {
@@ -95,6 +95,8 @@ class NutritionLabelOcrService {
     return NutritionLabelDraft(
       name: name,
       servingGrams: serving,
+      portionAmount: serving,
+      servingUnit: 'g',
       kcalPer100g: kcal == null ? null : kcal * factor,
       proteinPer100g: protein == null ? null : protein * factor,
       carbsPer100g: carbs == null ? null : carbs * factor,

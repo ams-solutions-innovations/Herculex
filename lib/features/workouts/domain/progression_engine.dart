@@ -2,31 +2,81 @@ import 'package:herculex/features/workouts/domain/one_rep_max.dart';
 
 /// Training goal driving rep targets and load progression (V2 §16).
 enum ProgressionGoal {
-  strength('Strength', repsMin: 3, repsMax: 6, weeklyIncreasePct: 2.5),
-  muscleGain('Muscle Gain', repsMin: 8, repsMax: 12, weeklyIncreasePct: 2.5),
-  fatLoss('Fat Loss', repsMin: 12, repsMax: 15, weeklyIncreasePct: 1.5),
-  endurance('Endurance', repsMin: 15, repsMax: 20, weeklyIncreasePct: 1.0),
+  strength(
+    'Strength',
+    description:
+        'Heavier working sets. Prioritises load and a clear strength PR.',
+    repsMin: 3,
+    repsMax: 6,
+    weeklyIncreasePct: 2.5,
+    recommendedProgressionModel: 'linear',
+  ),
+  muscleGain(
+    'Muscle',
+    description:
+        'Build quality volume, then add load once you own the rep range.',
+    repsMin: 8,
+    repsMax: 12,
+    weeklyIncreasePct: 2.5,
+    recommendedProgressionModel: 'double',
+  ),
+  aesthetics(
+    'Aesthetics',
+    description:
+        'Controlled, targeted work. Progress reps first and keep fatigue predictable.',
+    repsMin: 10,
+    repsMax: 15,
+    weeklyIncreasePct: 1.5,
+    recommendedProgressionModel: 'double',
+  ),
+  fatLoss(
+    'Fat Loss',
+    description:
+        'Keeps training productive while recovery and calories may be lower.',
+    repsMin: 12,
+    repsMax: 15,
+    weeklyIncreasePct: 1.5,
+    recommendedProgressionModel: 'double',
+  ),
+  endurance(
+    'Endurance',
+    description: 'Higher-rep capacity with small, sustainable increases.',
+    repsMin: 15,
+    repsMax: 20,
+    weeklyIncreasePct: 1.0,
+    recommendedProgressionModel: 'double',
+  ),
   athletic(
     'Athletic Performance',
+    description:
+        'Power and movement quality without chasing fatigue every session.',
     repsMin: 4,
     repsMax: 8,
     weeklyIncreasePct: 2.0,
+    recommendedProgressionModel: 'linear',
   );
 
   const ProgressionGoal(
     this.label, {
+    required this.description,
     required this.repsMin,
     required this.repsMax,
     required this.weeklyIncreasePct,
+    required this.recommendedProgressionModel,
   });
 
   final String label;
+  final String description;
   final int repsMin;
   final int repsMax;
 
   /// Goal-specific default; the spec's global default of 5%/week is exposed
   /// as [ProgressionEngine.defaultWeeklyIncreasePct] and user-overridable.
   final double weeklyIncreasePct;
+
+  /// The progression style which best matches this goal. Users can still
+  /// choose another model in the per-exercise override.
+  final String recommendedProgressionModel;
 }
 
 class SuggestedTarget {

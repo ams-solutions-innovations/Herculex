@@ -89,7 +89,7 @@ class _MeasurementsViewState extends ConsumerState<MeasurementsView> {
       actions: [
         IconButton(
           icon: Icon(Icons.auto_awesome, color: AppColors.primary),
-          tooltip: 'Gemini AI Body Fat Estimate',
+          tooltip: 'Herculex AI Body Fat Estimate',
           onPressed: () {
             Haptics.selection();
             BodyFatAiDialog.show(context);

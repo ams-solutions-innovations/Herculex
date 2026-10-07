@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:herculex/app/providers.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
@@ -167,16 +168,9 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Body fat (${_result!.estimatedBfPercent.toStringAsFixed(1)}%) saved!',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+      AppNotice.show(
+        context,
+        'Body fat (${_result!.estimatedBfPercent.toStringAsFixed(1)}%) saved!',
       );
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -241,7 +235,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Gemini AI Body Fat Estimation',
+                          'Herculex AI Body Fat Estimation',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -324,7 +318,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                           icon: const Icon(Icons.auto_awesome),
                           label: Text(
                             _selectedFiles.isNotEmpty
-                                ? 'Analyze (${_selectedFiles.length} photos) with Gemini AI'
+                                ? 'Analyze (${_selectedFiles.length} photos) with Herculex AI'
                                 : 'Calculate estimate from measurements & profile',
                             style: const TextStyle(
                               fontSize: 15,
@@ -347,7 +341,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                             const CircularProgressIndicator(),
                             const SizedBox(height: 20),
                             Text(
-                              'Gemini AI is analyzing body composition...',
+                              'Herculex AI is analyzing body composition...',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -752,7 +746,7 @@ class _BodyFatAiDialogState extends ConsumerState<BodyFatAiDialog> {
                         const SizedBox(width: 4),
                         Text(
                           r.isAiGenerated
-                              ? 'Gemini Multimodal Estimate'
+                              ? 'Herculex AI Multimodal Estimate'
                               : 'Biometric Calculation',
                           style: const TextStyle(
                             color: Colors.white,

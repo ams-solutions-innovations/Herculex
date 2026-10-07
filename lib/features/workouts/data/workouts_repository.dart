@@ -467,6 +467,59 @@ class WorkoutsRepository {
     ];
   }
 
+  Future<void> _cleanupIncompleteSetsAndExercises(int sessionId) async {
+    final sessionExercises = await (_db.select(
+      _db.workoutExercises,
+    )..where((t) => t.sessionId.equals(sessionId))).get();
+
+    for (final we in sessionExercises) {
+      // Delete sets that were not completed
+      await (_db.delete(_db.setEntries)..where(
+            (t) =>
+                t.workoutExerciseId.equals(we.id) & t.isCompleted.equals(false),
+          ))
+          .go();
+
+      // Check remaining completed sets
+      final remainingSets =
+          await (_db.select(_db.setEntries)
+                ..where((t) => t.workoutExerciseId.equals(we.id))
+                ..orderBy([(t) => OrderingTerm(expression: t.setIndex)]))
+              .get();
+
+      if (remainingSets.isEmpty) {
+        // No completed sets for this exercise, delete the workout exercise
+        await (_db.delete(
+          _db.workoutExercises,
+        )..where((t) => t.id.equals(we.id))).go();
+      } else {
+        // Re-index remaining sets so indexes are continuous
+        for (var i = 0; i < remainingSets.length; i++) {
+          if (remainingSets[i].setIndex != i) {
+            await (_db.update(_db.setEntries)
+                  ..where((t) => t.id.equals(remainingSets[i].id)))
+                .write(SetEntriesCompanion(setIndex: Value(i)));
+          }
+        }
+      }
+    }
+
+    // Re-index remaining workout exercises
+    final remainingExercises =
+        await (_db.select(_db.workoutExercises)
+              ..where((t) => t.sessionId.equals(sessionId))
+              ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+            .get();
+
+    for (var i = 0; i < remainingExercises.length; i++) {
+      if (remainingExercises[i].orderIndex != i) {
+        await (_db.update(_db.workoutExercises)
+              ..where((t) => t.id.equals(remainingExercises[i].id)))
+            .write(WorkoutExercisesCompanion(orderIndex: Value(i)));
+      }
+    }
+  }
+
   Future<void> endSession(
     int sessionId, {
     int? sessionRpe,
@@ -474,6 +527,8 @@ class WorkoutsRepository {
     int? caloriesBurned,
     String? photoPath,
   }) async {
+    await _cleanupIncompleteSetsAndExercises(sessionId);
+
     final session = await (_db.select(
       _db.workoutSessions,
     )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
@@ -579,6 +634,26 @@ class WorkoutsRepository {
           ])
           ..limit(limit))
         .watch();
+  }
+
+  Stream<List<WorkoutSessionData>> watchCompletedSessions() {
+    return (_db.select(_db.workoutSessions)
+          ..where((t) => t.endedAt.isNotNull() & t.deletedAt.isNull())
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.startedAt, mode: OrderingMode.asc),
+          ]))
+        .watch();
+  }
+
+  Future<List<WorkoutSessionData>> getCompletedSessions() {
+    return (_db.select(_db.workoutSessions)
+          ..where((t) => t.endedAt.isNotNull() & t.deletedAt.isNull())
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.startedAt, mode: OrderingMode.asc),
+          ]))
+        .get();
   }
 
   Stream<WorkoutSessionData> watchSession(int sessionId) {
@@ -870,6 +945,28 @@ class WorkoutsRepository {
       for (var i = 0; i < reordered.length; i++) {
         await (_db.update(_db.workoutExercises)
               ..where((t) => t.id.equals(reordered[i].id)))
+            .write(WorkoutExercisesCompanion(orderIndex: Value(i)));
+      }
+    });
+  }
+
+  /// Persists a full reorder in one shot, given the exercises' new order.
+  ///
+  /// Used by the reorder-mode drag, which moves superset groups as a single
+  /// unit — the caller flattens the moved group back into member order
+  /// before calling this, so `orderedWorkoutExerciseIds` already reflects
+  /// the desired final `orderIndex` for every row.
+  Future<void> reorderWorkoutExerciseGroups({
+    required int sessionId,
+    required List<int> orderedWorkoutExerciseIds,
+  }) async {
+    await _db.transaction(() async {
+      for (var i = 0; i < orderedWorkoutExerciseIds.length; i++) {
+        await (_db.update(_db.workoutExercises)..where(
+              (t) =>
+                  t.id.equals(orderedWorkoutExerciseIds[i]) &
+                  t.sessionId.equals(sessionId),
+            ))
             .write(WorkoutExercisesCompanion(orderIndex: Value(i)));
       }
     });

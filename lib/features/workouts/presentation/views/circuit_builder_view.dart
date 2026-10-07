@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/premium_button.dart';
@@ -90,16 +91,18 @@ class _CircuitBuilderViewState extends ConsumerState<CircuitBuilderView> {
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a circuit name')),
+      AppNotice.show(
+        context,
+        'Please enter a circuit name',
+        kind: AppNoticeKind.info,
       );
       return;
     }
     if (_draftExercises.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least one exercise to the circuit'),
-        ),
+      AppNotice.show(
+        context,
+        'Please add at least one exercise to the circuit',
+        kind: AppNoticeKind.info,
       );
       return;
     }

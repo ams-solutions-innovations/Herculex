@@ -60,6 +60,9 @@ object WorkoutBubbleController {
     private const val INITIAL_Y_FRACTION = 0.35f
     private const val SNAP_DURATION_MS = 280L
 
+    /** Amber used for warmup set numbers, matching the app's warmup badge. */
+    private val WARMUP_COLOR = Color.parseColor("#FFA726")
+
     // Open/close relocation. Values and easing lifted from design mock.
     private const val OPEN_TOP_MARGIN_DP = 44
     private const val OPEN_BOTTOM_MARGIN_DP = 44
@@ -89,6 +92,8 @@ object WorkoutBubbleController {
         val lastSetText: String?,
         val targetSetId: Long?,
         val actions: List<BubbleAction>,
+        /** The target set is a warmup; [setNumber] then reads "W1", "W2". */
+        val isWarmup: Boolean = false,
     )
 
     /**
@@ -605,7 +610,22 @@ object WorkoutBubbleController {
         }
         root.findViewById<TextView>(R.id.bubble_popup_exercise).text = current.exerciseName
         root.findViewById<TextView>(R.id.bubble_popup_subtitle).text = current.subtitle
-        root.findViewById<TextView>(R.id.bubble_popup_set_num).text = current.setNumber
+        // Set number: warmups read W1/W2 in amber, working sets count from 1.
+        // Tapping it flips the set between warmup and working.
+        root.findViewById<TextView>(R.id.bubble_popup_set_num).apply {
+            text = current.setNumber
+            setTextColor(
+                if (current.isWarmup) {
+                    WARMUP_COLOR
+                } else {
+                    context.getColor(R.color.bubble_on_surface)
+                },
+            )
+            contentDescription =
+                if (current.isWarmup) "Warmup set, tap to make it a working set"
+                else "Working set, tap to make it a warmup"
+            setOnClickListener { dispatchAction(context, "toggle_warmup") }
+        }
         root.findViewById<TextView>(R.id.bubble_popup_weight).text = current.weight
         root.findViewById<TextView>(R.id.bubble_popup_reps).text = current.reps
         root.findViewById<TextView>(R.id.bubble_popup_rpe).text = current.rpe

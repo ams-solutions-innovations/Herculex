@@ -1,9 +1,14 @@
 import 'dart:io';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:herculex/data/local/database.dart';
 import 'package:herculex/data/local/exercise_importer.dart';
 import 'package:herculex/features/programs/data/program_csv_io.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/program_csv.dart';
 import 'package:herculex/features/programs/domain/program_muscle_volume.dart';
+import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/volume_bands.dart';
 
 import 'support/test_database.dart';
 
@@ -107,6 +112,53 @@ week,dayOfWeek,dayName,exercise,sets,repsMin,repsMax,rpe,setType,percent1Rm,equi
       expect(avgMap['Shoulders'], greaterThan(0));
       expect(avgMap['Biceps'], greaterThan(0));
       expect(avgMap['Neck'], greaterThan(0));
+
+      await db.close();
+    });
+
+    test('computeFromTemplates feeding into VolumeBands.verdicts flags a '
+        'below-floor muscle group', () async {
+      final db = await openTestDatabase();
+      final raw = File('assets/data/exercises.json').readAsStringSync();
+      await ExerciseImporter.runFromJson(db, raw);
+
+      final catalog = await db.select(db.exerciseCatalog).get();
+      final chestExercise = catalog.firstWhere(
+        (e) => e.primaryMuscle == 'Chest',
+      );
+
+      final templateId = await db
+          .into(db.workoutTemplates)
+          .insert(WorkoutTemplatesCompanion.insert(name: 'Low Chest Test'));
+      await db
+          .into(db.templateExercises)
+          .insert(
+            TemplateExercisesCompanion.insert(
+              templateId: templateId,
+              exerciseId: chestExercise.id,
+              orderIndex: 0,
+              targetSets: const Value(2),
+            ),
+          );
+
+      final plan = SplitTemplates.generate(
+        type: SplitType.fullBody,
+        daysPerWeek: 1,
+      );
+
+      final breakdown = await ProgramVolumeCalculator.computeFromTemplates(
+        db: db,
+        templatesBySlot: {plan.slotSummary.first.slotIndex: templateId},
+        plan: plan,
+        weeks: 1,
+        model: PeriodizationModel.linear,
+      );
+
+      final verdicts = VolumeBands.verdicts({
+        for (final e in breakdown.averageWeeklyVolumes) e.muscle: e.sets,
+      });
+
+      expect(verdicts['Chest'], VolumeVerdict.low);
 
       await db.close();
     });

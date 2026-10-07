@@ -58,14 +58,48 @@ class WearDataLayerSyncManager(
         return sendRealtimeEvent(WearSyncPaths.MESSAGE_RAMBLER_COMMAND, commandJson)
     }
 
-    suspend fun sendMediaCommand(action: String, value: Int = 0): Boolean {
+    suspend fun sendMediaCommand(action: String, value: Int = 0, packageName: String? = null): Boolean {
         val payload = org.json.JSONObject().apply {
             put("action", action)
             put("value", value)
+            if (!packageName.isNullOrBlank()) {
+                put("packageName", packageName)
+            }
             put("timestampEpochMs", System.currentTimeMillis())
         }.toString()
-        sendMessageToAllNodes(WearSyncPaths.MESSAGE_MEDIA_COMMAND, payload)
-        return true
+        val bytes = payload.toByteArray(Charsets.UTF_8)
+        // Media taps come in bursts (bezel, skip, skip) and looking up the
+        // connected nodes first added 100-300 ms to every one. Reuse the
+        // last answer for a while; on failure, look again once.
+        if (sendToNodes(cachedMediaNodes(refresh = false), bytes)) return true
+        return sendToNodes(cachedMediaNodes(refresh = true), bytes)
+    }
+
+    private suspend fun cachedMediaNodes(refresh: Boolean): List<String> {
+        val now = System.currentTimeMillis()
+        if (!refresh && mediaNodeIds.isNotEmpty() && now - mediaNodesAtMs < MEDIA_NODE_CACHE_MS) {
+            return mediaNodeIds
+        }
+        val ids = try {
+            nodeClient.connectedNodes.awaitResult().map { it.id }
+        } catch (_: Exception) {
+            emptyList()
+        }
+        mediaNodeIds = ids
+        mediaNodesAtMs = now
+        return ids
+    }
+
+    private suspend fun sendToNodes(nodeIds: List<String>, bytes: ByteArray): Boolean {
+        var delivered = false
+        for (id in nodeIds) {
+            try {
+                messageClient.sendMessage(id, WearSyncPaths.MESSAGE_MEDIA_COMMAND, bytes).awaitResult()
+                delivered = true
+            } catch (_: Exception) {
+            }
+        }
+        return delivered
     }
 
     /**
@@ -155,6 +189,9 @@ class WearDataLayerSyncManager(
 
     private companion object {
         private const val TAG = "WearSync"
+        private const val MEDIA_NODE_CACHE_MS = 30_000L
+        @Volatile private var mediaNodeIds: List<String> = emptyList()
+        @Volatile private var mediaNodesAtMs = 0L
         private const val MAX_DELIVERY_ATTEMPTS = 20
         private const val MAX_MESSAGE_AGE_MS = 24L * 60L * 60L * 1000L
     }

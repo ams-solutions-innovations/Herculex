@@ -35,6 +35,15 @@ part 'database.g.dart';
     Programs,
     ProgramWeeks,
     ProgramDays,
+    ProgramExerciseSlots,
+    ProgramSlotPoolMembers,
+    RotationAssignments,
+    // Program Slot Explanations (v42). Local-only: never added to
+    // syncedTableNames or syncTableSpecs.
+    ProgramSlotExplanations,
+    PrescriptionTemplates,
+    PhysiqueProgrammingProfiles,
+    ExercisePreferences,
     ProgramDayExercises,
     ScheduledWorkouts,
     ExternalEvents,
@@ -42,12 +51,14 @@ part 'database.g.dart';
     CycleLogs,
     CycleSettings,
     JointPainLogs,
+    TdeeEstimates,
     PendingSyncOps,
     WorkoutFolders,
     WorkoutTemplates,
     TemplateExercises,
     TemplateSets,
     Gyms,
+    GymEquipment,
     Accessories,
     Bands,
     SetAccessories,
@@ -79,6 +90,15 @@ part 'database.g.dart';
     HerculMessageLog,
     // Physiological fasting stages (v36)
     FastingStages,
+    // Herculex AI program design briefs (v46)
+    HerculexAiProgramBriefs,
+    // Persistent Dream Physique (v47)
+    PhysiqueGoals,
+    PhysiqueAssessments,
+    PhysiqueRoadmapPhases,
+    PhysiquePhotos,
+    // Weekly report (v48)
+    WeeklyReports,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -88,7 +108,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor) : seedFoodCatalogue = false;
 
   @override
-  int get schemaVersion => 38;
+  int get schemaVersion => 48;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -113,6 +133,10 @@ class AppDatabase extends _$AppDatabase {
       await customStatement(
         'CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_sync_ops_entity '
         'ON pending_sync_ops(entity_type, entity_id)',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_exercise_catalog_scaling '
+        'ON exercise_catalog(scaling_group, scaling_order)',
       );
       await installSyncTriggers(this);
     },
@@ -903,8 +927,353 @@ class AppDatabase extends _$AppDatabase {
         // that never had these tables to begin with — same reasoning as the
         // v37 step's `pragma_table_info` guard just above.
         await customStatement('DROP TABLE IF EXISTS rep_set_observations');
-        await customStatement('DROP TABLE IF EXISTS rep_tracking_exercise_prefs');
+        await customStatement(
+          'DROP TABLE IF EXISTS rep_tracking_exercise_prefs',
+        );
         await customStatement('DROP TABLE IF EXISTS rep_tracking_settings');
+      }
+      if (from < 39 && to >= 39) {
+        // Unified program planning and immutable workout prescriptions.
+        // Fixtures used by migration tests intentionally contain only a
+        // subset of tables, so every additive column is guarded by both table
+        // and column existence. Real v38 databases contain every target.
+        Future<void> addIfMissing(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          final tableName = table.actualTableName;
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('$tableName')",
+          ).get();
+          if (existing.isEmpty) return;
+          final names = existing.map((row) => row.read<String>('name')).toSet();
+          if (!names.contains(column.$name)) {
+            await m.addColumn(table, column);
+          }
+        }
+
+        await addIfMissing(
+          exerciseCatalog,
+          exerciseCatalog.requiredEquipmentKeys,
+        );
+        await addIfMissing(
+          exerciseCatalog,
+          exerciseCatalog.maxEffortEligibility,
+        );
+        await addIfMissing(programs, programs.buildMode);
+        await addIfMissing(programs, programs.trainingGoal);
+        await addIfMissing(programs, programs.experienceLevel);
+        await addIfMissing(programs, programs.adaptationMode);
+        await addIfMissing(programDays, programDays.stressRole);
+        await addIfMissing(gyms, gyms.allEquipment);
+
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.programExerciseSlotId,
+        );
+        await addIfMissing(programDayExercises, programDayExercises.slotRole);
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.trainingMethod,
+        );
+        await addIfMissing(programDayExercises, programDayExercises.targetRir);
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.restSeconds,
+        );
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.prescriptionWhy,
+        );
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.prescriptionJson,
+        );
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.variantConfigJson,
+        );
+
+        await addIfMissing(
+          workoutExercises,
+          workoutExercises.programExerciseSlotId,
+        );
+        await addIfMissing(
+          workoutExercises,
+          workoutExercises.rotationAssignmentId,
+        );
+        await addIfMissing(workoutExercises, workoutExercises.plannedSlotRole);
+        await addIfMissing(
+          workoutExercises,
+          workoutExercises.plannedTrainingMethod,
+        );
+        await addIfMissing(
+          workoutExercises,
+          workoutExercises.plannedPrescriptionWhy,
+        );
+        await addIfMissing(workoutExercises, workoutExercises.plannedWaveIndex);
+        await addIfMissing(workoutExercises, workoutExercises.plannedWaveCount);
+
+        await addIfMissing(setEntries, setEntries.plannedRepsMin);
+        await addIfMissing(setEntries, setEntries.plannedRepsMax);
+        await addIfMissing(setEntries, setEntries.plannedWeightKg);
+        await addIfMissing(setEntries, setEntries.plannedRpeX10);
+        await addIfMissing(setEntries, setEntries.plannedRir);
+        await addIfMissing(setEntries, setEntries.plannedPercentOf1Rm);
+        await addIfMissing(setEntries, setEntries.plannedIntent);
+
+        Future<void> createIfMissing(TableInfo<Table, dynamic> table) async {
+          final exists = await customSelect(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+            variables: [Variable(table.actualTableName)],
+          ).getSingleOrNull();
+          if (exists == null) await m.createTable(table);
+        }
+
+        // Parent-first so SQLite foreign-key validation also succeeds on
+        // strict migration fixtures.
+        await createIfMissing(programExerciseSlots);
+        await createIfMissing(programSlotPoolMembers);
+        await createIfMissing(rotationAssignments);
+        await createIfMissing(prescriptionTemplates);
+        await createIfMissing(physiqueProgrammingProfiles);
+        await createIfMissing(exercisePreferences);
+        await createIfMissing(gymEquipment);
+
+        for (final tableName in <String>[
+          'program_exercise_slots',
+          'program_slot_pool_members',
+          'rotation_assignments',
+          'prescription_templates',
+          'physique_programming_profiles',
+          'exercise_preferences',
+          'gym_equipment',
+        ]) {
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_$tableName '
+            'ON $tableName(sync_uuid)',
+          );
+        }
+        await installSyncTriggers(this);
+      }
+      if (from < 40 && to >= 40) {
+        // Program-generation metadata is conservative by default: existing
+        // and custom rows become advanced/specialty/manual-only until the
+        // curated asset explicitly promotes them.  Guard this additive step
+        // for the intentionally narrow migration fixtures used by tests.
+        Future<void> addIfMissing(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
+          ).get();
+          if (existing.isEmpty) return;
+          final names = existing.map((row) => row.read<String>('name')).toSet();
+          if (!names.contains(column.$name)) {
+            await m.addColumn(table, column);
+          }
+        }
+
+        await addIfMissing(
+          exerciseCatalog,
+          exerciseCatalog.programmingDifficulty,
+        );
+        await addIfMissing(
+          exerciseCatalog,
+          exerciseCatalog.programmingCommonness,
+        );
+        await addIfMissing(
+          exerciseCatalog,
+          exerciseCatalog.allowedTrainingStyles,
+        );
+        await addIfMissing(
+          exerciseCatalog,
+          exerciseCatalog.technicalEligibility,
+        );
+
+        final catalogueExists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'exercise_catalog'",
+        ).getSingleOrNull();
+        if (catalogueExists != null) {
+          await ExerciseImporter.runFromAsset(this);
+        }
+      }
+      if (from < 41 && to >= 41) {
+        final catalogueExists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'exercise_catalog'",
+        ).getSingleOrNull();
+        if (catalogueExists != null) {
+          final existingColumns = (await customSelect(
+            "SELECT name FROM pragma_table_info('exercise_catalog')",
+          ).get()).map((r) => r.read<String>('name')).toSet();
+
+          final newColumns = <GeneratedColumn>[];
+          for (final col in exerciseCatalog.$columns) {
+            if (!existingColumns.contains(col.$name)) {
+              newColumns.add(col);
+            }
+          }
+
+          await m.alterTable(
+            TableMigration(exerciseCatalog, newColumns: newColumns),
+          );
+
+          await ExerciseImporter.runFromAsset(this);
+
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_exercise_catalog_scaling '
+            'ON exercise_catalog(scaling_group, scaling_order)',
+          );
+        }
+      }
+      if (from < 42 && to >= 42) {
+        await m.createTable(programSlotExplanations);
+      }
+      if (from < 43 && to >= 43) {
+        Future<void> addIfMissing(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
+          ).get();
+          if (existing.isEmpty) return;
+          final names = existing.map((row) => row.read<String>('name')).toSet();
+          if (!names.contains(column.$name)) {
+            await m.addColumn(table, column);
+          }
+        }
+
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.prescriptionCodecJson,
+        );
+        await addIfMissing(programs, programs.allowTimeSavingSetTechniques);
+        await addIfMissing(
+          workoutExercises,
+          workoutExercises.plannedAllowsAdvancedTechniques,
+        );
+      }
+      if (from < 44 && to >= 44) {
+        Future<void> addIfMissing(
+          TableInfo<Table, dynamic> table,
+          GeneratedColumn column,
+        ) async {
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('${table.actualTableName}')",
+          ).get();
+          if (existing.isEmpty) return;
+          final names = existing.map((row) => row.read<String>('name')).toSet();
+          if (!names.contains(column.$name)) {
+            await m.addColumn(table, column);
+          }
+        }
+
+        await addIfMissing(
+          programExerciseSlots,
+          programExerciseSlots.sessionSegment,
+        );
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.sessionSegment,
+        );
+        await addIfMissing(
+          programDayExercises,
+          programDayExercises.supersetGroup,
+        );
+        await addIfMissing(
+          workoutExercises,
+          workoutExercises.plannedSessionSegment,
+        );
+      }
+      if (from < 45 && to >= 45) {
+        // Phase 28: adaptive-TDEE estimate history. Synced, so it needs the
+        // same sync_uuid unique index and outbox triggers as every other
+        // synced table (same idiom as the v32 block). The sqlite_master
+        // guard exists because fixtures sit on both sides of a step and
+        // createTable on an existing table throws.
+        final exists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'tdee_estimates'",
+        ).getSingleOrNull();
+        if (exists == null) {
+          await m.createTable(tdeeEstimates);
+        }
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_tdee_estimates '
+          'ON tdee_estimates(sync_uuid)',
+        );
+        await installSyncTriggers(this);
+      }
+      if (from < 46 && to >= 46) {
+        // Phase 27: Herculex AI program design briefs. Synced, so it needs
+        // the same sync_uuid unique index and outbox triggers as every
+        // other synced table (same idiom as the v45 block). The
+        // sqlite_master guard exists because fixtures sit on both sides of
+        // a step and createTable on an existing table throws.
+        final exists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'herculex_ai_program_briefs'",
+        ).getSingleOrNull();
+        if (exists == null) {
+          await m.createTable(herculexAiProgramBriefs);
+        }
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS '
+          'idx_sync_uuid_herculex_ai_program_briefs '
+          'ON herculex_ai_program_briefs(sync_uuid)',
+        );
+        await installSyncTriggers(this);
+      }
+      if (from < 47 && to >= 47) {
+        // Phase 23: persistent Dream Physique. Four synced tables, created
+        // parent-first. Each needs the sync_uuid unique index; one
+        // installSyncTriggers call at the end covers all of them. The
+        // sqlite_master guard exists because fixtures sit on both sides of a
+        // step (some are too narrow to have the table, others build it from
+        // current definitions) and createTable on an existing table throws.
+        final physiqueTables = <String, TableInfo>{
+          'physique_goals': physiqueGoals,
+          'physique_assessments': physiqueAssessments,
+          'physique_roadmap_phases': physiqueRoadmapPhases,
+          'physique_photos': physiquePhotos,
+        };
+        for (final entry in physiqueTables.entries) {
+          final exists = await customSelect(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+            "AND name = '${entry.key}'",
+          ).getSingleOrNull();
+          if (exists == null) {
+            await m.createTable(entry.value);
+          }
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_${entry.key} '
+            'ON ${entry.key}(sync_uuid)',
+          );
+        }
+        await installSyncTriggers(this);
+      }
+      if (from < 48 && to >= 48) {
+        // Phase 29: weekly report. Synced, so it needs the same sync_uuid
+        // unique index and outbox triggers as every other synced table (same
+        // idiom as the v45 block). The sqlite_master guard exists because
+        // fixtures sit on both sides of a step and createTable on an
+        // existing table throws.
+        final exists = await customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'weekly_reports'",
+        ).getSingleOrNull();
+        if (exists == null) {
+          await m.createTable(weeklyReports);
+        }
+        await customStatement(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_uuid_weekly_reports '
+          'ON weekly_reports(sync_uuid)',
+        );
+        await installSyncTriggers(this);
       }
     },
     // RB-04 Phase 3: this is the only place PRAGMA foreign_keys = ON is

@@ -9,6 +9,83 @@ const String wearSyncOriginWatch = 'watch';
 const String wearSyncEntityActiveWorkout = 'active_workout';
 const String wearSyncEntityFasting = 'fasting';
 
+/// A deterministic, per-field version used by the active-workout protocol.
+///
+/// Session envelopes are deliberately whole snapshots so they can repair a
+/// missed message after a reconnect. A session-level revision alone is not
+/// sufficient for editable sets though: an old watch snapshot can arrive
+/// after a newer phone edit and overwrite just the reps or load.  These
+/// stamps travel with every set field that users edit on both surfaces.
+class WearSyncStamp {
+  const WearSyncStamp({required this.revision, required this.origin});
+
+  final int revision;
+  final String origin;
+
+  Map<String, Object> toJson() => {'revision': revision, 'origin': origin};
+
+  factory WearSyncStamp.fromJson(
+    Object? raw, {
+    required WearSyncStamp fallback,
+  }) {
+    if (raw is! Map) return fallback;
+    final revision = (raw['revision'] as num?)?.toInt();
+    final origin = raw['origin'] as String?;
+    if (revision == null || origin == null || origin.isEmpty) return fallback;
+    return WearSyncStamp(revision: revision, origin: origin);
+  }
+
+  /// Returns a total ordering rather than relying on arrival order.  A rare
+  /// exact-revision tie (for example, two devices resuming at once) is broken
+  /// by origin, so both peers make the same decision and cannot ping-pong.
+  int compareTo(WearSyncStamp other) {
+    final revisionComparison = revision.compareTo(other.revision);
+    if (revisionComparison != 0) return revisionComparison;
+    return origin.compareTo(other.origin);
+  }
+
+  bool isNewerThan(WearSyncStamp other) => compareTo(other) > 0;
+}
+
+/// The independent versions for the three values that make up a set's live
+/// result.  Completion is separate from weight/reps so tapping "done" on one
+/// device never revives stale values from the other device.
+class WearSetSyncVersions {
+  const WearSetSyncVersions({
+    required this.weight,
+    required this.reps,
+    required this.completion,
+  });
+
+  final WearSyncStamp weight;
+  final WearSyncStamp reps;
+  final WearSyncStamp completion;
+
+  Map<String, Object> toJson() => {
+    'weight': weight.toJson(),
+    'reps': reps.toJson(),
+    'completion': completion.toJson(),
+  };
+
+  factory WearSetSyncVersions.fromJson(
+    Object? raw, {
+    required WearSyncStamp fallback,
+  }) {
+    if (raw is! Map) {
+      return WearSetSyncVersions(
+        weight: fallback,
+        reps: fallback,
+        completion: fallback,
+      );
+    }
+    return WearSetSyncVersions(
+      weight: WearSyncStamp.fromJson(raw['weight'], fallback: fallback),
+      reps: WearSyncStamp.fromJson(raw['reps'], fallback: fallback),
+      completion: WearSyncStamp.fromJson(raw['completion'], fallback: fallback),
+    );
+  }
+}
+
 class WearSyncEnvelope {
   const WearSyncEnvelope({
     required this.schemaVersion,

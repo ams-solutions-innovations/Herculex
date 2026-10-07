@@ -47,8 +47,8 @@ class HxCircleButton extends StatelessWidget {
           child: HxGlass(
             shape: BoxShape.circle,
             padding: EdgeInsets.zero,
-            fill: tintColor,
-            borderColor: borderColor,
+            fill: tintColor ?? HxGlass.frostedFill(hx),
+            borderColor: borderColor ?? HxGlass.frostedBorder(hx),
             child: Center(
               child: Icon(
                 icon,

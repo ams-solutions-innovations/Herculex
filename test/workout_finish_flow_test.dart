@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:herculex/app/providers.dart';
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/presentation/views/workout_finish_view.dart';
 import 'package:herculex/features/workouts/presentation/views/workouts_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -198,6 +199,125 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Finish'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('finish screen keeps secondary details collapsed by default', (
+    tester,
+  ) async {
+    final sessionId = await seedActiveSession();
+    await (db.update(
+      db.workoutSessions,
+    )..where((row) => row.id.equals(sessionId))).write(
+      WorkoutSessionsCompanion(
+        name: const Value('Leg day'),
+        endedAt: Value(DateTime.now()),
+        caloriesBurned: const Value(320),
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          appDatabaseProvider.overrideWithValue(db),
+        ],
+        child: MaterialApp(home: WorkoutFinishView(sessionId: sessionId)),
+      ),
+    );
+    await settle(tester, frames: 36);
+
+    expect(find.text('Workout Complete'), findsOneWidget);
+    expect(find.text('Leg day'), findsWidgets);
+    expect(find.bySemanticsLabel('Share workout'), findsOneWidget);
+    expect(find.text('More details'), findsOneWidget);
+    expect(find.text('SHARE CARD STYLE'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Done'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('More details'));
+    await tester.tap(find.text('More details'));
+    await settle(tester);
+
+    expect(find.text('SHARE CARD STYLE'), findsOneWidget);
+    expect(find.text('WORKOUT PHOTO'), findsOneWidget);
+
+    await unmount(tester);
+  });
+
+  testWidgets('Done returns from the finish screen', (tester) async {
+    final sessionId = await seedActiveSession();
+    await (db.update(db.workoutSessions)
+          ..where((row) => row.id.equals(sessionId)))
+        .write(WorkoutSessionsCompanion(endedAt: Value(DateTime.now())));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          appDatabaseProvider.overrideWithValue(db),
+        ],
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: FilledButton(
+                  onPressed: () => WorkoutFinishView.show(context, sessionId),
+                  child: const Text('Open finish'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open finish'));
+    await settle(tester, frames: 36);
+    await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+    await settle(tester);
+
+    expect(find.text('Open finish'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('keyboard excludes active-workout actions from every surface', (
+    tester,
+  ) async {
+    await seedActiveSession();
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    addTearDown(tester.view.resetViewInsets);
+    tester.binding.handleMetricsChanged();
+
+    await pumpWorkouts(tester);
+
+    final actionBar = find.ancestor(
+      of: find.text('Finish'),
+      matching: find.byType(ExcludeSemantics),
+    );
+    expect(actionBar, findsOneWidget);
+    expect(tester.widget<ExcludeSemantics>(actionBar).excluding, isTrue);
+
+    final pointerGate = find.descendant(
+      of: actionBar,
+      matching: find.byType(IgnorePointer),
+    );
+    expect(tester.widget<IgnorePointer>(pointerGate).ignoring, isTrue);
+
+    final fade = find
+        .descendant(of: actionBar, matching: find.byType(AnimatedOpacity))
+        .first;
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+
+    tester.view.resetViewInsets();
+    tester.binding.handleMetricsChanged();
+    expect(tester.view.viewInsets.bottom, 0);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(tester.widget<ExcludeSemantics>(actionBar).excluding, isFalse);
+    expect(tester.widget<IgnorePointer>(pointerGate).ignoring, isFalse);
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
 
     await unmount(tester);
   });

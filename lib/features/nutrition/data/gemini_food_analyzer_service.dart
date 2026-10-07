@@ -9,6 +9,8 @@ class GeminiFoodAnalysisResult {
   final String name;
   final String? brand;
   final double estimatedServingGrams;
+  final double portionAmount;
+  final String portionUnit;
   final double kcalPer100g;
   final double proteinPer100g;
   final double carbsPer100g;
@@ -19,8 +21,10 @@ class GeminiFoodAnalysisResult {
 
   const GeminiFoodAnalysisResult({
     required this.name,
-    this.brand = 'Gemini AI',
+    this.brand = 'Herculex AI',
     required this.estimatedServingGrams,
+    required this.portionAmount,
+    required this.portionUnit,
     required this.kcalPer100g,
     required this.proteinPer100g,
     required this.carbsPer100g,
@@ -33,9 +37,11 @@ class GeminiFoodAnalysisResult {
   factory GeminiFoodAnalysisResult.fromJson(Map<String, dynamic> json) {
     return GeminiFoodAnalysisResult(
       name: json['name'] as String? ?? 'Unknown food',
-      brand: json['brand'] as String? ?? 'Gemini AI',
+      brand: json['brand'] as String? ?? 'Herculex AI',
       estimatedServingGrams:
           (json['estimatedServingGrams'] as num?)?.toDouble() ?? 100.0,
+      portionAmount: (json['portionAmount'] as num?)?.toDouble() ?? 1.0,
+      portionUnit: json['portionUnit'] as String? ?? 'serving',
       kcalPer100g: (json['kcalPer100g'] as num?)?.toDouble() ?? 0.0,
       proteinPer100g: (json['proteinPer100g'] as num?)?.toDouble() ?? 0.0,
       carbsPer100g: (json['carbsPer100g'] as num?)?.toDouble() ?? 0.0,
@@ -43,7 +49,7 @@ class GeminiFoodAnalysisResult {
       fiberPer100g: (json['fiberPer100g'] as num?)?.toDouble(),
       rating: (json['rating'] as num?)?.toDouble() ?? 7.0,
       ratingReason:
-          json['ratingReason'] as String? ?? 'Evaluated with Gemini AI.',
+          json['ratingReason'] as String? ?? 'Evaluated with Herculex AI.',
     );
   }
 }
@@ -57,6 +63,8 @@ class GeminiBarcodeProductResult {
   final String name;
   final String? brand;
   final double servingGrams;
+  final double portionAmount;
+  final String portionUnit;
   final double kcalPer100g;
   final double proteinPer100g;
   final double carbsPer100g;
@@ -76,6 +84,8 @@ class GeminiBarcodeProductResult {
     required this.name,
     this.brand,
     required this.servingGrams,
+    required this.portionAmount,
+    required this.portionUnit,
     required this.kcalPer100g,
     required this.proteinPer100g,
     required this.carbsPer100g,
@@ -92,6 +102,8 @@ class GeminiBarcodeProductResult {
       name: json['name'] as String? ?? 'Unknown product',
       brand: json['brand'] as String?,
       servingGrams: (json['servingGrams'] as num?)?.toDouble() ?? 100.0,
+      portionAmount: (json['portionAmount'] as num?)?.toDouble() ?? 1.0,
+      portionUnit: json['portionUnit'] as String? ?? 'serving',
       kcalPer100g: (json['kcalPer100g'] as num?)?.toDouble() ?? 0.0,
       proteinPer100g: (json['proteinPer100g'] as num?)?.toDouble() ?? 0.0,
       carbsPer100g: (json['carbsPer100g'] as num?)?.toDouble() ?? 0.0,
@@ -266,6 +278,9 @@ class GeminiFoodAnalyzerService {
       name: responseJson['name'] as String? ?? 'Scanned food',
       brand: responseJson['brand'] as String?,
       servingGrams: serving,
+      portionAmount:
+          (responseJson['portionAmount'] as num?)?.toDouble() ?? serving,
+      servingUnit: responseJson['portionUnit'] as String? ?? 'g',
       kcalPer100g: NutritionLabelDraft.per100(
         (responseJson['kcalPerServing'] as num?)?.toDouble(),
         serving,

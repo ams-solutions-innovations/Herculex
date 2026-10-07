@@ -67,22 +67,24 @@ class SupplementRepository {
     // Also remove from today's taken set if present.
     final taken = loadTakenToday();
     if (taken.contains(id)) {
-      taken.remove(id);
-      await _saveTakenToday(taken);
+      await markTaken(id, false);
     }
   }
 
   // ── Daily taken set ────────────────────────────────────────────────────────
 
-  String _takenKey(DateTime date) {
+  static String takenKeyForDate(DateTime date) {
     final y = date.year.toString().padLeft(4, '0');
     final m = date.month.toString().padLeft(2, '0');
     final d = date.day.toString().padLeft(2, '0');
     return 'supplements_taken_$y-$m-$d';
   }
 
-  Set<String> loadTakenToday() {
-    final raw = _prefs.getString(_takenKey(DateTime.now()));
+  static Set<String> loadTakenFromPrefs(
+    SharedPreferences prefs, [
+    DateTime? date,
+  ]) {
+    final raw = prefs.getString(takenKeyForDate(date ?? DateTime.now()));
     if (raw == null || raw.isEmpty) return {};
     try {
       return Set<String>.from(jsonDecode(raw) as List<dynamic>);
@@ -91,24 +93,35 @@ class SupplementRepository {
     }
   }
 
+  static Future<Set<String>> markTakenInPrefs(
+    SharedPreferences prefs,
+    String id,
+    bool taken, {
+    DateTime? date,
+  }) async {
+    final set = loadTakenFromPrefs(prefs, date);
+    if (taken) {
+      set.add(id);
+    } else {
+      set.remove(id);
+    }
+    await prefs.setString(
+      takenKeyForDate(date ?? DateTime.now()),
+      jsonEncode(set.toList()),
+    );
+    return set;
+  }
+
+  Set<String> loadTakenToday() => loadTakenFromPrefs(_prefs);
+
   Stream<Set<String>> watchTakenToday() {
     Future.microtask(() => _takenController.add(loadTakenToday()));
     return _takenController.stream;
   }
 
   Future<void> markTaken(String id, bool taken) async {
-    final set = loadTakenToday();
-    if (taken) {
-      set.add(id);
-    } else {
-      set.remove(id);
-    }
-    await _saveTakenToday(set);
-  }
-
-  Future<void> _saveTakenToday(Set<String> ids) async {
-    await _prefs.setString(_takenKey(DateTime.now()), jsonEncode(ids.toList()));
-    _takenController.add(ids);
+    final updated = await markTakenInPrefs(_prefs, id, taken);
+    _takenController.add(updated);
   }
 
   /// Removes taken-set keys older than 7 days to avoid prefs bloat.

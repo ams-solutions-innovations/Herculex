@@ -109,6 +109,10 @@ object ExerciseCatalog {
                     targetRepsMin = set.optNullableInt("targetRepsMin"),
                     targetRepsMax = set.optNullableInt("targetRepsMax"),
                     targetWeightKg = set.optNullableDouble("targetWeightKg"),
+                    targetRpe = set.optNullableDouble("targetRpe"),
+                    targetRir = set.optNullableInt("targetRir"),
+                    targetPercentOf1Rm = set.optNullableDouble("targetPercentOf1Rm"),
+                    plannedIntent = set.optString("plannedIntent").takeIf { it.isNotBlank() && it != "null" },
                     durationSeconds = set.optNullableInt("durationSeconds"),
                     targetDistanceMeters = set.optNullableDouble("targetDistanceM"),
                     setTypeMetaJson = set.optString("setTypeMetaJson").takeIf { it.isNotBlank() && it != "null" },
@@ -135,6 +139,9 @@ object ExerciseCatalog {
             plannedSets = plannedSets,
             supersetGroup = obj.optNullableInt("supersetGroup"),
             performanceHint = obj.optString("performanceHint").takeIf { it.isNotBlank() },
+            trainingMethod = obj.optString("trainingMethod").takeIf { it.isNotBlank() && it != "null" },
+            waveLabel = obj.optString("waveLabel").takeIf { it.isNotBlank() && it != "null" },
+            prescriptionReason = obj.optString("prescriptionReason").takeIf { it.isNotBlank() && it != "null" },
         )
     }
 
@@ -150,6 +157,9 @@ object ExerciseCatalog {
         item.loggingMetric?.let { obj.put("loggingMetric", it) }
         item.supersetGroup?.let { obj.put("supersetGroup", it) }
         item.performanceHint?.let { obj.put("performanceHint", it) }
+        item.trainingMethod?.let { obj.put("trainingMethod", it) }
+        item.waveLabel?.let { obj.put("waveLabel", it) }
+        item.prescriptionReason?.let { obj.put("prescriptionReason", it) }
         if (item.equipmentOptions.isNotEmpty()) {
             obj.put("equipmentOptions", JSONArray(item.equipmentOptions))
         }
@@ -166,6 +176,10 @@ object ExerciseCatalog {
                         .put("targetRepsMin", set.targetRepsMin)
                         .put("targetRepsMax", set.targetRepsMax)
                         .put("targetWeightKg", set.targetWeightKg)
+                        .put("targetRpe", set.targetRpe)
+                        .put("targetRir", set.targetRir)
+                        .put("targetPercentOf1Rm", set.targetPercentOf1Rm)
+                        .put("plannedIntent", set.plannedIntent)
                         .put("durationSeconds", set.durationSeconds)
                         .put("targetDistanceM", set.targetDistanceMeters)
                         .put("setTypeMetaJson", set.setTypeMetaJson)

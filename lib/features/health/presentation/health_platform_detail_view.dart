@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/components/glass_container.dart';
 import 'package:herculex/design_system/theme/colors.dart';
@@ -268,13 +269,12 @@ class _HealthPlatformDetailViewState
     ref.read(lastHealthSyncTimestampProvider.notifier).state = DateTime.now();
     if (!mounted) return;
     setState(() => _isSyncing = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_syncMessage(result)),
-        backgroundColor: result.hasAnyAvailableMetric
-            ? _accentColor
-            : Theme.of(context).colorScheme.error,
-      ),
+    AppNotice.show(
+      context,
+      _syncMessage(result),
+      kind: result.hasAnyAvailableMetric
+          ? AppNoticeKind.success
+          : AppNoticeKind.error,
     );
   }
 
@@ -531,7 +531,13 @@ class _HealthPlatformDetailViewState
               // Connection toggle
               Switch(
                 value: isConnected,
-                activeThumbColor: accent,
+                activeTrackColor: accent,
+                activeThumbColor: Colors.white,
+                inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+                inactiveThumbColor: Colors.white70,
+                trackOutlineColor: const WidgetStatePropertyAll(
+                  Colors.transparent,
+                ),
                 onChanged: (val) => _toggleConnection(key, val),
               ),
             ],
@@ -604,7 +610,11 @@ class _HealthPlatformDetailViewState
           ),
           Switch(
             value: value,
-            activeThumbColor: _accentColor,
+            activeTrackColor: _accentColor,
+            activeThumbColor: Colors.white,
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+            inactiveThumbColor: Colors.white70,
+            trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             onChanged: (v) => ref.read(item.provider.notifier).state = v,
           ),
@@ -654,6 +664,11 @@ class _HealthPlatformDetailViewState
         ),
         Switch(
           value: value,
+          activeTrackColor: AppColors.primary,
+          activeThumbColor: Colors.white,
+          inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+          inactiveThumbColor: Colors.white70,
+          trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
           onChanged: onChanged,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),

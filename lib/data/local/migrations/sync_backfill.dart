@@ -7,8 +7,11 @@ import 'package:uuid/uuid.dart';
 /// by [installSyncTriggers] to wire up the outbox.
 const List<String> syncedTableNames = [
   'gyms',
+  'gym_equipment',
   'workout_folders',
   'exercise_catalog',
+  'prescription_templates',
+  'physique_programming_profiles',
   'foods',
   'recipes',
   'accessories',
@@ -28,6 +31,10 @@ const List<String> syncedTableNames = [
   'workout_templates',
   'workout_sessions',
   'programs',
+  'exercise_preferences',
+  'program_exercise_slots',
+  'program_slot_pool_members',
+  'rotation_assignments',
   'exercise_progressions',
   'machine_settings',
   'food_entries',
@@ -46,6 +53,13 @@ const List<String> syncedTableNames = [
   'joint_pain_logs',
   'workout_circuits',
   'circuit_exercises',
+  'tdee_estimates',
+  'herculex_ai_program_briefs',
+  'physique_goals',
+  'physique_assessments',
+  'physique_roadmap_phases',
+  'physique_photos',
+  'weekly_reports',
 ];
 
 /// Catalogue tables whose sync trigger must only fire for `is_custom = 1`

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/hx_card.dart';
 import 'package:herculex/design_system/components/hx_screen_shell.dart';
@@ -1196,8 +1197,10 @@ class _MicroWorkoutEditorSheetState
 
   Future<void> _save() async {
     if (_selectedExerciseId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an exercise first')),
+      AppNotice.show(
+        context,
+        'Please select an exercise first',
+        kind: AppNoticeKind.info,
       );
       return;
     }

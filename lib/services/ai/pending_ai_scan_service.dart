@@ -12,6 +12,7 @@ enum AiScanContextType {
   bodyFat,
   dreamPhysique,
   workoutPhoto,
+  physiqueCheckin,
 }
 
 class PendingAiScanContext {

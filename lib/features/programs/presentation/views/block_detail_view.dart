@@ -6,27 +6,44 @@ import 'package:herculex/design_system/components/components.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/programs/application/programs_providers.dart';
+import 'package:herculex/features/programs/data/programs_repository.dart';
+import 'package:herculex/features/programs/domain/periodization.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/presentation/sheets/exercise_replacement_sheet.dart';
 import 'package:herculex/features/programs/presentation/sheets/template_picker_sheet.dart';
 import 'package:herculex/features/programs/presentation/widgets/program_muscle_volume_card.dart';
 import 'package:herculex/features/workouts/application/workouts_providers.dart';
 
-/// Edit a block: per-week volume, the days in each week, their templates, and
-/// the block's lifecycle (archive / delete).
-///
-/// Every structural edit re-materializes the schedule from today forward, so
-/// completed and moved sessions in the past are never rewritten.
-class BlockDetailView extends ConsumerWidget {
+part 'block_detail_view/_week_card.part.dart';
+part 'block_detail_view/_day_row.part.dart';
+
+/// Edit a block: the Week/Wave editor. A Week dropdown selects one active
+/// week at a time (D-01); directly beneath it, a wave-strip label explains
+/// which rotation wave the viewed week belongs to (D-05). Per-exercise and
+/// day-level replacement/link triggers reach a scoped rotation write plus
+/// [ProgramsRepository.rematerializeProgram] (D-04), never disturbing
+/// already-started or completed sessions.
+class BlockDetailView extends ConsumerStatefulWidget {
   const BlockDetailView({super.key, required this.programId});
 
   final int programId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BlockDetailView> createState() => _BlockDetailViewState();
+}
+
+class _BlockDetailViewState extends ConsumerState<BlockDetailView> {
+  int _selectedWeekIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final programs = ref.watch(programsListProvider).value ?? const [];
-    final program = programs.where((p) => p.id == programId).firstOrNull;
-    final weeks = ref.watch(programWeeksProvider(programId));
-    final volumeAsync = ref.watch(programVolumeBreakdownProvider(programId));
+    final program = programs.where((p) => p.id == widget.programId).firstOrNull;
+    final weeks = ref.watch(programWeeksProvider(widget.programId));
+    final volumeAsync = ref.watch(
+      programVolumeBreakdownProvider(widget.programId),
+    );
+    final tracking = ref.watch(programTrackingProvider(widget.programId));
 
     return HxScreenShell(
       title: program?.name ?? 'Block',
@@ -47,20 +64,54 @@ class BlockDetailView extends ConsumerWidget {
           weeks.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Could not load weeks.\n$e')),
-            data: (list) => Column(
-              children: [
-                _Summary(program: program),
-                const SizedBox(height: 16),
-                if (volumeAsync.value != null && volumeAsync.value!.isNotEmpty)
-                  ProgramMuscleVolumeCard(
-                    breakdown: volumeAsync.value!,
-                    title: 'Weekly Volume per Muscle Group',
+            data: (list) {
+              if (list.isEmpty) return const SizedBox.shrink();
+              final selectedWeek = list.firstWhere(
+                (week) => week.weekIndex == _selectedWeekIndex,
+                orElse: () => list.first,
+              );
+              return Column(
+                children: [
+                  _Summary(program: program),
+                  const SizedBox(height: 16),
+                  tracking.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, _) => const SizedBox.shrink(),
+                    data: (snapshot) => _ProgramTrackingCard(
+                      snapshot: snapshot,
+                      totalWeeks: program.weeks,
+                    ),
                   ),
-                const SizedBox(height: 4),
-                for (final week in list)
-                  _WeekCard(program: program, week: week),
-              ],
-            ),
+                  const SizedBox(height: 16),
+                  if (volumeAsync.value != null &&
+                      volumeAsync.value!.isNotEmpty)
+                    ProgramMuscleVolumeCard(
+                      breakdown: volumeAsync.value!,
+                      title: 'Weekly Volume per Muscle Group',
+                    ),
+                  const SizedBox(height: 4),
+                  _WeekDropdown(
+                    weekCount: list.length,
+                    selectedWeekIndex: selectedWeek.weekIndex,
+                    onChanged: (value) =>
+                        setState(() => _selectedWeekIndex = value ?? 0),
+                  ),
+                  const SizedBox(height: 8),
+                  _WaveStrip(
+                    programId: program.id,
+                    programWeekId: selectedWeek.id,
+                    weekIndex: selectedWeek.weekIndex,
+                    totalWeeks: list.length,
+                  ),
+                  const SizedBox(height: 12),
+                  _WeekCard(
+                    program: program,
+                    week: selectedWeek,
+                    totalWeeks: list.length,
+                  ),
+                ],
+              );
+            },
           ),
       ],
     );
@@ -104,6 +155,162 @@ class BlockDetailView extends ConsumerWidget {
     if (confirmed != true) return;
     await repo.deleteProgram(program.id);
     navigator.pop();
+  }
+}
+
+class _ProgramTrackingCard extends StatelessWidget {
+  const _ProgramTrackingCard({
+    required this.snapshot,
+    required this.totalWeeks,
+  });
+
+  final ProgramTrackingSnapshot snapshot;
+  final int totalWeeks;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final completed = snapshot.completedSessions;
+    final planned = snapshot.plannedSessions;
+    final phase = snapshot.phase == null
+        ? null
+        : snapshot.phase![0].toUpperCase() + snapshot.phase!.substring(1);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: .3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Program progress',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '$completed / $planned sessions',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: snapshot.adherence,
+              minHeight: 7,
+              backgroundColor: AppColors.outlineVariant.withValues(alpha: .25),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _metric('Wave', '${snapshot.currentWeekIndex + 1}/$totalWeeks'),
+              if (phase != null) _metric('Phase', phase),
+              _metric('Quality sets', '${snapshot.qualitySets}'),
+              if (snapshot.maxEffortTopSets > 0)
+                _metric('ME top sets', '${snapshot.maxEffortTopSets}'),
+              if (snapshot.skippedSessions > 0)
+                _metric('Skipped', '${snapshot.skippedSessions}'),
+            ],
+          ),
+          if (snapshot.nextRotation != null) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(Icons.sync_rounded, size: 17, color: AppColors.primary),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    'Next rotation: ${snapshot.nextRotation}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (snapshot.exercisePrs.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              'BEST ESTIMATED 1RM',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: .8,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final lift in snapshot.exercisePrs)
+              _progressRow(theme, lift.label, lift.e1RmKg),
+          ],
+          if (snapshot.movementFamilyTrends.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'MOVEMENT-FAMILY TREND',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.secondary,
+                letterSpacing: .8,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final trend in snapshot.movementFamilyTrends)
+              _progressRow(theme, trend.label, trend.e1RmKg),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static Widget _metric(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text('$label · $value'),
+    );
+  }
+
+  static Widget _progressRow(ThemeData theme, String label, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label.replaceAll('_', ' '),
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+          Text(
+            '${value.round()} kg',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -163,288 +370,92 @@ class _Summary extends StatelessWidget {
   }
 }
 
-class _WeekCard extends ConsumerStatefulWidget {
-  const _WeekCard({required this.program, required this.week});
+/// The Week dropdown (D-01): "Week N of M" — never a scrollable stack of
+/// every week's card. Selecting a value drives which single active week
+/// [_WeekCard] and [_WaveStrip] render.
+class _WeekDropdown extends StatelessWidget {
+  const _WeekDropdown({
+    required this.weekCount,
+    required this.selectedWeekIndex,
+    required this.onChanged,
+  });
 
-  final ProgramData program;
-  final ProgramWeekData week;
+  final int weekCount;
+  final int selectedWeekIndex;
+  final ValueChanged<int?> onChanged;
 
   @override
-  ConsumerState<_WeekCard> createState() => _WeekCardState();
-}
-
-class _WeekCardState extends ConsumerState<_WeekCard> {
-  double? _draft;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final days = ref.watch(programDaysProvider(widget.week.id));
-    final volume = _draft ?? widget.week.adjustmentFactor;
-    final isDeload = volume < 0.95;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
-        ),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceContainer,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: AppColors.outlineVariant.withValues(alpha: .35),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Week ${widget.week.weekIndex + 1}',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: (isDeload ? AppColors.tertiary : AppColors.primary)
-                      .withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isDeload ? 'Deload' : _phaseLabel(widget.week.blockPhase),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isDeload ? AppColors.tertiary : AppColors.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Intensity ${(widget.week.intensityFactor * 100).round()}%',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: AppColors.secondary,
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<int>(
+        value: selectedWeekIndex,
+        isExpanded: true,
+        dropdownColor: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: AppColors.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+        onChanged: onChanged,
+        items: [
+          for (var i = 0; i < weekCount; i++)
+            DropdownMenuItem(
+              value: i,
+              child: Text('Week ${i + 1} of $weekCount'),
             ),
-          ),
-          Row(
-            children: [
-              Text(
-                'VOLUME',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppColors.secondary,
-                  letterSpacing: 1,
-                ),
-              ),
-              Expanded(
-                child: Slider(
-                  value: volume.clamp(0.6, 1.2),
-                  min: 0.6,
-                  max: 1.2,
-                  divisions: 12,
-                  label: '${(volume * 100).round()}%',
-                  onChanged: (v) => setState(() => _draft = v),
-                  // Written on release, not per pixel.
-                  onChangeEnd: (v) async {
-                    Haptics.light();
-                    await ref
-                        .read(programsRepositoryProvider)
-                        .setWeekAdjustment(widget.week.id, adjustmentFactor: v);
-                    if (mounted) setState(() => _draft = null);
-                  },
-                ),
-              ),
-              SizedBox(
-                width: 44,
-                child: Text(
-                  '${(volume * 100).round()}%',
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 20),
-          days.when(
-            loading: () => const LinearProgressIndicator(),
-            error: (e, _) => const SizedBox.shrink(),
-            data: (list) => Column(
-              children: [
-                for (final day in list)
-                  _DayRow(program: widget.program, day: day),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () => _addDay(list),
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Add a day'),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
-    );
-  }
-
-  static String _phaseLabel(String? phase) => switch (phase) {
-    'accumulation' => 'Accumulation',
-    'transmutation' => 'Transmutation',
-    'realization' => 'Realization',
-    _ => 'Standard',
-  };
-
-  Future<void> _addDay(List<ProgramDayData> existing) async {
-    final isCycle =
-        ScheduleMode.fromId(widget.program.scheduleMode) == ScheduleMode.cycle;
-    final slot = await _pickSlot(isCycle);
-    if (slot == null || !mounted) return;
-
-    final repo = ref.read(programsRepositoryProvider);
-    await repo.addProgramDay(
-      programWeekId: widget.week.id,
-      dayOfWeek: isCycle ? 1 : slot,
-      cycleDayIndex: isCycle ? slot : null,
-      name: 'New session',
-      slotLabel: 'New session',
-    );
-    await repo.rematerializeProgram(widget.program.id);
-  }
-
-  Future<int?> _pickSlot(bool isCycle) {
-    final length = isCycle ? (widget.program.cycleLength ?? 7) : 7;
-    return showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AppBottomSheet(
-        scrollable: false,
-        title: isCycle ? 'Which cycle day?' : 'Which weekday?',
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (var i = 0; i < length; i++)
-              ActionChip(
-                label: Text(
-                  isCycle
-                      ? 'Day ${i + 1}'
-                      : const [
-                          'Mon',
-                          'Tue',
-                          'Wed',
-                          'Thu',
-                          'Fri',
-                          'Sat',
-                          'Sun',
-                        ][i],
-                ),
-                onPressed: () => Navigator.pop(context, isCycle ? i : i + 1),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }
 
-class _DayRow extends ConsumerWidget {
-  const _DayRow({required this.program, required this.day});
+/// D-05's "Exercise wave X of Y · Weeks A–B" indicator, always a distinct
+/// [Text] widget from [_WeekDropdown]'s own label — never string-concatenated
+/// into one line. Renders nothing while loading or when the viewed week has
+/// no anchor `main` slot.
+class _WaveStrip extends ConsumerWidget {
+  const _WaveStrip({
+    required this.programId,
+    required this.programWeekId,
+    required this.weekIndex,
+    required this.totalWeeks,
+  });
 
-  final ProgramData program;
-  final ProgramDayData day;
-
-  static const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final int programId;
+  final int programWeekId;
+  final int weekIndex;
+  final int totalWeeks;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final templates = ref.watch(workoutTemplateByIdProvider(day.templateId));
-    final slot = day.cycleDayIndex != null
-        ? 'Day ${day.cycleDayIndex! + 1}'
-        : _weekdays[(day.dayOfWeek - 1).clamp(0, 6)];
-
+    final info = ref.watch(
+      waveLabelProvider((
+        programId: programId,
+        programWeekId: programWeekId,
+        weekIndex: weekIndex,
+        totalWeeks: totalWeeks,
+      )),
+    );
+    final label = info.value?.label;
+    if (label == null) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 44,
-            child: Text(
-              slot,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.secondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  day.slotLabel?.isNotEmpty == true ? day.slotLabel! : day.name,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  templates == null
-                      ? 'No template — sessions will be empty'
-                      : templates.name,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: templates == null
-                        ? AppColors.tertiary
-                        : AppColors.secondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Link a template',
-            icon: Icon(
-              day.templateId == null
-                  ? Icons.link_rounded
-                  : Icons.swap_horiz_rounded,
-              size: 20,
-              color: AppColors.primary,
-            ),
-            onPressed: () => _link(context, ref),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Remove this day',
-            icon: Icon(
-              Icons.remove_circle_outline_rounded,
-              size: 20,
-              color: AppColors.secondary,
-            ),
-            onPressed: () => _remove(ref),
-          ),
-        ],
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(color: AppColors.secondary),
       ),
     );
-  }
-
-  Future<void> _link(BuildContext context, WidgetRef ref) async {
-    final picked = await TemplatePickerSheet.show(context);
-    if (picked == null) return;
-    final repo = ref.read(programsRepositoryProvider);
-    await repo.setProgramDayTemplate(day.id, picked.id);
-    await repo.rematerializeProgram(program.id);
-  }
-
-  Future<void> _remove(WidgetRef ref) async {
-    final repo = ref.read(programsRepositoryProvider);
-    await repo.deleteProgramDay(day.id);
-    await repo.rematerializeProgram(program.id);
   }
 }
 

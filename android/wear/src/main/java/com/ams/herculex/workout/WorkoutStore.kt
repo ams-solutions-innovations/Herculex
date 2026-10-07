@@ -160,6 +160,7 @@ object WorkoutStore {
             val currentExIdx = obj.optInt("currentExerciseIndex", 0)
             val currentSetIdx = obj.optInt("currentSetIndex", 0)
             val startedAtEpochMs = obj.optStartedAtEpochMs()
+            val fallbackSetStamp = SetSyncStamp(envelope.revision, envelope.origin)
             val exArr = obj.optJSONArray("exercises") ?: JSONArray()
             val exercises = (0 until exArr.length()).map { i ->
                 val exObj = exArr.getJSONObject(i)
@@ -185,6 +186,7 @@ object WorkoutStore {
                         bodyweightKg = sObj.optNullableDouble("bodyweightKg"),
                         chainsKg = sObj.optNullableDouble("chainsKg"),
                         completedAtEpochMs = sObj.optNullableLong("completedAtEpochMs"),
+                        syncVersions = sObj.optSetSyncVersions(fallbackSetStamp),
                     )
                 }
                 val wireId = resolveExerciseWireId(exObj.optString("wireId"))
@@ -234,6 +236,7 @@ object WorkoutStore {
                 set.bodyweightKg?.let { sObj.put("bodyweightKg", it) }
                 set.chainsKg?.let { sObj.put("chainsKg", it) }
                 set.completedAtEpochMs?.let { sObj.put("completedAtEpochMs", it) }
+                set.syncVersions?.let { sObj.put("syncVersions", it.toJson()) }
                 sObj.put("completed", set.completed)
                 setsArr.put(sObj)
             }
@@ -334,6 +337,31 @@ object WorkoutStore {
         if (!has(name) || isNull(name)) return null
         return optLong(name).takeIf { it > 0L }
     }
+
+    private fun JSONObject.optSetSyncVersions(fallback: SetSyncStamp): SetSyncVersions {
+        val versions = optJSONObject("syncVersions") ?: return SetSyncVersions.uniform(fallback)
+        return SetSyncVersions(
+            weight = versions.optSetSyncStamp("weight", fallback),
+            reps = versions.optSetSyncStamp("reps", fallback),
+            completion = versions.optSetSyncStamp("completion", fallback),
+        )
+    }
+
+    private fun JSONObject.optSetSyncStamp(name: String, fallback: SetSyncStamp): SetSyncStamp {
+        val obj = optJSONObject(name) ?: return fallback
+        val origin = obj.optString("origin").takeIf { it.isNotBlank() } ?: return fallback
+        if (!obj.has("revision")) return fallback
+        return SetSyncStamp(obj.optLong("revision"), origin)
+    }
+
+    private fun SetSyncVersions.toJson(): JSONObject = JSONObject()
+        .put("weight", weight.toJson())
+        .put("reps", reps.toJson())
+        .put("completion", completion.toJson())
+
+    private fun SetSyncStamp.toJson(): JSONObject = JSONObject()
+        .put("revision", revision)
+        .put("origin", origin)
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

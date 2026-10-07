@@ -23,6 +23,10 @@ class NotificationSettings {
   final bool dailyLogReminderEnabled;
   final String dailyLogTimeHHMM;
 
+  // ── Weekly report (D-07, D-08) ─────────────────────────────────────────────
+  final bool weeklyReportEnabled;
+  final String weeklyReportTimeHHMM;
+
   const NotificationSettings({
     this.mealRemindersEnabled = true,
     this.mealTimes = defaultMealTimes,
@@ -35,6 +39,8 @@ class NotificationSettings {
     this.restTimerAlertsEnabled = true,
     this.dailyLogReminderEnabled = false,
     this.dailyLogTimeHHMM = '21:00',
+    this.weeklyReportEnabled = false,
+    this.weeklyReportTimeHHMM = '18:00',
   });
 
   static const Map<String, String> defaultMealTimes = {
@@ -72,6 +78,8 @@ class NotificationSettings {
     bool? restTimerAlertsEnabled,
     bool? dailyLogReminderEnabled,
     String? dailyLogTimeHHMM,
+    bool? weeklyReportEnabled,
+    String? weeklyReportTimeHHMM,
   }) {
     return NotificationSettings(
       mealRemindersEnabled: mealRemindersEnabled ?? this.mealRemindersEnabled,
@@ -93,6 +101,8 @@ class NotificationSettings {
       dailyLogReminderEnabled:
           dailyLogReminderEnabled ?? this.dailyLogReminderEnabled,
       dailyLogTimeHHMM: dailyLogTimeHHMM ?? this.dailyLogTimeHHMM,
+      weeklyReportEnabled: weeklyReportEnabled ?? this.weeklyReportEnabled,
+      weeklyReportTimeHHMM: weeklyReportTimeHHMM ?? this.weeklyReportTimeHHMM,
     );
   }
 
@@ -109,6 +119,8 @@ class NotificationSettings {
       'restTimerAlertsEnabled': restTimerAlertsEnabled,
       'dailyLogReminderEnabled': dailyLogReminderEnabled,
       'dailyLogTimeHHMM': dailyLogTimeHHMM,
+      'weeklyReportEnabled': weeklyReportEnabled,
+      'weeklyReportTimeHHMM': weeklyReportTimeHHMM,
     };
   }
 
@@ -139,6 +151,12 @@ class NotificationSettings {
       dailyLogReminderEnabled:
           json['dailyLogReminderEnabled'] as bool? ?? false,
       dailyLogTimeHHMM: json['dailyLogTimeHHMM'] as String? ?? '21:00',
+      weeklyReportEnabled: json['weeklyReportEnabled'] is bool
+          ? json['weeklyReportEnabled'] as bool
+          : false,
+      weeklyReportTimeHHMM: json['weeklyReportTimeHHMM'] is String
+          ? json['weeklyReportTimeHHMM'] as String
+          : '18:00',
     );
   }
 

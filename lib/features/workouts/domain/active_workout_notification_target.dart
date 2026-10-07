@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
 import 'package:herculex/data/local/database.dart';
+import 'package:herculex/features/workouts/domain/set_numbering.dart';
 
 class ActiveWorkoutNotificationTarget {
   final String exerciseName;
@@ -10,6 +11,10 @@ class ActiveWorkoutNotificationTarget {
   final String equipmentVariant;
   final SetEntryData? lastCompletedSet;
 
+  /// How [set] is numbered on screen — warmups as W1, W2, working sets
+  /// counting from 1. Null only for the synthetic set of an empty exercise.
+  final SetNumber? setNumber;
+
   const ActiveWorkoutNotificationTarget({
     required this.exerciseName,
     required this.set,
@@ -17,6 +22,7 @@ class ActiveWorkoutNotificationTarget {
     this.primaryMuscle = '',
     this.equipmentVariant = '',
     this.lastCompletedSet,
+    this.setNumber,
   });
 }
 
@@ -58,9 +64,11 @@ ActiveWorkoutNotificationTarget? selectActiveWorkoutNotificationTarget({
     }
 
     final nextOpenSet = sets.where((s) => !s.isCompleted).firstOrNull;
+    final targetSet = nextOpenSet ?? sets.last;
     final target = ActiveWorkoutNotificationTarget(
       exerciseName: exerciseName,
-      set: nextOpenSet ?? sets.last,
+      set: targetSet,
+      setNumber: numberSets(sets)[sets.indexOf(targetSet)],
       totalSets: sets.length,
       primaryMuscle: catalogEntry?.primaryMuscle ?? '',
       equipmentVariant:

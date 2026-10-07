@@ -26,8 +26,15 @@ data class HxNutrition(
     val protein: HxMacro,
     val carbs: HxMacro,
     val fat: HxMacro,
+    /** Nothing synced yet today: show the placeholder, but don't claim there is no goal. */
+    val stale: Boolean = false,
 ) {
     val hasGoal: Boolean get() = goal > 0
+
+    companion object {
+        val UNSYNCED = HxNutrition(0, 0, 0, 0, HxMacro(0, 0), HxMacro(0, 0), HxMacro(0, 0), stale = true)
+    }
+
     val allowance: Int get() = goal + exercise
     val isOver: Boolean get() = hasGoal && remaining < 0
     val fraction: Float get() = if (hasGoal && allowance > 0) food.toFloat() / allowance else 0f
@@ -112,7 +119,7 @@ class HxWidgetRenderer(
             val big = grotesk(28 * k, p.onSurface, tracking = -0.6f * k)
             val unit = manrope(11 * k, 600, p.secondary)
             val unitText = when {
-                !n.hasGoal -> "Set a goal"
+                !n.hasGoal -> if (n.stale) "Open app" else "Set a goal"
                 n.isOver -> "kcal over"
                 else -> "kcal left"
             }
@@ -201,7 +208,7 @@ class HxWidgetRenderer(
             val unit = manrope(12f, 400, p.secondary)
             val base = baseline(midTop, big, 36f)
             val numW = text(if (n.hasGoal) fmt(abs(n.remaining)) else "—", 16f, base, big)
-            text(if (n.hasGoal) "kcal" else "Set a goal", 16 + numW + 4, base, unit, maxWidth = w - 32 - numW - 4)
+            text(if (n.hasGoal) "kcal" else if (n.stale) "Open app" else "Set a goal", 16 + numW + 4, base, unit, maxWidth = w - 32 - numW - 4)
             bar(16f, midTop + 36 + 8, w - 32, 6f, n.fraction, alpha(p.surfaceVariant, 0.7f), p.kcal)
 
             val footTop = h - 16 - footH

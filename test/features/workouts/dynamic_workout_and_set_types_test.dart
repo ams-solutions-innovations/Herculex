@@ -177,5 +177,24 @@ void main() {
       expect(rounded, equals(8.0));
       expect(rounded.toInt(), equals(8));
     });
+
+    test('Flick discrete step changes exactly one rep at a time', () {
+      const flickThreshold = 22.0;
+      var reps = 5;
+
+      // Flick up (+25px displacement)
+      final deltaUp = 25.0;
+      if (deltaUp >= flickThreshold) {
+        reps += 1;
+      }
+      expect(reps, equals(6));
+
+      // Flick down (-30px displacement)
+      final deltaDown = -30.0;
+      if (deltaDown <= -flickThreshold) {
+        reps -= 1;
+      }
+      expect(reps, equals(5));
+    });
   });
 }

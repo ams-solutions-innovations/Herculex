@@ -31,7 +31,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.ams.herculex.workout.ActiveWorkoutScreen
 import com.ams.herculex.workout.ExerciseOptionsScreen
 import com.ams.herculex.workout.ManageExerciseScreen
+import com.ams.herculex.workout.GoTimeOverlay
 import com.ams.herculex.workout.PrCelebrationOverlay
+import com.ams.herculex.workout.RestTimerStore
 import com.ams.herculex.workout.SelectExerciseScreen
 import com.ams.herculex.workout.SetLoggerScreen
 import com.ams.herculex.workout.WeeklyVolumeScreen
@@ -59,11 +61,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
-            }
+        // One combined prompt: concurrent requestPermissions calls get dropped.
+        // Live heart rate during workouts needs the sensor permission at runtime.
+        val missing = mutableListOf<String>()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) missing.add(android.Manifest.permission.POST_NOTIFICATIONS)
+        if (!com.ams.herculex.workout.HeartRateMonitor.hasPermission(this)) {
+            missing.add(com.ams.herculex.workout.HeartRateMonitor.requiredPermission())
         }
+        if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), 102)
 
         consumeIntentExtras(intent)
 
@@ -74,6 +81,7 @@ class MainActivity : ComponentActivity() {
                 val workoutViewModel:   WorkoutViewModel   = viewModel()
                 val activeSession by workoutViewModel.session.collectAsState()
                 val prCelebration by workoutViewModel.prCelebration.collectAsState()
+                val goTime by RestTimerStore.goTimeEvents.collectAsState()
                 val openWorkoutRequest by openActiveWorkoutRequests.collectAsState()
                 val targetRoute by pendingRoute.collectAsState()
 
@@ -210,6 +218,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // Rest is over while the app is on screen.
+                    GoTimeOverlay(trigger = goTime)
+
                     // Global full-screen PR Trophy celebration overlay
                     prCelebration?.let { prEvent ->
                         PrCelebrationOverlay(
@@ -220,6 +231,27 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 102) {
+            com.ams.herculex.sync.SyncService.activeViewModel?.onHeartRatePermissionResult()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        RestTimerStore.appInForeground = true
+    }
+
+    override fun onPause() {
+        RestTimerStore.appInForeground = false
+        super.onPause()
     }
 
     override fun onNewIntent(intent: Intent) {

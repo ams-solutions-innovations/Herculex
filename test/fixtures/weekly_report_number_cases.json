@@ -1,0 +1,348 @@
+[
+  {
+    "name": "plain integer",
+    "facts": {
+      "workouts": 4
+    },
+    "text": "You trained 4 times.",
+    "expectedNumbers": [
+      4
+    ],
+    "ok": true
+  },
+  {
+    "name": "decimal in facts",
+    "facts": {
+      "sleepHours": 7.5
+    },
+    "text": "You averaged 7.5 hours of sleep.",
+    "expectedNumbers": [
+      7.5
+    ],
+    "ok": true
+  },
+  {
+    "name": "decimal missing",
+    "facts": {
+      "sleepHours": 7.5
+    },
+    "text": "You averaged 7.6 hours of sleep.",
+    "expectedNumbers": [
+      7.6
+    ],
+    "ok": false
+  },
+  {
+    "name": "3.0 equals 3",
+    "facts": {
+      "count": 3
+    },
+    "text": "Done 3.0 sessions.",
+    "expectedNumbers": [
+      3
+    ],
+    "ok": true
+  },
+  {
+    "name": "leading zero",
+    "facts": {
+      "count": 3
+    },
+    "text": "Done 03 sessions.",
+    "expectedNumbers": [
+      3
+    ],
+    "ok": true
+  },
+  {
+    "name": "text negative, fact positive",
+    "facts": {
+      "delta": 0.5
+    },
+    "text": "Weight went down -0.5 kg.",
+    "expectedNumbers": [
+      0.5
+    ],
+    "ok": true
+  },
+  {
+    "name": "down 0.5 matches fact -0.5",
+    "facts": {
+      "delta": -0.5
+    },
+    "text": "Weight was down 0.5 kg.",
+    "expectedNumbers": [
+      0.5
+    ],
+    "ok": true
+  },
+  {
+    "name": "thousands comma",
+    "facts": {
+      "kcal": 2150
+    },
+    "text": "You ate 2,150 kcal.",
+    "expectedNumbers": [
+      2150
+    ],
+    "ok": true
+  },
+  {
+    "name": "thousands space",
+    "facts": {
+      "kcal": 2150
+    },
+    "text": "You ate 2 150 kcal.",
+    "expectedNumbers": [
+      2150
+    ],
+    "ok": true
+  },
+  {
+    "name": "thousands comma missing",
+    "facts": {
+      "kcal": 2150
+    },
+    "text": "You ate 2,250 kcal.",
+    "expectedNumbers": [
+      2250
+    ],
+    "ok": false
+  },
+  {
+    "name": "3, 4 stays two numbers",
+    "facts": {
+      "a": 3,
+      "b": 4
+    },
+    "text": "Sets of 3, 4 and more.",
+    "expectedNumbers": [
+      3,
+      4
+    ],
+    "ok": true
+  },
+  {
+    "name": "1,20 stays two numbers",
+    "facts": {
+      "a": 1
+    },
+    "text": "Range 1,20 noted.",
+    "expectedNumbers": [
+      1,
+      20
+    ],
+    "ok": true
+  },
+  {
+    "name": "percent",
+    "facts": {
+      "adherence": 82
+    },
+    "text": "Adherence was 82%.",
+    "expectedNumbers": [
+      82
+    ],
+    "ok": true
+  },
+  {
+    "name": "iso date field excluded",
+    "facts": {
+      "weekStartIso": "2026-09-28",
+      "kcal": 2000
+    },
+    "text": "Week of 2026 had 2000 kcal.",
+    "expectedNumbers": [
+      2026,
+      2000
+    ],
+    "ok": false
+  },
+  {
+    "name": "iso date value excluded",
+    "facts": {
+      "days": [
+        "2026-09-28"
+      ]
+    },
+    "text": "On 2026 you trained.",
+    "expectedNumbers": [
+      2026
+    ],
+    "ok": false
+  },
+  {
+    "name": "October 5 via small ints",
+    "facts": {
+      "kcal": 2000
+    },
+    "text": "On October 5 you hit 2000 kcal.",
+    "expectedNumbers": [
+      5,
+      2000
+    ],
+    "ok": true
+  },
+  {
+    "name": "year rejected",
+    "facts": {
+      "kcal": 2000
+    },
+    "text": "Back in 2026 things were fine.",
+    "expectedNumbers": [
+      2026
+    ],
+    "ok": false
+  },
+  {
+    "name": "number inside food name",
+    "facts": {
+      "foods": [
+        {
+          "name": "Whey 100 bar"
+        }
+      ]
+    },
+    "text": "You had the Whey 100 bar.",
+    "expectedNumbers": [
+      100
+    ],
+    "ok": true
+  },
+  {
+    "name": "5 of 7 days",
+    "facts": {
+      "x": 1
+    },
+    "text": "You trained 5 of 7 days.",
+    "expectedNumbers": [
+      5,
+      7
+    ],
+    "ok": true
+  },
+  {
+    "name": "61 absent rejected",
+    "facts": {
+      "x": 1
+    },
+    "text": "You slept 61 minutes more.",
+    "expectedNumbers": [
+      61
+    ],
+    "ok": false
+  },
+  {
+    "name": "61 present accepted",
+    "facts": {
+      "minutes": 61
+    },
+    "text": "You slept 61 minutes more.",
+    "expectedNumbers": [
+      61
+    ],
+    "ok": true
+  },
+  {
+    "name": "hallucinated number",
+    "facts": {
+      "workouts": 4
+    },
+    "text": "You lifted 120 kg for 4 sets.",
+    "expectedNumbers": [
+      120,
+      4
+    ],
+    "ok": false
+  },
+  {
+    "name": "empty text",
+    "facts": {
+      "workouts": 4
+    },
+    "text": "",
+    "expectedNumbers": [],
+    "ok": true
+  },
+  {
+    "name": "no numbers",
+    "facts": {
+      "workouts": 4
+    },
+    "text": "A steady week.",
+    "expectedNumbers": [],
+    "ok": true
+  },
+  {
+    "name": "several numbers one missing",
+    "facts": {
+      "a": 1500,
+      "b": 4
+    },
+    "text": "1500 kcal over 4 days and 1800 steps.",
+    "expectedNumbers": [
+      1500,
+      4,
+      1800
+    ],
+    "ok": false
+  },
+  {
+    "name": "large grouped in facts as plain",
+    "facts": {
+      "steps": 12345
+    },
+    "text": "About 12,345 steps.",
+    "expectedNumbers": [
+      12345
+    ],
+    "ok": true
+  },
+  {
+    "name": "decimal after grouping",
+    "facts": {
+      "kcal": 2150.5
+    },
+    "text": "Ate 2,150.5 kcal.",
+    "expectedNumbers": [
+      2150.5
+    ],
+    "ok": true
+  },
+  {
+    "name": "date-key digits do not widen set",
+    "facts": {
+      "windowEnd": "2026-10-04",
+      "n": 1
+    },
+    "text": "Window 2026 ended.",
+    "expectedNumbers": [
+      2026
+    ],
+    "ok": false
+  },
+  {
+    "name": "statement digits allowed",
+    "facts": {
+      "statements": [
+        "Protein 150 g on 5 days"
+      ]
+    },
+    "text": "Protein 150 g was steady.",
+    "expectedNumbers": [
+      150
+    ],
+    "ok": true
+  },
+  {
+    "name": "0.5 not small integer",
+    "facts": {
+      "x": 1
+    },
+    "text": "Down 0.5 kg.",
+    "expectedNumbers": [
+      0.5
+    ],
+    "ok": false
+  }
+]

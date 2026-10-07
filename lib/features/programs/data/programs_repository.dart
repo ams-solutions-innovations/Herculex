@@ -1,11 +1,18 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/features/programs/domain/periodization.dart';
+import 'package:herculex/features/programs/domain/programming_models.dart';
 import 'package:herculex/features/programs/domain/schedule_status.dart';
 import 'package:herculex/features/programs/domain/schedule_walk.dart';
 import 'package:herculex/features/programs/domain/scheduled_workout_row.dart';
+import 'package:herculex/features/programs/domain/slot_prescription.dart';
+import 'package:herculex/features/programs/domain/slot_prescription_codec.dart';
 import 'package:herculex/features/programs/domain/split_template.dart';
+import 'package:herculex/features/programs/domain/wave_label.dart';
+import 'package:herculex/features/workouts/domain/set_type.dart';
 
 /// One exercise a program day will produce, from whichever source the day uses
 /// (a linked template, or its own inline [ProgramDayExercises]).
@@ -27,10 +34,360 @@ class ResolvedExercise {
   final bool fromTemplate;
 }
 
+/// How far an exercise choice should reach within a rotating program slot.
+///
+/// A wave is the contiguous run of weeks that currently uses the same
+/// rotation assignment. This keeps a review-stage adjustment from silently
+/// erasing the rest of a planned rotation.
+enum ProgramExerciseReplacementScope {
+  thisWave,
+  thisAndFutureWaves,
+  entireBlock,
+}
+
+class ProgramLiftProgress {
+  const ProgramLiftProgress({required this.label, required this.e1RmKg});
+
+  final String label;
+  final double e1RmKg;
+}
+
+class ProgramDayExerciseSummary {
+  const ProgramDayExerciseSummary({
+    required this.id,
+    required this.exerciseId,
+    required this.name,
+    required this.role,
+    required this.method,
+    required this.targetSets,
+    this.targetRepsMin,
+    this.targetRepsMax,
+    this.why,
+  });
+
+  /// The underlying `ProgramDayExercises` row id — the target of a
+  /// per-exercise replacement.
+  final int id;
+
+  /// The catalog exercise id currently filling this slot — used to resolve
+  /// `current` for `ExerciseReplacementSheet`.
+  final int exerciseId;
+  final String name;
+  final String role;
+  final String method;
+  final int targetSets;
+  final int? targetRepsMin;
+  final int? targetRepsMax;
+  final String? why;
+
+  String get targetLabel {
+    final reps = switch ((targetRepsMin, targetRepsMax)) {
+      (final int min, final int max) when min != max => '$min–$max',
+      (final int min, _) => '$min',
+      (_, final int max) => '$max',
+      _ => '—',
+    };
+    return '$targetSets × $reps';
+  }
+}
+
+class ProgramTrackingSnapshot {
+  const ProgramTrackingSnapshot({
+    required this.plannedSessions,
+    required this.completedSessions,
+    required this.skippedSessions,
+    required this.currentWeekIndex,
+    required this.qualitySets,
+    required this.maxEffortTopSets,
+    required this.exercisePrs,
+    required this.movementFamilyTrends,
+    this.phase,
+    this.nextRotation,
+  });
+
+  final int plannedSessions;
+  final int completedSessions;
+  final int skippedSessions;
+  final int currentWeekIndex;
+  final String? phase;
+  final int qualitySets;
+  final int maxEffortTopSets;
+  final List<ProgramLiftProgress> exercisePrs;
+  final List<ProgramLiftProgress> movementFamilyTrends;
+  final String? nextRotation;
+
+  double get adherence => plannedSessions == 0
+      ? 0
+      : (completedSessions / plannedSessions).clamp(0, 1);
+}
+
 class ProgramsRepository {
   final AppDatabase _db;
 
   ProgramsRepository(this._db);
+
+  Stream<List<ProgramDayExerciseSummary>> watchDayExerciseSummaries(
+    int programDayId,
+  ) {
+    return _db
+        .customSelect(
+          'SELECT 1',
+          readsFrom: {
+            _db.programDayExercises,
+            _db.exerciseCatalog,
+            _db.rotationAssignments,
+          },
+        )
+        .watch()
+        .asyncMap((_) async {
+          final rows =
+              await (_db.select(_db.programDayExercises)
+                    ..where((t) => t.programDayId.equals(programDayId))
+                    ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+                  .get();
+          if (rows.isEmpty) return const <ProgramDayExerciseSummary>[];
+          final ids = rows.map((row) => row.exerciseId).toSet();
+          final catalog = await (_db.select(
+            _db.exerciseCatalog,
+          )..where((t) => t.id.isIn(ids))).get();
+          final byId = {for (final exercise in catalog) exercise.id: exercise};
+          return [
+            for (final row in rows)
+              ProgramDayExerciseSummary(
+                id: row.id,
+                exerciseId: row.exerciseId,
+                name: byId[row.exerciseId]?.name ?? 'Unknown exercise',
+                role: row.slotRole,
+                method: row.trainingMethod,
+                targetSets: row.targetSets,
+                targetRepsMin: row.targetRepsMin,
+                targetRepsMax: row.targetRepsMax,
+                why: row.prescriptionWhy,
+              ),
+          ];
+        });
+  }
+
+  Stream<ProgramTrackingSnapshot> watchProgramTracking(int programId) {
+    return _db
+        .customSelect(
+          'SELECT 1',
+          readsFrom: {
+            _db.scheduledWorkouts,
+            _db.programDays,
+            _db.programWeeks,
+            _db.programExerciseSlots,
+            _db.rotationAssignments,
+            _db.workoutExercises,
+            _db.setEntries,
+            _db.exerciseCatalog,
+          },
+        )
+        .watch()
+        .asyncMap((_) => _loadProgramTracking(programId));
+  }
+
+  Future<ProgramTrackingSnapshot> _loadProgramTracking(int programId) async {
+    final schedules =
+        await (_db.select(_db.scheduledWorkouts)
+              ..where((t) => t.programId.equals(programId))
+              ..orderBy([(t) => OrderingTerm(expression: t.dateIso)]))
+            .get();
+    final completed = schedules
+        .where((row) => row.status == ScheduleStatus.done)
+        .length;
+    final skipped = schedules
+        .where((row) => row.status == ScheduleStatus.skipped)
+        .length;
+    final today = _formatDateIso(_todayDate());
+    final currentSchedule = schedules.firstWhere(
+      (row) =>
+          row.dateIso.compareTo(today) >= 0 &&
+          row.status != ScheduleStatus.skipped,
+      orElse: () => schedules.lastOrNull ?? _emptySchedule,
+    );
+
+    ProgramWeekData? currentWeek;
+    if (currentSchedule.id != -1) {
+      final day =
+          await (_db.select(_db.programDays)
+                ..where((t) => t.id.equals(currentSchedule.programDayId)))
+              .getSingleOrNull();
+      if (day != null) {
+        currentWeek = await (_db.select(
+          _db.programWeeks,
+        )..where((t) => t.id.equals(day.programWeekId))).getSingleOrNull();
+      }
+    }
+    currentWeek ??=
+        await (_db.select(_db.programWeeks)
+              ..where((t) => t.programId.equals(programId))
+              ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)])
+              ..limit(1))
+            .getSingleOrNull();
+
+    final sessionIds = schedules
+        .map((row) => row.completedSessionId)
+        .whereType<int>()
+        .toSet();
+    final workoutExercises = sessionIds.isEmpty
+        ? const <WorkoutExerciseData>[]
+        : await (_db.select(
+            _db.workoutExercises,
+          )..where((t) => t.sessionId.isIn(sessionIds))).get();
+    final workoutExerciseIds = workoutExercises.map((row) => row.id).toSet();
+    final sets = workoutExerciseIds.isEmpty
+        ? const <SetEntryData>[]
+        : await (_db.select(_db.setEntries)..where(
+                (t) =>
+                    t.workoutExerciseId.isIn(workoutExerciseIds) &
+                    t.isCompleted.equals(true) &
+                    t.isWarmup.equals(false),
+              ))
+              .get();
+    final exerciseIds = workoutExercises.map((row) => row.exerciseId).toSet();
+    final catalog = exerciseIds.isEmpty
+        ? const <ExerciseCatalogData>[]
+        : await (_db.select(
+            _db.exerciseCatalog,
+          )..where((t) => t.id.isIn(exerciseIds))).get();
+    final exerciseById = {for (final row in catalog) row.id: row};
+    final workoutExerciseById = {
+      for (final row in workoutExercises) row.id: row,
+    };
+    final bestByExercise = <int, double>{};
+    final bestByFamily = <String, double>{};
+    var qualitySets = 0;
+    var maxEffortTopSets = 0;
+    for (final set in sets) {
+      final exercise = workoutExerciseById[set.workoutExerciseId];
+      if (exercise == null) continue;
+      final targetMet =
+          (set.plannedRepsMin == null || set.reps >= set.plannedRepsMin!) &&
+          (set.plannedRpeX10 == null ||
+              set.rpeX10 == null ||
+              set.rpeX10! <= set.plannedRpeX10! + 5);
+      if (targetMet) qualitySets++;
+      if (exercise.plannedTrainingMethod == 'max_effort' &&
+          set.plannedIntent == 'ramp_to_max') {
+        maxEffortTopSets++;
+      }
+      if (set.weightKg <= 0 || set.reps <= 0) continue;
+      final e1Rm = set.weightKg * (1 + set.reps / 30);
+      bestByExercise.update(
+        exercise.exerciseId,
+        (value) => value > e1Rm ? value : e1Rm,
+        ifAbsent: () => e1Rm,
+      );
+      final family = exerciseById[exercise.exerciseId]?.movementFamily;
+      if (family != null && family.isNotEmpty) {
+        bestByFamily.update(
+          family,
+          (value) => value > e1Rm ? value : e1Rm,
+          ifAbsent: () => e1Rm,
+        );
+      }
+    }
+
+    List<ProgramLiftProgress> sortedProgress(Map<String, double> values) {
+      final result = [
+        for (final entry in values.entries)
+          ProgramLiftProgress(label: entry.key, e1RmKg: entry.value),
+      ]..sort((a, b) => b.e1RmKg.compareTo(a.e1RmKg));
+      return result.take(3).toList(growable: false);
+    }
+
+    final exerciseProgress = <String, double>{};
+    for (final entry in bestByExercise.entries) {
+      exerciseProgress[exerciseById[entry.key]?.name ?? 'Exercise'] =
+          entry.value;
+    }
+
+    String? nextRotation;
+    final slots = await (_db.select(
+      _db.programExerciseSlots,
+    )..where((t) => t.programId.equals(programId))).get();
+    if (slots.isNotEmpty) {
+      final slotIds = slots.map((slot) => slot.id).toSet();
+      final assignments =
+          await (_db.select(_db.rotationAssignments)
+                ..where((t) => t.slotId.isIn(slotIds))
+                ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
+              .get();
+      final currentIndex = currentWeek?.weekIndex ?? 0;
+      RotationAssignmentData? nearest;
+      for (final slot in slots) {
+        final rows = assignments
+            .where((assignment) => assignment.slotId == slot.id)
+            .toList(growable: false);
+        final active = rows.lastWhere(
+          (assignment) => assignment.weekIndex <= currentIndex,
+          orElse: () => rows.firstOrNull ?? _emptyAssignment,
+        );
+        if (active.id == -1) continue;
+        for (final candidate in rows) {
+          if (candidate.weekIndex > currentIndex &&
+              candidate.exerciseId != active.exerciseId &&
+              (nearest == null || candidate.weekIndex < nearest.weekIndex)) {
+            nearest = candidate;
+            break;
+          }
+        }
+      }
+      if (nearest != null) {
+        var exercise = exerciseById[nearest.exerciseId];
+        exercise ??= await (_db.select(
+          _db.exerciseCatalog,
+        )..where((t) => t.id.equals(nearest!.exerciseId))).getSingleOrNull();
+        nextRotation =
+            'Week ${nearest.weekIndex + 1} · ${exercise?.name ?? 'planned variation'}';
+      }
+    }
+
+    return ProgramTrackingSnapshot(
+      plannedSessions: schedules.length,
+      completedSessions: completed,
+      skippedSessions: skipped,
+      currentWeekIndex: currentWeek?.weekIndex ?? 0,
+      phase: currentWeek?.blockPhase,
+      qualitySets: qualitySets,
+      maxEffortTopSets: maxEffortTopSets,
+      exercisePrs: sortedProgress(exerciseProgress),
+      movementFamilyTrends: sortedProgress(bestByFamily),
+      nextRotation: nextRotation,
+    );
+  }
+
+  static final _emptySchedule = ScheduledWorkoutData(
+    id: -1,
+    syncUuid: null,
+    updatedAt: null,
+    syncedAt: null,
+    deletedAt: null,
+    dateIso: '',
+    programDayId: -1,
+    completedSessionId: null,
+    status: ScheduleStatus.planned,
+    programId: null,
+    orderIndex: 0,
+    occurrenceIndex: 0,
+    templateIdOverride: null,
+    startTimeMinutes: null,
+  );
+
+  static final _emptyAssignment = RotationAssignmentData(
+    syncUuid: null,
+    updatedAt: null,
+    syncedAt: null,
+    deletedAt: null,
+    id: -1,
+    slotId: -1,
+    exerciseId: -1,
+    weekIndex: -1,
+    source: 'planned',
+    reason: '',
+    variantConfigJson: null,
+  );
 
   // ── Template CRUD ────────────────────────────────────────────────────────
 
@@ -92,7 +449,13 @@ class ProgramsRepository {
     /// the day empty for inline exercises.
     Map<int, int?> templateIdsBySlot = const {},
     bool activate = true,
+    bool archived = false,
+    bool materialize = true,
     int? defaultStartTimeMinutes,
+    ProgramBuildMode buildMode = ProgramBuildMode.manual,
+    TrainingGoal trainingGoal = TrainingGoal.hypertrophy,
+    ExperienceLevel experienceLevel = ExperienceLevel.intermediate,
+    AdaptationMode adaptationMode = AdaptationMode.reviewStructural,
   }) async {
     final programId = await _db.transaction(() async {
       final model = PeriodizationModel.fromId(periodizationModel);
@@ -107,7 +470,7 @@ class ProgramsRepository {
               progressionStrategy: Value(progressionStrategy),
               periodizationModel: Value(model.id),
               createdByUser: const Value(true),
-              archived: const Value(false),
+              archived: Value(archived),
               splitType: Value(plan.type.id),
               scheduleMode: Value(plan.mode.id),
               cycleLength: Value(
@@ -115,6 +478,10 @@ class ProgramsRepository {
               ),
               daysPerWeek: Value(plan.trainingDayCount),
               startDateIso: Value(_formatDateIso(startDate)),
+              buildMode: Value(buildMode.id),
+              trainingGoal: Value(trainingGoal.id),
+              experienceLevel: Value(experienceLevel.id),
+              adaptationMode: Value(adaptationMode.id),
             ),
           );
 
@@ -142,7 +509,7 @@ class ProgramsRepository {
     });
 
     if (activate) await setActiveProgram(programId);
-    await materializeProgram(programId, startDate);
+    if (materialize) await materializeProgram(programId, startDate);
     return programId;
   }
 
@@ -301,6 +668,43 @@ class ProgramsRepository {
             (t) => OrderingTerm(expression: t.orderIndex),
           ]))
         .get();
+  }
+
+  /// D-05's "Exercise wave X of Y · Weeks A–B" indicator for one viewed week.
+  ///
+  /// Resolves the week's anchor `main` slot ([WaveLabel.selectAnchorSlot]),
+  /// then walks its [RotationAssignments] across every week to derive the
+  /// current wave via [WaveLabel.compute]. Returns `null` when the week has
+  /// no anchor `main` slot at all — the wave-strip line is omitted entirely
+  /// in that case, never rendered with a misleading default.
+  Future<WaveLabelInfo?> getWaveLabelInfo({
+    required int programId,
+    required int programWeekId,
+    required int weekIndex,
+    required int totalWeeks,
+  }) async {
+    final days = await getProgramDaysForWeek(programWeekId);
+    final allSlots = await (_db.select(
+      _db.programExerciseSlots,
+    )..where((t) => t.programId.equals(programId))).get();
+    final anchor = WaveLabel.selectAnchorSlot(
+      daysInOrder: days,
+      allSlots: allSlots,
+    );
+    if (anchor == null) return null;
+
+    final assignments = await (_db.select(
+      _db.rotationAssignments,
+    )..where((t) => t.slotId.equals(anchor.id))).get();
+    final exerciseIdByWeek = <int, int?>{
+      for (final assignment in assignments)
+        assignment.weekIndex: assignment.exerciseId,
+    };
+    return WaveLabel.compute(
+      totalWeeks: totalWeeks,
+      currentWeekIndex: weekIndex,
+      exerciseIdByWeek: exerciseIdByWeek,
+    );
   }
 
   Stream<List<ProgramDayData>> watchProgramDaysForWeek(int weekId) {
@@ -517,7 +921,298 @@ class ProgramsRepository {
         .get();
   }
 
+  /// Applies a review-stage exercise replacement at the requested [scope].
+  ///
+  /// A stable slot is shared by every week, but its assignments are not: the
+  /// default [ProgramExerciseReplacementScope.thisWave] changes only the
+  /// contiguous wave containing [programDayExerciseId]. This preserves the
+  /// later planned variations. Program-day blueprints are updated alongside
+  /// the assignments; already-created workout sessions are deliberately not
+  /// touched here.
+  Future<void> replaceProgramExerciseSlot({
+    required int programDayExerciseId,
+    required int replacementExerciseId,
+    ProgramExerciseReplacementScope scope =
+        ProgramExerciseReplacementScope.thisWave,
+  }) async {
+    final original = await (_db.select(
+      _db.programDayExercises,
+    )..where((t) => t.id.equals(programDayExerciseId))).getSingleOrNull();
+    if (original == null || original.exerciseId == replacementExerciseId) {
+      return;
+    }
+
+    final originalDay = await (_db.select(
+      _db.programDays,
+    )..where((t) => t.id.equals(original.programDayId))).getSingleOrNull();
+    if (originalDay == null) return;
+    final originalWeek = await (_db.select(
+      _db.programWeeks,
+    )..where((t) => t.id.equals(originalDay.programWeekId))).getSingleOrNull();
+    if (originalWeek == null) return;
+
+    await _db.transaction(() async {
+      final slotId = original.programExerciseSlotId;
+      if (slotId == null) {
+        await (_db.update(
+          _db.programDayExercises,
+        )..where((t) => t.id.equals(programDayExerciseId))).write(
+          ProgramDayExercisesCompanion(
+            exerciseId: Value(replacementExerciseId),
+            equipmentVariant: const Value(null),
+          ),
+        );
+        return;
+      }
+
+      final slot = await (_db.select(
+        _db.programExerciseSlots,
+      )..where((t) => t.id.equals(slotId))).getSingleOrNull();
+      if (slot == null) return;
+      final weeks =
+          await (_db.select(_db.programWeeks)
+                ..where((t) => t.programId.equals(slot.programId))
+                ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
+              .get();
+      if (weeks.isEmpty) return;
+      final assignments =
+          await (_db.select(_db.rotationAssignments)
+                ..where((t) => t.slotId.equals(slotId))
+                ..orderBy([(t) => OrderingTerm(expression: t.weekIndex)]))
+              .get();
+      final assignmentByWeek = {
+        for (final assignment in assignments) assignment.weekIndex: assignment,
+      };
+      final allWeekIndices = weeks.map((week) => week.weekIndex).toList();
+      final activeExerciseId =
+          assignmentByWeek[originalWeek.weekIndex]?.exerciseId ??
+          original.exerciseId;
+      var waveStart = originalWeek.weekIndex;
+      var waveEnd = originalWeek.weekIndex;
+      while (assignmentByWeek[waveStart - 1]?.exerciseId == activeExerciseId) {
+        waveStart--;
+      }
+      while (assignmentByWeek[waveEnd + 1]?.exerciseId == activeExerciseId) {
+        waveEnd++;
+      }
+      final targetWeekIndices = switch (scope) {
+        ProgramExerciseReplacementScope.thisWave => [
+          for (final week in allWeekIndices)
+            if (week >= waveStart && week <= waveEnd) week,
+        ],
+        ProgramExerciseReplacementScope.thisAndFutureWaves => [
+          for (final week in allWeekIndices)
+            if (week >= waveStart) week,
+        ],
+        ProgramExerciseReplacementScope.entireBlock => allWeekIndices,
+      };
+      final targetWeekIds = [
+        for (final week in weeks)
+          if (targetWeekIndices.contains(week.weekIndex)) week.id,
+      ];
+      final targetDayIds = targetWeekIds.isEmpty
+          ? <int>[]
+          : (await (_db.select(
+                  _db.programDays,
+                )..where((t) => t.programWeekId.isIn(targetWeekIds))).get())
+                .map((day) => day.id)
+                .toList();
+
+      await (_db.update(_db.programDayExercises)..where(
+            (t) =>
+                t.programExerciseSlotId.equals(slotId) &
+                t.programDayId.isIn(targetDayIds),
+          ))
+          .write(
+            ProgramDayExercisesCompanion(
+              exerciseId: Value(replacementExerciseId),
+              // A variant belongs to the original choice. A review replacement
+              // starts with the selected catalog exercise's default, so
+              // "weighted" is never carried onto a barbell or machine movement.
+              equipmentVariant: const Value(null),
+            ),
+          );
+      await (_db.update(_db.programExerciseSlots)
+            ..where((t) => t.id.equals(slotId)))
+          .write(const ProgramExerciseSlotsCompanion(userLocked: Value(true)));
+
+      await (_db.update(_db.programSlotPoolMembers)
+            ..where((t) => t.slotId.equals(slotId)))
+          .write(const ProgramSlotPoolMembersCompanion(pinned: Value(false)));
+      final member =
+          await (_db.select(_db.programSlotPoolMembers)..where(
+                (t) =>
+                    t.slotId.equals(slotId) &
+                    t.exerciseId.equals(replacementExerciseId),
+              ))
+              .getSingleOrNull();
+      if (member == null) {
+        await _db
+            .into(_db.programSlotPoolMembers)
+            .insert(
+              ProgramSlotPoolMembersCompanion.insert(
+                slotId: slotId,
+                exerciseId: replacementExerciseId,
+                orderIndex: const Value(0),
+                pinned: const Value(true),
+              ),
+            );
+      } else {
+        await (_db.update(
+          _db.programSlotPoolMembers,
+        )..where((t) => t.id.equals(member.id))).write(
+          const ProgramSlotPoolMembersCompanion(
+            orderIndex: Value(0),
+            pinned: Value(true),
+          ),
+        );
+      }
+
+      // This is an explicit pre-approval choice, not a random rotation. Only
+      // update the assignments covered by the selected scope; later waves
+      // retain their planned variations unless the user explicitly includes
+      // them.
+      await (_db.update(_db.rotationAssignments)..where(
+            (t) =>
+                t.slotId.equals(slotId) & t.weekIndex.isIn(targetWeekIndices),
+          ))
+          .write(
+            RotationAssignmentsCompanion(
+              exerciseId: Value(replacementExerciseId),
+              source: const Value('user'),
+              reason: Value(
+                'Chosen during plan review (${_replacementScopeReason(scope)}).',
+              ),
+            ),
+          );
+    });
+  }
+
+  static String _replacementScopeReason(
+    ProgramExerciseReplacementScope scope,
+  ) => switch (scope) {
+    ProgramExerciseReplacementScope.thisWave => 'this wave',
+    ProgramExerciseReplacementScope.thisAndFutureWaves =>
+      'this and future waves',
+    ProgramExerciseReplacementScope.entireBlock => 'entire block',
+  };
+
   // ── Content resolution ───────────────────────────────────────────────────
+
+  /// Converts every linked workout template in a newly-created program into
+  /// an owned inline blueprint. Legacy programs keep their live links because
+  /// this is only called explicitly by the new builder.
+  Future<void> snapshotLinkedTemplates(int programId) async {
+    final weeks = await (_db.select(
+      _db.programWeeks,
+    )..where((t) => t.programId.equals(programId))).get();
+    if (weeks.isEmpty) return;
+    final weekIds = weeks.map((week) => week.id).toList(growable: false);
+    final days =
+        await (_db.select(_db.programDays)..where(
+              (t) => t.programWeekId.isIn(weekIds) & t.templateId.isNotNull(),
+            ))
+            .get();
+
+    await _db.transaction(() async {
+      for (final day in days) {
+        final templateId = day.templateId!;
+        final template = await (_db.select(
+          _db.workoutTemplates,
+        )..where((t) => t.id.equals(templateId))).getSingleOrNull();
+        final exercises =
+            await (_db.select(_db.templateExercises)
+                  ..where((t) => t.templateId.equals(templateId))
+                  ..orderBy([(t) => OrderingTerm(expression: t.orderIndex)]))
+                .get();
+
+        await (_db.delete(
+          _db.programDayExercises,
+        )..where((t) => t.programDayId.equals(day.id))).go();
+        for (final exercise in exercises) {
+          final sets =
+              await (_db.select(_db.templateSets)
+                    ..where((t) => t.templateExerciseId.equals(exercise.id))
+                    ..orderBy([(t) => OrderingTerm(expression: t.setOrder)]))
+                  .get();
+          final copiedSets = [
+            for (final set in sets)
+              <String, Object?>{
+                'setOrder': set.setOrder,
+                'setType': set.setType,
+                'setTypeMetaJson': set.setTypeMetaJson,
+                'targetReps': set.targetReps,
+                'targetRepsMin': set.targetRepsMin,
+                'targetRepsMax': set.targetRepsMax,
+                'targetWeightKg': set.targetWeightKg,
+                'isWarmup': set.isWarmup,
+              },
+          ];
+          // The prescription codec (Phase 18, PRES-01) has no field for a
+          // literal per-set target weight or an isWarmup flag — it describes
+          // reps/intent/%1RM archetypes, not a copied workout-template blob.
+          // Non-warmup sets survive the freeze as one segment each (sets: 1)
+          // so the exact rep target and set type is still immutable against
+          // future template edits; warmup sets are dropped here since
+          // automatic warmup computation (WarmupResolver) now owns that.
+          final workingTemplateSets = sets
+              .where((set) => !set.isWarmup)
+              .toList(growable: false);
+          final codecPrescription = workingTemplateSets.isEmpty
+              ? null
+              : SlotPrescription(
+                  name: 'Copied template',
+                  segments: [
+                    for (final set in workingTemplateSets)
+                      WorkSegment(
+                        sets: 1,
+                        repsMin:
+                            set.targetRepsMin ??
+                            set.targetReps ??
+                            exercise.targetRepsMin ??
+                            8,
+                        repsMax:
+                            set.targetRepsMax ??
+                            set.targetReps ??
+                            set.targetRepsMin ??
+                            exercise.targetRepsMax ??
+                            exercise.targetRepsMin,
+                        setType: SetType.fromId(set.setType),
+                      ),
+                  ],
+                );
+          await _db
+              .into(_db.programDayExercises)
+              .insert(
+                ProgramDayExercisesCompanion.insert(
+                  programDayId: day.id,
+                  exerciseId: exercise.exerciseId,
+                  orderIndex: exercise.orderIndex,
+                  targetSets: Value(
+                    sets.isEmpty ? exercise.targetSets : sets.length,
+                  ),
+                  targetRepsMin: Value(exercise.targetRepsMin),
+                  targetRepsMax: Value(exercise.targetRepsMax),
+                  restSeconds: Value(exercise.targetRestSeconds),
+                  slotRole: const Value('accessory'),
+                  trainingMethod: const Value('straight_sets'),
+                  prescriptionWhy: Value(
+                    'Copied from "${template?.name ?? 'workout template'}" when this program was created.',
+                  ),
+                  prescriptionJson: copiedSets.isEmpty
+                      ? const Value.absent()
+                      : Value(jsonEncode({'templateSets': copiedSets})),
+                  prescriptionCodecJson: codecPrescription == null
+                      ? const Value.absent()
+                      : Value(SlotPrescriptionCodec.encode(codecPrescription)),
+                ),
+              );
+        }
+        await (_db.update(_db.programDays)..where((t) => t.id.equals(day.id)))
+            .write(const ProgramDaysCompanion(templateId: Value(null)));
+      }
+    });
+  }
 
   /// The exercises a program day will produce, from its linked template or its
   /// inline rows.
@@ -1008,8 +1703,9 @@ class ProgramsRepository {
     if (fromIso != null) {
       query.where((t) => t.dateIso.isBiggerOrEqualValue(fromIso));
     }
-    if (toIso != null)
+    if (toIso != null) {
       query.where((t) => t.dateIso.isSmallerOrEqualValue(toIso));
+    }
     if (programId != null) query.where((t) => t.programId.equals(programId));
     final scheduled = await query.get();
     if (scheduled.length < 2) return const [];

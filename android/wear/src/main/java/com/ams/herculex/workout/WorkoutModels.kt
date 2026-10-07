@@ -13,6 +13,10 @@ data class PlannedSet(
     val targetRepsMin: Int? = null,
     val targetRepsMax: Int? = null,
     val targetWeightKg: Double? = null,
+    val targetRpe: Double? = null,
+    val targetRir: Int? = null,
+    val targetPercentOf1Rm: Double? = null,
+    val plannedIntent: String? = null,
     val durationSeconds: Int? = null,
     val targetDistanceMeters: Double? = null,
     val setTypeMetaJson: String? = null,
@@ -41,6 +45,9 @@ data class ExerciseTemplate(
     val plannedSets: List<PlannedSet> = emptyList(),
     val supersetGroup: Int? = null,
     val performanceHint: String? = null,
+    val trainingMethod: String? = null,
+    val waveLabel: String? = null,
+    val prescriptionReason: String? = null,
 ) {
     fun isBodyweightOnly(): Boolean {
         val metric = loggingMetric?.lowercase()?.trim()
@@ -222,6 +229,33 @@ data class WorkoutTemplate(
 
 // ── Live session state ────────────────────────────────────────────────────────
 
+/// Per-field conflict metadata for values users can edit on both the phone
+/// and watch. Whole-session envelopes repair missed delivery, but cannot use
+/// arrival order to resolve a stale weight/reps snapshot safely.
+data class SetSyncStamp(
+    val revision: Long,
+    val origin: String,
+) : Comparable<SetSyncStamp> {
+    override fun compareTo(other: SetSyncStamp): Int {
+        val revisionComparison = revision.compareTo(other.revision)
+        return if (revisionComparison != 0) revisionComparison else origin.compareTo(other.origin)
+    }
+}
+
+data class SetSyncVersions(
+    val weight: SetSyncStamp,
+    val reps: SetSyncStamp,
+    val completion: SetSyncStamp,
+) {
+    companion object {
+        fun uniform(stamp: SetSyncStamp) = SetSyncVersions(
+            weight = stamp,
+            reps = stamp,
+            completion = stamp,
+        )
+    }
+}
+
 data class LoggedSet(
     val wireId: String? = null,
     val setIndex: Int? = null,
@@ -238,6 +272,7 @@ data class LoggedSet(
     val bodyweightKg: Double? = null,
     val chainsKg: Double? = null,
     val completedAtEpochMs: Long? = null,
+    val syncVersions: SetSyncVersions? = null,
 ) {
     fun getMiniSets(): List<Int> {
         if (setTypeMetaJson.isNullOrBlank()) return emptyList()
@@ -296,6 +331,39 @@ data class ActiveExercise(
     val supersetGroup: Int? = null,
 ) {
     val completedSets: Int get() = sets.count { it.completed }
+
+    /// Working sets planned or logged — warmups never count toward the
+    /// "x of y" a lifter reads, so two warmups and three working sets show
+    /// 1/3, 2/3, 3/3 rather than 3/5, 4/5, 5/5.
+    val workingSetTotal: Int
+        get() {
+            val plannedWarmups = template.plannedSets.count { it.isWarmup }
+            return maxOf(
+                sets.count { !it.isWarmup },
+                template.targetSets - plannedWarmups,
+                1,
+            )
+        }
+
+    val warmupSetTotal: Int
+        get() = maxOf(
+            sets.count { it.isWarmup },
+            template.plannedSets.count { it.isWarmup },
+        )
+
+    /// "1/3" for the working set at [index], or "1/2" counted among the
+    /// warmups when [asWarmup]. [index] may equal `sets.size` (the next set
+    /// still to be logged).
+    fun setNumberLabel(index: Int, asWarmup: Boolean): String {
+        val before = sets.take(index.coerceIn(0, sets.size))
+        return if (asWarmup) {
+            val ordinal = before.count { it.isWarmup } + 1
+            "$ordinal/${maxOf(warmupSetTotal, ordinal)}"
+        } else {
+            val ordinal = before.count { !it.isWarmup } + 1
+            "$ordinal/${maxOf(workingSetTotal, ordinal)}"
+        }
+    }
 }
 
 data class WorkoutSession(

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:herculex/app/router/routes.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_controller.dart';
-import 'package:herculex/core/notifications/toast/hx_toast_model.dart';
+import 'package:herculex/core/notifications/app_notice.dart';
 import 'package:herculex/data/local/database.dart';
 import 'package:herculex/design_system/components/components.dart';
+import 'package:herculex/design_system/components/hx_nav_bar.dart';
 import 'package:herculex/design_system/theme/colors.dart';
 import 'package:herculex/design_system/theme/haptics.dart';
 import 'package:herculex/features/nutrition/application/goals_providers.dart';
@@ -57,21 +57,7 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
 
   void _onPageChanged(int page) {
     if (_settling) return;
-    final today = DateUtils.dateOnly(DateTime.now());
-    final candidate = _pageToDate(page);
-    if (candidate.isAfter(today)) {
-      // Snap back — can't go to future
-      _settling = true;
-      _pageCtrl
-          .animateToPage(
-            _dateToPage(today),
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-          )
-          .then((_) => _settling = false);
-      return;
-    }
-    ref.read(selectedDateProvider.notifier).state = candidate;
+    ref.read(selectedDateProvider.notifier).state = _pageToDate(page);
   }
 
   @override
@@ -101,22 +87,56 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
       });
     }
 
+    final isToday = DateUtils.isSameDay(date, DateTime.now());
+
     return Scaffold(
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
-              child: _buildDateHeader(context, date, theme),
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                  child: _buildDateHeader(context, date, theme),
+                ),
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageCtrl,
+                    onPageChanged: _onPageChanged,
+                    itemBuilder: (context, page) {
+                      final pageDate = _pageToDate(page);
+                      return _DayPage(date: pageDate);
+                    },
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: PageView.builder(
-                controller: _pageCtrl,
-                onPageChanged: _onPageChanged,
-                itemBuilder: (context, page) {
-                  final pageDate = _pageToDate(page);
-                  return _DayPage(date: pageDate);
-                },
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: HxNavBar.clearance,
+              child: Center(
+                child: IgnorePointer(
+                  ignoring: isToday,
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    offset: isToday ? const Offset(0, 0.6) : Offset.zero,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 180),
+                      opacity: isToday ? 0 : 1,
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          Haptics.selection();
+                          ref.read(selectedDateProvider.notifier).state =
+                              DateUtils.dateOnly(DateTime.now());
+                        },
+                        icon: const Icon(Icons.today_rounded, size: 18),
+                        label: const Text('Go to today'),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -179,12 +199,10 @@ class _NutritionViewState extends ConsumerState<NutritionView> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
-                  onPressed: isToday
-                      ? null
-                      : () {
-                          final next = DateUtils.addDaysToDate(date, 1);
-                          ref.read(selectedDateProvider.notifier).state = next;
-                        },
+                  onPressed: () {
+                    final next = DateUtils.addDaysToDate(date, 1);
+                    ref.read(selectedDateProvider.notifier).state = next;
+                  },
                 ),
               ],
             ),
@@ -625,7 +643,7 @@ class _MealMacroSummary extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -697,7 +715,7 @@ class _MealCalorieGoal extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox(height: 16),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -757,7 +775,7 @@ final entryDisplayProvider = FutureProvider.autoDispose
       }
 
       final portionText = entry.foodId != null
-          ? '${(entry.gramsOverride ?? (entry.portionUnit == 'g' ? entry.portionAmount : null) ?? entry.snapshotServingGrams ?? entry.portionAmount ?? 0).toStringAsFixed(0)} g'
+          ? _foodEntryPortionText(entry)
           : '${entry.servings.toStringAsFixed(entry.servings.truncateToDouble() == entry.servings ? 0 : 1)} serv';
 
       return _EntryDisplay(
@@ -773,6 +791,22 @@ final entryDisplayProvider = FutureProvider.autoDispose
         cholesterolMg: macros.cholesterolMg,
       );
     });
+
+String _foodEntryPortionText(FoodEntryData entry) {
+  final amount =
+      entry.portionAmount ??
+      entry.gramsOverride ??
+      entry.snapshotServingAmount ??
+      entry.snapshotServingGrams ??
+      0;
+  final unit =
+      entry.portionUnit ??
+      (entry.gramsOverride != null ? 'g' : entry.snapshotServingUnit ?? 'g');
+  final formatted = amount == amount.roundToDouble()
+      ? amount.toStringAsFixed(0)
+      : amount.toStringAsFixed(1);
+  return '$formatted $unit';
+}
 
 FoodData _placeholderFood() => FoodData(
   id: 0,
@@ -812,23 +846,13 @@ class _EntryTile extends ConsumerWidget {
               final itemName = display.name;
               await repo.deleteEntry(entry.id);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Deleted "$itemName"'),
-                    duration: const Duration(seconds: 3),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    action: SnackBarAction(
-                      label: 'Undo',
-                      textColor: AppColors.primary,
-                      onPressed: () async {
-                        await repo.restoreEntry(entryToRestore);
-                      },
-                    ),
-                  ),
+                AppNotice.show(
+                  context,
+                  'Deleted "$itemName"',
+                  actionLabel: 'Undo',
+                  onAction: () async {
+                    await repo.restoreEntry(entryToRestore);
+                  },
                 );
               }
             },
@@ -1010,14 +1034,11 @@ class _EntryTile extends ConsumerWidget {
                               ),
                             )
                             .label;
-                        ref
-                            .read(hxToastControllerProvider.notifier)
-                            .show(
-                              HxToastItem.entryMoved(
-                                itemName: display.name,
-                                targetLabel: targetLabel,
-                              ),
-                            );
+                        AppNotice.showWith(
+                          ref,
+                          'Moved to $targetLabel',
+                          title: display.name,
+                        );
                       },
                       itemBuilder: (context) => [
                         for (final slot in mealSlots)
@@ -1083,23 +1104,13 @@ class _EntryTile extends ConsumerWidget {
                         Navigator.of(modalContext).pop();
                         await repo.deleteEntry(entry.id);
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Deleted "$itemName"'),
-                              duration: const Duration(seconds: 3),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              action: SnackBarAction(
-                                label: 'Undo',
-                                textColor: AppColors.primary,
-                                onPressed: () async {
-                                  await repo.restoreEntry(entryToRestore);
-                                },
-                              ),
-                            ),
+                          AppNotice.show(
+                            context,
+                            'Deleted "$itemName"',
+                            actionLabel: 'Undo',
+                            onAction: () async {
+                              await repo.restoreEntry(entryToRestore);
+                            },
                           );
                         }
                       },
@@ -1157,14 +1168,11 @@ class _EntryTile extends ConsumerWidget {
                             mealKey: slot.key,
                           );
                           if (!context.mounted) return;
-                          ref
-                              .read(hxToastControllerProvider.notifier)
-                              .show(
-                                HxToastItem.entryMoved(
-                                  itemName: display.name,
-                                  targetLabel: slot.label,
-                                ),
-                              );
+                          AppNotice.showWith(
+                            ref,
+                            'Moved to ${slot.label}',
+                            title: display.name,
+                          );
                         },
                       ),
                   ],
